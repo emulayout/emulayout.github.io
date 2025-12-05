@@ -22,10 +22,14 @@ export function printPretty(data: LayoutData, splitCol = 5): string {
 		.sort((a, b) => Number(a) - Number(b))
 		.map((row) => {
 			const r = rows[Number(row)];
+			// Find the max column that has a key
+			const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
+			// Fill gaps with space, up to maxCol
+			const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
 			return (
-				r.slice(0, splitCol).join(' ') +
+				filled.slice(0, splitCol).join(' ') +
 				'  ' + // extra gap between hands
-				r.slice(splitCol).join(' ')
+				filled.slice(splitCol).join(' ')
 			);
 		})
 		.join('\n');
