@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { printPretty, type LayoutData } from '$lib/printPretty';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
+	import { filterStore } from '$lib/filterStore.svelte';
 
 	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/layouts/*.json', {
 		eager: true
@@ -8,61 +9,7 @@
 
 	const layouts: LayoutData[] = Object.values(layoutModules).map((mod) => mod.default);
 
-	let hideEmpty = $state(true);
-
-	// Filter grids: 3 rows, 10 columns
-	const ROWS = 3;
-	const COLS = 10;
-
-	function createEmptyGrid(): string[][] {
-		return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
-	}
-
-	let includeGrid: string[][] = $state(createEmptyGrid());
-	let excludeGrid: string[][] = $state(createEmptyGrid());
-
-	// Get key at a specific position in a layout
-	function getKeyAt(layout: LayoutData, row: number, col: number): string | undefined {
-		for (const [key, info] of Object.entries(layout.keys)) {
-			if (info.row === row && info.col === col) return key;
-		}
-		return undefined;
-	}
-
-	// Check if layout matches include filter (must have these keys at positions)
-	function matchesInclude(layout: LayoutData): boolean {
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const filterChar = includeGrid[row][col].toLowerCase();
-				if (filterChar) {
-					const keyAtPos = getKeyAt(layout, row, col);
-					if (keyAtPos?.toLowerCase() !== filterChar) return false;
-				}
-			}
-		}
-		return true;
-	}
-
-	// Check if layout matches exclude filter (must NOT have these keys at positions)
-	function matchesExclude(layout: LayoutData): boolean {
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const filterChar = excludeGrid[row][col].toLowerCase();
-				if (filterChar) {
-					const keyAtPos = getKeyAt(layout, row, col);
-					if (keyAtPos?.toLowerCase() === filterChar) return false;
-				}
-			}
-		}
-		return true;
-	}
-
-	const filteredLayouts = $derived(
-		layouts.filter((l) => {
-			if (hideEmpty && Object.keys(l.keys).length === 0) return false;
-			return matchesInclude(l) && matchesExclude(l);
-		})
-	);
+	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 </script>
 
 <div class="max-w-4xl mx-auto">
@@ -72,8 +19,20 @@
 
 	<!-- Filter Grids -->
 	<div class="grid gap-4 md:grid-cols-2 mb-6">
-		<FilterGrid label="Include (must have)" bind:grid={includeGrid} accentColor="#4ade80" />
-		<FilterGrid label="Exclude (must not have)" bind:grid={excludeGrid} accentColor="#f87171" />
+		<FilterGrid
+			label="Include (must have)"
+			grid={filterStore.includeGrid}
+			accentColor="#4ade80"
+			onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
+			onClear={() => filterStore.clearInclude()}
+		/>
+		<FilterGrid
+			label="Exclude (must not have)"
+			grid={filterStore.excludeGrid}
+			accentColor="#f87171"
+			onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
+			onClear={() => filterStore.clearExclude()}
+		/>
 	</div>
 
 	<div class="flex items-center justify-between mb-8">
@@ -82,7 +41,12 @@
 		</p>
 
 		<label class="flex items-center gap-2 cursor-pointer select-none">
-			<input type="checkbox" bind:checked={hideEmpty} class="size-4 rounded accent-(--accent)" />
+			<input
+				type="checkbox"
+				checked={filterStore.hideEmpty}
+				onchange={(e) => filterStore.setHideEmpty(e.currentTarget.checked)}
+				class="size-4 rounded accent-(--accent)"
+			/>
 			<span class="text-sm" style="color: var(--text-secondary);">Hide empty layouts</span>
 		</label>
 	</div>

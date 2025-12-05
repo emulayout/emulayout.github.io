@@ -7,12 +7,25 @@
 		label: string;
 		grid: string[][];
 		accentColor?: string;
+		onCellChange?: (row: number, col: number, value: string) => void;
+		onClear?: () => void;
 	}
 
-	let { label, grid = $bindable(), accentColor = 'var(--accent)' }: Props = $props();
+	let {
+		label,
+		grid,
+		accentColor = 'var(--accent)',
+		onCellChange,
+		onClear
+	}: Props = $props();
 
-	function clear() {
-		grid = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
+	function handleInput(rowIdx: number, colIdx: number, event: Event) {
+		const input = event.target as HTMLInputElement;
+		onCellChange?.(rowIdx, colIdx, input.value);
+	}
+
+	function handleClear() {
+		onClear?.();
 	}
 
 	const hasActiveFilters = $derived(grid.some((row) => row.some((cell) => cell !== '')));
@@ -26,7 +39,7 @@
 		<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
 		{#if hasActiveFilters}
 			<button
-				onclick={clear}
+				onclick={handleClear}
 				class="text-xs px-2 py-1 rounded transition-colors"
 				style="color: {accentColor}; background-color: var(--bg-primary);"
 			>
@@ -38,19 +51,20 @@
 	<div class="flex flex-col gap-1 font-mono">
 		{#each grid as row, rowIdx}
 			<div class="flex gap-1">
-				{#each row as _, colIdx}
+				{#each row as cell, colIdx}
 					{#if colIdx === SPLIT_COL}
 						<div class="w-3"></div>
 					{/if}
 					<input
 						type="text"
 						maxlength="1"
-						bind:value={grid[rowIdx][colIdx]}
+						value={cell}
+						oninput={(e) => handleInput(rowIdx, colIdx, e)}
 						class="size-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
 						style="
 							background-color: var(--key-bg);
 							color: var(--text-primary);
-							border: 1px solid {grid[rowIdx][colIdx] ? accentColor : 'var(--border)'};
+							border: 1px solid {cell ? accentColor : 'var(--border)'};
 							--tw-ring-color: {accentColor};
 						"
 						placeholder="·"
