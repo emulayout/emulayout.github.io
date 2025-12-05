@@ -1,28 +1,6 @@
 <script lang="ts">
 	import layout from '$lib/layouts/colemak-dh.json';
-
-	function printPretty(data, splitCol = 5) {
-		const rows = {};
-
-		Object.entries(data.keys).forEach(([key, info]) => {
-			if (!rows[info.row]) rows[info.row] = [];
-			rows[info.row][info.col] = key;
-		});
-
-		const out = Object.keys(rows)
-			.sort((a, b) => a - b)
-			.map((row) => {
-				const r = rows[row];
-				return (
-					r.slice(0, splitCol).join(' ') +
-					'  ' + // extra gap between hands
-					r.slice(splitCol).join(' ')
-				);
-			})
-			.join('\n');
-
-		return out;
-	}
+	import { printPretty } from '$lib/printPretty';
 </script>
 
 <div class="max-w-2xl mx-auto">
@@ -31,7 +9,7 @@
 	</h1>
 
 	<p class="mb-6" style="color: var(--text-secondary);">
-		Viewing <span style="color: var(--accent); font-weight: 600;">Colemak-DH</span> layout
+		Viewing <span style="color: var(--accent); font-weight: 600;">{layout.name}</span> layout
 	</p>
 
 	<pre
