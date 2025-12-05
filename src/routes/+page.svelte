@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { printPretty, type LayoutData } from '$lib/printPretty';
+	import FilterGrid from '$lib/components/FilterGrid.svelte';
 
 	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/layouts/*.json', {
 		eager: true
@@ -9,15 +10,16 @@
 
 	let hideEmpty = $state(true);
 
-	// Filter grid: 3 rows, 10 columns
+	// Filter grids: 3 rows, 10 columns
 	const ROWS = 3;
 	const COLS = 10;
-	const SPLIT_COL = 5;
 
-	// Initialize filter grid state
-	let filterGrid: string[][] = $state(
-		Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''))
-	);
+	function createEmptyGrid(): string[][] {
+		return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
+	}
+
+	let includeGrid: string[][] = $state(createEmptyGrid());
+	let excludeGrid: string[][] = $state(createEmptyGrid());
 
 	// Get key at a specific position in a layout
 	function getKeyAt(layout: LayoutData, row: number, col: number): string | undefined {
@@ -27,11 +29,11 @@
 		return undefined;
 	}
 
-	// Check if layout matches all filter criteria
-	function matchesFilter(layout: LayoutData): boolean {
+	// Check if layout matches include filter (must have these keys at positions)
+	function matchesInclude(layout: LayoutData): boolean {
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChar = filterGrid[row][col].toLowerCase();
+				const filterChar = includeGrid[row][col].toLowerCase();
 				if (filterChar) {
 					const keyAtPos = getKeyAt(layout, row, col);
 					if (keyAtPos?.toLowerCase() !== filterChar) return false;
@@ -41,18 +43,26 @@
 		return true;
 	}
 
+	// Check if layout matches exclude filter (must NOT have these keys at positions)
+	function matchesExclude(layout: LayoutData): boolean {
+		for (let row = 0; row < ROWS; row++) {
+			for (let col = 0; col < COLS; col++) {
+				const filterChar = excludeGrid[row][col].toLowerCase();
+				if (filterChar) {
+					const keyAtPos = getKeyAt(layout, row, col);
+					if (keyAtPos?.toLowerCase() === filterChar) return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	const filteredLayouts = $derived(
 		layouts.filter((l) => {
 			if (hideEmpty && Object.keys(l.keys).length === 0) return false;
-			return matchesFilter(l);
+			return matchesInclude(l) && matchesExclude(l);
 		})
 	);
-
-	function clearFilters() {
-		filterGrid = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
-	}
-
-	const hasActiveFilters = $derived(filterGrid.some((row) => row.some((cell) => cell !== '')));
 </script>
 
 <div class="max-w-4xl mx-auto">
@@ -60,50 +70,10 @@
 		Keyboard Layout Viewer
 	</h1>
 
-	<!-- Filter Grid -->
-	<div
-		class="p-4 rounded-xl mb-6"
-		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-	>
-		<div class="flex items-center justify-between mb-3">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);"
-				>Filter by position</span
-			>
-			{#if hasActiveFilters}
-				<button
-					onclick={clearFilters}
-					class="text-xs px-2 py-1 rounded transition-colors"
-					style="color: var(--accent); background-color: var(--bg-primary);"
-				>
-					Clear filters
-				</button>
-			{/if}
-		</div>
-
-		<div class="flex flex-col gap-1 font-mono">
-			{#each filterGrid as row, rowIdx}
-				<div class="flex gap-1">
-					{#each row as _, colIdx}
-						{#if colIdx === SPLIT_COL}
-							<div class="w-3"></div>
-						{/if}
-						<input
-							type="text"
-							maxlength="1"
-							bind:value={filterGrid[rowIdx][colIdx]}
-							class="size-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-							style="
-								background-color: var(--key-bg);
-								color: var(--text-primary);
-								border: 1px solid {filterGrid[rowIdx][colIdx] ? 'var(--accent)' : 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							placeholder="·"
-						/>
-					{/each}
-				</div>
-			{/each}
-		</div>
+	<!-- Filter Grids -->
+	<div class="grid gap-4 md:grid-cols-2 mb-6">
+		<FilterGrid label="Include (must have)" bind:grid={includeGrid} accentColor="#4ade80" />
+		<FilterGrid label="Exclude (must not have)" bind:grid={excludeGrid} accentColor="#f87171" />
 	</div>
 
 	<div class="flex items-center justify-between mb-8">
