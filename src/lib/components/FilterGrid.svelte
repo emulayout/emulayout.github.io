@@ -57,11 +57,11 @@
 					{/if}
 					<input
 						type="text"
-						maxlength="1"
 						value={cell}
 						oninput={(e) => handleInput(rowIdx, colIdx, e)}
-						class="size-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+						class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
 						style="
+							width: {Math.max(2, cell.length) * 0.6 + 0.8}rem;
 							background-color: var(--key-bg);
 							color: var(--text-primary);
 							border: 1px solid {cell ? accentColor : 'var(--border)'};

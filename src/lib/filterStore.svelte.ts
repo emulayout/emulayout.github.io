@@ -153,28 +153,30 @@ export class FilterStore {
 		return undefined;
 	}
 
-	// Check if layout matches include filter
+	// Check if layout matches include filter (key must be one of the specified chars)
 	#matchesInclude(layout: LayoutData): boolean {
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChar = this.includeGrid[row][col].toLowerCase();
-				if (filterChar) {
-					const keyAtPos = this.#getKeyAt(layout, row, col);
-					if (keyAtPos?.toLowerCase() !== filterChar) return false;
+				const filterChars = this.includeGrid[row][col].toLowerCase();
+				if (filterChars) {
+					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
+					// Key must match one of the filter characters
+					if (!keyAtPos || !filterChars.includes(keyAtPos)) return false;
 				}
 			}
 		}
 		return true;
 	}
 
-	// Check if layout matches exclude filter
+	// Check if layout matches exclude filter (key must NOT be any of the specified chars)
 	#matchesExclude(layout: LayoutData): boolean {
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChar = this.excludeGrid[row][col].toLowerCase();
-				if (filterChar) {
-					const keyAtPos = this.#getKeyAt(layout, row, col);
-					if (keyAtPos?.toLowerCase() === filterChar) return false;
+				const filterChars = this.excludeGrid[row][col].toLowerCase();
+				if (filterChars) {
+					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
+					// If key matches any of the filter characters, exclude it
+					if (keyAtPos && filterChars.includes(keyAtPos)) return false;
 				}
 			}
 		}
