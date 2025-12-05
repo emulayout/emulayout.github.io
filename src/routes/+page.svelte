@@ -18,7 +18,7 @@
 	</h1>
 
 	<!-- Filter Grids -->
-	<div class="grid gap-4 md:grid-cols-2 mb-6">
+	<div class="grid gap-4 md:grid-cols-2 mb-4">
 		<FilterGrid
 			label="Include (must have)"
 			grid={filterStore.includeGrid}
@@ -34,6 +34,18 @@
 			onClear={() => filterStore.clearExclude()}
 		/>
 	</div>
+
+	{#if filterStore.hasActiveFilters}
+		<div class="mb-6">
+			<button
+				onclick={() => filterStore.clearAll()}
+				class="text-sm px-3 py-1.5 rounded-lg transition-colors"
+				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
+			>
+				Reset all filters
+			</button>
+		</div>
+	{/if}
 
 	<div class="flex items-center justify-between mb-8">
 		<p style="color: var(--text-secondary);">

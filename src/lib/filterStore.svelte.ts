@@ -132,6 +132,19 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	clearAll() {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.hideEmpty = true;
+		this.#debouncedSave();
+	}
+
+	get hasActiveFilters(): boolean {
+		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
+		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
+		return hasInclude || hasExclude || !this.hideEmpty;
+	}
+
 	// Get key at a specific position in a layout
 	#getKeyAt(layout: LayoutData, row: number, col: number): string | undefined {
 		for (const [key, info] of Object.entries(layout.keys)) {
