@@ -47,8 +47,11 @@ export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
 	hideEmpty: boolean = $state(true);
+	nameFilterInput: string = $state(''); // Immediate input value
+	nameFilter: string = $state(''); // Debounced filter value
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
 		if (browser) {
@@ -73,6 +76,12 @@ export class FilterStore {
 		if (hideEmpty !== null) {
 			this.hideEmpty = hideEmpty !== '0';
 		}
+
+		const name = url.searchParams.get('name');
+		if (name) {
+			this.nameFilterInput = name;
+			this.nameFilter = name;
+		}
 	}
 
 	#saveToUrl() {
@@ -93,6 +102,10 @@ export class FilterStore {
 
 		if (!this.hideEmpty) {
 			url.searchParams.set('hideEmpty', '0');
+		}
+
+		if (this.nameFilter) {
+			url.searchParams.set('name', this.nameFilter);
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -122,6 +135,18 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	setNameFilter(value: string) {
+		this.nameFilterInput = value;
+		// Debounce the actual filter update
+		if (this.#nameDebounceTimeout) {
+			clearTimeout(this.#nameDebounceTimeout);
+		}
+		this.#nameDebounceTimeout = setTimeout(() => {
+			this.nameFilter = value;
+			this.#saveToUrl(); // Sync URL immediately after filter updates
+		}, DEBOUNCE_MS);
+	}
+
 	clearInclude() {
 		this.includeGrid = createEmptyGrid();
 		this.#debouncedSave();
@@ -136,13 +161,18 @@ export class FilterStore {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
 		this.hideEmpty = true;
+		this.nameFilterInput = '';
+		this.nameFilter = '';
+		if (this.#nameDebounceTimeout) {
+			clearTimeout(this.#nameDebounceTimeout);
+		}
 		this.#debouncedSave();
 	}
 
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
-		return hasInclude || hasExclude || !this.hideEmpty;
+		return hasInclude || hasExclude || !this.hideEmpty || this.nameFilterInput !== '';
 	}
 
 	// Get key at a specific position in a layout
@@ -183,11 +213,17 @@ export class FilterStore {
 		return true;
 	}
 
+	// Check if layout name matches filter
+	#matchesName(layout: LayoutData): boolean {
+		if (!this.nameFilter) return true;
+		return layout.name.toLowerCase().includes(this.nameFilter.toLowerCase());
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
-			return this.#matchesInclude(l) && this.#matchesExclude(l);
+			return this.#matchesName(l) && this.#matchesInclude(l) && this.#matchesExclude(l);
 		});
 	}
 }

@@ -17,6 +17,23 @@
 		Keyboard Layout Viewer
 	</h1>
 
+	<!-- Name Search -->
+	<div class="mb-4">
+		<input
+			type="text"
+			placeholder="Search by layout name..."
+			value={filterStore.nameFilterInput}
+			oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
+			class="w-full px-4 py-2 rounded-xl text-sm outline-none focus:ring-2 transition-all duration-200"
+			style="
+				background-color: var(--bg-secondary);
+				color: var(--text-primary);
+				border: 1px solid {filterStore.nameFilterInput ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
+			"
+		/>
+	</div>
+
 	<!-- Filter Grids -->
 	<div class="grid gap-4 md:grid-cols-2 mb-4">
 		<FilterGrid
