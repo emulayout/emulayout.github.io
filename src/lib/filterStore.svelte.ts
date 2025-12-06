@@ -49,6 +49,7 @@ export class FilterStore {
 	hideEmpty: boolean = $state(true);
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
+	selectedAuthors: Set<number> = $state(new Set()); // Set of author user IDs
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -82,6 +83,11 @@ export class FilterStore {
 			this.nameFilterInput = name;
 			this.nameFilter = name;
 		}
+
+		const authors = url.searchParams.get('authors');
+		if (authors) {
+			this.selectedAuthors = new Set(authors.split(',').map(Number));
+		}
 	}
 
 	#saveToUrl() {
@@ -106,6 +112,10 @@ export class FilterStore {
 
 		if (this.nameFilter) {
 			url.searchParams.set('name', this.nameFilter);
+		}
+
+		if (this.selectedAuthors.size > 0) {
+			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -157,12 +167,29 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	toggleAuthor(authorId: number) {
+		if (this.selectedAuthors.has(authorId)) {
+			this.selectedAuthors.delete(authorId);
+		} else {
+			this.selectedAuthors.add(authorId);
+		}
+		// Trigger reactivity by reassigning
+		this.selectedAuthors = new Set(this.selectedAuthors);
+		this.#debouncedSave();
+	}
+
+	clearAuthors() {
+		this.selectedAuthors = new Set();
+		this.#debouncedSave();
+	}
+
 	clearAll() {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
 		this.hideEmpty = true;
 		this.nameFilterInput = '';
 		this.nameFilter = '';
+		this.selectedAuthors = new Set();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
@@ -172,7 +199,7 @@ export class FilterStore {
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
-		return hasInclude || hasExclude || !this.hideEmpty || this.nameFilterInput !== '';
+		return hasInclude || hasExclude || !this.hideEmpty || this.nameFilterInput !== '' || this.selectedAuthors.size > 0;
 	}
 
 	// Get key at a specific position in a layout
@@ -219,11 +246,17 @@ export class FilterStore {
 		return layout.name.toLowerCase().includes(this.nameFilter.toLowerCase());
 	}
 
+	// Check if layout author matches filter
+	#matchesAuthor(layout: LayoutData): boolean {
+		if (this.selectedAuthors.size === 0) return true;
+		return this.selectedAuthors.has(layout.user);
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
-			return this.#matchesName(l) && this.#matchesInclude(l) && this.#matchesExclude(l);
+			return this.#matchesName(l) && this.#matchesAuthor(l) && this.#matchesInclude(l) && this.#matchesExclude(l);
 		});
 	}
 }

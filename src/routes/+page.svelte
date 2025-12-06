@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { printPretty, type LayoutData } from '$lib/printPretty';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
+	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import authors from '$lib/cmini/authors.json';
+	import authorsData from '$lib/cmini/authors.json';
 
 	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/cmini/layouts/*.json', {
 		eager: true
@@ -12,8 +13,13 @@
 
 	// Create reverse lookup: user_id -> author_name
 	const authorById = new Map<number, string>(
-		Object.entries(authors).map(([name, id]) => [id as number, name])
+		Object.entries(authorsData).map(([name, id]) => [id as number, name])
 	);
+
+	// Create sorted list of unique authors for the select
+	const authorList = Array.from(authorById.entries())
+		.map(([id, name]) => ({ id, name }))
+		.sort((a, b) => a.name.localeCompare(b.name));
 
 	function getAuthorName(userId: number): string {
 		return authorById.get(userId) ?? 'Unknown';
@@ -27,8 +33,8 @@
 		Keyboard Layout Viewer
 	</h1>
 
-	<!-- Name Search -->
-	<div class="mb-4">
+	<!-- Name Search & Author Filter -->
+	<div class="grid gap-4 md:grid-cols-2 mb-4">
 		<input
 			type="text"
 			placeholder="Search by layout name..."
@@ -41,6 +47,12 @@
 				border: 1px solid {filterStore.nameFilterInput ? 'var(--accent)' : 'var(--border)'};
 				--tw-ring-color: var(--accent);
 			"
+		/>
+		<AuthorSelect
+			authors={authorList}
+			selectedIds={filterStore.selectedAuthors}
+			onToggle={(id) => filterStore.toggleAuthor(id)}
+			onClear={() => filterStore.clearAuthors()}
 		/>
 	</div>
 
