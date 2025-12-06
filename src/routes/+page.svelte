@@ -2,12 +2,22 @@
 	import { printPretty, type LayoutData } from '$lib/printPretty';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import authors from '$lib/cmini/authors.json';
 
-	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/layouts/*.json', {
+	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/cmini/layouts/*.json', {
 		eager: true
 	});
 
 	const layouts: LayoutData[] = Object.values(layoutModules).map((mod) => mod.default);
+
+	// Create reverse lookup: user_id -> author_name
+	const authorById = new Map<number, string>(
+		Object.entries(authors).map(([name, id]) => [id as number, name])
+	);
+
+	function getAuthorName(userId: number): string {
+		return authorById.get(userId) ?? 'Unknown';
+	}
 
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 </script>
@@ -90,7 +100,7 @@
 					{layout.name}
 				</h2>
 				<p class="text-xs mb-3" style="color: var(--text-secondary);">
-					{layout.board}
+					{layout.board} · by {getAuthorName(layout.user)}
 				</p>
 				<pre
 					class="font-mono text-xs leading-relaxed tracking-widest"
