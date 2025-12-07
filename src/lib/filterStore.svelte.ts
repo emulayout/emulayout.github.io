@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
-import type { LayoutData } from './printPretty';
+import type { LayoutData } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 

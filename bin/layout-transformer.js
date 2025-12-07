@@ -13,6 +13,7 @@ export function transformLayout(layout) {
 
 	// Add computed properties
 	transformed.hasThumbKeys = computeHasThumbKeys(layout);
+	transformed.displayValue = computeDisplayValue(layout);
 
 	return transformed;
 }
@@ -37,3 +38,35 @@ function computeHasThumbKeys(layout) {
 	return rows.size > 3;
 }
 
+/**
+ * Computes the displayValue string representation of a layout.
+ */
+function computeDisplayValue(layout, splitCol = 5) {
+	if (!layout.keys || typeof layout.keys !== 'object') {
+		return '';
+	}
+
+	const rows = {};
+	Object.entries(layout.keys).forEach(([key, info]) => {
+		if (!rows[info.row]) rows[info.row] = [];
+		rows[info.row][info.col] = key;
+	});
+
+	const out = Object.keys(rows)
+		.sort((a, b) => Number(a) - Number(b))
+		.map((row) => {
+			const r = rows[Number(row)];
+			// Find the max column that has a key
+			const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
+			// Fill gaps with space, up to maxCol
+			const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
+			return (
+				filled.slice(0, splitCol).join(' ') +
+				'  ' + // extra gap between hands
+				filled.slice(splitCol).join(' ')
+			);
+		})
+		.join('\n');
+
+	return out.trim();
+}

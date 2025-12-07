@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { printPretty, type LayoutData } from '$lib/printPretty';
+	import type { LayoutData } from '$lib/layout';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import { filterStore, type ThumbKeyFilter } from '$lib/filterStore.svelte';
@@ -142,7 +142,7 @@
 				</p>
 				<pre
 					class="font-mono text-xs leading-relaxed tracking-widest"
-					style="color: var(--text-primary);">{printPretty(layout)}</pre>
+					style="color: var(--text-primary);">{layout.displayValue}</pre>
 			</div>
 		{/each}
 	</div>

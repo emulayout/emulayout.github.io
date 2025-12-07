@@ -143,15 +143,29 @@ async function run() {
 			let modifiedContent = originalContent;
 
 			// Check if hasThumbKeys already exists (in case of re-sync)
-			if (/"hasThumbKeys"\s*:/g.test(modifiedContent)) {
+			const hasThumbKeysExists = /"hasThumbKeys"\s*:/g.test(modifiedContent);
+			const displayValueExists = /"displayValue"\s*:/g.test(modifiedContent);
+
+			if (hasThumbKeysExists) {
 				// Replace existing value
 				modifiedContent = modifiedContent.replace(
 					/"hasThumbKeys"\s*:\s*\w+/g,
 					`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`
 				);
-			} else {
-				// Insert after "board" property (before "keys")
-				// Find the "board" line and insert after it
+			}
+
+			if (displayValueExists) {
+				// Replace existing value - escape the string properly for JSON
+				const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
+				// Match with or without trailing comma, always add comma (since "keys" comes after)
+				modifiedContent = modifiedContent.replace(
+					/"displayValue"\s*:\s*"[^"]*",?\s*\n/g,
+					`"displayValue": ${escapedDisplayValue},\n`
+				);
+			}
+
+			if (!hasThumbKeysExists || !displayValueExists) {
+				// Insert new properties after "board" property (before "keys")
 				const boardMatch = modifiedContent.match(/"board"\s*:\s*"[^"]*",?\s*\n/);
 				if (boardMatch) {
 					const indentMatch = boardMatch[0].match(/^(\s+)/);
@@ -165,13 +179,23 @@ async function run() {
 						boardLine = boardLine.replace(/\n/, ',\n');
 					}
 
-					// hasThumbKeys always needs a comma (since "keys" comes after)
-					const newProperty = `${indent}"hasThumbKeys": ${transformedLayout.hasThumbKeys},\n`;
+					// Build properties to insert
+					const propertiesToInsert = [];
+					if (!hasThumbKeysExists) {
+						propertiesToInsert.push(`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`);
+					}
+					if (!displayValueExists) {
+						const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
+						propertiesToInsert.push(`"displayValue": ${escapedDisplayValue}`);
+					}
+
+					// All properties need commas (since "keys" always comes after)
+					const newProperties = propertiesToInsert.map((prop) => `${indent}${prop},\n`).join('');
 
 					modifiedContent =
 						modifiedContent.slice(0, boardMatch.index) +
 						boardLine +
-						newProperty +
+						newProperties +
 						modifiedContent.slice(insertPoint);
 				} else {
 					// Fallback: insert at the end of the root object, before "keys"
@@ -179,10 +203,22 @@ async function run() {
 					if (keysMatch) {
 						const indent = keysMatch[1];
 						const insertPoint = keysMatch.index;
-						const newProperty = `${indent}"hasThumbKeys": ${transformedLayout.hasThumbKeys},\n`;
+
+						const propertiesToInsert = [];
+						if (!hasThumbKeysExists) {
+							propertiesToInsert.push(`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`);
+						}
+						if (!displayValueExists) {
+							const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
+							propertiesToInsert.push(`"displayValue": ${escapedDisplayValue}`);
+						}
+
+						// All properties need commas (since "keys" always comes after)
+						const newProperties = propertiesToInsert.map((prop) => `${indent}${prop},\n`).join('');
+
 						modifiedContent =
 							modifiedContent.slice(0, insertPoint) +
-							newProperty +
+							newProperties +
 							modifiedContent.slice(insertPoint);
 					}
 				}
