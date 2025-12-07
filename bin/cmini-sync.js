@@ -111,7 +111,7 @@ async function run() {
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts, null, '\t') + '\n', 'utf-8');
 
 	console.log('→ Syncing authors...');
-	await $`cp ${CACHE_DIR}/authors.json ${DEST}/authors.json`;
+	await $`cp ${CACHE_DIR}/authors.json static/authors.json`;
 
 	// Calculate changes by comparing layout names
 	const beforeNames = new Set(beforeLayouts.map((l) => l.name));

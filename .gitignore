@@ -25,5 +25,6 @@ vite.config.ts.timestamp-*
 # Cache
 .cache
 
-# Generated layout data
+# Generated data files
 static/all-layouts.json
+static/authors.json
