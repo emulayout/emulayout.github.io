@@ -86,6 +86,11 @@ export class FilterStore {
 		const thumbKeys = url.searchParams.get('thumbKeys');
 		if (thumbKeys === 'excluded' || thumbKeys === 'required') {
 			this.thumbKeyFilter = thumbKeys;
+			// Clear thumb key filters when set to excluded
+			if (thumbKeys === 'excluded') {
+				this.includeThumbKeys = ['', '', '', ''];
+				this.excludeThumbKeys = ['', '', '', ''];
+			}
 		}
 
 		const name = url.searchParams.get('name');
@@ -193,6 +198,11 @@ export class FilterStore {
 
 	setThumbKeyFilter(value: ThumbKeyFilter) {
 		this.thumbKeyFilter = value;
+		// Clear thumb key filters when set to excluded
+		if (value === 'excluded') {
+			this.includeThumbKeys = ['', '', '', ''];
+			this.excludeThumbKeys = ['', '', '', ''];
+		}
 		this.#debouncedSave();
 	}
 

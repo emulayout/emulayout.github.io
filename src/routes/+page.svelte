@@ -62,6 +62,7 @@
 			label="Include (must have)"
 			grid={filterStore.includeGrid}
 			thumbKeys={filterStore.includeThumbKeys}
+			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
 			accentColor="#4ade80"
 			onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
 			onThumbKeyChange={(index, value) => filterStore.setIncludeThumbKey(index, value)}
@@ -71,6 +72,7 @@
 			label="Exclude (must not have)"
 			grid={filterStore.excludeGrid}
 			thumbKeys={filterStore.excludeThumbKeys}
+			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
 			accentColor="#f87171"
 			onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
 			onThumbKeyChange={(index, value) => filterStore.setExcludeThumbKey(index, value)}

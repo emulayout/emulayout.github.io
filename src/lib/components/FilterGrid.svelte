@@ -8,6 +8,7 @@
 		grid: string[][];
 		thumbKeys?: string[];
 		accentColor?: string;
+		hideThumbKeys?: boolean;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onThumbKeyChange?: (index: number, value: string) => void;
 		onClear?: () => void;
@@ -18,6 +19,7 @@
 		grid,
 		thumbKeys = ['', '', '', ''],
 		accentColor = 'var(--accent)',
+		hideThumbKeys = false,
 		onCellChange,
 		onThumbKeyChange,
 		onClear
@@ -80,28 +82,30 @@
 		{/each}
 
 		<!-- Thumb keys row (row 3) - 4 inputs -->
-		<div class="mt-2 pt-2" style="border-top: 1px solid var(--border);">
-			<div class="flex gap-2">
-				{#each thumbKeys as key, idx}
-					<input
-						type="text"
-						value={key}
-						oninput={(e) => onThumbKeyChange?.(idx, e.currentTarget.value)}
-						class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-						style="
-							width: {Math.max(2, key.length) * 0.6 + 0.8}rem;
-							background-color: var(--key-bg);
-							color: var(--text-primary);
-							border: 1px solid {key ? accentColor : 'var(--border)'};
-							--tw-ring-color: {accentColor};
-						"
-						placeholder="·"
-					/>
-				{/each}
+		{#if !hideThumbKeys}
+			<div class="mt-2 pt-2" style="border-top: 1px solid var(--border);">
+				<div class="flex gap-2">
+					{#each thumbKeys as key, idx}
+						<input
+							type="text"
+							value={key}
+							oninput={(e) => onThumbKeyChange?.(idx, e.currentTarget.value)}
+							class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+							style="
+								width: {Math.max(2, key.length) * 0.6 + 0.8}rem;
+								background-color: var(--key-bg);
+								color: var(--text-primary);
+								border: 1px solid {key ? accentColor : 'var(--border)'};
+								--tw-ring-color: {accentColor};
+							"
+							placeholder="·"
+						/>
+					{/each}
+				</div>
+				<p class="text-[10px] mt-1" style="color: var(--text-secondary);">
+					Thumb keys filter only by order, not column position
+				</p>
 			</div>
-			<p class="text-[10px] mt-1" style="color: var(--text-secondary);">
-				Thumb keys filter only by order, not column position
-			</p>
-		</div>
+		{/if}
 	</div>
 </div>
