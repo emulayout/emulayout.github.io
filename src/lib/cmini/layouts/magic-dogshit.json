@@ -2,6 +2,7 @@
     "name": "magic-dogshit",
     "user": 278734956228771840,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

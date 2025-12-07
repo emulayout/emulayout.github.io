@@ -2,6 +2,7 @@
     "name": "InscrollN",
     "user": 1382706595754020936,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ";": {
             "row": 0,

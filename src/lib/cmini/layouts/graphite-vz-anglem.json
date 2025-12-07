@@ -2,6 +2,7 @@
     "name": "graphite-vz-anglem",
     "user": 189109986511552513,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

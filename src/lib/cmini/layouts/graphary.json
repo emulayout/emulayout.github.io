@@ -2,6 +2,7 @@
     "name": "graphary",
     "user": 176492366637563904,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

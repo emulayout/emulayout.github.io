@@ -2,6 +2,7 @@
     "name": "xmlcp",
     "user": 304747899433254913,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

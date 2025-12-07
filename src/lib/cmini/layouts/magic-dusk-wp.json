@@ -2,6 +2,7 @@
     "name": "magic-dusk-wp",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

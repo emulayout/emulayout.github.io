@@ -2,6 +2,7 @@
     "name": "whirl-fspeed",
     "user": 1204708988298461234,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

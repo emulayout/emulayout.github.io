@@ -2,6 +2,7 @@
     "name": "seht-drai-matrix-mod",
     "user": 387597518868971521,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "trance3-you",
     "user": 1179652661033836655,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

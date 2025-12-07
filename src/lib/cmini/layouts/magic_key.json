@@ -2,6 +2,7 @@
     "name": "magic_key",
     "user": 621924065581465611,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

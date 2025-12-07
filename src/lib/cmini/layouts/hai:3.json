@@ -2,6 +2,7 @@
     "name": "hai:3",
     "user": 172574495884705792,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "p": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "Murgle-Remastered",
     "user": 514971722626367517,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "m": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "noctum_hinged_hinged",
     "user": 813698873863962694,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

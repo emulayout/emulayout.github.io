@@ -2,6 +2,7 @@
     "name": "goat-number-row",
     "user": 853012225403912222,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "7": {
             "row": 1,

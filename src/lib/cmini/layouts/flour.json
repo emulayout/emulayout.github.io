@@ -2,6 +2,7 @@
     "name": "flour",
     "user": 237981623847485451,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

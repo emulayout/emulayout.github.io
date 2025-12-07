@@ -2,6 +2,7 @@
     "name": "magicracket",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

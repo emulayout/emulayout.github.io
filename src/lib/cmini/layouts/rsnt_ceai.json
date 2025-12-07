@@ -2,6 +2,7 @@
     "name": "rsnt_ceai",
     "user": 242348465655513089,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

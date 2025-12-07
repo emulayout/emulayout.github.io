@@ -2,6 +2,7 @@
     "name": "cursed-nuggets",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "grephati-dbd",
     "user": 150873517678788608,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

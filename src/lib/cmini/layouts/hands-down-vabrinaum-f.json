@@ -2,6 +2,7 @@
     "name": "hands-down-vabrinaum-f",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "hanster-roentgenium",
     "user": 1284958648451338243,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "q": {
             "row": 0,

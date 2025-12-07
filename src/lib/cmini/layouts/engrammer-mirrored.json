@@ -2,6 +2,7 @@
     "name": "engrammer-mirrored",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

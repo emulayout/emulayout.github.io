@@ -2,6 +2,7 @@
     "name": "gallium32",
     "user": 244541489500127233,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "weird-qwerty-thingo",
     "user": 1204708988298461234,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "o": {
             "row": 0,

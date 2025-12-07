@@ -2,6 +2,7 @@
     "name": "uciea",
     "user": 772204572370010168,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

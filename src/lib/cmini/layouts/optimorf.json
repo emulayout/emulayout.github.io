@@ -2,6 +2,7 @@
     "name": "optimorf",
     "user": 514971722626367517,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "how-cooked-is-this",
     "user": 383900587877597186,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

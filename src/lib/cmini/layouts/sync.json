@@ -2,6 +2,7 @@
     "name": "sync",
     "user": 943720217450786816,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ",": {
             "row": 0,

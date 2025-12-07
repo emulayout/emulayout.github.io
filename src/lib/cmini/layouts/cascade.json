@@ -2,6 +2,7 @@
     "name": "cascade",
     "user": 504564321716666368,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

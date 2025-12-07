@@ -2,6 +2,7 @@
     "name": "alpenglow-fspeed",
     "user": 132343169068040201,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

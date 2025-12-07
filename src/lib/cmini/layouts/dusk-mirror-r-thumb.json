@@ -2,6 +2,7 @@
     "name": "dusk-mirror-r-thumb",
     "user": 91377072122892288,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ".": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "etipharg",
     "user": 647672655012429854,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

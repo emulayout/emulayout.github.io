@@ -2,6 +2,7 @@
     "name": "meow-meow",
     "user": 446706866081366027,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "m": {
             "row": 0,

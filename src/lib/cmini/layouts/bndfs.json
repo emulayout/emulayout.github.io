@@ -2,6 +2,7 @@
     "name": "bndfs",
     "user": 335456391617839106,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

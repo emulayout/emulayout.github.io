@@ -2,6 +2,7 @@
     "name": "aest",
     "user": 368895414482501632,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ".": {
             "row": 0,

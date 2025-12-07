@@ -2,6 +2,7 @@
     "name": "krainmod",
     "user": 804314206349557760,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

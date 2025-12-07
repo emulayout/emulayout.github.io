@@ -2,6 +2,7 @@
     "name": "shnt-test6",
     "user": 154243339586109440,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

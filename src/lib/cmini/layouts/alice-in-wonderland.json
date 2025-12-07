@@ -2,6 +2,7 @@
     "name": "alice-in-wonderland",
     "user": 244547046240026628,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "m": {
             "row": 0,

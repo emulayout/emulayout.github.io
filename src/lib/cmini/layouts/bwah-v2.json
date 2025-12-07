@@ -2,6 +2,7 @@
     "name": "bwah-v2",
     "user": 1030297638433734718,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

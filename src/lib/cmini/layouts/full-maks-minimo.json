@@ -2,6 +2,7 @@
     "name": "full-maks-minimo",
     "user": 657688933001330718,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "night-mod-low",
     "user": 847672200139243540,
     "board": "stagger",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

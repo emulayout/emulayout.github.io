@@ -2,6 +2,7 @@
     "name": "greedy_alpha_min_lsb",
     "user": 627912342092382228,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "a": {
             "row": 0,

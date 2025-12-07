@@ -2,6 +2,7 @@
     "name": "algae_mr_thumbs_rl_3:1",
     "user": 621924065581465611,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "y": {
             "row": 0,

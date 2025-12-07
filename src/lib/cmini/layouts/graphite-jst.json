@@ -2,6 +2,7 @@
     "name": "graphite-jst",
     "user": 653191762617303065,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

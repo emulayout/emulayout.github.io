@@ -2,6 +2,7 @@
     "name": "stinky-pinky",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "e": {
             "row": 0,

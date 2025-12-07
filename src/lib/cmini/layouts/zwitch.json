@@ -2,6 +2,7 @@
     "name": "zwitch",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

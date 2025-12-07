@@ -2,6 +2,7 @@
     "name": "cenery",
     "user": 383900587877597186,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

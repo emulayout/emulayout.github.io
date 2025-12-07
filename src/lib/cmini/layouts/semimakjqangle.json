@@ -2,6 +2,7 @@
     "name": "semimakjqangle",
     "user": 1110833169743233055,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

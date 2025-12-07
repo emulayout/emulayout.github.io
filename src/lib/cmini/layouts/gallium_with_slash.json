@@ -2,6 +2,7 @@
     "name": "gallium_with_slash",
     "user": 199651470541455360,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

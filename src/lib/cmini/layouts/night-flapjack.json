@@ -2,6 +2,7 @@
     "name": "night-flapjack",
     "user": 132343169068040201,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

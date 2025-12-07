@@ -2,6 +2,7 @@
     "name": "Semimak-JQC",
     "user": 1085579430623199292,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

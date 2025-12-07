@@ -2,6 +2,7 @@
     "name": "colevrak-compatible",
     "user": 1193475322327334982,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

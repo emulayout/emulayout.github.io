@@ -2,6 +2,7 @@
     "name": "whorf",
     "user": 426851559952089088,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "pineum",
     "user": 66263532156489728,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

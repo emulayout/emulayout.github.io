@@ -2,6 +2,7 @@
     "name": "sturdy-nova-mod",
     "user": 554549441458077697,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

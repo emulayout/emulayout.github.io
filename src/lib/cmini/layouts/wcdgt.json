@@ -2,6 +2,7 @@
     "name": "wcdgt",
     "user": 610258003265978368,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

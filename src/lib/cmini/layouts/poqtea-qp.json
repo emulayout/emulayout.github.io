@@ -2,6 +2,7 @@
     "name": "poqtea-qp",
     "user": 112601513569849344,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

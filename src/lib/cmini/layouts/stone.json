@@ -2,6 +2,7 @@
     "name": "stone",
     "user": 555770128705257502,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

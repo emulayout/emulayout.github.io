@@ -2,6 +2,7 @@
     "name": "dvorak-shit",
     "user": 269222652042936341,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "'": {
             "row": 0,

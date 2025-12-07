@@ -2,6 +2,7 @@
     "name": "snorkle-thumbs-nos",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

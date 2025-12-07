@@ -2,6 +2,7 @@
     "name": "fuck-shit",
     "user": 446706866081366027,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "/": {
             "row": 0,

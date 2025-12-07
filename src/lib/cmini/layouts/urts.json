@@ -2,6 +2,7 @@
     "name": "urts",
     "user": 328195824238723072,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

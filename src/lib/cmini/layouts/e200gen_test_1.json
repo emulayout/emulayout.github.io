@@ -2,6 +2,7 @@
     "name": "e200gen_test_1",
     "user": 471548987342848011,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

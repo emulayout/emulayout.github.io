@@ -2,6 +2,7 @@
     "name": "apos",
     "user": 158440723551748097,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "dnb-ev",
     "user": 744037679565373531,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

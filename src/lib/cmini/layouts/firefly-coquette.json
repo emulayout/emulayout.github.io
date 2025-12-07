@@ -2,6 +2,7 @@
     "name": "firefly-coquette",
     "user": 604370517058781209,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

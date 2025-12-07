@@ -2,6 +2,7 @@
     "name": "your_mom",
     "user": 1137061348296118382,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

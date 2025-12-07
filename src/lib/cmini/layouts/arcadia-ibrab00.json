@@ -2,6 +2,7 @@
     "name": "arcadia-ibrab00",
     "user": 1084979551651770448,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

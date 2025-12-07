@@ -2,6 +2,7 @@
     "name": "qwerty-anglecheat",
     "user": 1150484529157509221,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

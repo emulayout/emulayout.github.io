@@ -2,6 +2,7 @@
     "name": "qwerty-ortho",
     "user": 543571134919213059,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

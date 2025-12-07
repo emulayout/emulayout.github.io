@@ -2,6 +2,7 @@
     "name": "qwerty-dh",
     "user": 383900587877597186,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

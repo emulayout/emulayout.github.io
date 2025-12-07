@@ -2,6 +2,7 @@
     "name": "propergol",
     "user": 460896498604048404,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ".": {
             "row": 0,

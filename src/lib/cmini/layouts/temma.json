@@ -2,6 +2,7 @@
     "name": "temma",
     "user": 402071660775342090,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

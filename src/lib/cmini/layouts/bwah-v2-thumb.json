@@ -2,6 +2,7 @@
     "name": "bwah-v2-thumb",
     "user": 1030297638433734718,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "ou-thumb-test-rng",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

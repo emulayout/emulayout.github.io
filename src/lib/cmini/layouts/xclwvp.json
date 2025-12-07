@@ -2,6 +2,7 @@
     "name": "xclwvp",
     "user": 130544188818194432,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "canary-ren",
     "user": 1084979551651770448,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

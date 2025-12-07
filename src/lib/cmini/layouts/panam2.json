@@ -2,6 +2,7 @@
     "name": "Panam2",
     "user": 1382706595754020936,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "\\": {
             "row": 0,

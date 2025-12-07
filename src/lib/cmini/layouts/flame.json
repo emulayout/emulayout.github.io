@@ -2,6 +2,7 @@
     "name": "flame",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

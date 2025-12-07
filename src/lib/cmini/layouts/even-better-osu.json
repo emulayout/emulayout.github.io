@@ -2,6 +2,7 @@
     "name": "even-better-osu",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "a": {
             "row": 1,

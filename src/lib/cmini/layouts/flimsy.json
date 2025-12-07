@@ -2,6 +2,7 @@
     "name": "flimsy",
     "user": 402892761294045187,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "h": {
             "row": 0,

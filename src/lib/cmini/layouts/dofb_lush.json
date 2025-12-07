@@ -2,6 +2,7 @@
     "name": "dofb_lush",
     "user": 584442680725995540,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "t": {
             "row": 0,

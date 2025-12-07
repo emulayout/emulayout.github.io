@@ -2,6 +2,7 @@
     "name": "ffbg",
     "user": 263858656137838594,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

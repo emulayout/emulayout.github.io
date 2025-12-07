@@ -2,6 +2,7 @@
     "name": "Vitrimak-Ortho",
     "user": 1085579430623199292,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "e": {
             "row": 0,

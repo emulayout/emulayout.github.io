@@ -2,6 +2,7 @@
     "name": "rstn-oxey-yi",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

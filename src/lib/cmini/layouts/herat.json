@@ -2,6 +2,7 @@
     "name": "herat",
     "user": 584442680725995540,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "h": {
             "row": 1,

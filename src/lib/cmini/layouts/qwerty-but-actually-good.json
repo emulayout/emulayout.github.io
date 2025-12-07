@@ -2,6 +2,7 @@
     "name": "qwerty-but-actually-good",
     "user": 657688933001330718,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

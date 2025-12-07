@@ -2,6 +2,7 @@
     "name": "isrt-w1",
     "user": 572088792815763456,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "/": {
             "row": 0,

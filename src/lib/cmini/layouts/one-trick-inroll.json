@@ -2,6 +2,7 @@
     "name": "one-trick-inroll",
     "user": 401316842083450881,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "laxatives",
     "user": 322155360104349697,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

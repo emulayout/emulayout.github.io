@@ -2,6 +2,7 @@
     "name": "Roll_in",
     "user": 760299826297700352,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

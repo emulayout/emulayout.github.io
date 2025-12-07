@@ -2,6 +2,7 @@
     "name": "wordsearch",
     "user": 312617505946337281,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

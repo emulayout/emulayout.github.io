@@ -2,6 +2,7 @@
     "name": "cistern-if-it-wasnt-broken",
     "user": 1229830144643039408,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

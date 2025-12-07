@@ -2,6 +2,7 @@
     "name": "recurva-zak-fingering",
     "user": 383900587877597186,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

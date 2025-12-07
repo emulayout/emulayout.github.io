@@ -2,6 +2,7 @@
     "name": "klawa_pl",
     "user": 270881578371121152,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

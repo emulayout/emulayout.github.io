@@ -2,6 +2,7 @@
     "name": "mtmpag",
     "user": 368895414482501632,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

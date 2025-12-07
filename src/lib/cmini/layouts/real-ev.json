@@ -2,6 +2,7 @@
     "name": "real-ev",
     "user": 744037679565373531,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

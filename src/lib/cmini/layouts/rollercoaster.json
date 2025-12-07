@@ -2,6 +2,7 @@
     "name": "rollercoaster",
     "user": 237981623847485451,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

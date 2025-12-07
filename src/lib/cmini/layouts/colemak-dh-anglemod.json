@@ -2,6 +2,7 @@
     "name": "colemak-dh-anglemod",
     "user": 213706767031468033,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

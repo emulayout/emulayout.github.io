@@ -2,6 +2,7 @@
     "name": "nightlight-dk",
     "user": 1257488519438532709,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

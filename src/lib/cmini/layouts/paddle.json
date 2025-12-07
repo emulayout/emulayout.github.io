@@ -2,6 +2,7 @@
     "name": "paddle",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

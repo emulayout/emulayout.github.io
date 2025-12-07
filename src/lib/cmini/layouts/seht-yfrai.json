@@ -2,6 +2,7 @@
     "name": "seht-yfrai",
     "user": 444585600318701568,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

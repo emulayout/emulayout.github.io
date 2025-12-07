@@ -2,6 +2,7 @@
     "name": "rollercoaster-colstag",
     "user": 237981623847485451,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

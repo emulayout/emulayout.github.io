@@ -2,6 +2,7 @@
     "name": "northstar",
     "user": 802683911636516906,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

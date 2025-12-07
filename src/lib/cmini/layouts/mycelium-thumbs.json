@@ -2,6 +2,7 @@
     "name": "mycelium-thumbs",
     "user": 259380606759206922,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ".": {
             "row": 0,

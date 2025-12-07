@@ -2,6 +2,7 @@
     "name": "colemak-qi-plus",
     "user": 328195824238723072,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ".": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "duskopt_alt",
     "user": 479797802034135040,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

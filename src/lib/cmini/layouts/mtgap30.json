@@ -2,6 +2,7 @@
     "name": "MTGAP30",
     "user": 1085579430623199292,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

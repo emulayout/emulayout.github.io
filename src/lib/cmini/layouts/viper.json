@@ -2,6 +2,7 @@
     "name": "viper",
     "user": 322155360104349697,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

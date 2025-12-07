@@ -2,6 +2,7 @@
     "name": "psilocybin",
     "user": 1207294104950542337,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

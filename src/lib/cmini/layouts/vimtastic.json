@@ -2,6 +2,7 @@
     "name": "vimtastic",
     "user": 630943966224973864,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

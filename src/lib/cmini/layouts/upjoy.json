@@ -2,6 +2,7 @@
     "name": "upjoy",
     "user": 151060421627871232,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "g": {
             "row": 0,

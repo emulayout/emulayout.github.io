@@ -2,6 +2,7 @@
     "name": "engram-test",
     "user": 431013861546524672,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

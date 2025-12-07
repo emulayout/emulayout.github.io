@@ -2,6 +2,7 @@
     "name": "index-burn",
     "user": 433751543037034507,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

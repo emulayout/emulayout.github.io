@@ -2,6 +2,7 @@
     "name": "graphite-fire-magic",
     "user": 1215831841638977609,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "model_qwerty_minimal_sfb",
     "user": 627912342092382228,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

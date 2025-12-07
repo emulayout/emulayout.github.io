@@ -2,6 +2,7 @@
     "name": "RSNT-lnm",
     "user": 950953373346193438,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "hiae-dream",
     "user": 242348465655513089,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

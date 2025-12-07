@@ -2,6 +2,7 @@
     "name": "nokwts-angle",
     "user": 584442680725995540,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

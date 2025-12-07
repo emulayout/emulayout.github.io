@@ -2,6 +2,7 @@
     "name": "inept",
     "user": 217134014698487820,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "u": {
             "row": 0,

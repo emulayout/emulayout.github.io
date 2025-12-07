@@ -2,6 +2,7 @@
     "name": "asset-shit",
     "user": 935728191165845545,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ".": {
             "row": 0,

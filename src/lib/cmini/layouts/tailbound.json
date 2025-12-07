@@ -2,6 +2,7 @@
     "name": "tailbound",
     "user": 480054604105515019,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ".": {
             "row": 0,

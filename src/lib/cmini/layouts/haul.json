@@ -2,6 +2,7 @@
     "name": "haul",
     "user": 1216940789460893763,
     "board": "mini",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

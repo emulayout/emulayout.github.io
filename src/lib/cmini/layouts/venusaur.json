@@ -2,6 +2,7 @@
     "name": "venusaur",
     "user": 313848197254742018,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "middlemak-nh",
     "user": 1084979551651770448,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

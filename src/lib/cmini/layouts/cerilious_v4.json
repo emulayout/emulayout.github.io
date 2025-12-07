@@ -2,6 +2,7 @@
     "name": "cerilious_v4",
     "user": 313848197254742018,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "c": {
             "row": 0,

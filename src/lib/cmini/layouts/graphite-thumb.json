@@ -2,6 +2,7 @@
     "name": "graphite-thumb",
     "user": 409742945294483456,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

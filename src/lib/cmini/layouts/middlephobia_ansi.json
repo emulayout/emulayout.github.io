@@ -2,6 +2,7 @@
     "name": "middlephobia_ansi",
     "user": 760299826297700352,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

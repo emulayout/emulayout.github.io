@@ -2,6 +2,7 @@
     "name": "overfit-to-e200",
     "user": 213706767031468033,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ";": {
             "row": 0,

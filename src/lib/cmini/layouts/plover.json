@@ -2,6 +2,7 @@
     "name": "plover",
     "user": 269222652042936341,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 1,

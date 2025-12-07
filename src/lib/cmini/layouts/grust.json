@@ -2,6 +2,7 @@
     "name": "grust",
     "user": 383900587877597186,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         ";": {
             "row": 0,

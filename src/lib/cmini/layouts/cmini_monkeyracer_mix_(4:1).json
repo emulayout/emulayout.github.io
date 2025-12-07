@@ -2,6 +2,7 @@
     "name": "cmini_monkeyracer_mix_(4:1)",
     "user": 389086355801767936,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

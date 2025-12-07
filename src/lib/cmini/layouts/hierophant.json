@@ -2,6 +2,7 @@
     "name": "hierophant",
     "user": 394336882651037706,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

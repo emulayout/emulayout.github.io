@@ -2,6 +2,7 @@
     "name": "my_graphite",
     "user": 646056739480797224,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

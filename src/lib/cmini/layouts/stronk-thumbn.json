@@ -2,6 +2,7 @@
     "name": "stronk-thumbn",
     "user": 383900587877597186,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

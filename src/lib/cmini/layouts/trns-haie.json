@@ -2,6 +2,7 @@
     "name": "trns-haie",
     "user": 1286855941295439944,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

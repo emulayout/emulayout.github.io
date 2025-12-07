@@ -2,6 +2,7 @@
     "name": "ringless_thumbless_v1",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "maks-sx",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "1": {
             "row": 0,

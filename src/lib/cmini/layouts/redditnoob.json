@@ -2,6 +2,7 @@
     "name": "redditnoob",
     "user": 383900587877597186,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "a": {
             "row": 0,

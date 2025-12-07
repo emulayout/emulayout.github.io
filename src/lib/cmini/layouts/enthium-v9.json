@@ -2,6 +2,7 @@
     "name": "enthium-v9",
     "user": 267725480797405186,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

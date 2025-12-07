@@ -2,6 +2,7 @@
     "name": "hd-vv-haei",
     "user": 932457075148218428,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

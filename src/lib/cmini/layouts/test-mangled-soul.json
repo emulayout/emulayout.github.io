@@ -2,6 +2,7 @@
     "name": "test-mangled-soul",
     "user": 766194884095901746,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

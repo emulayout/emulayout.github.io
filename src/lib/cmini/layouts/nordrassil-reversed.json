@@ -2,6 +2,7 @@
     "name": "nordrassil-reversed",
     "user": 115623048077377544,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

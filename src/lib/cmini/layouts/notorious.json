@@ -2,6 +2,7 @@
     "name": "notorious",
     "user": 1297727520518705184,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

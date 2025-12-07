@@ -2,6 +2,7 @@
     "name": "semiwhorf",
     "user": 1017918139062820954,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

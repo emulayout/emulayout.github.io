@@ -2,6 +2,7 @@
     "name": "colemak-dhgbp",
     "user": 261155830169075713,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

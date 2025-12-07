@@ -2,6 +2,7 @@
     "name": "vylet-v2",
     "user": 119825772901957632,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "pinky-trainer",
     "user": 154243339586109440,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "d": {
             "row": 0,

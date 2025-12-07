@@ -2,6 +2,7 @@
     "name": "fastg",
     "user": 110822327511437312,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

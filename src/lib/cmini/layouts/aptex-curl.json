@@ -2,6 +2,7 @@
     "name": "aptex-curl",
     "user": 222792463591538689,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "/": {
             "row": 0,

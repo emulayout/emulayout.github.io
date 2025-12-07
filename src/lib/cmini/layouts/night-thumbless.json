@@ -2,6 +2,7 @@
     "name": "night-thumbless",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

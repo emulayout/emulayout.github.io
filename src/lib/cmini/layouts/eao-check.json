@@ -2,6 +2,7 @@
     "name": "eao-check",
     "user": 347489972070252545,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

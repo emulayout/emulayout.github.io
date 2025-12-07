@@ -2,6 +2,7 @@
     "name": "cmini_monkeyracer_themb_sfb",
     "user": 389086355801767936,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

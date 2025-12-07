@@ -2,6 +2,7 @@
     "name": "nebula",
     "user": 766194884095901746,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

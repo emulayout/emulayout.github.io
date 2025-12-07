@@ -2,6 +2,7 @@
     "name": "csot",
     "user": 959413821045346327,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "'": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "semimak-bad",
     "user": 875845942094495814,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

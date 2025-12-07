@@ -2,6 +2,7 @@
     "name": "scissor_ultra_test",
     "user": 347489972070252545,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "i": {
             "row": 0,

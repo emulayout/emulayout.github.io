@@ -2,6 +2,7 @@
     "name": "noctus-prime",
     "user": 766194884095901746,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

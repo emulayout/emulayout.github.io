@@ -2,6 +2,7 @@
     "name": "aptly",
     "user": 154075687479803904,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

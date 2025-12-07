@@ -2,6 +2,7 @@
     "name": "aptv326",
     "user": 169285177481101312,
     "board": "mini",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

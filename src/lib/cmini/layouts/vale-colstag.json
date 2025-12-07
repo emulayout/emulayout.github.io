@@ -2,6 +2,7 @@
     "name": "vale-colstag",
     "user": 237981623847485451,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

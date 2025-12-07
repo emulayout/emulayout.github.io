@@ -2,6 +2,7 @@
     "name": "gallimak-controlkeys",
     "user": 509532787137576962,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

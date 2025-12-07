@@ -2,6 +2,7 @@
     "name": "btqmak",
     "user": 471548987342848011,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

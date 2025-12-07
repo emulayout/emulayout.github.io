@@ -2,6 +2,7 @@
     "name": "gralmak-v1",
     "user": 409742945294483456,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

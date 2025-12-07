@@ -2,6 +2,7 @@
     "name": "apt-but-not-bad",
     "user": 383900587877597186,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

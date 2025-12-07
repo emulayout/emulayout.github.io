@@ -2,6 +2,7 @@
     "name": "polemak",
     "user": 1010618301895934034,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

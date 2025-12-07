@@ -2,6 +2,7 @@
     "name": "prism-but-but-but",
     "user": 621924065581465611,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "graphium-flip",
     "user": 299093114503823361,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

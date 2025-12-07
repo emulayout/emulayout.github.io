@@ -2,6 +2,7 @@
     "name": "duskvim-fspeed",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

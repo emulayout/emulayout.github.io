@@ -2,6 +2,7 @@
     "name": "fugit",
     "user": 205925783254990848,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "m": {
             "row": 0,

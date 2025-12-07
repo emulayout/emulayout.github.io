@@ -2,6 +2,7 @@
     "name": "mayarev",
     "user": 601809706381737995,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

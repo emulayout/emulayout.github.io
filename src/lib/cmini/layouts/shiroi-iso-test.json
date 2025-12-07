@@ -2,6 +2,7 @@
     "name": "shiroi-iso-test",
     "user": 457182030514356226,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "_": {
             "row": 0,

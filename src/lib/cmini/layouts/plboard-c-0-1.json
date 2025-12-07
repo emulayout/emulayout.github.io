@@ -2,6 +2,7 @@
     "name": "plboard-c-0-1",
     "user": 760629552468066335,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ";": {
             "row": 0,

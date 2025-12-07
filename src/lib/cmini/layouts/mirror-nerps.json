@@ -2,6 +2,7 @@
     "name": "mirror-nerps",
     "user": 96059835975483392,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ";": {
             "row": 0,

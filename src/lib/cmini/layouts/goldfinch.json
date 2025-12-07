@@ -2,6 +2,7 @@
     "name": "goldfinch",
     "user": 766194884095901746,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

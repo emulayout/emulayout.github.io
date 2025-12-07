@@ -2,6 +2,7 @@
     "name": "dusktime",
     "user": 226128695377526784,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

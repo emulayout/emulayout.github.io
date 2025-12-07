@@ -2,6 +2,7 @@
     "name": "rolll-th",
     "user": 1148272283551539342,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

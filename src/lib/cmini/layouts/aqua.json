@@ -2,6 +2,7 @@
     "name": "aqua",
     "user": 328195824238723072,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

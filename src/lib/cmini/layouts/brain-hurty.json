@@ -2,6 +2,7 @@
     "name": "brain-hurty",
     "user": 795884452844666891,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

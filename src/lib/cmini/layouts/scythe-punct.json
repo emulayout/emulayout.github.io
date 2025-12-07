@@ -2,6 +2,7 @@
     "name": "scythe-punct",
     "user": 943720217450786816,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

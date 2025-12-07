@@ -2,6 +2,7 @@
     "name": "millennium_y_angle",
     "user": 631740610864349194,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "m": {
             "row": 0,

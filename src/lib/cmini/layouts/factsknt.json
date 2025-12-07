@@ -2,6 +2,7 @@
     "name": "factsknt",
     "user": 263858656137838594,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

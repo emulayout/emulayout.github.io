@@ -2,6 +2,7 @@
     "name": "dusk-wp-jq-fspeed",
     "user": 132343169068040201,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

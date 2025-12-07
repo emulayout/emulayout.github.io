@@ -2,6 +2,7 @@
     "name": "canary-kaitlyn",
     "user": 1084979551651770448,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

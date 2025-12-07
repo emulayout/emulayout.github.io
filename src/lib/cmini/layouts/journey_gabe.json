@@ -2,6 +2,7 @@
     "name": "journey_gabe",
     "user": 103510200165617664,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

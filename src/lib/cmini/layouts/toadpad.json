@@ -2,6 +2,7 @@
     "name": "toadpad",
     "user": 737315876872913007,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "u": {
             "row": 0,

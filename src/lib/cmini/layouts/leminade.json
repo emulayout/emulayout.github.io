@@ -2,6 +2,7 @@
     "name": "leminade",
     "user": 264791589119983616,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

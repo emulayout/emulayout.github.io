@@ -2,6 +2,7 @@
     "name": "graphite-gallium",
     "user": 727171126458843246,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

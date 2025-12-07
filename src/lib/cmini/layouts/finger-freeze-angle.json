@@ -2,6 +2,7 @@
     "name": "finger-freeze-angle",
     "user": 990217033918586890,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "u": {
             "row": 0,

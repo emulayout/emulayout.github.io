@@ -2,6 +2,7 @@
     "name": "frogpad-mod",
     "user": 572883356270985226,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

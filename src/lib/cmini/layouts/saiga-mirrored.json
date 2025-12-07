@@ -2,6 +2,7 @@
     "name": "saiga-mirrored",
     "user": 383900587877597186,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

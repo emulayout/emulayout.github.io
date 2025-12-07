@@ -2,6 +2,7 @@
     "name": "ints",
     "user": 444585600318701568,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

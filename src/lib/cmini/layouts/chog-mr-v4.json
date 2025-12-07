@@ -2,6 +2,7 @@
     "name": "chog-mr-v4",
     "user": 1204708988298461234,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "g": {
             "row": 0,

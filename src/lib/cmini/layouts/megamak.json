@@ -2,6 +2,7 @@
     "name": "Megamak",
     "user": 397759190543892480,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

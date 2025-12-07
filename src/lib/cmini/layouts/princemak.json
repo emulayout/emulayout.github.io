@@ -2,6 +2,7 @@
     "name": "princemak",
     "user": 888057645045530644,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

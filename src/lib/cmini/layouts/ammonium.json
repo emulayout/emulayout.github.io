@@ -2,6 +2,7 @@
     "name": "ammonium",
     "user": 689685747313410064,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

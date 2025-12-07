@@ -2,6 +2,7 @@
     "name": "octa8",
     "user": 274839928695685121,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

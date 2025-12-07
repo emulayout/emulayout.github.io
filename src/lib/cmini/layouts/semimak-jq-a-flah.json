@@ -2,6 +2,7 @@
     "name": "semimak-jq-a-flah",
     "user": 368895414482501632,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

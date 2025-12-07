@@ -2,6 +2,7 @@
     "name": "night_wakizashi",
     "user": 766194884095901746,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "abyss",
     "user": 766194884095901746,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "y": {
             "row": 0,

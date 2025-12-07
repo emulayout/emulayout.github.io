@@ -2,6 +2,7 @@
     "name": "kuntum",
     "user": 805982808878350366,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

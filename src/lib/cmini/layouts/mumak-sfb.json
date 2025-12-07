@@ -2,6 +2,7 @@
     "name": "mumak-sfb",
     "user": 577978297498075167,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "mallotus_villosus",
     "user": 180692230539968513,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

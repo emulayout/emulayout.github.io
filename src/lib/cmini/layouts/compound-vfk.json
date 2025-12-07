@@ -2,6 +2,7 @@
     "name": "compound-vfk",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "'": {
             "row": 0,

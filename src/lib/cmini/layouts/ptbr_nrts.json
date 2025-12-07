@@ -2,6 +2,7 @@
     "name": "PtBR_nrts",
     "user": 152960480720191489,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

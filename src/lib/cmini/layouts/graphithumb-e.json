@@ -2,6 +2,7 @@
     "name": "graphithumb-e",
     "user": 1215831841638977609,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

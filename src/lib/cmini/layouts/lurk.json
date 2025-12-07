@@ -2,6 +2,7 @@
     "name": "lurk",
     "user": 242348465655513089,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

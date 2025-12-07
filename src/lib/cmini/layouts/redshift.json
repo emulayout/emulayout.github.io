@@ -2,6 +2,7 @@
     "name": "redshift",
     "user": 1297727520518705184,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

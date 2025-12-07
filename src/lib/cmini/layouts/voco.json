@@ -2,6 +2,7 @@
     "name": "voco",
     "user": 1248022256320380958,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

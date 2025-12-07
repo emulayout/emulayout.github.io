@@ -2,6 +2,7 @@
     "name": "mountains-fspeed",
     "user": 132343169068040201,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "pinchord",
     "user": 333362365292740609,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "|": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "norden2-gvz-wxy",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "q": {
             "row": 0,

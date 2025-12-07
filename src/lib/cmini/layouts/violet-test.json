@@ -2,6 +2,7 @@
     "name": "violet-test",
     "user": 653191762617303065,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "dusk-test",
     "user": 324633828616568833,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

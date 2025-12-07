@@ -2,6 +2,7 @@
     "name": "ocmak",
     "user": 601809706381737995,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

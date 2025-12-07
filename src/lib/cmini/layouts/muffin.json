@@ -2,6 +2,7 @@
     "name": "muffin",
     "user": 1235943621803511901,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

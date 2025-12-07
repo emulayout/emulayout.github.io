@@ -2,6 +2,7 @@
     "name": "puq",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

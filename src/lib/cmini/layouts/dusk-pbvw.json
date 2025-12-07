@@ -2,6 +2,7 @@
     "name": "dusk-pbvw",
     "user": 1215831841638977609,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "kuntemcol2",
     "user": 990217033918586890,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

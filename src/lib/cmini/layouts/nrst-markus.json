@@ -2,6 +2,7 @@
     "name": "nrst-markus",
     "user": 151060421627871232,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

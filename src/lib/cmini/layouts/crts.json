@@ -2,6 +2,7 @@
     "name": "crts",
     "user": 134903850434953216,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

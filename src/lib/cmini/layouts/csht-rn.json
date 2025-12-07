@@ -2,6 +2,7 @@
     "name": "csht-rn",
     "user": 242348465655513089,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "cistern",
     "user": 142519729582637056,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

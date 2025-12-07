@@ -2,6 +2,7 @@
     "name": "canary-naei",
     "user": 448776828253896704,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

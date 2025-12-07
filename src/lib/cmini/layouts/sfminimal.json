@@ -2,6 +2,7 @@
     "name": "SFminimal",
     "user": 514971722626367517,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

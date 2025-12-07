@@ -2,6 +2,7 @@
     "name": "francium",
     "user": 1010618301895934034,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "orderly-inspired",
     "user": 772204572370010168,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

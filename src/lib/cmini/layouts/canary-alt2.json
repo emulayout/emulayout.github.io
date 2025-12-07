@@ -2,6 +2,7 @@
     "name": "canary-alt2",
     "user": 167759665847861249,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

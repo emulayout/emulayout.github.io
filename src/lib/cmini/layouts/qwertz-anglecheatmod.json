@@ -2,6 +2,7 @@
     "name": "qwertz-anglecheatmod",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

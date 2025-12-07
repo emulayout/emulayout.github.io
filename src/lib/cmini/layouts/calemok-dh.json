@@ -2,6 +2,7 @@
     "name": "calemok-dh",
     "user": 213706767031468033,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

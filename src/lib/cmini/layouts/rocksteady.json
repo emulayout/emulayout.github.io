@@ -2,6 +2,7 @@
     "name": "rocksteady",
     "user": 631740610864349194,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

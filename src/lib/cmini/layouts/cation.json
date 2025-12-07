@@ -2,6 +2,7 @@
     "name": "cation",
     "user": 602304923098546181,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

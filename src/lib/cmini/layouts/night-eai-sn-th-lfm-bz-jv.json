@@ -2,6 +2,7 @@
     "name": "night-eai-sn-th-lfm-bz-jv",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

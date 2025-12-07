@@ -2,6 +2,7 @@
     "name": "nalmy",
     "user": 96059835975483392,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

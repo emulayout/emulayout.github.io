@@ -2,6 +2,7 @@
     "name": "lumax",
     "user": 792437812939063307,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

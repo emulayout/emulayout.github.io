@@ -2,6 +2,7 @@
     "name": "otay",
     "user": 473328834318696459,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

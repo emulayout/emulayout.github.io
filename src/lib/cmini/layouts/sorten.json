@@ -2,6 +2,7 @@
     "name": "sorten",
     "user": 283218117017075712,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

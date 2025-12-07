@@ -2,6 +2,7 @@
     "name": "oxey-snrt-en_de",
     "user": 87965032175923200,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "\u00df": {
             "row": 0,

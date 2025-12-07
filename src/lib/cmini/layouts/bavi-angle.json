@@ -2,6 +2,7 @@
     "name": "bavi-angle",
     "user": 135425651397099520,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

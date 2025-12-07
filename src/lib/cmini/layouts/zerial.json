@@ -2,6 +2,7 @@
     "name": "zerial",
     "user": 176492366637563904,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

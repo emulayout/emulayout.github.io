@@ -2,6 +2,7 @@
     "name": "gallium-mod-cyr",
     "user": 937697706632175656,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

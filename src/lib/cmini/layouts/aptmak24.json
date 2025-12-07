@@ -2,6 +2,7 @@
     "name": "aptmak24",
     "user": 668065238070984744,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

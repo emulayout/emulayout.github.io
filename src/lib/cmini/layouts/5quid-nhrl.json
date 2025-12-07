@@ -2,6 +2,7 @@
     "name": "5quid-nhrl",
     "user": 766194884095901746,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

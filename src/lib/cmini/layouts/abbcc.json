@@ -2,6 +2,7 @@
     "name": "abbcc",
     "user": 621924065581465611,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

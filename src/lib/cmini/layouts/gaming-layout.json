@@ -2,6 +2,7 @@
     "name": "gaming-layout",
     "user": 1207294104950542337,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "semi-thumb-4",
     "user": 341813193464872991,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

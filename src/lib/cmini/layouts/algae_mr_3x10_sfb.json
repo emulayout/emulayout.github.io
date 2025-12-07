@@ -2,6 +2,7 @@
     "name": "algae_mr_3x10_sfb",
     "user": 621924065581465611,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

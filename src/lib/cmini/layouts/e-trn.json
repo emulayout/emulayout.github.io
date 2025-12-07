@@ -2,6 +2,7 @@
     "name": "e-trn",
     "user": 598377904539172876,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

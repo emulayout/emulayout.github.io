@@ -2,6 +2,7 @@
     "name": "bird",
     "user": 679927923259736085,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

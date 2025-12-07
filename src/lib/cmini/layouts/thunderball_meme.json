@@ -2,6 +2,7 @@
     "name": "thunderball_meme",
     "user": 631740610864349194,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

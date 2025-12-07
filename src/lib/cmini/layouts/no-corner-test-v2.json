@@ -2,6 +2,7 @@
     "name": "no-corner-test-v2",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

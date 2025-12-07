@@ -2,6 +2,7 @@
     "name": "baths-mirror",
     "user": 132343169068040201,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

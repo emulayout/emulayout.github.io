@@ -2,6 +2,7 @@
     "name": "sturdy-vim",
     "user": 236974063388590081,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "e24roll",
     "user": 1204708988298461234,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "c": {
             "row": 0,

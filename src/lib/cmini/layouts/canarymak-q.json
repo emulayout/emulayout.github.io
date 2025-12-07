@@ -2,6 +2,7 @@
     "name": "canarymak-q",
     "user": 176492366637563904,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ";": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "gallium_colstag_jz",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

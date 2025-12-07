@@ -8,6 +8,7 @@ export interface LayoutData {
 	user: number;
 	board: string;
 	keys: Record<string, KeyInfo>;
+	hasThumbKeys: boolean;
 }
 
 export function printPretty(data: LayoutData, splitCol = 5): string {

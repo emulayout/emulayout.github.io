@@ -2,6 +2,7 @@
     "name": "goose-gallium-test",
     "user": 403926997165670402,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

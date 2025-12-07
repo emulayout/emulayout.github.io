@@ -2,6 +2,7 @@
     "name": "rsthd-right-themb",
     "user": 134510205550592000,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

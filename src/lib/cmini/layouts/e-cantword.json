@@ -2,6 +2,7 @@
     "name": "e-cantword",
     "user": 1182071662657671271,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

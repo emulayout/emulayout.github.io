@@ -2,6 +2,7 @@
     "name": "snth_vim",
     "user": 135425651397099520,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

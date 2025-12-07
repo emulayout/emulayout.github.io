@@ -2,6 +2,7 @@
     "name": "gen_test4_0",
     "user": 471548987342848011,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

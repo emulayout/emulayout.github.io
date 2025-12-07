@@ -2,6 +2,7 @@
     "name": "thistle(brooklyn)",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

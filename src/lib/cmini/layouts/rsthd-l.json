@@ -2,6 +2,7 @@
     "name": "rsthd-l",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

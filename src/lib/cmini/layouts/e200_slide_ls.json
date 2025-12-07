@@ -2,6 +2,7 @@
     "name": "e200_slide_ls",
     "user": 479797802034135040,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

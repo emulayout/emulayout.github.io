@@ -2,6 +2,7 @@
     "name": "fairywings",
     "user": 604370517058781209,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

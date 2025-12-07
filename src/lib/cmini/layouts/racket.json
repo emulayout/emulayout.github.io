@@ -2,6 +2,7 @@
     "name": "racket",
     "user": 761732338744557568,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

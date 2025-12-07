@@ -2,6 +2,7 @@
     "name": "flour-colstag",
     "user": 237981623847485451,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

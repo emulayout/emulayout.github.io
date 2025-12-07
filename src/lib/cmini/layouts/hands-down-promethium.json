@@ -2,6 +2,7 @@
     "name": "hands-down-promethium",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "f": {
             "row": 0,

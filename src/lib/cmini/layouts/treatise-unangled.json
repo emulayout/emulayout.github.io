@@ -2,6 +2,7 @@
     "name": "treatise-unangled",
     "user": 162417565740564481,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

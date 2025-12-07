@@ -2,6 +2,7 @@
     "name": "vestnik-herald",
     "user": 224547424105005056,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "\u0446": {
             "row": 0,

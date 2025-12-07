@@ -2,6 +2,7 @@
     "name": "sfb-sfs-goof",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

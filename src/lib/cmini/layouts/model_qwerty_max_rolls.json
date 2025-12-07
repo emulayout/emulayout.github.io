@@ -2,6 +2,7 @@
     "name": "model_qwerty_max_rolls",
     "user": 627912342092382228,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

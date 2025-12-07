@@ -2,6 +2,7 @@
     "name": "bavi",
     "user": 135425651397099520,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

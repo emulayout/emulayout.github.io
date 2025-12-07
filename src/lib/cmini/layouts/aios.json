@@ -2,6 +2,7 @@
     "name": "aios",
     "user": 1010618301895934034,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "\u044d": {
             "row": 0,

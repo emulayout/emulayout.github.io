@@ -2,6 +2,7 @@
     "name": "layoutissimus",
     "user": 341813193464872991,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

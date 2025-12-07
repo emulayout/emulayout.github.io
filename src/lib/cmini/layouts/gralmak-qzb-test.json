@@ -2,6 +2,7 @@
     "name": "gralmak-qzb-test",
     "user": 409742945294483456,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

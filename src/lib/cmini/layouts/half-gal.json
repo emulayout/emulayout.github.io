@@ -2,6 +2,7 @@
     "name": "half-gal",
     "user": 162417565740564481,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

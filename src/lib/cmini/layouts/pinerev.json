@@ -2,6 +2,7 @@
     "name": "pinerev",
     "user": 601809706381737995,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

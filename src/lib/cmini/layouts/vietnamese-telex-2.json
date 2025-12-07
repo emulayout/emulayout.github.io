@@ -2,6 +2,7 @@
     "name": "vietnamese-telex-2",
     "user": 344487953076322306,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "#": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "panini",
     "user": 368895414482501632,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

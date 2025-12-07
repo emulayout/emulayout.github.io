@@ -2,6 +2,7 @@
     "name": "omori",
     "user": 479797802034135040,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

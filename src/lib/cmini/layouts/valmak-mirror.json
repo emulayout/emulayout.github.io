@@ -2,6 +2,7 @@
     "name": "valmak-mirror",
     "user": 110447678382448640,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "adnw-fjz",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

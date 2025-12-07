@@ -2,6 +2,7 @@
     "name": "absolution",
     "user": 943720217450786816,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

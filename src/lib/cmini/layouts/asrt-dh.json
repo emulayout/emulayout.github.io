@@ -2,6 +2,7 @@
     "name": "ASRT-DH",
     "user": 950953373346193438,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

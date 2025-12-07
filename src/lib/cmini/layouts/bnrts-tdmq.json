@@ -2,6 +2,7 @@
     "name": "bnrts-tdmq",
     "user": 1179652661033836655,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

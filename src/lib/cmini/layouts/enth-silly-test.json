@@ -2,6 +2,7 @@
     "name": "enth-silly-test",
     "user": 1143009461099839588,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "i": {
             "row": 0,

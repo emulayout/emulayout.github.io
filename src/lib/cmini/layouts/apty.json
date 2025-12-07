@@ -2,6 +2,7 @@
     "name": "apty",
     "user": 169285177481101312,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 2,

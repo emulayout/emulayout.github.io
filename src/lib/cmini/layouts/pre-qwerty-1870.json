@@ -2,6 +2,7 @@
     "name": "pre-qwerty-1870",
     "user": 409742945294483456,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "a": {
             "row": 0,

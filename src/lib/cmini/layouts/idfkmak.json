@@ -2,6 +2,7 @@
     "name": "idfkmak",
     "user": 847957938656116807,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

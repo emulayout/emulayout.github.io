@@ -2,6 +2,7 @@
     "name": "power",
     "user": 990947281857577002,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

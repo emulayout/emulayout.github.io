@@ -2,6 +2,7 @@
     "name": "colemak-dh-with-a-kgvx-cycle-and-some-rearranged-punctuation",
     "user": 213706767031468033,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

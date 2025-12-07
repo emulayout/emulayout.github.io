@@ -2,6 +2,7 @@
     "name": "graphite-angle-kp",
     "user": 598377904539172876,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

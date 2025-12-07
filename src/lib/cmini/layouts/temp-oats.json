@@ -2,6 +2,7 @@
     "name": "temp-oats",
     "user": 730765090541928530,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

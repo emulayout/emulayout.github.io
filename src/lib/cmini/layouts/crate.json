@@ -2,6 +2,7 @@
     "name": "crate",
     "user": 390334946310488064,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

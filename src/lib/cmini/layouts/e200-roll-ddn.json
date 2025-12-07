@@ -2,6 +2,7 @@
     "name": "e200-roll-ddn",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "u": {
             "row": 0,

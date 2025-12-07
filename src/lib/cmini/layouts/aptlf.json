@@ -2,6 +2,7 @@
     "name": "aptlf",
     "user": 154075687479803904,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "q": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "knight",
     "user": 265692323873161218,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

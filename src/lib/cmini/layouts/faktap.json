@@ -2,6 +2,7 @@
     "name": "faktap",
     "user": 668065238070984744,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

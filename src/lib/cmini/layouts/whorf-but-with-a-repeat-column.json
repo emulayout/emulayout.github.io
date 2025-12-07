@@ -2,6 +2,7 @@
     "name": "whorf-but-with-a-repeat-column",
     "user": 144633216492371968,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

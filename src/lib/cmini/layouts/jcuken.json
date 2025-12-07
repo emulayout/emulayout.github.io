@@ -2,6 +2,7 @@
     "name": "jcuken",
     "user": 804314206349557760,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "\u0439": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "crackmak",
     "user": 610258003265978368,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "birdie",
     "user": 1312135267632550001,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "l": {
             "row": 0,

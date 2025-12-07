@@ -2,6 +2,7 @@
     "name": "wolfpack",
     "user": 604370517058781209,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

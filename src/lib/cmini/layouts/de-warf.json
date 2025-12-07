@@ -2,6 +2,7 @@
     "name": "de-warf",
     "user": 771816076152930315,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

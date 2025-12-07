@@ -2,6 +2,7 @@
     "name": "kanarie",
     "user": 1084979551651770448,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

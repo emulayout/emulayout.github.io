@@ -2,6 +2,7 @@
     "name": "troll",
     "user": 514971722626367517,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "k": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "rain-mod",
     "user": 471548987342848011,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

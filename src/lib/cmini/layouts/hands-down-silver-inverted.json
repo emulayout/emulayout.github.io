@@ -2,6 +2,7 @@
     "name": "hands-down-silver-inverted",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

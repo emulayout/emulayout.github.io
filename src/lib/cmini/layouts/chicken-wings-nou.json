@@ -2,6 +2,7 @@
     "name": "chicken-wings-nou",
     "user": 525811617473101824,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

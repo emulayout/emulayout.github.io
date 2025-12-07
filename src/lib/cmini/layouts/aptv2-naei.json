@@ -2,6 +2,7 @@
     "name": "aptv2-naei",
     "user": 345279129006112778,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

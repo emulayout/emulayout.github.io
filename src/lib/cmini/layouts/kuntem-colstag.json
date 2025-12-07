@@ -2,6 +2,7 @@
     "name": "kuntem-colstag",
     "user": 1257488519438532709,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

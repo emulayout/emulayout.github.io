@@ -2,6 +2,7 @@
     "name": "ink-werted",
     "user": 222792463591538689,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "t": {
             "row": 0,

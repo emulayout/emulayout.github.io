@@ -2,6 +2,7 @@
     "name": "mi(r)",
     "user": 162767942868533248,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "j": {
             "row": 0,

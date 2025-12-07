@@ -2,6 +2,7 @@
     "name": "spacemak-v6",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "u": {
             "row": 0,

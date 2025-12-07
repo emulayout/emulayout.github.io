@@ -2,6 +2,7 @@
     "name": "e200max",
     "user": 761732338744557568,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

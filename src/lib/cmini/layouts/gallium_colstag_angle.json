@@ -2,6 +2,7 @@
     "name": "gallium_colstag_angle",
     "user": 761732338744557568,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

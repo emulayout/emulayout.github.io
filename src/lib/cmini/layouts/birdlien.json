@@ -2,6 +2,7 @@
     "name": "birdlien",
     "user": 424716784155754518,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

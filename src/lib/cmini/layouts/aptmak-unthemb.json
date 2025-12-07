@@ -2,6 +2,7 @@
     "name": "aptmak-unthemb",
     "user": 222792463591538689,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

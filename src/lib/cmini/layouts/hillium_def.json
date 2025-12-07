@@ -2,6 +2,7 @@
     "name": "hillium_def",
     "user": 631740610864349194,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

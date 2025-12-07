@@ -2,6 +2,7 @@
     "name": "night-hat",
     "user": 1286855941295439944,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

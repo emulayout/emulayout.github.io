@@ -2,6 +2,7 @@
     "name": "k12",
     "user": 242776223694979073,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

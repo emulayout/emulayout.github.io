@@ -2,6 +2,7 @@
     "name": "f5b7-mk1-wip",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "/": {
             "row": 0,

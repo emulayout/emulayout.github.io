@@ -2,6 +2,7 @@
     "name": "inbirded",
     "user": 106903531004428288,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

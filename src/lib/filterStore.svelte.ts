@@ -407,20 +407,10 @@ export class FilterStore {
 		return this.selectedAuthors.has(layout.user);
 	}
 
-	// Check if layout has thumb keys (more than 3 rows)
-	#hasThumbKeys(layout: LayoutData): boolean {
-		const rows: Record<number, boolean> = {};
-		for (const info of Object.values(layout.keys)) {
-			rows[info.row] = true;
-		}
-		return Object.keys(rows).length > 3;
-	}
-
 	// Check if layout matches thumb key filter
 	#matchesThumbKeyFilter(layout: LayoutData): boolean {
 		if (this.thumbKeyFilter === 'optional') return true;
-		const hasThumb = this.#hasThumbKeys(layout);
-		return this.thumbKeyFilter === 'required' ? hasThumb : !hasThumb;
+		return this.thumbKeyFilter === 'required' ? layout.hasThumbKeys : !layout.hasThumbKeys;
 	}
 
 	// Filter layouts based on all criteria

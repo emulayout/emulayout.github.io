@@ -2,6 +2,7 @@
     "name": "qwerf_punjabi_no_virus",
     "user": 480054604105515019,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

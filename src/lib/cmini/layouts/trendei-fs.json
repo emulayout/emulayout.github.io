@@ -2,6 +2,7 @@
     "name": "trendei-fs",
     "user": 744037679565373531,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "k": {
             "row": 0,

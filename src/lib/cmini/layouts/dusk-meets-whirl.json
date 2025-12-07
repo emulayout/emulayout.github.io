@@ -2,6 +2,7 @@
     "name": "dusk-meets-whirl",
     "user": 324633828616568833,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

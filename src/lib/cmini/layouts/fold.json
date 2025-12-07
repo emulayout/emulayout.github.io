@@ -2,6 +2,7 @@
     "name": "fold",
     "user": 176492366637563904,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

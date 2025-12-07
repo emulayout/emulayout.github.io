@@ -2,6 +2,7 @@
     "name": "sturdy_thumbn",
     "user": 239371209202991105,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "v": {
             "row": 0,

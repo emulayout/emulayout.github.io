@@ -2,6 +2,7 @@
     "name": "unrest",
     "user": 102102717165506560,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

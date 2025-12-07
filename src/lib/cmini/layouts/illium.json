@@ -2,6 +2,7 @@
     "name": "illium",
     "user": 631740610864349194,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

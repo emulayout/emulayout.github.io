@@ -2,6 +2,7 @@
     "name": "night-dbd-minus-thumb",
     "user": 150873517678788608,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

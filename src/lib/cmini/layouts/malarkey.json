@@ -2,6 +2,7 @@
     "name": "malarkey",
     "user": 239371209202991105,
     "board": "angle",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

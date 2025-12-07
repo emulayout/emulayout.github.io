@@ -2,6 +2,7 @@
     "name": "motion",
     "user": 291790234432176133,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "g": {
             "row": 0,

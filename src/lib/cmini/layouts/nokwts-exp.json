@@ -2,6 +2,7 @@
     "name": "nokwts-exp",
     "user": 130544188818194432,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

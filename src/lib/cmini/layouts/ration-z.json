@@ -2,6 +2,7 @@
     "name": "ration-z",
     "user": 602304923098546181,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

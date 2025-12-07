@@ -2,6 +2,7 @@
     "name": "ichikyuu",
     "user": 347489972070252545,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "u": {
             "row": 0,

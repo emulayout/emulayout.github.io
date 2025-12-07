@@ -2,6 +2,7 @@
     "name": "amini-layout",
     "user": 304373500196552715,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "hntc-test4",
     "user": 154243339586109440,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

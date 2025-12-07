@@ -2,6 +2,7 @@
     "name": "frontier",
     "user": 511945113136791596,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "gt_test",
     "user": 283218117017075712,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

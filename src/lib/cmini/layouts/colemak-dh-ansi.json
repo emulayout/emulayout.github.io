@@ -2,6 +2,7 @@
     "name": "Colemak-DH-ANSI",
     "user": 1085579430623199292,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

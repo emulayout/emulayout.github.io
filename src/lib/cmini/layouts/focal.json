@@ -2,6 +2,7 @@
     "name": "focal",
     "user": 457182030514356226,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

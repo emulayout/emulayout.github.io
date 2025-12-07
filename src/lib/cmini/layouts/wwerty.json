@@ -2,6 +2,7 @@
     "name": "wwerty",
     "user": 736739510251028480,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "\u03c9": {
             "row": 0,

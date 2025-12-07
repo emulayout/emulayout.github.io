@@ -2,6 +2,7 @@
     "name": "bayou",
     "user": 803379699186139186,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "z": {
             "row": 0,

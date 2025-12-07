@@ -2,6 +2,7 @@
     "name": "garfsmie",
     "user": 584442680725995540,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "c": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "legion",
     "user": 943720217450786816,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "j": {
             "row": 0,

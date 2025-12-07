@@ -2,6 +2,7 @@
     "name": "algae_mr_matrix_rpt_sfb",
     "user": 621924065581465611,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "@": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "ono_sendai",
     "user": 631740610864349194,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

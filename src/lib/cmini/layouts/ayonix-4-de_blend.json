@@ -2,6 +2,7 @@
     "name": "ayonix-4-de_blend",
     "user": 87965032175923200,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "f5b7-snth-ceia-1",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "/": {
             "row": 0,

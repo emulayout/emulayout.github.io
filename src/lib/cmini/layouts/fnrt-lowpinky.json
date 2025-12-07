@@ -2,6 +2,7 @@
     "name": "fnrt-lowpinky",
     "user": 1148272283551539342,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "north-ceia-kpb-xyw",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "p": {
             "row": 0,

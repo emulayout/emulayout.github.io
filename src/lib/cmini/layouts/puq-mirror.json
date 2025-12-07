@@ -2,6 +2,7 @@
     "name": "puq-mirror",
     "user": 1150484529157509221,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

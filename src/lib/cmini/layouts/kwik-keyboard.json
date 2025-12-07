@@ -2,6 +2,7 @@
     "name": "kwik-keyboard",
     "user": 1257488519438532709,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

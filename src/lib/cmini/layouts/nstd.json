@@ -2,6 +2,7 @@
     "name": "nstd",
     "user": 1359836297015070760,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

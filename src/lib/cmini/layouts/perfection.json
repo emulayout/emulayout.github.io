@@ -2,6 +2,7 @@
     "name": "perfection",
     "user": 795884452844666891,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

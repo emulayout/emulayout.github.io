@@ -2,6 +2,7 @@
     "name": "rstn-helix",
     "user": 258354642377768960,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "z": {
             "row": 0,

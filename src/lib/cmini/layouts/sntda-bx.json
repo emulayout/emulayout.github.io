@@ -2,6 +2,7 @@
     "name": "sntda-bx",
     "user": 335456391617839106,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "s": {
             "row": 0,

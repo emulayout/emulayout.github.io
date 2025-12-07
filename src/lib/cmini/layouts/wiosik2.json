@@ -2,6 +2,7 @@
     "name": "wiosik2",
     "user": 335456391617839106,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "\u3142": {
             "row": 0,

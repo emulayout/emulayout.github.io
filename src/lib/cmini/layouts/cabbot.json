@@ -2,6 +2,7 @@
     "name": "cabbot",
     "user": 909396439078166538,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "m": {
             "row": 0,

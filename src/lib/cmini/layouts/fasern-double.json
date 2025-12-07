@@ -2,6 +2,7 @@
     "name": "fasern-double",
     "user": 782784290769207336,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "l": {
             "row": 0,

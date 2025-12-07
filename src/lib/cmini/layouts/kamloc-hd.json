@@ -2,6 +2,7 @@
     "name": "kamloc-hd",
     "user": 206581572965629952,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "'": {
             "row": 0,

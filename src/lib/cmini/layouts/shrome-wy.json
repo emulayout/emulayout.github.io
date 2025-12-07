@@ -2,6 +2,7 @@
     "name": "shrome-wy",
     "user": 448776828253896704,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

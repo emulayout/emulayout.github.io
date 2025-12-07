@@ -2,6 +2,7 @@
     "name": "valhalla",
     "user": 324157004820250624,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "v": {
             "row": 0,

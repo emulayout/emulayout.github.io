@@ -2,6 +2,7 @@
     "name": "rollmak-rstag",
     "user": 169285177481101312,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

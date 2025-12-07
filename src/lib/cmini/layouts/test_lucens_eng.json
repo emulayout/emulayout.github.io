@@ -2,6 +2,7 @@
     "name": "test_lucens_eng",
     "user": 766194884095901746,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "c": {
             "row": 0,

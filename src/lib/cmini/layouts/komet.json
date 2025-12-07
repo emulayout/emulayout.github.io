@@ -2,6 +2,7 @@
     "name": "komet",
     "user": 130544188818194432,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

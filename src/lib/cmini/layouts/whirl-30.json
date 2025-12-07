@@ -2,6 +2,7 @@
     "name": "whirl-30",
     "user": 1204708988298461234,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

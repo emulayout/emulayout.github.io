@@ -2,6 +2,7 @@
     "name": "stiche-genkey",
     "user": 1084979551651770448,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "y": {
             "row": 0,

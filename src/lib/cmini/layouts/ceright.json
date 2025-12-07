@@ -2,6 +2,7 @@
     "name": "ceright",
     "user": 313848197254742018,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

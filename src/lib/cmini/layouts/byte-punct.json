@@ -2,6 +2,7 @@
     "name": "byte-punct",
     "user": 431013861546524672,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "w": {
             "row": 0,

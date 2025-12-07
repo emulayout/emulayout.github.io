@@ -2,6 +2,7 @@
     "name": "canary-thumbr-3",
     "user": 657688933001330718,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "y": {
             "row": 0,

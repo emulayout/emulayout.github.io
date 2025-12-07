@@ -2,6 +2,7 @@
     "name": "xiaoyun",
     "user": 133187241047490560,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "p": {
             "row": 0,

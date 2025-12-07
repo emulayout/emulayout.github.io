@@ -2,6 +2,7 @@
     "name": "tetr",
     "user": 668065238070984744,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

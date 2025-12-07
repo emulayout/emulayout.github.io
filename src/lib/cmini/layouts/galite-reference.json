@@ -2,6 +2,7 @@
     "name": "galite-reference",
     "user": 1207294104950542337,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "b": {
             "row": 0,

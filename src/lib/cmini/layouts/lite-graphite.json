@@ -2,6 +2,7 @@
     "name": "lite-graphite",
     "user": 593717174732980224,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

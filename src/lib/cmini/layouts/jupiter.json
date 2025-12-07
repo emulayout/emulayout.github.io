@@ -2,6 +2,7 @@
     "name": "jupiter",
     "user": 1010618301895934034,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "\u044b": {
             "row": 0,

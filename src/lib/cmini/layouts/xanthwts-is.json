@@ -2,6 +2,7 @@
     "name": "xanthwts-is",
     "user": 761732338744557568,
     "board": "stagger",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "borak_l",
     "user": 631740610864349194,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         ",": {
             "row": 0,

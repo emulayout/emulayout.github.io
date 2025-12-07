@@ -2,6 +2,7 @@
     "name": "mycelia",
     "user": 279549560907497474,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "q": {
             "row": 0,

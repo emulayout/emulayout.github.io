@@ -2,6 +2,7 @@
     "name": "in3rolls",
     "user": 1204708988298461234,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "w": {
             "row": 0,

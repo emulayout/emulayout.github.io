@@ -2,6 +2,7 @@
     "name": "dysthymia",
     "user": 401316842083450881,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "c": {
             "row": 0,

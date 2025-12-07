@@ -2,6 +2,7 @@
     "name": "Sertain",
     "user": 397759190543892480,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "x": {
             "row": 0,

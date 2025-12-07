@@ -2,6 +2,7 @@
     "name": "NRST-ex",
     "user": 222792463591538689,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

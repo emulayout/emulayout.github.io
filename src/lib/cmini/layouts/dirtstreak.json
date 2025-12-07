@@ -2,6 +2,7 @@
     "name": "dirtstreak",
     "user": 162417565740564481,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "l": {
             "row": 0,

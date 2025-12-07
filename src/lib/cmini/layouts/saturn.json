@@ -2,6 +2,7 @@
     "name": "saturn",
     "user": 244547046240026628,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

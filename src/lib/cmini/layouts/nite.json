@@ -2,6 +2,7 @@
     "name": "nite",
     "user": 584442680725995540,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "b": {
             "row": 0,

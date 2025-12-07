@@ -2,6 +2,7 @@
     "name": "absinth-test",
     "user": 1084979551651770448,
     "board": "angle",
+    "hasThumbKeys": false,
     "keys": {
         "f": {
             "row": 0,

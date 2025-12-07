@@ -2,6 +2,7 @@
     "name": "nightingale-p",
     "user": 695273206096855050,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

@@ -2,6 +2,7 @@
     "name": "noct-thumb-ht",
     "user": 1215831841638977609,
     "board": "ortho",
+    "hasThumbKeys": true,
     "keys": {
         "x": {
             "row": 0,

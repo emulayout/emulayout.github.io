@@ -2,6 +2,7 @@
     "name": "dogsmile",
     "user": 766194884095901746,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "t": {
             "row": 0,

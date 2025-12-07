@@ -2,6 +2,7 @@
     "name": "quokka_fr",
     "user": 761732338744557568,
     "board": "ortho",
+    "hasThumbKeys": false,
     "keys": {
         "'": {
             "row": 0,
