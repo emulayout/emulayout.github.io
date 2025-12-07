@@ -95,12 +95,12 @@
 		</div>
 	{/if}
 
-	<div class="flex items-center justify-between mb-8">
+	<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 		<p style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredLayouts.length}</span> layouts
 		</p>
 
-		<div class="flex items-center gap-4">
+		<div class="flex flex-wrap items-center gap-4">
 			<label class="flex items-center gap-2 cursor-pointer select-none">
 				<input
 					type="checkbox"
@@ -155,7 +155,7 @@
 	<div class="grid gap-4 md:grid-cols-2">
 		{#each filteredLayouts as layout (layout.name)}
 			<div
-				class="p-5 rounded-xl transition-all duration-300"
+				class="p-5 rounded-xl transition-all duration-300 min-w-0 overflow-hidden"
 				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 			>
 				<h2 class="text-lg font-semibold mb-1" style="color: var(--text-primary);">
@@ -164,9 +164,11 @@
 				<p class="text-xs mb-3" style="color: var(--text-secondary);">
 					{layout.board} · by {getAuthorName(layout.user)}
 				</p>
-				<pre
-					class="font-mono text-xs leading-relaxed tracking-widest"
-					style="color: var(--text-primary);">{layout.displayValue}</pre>
+				<div class="overflow-x-auto -mx-5 px-5">
+					<pre
+						class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
+						style="color: var(--text-primary);">{layout.displayValue}</pre>
+				</div>
 			</div>
 		{/each}
 	</div>
