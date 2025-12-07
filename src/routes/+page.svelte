@@ -128,7 +128,7 @@
 		</div>
 	</div>
 
-	<div class="grid gap-6 md:grid-cols-2">
+	<div class="grid gap-4 md:grid-cols-2">
 		{#each filteredLayouts as layout (layout.name)}
 			<div
 				class="p-5 rounded-xl transition-all duration-300"
