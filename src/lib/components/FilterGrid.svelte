@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Tooltip from './Tooltip.svelte';
+
 	const ROWS = 3;
 	const COLS = 10;
 	const SPLIT_COL = 5;
@@ -27,8 +29,6 @@
 		onClear
 	}: Props = $props();
 
-	let showTooltip = $state(false);
-
 	function handleInput(rowIdx: number, colIdx: number, event: Event) {
 		const input = event.target as HTMLInputElement;
 		onCellChange?.(rowIdx, colIdx, input.value);
@@ -50,46 +50,7 @@
 	<div class="flex items-center justify-between mb-3">
 		<div class="flex items-center gap-1.5">
 			<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
-			<div class="relative">
-				<button
-					type="button"
-					onmouseenter={() => (showTooltip = true)}
-					onmouseleave={() => (showTooltip = false)}
-					onfocus={() => (showTooltip = true)}
-					onblur={() => (showTooltip = false)}
-					class="size-4 rounded-full flex items-center justify-center transition-colors outline-none focus:ring-2"
-					style="
-						background-color: transparent;
-						border: 1px solid var(--text-secondary);
-						color: var(--text-secondary);
-						--tw-ring-color: var(--accent);
-					"
-					aria-label="Help"
-				>
-					<span class="text-[10px] font-medium leading-none">?</span>
-				</button>
-				{#if showTooltip}
-					<div
-						class="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs w-48 shadow-lg pointer-events-none"
-						style="
-							background-color: var(--bg-primary);
-							border: 1px solid var(--border);
-							color: var(--text-primary);
-						"
-					>
-						{tooltipText}
-						<!-- Tooltip arrow -->
-						<div
-							class="absolute top-full left-1/2 -translate-x-1/2"
-							style="
-								border-left: 6px solid transparent;
-								border-right: 6px solid transparent;
-								border-top: 6px solid var(--border);
-							"
-						></div>
-					</div>
-				{/if}
-			</div>
+			<Tooltip text={tooltipText} />
 		</div>
 		{#if hasActiveFilters}
 			<button
