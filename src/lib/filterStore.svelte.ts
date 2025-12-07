@@ -3,6 +3,7 @@ import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import type { LayoutData } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
+export type CharacterSetFilter = 'all' | 'english' | 'international';
 
 const ROWS = 3;
 const COLS = 10;
@@ -52,6 +53,7 @@ export class FilterStore {
 	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	hideEmpty: boolean = $state(true);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
+	characterSetFilter: CharacterSetFilter = $state('english');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
@@ -91,6 +93,11 @@ export class FilterStore {
 				this.includeThumbKeys = ['', '', '', ''];
 				this.excludeThumbKeys = ['', '', '', ''];
 			}
+		}
+
+		const characterSet = url.searchParams.get('characterSet');
+		if (characterSet === 'all' || characterSet === 'english' || characterSet === 'international') {
+			this.characterSetFilter = characterSet;
 		}
 
 		const name = url.searchParams.get('name');
@@ -139,6 +146,10 @@ export class FilterStore {
 
 		if (this.thumbKeyFilter !== 'optional') {
 			url.searchParams.set('thumbKeys', this.thumbKeyFilter);
+		}
+
+		if (this.characterSetFilter !== 'english') {
+			url.searchParams.set('characterSet', this.characterSetFilter);
 		}
 
 		if (this.nameFilter) {
@@ -206,6 +217,11 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	setCharacterSetFilter(value: CharacterSetFilter) {
+		this.characterSetFilter = value;
+		this.#debouncedSave();
+	}
+
 	setNameFilter(value: string) {
 		this.nameFilterInput = value;
 		// Debounce the actual filter update
@@ -251,6 +267,7 @@ export class FilterStore {
 		this.excludeThumbKeys = ['', '', '', ''];
 		this.hideEmpty = true;
 		this.thumbKeyFilter = 'optional';
+		this.characterSetFilter = 'english';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
@@ -272,6 +289,7 @@ export class FilterStore {
 			hasExcludeThumbs ||
 			!this.hideEmpty ||
 			this.thumbKeyFilter !== 'optional' ||
+			this.characterSetFilter !== 'english' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0
 		);
@@ -413,11 +431,18 @@ export class FilterStore {
 		return this.thumbKeyFilter === 'required' ? layout.hasThumbKeys : !layout.hasThumbKeys;
 	}
 
+	// Check if layout matches character set filter
+	#matchesCharacterSet(layout: LayoutData): boolean {
+		if (this.characterSetFilter === 'all') return true;
+		return layout.characterSet === this.characterSetFilter;
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
 			if (!this.#matchesThumbKeyFilter(l)) return false;
+			if (!this.#matchesCharacterSet(l)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&

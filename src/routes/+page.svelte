@@ -2,7 +2,11 @@
 	import type { LayoutData } from '$lib/layout';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
-	import { filterStore, type ThumbKeyFilter } from '$lib/filterStore.svelte';
+	import {
+		filterStore,
+		type ThumbKeyFilter,
+		type CharacterSetFilter
+	} from '$lib/filterStore.svelte';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -122,6 +126,27 @@
 					<option value="optional">Optional</option>
 					<option value="excluded">Excluded</option>
 					<option value="required">Required</option>
+				</select>
+			</label>
+
+			<label class="flex items-center gap-2 select-none">
+				<span class="text-sm" style="color: var(--text-secondary);">Character set:</span>
+				<select
+					value={filterStore.characterSetFilter}
+					onchange={(e) =>
+						filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
+					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+					style="
+						background-color: var(--bg-secondary);
+						color: var(--text-primary);
+						border: 1px solid {filterStore.characterSetFilter !== 'english'
+						? 'var(--accent)'
+						: 'var(--border)'};
+					"
+				>
+					<option value="all">All</option>
+					<option value="english">English</option>
+					<option value="international">International</option>
 				</select>
 			</label>
 		</div>
