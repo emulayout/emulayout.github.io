@@ -1,0 +1,39 @@
+/**
+ * Transforms layout data by adding computed properties.
+ * This allows us to pre-compute values that would otherwise be calculated on the client.
+ */
+
+/**
+ * Transforms a layout object by adding computed properties.
+ * @param {Object} layout - The raw layout object from the repo
+ * @returns {Object} - The transformed layout with computed properties
+ */
+export function transformLayout(layout) {
+	const transformed = { ...layout };
+
+	// Add computed properties
+	transformed.hasThumbKeys = computeHasThumbKeys(layout);
+
+	return transformed;
+}
+
+/**
+ * Computes whether a layout has thumb keys (row 3 or higher).
+ * A layout has thumb keys if it has keys in more than 3 rows (rows 0, 1, 2, 3+).
+ */
+function computeHasThumbKeys(layout) {
+	if (!layout.keys || typeof layout.keys !== 'object') {
+		return false;
+	}
+
+	const rows = new Set();
+	for (const info of Object.values(layout.keys)) {
+		if (info && typeof info.row === 'number') {
+			rows.add(info.row);
+		}
+	}
+
+	// Has thumb keys if there are more than 3 unique rows (0, 1, 2, 3+)
+	return rows.size > 3;
+}
+

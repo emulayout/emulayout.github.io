@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
-import { rm, readFile, mkdir, access, readdir, stat } from 'node:fs/promises';
+import { rm, readFile, mkdir, access, readdir, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { $ } from 'bun';
+import { transformLayout } from './layout-transformer.js';
 
 const DEST = 'src/lib/cmini';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
@@ -91,10 +92,6 @@ async function run() {
 	const beforeFiles = await getLayoutFiles(layoutsDir);
 
 	const blacklist = await loadBlacklist();
-	const excludeArgs = blacklist.flatMap((layout) => [
-		'--exclude',
-		layout.endsWith('.json') ? layout : `${layout}.json`
-	]);
 
 	// Track blacklisted removals
 	const blacklistedRemovals = [];
@@ -113,9 +110,111 @@ async function run() {
 		}
 	}
 
-	console.log('→ Syncing layouts...');
+	console.log('→ Syncing and transforming layouts...');
 	await $`mkdir -p ${layoutsDir}`;
-	await $`rsync -av --delete ${excludeArgs} ${CACHE_DIR}/layouts/ ${layoutsDir}/`;
+
+	// Get all layout files from cache
+	const cacheLayoutsDir = join(CACHE_DIR, 'layouts');
+	const cacheFiles = await readdir(cacheLayoutsDir);
+	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
+
+	// Transform and write each layout
+	for (const filename of layoutFiles) {
+		// Check if blacklisted (handle both with and without .json extension)
+		const layoutName = filename.replace('.json', '');
+		const isBlacklisted = blacklist.some(
+			(entry) =>
+				entry === layoutName || entry === filename || entry.replace('.json', '') === layoutName
+		);
+		if (isBlacklisted) {
+			continue; // Skip blacklisted layouts
+		}
+
+		const cachePath = join(cacheLayoutsDir, filename);
+		const destPath = join(layoutsDir, filename);
+
+		try {
+			const originalContent = await readFile(cachePath, 'utf-8');
+			const rawLayout = JSON.parse(originalContent);
+			const transformedLayout = transformLayout(rawLayout);
+
+			// Instead of re-stringifying, insert the new property into the original JSON
+			// This preserves Unicode escapes, formatting, and large number precision
+			let modifiedContent = originalContent;
+
+			// Check if hasThumbKeys already exists (in case of re-sync)
+			if (/"hasThumbKeys"\s*:/g.test(modifiedContent)) {
+				// Replace existing value
+				modifiedContent = modifiedContent.replace(
+					/"hasThumbKeys"\s*:\s*\w+/g,
+					`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`
+				);
+			} else {
+				// Insert after "board" property (before "keys")
+				// Find the "board" line and insert after it
+				const boardMatch = modifiedContent.match(/"board"\s*:\s*"[^"]*",?\s*\n/);
+				if (boardMatch) {
+					const indentMatch = boardMatch[0].match(/^(\s+)/);
+					const indent = indentMatch ? indentMatch[1] : '    ';
+					const insertPoint = boardMatch.index + boardMatch[0].length;
+
+					// Ensure board line has a comma (if it doesn't, add one)
+					let boardLine = boardMatch[0];
+					if (!boardLine.includes(',')) {
+						// Add comma before the newline
+						boardLine = boardLine.replace(/\n/, ',\n');
+					}
+
+					// hasThumbKeys always needs a comma (since "keys" comes after)
+					const newProperty = `${indent}"hasThumbKeys": ${transformedLayout.hasThumbKeys},\n`;
+
+					modifiedContent =
+						modifiedContent.slice(0, boardMatch.index) +
+						boardLine +
+						newProperty +
+						modifiedContent.slice(insertPoint);
+				} else {
+					// Fallback: insert at the end of the root object, before "keys"
+					const keysMatch = modifiedContent.match(/(\s+)"keys"\s*:\s*{/);
+					if (keysMatch) {
+						const indent = keysMatch[1];
+						const insertPoint = keysMatch.index;
+						const newProperty = `${indent}"hasThumbKeys": ${transformedLayout.hasThumbKeys},\n`;
+						modifiedContent =
+							modifiedContent.slice(0, insertPoint) +
+							newProperty +
+							modifiedContent.slice(insertPoint);
+					}
+				}
+			}
+
+			// Preserve original trailing newline state
+			const originalEndsWithNewline = originalContent.endsWith('\n');
+			if (originalEndsWithNewline && !modifiedContent.endsWith('\n')) {
+				modifiedContent += '\n';
+			} else if (!originalEndsWithNewline && modifiedContent.endsWith('\n')) {
+				modifiedContent = modifiedContent.slice(0, -1);
+			}
+
+			await writeFile(destPath, modifiedContent, 'utf-8');
+		} catch (err) {
+			console.error(`  ⚠ Error processing ${filename}:`, err.message);
+		}
+	}
+
+	// Remove any files in destination that aren't in cache (or are blacklisted)
+	const destFiles = await readdir(layoutsDir);
+	for (const filename of destFiles) {
+		if (!filename.endsWith('.json')) continue;
+		const layoutName = filename.replace('.json', '');
+		const isBlacklisted = blacklist.some(
+			(entry) =>
+				entry === layoutName || entry === filename || entry.replace('.json', '') === layoutName
+		);
+		if (!layoutFiles.includes(filename) || isBlacklisted) {
+			await rm(join(layoutsDir, filename), { force: true });
+		}
+	}
 
 	console.log('→ Syncing authors...');
 	await $`cp ${CACHE_DIR}/authors.json ${DEST}/authors.json`;
