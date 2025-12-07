@@ -48,6 +48,8 @@ function deserializeGrid(str: string): string[][] {
 export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
+	includeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
+	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	hideEmpty: boolean = $state(true);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	nameFilterInput: string = $state(''); // Immediate input value
@@ -96,6 +98,18 @@ export class FilterStore {
 		if (authors) {
 			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
 		}
+
+		const includeThumbs = url.searchParams.get('includeThumbs');
+		if (includeThumbs) {
+			const parsed = includeThumbs.split('|');
+			this.includeThumbKeys = [...parsed, '', '', '', ''].slice(0, 4);
+		}
+
+		const excludeThumbs = url.searchParams.get('excludeThumbs');
+		if (excludeThumbs) {
+			const parsed = excludeThumbs.split('|');
+			this.excludeThumbKeys = [...parsed, '', '', '', ''].slice(0, 4);
+		}
 	}
 
 	#saveToUrl() {
@@ -130,6 +144,16 @@ export class FilterStore {
 			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
 		}
 
+		const includeThumbsSerialized = this.includeThumbKeys.filter((k) => k !== '').join('|');
+		if (includeThumbsSerialized) {
+			url.searchParams.set('includeThumbs', includeThumbsSerialized);
+		}
+
+		const excludeThumbsSerialized = this.excludeThumbKeys.filter((k) => k !== '').join('|');
+		if (excludeThumbsSerialized) {
+			url.searchParams.set('excludeThumbs', excludeThumbsSerialized);
+		}
+
 		window.history.replaceState({}, '', url.toString());
 	}
 
@@ -149,6 +173,16 @@ export class FilterStore {
 
 	setExcludeCell(row: number, col: number, value: string) {
 		this.excludeGrid[row][col] = value;
+		this.#debouncedSave();
+	}
+
+	setIncludeThumbKey(index: number, value: string) {
+		this.includeThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setExcludeThumbKey(index: number, value: string) {
+		this.excludeThumbKeys[index] = value;
 		this.#debouncedSave();
 	}
 
@@ -176,11 +210,13 @@ export class FilterStore {
 
 	clearInclude() {
 		this.includeGrid = createEmptyGrid();
+		this.includeThumbKeys = ['', '', '', ''];
 		this.#debouncedSave();
 	}
 
 	clearExclude() {
 		this.excludeGrid = createEmptyGrid();
+		this.excludeThumbKeys = ['', '', '', ''];
 		this.#debouncedSave();
 	}
 
@@ -201,6 +237,8 @@ export class FilterStore {
 	clearAll() {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
+		this.includeThumbKeys = ['', '', '', ''];
+		this.excludeThumbKeys = ['', '', '', ''];
 		this.hideEmpty = true;
 		this.thumbKeyFilter = 'optional';
 		this.nameFilterInput = '';
@@ -215,9 +253,13 @@ export class FilterStore {
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
+		const hasIncludeThumbs = this.includeThumbKeys.some((k) => k !== '');
+		const hasExcludeThumbs = this.excludeThumbKeys.some((k) => k !== '');
 		return (
 			hasInclude ||
 			hasExclude ||
+			hasIncludeThumbs ||
+			hasExcludeThumbs ||
 			!this.hideEmpty ||
 			this.thumbKeyFilter !== 'optional' ||
 			this.nameFilterInput !== '' ||
@@ -233,8 +275,75 @@ export class FilterStore {
 		return undefined;
 	}
 
+	// Get all keys in row 3 with their column positions, sorted by column
+	#getThumbKeysWithCols(layout: LayoutData): Array<{ key: string; col: number }> {
+		const thumbKeys: Array<{ key: string; col: number }> = [];
+		for (const [key, info] of Object.entries(layout.keys)) {
+			if (info.row === ROWS) {
+				thumbKeys.push({ key: key.toLowerCase(), col: info.col });
+			}
+		}
+		return thumbKeys.sort((a, b) => a.col - b.col);
+	}
+
+	// Check if thumb keys match positional filter (keys must exist in order)
+	#matchesThumbKeyPosition(
+		thumbKeys: Array<{ key: string; col: number }>,
+		filter: string[]
+	): boolean {
+		const nonEmptyFilters = filter
+			.map((f, idx) => ({ chars: f.toLowerCase(), position: idx }))
+			.filter((f) => f.chars !== '');
+
+		if (nonEmptyFilters.length === 0) return true;
+
+		// For each filter position, find matching keys
+		const matches: Array<{ key: string; col: number; filterPos: number }> = [];
+		for (const filter of nonEmptyFilters) {
+			for (const thumbKey of thumbKeys) {
+				if (filter.chars.includes(thumbKey.key)) {
+					matches.push({ ...thumbKey, filterPos: filter.position });
+				}
+			}
+		}
+
+		// Check if we have all required keys
+		if (matches.length < nonEmptyFilters.length) return false;
+
+		// Check if keys are in the correct order (col values must increase with filter position)
+		// Group matches by filter position and get the leftmost (min col) for each
+		const byFilterPos: Record<number, number[]> = {};
+		for (const match of matches) {
+			if (!byFilterPos[match.filterPos]) byFilterPos[match.filterPos] = [];
+			byFilterPos[match.filterPos].push(match.col);
+		}
+
+		// For each filter position, we need at least one key
+		for (const filter of nonEmptyFilters) {
+			if (!byFilterPos[filter.position] || byFilterPos[filter.position].length === 0) {
+				return false;
+			}
+		}
+
+		// Check ordering: for each pair of consecutive filters, need at least one key from earlier position
+		// with col < at least one key from later position
+		for (let i = 0; i < nonEmptyFilters.length - 1; i++) {
+			const currPos = nonEmptyFilters[i].position;
+			const nextPos = nonEmptyFilters[i + 1].position;
+			const currCols = byFilterPos[currPos];
+			const nextCols = byFilterPos[nextPos];
+			// Need at least one curr col < at least one next col
+			const currMinCol = Math.min(...currCols);
+			const nextMaxCol = Math.max(...nextCols);
+			if (currMinCol >= nextMaxCol) return false;
+		}
+
+		return true;
+	}
+
 	// Check if layout matches include filter (key must be one of the specified chars)
 	#matchesInclude(layout: LayoutData): boolean {
+		// Check rows 0-2 (position-specific)
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
 				const filterChars = this.includeGrid[row][col].toLowerCase();
@@ -245,11 +354,18 @@ export class FilterStore {
 				}
 			}
 		}
+		// Check thumb keys (row 3) - positional ordering
+		// Only check if there are non-empty filters
+		if (this.includeThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysWithCols(layout);
+			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeThumbKeys)) return false;
+		}
 		return true;
 	}
 
 	// Check if layout matches exclude filter (key must NOT be any of the specified chars)
 	#matchesExclude(layout: LayoutData): boolean {
+		// Check rows 0-2 (position-specific)
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
 				const filterChars = this.excludeGrid[row][col].toLowerCase();
@@ -259,6 +375,12 @@ export class FilterStore {
 					if (keyAtPos && filterChars.includes(keyAtPos)) return false;
 				}
 			}
+		}
+		// Check thumb keys (row 3) - if matches positional filter, exclude
+		// Only check if there are non-empty filters
+		if (this.excludeThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysWithCols(layout);
+			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeThumbKeys)) return false;
 		}
 		return true;
 	}

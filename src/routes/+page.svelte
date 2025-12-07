@@ -61,15 +61,19 @@
 		<FilterGrid
 			label="Include (must have)"
 			grid={filterStore.includeGrid}
+			thumbKeys={filterStore.includeThumbKeys}
 			accentColor="#4ade80"
 			onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
+			onThumbKeyChange={(index, value) => filterStore.setIncludeThumbKey(index, value)}
 			onClear={() => filterStore.clearInclude()}
 		/>
 		<FilterGrid
 			label="Exclude (must not have)"
 			grid={filterStore.excludeGrid}
+			thumbKeys={filterStore.excludeThumbKeys}
 			accentColor="#f87171"
 			onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
+			onThumbKeyChange={(index, value) => filterStore.setExcludeThumbKey(index, value)}
 			onClear={() => filterStore.clearExclude()}
 		/>
 	</div>
