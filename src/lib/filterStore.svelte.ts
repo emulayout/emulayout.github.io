@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { SvelteURL } from 'svelte/reactivity';
+import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import type { LayoutData } from './printPretty';
 
 const ROWS = 3;
@@ -49,7 +49,7 @@ export class FilterStore {
 	hideEmpty: boolean = $state(true);
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
-	selectedAuthors: Set<number> = $state(new Set()); // Set of author user IDs
+	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -86,7 +86,7 @@ export class FilterStore {
 
 		const authors = url.searchParams.get('authors');
 		if (authors) {
-			this.selectedAuthors = new Set(authors.split(',').map(Number));
+			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
 		}
 	}
 
@@ -173,13 +173,11 @@ export class FilterStore {
 		} else {
 			this.selectedAuthors.add(authorId);
 		}
-		// Trigger reactivity by reassigning
-		this.selectedAuthors = new Set(this.selectedAuthors);
 		this.#debouncedSave();
 	}
 
 	clearAuthors() {
-		this.selectedAuthors = new Set();
+		this.selectedAuthors.clear();
 		this.#debouncedSave();
 	}
 
@@ -189,7 +187,7 @@ export class FilterStore {
 		this.hideEmpty = true;
 		this.nameFilterInput = '';
 		this.nameFilter = '';
-		this.selectedAuthors = new Set();
+		this.selectedAuthors.clear();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
@@ -199,7 +197,13 @@ export class FilterStore {
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
-		return hasInclude || hasExclude || !this.hideEmpty || this.nameFilterInput !== '' || this.selectedAuthors.size > 0;
+		return (
+			hasInclude ||
+			hasExclude ||
+			!this.hideEmpty ||
+			this.nameFilterInput !== '' ||
+			this.selectedAuthors.size > 0
+		);
 	}
 
 	// Get key at a specific position in a layout
@@ -256,7 +260,12 @@ export class FilterStore {
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
-			return this.#matchesName(l) && this.#matchesAuthor(l) && this.#matchesInclude(l) && this.#matchesExclude(l);
+			return (
+				this.#matchesName(l) &&
+				this.#matchesAuthor(l) &&
+				this.#matchesInclude(l) &&
+				this.#matchesExclude(l)
+			);
 		});
 	}
 }
