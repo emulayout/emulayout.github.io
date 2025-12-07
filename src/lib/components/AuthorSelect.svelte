@@ -15,8 +15,8 @@
 
 	let open = $state(false);
 	let search = $state('');
-	let searchInput: HTMLInputElement;
-	let triggerButton: HTMLButtonElement;
+	let searchInput = $state<HTMLInputElement | undefined>(undefined);
+	let triggerButton = $state<HTMLButtonElement | undefined>(undefined);
 
 	$effect(() => {
 		if (open) {
@@ -29,9 +29,7 @@
 	});
 
 	const filteredAuthors = $derived(
-		search
-			? authors.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()))
-			: authors
+		search ? authors.filter((a) => a.name.toLowerCase().includes(search.toLowerCase())) : authors
 	);
 
 	const selectedCount = $derived(selectedIds.size);
@@ -64,6 +62,7 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="relative" onfocusout={handleFocusOut} onkeydown={handleKeyDown}>
 	<button
 		bind:this={triggerButton}
@@ -100,6 +99,7 @@
 
 	{#if open}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			class="fixed inset-0 z-10"
 			onclick={() => {
@@ -143,7 +143,9 @@
 					<button
 						onclick={() => handleToggle(author.id)}
 						class="w-full px-4 py-2 text-sm text-left flex items-center gap-2 transition-colors hover:brightness-95"
-						style="background-color: {selectedIds.has(author.id) ? 'var(--bg-primary)' : 'transparent'};"
+						style="background-color: {selectedIds.has(author.id)
+							? 'var(--bg-primary)'
+							: 'transparent'};"
 					>
 						<span
 							class="size-4 rounded border flex items-center justify-center text-xs"
@@ -165,4 +167,3 @@
 		</div>
 	{/if}
 </div>
-
