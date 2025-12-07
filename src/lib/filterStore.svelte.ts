@@ -440,7 +440,9 @@ export class FilterStore {
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
-			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
+			// Only apply hasAllLetters filter if not filtering by international character set
+			if (this.hideEmpty && this.characterSetFilter !== 'international' && !l.hasAllLetters)
+				return false;
 			if (!this.#matchesThumbKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			return (

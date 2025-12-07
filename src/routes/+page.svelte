@@ -94,14 +94,22 @@
 		class="p-4 rounded-xl mb-6 flex flex-wrap items-center justify-center gap-6"
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
-		<label class="flex items-center gap-2 cursor-pointer select-none">
+		<label
+			class="flex items-center gap-2 select-none"
+			class:cursor-pointer={filterStore.characterSetFilter !== 'international'}
+		>
 			<input
 				type="checkbox"
 				checked={filterStore.hideEmpty}
+				disabled={filterStore.characterSetFilter === 'international'}
 				onchange={(e) => filterStore.setHideEmpty(e.currentTarget.checked)}
 				class="size-4 rounded accent-(--accent)"
 			/>
-			<span class="text-sm" style="color: var(--text-secondary);">Hide empty layouts</span>
+			<span
+				class="text-sm"
+				class:line-through={filterStore.characterSetFilter === 'international'}
+				style="color: var(--text-secondary);">Hide unfinished layouts</span
+			>
 		</label>
 
 		<label class="flex items-center gap-2 select-none">

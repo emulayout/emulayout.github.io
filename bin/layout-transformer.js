@@ -15,6 +15,7 @@ export function transformLayout(layout) {
 	transformed.hasThumbKeys = computeHasThumbKeys(layout);
 	transformed.displayValue = computeDisplayValue(layout);
 	transformed.characterSet = computeCharacterSet(layout);
+	transformed.hasAllLetters = computeHasAllLetters(layout);
 
 	return transformed;
 }
@@ -101,4 +102,35 @@ function computeCharacterSet(layout) {
 	}
 
 	return 'english';
+}
+
+/**
+ * Computes whether a layout has all letters a-z (case insensitive).
+ * Returns true if all 26 letters are present in the layout keys, false otherwise.
+ */
+function computeHasAllLetters(layout) {
+	if (!layout.keys || typeof layout.keys !== 'object') {
+		return false;
+	}
+
+	// Set to track which letters we've found
+	const foundLetters = new Set();
+
+	// Check all keys
+	for (const key of Object.keys(layout.keys)) {
+		if (!key || typeof key !== 'string') continue;
+
+		// Convert to lowercase and check each character
+		const lowerKey = key.toLowerCase();
+		for (let i = 0; i < lowerKey.length; i++) {
+			const char = lowerKey[i];
+			// Check if it's a letter a-z
+			if (char >= 'a' && char <= 'z') {
+				foundLetters.add(char);
+			}
+		}
+	}
+
+	// Check if we have all 26 letters
+	return foundLetters.size === 26;
 }

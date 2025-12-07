@@ -11,4 +11,5 @@ export interface LayoutData {
 	hasThumbKeys: boolean;
 	displayValue: string;
 	characterSet: 'english' | 'international';
+	hasAllLetters: boolean;
 }
