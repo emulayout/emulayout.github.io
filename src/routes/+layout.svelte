@@ -37,7 +37,10 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<header class="flex justify-end p-4">
+	<header class="flex items-center justify-between p-6 pr-0 pl-0 max-w-4xl mx-auto">
+		<h1 class="text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
+			Keyboard Layout Explorer
+		</h1>
 		<button
 			onclick={toggleTheme}
 			class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
