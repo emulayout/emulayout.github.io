@@ -16,6 +16,7 @@ export function transformLayout(layout) {
 	transformed.displayValue = computeDisplayValue(layout);
 	transformed.characterSet = computeCharacterSet(layout);
 	transformed.hasAllLetters = computeHasAllLetters(layout);
+	transformed.hasMagicKey = computeHasMagicKey(layout);
 
 	return transformed;
 }
@@ -133,4 +134,17 @@ function computeHasAllLetters(layout) {
 
 	// Check if we have all 26 letters
 	return foundLetters.size === 26;
+}
+
+/**
+ * Computes whether a layout has an asterisk (*) assigned as a key.
+ * Returns true if the layout has a key with the value "*", false otherwise.
+ */
+function computeHasMagicKey(layout) {
+	if (!layout.keys || typeof layout.keys !== 'object') {
+		return false;
+	}
+
+	// Check if any key in the keys object is "*"
+	return Object.keys(layout.keys).some((key) => key === '*');
 }
