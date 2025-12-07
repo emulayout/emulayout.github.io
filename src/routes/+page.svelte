@@ -5,6 +5,7 @@
 	import {
 		filterStore,
 		type ThumbKeyFilter,
+		type MagicKeyFilter,
 		type CharacterSetFilter
 	} from '$lib/filterStore.svelte';
 
@@ -100,9 +101,9 @@
 		>
 			<input
 				type="checkbox"
-				checked={filterStore.hideEmpty}
+				checked={filterStore.hideUnfinished}
 				disabled={filterStore.characterSetFilter === 'international'}
-				onchange={(e) => filterStore.setHideEmpty(e.currentTarget.checked)}
+				onchange={(e) => filterStore.setHideUnfinished(e.currentTarget.checked)}
 				class="size-4 rounded accent-(--accent)"
 			/>
 			<span
@@ -122,6 +123,24 @@
 					background-color: var(--bg-secondary);
 					color: var(--text-primary);
 					border: 1px solid {filterStore.thumbKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
+				"
+			>
+				<option value="optional">Optional</option>
+				<option value="excluded">Excluded</option>
+				<option value="required">Required</option>
+			</select>
+		</label>
+
+		<label class="flex items-center gap-2 select-none">
+			<span class="text-sm" style="color: var(--text-secondary);">Magic key:</span>
+			<select
+				value={filterStore.magicKeyFilter}
+				onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
+				class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+				style="
+					background-color: var(--bg-secondary);
+					color: var(--text-primary);
+					border: 1px solid {filterStore.magicKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
 				"
 			>
 				<option value="optional">Optional</option>

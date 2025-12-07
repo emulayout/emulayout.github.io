@@ -3,6 +3,7 @@ import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import type { LayoutData } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
+export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 
 const ROWS = 3;
@@ -51,8 +52,9 @@ export class FilterStore {
 	excludeGrid: string[][] = $state(createEmptyGrid());
 	includeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
-	hideEmpty: boolean = $state(true);
+	hideUnfinished: boolean = $state(true);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
+	magicKeyFilter: MagicKeyFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
@@ -80,9 +82,9 @@ export class FilterStore {
 			this.excludeGrid = deserializeGrid(exclude);
 		}
 
-		const hideEmpty = url.searchParams.get('hideEmpty');
-		if (hideEmpty !== null) {
-			this.hideEmpty = hideEmpty !== '0';
+		const hideUnfinished = url.searchParams.get('hideUnfinished');
+		if (hideUnfinished !== null) {
+			this.hideUnfinished = hideUnfinished !== '0';
 		}
 
 		const thumbKeys = url.searchParams.get('thumbKeys');
@@ -93,6 +95,11 @@ export class FilterStore {
 				this.includeThumbKeys = ['', '', '', ''];
 				this.excludeThumbKeys = ['', '', '', ''];
 			}
+		}
+
+		const magicKey = url.searchParams.get('magicKey');
+		if (magicKey === 'excluded' || magicKey === 'required') {
+			this.magicKeyFilter = magicKey;
 		}
 
 		const characterSet = url.searchParams.get('characterSet');
@@ -140,12 +147,16 @@ export class FilterStore {
 			url.searchParams.set('exclude', excludeSerialized);
 		}
 
-		if (!this.hideEmpty) {
-			url.searchParams.set('hideEmpty', '0');
+		if (!this.hideUnfinished) {
+			url.searchParams.set('hideUnfinished', '0');
 		}
 
 		if (this.thumbKeyFilter !== 'optional') {
 			url.searchParams.set('thumbKeys', this.thumbKeyFilter);
+		}
+
+		if (this.magicKeyFilter !== 'optional') {
+			url.searchParams.set('magicKey', this.magicKeyFilter);
 		}
 
 		if (this.characterSetFilter !== 'english') {
@@ -202,8 +213,8 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	setHideEmpty(value: boolean) {
-		this.hideEmpty = value;
+	setHideUnfinished(value: boolean) {
+		this.hideUnfinished = value;
 		this.#debouncedSave();
 	}
 
@@ -214,6 +225,11 @@ export class FilterStore {
 			this.includeThumbKeys = ['', '', '', ''];
 			this.excludeThumbKeys = ['', '', '', ''];
 		}
+		this.#debouncedSave();
+	}
+
+	setMagicKeyFilter(value: MagicKeyFilter) {
+		this.magicKeyFilter = value;
 		this.#debouncedSave();
 	}
 
@@ -265,8 +281,9 @@ export class FilterStore {
 		this.excludeGrid = createEmptyGrid();
 		this.includeThumbKeys = ['', '', '', ''];
 		this.excludeThumbKeys = ['', '', '', ''];
-		this.hideEmpty = true;
+		this.hideUnfinished = true;
 		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
@@ -287,8 +304,9 @@ export class FilterStore {
 			hasExclude ||
 			hasIncludeThumbs ||
 			hasExcludeThumbs ||
-			!this.hideEmpty ||
+			!this.hideUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
+			this.magicKeyFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0
@@ -426,6 +444,13 @@ export class FilterStore {
 	}
 
 	// Check if layout matches thumb key filter
+	#matchesMagicKeyFilter(layout: LayoutData): boolean {
+		if (this.magicKeyFilter === 'optional') return true;
+		if (this.magicKeyFilter === 'excluded') return !layout.hasMagicKey;
+		if (this.magicKeyFilter === 'required') return layout.hasMagicKey;
+		return true;
+	}
+
 	#matchesThumbKeyFilter(layout: LayoutData): boolean {
 		if (this.thumbKeyFilter === 'optional') return true;
 		return this.thumbKeyFilter === 'required' ? layout.hasThumbKeys : !layout.hasThumbKeys;
@@ -441,9 +466,16 @@ export class FilterStore {
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			// Only apply hasAllLetters filter if not filtering by international character set
-			if (this.hideEmpty && this.characterSetFilter !== 'international' && !l.hasAllLetters)
+			// A layout is considered "finished" if it has all letters OR has a magic key
+			if (
+				this.hideUnfinished &&
+				this.characterSetFilter !== 'international' &&
+				!l.hasAllLetters &&
+				!l.hasMagicKey
+			)
 				return false;
 			if (!this.#matchesThumbKeyFilter(l)) return false;
+			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			return (
 				this.#matchesName(l) &&
