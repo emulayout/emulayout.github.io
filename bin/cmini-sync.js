@@ -156,9 +156,7 @@ async function run() {
 		console.log('');
 	}
 
-	console.log('Next steps:');
-	console.log(`  git add ${DEST}`);
-	console.log('  git commit -m "Sync cmini data"');
+	console.log('Done');
 }
 
 run().catch((err) => {
