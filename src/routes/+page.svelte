@@ -2,6 +2,7 @@
 	import type { LayoutData } from '$lib/layout';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		filterStore,
 		type ThumbKeyFilter,
@@ -127,6 +128,9 @@
 				class:line-through={filterStore.characterSetFilter === 'international'}
 				style="color: var(--text-secondary);">Show unfinished layouts</span
 			>
+			<Tooltip
+				text="Unfinished layouts are English-character-set layouts (without a magic key) that don't have all letters (A-Z) assigned to a key."
+			/>
 		</label>
 
 		<label class="flex items-center gap-2 select-none">
@@ -148,7 +152,13 @@
 		</label>
 
 		<label class="flex items-center gap-2 select-none">
-			<span class="text-sm" style="color: var(--text-secondary);">Magic key:</span>
+			<span
+				class="text-sm flex items-center gap-1"
+				style="color: var(--text-secondary); white-space: nowrap;"
+				>Magic key <Tooltip
+					text="A magic key is a key that has custom functionality. For example, it can change its letter based on the preceeding key pressed. Since a magic key's functionality is not standardized, resources outside this explorer are required to understand its functionality."
+				/>:</span
+			>
 			<select
 				value={filterStore.magicKeyFilter}
 				onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
