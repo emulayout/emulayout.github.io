@@ -9,6 +9,7 @@
 		thumbKeys?: string[];
 		accentColor?: string;
 		hideThumbKeys?: boolean;
+		tooltipText?: string;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onThumbKeyChange?: (index: number, value: string) => void;
 		onClear?: () => void;
@@ -20,10 +21,13 @@
 		thumbKeys = ['', '', '', ''],
 		accentColor = 'var(--accent)',
 		hideThumbKeys = false,
+		tooltipText = 'Placeholder tooltip text - please fill in with helpful instructions',
 		onCellChange,
 		onThumbKeyChange,
 		onClear
 	}: Props = $props();
+
+	let showTooltip = $state(false);
 
 	function handleInput(rowIdx: number, colIdx: number, event: Event) {
 		const input = event.target as HTMLInputElement;
@@ -44,7 +48,49 @@
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
 	<div class="flex items-center justify-between mb-3">
-		<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
+		<div class="flex items-center gap-1.5">
+			<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
+			<div class="relative">
+				<button
+					type="button"
+					onmouseenter={() => (showTooltip = true)}
+					onmouseleave={() => (showTooltip = false)}
+					onfocus={() => (showTooltip = true)}
+					onblur={() => (showTooltip = false)}
+					class="size-4 rounded-full flex items-center justify-center transition-colors outline-none focus:ring-2"
+					style="
+						background-color: transparent;
+						border: 1px solid var(--text-secondary);
+						color: var(--text-secondary);
+						--tw-ring-color: var(--accent);
+					"
+					aria-label="Help"
+				>
+					<span class="text-[10px] font-medium leading-none">?</span>
+				</button>
+				{#if showTooltip}
+					<div
+						class="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs w-48 shadow-lg pointer-events-none"
+						style="
+							background-color: var(--bg-primary);
+							border: 1px solid var(--border);
+							color: var(--text-primary);
+						"
+					>
+						{tooltipText}
+						<!-- Tooltip arrow -->
+						<div
+							class="absolute top-full left-1/2 -translate-x-1/2"
+							style="
+								border-left: 6px solid transparent;
+								border-right: 6px solid transparent;
+								border-top: 6px solid var(--border);
+							"
+						></div>
+					</div>
+				{/if}
+			</div>
+		</div>
 		{#if hasActiveFilters}
 			<button
 				onclick={handleClear}
@@ -84,6 +130,9 @@
 		<!-- Thumb keys row (row 3) - 4 inputs -->
 		{#if !hideThumbKeys}
 			<div class="mt-2 pt-2" style="border-top: 1px solid var(--border);">
+				<p class="text-[10px] mb-2 italic" style="color: var(--text-caption);">
+					Thumb keys (only filter by order, not column position)
+				</p>
 				<div class="flex gap-2">
 					{#each thumbKeys as key, idx}
 						<input
@@ -102,9 +151,6 @@
 						/>
 					{/each}
 				</div>
-				<p class="text-[10px] mt-1" style="color: var(--text-secondary);">
-					Thumb keys filter only by order, not column position
-				</p>
 			</div>
 		{/if}
 	</div>

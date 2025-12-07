@@ -80,7 +80,7 @@
 			style="color: {selectedCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'};"
 		>
 			{#if selectedCount === 0}
-				Filter by author...
+				All authors
 			{:else}
 				{selectedNames}
 			{/if}

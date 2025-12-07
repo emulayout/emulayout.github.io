@@ -34,31 +34,40 @@
 <div class="max-w-5xl mx-auto">
 	<!-- Name Search & Author Filter -->
 	<div class="grid gap-4 md:grid-cols-2 mb-4">
-		<input
-			type="text"
-			placeholder="Search by layout name..."
-			value={filterStore.nameFilterInput}
-			oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
-			class="w-full px-4 py-2 rounded-xl text-sm outline-none focus:ring-2 transition-all duration-200"
-			style="
-				background-color: var(--bg-secondary);
-				color: var(--text-primary);
-				border: 1px solid {filterStore.nameFilterInput ? 'var(--accent)' : 'var(--border)'};
-				--tw-ring-color: var(--accent);
-			"
-		/>
-		<AuthorSelect
-			authors={authorList}
-			selectedIds={filterStore.selectedAuthors}
-			onToggle={(id) => filterStore.toggleAuthor(id)}
-			onClear={() => filterStore.clearAuthors()}
-		/>
+		<div>
+			<label for="name-filter" class="block text-sm mb-2" style="color: var(--text-secondary);">
+				Layout name
+			</label>
+			<input
+				id="name-filter"
+				type="text"
+				value={filterStore.nameFilterInput}
+				oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
+				class="w-full px-4 py-2 rounded-xl text-sm outline-none focus:ring-2 transition-all duration-200"
+				style="
+					background-color: var(--bg-secondary);
+					color: var(--text-primary);
+					border: 1px solid {filterStore.nameFilterInput ? 'var(--accent)' : 'var(--border)'};
+					--tw-ring-color: var(--accent);
+				"
+				placeholder="All layouts"
+			/>
+		</div>
+		<div>
+			<div class="block text-sm mb-2" style="color: var(--text-secondary);">Author</div>
+			<AuthorSelect
+				authors={authorList}
+				selectedIds={filterStore.selectedAuthors}
+				onToggle={(id) => filterStore.toggleAuthor(id)}
+				onClear={() => filterStore.clearAuthors()}
+			/>
+		</div>
 	</div>
 
 	<!-- Filter Grids -->
 	<div class="grid gap-4 lg:grid-cols-2 mb-4">
 		<FilterGrid
-			label="Include (must have)"
+			label="Include keys"
 			grid={filterStore.includeGrid}
 			thumbKeys={filterStore.includeThumbKeys}
 			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
@@ -66,9 +75,10 @@
 			onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
 			onThumbKeyChange={(index, value) => filterStore.setIncludeThumbKey(index, value)}
 			onClear={() => filterStore.clearInclude()}
+			tooltipText="Use this filter to find layouts that include desired keys in specific row and column positions. You can specify multiple keys in the same field to return layouts that include any of the keys."
 		/>
 		<FilterGrid
-			label="Exclude (must not have)"
+			label="Exclude keys"
 			grid={filterStore.excludeGrid}
 			thumbKeys={filterStore.excludeThumbKeys}
 			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
@@ -76,11 +86,12 @@
 			onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
 			onThumbKeyChange={(index, value) => filterStore.setExcludeThumbKey(index, value)}
 			onClear={() => filterStore.clearExclude()}
+			tooltipText="Use this filter to exclude layouts that include unwanted keys in specific row and column positions. You can specify multiple keys in the same field to return layouts that do not include any of the keys."
 		/>
 	</div>
 
 	<div
-		class="p-4 rounded-xl mb-6 flex flex-wrap items-center justify-center gap-4"
+		class="p-4 rounded-xl mb-6 flex flex-wrap items-center justify-center gap-6"
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
 		<label class="flex items-center gap-2 cursor-pointer select-none">
