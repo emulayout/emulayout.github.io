@@ -31,7 +31,7 @@
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 </script>
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-5xl mx-auto">
 	<!-- Name Search & Author Filter -->
 	<div class="grid gap-4 md:grid-cols-2 mb-4">
 		<input
@@ -56,7 +56,7 @@
 	</div>
 
 	<!-- Filter Grids -->
-	<div class="grid gap-4 md:grid-cols-2 mb-4">
+	<div class="grid gap-4 lg:grid-cols-2 mb-4">
 		<FilterGrid
 			label="Include (must have)"
 			grid={filterStore.includeGrid}
@@ -144,12 +144,12 @@
 				class="text-sm px-3 py-1.5 rounded-lg transition-colors"
 				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
 			>
-				Reset all filters
+				Reset filters
 			</button>
 		{/if}
 	</div>
 
-	<div class="grid gap-4 md:grid-cols-2">
+	<div class="grid gap-4 grid-cols-2 md:grid-cols-3">
 		{#each filteredLayouts as layout (layout.name)}
 			<div
 				class="p-5 rounded-xl transition-all duration-300 min-w-0 overflow-hidden"
