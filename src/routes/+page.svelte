@@ -96,20 +96,36 @@
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
 		<label
-			class="flex items-center gap-2 select-none"
+			class="flex items-center gap-2 select-none relative"
 			class:cursor-pointer={filterStore.characterSetFilter !== 'international'}
 		>
 			<input
 				type="checkbox"
-				checked={filterStore.hideUnfinished}
+				checked={filterStore.showUnfinished}
 				disabled={filterStore.characterSetFilter === 'international'}
-				onchange={(e) => filterStore.setHideUnfinished(e.currentTarget.checked)}
-				class="size-4 rounded accent-(--accent)"
+				onchange={(e) => filterStore.setShowUnfinished(e.currentTarget.checked)}
+				class="size-4 rounded appearance-none cursor-pointer relative"
+				style="
+					background-color: {filterStore.showUnfinished ? 'var(--accent)' : 'var(--bg-primary)'};
+					border: 1px solid var(--border);
+				"
 			/>
+			{#if filterStore.showUnfinished}
+				<svg
+					class="absolute size-4 pointer-events-none"
+					style="left: 0; color: white;"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="3"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+				</svg>
+			{/if}
 			<span
 				class="text-sm"
 				class:line-through={filterStore.characterSetFilter === 'international'}
-				style="color: var(--text-secondary);">Hide unfinished layouts</span
+				style="color: var(--text-secondary);">Show unfinished layouts</span
 			>
 		</label>
 

@@ -52,7 +52,7 @@ export class FilterStore {
 	excludeGrid: string[][] = $state(createEmptyGrid());
 	includeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
-	hideUnfinished: boolean = $state(true);
+	showUnfinished: boolean = $state(false);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
@@ -82,9 +82,9 @@ export class FilterStore {
 			this.excludeGrid = deserializeGrid(exclude);
 		}
 
-		const hideUnfinished = url.searchParams.get('hideUnfinished');
-		if (hideUnfinished !== null) {
-			this.hideUnfinished = hideUnfinished !== '0';
+		const showUnfinished = url.searchParams.get('showUnfinished');
+		if (showUnfinished !== null) {
+			this.showUnfinished = showUnfinished !== '0';
 		}
 
 		const thumbKeys = url.searchParams.get('thumbKeys');
@@ -147,8 +147,8 @@ export class FilterStore {
 			url.searchParams.set('exclude', excludeSerialized);
 		}
 
-		if (!this.hideUnfinished) {
-			url.searchParams.set('hideUnfinished', '0');
+		if (this.showUnfinished) {
+			url.searchParams.set('showUnfinished', '1');
 		}
 
 		if (this.thumbKeyFilter !== 'optional') {
@@ -213,8 +213,8 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	setHideUnfinished(value: boolean) {
-		this.hideUnfinished = value;
+	setShowUnfinished(value: boolean) {
+		this.showUnfinished = value;
 		this.#debouncedSave();
 	}
 
@@ -281,7 +281,7 @@ export class FilterStore {
 		this.excludeGrid = createEmptyGrid();
 		this.includeThumbKeys = ['', '', '', ''];
 		this.excludeThumbKeys = ['', '', '', ''];
-		this.hideUnfinished = true;
+		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
@@ -304,7 +304,7 @@ export class FilterStore {
 			hasExclude ||
 			hasIncludeThumbs ||
 			hasExcludeThumbs ||
-			!this.hideUnfinished ||
+			this.showUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
@@ -468,7 +468,7 @@ export class FilterStore {
 			// Only apply hasAllLetters filter if not filtering by international character set
 			// A layout is considered "finished" if it has all letters OR has a magic key
 			if (
-				this.hideUnfinished &&
+				!this.showUnfinished &&
 				this.characterSetFilter !== 'international' &&
 				!l.hasAllLetters &&
 				!l.hasMagicKey
