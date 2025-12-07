@@ -2,7 +2,7 @@
 	import { printPretty, type LayoutData } from '$lib/printPretty';
 	import FilterGrid from '$lib/components/FilterGrid.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
-	import { filterStore } from '$lib/filterStore.svelte';
+	import { filterStore, type ThumbKeyFilter } from '$lib/filterStore.svelte';
 	import authorsData from '$lib/cmini/authors.json';
 
 	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/cmini/layouts/*.json', {
@@ -91,15 +91,35 @@
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredLayouts.length}</span> layouts
 		</p>
 
-		<label class="flex items-center gap-2 cursor-pointer select-none">
-			<input
-				type="checkbox"
-				checked={filterStore.hideEmpty}
-				onchange={(e) => filterStore.setHideEmpty(e.currentTarget.checked)}
-				class="size-4 rounded accent-(--accent)"
-			/>
-			<span class="text-sm" style="color: var(--text-secondary);">Hide empty layouts</span>
-		</label>
+		<div class="flex items-center gap-4">
+			<label class="flex items-center gap-2 cursor-pointer select-none">
+				<input
+					type="checkbox"
+					checked={filterStore.hideEmpty}
+					onchange={(e) => filterStore.setHideEmpty(e.currentTarget.checked)}
+					class="size-4 rounded accent-(--accent)"
+				/>
+				<span class="text-sm" style="color: var(--text-secondary);">Hide empty</span>
+			</label>
+
+			<label class="flex items-center gap-2 select-none">
+				<span class="text-sm" style="color: var(--text-secondary);">Thumb keys:</span>
+				<select
+					value={filterStore.thumbKeyFilter}
+					onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
+					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+					style="
+						background-color: var(--bg-secondary);
+						color: var(--text-primary);
+						border: 1px solid {filterStore.thumbKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
+					"
+				>
+					<option value="optional">Optional</option>
+					<option value="excluded">Excluded</option>
+					<option value="required">Required</option>
+				</select>
+			</label>
+		</div>
 	</div>
 
 	<div class="grid gap-6 md:grid-cols-2">

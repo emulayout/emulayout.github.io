@@ -2,6 +2,8 @@ import { browser } from '$app/environment';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import type { LayoutData } from './printPretty';
 
+export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
+
 const ROWS = 3;
 const COLS = 10;
 const DEBOUNCE_MS = 300;
@@ -47,6 +49,7 @@ export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
 	hideEmpty: boolean = $state(true);
+	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
@@ -76,6 +79,11 @@ export class FilterStore {
 		const hideEmpty = url.searchParams.get('hideEmpty');
 		if (hideEmpty !== null) {
 			this.hideEmpty = hideEmpty !== '0';
+		}
+
+		const thumbKeys = url.searchParams.get('thumbKeys');
+		if (thumbKeys === 'excluded' || thumbKeys === 'required') {
+			this.thumbKeyFilter = thumbKeys;
 		}
 
 		const name = url.searchParams.get('name');
@@ -110,6 +118,10 @@ export class FilterStore {
 			url.searchParams.set('hideEmpty', '0');
 		}
 
+		if (this.thumbKeyFilter !== 'optional') {
+			url.searchParams.set('thumbKeys', this.thumbKeyFilter);
+		}
+
 		if (this.nameFilter) {
 			url.searchParams.set('name', this.nameFilter);
 		}
@@ -142,6 +154,11 @@ export class FilterStore {
 
 	setHideEmpty(value: boolean) {
 		this.hideEmpty = value;
+		this.#debouncedSave();
+	}
+
+	setThumbKeyFilter(value: ThumbKeyFilter) {
+		this.thumbKeyFilter = value;
 		this.#debouncedSave();
 	}
 
@@ -185,6 +202,7 @@ export class FilterStore {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
 		this.hideEmpty = true;
+		this.thumbKeyFilter = 'optional';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
@@ -201,6 +219,7 @@ export class FilterStore {
 			hasInclude ||
 			hasExclude ||
 			!this.hideEmpty ||
+			this.thumbKeyFilter !== 'optional' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0
 		);
@@ -256,10 +275,27 @@ export class FilterStore {
 		return this.selectedAuthors.has(layout.user);
 	}
 
+	// Check if layout has thumb keys (more than 3 rows)
+	#hasThumbKeys(layout: LayoutData): boolean {
+		const rows: Record<number, boolean> = {};
+		for (const info of Object.values(layout.keys)) {
+			rows[info.row] = true;
+		}
+		return Object.keys(rows).length > 3;
+	}
+
+	// Check if layout matches thumb key filter
+	#matchesThumbKeyFilter(layout: LayoutData): boolean {
+		if (this.thumbKeyFilter === 'optional') return true;
+		const hasThumb = this.#hasThumbKeys(layout);
+		return this.thumbKeyFilter === 'required' ? hasThumb : !hasThumb;
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
 			if (this.hideEmpty && Object.keys(l.keys).length === 0) return false;
+			if (!this.#matchesThumbKeyFilter(l)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&
