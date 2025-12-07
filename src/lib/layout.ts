@@ -10,4 +10,5 @@ export interface LayoutData {
 	keys: Record<string, KeyInfo>;
 	hasThumbKeys: boolean;
 	displayValue: string;
+	characterSet: 'english' | 'international';
 }

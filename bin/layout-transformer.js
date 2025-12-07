@@ -14,6 +14,7 @@ export function transformLayout(layout) {
 	// Add computed properties
 	transformed.hasThumbKeys = computeHasThumbKeys(layout);
 	transformed.displayValue = computeDisplayValue(layout);
+	transformed.characterSet = computeCharacterSet(layout);
 
 	return transformed;
 }
@@ -69,4 +70,35 @@ function computeDisplayValue(layout, splitCol = 5) {
 		.join('\n');
 
 	return out.trim();
+}
+
+/**
+ * Computes the character set of a layout.
+ * Returns "english" if all keys are basic ASCII/Latin characters,
+ * "international" if any keys contain foreign characters (Extended Latin, Cyrillic, Japanese, Chinese, etc.)
+ */
+function computeCharacterSet(layout) {
+	if (!layout.keys || typeof layout.keys !== 'object') {
+		return 'english';
+	}
+
+	// Check all key characters
+	for (const key of Object.keys(layout.keys)) {
+		// Skip if key is empty or just whitespace
+		if (!key || key.trim() === '') continue;
+
+		// Check each character in the key
+		for (let i = 0; i < key.length; i++) {
+			const charCode = key.charCodeAt(i);
+
+			// Basic ASCII printable range is 32-126 (space through tilde)
+			// This includes: letters (a-z, A-Z), numbers (0-9), and basic punctuation
+			// Anything outside this range is considered "international"
+			if (charCode < 32 || charCode > 126) {
+				return 'international';
+			}
+		}
+	}
+
+	return 'english';
 }
