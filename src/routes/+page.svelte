@@ -5,11 +5,8 @@
 	import { filterStore, type ThumbKeyFilter } from '$lib/filterStore.svelte';
 	import authorsData from '$lib/cmini/authors.json';
 
-	const layoutModules = import.meta.glob<{ default: LayoutData }>('$lib/cmini/layouts/*.json', {
-		eager: true
-	});
-
-	const layouts: LayoutData[] = Object.values(layoutModules).map((mod) => mod.default);
+	const { data } = $props();
+	const layouts = $derived(data.layouts);
 
 	// Create reverse lookup: user_id -> author_name
 	const authorById = new Map<number, string>(

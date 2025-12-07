@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 
-import { rm, readFile, mkdir, access, readdir, stat, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, access, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 
 const DEST = 'src/lib/cmini';
+const LAYOUTS_FILE = 'static/all-layouts.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const REPO = 'git@github.com:Apsu/cmini.git';
@@ -22,34 +23,6 @@ async function loadBlacklist() {
 		// File doesn't exist, return empty array
 		return [];
 	}
-}
-
-async function getFileHash(filePath) {
-	try {
-		const content = await readFile(filePath);
-		return createHash('md5').update(content).digest('hex');
-	} catch {
-		return null;
-	}
-}
-
-async function getLayoutFiles(dir) {
-	const files = new Map();
-	try {
-		const entries = await readdir(dir);
-		for (const entry of entries) {
-			if (entry.endsWith('.json')) {
-				const filePath = join(dir, entry);
-				const hash = await getFileHash(filePath);
-				if (hash) {
-					files.set(entry, hash);
-				}
-			}
-		}
-	} catch {
-		// Directory doesn't exist, return empty map
-	}
-	return files;
 }
 
 async function ensureCache() {
@@ -87,38 +60,27 @@ async function ensureCache() {
 async function run() {
 	await ensureCache();
 
-	// Get existing layouts before sync
-	const layoutsDir = join(DEST, 'layouts');
-	const beforeFiles = await getLayoutFiles(layoutsDir);
-
 	const blacklist = await loadBlacklist();
 
-	// Track blacklisted removals
-	const blacklistedRemovals = [];
-	if (blacklist.length > 0) {
-		// Remove blacklisted layouts from destination
-		for (const layout of blacklist) {
-			const filename = layout.endsWith('.json') ? layout : `${layout}.json`;
-			const destPath = join(layoutsDir, filename);
-			try {
-				await stat(destPath);
-				await rm(destPath, { force: true });
-				blacklistedRemovals.push(filename);
-			} catch {
-				// File doesn't exist, that's fine
-			}
-		}
+	// Get existing layouts before sync (read from the generated file if it exists)
+	let beforeLayouts = [];
+	try {
+		const beforeContent = await readFile(LAYOUTS_FILE, 'utf-8');
+		beforeLayouts = JSON.parse(beforeContent);
+	} catch {
+		// File doesn't exist yet, that's fine
 	}
 
 	console.log('→ Syncing and transforming layouts...');
-	await $`mkdir -p ${layoutsDir}`;
+	await $`mkdir -p static`;
 
 	// Get all layout files from cache
 	const cacheLayoutsDir = join(CACHE_DIR, 'layouts');
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 
-	// Transform and write each layout
+	// Transform all layouts
+	const transformedLayouts = [];
 	for (const filename of layoutFiles) {
 		// Check if blacklisted (handle both with and without .json extension)
 		const layoutName = filename.replace('.json', '');
@@ -131,152 +93,45 @@ async function run() {
 		}
 
 		const cachePath = join(cacheLayoutsDir, filename);
-		const destPath = join(layoutsDir, filename);
 
 		try {
 			const originalContent = await readFile(cachePath, 'utf-8');
 			const rawLayout = JSON.parse(originalContent);
 			const transformedLayout = transformLayout(rawLayout);
-
-			// Instead of re-stringifying, insert the new property into the original JSON
-			// This preserves Unicode escapes, formatting, and large number precision
-			let modifiedContent = originalContent;
-
-			// Check if hasThumbKeys already exists (in case of re-sync)
-			const hasThumbKeysExists = /"hasThumbKeys"\s*:/g.test(modifiedContent);
-			const displayValueExists = /"displayValue"\s*:/g.test(modifiedContent);
-
-			if (hasThumbKeysExists) {
-				// Replace existing value
-				modifiedContent = modifiedContent.replace(
-					/"hasThumbKeys"\s*:\s*\w+/g,
-					`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`
-				);
-			}
-
-			if (displayValueExists) {
-				// Replace existing value - escape the string properly for JSON
-				const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
-				// Match with or without trailing comma, always add comma (since "keys" comes after)
-				modifiedContent = modifiedContent.replace(
-					/"displayValue"\s*:\s*"[^"]*",?\s*\n/g,
-					`"displayValue": ${escapedDisplayValue},\n`
-				);
-			}
-
-			if (!hasThumbKeysExists || !displayValueExists) {
-				// Insert new properties after "board" property (before "keys")
-				const boardMatch = modifiedContent.match(/"board"\s*:\s*"[^"]*",?\s*\n/);
-				if (boardMatch) {
-					const indentMatch = boardMatch[0].match(/^(\s+)/);
-					const indent = indentMatch ? indentMatch[1] : '    ';
-					const insertPoint = boardMatch.index + boardMatch[0].length;
-
-					// Ensure board line has a comma (if it doesn't, add one)
-					let boardLine = boardMatch[0];
-					if (!boardLine.includes(',')) {
-						// Add comma before the newline
-						boardLine = boardLine.replace(/\n/, ',\n');
-					}
-
-					// Build properties to insert
-					const propertiesToInsert = [];
-					if (!hasThumbKeysExists) {
-						propertiesToInsert.push(`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`);
-					}
-					if (!displayValueExists) {
-						const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
-						propertiesToInsert.push(`"displayValue": ${escapedDisplayValue}`);
-					}
-
-					// All properties need commas (since "keys" always comes after)
-					const newProperties = propertiesToInsert.map((prop) => `${indent}${prop},\n`).join('');
-
-					modifiedContent =
-						modifiedContent.slice(0, boardMatch.index) +
-						boardLine +
-						newProperties +
-						modifiedContent.slice(insertPoint);
-				} else {
-					// Fallback: insert at the end of the root object, before "keys"
-					const keysMatch = modifiedContent.match(/(\s+)"keys"\s*:\s*{/);
-					if (keysMatch) {
-						const indent = keysMatch[1];
-						const insertPoint = keysMatch.index;
-
-						const propertiesToInsert = [];
-						if (!hasThumbKeysExists) {
-							propertiesToInsert.push(`"hasThumbKeys": ${transformedLayout.hasThumbKeys}`);
-						}
-						if (!displayValueExists) {
-							const escapedDisplayValue = JSON.stringify(transformedLayout.displayValue);
-							propertiesToInsert.push(`"displayValue": ${escapedDisplayValue}`);
-						}
-
-						// All properties need commas (since "keys" always comes after)
-						const newProperties = propertiesToInsert.map((prop) => `${indent}${prop},\n`).join('');
-
-						modifiedContent =
-							modifiedContent.slice(0, insertPoint) +
-							newProperties +
-							modifiedContent.slice(insertPoint);
-					}
-				}
-			}
-
-			// Preserve original trailing newline state
-			const originalEndsWithNewline = originalContent.endsWith('\n');
-			if (originalEndsWithNewline && !modifiedContent.endsWith('\n')) {
-				modifiedContent += '\n';
-			} else if (!originalEndsWithNewline && modifiedContent.endsWith('\n')) {
-				modifiedContent = modifiedContent.slice(0, -1);
-			}
-
-			await writeFile(destPath, modifiedContent, 'utf-8');
+			transformedLayouts.push(transformedLayout);
 		} catch (err) {
 			console.error(`  ⚠ Error processing ${filename}:`, err.message);
 		}
 	}
 
-	// Remove any files in destination that aren't in cache (or are blacklisted)
-	const destFiles = await readdir(layoutsDir);
-	for (const filename of destFiles) {
-		if (!filename.endsWith('.json')) continue;
-		const layoutName = filename.replace('.json', '');
-		const isBlacklisted = blacklist.some(
-			(entry) =>
-				entry === layoutName || entry === filename || entry.replace('.json', '') === layoutName
-		);
-		if (!layoutFiles.includes(filename) || isBlacklisted) {
-			await rm(join(layoutsDir, filename), { force: true });
-		}
-	}
+	// Sort layouts by name for consistent output
+	transformedLayouts.sort((a, b) => a.name.localeCompare(b.name));
+
+	// Write single JSON file
+	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts, null, '\t') + '\n', 'utf-8');
 
 	console.log('→ Syncing authors...');
 	await $`cp ${CACHE_DIR}/authors.json ${DEST}/authors.json`;
 
-	// Get layouts after sync
-	const afterFiles = await getLayoutFiles(layoutsDir);
+	// Calculate changes by comparing layout names
+	const beforeNames = new Set(beforeLayouts.map((l) => l.name));
+	const afterNames = new Set(transformedLayouts.map((l) => l.name));
 
-	// Calculate changes
-	const added = [];
-	const modified = [];
-	const removed = [];
+	const added = transformedLayouts.filter((l) => !beforeNames.has(l.name)).map((l) => l.name);
+	const removed = beforeLayouts.filter((l) => !afterNames.has(l.name)).map((l) => l.name);
 
-	for (const [filename, hash] of afterFiles) {
-		const beforeHash = beforeFiles.get(filename);
-		if (!beforeHash) {
-			added.push(filename);
-		} else if (beforeHash !== hash) {
-			modified.push(filename);
-		}
-	}
-
-	for (const [filename] of beforeFiles) {
-		if (!afterFiles.has(filename)) {
-			removed.push(filename);
-		}
-	}
+	// For modified, compare by hash (name + content hash)
+	const beforeHashes = new Map(
+		beforeLayouts.map((l) => [l.name, createHash('md5').update(JSON.stringify(l)).digest('hex')])
+	);
+	const modified = transformedLayouts
+		.filter((l) => {
+			const beforeHash = beforeHashes.get(l.name);
+			if (!beforeHash) return false;
+			const afterHash = createHash('md5').update(JSON.stringify(l)).digest('hex');
+			return beforeHash !== afterHash;
+		})
+		.map((l) => l.name);
 
 	// Print changes
 	if (added.length === 0 && modified.length === 0 && removed.length === 0) {
@@ -285,17 +140,17 @@ async function run() {
 		console.log('✔ Layout changes:');
 		if (added.length > 0) {
 			console.log(`  Added (${added.length}):`);
-			added.sort().forEach((f) => console.log(`    + ${f}`));
+			added.sort().forEach((name) => console.log(`    + ${name}`));
 		}
 		if (modified.length > 0) {
 			console.log(`  Modified (${modified.length}):`);
-			modified.sort().forEach((f) => console.log(`    ~ ${f}`));
+			modified.sort().forEach((name) => console.log(`    ~ ${name}`));
 		}
 		if (removed.length > 0) {
 			console.log(`  Removed (${removed.length}):`);
-			removed.sort().forEach((f) => {
-				const reason = blacklistedRemovals.includes(f) ? ' (blacklisted)' : ' (removed from repo)';
-				console.log(`    - ${f}${reason}`);
+			removed.sort().forEach((name) => {
+				const reason = blacklist.includes(name) ? ' (blacklisted)' : ' (removed from repo)';
+				console.log(`    - ${name}${reason}`);
 			});
 		}
 		console.log('');
