@@ -3,6 +3,7 @@
     "user": 950953373346193438,
     "board": "ortho",
     "hasThumbKeys": false,
+    "displayValue": "x h d g j  q p o u\nr n t s f  b c e i a\nz l m y k  v w",
     "keys": {
         "x": {
             "row": 0,

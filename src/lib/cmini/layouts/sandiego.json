@@ -3,6 +3,7 @@
     "user": 167759665847861249,
     "board": "angle",
     "hasThumbKeys": false,
+    "displayValue": "v x y m g  w r u b f\nh s a n d  i e o t ;\nz q k c j  l p , . /",
     "keys": {
         "v": {
             "row": 0,

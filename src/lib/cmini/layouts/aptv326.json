@@ -3,6 +3,7 @@
     "user": 169285177481101312,
     "board": "mini",
     "hasThumbKeys": true,
+    "displayValue": "w c d f b  j l u o y\nr s t h k  x n e a i\nv g p      m , .\n'",
     "keys": {
         "w": {
             "row": 0,

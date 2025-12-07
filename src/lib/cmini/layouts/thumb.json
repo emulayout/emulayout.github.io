@@ -3,6 +3,7 @@
     "user": 657688933001330718,
     "board": "ortho",
     "hasThumbKeys": true,
+    "displayValue": "- + ? > *  : @ $ ! )\n_ < ; , .  1 7 3 8 6\n5 2 = 4 9  ( 0 % & #\na b c d e  f g h i j k l m n o p q r s t u v w x y z",
     "keys": {
         "-": {
             "row": 0,

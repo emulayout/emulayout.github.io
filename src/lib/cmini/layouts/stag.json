@@ -3,6 +3,7 @@
     "user": 950953373346193438,
     "board": "stagger",
     "hasThumbKeys": false,
+    "displayValue": "x l h m j  q w o u\nk r n t b  f s e i a\nv p d g z  y c",
     "keys": {
         "x": {
             "row": 0,
