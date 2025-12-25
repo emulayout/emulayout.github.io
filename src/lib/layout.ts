@@ -3,10 +3,12 @@ export interface KeyInfo {
 	col: number;
 }
 
+export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini';
+
 export interface LayoutData {
 	name: string;
 	user: number;
-	board: string;
+	board: BoardType;
 	keys: Record<string, KeyInfo>;
 	hasThumbKeys: boolean;
 	displayValue: string;
