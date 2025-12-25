@@ -30,6 +30,37 @@
 		return authorById.get(userId) ?? 'Unknown';
 	}
 
+	// Track which card has the textarea open
+	let expandedCard: string | null = $state(null);
+	let textareaElement: HTMLTextAreaElement | null = $state(null);
+
+	function toggleCard(layoutName: string, event: Event) {
+		// Don't toggle if clicking on the link
+		if ((event.target as HTMLElement).closest('a')) {
+			return;
+		}
+		expandedCard = expandedCard === layoutName ? null : layoutName;
+		// Focus the textarea after it's rendered
+		if (expandedCard === layoutName) {
+			setTimeout(() => {
+				if (textareaElement) {
+					textareaElement.focus();
+				}
+			}, 0);
+		}
+	}
+
+	function closeCardAndRefocus(layoutName: string) {
+		expandedCard = null;
+		setTimeout(() => {
+			// Find the card element by data attribute
+			const card = document.querySelector(`[data-layout-name="${layoutName}"]`) as HTMLDivElement;
+			if (card) {
+				card.focus();
+			}
+		}, 0);
+	}
+
 	function getModeFromBoard(board: string): string {
 		// Map board types to cyanophage mode parameter
 		switch (board) {
@@ -251,8 +282,19 @@
 	<div class="grid gap-4 grid-cols-2 md:grid-cols-3">
 		{#each filteredLayouts as layout (layout.name)}
 			<div
-				class="p-5 rounded-xl transition-all duration-300 min-w-0 overflow-hidden"
+				data-layout-name={layout.name}
+				class="p-5 rounded-xl transition-all duration-300 min-w-0 overflow-hidden cursor-pointer"
 				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				role="button"
+				tabindex="0"
+				onclick={(e) => toggleCard(layout.name, e)}
+				onkeydown={(e) => {
+					// Only handle space/enter if the card itself is focused (not textarea)
+					if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+						e.preventDefault();
+						toggleCard(layout.name, e);
+					}
+				}}
 			>
 				<div class="flex items-center gap-2 mb-1">
 					<h2
@@ -267,6 +309,7 @@
 						class="shrink-0 transition-colors"
 						style="color: var(--link);"
 						aria-label="View layout details"
+						onclick={(e) => e.stopPropagation()}
 					>
 						<svg
 							class="size-4"
@@ -291,6 +334,26 @@
 						class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 						style="color: var(--text-primary);">{layout.displayValue}</pre>
 				</div>
+				{#if expandedCard === layout.name}
+					<textarea
+						bind:this={textareaElement}
+						class="w-full mt-4 p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
+						style="
+							background-color: var(--bg-primary);
+							color: var(--text-primary);
+							border: 1px solid var(--border);
+							--tw-ring-color: var(--accent);
+						"
+						rows="4"
+						placeholder="Test layout here..."
+						onkeydown={(e) => {
+							if (e.key === 'Escape') {
+								e.preventDefault();
+								closeCardAndRefocus(layout.name);
+							}
+						}}
+					></textarea>
+				{/if}
 			</div>
 		{/each}
 	</div>
