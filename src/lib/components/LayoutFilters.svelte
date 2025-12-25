@@ -121,11 +121,12 @@
 		<select
 			value={filterStore.thumbKeyFilter}
 			onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
-			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
 			style="
 				background-color: var(--bg-secondary);
 				color: var(--text-primary);
 				border: 1px solid {filterStore.thumbKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
 			"
 		>
 			<option value="optional">Optional</option>
@@ -145,11 +146,12 @@
 		<select
 			value={filterStore.magicKeyFilter}
 			onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
-			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
 			style="
 				background-color: var(--bg-secondary);
 				color: var(--text-primary);
 				border: 1px solid {filterStore.magicKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
 			"
 		>
 			<option value="optional">Optional</option>
@@ -164,13 +166,14 @@
 			value={filterStore.characterSetFilter}
 			onchange={(e) =>
 				filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
-			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer"
+			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
 			style="
 				background-color: var(--bg-secondary);
 				color: var(--text-primary);
 				border: 1px solid {filterStore.characterSetFilter !== 'english'
 				? 'var(--accent)'
 				: 'var(--border)'};
+				--tw-ring-color: var(--accent);
 			"
 		>
 			<option value="all">All</option>
