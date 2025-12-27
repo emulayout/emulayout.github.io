@@ -13,6 +13,81 @@
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
 
+	// Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
+	// Row 0: q w e r t y u i o p [ ]
+	// Row 1: a s d f g h j k l ; '
+	// Row 2: z x c v b n m , . /
+	const QWERTY_KEY_MAP: Record<string, { row: number; col: number }> = {
+		KeyQ: { row: 0, col: 0 },
+		KeyW: { row: 0, col: 1 },
+		KeyE: { row: 0, col: 2 },
+		KeyR: { row: 0, col: 3 },
+		KeyT: { row: 0, col: 4 },
+		KeyY: { row: 0, col: 5 },
+		KeyU: { row: 0, col: 6 },
+		KeyI: { row: 0, col: 7 },
+		KeyO: { row: 0, col: 8 },
+		KeyP: { row: 0, col: 9 },
+		BracketLeft: { row: 0, col: 10 },
+		BracketRight: { row: 0, col: 11 },
+		KeyA: { row: 1, col: 0 },
+		KeyS: { row: 1, col: 1 },
+		KeyD: { row: 1, col: 2 },
+		KeyF: { row: 1, col: 3 },
+		KeyG: { row: 1, col: 4 },
+		KeyH: { row: 1, col: 5 },
+		KeyJ: { row: 1, col: 6 },
+		KeyK: { row: 1, col: 7 },
+		KeyL: { row: 1, col: 8 },
+		Semicolon: { row: 1, col: 9 },
+		Quote: { row: 1, col: 10 },
+		KeyZ: { row: 2, col: 0 },
+		KeyX: { row: 2, col: 1 },
+		KeyC: { row: 2, col: 2 },
+		KeyV: { row: 2, col: 3 },
+		KeyB: { row: 2, col: 4 },
+		KeyN: { row: 2, col: 5 },
+		KeyM: { row: 2, col: 6 },
+		Comma: { row: 2, col: 7 },
+		Period: { row: 2, col: 8 },
+		Slash: { row: 2, col: 9 }
+	};
+
+	// Parse displayValue and create key mapping
+	const keyMap = $derived.by(() => {
+		const map: Record<string, string> = {};
+		const rows = layout.displayValue.split('\n');
+		const splitCol = 5; // Gap between hands
+
+		rows.forEach((row, rowIndex) => {
+			// Remove extra spaces and split
+			const chars = row.split(/\s+/).filter((c) => c.length > 0);
+			// Account for the gap between hands (splitCol)
+			// First splitCol characters are left hand, rest are right hand
+			const leftHand = chars.slice(0, splitCol);
+			const rightHand = chars.slice(splitCol);
+
+			// Map QWERTY positions to layout characters
+			Object.entries(QWERTY_KEY_MAP).forEach(([keyCode, { row: qwertyRow, col: qwertyCol }]) => {
+				if (qwertyRow === rowIndex) {
+					let layoutChar: string | undefined;
+					if (qwertyCol < splitCol) {
+						// Left hand
+						layoutChar = leftHand[qwertyCol];
+					} else {
+						// Right hand (adjust column index)
+						layoutChar = rightHand[qwertyCol - splitCol];
+					}
+					if (layoutChar && layoutChar.length === 1) {
+						map[keyCode] = layoutChar;
+					}
+				}
+			});
+		});
+
+		return map;
+	});
+
 	function toggleCard(event: Event) {
 		// Don't toggle if clicking on the link
 		if ((event.target as HTMLElement).closest('a')) {
@@ -36,6 +111,28 @@
 				cardElement.focus();
 			}
 		}, 0);
+	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closeCardAndRefocus();
+			return;
+		}
+
+		// Check if this is a remappable key
+		if (event.code in keyMap) {
+			event.preventDefault();
+			const mappedChar = keyMap[event.code];
+			if (textareaElement && mappedChar) {
+				const start = textareaElement.selectionStart;
+				const end = textareaElement.selectionEnd;
+				const value = textareaElement.value;
+				const newValue = value.slice(0, start) + mappedChar + value.slice(end);
+
+				textareaElement.value = newValue;
+			}
+		}
 	}
 </script>
 
@@ -70,13 +167,7 @@
 			aria-label="View layout details"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-			>
+			<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -105,13 +196,7 @@
 			"
 			rows="4"
 			placeholder="Test layout here..."
-			onkeydown={(e) => {
-				if (e.key === 'Escape') {
-					e.preventDefault();
-					closeCardAndRefocus();
-				}
-			}}
+			onkeydown={handleKeyDown}
 		></textarea>
 	{/if}
 </div>
-
