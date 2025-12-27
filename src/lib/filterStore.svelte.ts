@@ -5,6 +5,7 @@ import type { LayoutData } from './layout';
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
+export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
 
 const ROWS = 3;
 const COLS = 10;
@@ -56,6 +57,7 @@ export class FilterStore {
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
+	boardTypeFilter: BoardTypeFilter = $state('all');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
@@ -105,6 +107,17 @@ export class FilterStore {
 		const characterSet = url.searchParams.get('characterSet');
 		if (characterSet === 'all' || characterSet === 'english' || characterSet === 'international') {
 			this.characterSetFilter = characterSet;
+		}
+
+		const boardType = url.searchParams.get('boardType');
+		if (
+			boardType === 'all' ||
+			boardType === 'angle' ||
+			boardType === 'stagger' ||
+			boardType === 'ortho' ||
+			boardType === 'mini'
+		) {
+			this.boardTypeFilter = boardType;
 		}
 
 		const name = url.searchParams.get('name');
@@ -161,6 +174,10 @@ export class FilterStore {
 
 		if (this.characterSetFilter !== 'english') {
 			url.searchParams.set('characterSet', this.characterSetFilter);
+		}
+
+		if (this.boardTypeFilter !== 'all') {
+			url.searchParams.set('boardType', this.boardTypeFilter);
 		}
 
 		if (this.nameFilter) {
@@ -238,6 +255,11 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	setBoardTypeFilter(value: BoardTypeFilter) {
+		this.boardTypeFilter = value;
+		this.#debouncedSave();
+	}
+
 	setNameFilter(value: string) {
 		this.nameFilterInput = value;
 		// Debounce the actual filter update
@@ -285,6 +307,7 @@ export class FilterStore {
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
+		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
@@ -308,6 +331,7 @@ export class FilterStore {
 			this.thumbKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
+			this.boardTypeFilter !== 'all' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0
 		);
@@ -462,6 +486,12 @@ export class FilterStore {
 		return layout.characterSet === this.characterSetFilter;
 	}
 
+	// Check if layout matches board type filter
+	#matchesBoardType(layout: LayoutData): boolean {
+		if (this.boardTypeFilter === 'all') return true;
+		return layout.board === this.boardTypeFilter;
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(layouts: LayoutData[]): LayoutData[] {
 		return layouts.filter((l) => {
@@ -477,6 +507,7 @@ export class FilterStore {
 			if (!this.#matchesThumbKeyFilter(l)) return false;
 			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
+			if (!this.#matchesBoardType(l)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&

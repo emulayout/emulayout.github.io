@@ -6,7 +6,8 @@
 		filterStore,
 		type ThumbKeyFilter,
 		type MagicKeyFilter,
-		type CharacterSetFilter
+		type CharacterSetFilter,
+		type BoardTypeFilter
 	} from '$lib/filterStore.svelte';
 
 	interface Props {
@@ -179,6 +180,27 @@
 			<option value="all">All</option>
 			<option value="english">English</option>
 			<option value="international">International</option>
+		</select>
+	</label>
+
+	<label class="flex items-center gap-2 select-none">
+		<span class="text-sm" style="color: var(--text-secondary);">Board type:</span>
+		<select
+			value={filterStore.boardTypeFilter}
+			onchange={(e) => filterStore.setBoardTypeFilter(e.currentTarget.value as BoardTypeFilter)}
+			class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+			style="
+				background-color: var(--bg-secondary);
+				color: var(--text-primary);
+				border: 1px solid {filterStore.boardTypeFilter !== 'all' ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
+			"
+		>
+			<option value="all">All</option>
+			<option value="angle">Angle</option>
+			<option value="stagger">Stagger</option>
+			<option value="ortho">Ortho</option>
+			<option value="mini">Mini</option>
 		</select>
 	</label>
 </div>
