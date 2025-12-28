@@ -117,6 +117,11 @@
 			return;
 		}
 
+		// Don't remap if meta, ctrl, or alt are pressed
+		if (event.metaKey || event.ctrlKey || event.altKey) {
+			return;
+		}
+
 		// Check if this is a remappable key
 		if (event.code in keyMap) {
 			event.preventDefault();
