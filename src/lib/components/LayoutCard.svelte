@@ -54,6 +54,21 @@
 		Slash: { row: 2, col: 9 }
 	};
 
+	// Map base QWERTY characters to their shifted versions
+	const QWERTY_CHAR_TO_SHIFTED: Record<string, string> = {
+		',': '<',
+		'.': '>',
+		'/': '?',
+		';': ':',
+		"'": '"',
+		'[': '{',
+		']': '}',
+		'\\': '|',
+		'`': '~',
+		'-': '_',
+		'=': '+'
+	};
+
 	// Parse displayValue and create key mapping
 	const keyMap = $derived.by(() => {
 		const map: Record<string, string> = {};
@@ -84,6 +99,44 @@
 					}
 				}
 			});
+		});
+
+		return map;
+	});
+
+	// Create shift key map: maps key codes to layout characters when shift is pressed
+	// For punctuation keys: get the base character from layout, find its shifted version, then find where that appears in layout
+	// For letter keys: uppercase the character from the layout at that position
+	const shiftKeyMap = $derived.by(() => {
+		const map: Record<string, string> = {};
+		const rows = layout.displayValue.split('\n');
+		const splitCol = 5;
+		const layoutString = layout.displayValue.replace(/\s+/g, '');
+
+		// For punctuation keys (non-letter keys)
+		Object.keys(QWERTY_KEY_MAP).forEach((keyCode) => {
+			if (!keyCode.startsWith('Key')) {
+				// Get the base character from the layout at this QWERTY position
+				const baseChar = keyMap[keyCode];
+				if (baseChar) {
+					// Find what the shifted QWERTY character would be for this base character
+					const shiftedQwertyChar = QWERTY_CHAR_TO_SHIFTED[baseChar];
+					if (shiftedQwertyChar) {
+						// Always use the shifted QWERTY character
+						map[keyCode] = shiftedQwertyChar;
+					}
+				}
+			}
+		});
+
+		// Handle letter keys - uppercase the base character from the layout
+		Object.keys(QWERTY_KEY_MAP).forEach((keyCode) => {
+			if (keyCode.startsWith('Key')) {
+				const baseChar = keyMap[keyCode];
+				if (baseChar && baseChar.match(/[a-z]/)) {
+					map[keyCode] = baseChar.toUpperCase();
+				}
+			}
 		});
 
 		return map;
@@ -125,13 +178,15 @@
 		// Check if this is a remappable key
 		if (event.code in keyMap) {
 			event.preventDefault();
-			let mappedChar = keyMap[event.code];
+			let mappedChar: string | undefined;
 
-			// Handle shift: uppercase letters, keep other characters as-is
-			if (event.shiftKey && mappedChar) {
-				if (mappedChar.match(/[a-z]/)) {
-					mappedChar = mappedChar.toUpperCase();
+			// Use shift map if shift is pressed
+			if (event.shiftKey) {
+				if (event.code in shiftKeyMap) {
+					mappedChar = shiftKeyMap[event.code];
 				}
+			} else {
+				mappedChar = keyMap[event.code];
 			}
 
 			if (textareaElement && mappedChar) {
