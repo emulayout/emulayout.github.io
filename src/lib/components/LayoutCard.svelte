@@ -12,6 +12,7 @@
 	let isExpanded = $state(false);
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
+	let buttonElement: HTMLButtonElement | null = $state(null);
 
 	// Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
 	// Row 0: q w e r t y u i o p [ ]
@@ -88,11 +89,7 @@
 		return map;
 	});
 
-	function toggleCard(event: Event) {
-		// Don't toggle if clicking on the link
-		if ((event.target as HTMLElement).closest('a')) {
-			return;
-		}
+	function toggleTextarea() {
 		isExpanded = !isExpanded;
 		// Focus the textarea after it's rendered
 		if (isExpanded) {
@@ -107,8 +104,8 @@
 	function closeCardAndRefocus() {
 		isExpanded = false;
 		setTimeout(() => {
-			if (cardElement) {
-				cardElement.focus();
+			if (buttonElement) {
+				buttonElement.focus();
 			}
 		}, 0);
 	}
@@ -139,47 +136,36 @@
 <div
 	bind:this={cardElement}
 	data-layout-name={layout.name}
-	class="p-5 rounded-xl transition-all duration-300 min-w-0 overflow-hidden cursor-pointer"
+	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-	role="button"
-	tabindex="0"
-	onclick={(e) => toggleCard(e)}
-	onkeydown={(e) => {
-		// Only handle space/enter if the card itself is focused (not textarea)
-		if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-			e.preventDefault();
-			toggleCard(e);
-		}
-	}}
 >
 	<div class="flex items-center gap-2 mb-1">
 		<h2
-			class="text-lg font-semibold flex-1 truncate"
+			class="text-lg font-semibold flex-1 truncate flex items-center gap-2"
 			style="color: var(--text-primary);"
 			title={layout.name}
 		>
 			{layout.name}
+			<a
+				href={playgroundUrl}
+				class="shrink-0 transition-colors"
+				style="color: var(--link);"
+				aria-label="View layout details"
+			>
+				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+					/>
+				</svg>
+			</a>
 		</h2>
-		<a
-			href={playgroundUrl}
-			class="shrink-0 transition-colors"
-			style="color: var(--link);"
-			aria-label="View layout details"
-			onclick={(e) => e.stopPropagation()}
-		>
-			<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-				/>
-			</svg>
-		</a>
 	</div>
 	<p class="text-xs mb-3" style="color: var(--text-secondary);">
 		{layout.board} · by {authorName}
 	</p>
-	<div class="overflow-x-auto -mx-5 px-5">
+	<div class="overflow-x-auto -mx-5 px-5 mb-4">
 		<pre
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{layout.displayValue}</pre>
@@ -187,7 +173,7 @@
 	{#if isExpanded}
 		<textarea
 			bind:this={textareaElement}
-			class="w-full mt-4 p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
+			class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
 			style="
 				background-color: var(--bg-primary);
 				color: var(--text-primary);
@@ -199,4 +185,18 @@
 			onkeydown={handleKeyDown}
 		></textarea>
 	{/if}
+	<button
+		bind:this={buttonElement}
+		type="button"
+		onclick={toggleTextarea}
+		class="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+		class:mt-1={isExpanded}
+		style="
+			color: var(--text-primary);
+			background-color: var(--bg-primary);
+			border: 1px solid var(--border);
+		"
+	>
+		{isExpanded ? 'Close test area' : 'Test layout'}
+	</button>
 </div>
