@@ -120,7 +120,15 @@
 		// Check if this is a remappable key
 		if (event.code in keyMap) {
 			event.preventDefault();
-			const mappedChar = keyMap[event.code];
+			let mappedChar = keyMap[event.code];
+
+			// Handle shift: uppercase letters, keep other characters as-is
+			if (event.shiftKey && mappedChar) {
+				if (mappedChar.match(/[a-z]/)) {
+					mappedChar = mappedChar.toUpperCase();
+				}
+			}
+
 			if (textareaElement && mappedChar) {
 				const start = textareaElement.selectionStart;
 				const end = textareaElement.selectionEnd;
