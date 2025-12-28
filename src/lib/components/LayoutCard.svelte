@@ -136,7 +136,7 @@
 <div
 	bind:this={cardElement}
 	data-layout-name={layout.name}
-	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden"
+	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col h-full"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
 	<div class="flex items-center gap-2 mb-1">
@@ -170,33 +170,34 @@
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{layout.displayValue}</pre>
 	</div>
-	{#if isExpanded}
-		<textarea
-			bind:this={textareaElement}
-			class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
+	<div class="mt-auto flex flex-col gap-2">
+		{#if isExpanded}
+			<textarea
+				bind:this={textareaElement}
+				class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
+				style="
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+				rows="4"
+				placeholder="Test layout here..."
+				onkeydown={handleKeyDown}
+			></textarea>
+		{/if}
+		<button
+			bind:this={buttonElement}
+			type="button"
+			onclick={toggleTextarea}
+			class="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 			style="
-				background-color: var(--bg-primary);
-				color: var(--text-primary);
-				border: 1px solid var(--border);
-				--tw-ring-color: var(--accent);
-			"
-			rows="4"
-			placeholder="Test layout here..."
-			onkeydown={handleKeyDown}
-		></textarea>
-	{/if}
-	<button
-		bind:this={buttonElement}
-		type="button"
-		onclick={toggleTextarea}
-		class="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-		class:mt-1={isExpanded}
-		style="
 			color: var(--text-primary);
 			background-color: var(--bg-primary);
 			border: 1px solid var(--border);
 		"
-	>
-		{isExpanded ? 'Close test area' : 'Test layout'}
-	</button>
+		>
+			{isExpanded ? 'Close test area' : 'Test layout'}
+		</button>
+	</div>
 </div>
