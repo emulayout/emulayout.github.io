@@ -13,6 +13,7 @@
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
 	let buttonElement: HTMLButtonElement | null = $state(null);
+	let anglemod = $state(false);
 
 	// Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
 	// Row 0: q w e r t y u i o p [ ]
@@ -69,10 +70,54 @@
 		'=': '+'
 	};
 
+	// Transform displayValue when anglemod is enabled
+	const transformedDisplayValue = $derived.by(() => {
+		if (!anglemod) return layout.displayValue;
+		const rows = layout.displayValue.split('\n');
+		if (rows.length <= 2) return layout.displayValue;
+
+		// Transform row 2 (index 2): anglemod left-rotates the first 5 columns
+		// Example: z x c v b -> x c v b z
+		const originalRow2 = rows[2];
+		// Extract characters and their positions
+		const chars = originalRow2.split(/\s+/).filter((c) => c.length > 0);
+		if (chars.length < 5) return layout.displayValue;
+
+		// Left rotation for first 5 columns: [0,1,2,3,4] -> [1,2,3,4,0]
+		const transformed = [chars[1], chars[2], chars[3], chars[4], chars[0], ...chars.slice(5)];
+
+		// Reconstruct with same spacing pattern as original
+		// Find the pattern: typically "char char char char char  char char..." (double space after 5th)
+		const splitCol = 5;
+		let rebuiltRow = '';
+		for (let i = 0; i < transformed.length; i++) {
+			rebuiltRow += transformed[i];
+			if (i === splitCol - 1) {
+				// Double space between hands
+				rebuiltRow += '  ';
+			} else if (i < transformed.length - 1) {
+				// Single space between other characters
+				rebuiltRow += ' ';
+			}
+		}
+
+		// Preserve leading/trailing whitespace from original
+		const leadingWhitespace = originalRow2.match(/^\s*/)?.[0] || '';
+		const trailingWhitespace = originalRow2.match(/\s*$/)?.[0] || '';
+
+		const result = [
+			...rows.slice(0, 2),
+			leadingWhitespace + rebuiltRow + trailingWhitespace,
+			...rows.slice(3)
+		];
+		return result.join('\n');
+	});
+
 	// Parse displayValue and create key mapping
 	const keyMap = $derived.by(() => {
 		const map: Record<string, string> = {};
-		const rows = layout.displayValue.split('\n');
+		const displayValue = anglemod ? transformedDisplayValue : layout.displayValue;
+		const rows = displayValue.split('\n');
 		const splitCol = 5; // Gap between hands
 
 		rows.forEach((row, rowIndex) => {
@@ -229,6 +274,32 @@
 				</svg>
 			</a>
 		</h2>
+		<label class="flex items-center gap-1.5 shrink-0">
+			<span class="relative">
+				<input
+					type="checkbox"
+					bind:checked={anglemod}
+					class="size-3.5 rounded appearance-none cursor-pointer"
+					style="
+						background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
+						border: 1px solid var(--border);
+					"
+				/>
+				{#if anglemod}
+					<svg
+						class="absolute top-0 left-0 size-3.5 pointer-events-none"
+						style="color: white;"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="3"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				{/if}
+			</span>
+			<span class="text-xs" style="color: var(--text-secondary);">Anglemod</span>
+		</label>
 	</div>
 	<p class="text-xs mb-3" style="color: var(--text-secondary);">
 		{layout.board} · by {authorName}
@@ -236,7 +307,7 @@
 	<div class="overflow-x-auto -mx-5 px-5 mb-4">
 		<pre
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
-			style="color: var(--text-primary);">{layout.displayValue}</pre>
+			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
 	<div class="mt-auto flex flex-col gap-2">
 		{#if isExpanded}
