@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
+	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
 
 	interface Props {
 		layout: LayoutData;
@@ -15,176 +16,22 @@
 	let buttonElement: HTMLButtonElement | null = $state(null);
 	let anglemod = $state(false);
 
-	// Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
-	// Row 0: q w e r t y u i o p [ ]
-	// Row 1: a s d f g h j k l ; '
-	// Row 2: z x c v b n m , . /
-	const QWERTY_KEY_MAP: Record<string, { row: number; col: number }> = {
-		KeyQ: { row: 0, col: 0 },
-		KeyW: { row: 0, col: 1 },
-		KeyE: { row: 0, col: 2 },
-		KeyR: { row: 0, col: 3 },
-		KeyT: { row: 0, col: 4 },
-		KeyY: { row: 0, col: 5 },
-		KeyU: { row: 0, col: 6 },
-		KeyI: { row: 0, col: 7 },
-		KeyO: { row: 0, col: 8 },
-		KeyP: { row: 0, col: 9 },
-		BracketLeft: { row: 0, col: 10 },
-		BracketRight: { row: 0, col: 11 },
-		KeyA: { row: 1, col: 0 },
-		KeyS: { row: 1, col: 1 },
-		KeyD: { row: 1, col: 2 },
-		KeyF: { row: 1, col: 3 },
-		KeyG: { row: 1, col: 4 },
-		KeyH: { row: 1, col: 5 },
-		KeyJ: { row: 1, col: 6 },
-		KeyK: { row: 1, col: 7 },
-		KeyL: { row: 1, col: 8 },
-		Semicolon: { row: 1, col: 9 },
-		Quote: { row: 1, col: 10 },
-		KeyZ: { row: 2, col: 0 },
-		KeyX: { row: 2, col: 1 },
-		KeyC: { row: 2, col: 2 },
-		KeyV: { row: 2, col: 3 },
-		KeyB: { row: 2, col: 4 },
-		KeyN: { row: 2, col: 5 },
-		KeyM: { row: 2, col: 6 },
-		Comma: { row: 2, col: 7 },
-		Period: { row: 2, col: 8 },
-		Slash: { row: 2, col: 9 }
-	};
-
-	// Map base QWERTY characters to their shifted versions
-	const QWERTY_CHAR_TO_SHIFTED: Record<string, string> = {
-		',': '<',
-		'.': '>',
-		'/': '?',
-		';': ':',
-		"'": '"',
-		'[': '{',
-		']': '}',
-		'\\': '|',
-		'`': '~',
-		'-': '_',
-		'=': '+'
-	};
-
 	// Transform displayValue when anglemod is enabled
 	const transformedDisplayValue = $derived.by(() => {
 		if (!anglemod) return layout.displayValue;
-		const rows = layout.displayValue.split('\n');
-		if (rows.length <= 2) return layout.displayValue;
-
-		// Transform row 2 (index 2): anglemod left-rotates the first 5 columns
-		// Example: z x c v b -> x c v b z
-		const originalRow2 = rows[2];
-		// Extract characters and their positions
-		const chars = originalRow2.split(/\s+/).filter((c) => c.length > 0);
-		if (chars.length < 5) return layout.displayValue;
-
-		// Left rotation for first 5 columns: [0,1,2,3,4] -> [1,2,3,4,0]
-		const transformed = [chars[1], chars[2], chars[3], chars[4], chars[0], ...chars.slice(5)];
-
-		// Reconstruct with same spacing pattern as original
-		// Find the pattern: typically "char char char char char  char char..." (double space after 5th)
-		const splitCol = 5;
-		let rebuiltRow = '';
-		for (let i = 0; i < transformed.length; i++) {
-			rebuiltRow += transformed[i];
-			if (i === splitCol - 1) {
-				// Double space between hands
-				rebuiltRow += '  ';
-			} else if (i < transformed.length - 1) {
-				// Single space between other characters
-				rebuiltRow += ' ';
-			}
-		}
-
-		// Preserve leading/trailing whitespace from original
-		const leadingWhitespace = originalRow2.match(/^\s*/)?.[0] || '';
-		const trailingWhitespace = originalRow2.match(/\s*$/)?.[0] || '';
-
-		const result = [
-			...rows.slice(0, 2),
-			leadingWhitespace + rebuiltRow + trailingWhitespace,
-			...rows.slice(3)
-		];
-		return result.join('\n');
+		return applyAnglemodToDisplayValue(layout.displayValue);
 	});
 
 	// Parse displayValue and create key mapping
 	const keyMap = $derived.by(() => {
-		const map: Record<string, string> = {};
-		const displayValue = anglemod ? transformedDisplayValue : layout.displayValue;
-		const rows = displayValue.split('\n');
-		const splitCol = 5; // Gap between hands
-
-		rows.forEach((row, rowIndex) => {
-			// Remove extra spaces and split
-			const chars = row.split(/\s+/).filter((c) => c.length > 0);
-			// Account for the gap between hands (splitCol)
-			// First splitCol characters are left hand, rest are right hand
-			const leftHand = chars.slice(0, splitCol);
-			const rightHand = chars.slice(splitCol);
-
-			// Map QWERTY positions to layout characters
-			Object.entries(QWERTY_KEY_MAP).forEach(([keyCode, { row: qwertyRow, col: qwertyCol }]) => {
-				if (qwertyRow === rowIndex) {
-					let layoutChar: string | undefined;
-					if (qwertyCol < splitCol) {
-						// Left hand
-						layoutChar = leftHand[qwertyCol];
-					} else {
-						// Right hand (adjust column index)
-						layoutChar = rightHand[qwertyCol - splitCol];
-					}
-					if (layoutChar && layoutChar.length === 1) {
-						map[keyCode] = layoutChar;
-					}
-				}
-			});
-		});
-
-		return map;
+		return buildKeyMap(transformedDisplayValue);
 	});
 
 	// Create shift key map: maps key codes to layout characters when shift is pressed
 	// For punctuation keys: get the base character from layout, find its shifted version, then find where that appears in layout
 	// For letter keys: uppercase the character from the layout at that position
 	const shiftKeyMap = $derived.by(() => {
-		const map: Record<string, string> = {};
-		const rows = layout.displayValue.split('\n');
-		const splitCol = 5;
-		const layoutString = layout.displayValue.replace(/\s+/g, '');
-
-		// For punctuation keys (non-letter keys)
-		Object.keys(QWERTY_KEY_MAP).forEach((keyCode) => {
-			if (!keyCode.startsWith('Key')) {
-				// Get the base character from the layout at this QWERTY position
-				const baseChar = keyMap[keyCode];
-				if (baseChar) {
-					// Find what the shifted QWERTY character would be for this base character
-					const shiftedQwertyChar = QWERTY_CHAR_TO_SHIFTED[baseChar];
-					if (shiftedQwertyChar) {
-						// Always use the shifted QWERTY character
-						map[keyCode] = shiftedQwertyChar;
-					}
-				}
-			}
-		});
-
-		// Handle letter keys - uppercase the base character from the layout
-		Object.keys(QWERTY_KEY_MAP).forEach((keyCode) => {
-			if (keyCode.startsWith('Key')) {
-				const baseChar = keyMap[keyCode];
-				if (baseChar && baseChar.match(/[a-z]/)) {
-					map[keyCode] = baseChar.toUpperCase();
-				}
-			}
-		});
-
-		return map;
+		return buildShiftKeyMap(keyMap);
 	});
 
 	function toggleTextarea() {
