@@ -134,7 +134,7 @@
 				/>
 				{#if anglemod}
 					<svg
-						class="absolute top-0 left-0 size-3.5 pointer-events-none"
+						class="absolute top-[calc(50%-1px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-3.5 pointer-events-none"
 						style="color: white;"
 						fill="none"
 						viewBox="0 0 24 24"
@@ -183,7 +183,7 @@
 			border: 1px solid var(--border);
 		"
 		>
-			{isExpanded ? 'Close test area' : 'Test layout'}
+			{isExpanded ? 'Close' : 'Try'}
 		</button>
 	</div>
 </div>
