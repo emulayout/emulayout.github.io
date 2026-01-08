@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
+	import { filterStore } from '$lib/filterStore.svelte';
 
 	interface Props {
 		layout: LayoutData;
@@ -156,7 +157,19 @@
 		</div>
 	</div>
 	<p class="text-xs mb-3" style="color: var(--text-secondary);">
-		{layout.board} · by {authorName}
+		{layout.board} · by{' '}
+		<button
+			type="button"
+			onclick={() => {
+				filterStore.clearAuthors();
+				filterStore.toggleAuthor(layout.user);
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}}
+			class="hover:underline cursor-pointer"
+			style="color: var(--text-secondary);"
+		>
+			{authorName}
+		</button>
 	</p>
 	<div class="overflow-x-auto -mx-5 px-5 mb-4">
 		<pre
