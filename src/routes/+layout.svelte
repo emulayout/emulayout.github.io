@@ -1,7 +1,6 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { browser } from '$app/environment';
 
 	let { children } = $props();
 
@@ -9,22 +8,20 @@
 
 	// Initialize theme from localStorage or system preference
 	$effect(() => {
-		if (browser) {
-			const stored = localStorage.getItem('theme');
-			if (stored) {
-				dark = stored === 'dark';
-			} else {
-				dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-			}
+		if (typeof window === 'undefined') return;
+		const stored = localStorage.getItem('theme');
+		if (stored) {
+			dark = stored === 'dark';
+		} else {
+			dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 		}
 	});
 
 	// Apply theme class to document
 	$effect(() => {
-		if (browser) {
-			document.documentElement.classList.toggle('dark', dark);
-			localStorage.setItem('theme', dark ? 'dark' : 'light');
-		}
+		if (typeof window === 'undefined') return;
+		document.documentElement.classList.toggle('dark', dark);
+		localStorage.setItem('theme', dark ? 'dark' : 'light');
 	});
 
 	function toggleTheme() {

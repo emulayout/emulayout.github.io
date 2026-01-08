@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import type { LayoutData } from './layout';
 
@@ -66,12 +65,13 @@ export class FilterStore {
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
-		if (browser) {
+		if (typeof window !== 'undefined') {
 			this.#loadFromUrl();
 		}
 	}
 
 	#loadFromUrl() {
+		if (typeof window === 'undefined') return;
 		const url = new SvelteURL(window.location.href);
 
 		const include = url.searchParams.get('include');
@@ -145,8 +145,7 @@ export class FilterStore {
 	}
 
 	#saveToUrl() {
-		if (!browser) return;
-
+		if (typeof window === 'undefined') return;
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
