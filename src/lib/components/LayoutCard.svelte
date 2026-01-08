@@ -6,10 +6,9 @@
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
-		playgroundUrl: string;
 	}
 
-	const { layout, authorName, playgroundUrl }: Props = $props();
+	const { layout, authorName }: Props = $props();
 
 	let isExpanded = $state(false);
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
@@ -54,6 +53,45 @@
 				buttonElement.focus();
 			}
 		}, 0);
+	}
+
+	function getModeFromBoard(board: string): string {
+		// Map board types to cyanophage mode parameter
+		switch (board) {
+			case 'angle':
+				return 'iso';
+			case 'stagger':
+				return 'ansi';
+			case 'ortho':
+				return 'ergo';
+			case 'mini':
+				return 'ergo';
+			default:
+				return 'ergo';
+		}
+	}
+
+	function formatLayoutForUrl(displayValue: string): string {
+		// Split by newlines to get rows
+		const rows = displayValue.split('\n');
+		// Remove all spaces from each row
+		const cleanedRows = rows.map((row) => row.replace(/\s+/g, ''));
+		// Join with newline character
+		return cleanedRows.join('\n');
+	}
+
+	function generatePlaygroundUrl(layout: LayoutData): string {
+		const layoutParam = formatLayoutForUrl(layout.displayValue);
+		const mode = getModeFromBoard(layout.board);
+		// URL encode the layout param (newlines will become %0A)
+		const encodedLayout = encodeURIComponent(layoutParam);
+		return `https://cyanophage.github.io/playground.html?layout=${encodedLayout}&mode=${mode}`;
+	}
+
+	function handlePlaygroundClick(event: MouseEvent) {
+		event.preventDefault();
+		const url = generatePlaygroundUrl(layout);
+		window.open(url, '_blank');
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -135,8 +173,9 @@
 					<path d="M3 21v-5h5" />
 				</svg>
 			</button>
-			<a
-				href={playgroundUrl}
+			<button
+				type="button"
+				onclick={handlePlaygroundClick}
 				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
 				style="
 					background-color: var(--bg-primary);
@@ -153,7 +192,7 @@
 						d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
 					/>
 				</svg>
-			</a>
+			</button>
 		</div>
 	</div>
 	<p class="text-xs mb-3" style="color: var(--text-secondary);">
