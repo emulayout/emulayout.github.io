@@ -101,16 +101,49 @@
 >
 	<div class="flex items-center gap-2 mb-1">
 		<h2
-			class="text-lg font-semibold flex-1 truncate flex items-center gap-2"
+			class="text-lg font-semibold flex-1 truncate"
 			style="color: var(--text-primary);"
 			title={layout.name}
 		>
 			{layout.name}
+		</h2>
+		<div class="flex items-center gap-1 shrink-0">
+			<button
+				type="button"
+				onclick={() => (anglemod = !anglemod)}
+				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+				style="
+					background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
+					color: {anglemod ? 'white' : 'var(--text-primary)'};
+					border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
+				"
+				title="Anglemod"
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+					<path d="M21 3v5h-5" />
+					<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+					<path d="M3 21v-5h5" />
+				</svg>
+			</button>
 			<a
 				href={playgroundUrl}
-				class="shrink-0 transition-colors"
-				style="color: var(--link);"
-				aria-label="View layout details"
+				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+				style="
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+				"
+				title="View on Cyanophage"
+				aria-label="View on Cyanophage"
 			>
 				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path
@@ -120,33 +153,7 @@
 					/>
 				</svg>
 			</a>
-		</h2>
-		<label class="flex items-center gap-1.5 shrink-0">
-			<span class="relative">
-				<input
-					type="checkbox"
-					bind:checked={anglemod}
-					class="size-3.5 rounded appearance-none cursor-pointer"
-					style="
-						background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if anglemod}
-					<svg
-						class="absolute top-[calc(50%-1px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-3.5 pointer-events-none"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="text-xs" style="color: var(--text-secondary);">Anglemod</span>
-		</label>
+		</div>
 	</div>
 	<p class="text-xs mb-3" style="color: var(--text-secondary);">
 		{layout.board} · by {authorName}

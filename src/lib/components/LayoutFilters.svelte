@@ -82,7 +82,9 @@
 >
 	<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
 		<label class="flex flex-col items-start gap-1 select-none w-40">
-			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Thumb keys:</span>
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+				>Thumb keys:</span
+			>
 			<select
 				value={filterStore.thumbKeyFilter}
 				onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
@@ -101,7 +103,10 @@
 		</label>
 
 		<label class="flex flex-col items-start gap-1 select-none w-40">
-			<span class="text-sm flex items-center gap-1 whitespace-nowrap" style="color: var(--text-secondary);">
+			<span
+				class="text-sm flex items-center gap-1 whitespace-nowrap"
+				style="color: var(--text-secondary);"
+			>
 				Magic key
 				<Tooltip
 					text="A magic key is a key that has custom functionality. For example, it can change its letter based on the preceeding key pressed. Since a magic key's functionality is not standardized, resources outside this explorer are required to understand its functionality."
@@ -126,7 +131,9 @@
 		</label>
 
 		<label class="flex flex-col items-start gap-1 select-none w-40">
-			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Board type:</span>
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+				>Board type:</span
+			>
 			<select
 				value={filterStore.boardTypeFilter}
 				onchange={(e) => filterStore.setBoardTypeFilter(e.currentTarget.value as BoardTypeFilter)}
@@ -147,15 +154,20 @@
 		</label>
 
 		<label class="flex flex-col items-start gap-1 select-none w-44">
-			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Character set:</span>
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+				>Character set:</span
+			>
 			<select
 				value={filterStore.characterSetFilter}
-				onchange={(e) => filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
+				onchange={(e) =>
+					filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
 				class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all w-full"
 				style="
 					background-color: var(--bg-secondary);
 					color: var(--text-primary);
-					border: 1px solid {filterStore.characterSetFilter !== 'english' ? 'var(--accent)' : 'var(--border)'};
+					border: 1px solid {filterStore.characterSetFilter !== 'english'
+					? 'var(--accent)'
+					: 'var(--border)'};
 					--tw-ring-color: var(--accent);
 				"
 			>
@@ -223,4 +235,3 @@
 		</button>
 	{/if}
 </div>
-
