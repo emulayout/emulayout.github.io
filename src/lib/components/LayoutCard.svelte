@@ -2,6 +2,7 @@
 	import type { LayoutData } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { LAYOUT_CARD_HEIGHT } from '$lib/constants';
 
 	interface Props {
 		layout: LayoutData;
@@ -10,10 +11,8 @@
 
 	const { layout, authorName }: Props = $props();
 
-	let isExpanded = $state(false);
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
-	let buttonElement: HTMLButtonElement | null = $state(null);
 	let anglemod = $state(false);
 
 	// Transform displayValue when anglemod is enabled
@@ -33,27 +32,6 @@
 	const shiftKeyMap = $derived.by(() => {
 		return buildShiftKeyMap(keyMap);
 	});
-
-	function toggleTextarea() {
-		isExpanded = !isExpanded;
-		// Focus the textarea after it's rendered
-		if (isExpanded) {
-			setTimeout(() => {
-				if (textareaElement) {
-					textareaElement.focus();
-				}
-			}, 0);
-		}
-	}
-
-	function closeCardAndRefocus() {
-		isExpanded = false;
-		setTimeout(() => {
-			if (buttonElement) {
-				buttonElement.focus();
-			}
-		}, 0);
-	}
 
 	function getModeFromBoard(board: string): string {
 		// Map board types to cyanophage mode parameter
@@ -97,7 +75,9 @@
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
-			closeCardAndRefocus();
+			if (textareaElement) {
+				textareaElement.value = '';
+			}
 			return;
 		}
 
@@ -135,8 +115,8 @@
 <div
 	bind:this={cardElement}
 	data-layout-name={layout.name}
-	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col h-full"
-	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col"
+	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {LAYOUT_CARD_HEIGHT}px;"
 >
 	<div class="flex items-center gap-2 mb-1">
 		<h2
@@ -216,33 +196,18 @@
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
 	<div class="mt-auto flex flex-col gap-2">
-		{#if isExpanded}
-			<textarea
-				bind:this={textareaElement}
-				class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
-				style="
-					background-color: var(--bg-primary);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-					--tw-ring-color: var(--accent);
-				"
-				rows="4"
-				placeholder="Test layout here..."
-				onkeydown={handleKeyDown}
-			></textarea>
-		{/if}
-		<button
-			bind:this={buttonElement}
-			type="button"
-			onclick={toggleTextarea}
-			class="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+		<textarea
+			bind:this={textareaElement}
+			class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
 			style="
-			color: var(--text-primary);
-			background-color: var(--bg-primary);
-			border: 1px solid var(--border);
-		"
-		>
-			{isExpanded ? 'Close' : 'Try'}
-		</button>
+				background-color: var(--bg-primary);
+				color: var(--text-primary);
+				border: 1px solid var(--border);
+				--tw-ring-color: var(--accent);
+			"
+			rows="2"
+			placeholder="Layout test area"
+			onkeydown={handleKeyDown}
+		></textarea>
 	</div>
 </div>
