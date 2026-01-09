@@ -175,8 +175,8 @@
 			</button>
 		</div>
 	</div>
-	<p class="text-xs mb-3" style="color: var(--text-secondary);">
-		{layout.board} · by{' '}
+	<p class="text-xs mb-3 flex items-center gap-1 min-w-0" style="color: var(--text-secondary);">
+		<span class="shrink-0">{layout.board} · by</span>
 		<button
 			type="button"
 			onclick={() => {
@@ -184,8 +184,9 @@
 				filterStore.toggleAuthor(layout.user);
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 			}}
-			class="hover:underline cursor-pointer"
+			class="hover:underline cursor-pointer truncate min-w-0"
 			style="color: var(--text-secondary);"
+			title={authorName}
 		>
 			{authorName}
 		</button>
