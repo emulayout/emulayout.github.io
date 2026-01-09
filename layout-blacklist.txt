@@ -74,3 +74,4 @@ eee
 better-osu
 buggy
 thumb
+star-full
