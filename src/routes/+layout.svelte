@@ -31,7 +31,7 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<header class="grid grid-cols-3 items-center p-6 pr-0 pl-0 max-w-7xl mx-auto">
+	<header class="grid grid-cols-3 items-center p-6 px-3 max-w-7xl mx-auto">
 		<div></div>
 		<div class="flex items-center justify-center gap-3">
 			<img src="/keycap.png" alt="E keycap" class="shrink-0 h-8" />
