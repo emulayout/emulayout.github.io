@@ -55,19 +55,41 @@ function computeDisplayValue(layout, splitCol = 5) {
 		rows[info.row][info.col] = key;
 	});
 
+	const isStaggered = layout.board === 'stagger';
+	const isAngle = layout.board === 'angle';
+
 	const out = Object.keys(rows)
 		.sort((a, b) => Number(a) - Number(b))
 		.map((row) => {
-			const r = rows[Number(row)];
+			const rowNum = Number(row);
+			const r = rows[rowNum];
 			// Find the max column that has a key
 			const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
 			// Fill gaps with space, up to maxCol
 			const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
-			return (
+			const rowString =
 				filled.slice(0, splitCol).join(' ') +
 				'  ' + // extra gap between hands
-				filled.slice(splitCol).join(' ')
-			);
+				filled.slice(splitCol).join(' ');
+
+			// Add extra spaces for staggered layouts
+			if (isStaggered) {
+				if (rowNum === 1) {
+					// Row 1: add 1 extra space at the beginning
+					return ' ' + rowString;
+				} else if (rowNum === 2) {
+					// Row 2: add 2 extra spaces at the beginning
+					return '  ' + rowString;
+				}
+			}
+
+			// Add extra spaces for angle layouts
+			if (isAngle && rowNum === 1) {
+				// Row 1: add 1 extra space at the beginning
+				return ' ' + rowString;
+			}
+
+			return rowString;
 		})
 		.join('\n');
 
