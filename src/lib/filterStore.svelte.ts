@@ -50,6 +50,7 @@ function deserializeGrid(str: string): string[][] {
 export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
+	includeOrGrid: string[][] = $state(createEmptyGrid());
 	includeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
 	showUnfinished: boolean = $state(false);
@@ -139,6 +140,11 @@ export class FilterStore {
 			const parsed = excludeThumbs.split('|');
 			this.excludeThumbKeys = [...parsed, '', '', '', ''].slice(0, 4);
 		}
+
+		const includeOr = url.searchParams.get('includeOr');
+		if (includeOr) {
+			this.includeOrGrid = deserializeGrid(includeOr);
+		}
 	}
 
 	#saveToUrl() {
@@ -193,6 +199,11 @@ export class FilterStore {
 			url.searchParams.set('excludeThumbs', excludeThumbsSerialized);
 		}
 
+		const includeOrSerialized = serializeGrid(this.includeOrGrid);
+		if (includeOrSerialized) {
+			url.searchParams.set('includeOr', includeOrSerialized);
+		}
+
 		window.history.replaceState({}, '', url.toString());
 	}
 
@@ -222,6 +233,11 @@ export class FilterStore {
 
 	setExcludeThumbKey(index: number, value: string) {
 		this.excludeThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setIncludeOrCell(row: number, col: number, value: string) {
+		this.includeOrGrid[row][col] = value;
 		this.#debouncedSave();
 	}
 
@@ -273,6 +289,11 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	clearIncludeOr() {
+		this.includeOrGrid = createEmptyGrid();
+		this.#debouncedSave();
+	}
+
 	clearExclude() {
 		this.excludeGrid = createEmptyGrid();
 		this.excludeThumbKeys = ['', '', '', ''];
@@ -296,6 +317,7 @@ export class FilterStore {
 	clearAll() {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
 		this.includeThumbKeys = ['', '', '', ''];
 		this.excludeThumbKeys = ['', '', '', ''];
 		this.showUnfinished = false;
@@ -315,11 +337,13 @@ export class FilterStore {
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
+		const hasIncludeOr = this.includeOrGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasIncludeThumbs = this.includeThumbKeys.some((k) => k !== '');
 		const hasExcludeThumbs = this.excludeThumbKeys.some((k) => k !== '');
 		return (
 			hasInclude ||
 			hasExclude ||
+			hasIncludeOr ||
 			hasIncludeThumbs ||
 			hasExcludeThumbs ||
 			this.showUnfinished ||
@@ -428,6 +452,36 @@ export class FilterStore {
 		return true;
 	}
 
+	// Check if layout matches include OR filter (OR logic - at least one position must match)
+	#matchesIncludeOr(layout: LayoutData): boolean {
+		// Collect all non-empty filter positions
+		const filterPositions: Array<{ row: number; col: number; chars: string }> = [];
+		for (let row = 0; row < ROWS; row++) {
+			for (let col = 0; col < COLS; col++) {
+				const filterChars = this.includeOrGrid[row][col].toLowerCase();
+				if (filterChars) {
+					filterPositions.push({ row, col, chars: filterChars });
+				}
+			}
+		}
+
+		// If no filters, return true
+		if (filterPositions.length === 0) {
+			return true;
+		}
+
+		// OR logic: at least one position must match
+		for (const { row, col, chars } of filterPositions) {
+			const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
+			if (keyAtPos && chars.includes(keyAtPos)) {
+				// At least one position matches
+				return true;
+			}
+		}
+		// No positions matched
+		return false;
+	}
+
 	// Check if layout matches exclude filter (key must NOT be any of the specified chars)
 	#matchesExclude(layout: LayoutData): boolean {
 		// Check rows 0-2 (position-specific)
@@ -507,7 +561,8 @@ export class FilterStore {
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&
 				this.#matchesInclude(l) &&
-				this.#matchesExclude(l)
+				this.#matchesExclude(l) &&
+				this.#matchesIncludeOr(l)
 			);
 		});
 	}

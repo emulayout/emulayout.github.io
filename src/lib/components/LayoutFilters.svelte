@@ -51,9 +51,9 @@
 </div>
 
 <!-- Filter Grids -->
-<div class="grid gap-4 lg:grid-cols-2 mb-4">
+<div class="grid gap-4 lg:grid-cols-3 mb-4">
 	<FilterGrid
-		label="Include keys"
+		label="Include keys (AND)"
 		grid={filterStore.includeGrid}
 		thumbKeys={filterStore.includeThumbKeys}
 		hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
@@ -61,7 +61,16 @@
 		onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
 		onThumbKeyChange={(index, value) => filterStore.setIncludeThumbKey(index, value)}
 		onClear={() => filterStore.clearInclude()}
-		tooltipText="Use this filter to find layouts that include desired keys in specific row and column positions. You can specify multiple keys in the same field to return layouts that include any of the keys."
+		tooltipText="Use this filter to find layouts that include desired keys in specific row and column positions. All specified positions must match (AND logic). You can specify multiple keys in the same field to return layouts that include any of those keys at that position."
+	/>
+	<FilterGrid
+		label="Include keys (OR)"
+		grid={filterStore.includeOrGrid}
+		hideThumbKeys={true}
+		accentColor="#60a5fa"
+		onCellChange={(row, col, value) => filterStore.setIncludeOrCell(row, col, value)}
+		onClear={() => filterStore.clearIncludeOr()}
+		tooltipText="Use this filter to find layouts where at least one of the specified positions matches (OR logic). For example, if you specify E at left middle finger OR E at right middle finger, it will match all layouts where E is at either location."
 	/>
 	<FilterGrid
 		label="Exclude keys"

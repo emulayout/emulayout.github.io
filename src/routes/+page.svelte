@@ -26,7 +26,7 @@
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 </script>
 
-<div class="max-w-5xl mx-auto">
+<div class="max-w-7xl mx-auto">
 	<LayoutFilters {authorList} filteredCount={filteredLayouts.length} />
 	<LayoutCardList layouts={filteredLayouts} {getAuthorName} />
 </div>
