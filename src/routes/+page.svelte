@@ -3,7 +3,6 @@
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
-	import type { LayoutData } from '$lib/layout';
 	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_MD_MEDIA_QUERY } from '$lib/constants';
 	import { useEventListener } from 'runed';
 
@@ -39,11 +38,11 @@
 	const columns = $derived(isMdOrLarger ? 3 : 2);
 
 	// Group layouts into rows for grid virtualization
-	type Row = LayoutData[];
+	// Store row start indices as integers to avoid object allocation
 	const rows = $derived.by(() => {
-		const result: Row[] = [];
+		const result: number[] = [];
 		for (let i = 0; i < filteredLayouts.length; i += columns) {
-			result.push(filteredLayouts.slice(i, i + columns));
+			result.push(i);
 		}
 		return result;
 	});
@@ -56,13 +55,14 @@
 		data={rows}
 		bufferSize={300}
 		itemSize={LAYOUT_CARD_ITEM_SIZE}
-		getKey={(row, index) => {
-			return row[0]?.name ?? `row-${index}`;
-		}}
+		getKey={(startIndex) => `${columns}:${startIndex}`}
 	>
-		{#snippet children(row)}
+		{#snippet children(startIndex)}
+			{@const end = Math.min(startIndex + columns, filteredLayouts.length)}
+			{@const rowItems = filteredLayouts.slice(startIndex, end)}
+
 			<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
-				{#each row as layout (layout.name)}
+				{#each rowItems as layout (layout.name)}
 					<LayoutCard {layout} authorName={getAuthorName(layout.user)} />
 				{/each}
 			</div>
