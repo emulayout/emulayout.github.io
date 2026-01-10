@@ -6,11 +6,11 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 
-const DEST = 'src/lib/cmini';
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
-const REPO = 'git@github.com:Apsu/cmini.git';
+// Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
+const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 
 async function loadBlacklist() {
 	try {
