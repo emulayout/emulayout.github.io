@@ -8,7 +8,6 @@
 
 	// Initialize theme from localStorage or system preference
 	$effect(() => {
-		if (typeof window === 'undefined') return;
 		const stored = localStorage.getItem('theme');
 		if (stored) {
 			dark = stored === 'dark';
@@ -19,7 +18,6 @@
 
 	// Apply theme class to document
 	$effect(() => {
-		if (typeof window === 'undefined') return;
 		document.documentElement.classList.toggle('dark', dark);
 		localStorage.setItem('theme', dark ? 'dark' : 'light');
 	});

@@ -65,13 +65,10 @@ export class FilterStore {
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
-		if (typeof window !== 'undefined') {
-			this.#loadFromUrl();
-		}
+		this.#loadFromUrl();
 	}
 
 	#loadFromUrl() {
-		if (typeof window === 'undefined') return;
 		const url = new SvelteURL(window.location.href);
 
 		const include = url.searchParams.get('include');
@@ -145,7 +142,6 @@ export class FilterStore {
 	}
 
 	#saveToUrl() {
-		if (typeof window === 'undefined') return;
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 

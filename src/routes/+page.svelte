@@ -30,7 +30,7 @@
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 
 	// Responsive column count for grid layout
-	let columns = $state(typeof window !== 'undefined' && window.innerWidth >= 768 ? 3 : 2);
+	let columns = $state(window.innerWidth >= 768 ? 3 : 2);
 
 	// Group layouts into rows for grid virtualization
 	type Row = LayoutData[];
