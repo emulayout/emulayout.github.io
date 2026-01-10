@@ -1,10 +1,7 @@
 <script lang="ts">
-	import LayoutCard from '$lib/components/LayoutCard.svelte';
+	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { WindowVirtualizer } from 'virtua/svelte';
-	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_MD_MEDIA_QUERY } from '$lib/constants';
-	import { useEventListener } from 'runed';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -27,45 +24,9 @@
 	}
 
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
-
-	// Reactive media query to recalculate columns on resize
-	// Only necessary because WindowVirtualizer doesn't support responsive layouts
-	const mdMediaQuery = window.matchMedia(TAILWIND_MD_MEDIA_QUERY);
-	let isMdOrLarger = $state(mdMediaQuery.matches);
-	useEventListener(mdMediaQuery, 'change', (event) => {
-		isMdOrLarger = event.matches;
-	});
-	const columns = $derived(isMdOrLarger ? 3 : 2);
-
-	// Group layouts into rows for grid virtualization
-	// Store row start indices as integers to avoid object allocation
-	const rows = $derived.by(() => {
-		const result: number[] = [];
-		for (let i = 0; i < filteredLayouts.length; i += columns) {
-			result.push(i);
-		}
-		return result;
-	});
 </script>
 
 <div class="max-w-5xl mx-auto">
 	<LayoutFilters {authorList} filteredCount={filteredLayouts.length} />
-
-	<WindowVirtualizer
-		data={rows}
-		bufferSize={300}
-		itemSize={LAYOUT_CARD_ITEM_SIZE}
-		getKey={(startIndex) => `${columns}:${startIndex}`}
-	>
-		{#snippet children(startIndex)}
-			{@const end = Math.min(startIndex + columns, filteredLayouts.length)}
-			{@const rowItems = filteredLayouts.slice(startIndex, end)}
-
-			<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
-				{#each rowItems as layout (layout.name)}
-					<LayoutCard {layout} authorName={getAuthorName(layout.user)} />
-				{/each}
-			</div>
-		{/snippet}
-	</WindowVirtualizer>
+	<LayoutCardList layouts={filteredLayouts} {getAuthorName} />
 </div>
