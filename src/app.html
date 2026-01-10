@@ -9,8 +9,35 @@
 				const dark = stored
 					? stored === 'dark'
 					: window.matchMedia('(prefers-color-scheme: dark)').matches;
-				if (dark) document.documentElement.classList.add('dark');
+				if (dark) {
+					document.documentElement.classList.add('dark');
+				}
 			})();
+		</script>
+		<style>
+			/* Set background-color immediately based on dark class to prevent flash */
+			html:not(.dark) body {
+				background-color: #faf9f7 !important;
+			}
+			html.dark body {
+				background-color: #141210 !important;
+			}
+			/* Prevent background-color transition on initial load */
+			body:not(.theme-loaded) {
+				transition: none !important;
+			}
+		</style>
+		<script>
+			// Enable transitions after initial render
+			// Use requestAnimationFrame for modern, performant timing
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					// Double RAF ensures CSS has been applied
+					if (document.body) {
+						document.body.classList.add('theme-loaded');
+					}
+				});
+			});
 		</script>
 		%sveltekit.head%
 	</head>
