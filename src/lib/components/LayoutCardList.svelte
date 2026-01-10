@@ -19,11 +19,11 @@
 	const smMediaQuery = window.matchMedia(TAILWIND_SM_MEDIA_QUERY);
 	const mdMediaQuery = window.matchMedia(TAILWIND_MD_MEDIA_QUERY);
 	const xlMediaQuery = window.matchMedia(TAILWIND_XL_MEDIA_QUERY);
-	
+
 	let isSmOrLarger = $state(smMediaQuery.matches);
 	let isMdOrLarger = $state(mdMediaQuery.matches);
 	let isXlOrLarger = $state(xlMediaQuery.matches);
-	
+
 	useEventListener(smMediaQuery, 'change', (event) => {
 		isSmOrLarger = event.matches;
 	});
@@ -33,11 +33,9 @@
 	useEventListener(xlMediaQuery, 'change', (event) => {
 		isXlOrLarger = event.matches;
 	});
-	
+
 	// Below sm: 1 column, sm to md: 2 columns, md to xl: 3 columns, xl and up: 4 columns
-	const columns = $derived(
-		isXlOrLarger ? 4 : isMdOrLarger ? 3 : isSmOrLarger ? 2 : 1
-	);
+	const columns = $derived(isXlOrLarger ? 4 : isMdOrLarger ? 3 : isSmOrLarger ? 2 : 1);
 
 	// Group layouts into rows for grid virtualization
 	// Store row start indices as integers to avoid object allocation
@@ -47,6 +45,16 @@
 			result.push(i);
 		}
 		return result;
+	});
+
+	// Force virtualizer to recalculate when columns change by triggering a scroll event
+	$effect(() => {
+		// When columns change, trigger a scroll event to force virtualizer to recalculate visibility
+		columns;
+		// Use requestAnimationFrame to ensure DOM is updated
+		requestAnimationFrame(() => {
+			window.dispatchEvent(new Event('scroll'));
+		});
 	});
 </script>
 
