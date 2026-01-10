@@ -28,6 +28,7 @@
 </script>
 
 <svelte:head>
+	<title>Emulayout</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
