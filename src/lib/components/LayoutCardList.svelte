@@ -12,14 +12,32 @@
 
 	const { layouts, getAuthorName }: Props = $props();
 
-	// Reactive media query to recalculate columns on resize
+	// Reactive media queries to recalculate columns on resize
 	// Only necessary because WindowVirtualizer doesn't support responsive layouts
+	const TAILWIND_SM_MEDIA_QUERY = '(min-width: 640px)';
+	const TAILWIND_XL_MEDIA_QUERY = '(min-width: 1280px)';
+	const smMediaQuery = window.matchMedia(TAILWIND_SM_MEDIA_QUERY);
 	const mdMediaQuery = window.matchMedia(TAILWIND_MD_MEDIA_QUERY);
+	const xlMediaQuery = window.matchMedia(TAILWIND_XL_MEDIA_QUERY);
+	
+	let isSmOrLarger = $state(smMediaQuery.matches);
 	let isMdOrLarger = $state(mdMediaQuery.matches);
+	let isXlOrLarger = $state(xlMediaQuery.matches);
+	
+	useEventListener(smMediaQuery, 'change', (event) => {
+		isSmOrLarger = event.matches;
+	});
 	useEventListener(mdMediaQuery, 'change', (event) => {
 		isMdOrLarger = event.matches;
 	});
-	const columns = $derived(isMdOrLarger ? 3 : 2);
+	useEventListener(xlMediaQuery, 'change', (event) => {
+		isXlOrLarger = event.matches;
+	});
+	
+	// Below sm: 1 column, sm to md: 2 columns, md to xl: 3 columns, xl and up: 4 columns
+	const columns = $derived(
+		isXlOrLarger ? 4 : isMdOrLarger ? 3 : isSmOrLarger ? 2 : 1
+	);
 
 	// Group layouts into rows for grid virtualization
 	// Store row start indices as integers to avoid object allocation
