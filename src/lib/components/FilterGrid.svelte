@@ -1,8 +1,6 @@
 <script lang="ts">
 	import Tooltip from './Tooltip.svelte';
 
-	const ROWS = 3;
-	const COLS = 10;
 	const SPLIT_COL = 5;
 
 	interface Props {
@@ -44,7 +42,7 @@
 </script>
 
 <div
-	class="p-4 rounded-xl"
+	class="p-4 rounded-xl flex flex-col items-center"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
 	<div class="flex items-center justify-between mb-3">

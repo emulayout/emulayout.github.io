@@ -19,7 +19,7 @@
 </script>
 
 <!-- Name Search & Author Filter -->
-<div class="grid gap-4 md:grid-cols-2 mb-4">
+<div class="grid gap-4 sm:grid-cols-2 mb-4">
 	<div>
 		<label for="name-filter" class="block text-sm mb-2" style="color: var(--text-secondary);">
 			Layout name
@@ -91,7 +91,7 @@
 		/>
 	</div>
 	<div
-		class="p-4 rounded-xl grid-area-other-options"
+		class="p-4 rounded-xl grid-area-other-options flex flex-col items-center"
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
