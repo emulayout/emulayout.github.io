@@ -3,9 +3,9 @@
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
-	import { onMount } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
-	import { LAYOUT_CARD_ITEM_SIZE } from '$lib/constants';
+	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_MD_MEDIA_QUERY } from '$lib/constants';
+	import { useEventListener } from 'runed';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -29,8 +29,14 @@
 
 	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
 
-	// Responsive column count for grid layout
-	let columns = $state(window.innerWidth >= 768 ? 3 : 2);
+	// Reactive media query to recalculate columns on resize
+	// Only necessary because WindowVirtualizer doesn't support responsive layouts
+	const mdMediaQuery = window.matchMedia(TAILWIND_MD_MEDIA_QUERY);
+	let isMdOrLarger = $state(mdMediaQuery.matches);
+	useEventListener(mdMediaQuery, 'change', (event) => {
+		isMdOrLarger = event.matches;
+	});
+	const columns = $derived(isMdOrLarger ? 3 : 2);
 
 	// Group layouts into rows for grid virtualization
 	type Row = LayoutData[];
@@ -41,27 +47,6 @@
 		}
 		return result;
 	});
-
-	onMount(() => {
-		const updateColumns = () => {
-			const newColumns = window.innerWidth >= 768 ? 3 : 2;
-			if (newColumns !== columns) {
-				columns = newColumns;
-			}
-		};
-
-		updateColumns();
-		window.addEventListener('resize', updateColumns);
-
-		// Trigger scroll event after restoration so virtualizer renders items
-		if (window.scrollY > 0) {
-			setTimeout(() => {
-				window.dispatchEvent(new Event('scroll', { bubbles: true }));
-			}, 100);
-		}
-
-		return () => window.removeEventListener('resize', updateColumns);
-	});
 </script>
 
 <div class="max-w-5xl mx-auto">
@@ -69,13 +54,13 @@
 
 	<WindowVirtualizer
 		data={rows}
-		bufferSize={400}
+		bufferSize={300}
 		itemSize={LAYOUT_CARD_ITEM_SIZE}
 		getKey={(row, index) => {
 			return row[0]?.name ?? `row-${index}`;
 		}}
 	>
-		{#snippet children(row, index)}
+		{#snippet children(row)}
 			<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
 				{#each row as layout (layout.name)}
 					<LayoutCard {layout} authorName={getAuthorName(layout.user)} />
