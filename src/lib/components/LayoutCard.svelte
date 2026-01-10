@@ -191,7 +191,7 @@
 			{authorName}
 		</button>
 	</p>
-	<div class="overflow-x-auto -mx-5 px-5 mb-4">
+	<div class="overflow-x-auto -mx-5 px-5 mb-1">
 		<pre
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
@@ -206,7 +206,7 @@
 				border: 1px solid var(--border);
 				--tw-ring-color: var(--accent);
 			"
-			rows="2"
+			rows="3"
 			placeholder="Layout test area"
 			onkeydown={handleKeyDown}
 		></textarea>
