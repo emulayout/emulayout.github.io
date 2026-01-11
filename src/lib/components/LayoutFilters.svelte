@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FilterGrid from '$lib/components/FilterGrid.svelte';
+	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
@@ -54,7 +54,7 @@
 <!-- Filters grid: Responsive layout using CSS Grid -->
 <div class="filters-grid gap-4 mb-4">
 	<div class="grid-area-include-and">
-		<FilterGrid
+		<KeyPositionFilter
 			label="Include keys (AND)"
 			grid={filterStore.includeGrid}
 			thumbKeys={filterStore.includeThumbKeys}
@@ -67,7 +67,7 @@
 		/>
 	</div>
 	<div class="grid-area-include-or">
-		<FilterGrid
+		<KeyPositionFilter
 			label="Include keys (OR)"
 			grid={filterStore.includeOrGrid}
 			hideThumbKeys={true}
@@ -78,7 +78,7 @@
 		/>
 	</div>
 	<div class="grid-area-exclude">
-		<FilterGrid
+		<KeyPositionFilter
 			label="Exclude keys"
 			grid={filterStore.excludeGrid}
 			thumbKeys={filterStore.excludeThumbKeys}
