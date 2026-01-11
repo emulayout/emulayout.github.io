@@ -45,23 +45,22 @@
 	class="p-4 rounded-xl flex flex-col items-center"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center justify-between mb-3">
-		<div class="flex items-center gap-1.5">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
-			<Tooltip text={tooltipText} />
-		</div>
-		{#if hasActiveFilters}
-			<button
-				onclick={handleClear}
-				class="text-xs px-2 py-1 rounded transition-colors"
-				style="color: {accentColor}; background-color: var(--bg-primary);"
-			>
-				Clear
-			</button>
-		{/if}
-	</div>
-
 	<div class="flex flex-col gap-1 font-mono">
+		<div class="flex items-center justify-between mb-3 w-full gap-3">
+			<div class="flex items-center gap-1.5 min-w-0">
+				<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
+				<Tooltip text={tooltipText} />
+			</div>
+			{#if hasActiveFilters}
+				<button
+					onclick={handleClear}
+					class="text-xs px-2 py-1 rounded transition-colors inline-flex shrink-0"
+					style="color: {accentColor}; background-color: var(--bg-primary);"
+				>
+					Clear
+				</button>
+			{/if}
+		</div>
 		{#each grid as row, rowIdx}
 			<div class="flex gap-1">
 				{#each row as cell, colIdx}
