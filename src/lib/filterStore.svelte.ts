@@ -507,7 +507,13 @@ export class FilterStore {
 	// Check if layout name matches filter
 	#matchesName(layout: LayoutData): boolean {
 		if (!this.nameFilter) return true;
-		return layout.name.toLowerCase().includes(this.nameFilter.toLowerCase());
+		const terms = this.nameFilter
+			.split(',')
+			.map((term) => term.trim().toLowerCase())
+			.filter((term) => term !== '');
+		if (terms.length === 0) return true;
+		const name = layout.name.toLowerCase();
+		return terms.some((term) => name.includes(term));
 	}
 
 	// Check if layout author matches filter

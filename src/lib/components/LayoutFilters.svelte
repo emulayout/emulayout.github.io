@@ -21,8 +21,15 @@
 <!-- Name Search & Author Filter -->
 <div class="grid gap-4 sm:grid-cols-2 mb-4">
 	<div>
-		<label for="name-filter" class="block text-sm mb-2" style="color: var(--text-secondary);">
+		<label
+			for="name-filter"
+			class="block text-sm mb-2 truncate"
+			style="color: var(--text-secondary);"
+		>
 			Layout name
+			<span class="text-[10px] italic" style="color: var(--text-caption);">
+				(use commas for multiple terms)
+			</span>
 		</label>
 		<input
 			id="name-filter"
