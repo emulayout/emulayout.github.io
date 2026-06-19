@@ -23,7 +23,9 @@
 		return authorById.get(userId) ?? 'Unknown';
 	}
 
-	const filteredLayouts = $derived(filterStore.filterLayouts(layouts));
+	const filteredLayouts = $derived(
+		filterStore.sortLayouts(filterStore.filterLayouts(layouts))
+	);
 </script>
 
 <div class="max-w-7xl mx-auto">

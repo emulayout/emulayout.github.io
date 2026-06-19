@@ -7,7 +7,8 @@
 		type ThumbKeyFilter,
 		type MagicKeyFilter,
 		type CharacterSetFilter,
-		type BoardTypeFilter
+		type BoardTypeFilter,
+		type SortOption
 	} from '$lib/filterStore.svelte';
 
 	interface Props {
@@ -59,7 +60,7 @@
 
 <!-- Filter Grids -->
 <!-- Filters grid: Responsive layout using CSS Grid -->
-<div class="filters-grid gap-4 mb-4">
+<div class="filters-grid gap-4 mb-8">
 	<div class="grid-area-include-and">
 		<KeyPositionFilter
 			label="Include keys (AND)"
@@ -242,20 +243,41 @@
 	</div>
 </div>
 
-<div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-	<p style="color: var(--text-secondary);">
-		Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span> layouts
-	</p>
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
+	<div class="flex flex-col sm:flex-row items-center gap-4">
+		<p style="color: var(--text-secondary);">
+			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span> layouts
+		</p>
 
-	{#if filterStore.hasActiveFilters}
-		<button
-			onclick={() => filterStore.clearAll()}
-			class="text-sm px-3 py-1.5 rounded-lg transition-colors"
-			style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
+		{#if filterStore.hasActiveFilters}
+			<button
+				onclick={() => filterStore.clearAll()}
+				class="text-sm px-3 py-1.5 rounded-lg transition-colors"
+				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
+			>
+				Reset filters
+			</button>
+		{/if}
+	</div>
+
+	<label class="flex items-center gap-2 select-none">
+		<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort:</span>
+		<select
+			value={filterStore.sortOption}
+			onchange={(e) => filterStore.setSortOption(e.currentTarget.value as SortOption)}
+			class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+			style="
+				background-color: var(--bg-secondary);
+				color: var(--text-primary);
+				border: 1px solid {filterStore.sortOption !== 'date-desc' ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
+			"
 		>
-			Reset filters
-		</button>
-	{/if}
+			<option value="name">Alphabetical</option>
+			<option value="date-asc">Date (oldest first)</option>
+			<option value="date-desc">Date (newest first)</option>
+		</select>
+	</label>
 </div>
 
 <style>

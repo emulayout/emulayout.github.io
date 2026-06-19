@@ -5,6 +5,7 @@ export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
+export type SortOption = 'name' | 'date-asc' | 'date-desc';
 
 const ROWS = 3;
 const COLS = 10;
@@ -62,6 +63,7 @@ export class FilterStore {
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 	focusLayoutName: string | null = $state(null);
+	sortOption: SortOption = $state('date-desc');
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -146,6 +148,11 @@ export class FilterStore {
 		if (includeOr) {
 			this.includeOrGrid = deserializeGrid(includeOr);
 		}
+
+		const sort = url.searchParams.get('sort');
+		if (sort === 'name' || sort === 'date-asc' || sort === 'date-desc') {
+			this.sortOption = sort;
+		}
 	}
 
 	#saveToUrl() {
@@ -203,6 +210,10 @@ export class FilterStore {
 		const includeOrSerialized = serializeGrid(this.includeOrGrid);
 		if (includeOrSerialized) {
 			url.searchParams.set('includeOr', includeOrSerialized);
+		}
+
+		if (this.sortOption !== 'date-desc') {
+			url.searchParams.set('sort', this.sortOption);
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -270,6 +281,11 @@ export class FilterStore {
 	setBoardTypeFilter(value: BoardTypeFilter) {
 		this.boardTypeFilter = value;
 		this.#debouncedSave();
+	}
+
+	setSortOption(value: SortOption) {
+		this.sortOption = value;
+		this.#saveToUrl();
 	}
 
 	setNameFilter(value: string) {
@@ -598,6 +614,26 @@ export class FilterStore {
 				this.#matchesIncludeOr(l)
 			);
 		});
+	}
+
+	sortLayouts(layouts: LayoutData[]): LayoutData[] {
+		const sorted = [...layouts];
+
+		if (this.sortOption === 'date-asc') {
+			return sorted.sort((a, b) => {
+				const byDate = a.updatedAt.localeCompare(b.updatedAt);
+				return byDate !== 0 ? byDate : a.name.localeCompare(b.name);
+			});
+		}
+
+		if (this.sortOption === 'date-desc') {
+			return sorted.sort((a, b) => {
+				const byDate = b.updatedAt.localeCompare(a.updatedAt);
+				return byDate !== 0 ? byDate : a.name.localeCompare(b.name);
+			});
+		}
+
+		return sorted.sort((a, b) => a.name.localeCompare(b.name));
 	}
 }
 
