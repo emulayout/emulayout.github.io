@@ -39,6 +39,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Cache cmini repo + layout timestamps
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/cmini-repo
+            .cache/layout-timestamps.json
+          key: ${{ runner.os }}-cmini-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-timestamps.js') }}
+          restore-keys: |
+            ${{ runner.os }}-cmini-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 

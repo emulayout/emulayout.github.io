@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
+import { buildLayoutTimestamps } from './layout-timestamps.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
@@ -33,12 +34,16 @@ async function ensureCache() {
 	if (!cacheExists) {
 		console.log('→ Initial clone (this may take a while)...');
 		await mkdir(CACHE_DIR, { recursive: true });
-		await $`git clone --depth=1 --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
+		await $`git clone --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
 		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone layouts /authors.json`;
 	} else {
 		console.log('→ Updating cache...');
-		// Fetch and reset to the remote default branch
-		await $`cd ${CACHE_DIR} && git fetch --depth=1 origin`;
+		const isShallow = (await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()).trim();
+		if (isShallow === 'true') {
+			console.log('→ Unshallowing cache for layout timestamps...');
+			await $`git -C ${CACHE_DIR} fetch --unshallow`.nothrow();
+		}
+		await $`cd ${CACHE_DIR} && git fetch origin`;
 		// Try to get the default branch, fallback to master/main
 		try {
 			const branch = await $`cd ${CACHE_DIR} && git rev-parse --abbrev-ref origin/HEAD`.text();
@@ -79,6 +84,9 @@ async function run() {
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 
+	console.log('→ Resolving layout timestamps from git history...');
+	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
+
 	// Transform all layouts
 	const transformedLayouts = [];
 	for (const filename of layoutFiles) {
@@ -98,6 +106,7 @@ async function run() {
 			const originalContent = await readFile(cachePath, 'utf-8');
 			const rawLayout = JSON.parse(originalContent);
 			const transformedLayout = transformLayout(rawLayout);
+			transformedLayout.updatedAt = layoutTimestamps[filename];
 			transformedLayouts.push(transformedLayout);
 		} catch (err) {
 			console.error(`  ⚠ Error processing ${filename}:`, err.message);

@@ -15,4 +15,5 @@ export interface LayoutData {
 	characterSet: 'english' | 'international';
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;
+	updatedAt: string;
 }
