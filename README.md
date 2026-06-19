@@ -1,38 +1,27 @@
-# sv
+# Emulayout
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Browse, filter, and try thousands of alternative keyboard layouts in one place.
 
-## Creating a project
+**Live site:** [emulayout.github.io](https://emulayout.github.io)
 
-If you're seeing this, you've probably already done this step. Congrats!
+Emulayout helps you discover and quickly test keyboard layouts from the [cmini](https://github.com/Apsu/cmini) community repo — a large, constantly growing collection of ergonomic and alternative designs. You'll find mainstream alternatives alongside experimental and quirky ones. The real value is in narrowing that down to something that fits you.
 
-```sh
-# create a new project in the current directory
-npx sv create
+Type directly on any layout card to get a feel for it without installing anything. Each card also links to [Cyanophage](https://cyanophage.github.io/playground.html), which benchmarks a layout for things like finger usage and finger travel — useful when you want deeper stats on a particular design.
 
-# create a new project in my-app
-npx sv create my-app
-```
+Filtering is where this gets interesting. You can search by name, author, board type, thumb keys, and more — but the standout feature is per-key position matching. Specify exactly which characters you want (or don't want) at specific row and column positions, with AND, OR, and exclude logic. It's niche, but it's the kind of tool that pays off when you know what you're looking for.
 
-## Developing
+## Running locally
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Requires [Bun](https://bun.sh).
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun install
+bun run ./bin/cmini-sync.js   # fetch layouts from cmini (first run clones the repo)
+bun run dev
 ```
-
-## Building
-
-To create a production version of your app:
 
 ```sh
-npm run build
+bun run build      # production build
+bun run preview    # preview the build
+bun run check      # typecheck
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
