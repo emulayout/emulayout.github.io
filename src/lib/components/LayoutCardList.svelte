@@ -13,6 +13,8 @@
 	const { layouts, getAuthorName }: Props = $props();
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
+	// md tier reserved for future column breakpoints between sm (2 cols) and lg (3 cols).
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- intentional placeholder
 	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
 	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
@@ -32,7 +34,7 @@
 	// Force virtualizer to recalculate when columns change by triggering a scroll event
 	$effect(() => {
 		// When columns change, trigger a scroll event to force virtualizer to recalculate visibility
-		columns;
+		void columns;
 		// Use requestAnimationFrame to ensure DOM is updated
 		requestAnimationFrame(() => {
 			window.dispatchEvent(new Event('scroll'));

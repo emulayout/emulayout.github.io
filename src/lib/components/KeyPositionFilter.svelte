@@ -61,9 +61,9 @@
 				</button>
 			{/if}
 		</div>
-		{#each grid as row, rowIdx}
+		{#each grid as row, rowIdx (rowIdx)}
 			<div class="flex gap-1">
-				{#each row as cell, colIdx}
+				{#each row as cell, colIdx (`${rowIdx}-${colIdx}`)}
 					{#if colIdx === SPLIT_COL}
 						<div class="w-3"></div>
 					{/if}
@@ -92,7 +92,7 @@
 					Thumb keys (only filter by order, not column position)
 				</p>
 				<div class="flex gap-2">
-					{#each thumbKeys as key, idx}
+					{#each thumbKeys as key, idx (idx)}
 						<input
 							type="text"
 							value={key}

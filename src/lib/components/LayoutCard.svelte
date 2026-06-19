@@ -208,7 +208,6 @@
 			"
 			rows="3"
 			placeholder="Layout test area"
-			onkeydown={handleKeyDown}
-		></textarea>
+			onkeydown={handleKeyDown}></textarea>
 	</div>
 </div>
