@@ -61,6 +61,7 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
+	focusLayoutName: string | null = $state(null);
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -332,6 +333,32 @@ export class FilterStore {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
 		this.#debouncedSave();
+	}
+
+	focusLayout(name: string) {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
+		this.includeThumbKeys = ['', '', '', ''];
+		this.excludeThumbKeys = ['', '', '', ''];
+		this.selectedAuthors.clear();
+		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
+		this.characterSetFilter = 'all';
+		this.boardTypeFilter = 'all';
+		this.showUnfinished = true;
+		this.nameFilterInput = name;
+		this.nameFilter = name;
+		if (this.#nameDebounceTimeout) {
+			clearTimeout(this.#nameDebounceTimeout);
+			this.#nameDebounceTimeout = null;
+		}
+		this.focusLayoutName = name;
+		this.#saveToUrl();
+	}
+
+	clearFocusLayout() {
+		this.focusLayoutName = null;
 	}
 
 	get hasActiveFilters(): boolean {

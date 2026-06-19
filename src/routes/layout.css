@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+html {
+	scrollbar-gutter: stable;
+}
+
 :root {
 	--bg-primary: #faf9f7;
 	--bg-secondary: #f0ede8;

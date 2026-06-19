@@ -1,9 +1,11 @@
 <script lang="ts">
 	import './layout.css';
+	import RecentLayoutsModal from '$lib/components/RecentLayoutsModal.svelte';
 
 	let { children } = $props();
 
 	let dark = $state(false);
+	let showRecentLayouts = $state(false);
 
 	// Initialize theme from localStorage or system preference
 	$effect(() => {
@@ -39,7 +41,24 @@
 				Emulayout
 			</h1>
 		</div>
-		<div class="flex justify-end">
+		<div class="flex justify-end gap-2">
+			<button
+				onclick={() => (showRecentLayouts = true)}
+				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				aria-label="New layouts from the last 7 days"
+			>
+				<svg
+					class="absolute inset-0 m-auto size-5 transition-all duration-300"
+					style="color: var(--accent);"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+				</svg>
+			</button>
 			<button
 				onclick={toggleTheme}
 				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
@@ -83,3 +102,5 @@
 		{@render children()}
 	</main>
 </div>
+
+<RecentLayoutsModal open={showRecentLayouts} onClose={() => (showRecentLayouts = false)} />

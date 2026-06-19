@@ -4,6 +4,7 @@
 	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import type { LayoutData } from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
+	import { filterStore } from '$lib/filterStore.svelte';
 
 	interface Props {
 		layouts: LayoutData[];
@@ -11,6 +12,10 @@
 	}
 
 	const { layouts, getAuthorName }: Props = $props();
+
+	let virtualizer = $state<{
+		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
+	}>();
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	// md tier reserved for future column breakpoints between sm (2 cols) and lg (3 cols).
@@ -40,9 +45,27 @@
 			window.dispatchEvent(new Event('scroll'));
 		});
 	});
+
+	$effect(() => {
+		const name = filterStore.focusLayoutName;
+		if (!name) return;
+
+		const layoutIndex = layouts.findIndex((layout) => layout.name === name);
+		if (layoutIndex === -1) return;
+
+		const rowIndex = Math.floor(layoutIndex / columns);
+
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				virtualizer?.scrollToIndex(rowIndex, { align: 'start' });
+				filterStore.clearFocusLayout();
+			});
+		});
+	});
 </script>
 
 <WindowVirtualizer
+	bind:this={virtualizer}
 	data={rows}
 	bufferSize={300}
 	itemSize={LAYOUT_CARD_ITEM_SIZE}
