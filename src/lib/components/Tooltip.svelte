@@ -28,26 +28,25 @@
 	</button>
 	{#if showTooltip}
 		<div
-			class="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs shadow-lg pointer-events-none"
+			class="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 rounded-lg text-xs shadow-lg pointer-events-none"
 			style="
 				background-color: var(--bg-primary);
 				border: 1px solid var(--border);
 				color: var(--text-primary);
-				width: 12rem;
-				max-width: 12rem;
+				width: 16rem;
+				max-width: 16rem;
 				word-wrap: break-word;
 				overflow-wrap: break-word;
 				white-space: normal;
 			"
 		>
 			<span style="display: block; word-wrap: break-word; overflow-wrap: break-word;">{text}</span>
-			<!-- Tooltip arrow -->
 			<div
-				class="absolute top-full left-1/2 -translate-x-1/2"
+				class="absolute bottom-full left-1/2 -translate-x-1/2"
 				style="
 					border-left: 6px solid transparent;
 					border-right: 6px solid transparent;
-					border-top: 6px solid var(--border);
+					border-bottom: 6px solid var(--border);
 				"
 			></div>
 		</div>
