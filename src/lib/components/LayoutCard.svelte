@@ -33,6 +33,14 @@
 		return buildShiftKeyMap(keyMap);
 	});
 
+	const updatedLabel = $derived(
+		new Date(layout.updatedAt).toLocaleDateString(undefined, {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric'
+		})
+	);
+
 	function getModeFromBoard(board: string): string {
 		// Map board types to cyanophage mode parameter
 		switch (board) {
@@ -190,6 +198,7 @@
 		>
 			{authorName}
 		</button>
+		<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
 	</p>
 	<div class="overflow-x-auto -mx-5 pl-9 mb-1">
 		<pre
