@@ -88,6 +88,15 @@ export function formatBotStatsBlock(
 }
 
 /** Placeholder with the same line count as a full stats block. */
+export function formatStatsLoadingBlock(): string {
+	return [
+		' LOADING STATS',
+		' …',
+		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
+	].join('\n');
+}
+
+/** Placeholder with the same line count as a full stats block. */
 export function formatStatsUnavailableBlock(): string {
 	return [
 		' STATS UNAVAILABLE',

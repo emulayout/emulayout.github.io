@@ -2,10 +2,12 @@
 	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		deriveBotStats,
 		formatBotStatsBlock,
+		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
 		getLayoutCorpusStats
 	} from '$lib/layoutStats';
@@ -50,8 +52,13 @@
 
 	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
+	const statsLoading = $derived(layoutStatsStore.loading);
 	const statsBlock = $derived(
-		botStats ? formatBotStatsBlock(botStats) : formatStatsUnavailableBlock()
+		botStats
+			? formatBotStatsBlock(botStats)
+			: statsLoading
+				? formatStatsLoadingBlock()
+				: formatStatsUnavailableBlock()
 	);
 
 	const cardHeight = $derived(
@@ -227,7 +234,7 @@
 			{#if filterStore.showLayoutStats}
 				<pre
 					class="stats-block shrink-0"
-					class:stats-block--unavailable={!botStats}
+					class:stats-block--unavailable={!botStats && !statsLoading}
 					style={botStats ? 'color: var(--text-secondary);' : undefined}>{statsBlock}</pre>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
