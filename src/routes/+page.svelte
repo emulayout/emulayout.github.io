@@ -6,6 +6,7 @@
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
+	const layoutStats = $derived(data.layoutStats);
 
 	// Create reverse lookup: user_id -> author_name
 	const authorById = $derived(
@@ -30,5 +31,5 @@
 
 <div class="max-w-7xl mx-auto">
 	<LayoutFilters {authorList} filteredCount={filteredLayouts.length} />
-	<LayoutCardList layouts={filteredLayouts} {getAuthorName} />
+	<LayoutCardList layouts={filteredLayouts} {getAuthorName} {layoutStats} />
 </div>

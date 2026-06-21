@@ -1,16 +1,23 @@
 <script lang="ts">
-	import type { LayoutData } from '$lib/layout';
+	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { LAYOUT_CARD_HEIGHT } from '$lib/constants';
+	import {
+		DEFAULT_STATS_CORPUS,
+		deriveBotStats,
+		formatStatPercent,
+		getLayoutCorpusStats
+	} from '$lib/layoutStats';
 
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
+		layoutStats: LayoutStatsMap;
 	}
 
-	const { layout, authorName }: Props = $props();
+	const { layout, authorName, layoutStats }: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
@@ -41,6 +48,9 @@
 			year: 'numeric'
 		})
 	);
+
+	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
+	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
 
 	function getModeFromBoard(board: string): string {
 		// Map board types to cyanophage mode parameter
@@ -130,10 +140,10 @@
 <div
 	bind:this={cardElement}
 	data-layout-name={layout.name}
-	class="pt-5 px-5 pb-2 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col"
+	class="px-5 pt-5 pb-1 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col gap-3"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {LAYOUT_CARD_HEIGHT}px;"
 >
-	<div class="flex items-center gap-2 mb-1">
+	<div class="flex items-center gap-2">
 		<h2
 			class="text-lg font-semibold flex-1 truncate"
 			style="color: var(--text-primary);"
@@ -207,7 +217,7 @@
 			</button>
 		</div>
 	</div>
-	<p class="text-xs mb-3 flex items-center gap-1 min-w-0" style="color: var(--text-secondary);">
+	<p class="text-xs flex items-center gap-1 min-w-0 -mt-1" style="color: var(--text-secondary);">
 		<span class="shrink-0">{layout.board} · by</span>
 		<button
 			type="button"
@@ -224,12 +234,40 @@
 		</button>
 		<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
 	</p>
-	<div class="overflow-x-auto -mx-5 pl-9 mb-1">
+	<div class="flex-1 min-h-0 overflow-x-auto min-w-0 flex flex-col justify-center">
 		<pre
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
-	<div class="mt-auto flex flex-col gap-2">
+	{#if botStats}
+		<div
+			class="text-[10px] font-mono leading-[1.35] tabular-nums shrink-0"
+			style="color: var(--text-secondary);"
+		>
+			<div class="uppercase tracking-wider mb-0.5">{DEFAULT_STATS_CORPUS}</div>
+			<div>Alt: {formatStatPercent(botStats.alternate)}</div>
+			<div>
+				Rol: {formatStatPercent(botStats.roll)} (In/Out: {formatStatPercent(botStats.rollIn)} |
+				{formatStatPercent(botStats.rollOut)})
+			</div>
+			<div>
+				One: {formatStatPercent(botStats.one)} (In/Out: {formatStatPercent(botStats.oneIn)} |
+				{formatStatPercent(botStats.oneOut)})
+			</div>
+			<div>
+				Rtl: {formatStatPercent(botStats.rtl)} (In/Out: {formatStatPercent(botStats.rtlIn)} |
+				{formatStatPercent(botStats.rtlOut)})
+			</div>
+			<div>
+				Red: {formatStatPercent(botStats.red)} (Bad: {formatStatPercent(botStats.badRedirect)})
+			</div>
+			<div>
+				SFS: {formatStatPercent(botStats.sfs)} (Red/Alt: {formatStatPercent(botStats.dsfbRed)} |
+				{formatStatPercent(botStats.dsfbAlt)})
+			</div>
+		</div>
+	{/if}
+	<div class="shrink-0">
 		<textarea
 			bind:this={textareaElement}
 			class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
@@ -239,7 +277,7 @@
 				border: 1px solid var(--border);
 				--tw-ring-color: var(--accent);
 			"
-			rows="3"
+			rows="2"
 			placeholder="Layout test area"
 			onkeydown={handleKeyDown}></textarea>
 	</div>

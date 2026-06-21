@@ -2,16 +2,17 @@
 	import LayoutCard from './LayoutCard.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
 	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import type { LayoutData } from '$lib/layout';
+	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 
 	interface Props {
 		layouts: LayoutData[];
 		getAuthorName: (userId: number) => string;
+		layoutStats: LayoutStatsMap;
 	}
 
-	const { layouts, getAuthorName }: Props = $props();
+	const { layouts, getAuthorName, layoutStats }: Props = $props();
 
 	let virtualizer = $state<{
 		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
@@ -77,7 +78,7 @@
 
 		<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
 			{#each rowItems as layout (layout.name)}
-				<LayoutCard {layout} authorName={getAuthorName(layout.user)} />
+				<LayoutCard {layout} authorName={getAuthorName(layout.user)} {layoutStats} />
 			{/each}
 		</div>
 	{/snippet}
