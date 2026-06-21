@@ -131,8 +131,8 @@ async function run() {
 	// Sort layouts by name for consistent output
 	transformedLayouts.sort((a, b) => a.name.localeCompare(b.name));
 
-	// Write single JSON file
-	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts, null, '\t') + '\n', 'utf-8');
+	// Write single JSON file (minified — GitHub Pages gzip-compresses on transfer)
+	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
 
 	console.log('→ Merging layout stats from cmini cache...');
 	const sortedStats = Object.fromEntries(

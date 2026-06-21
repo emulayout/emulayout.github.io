@@ -9,16 +9,32 @@
  * @returns {Object} - The transformed layout with computed properties
  */
 export function transformLayout(layout) {
-	const transformed = { ...layout };
+	/** @type {Record<string, { row: number, col: number }>} */
+	const keys = {};
 
-	// Add computed properties
-	transformed.hasThumbKeys = computeHasThumbKeys(layout);
-	transformed.displayValue = computeDisplayValue(layout);
-	transformed.characterSet = computeCharacterSet(layout);
-	transformed.hasAllLetters = computeHasAllLetters(layout);
-	transformed.hasMagicKey = computeHasMagicKey(layout);
+	if (layout.keys && typeof layout.keys === 'object') {
+		for (const [key, info] of Object.entries(layout.keys)) {
+			if (info && typeof info.row === 'number' && typeof info.col === 'number') {
+				keys[key] = { row: info.row, col: info.col };
+			}
+		}
+	}
 
-	return transformed;
+	const stripped = {
+		name: layout.name,
+		user: layout.user,
+		board: layout.board,
+		keys
+	};
+
+	return {
+		...stripped,
+		hasThumbKeys: computeHasThumbKeys(stripped),
+		displayValue: computeDisplayValue(stripped),
+		characterSet: computeCharacterSet(stripped),
+		hasAllLetters: computeHasAllLetters(stripped),
+		hasMagicKey: computeHasMagicKey(stripped)
+	};
 }
 
 /**
