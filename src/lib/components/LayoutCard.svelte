@@ -2,7 +2,7 @@
 	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { LAYOUT_CARD_HEIGHT } from '$lib/constants';
+	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		deriveBotStats,
 		formatBotStatsBlock,
@@ -52,6 +52,10 @@
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
 	const statsBlock = $derived(
 		botStats ? formatBotStatsBlock(botStats) : formatStatsUnavailableBlock()
+	);
+
+	const cardHeight = $derived(
+		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 
 	function getModeFromBoard(board: string): string {
@@ -136,8 +140,8 @@
 <div
 	bind:this={cardElement}
 	data-layout-name={layout.name}
-	class="px-5 pt-5 pb-1 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col gap-3"
-	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {LAYOUT_CARD_HEIGHT}px;"
+	class="px-5 pt-5 pb-3 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col gap-3"
+	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"
 >
 	<div class="flex items-center gap-2">
 		<h2
@@ -218,22 +222,28 @@
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
-	<pre
-		class="stats-block shrink-0"
-		class:stats-block--unavailable={!botStats}
-		style={botStats ? 'color: var(--text-secondary);' : undefined}>{statsBlock}</pre>
-	<div class="shrink-0">
-		<textarea
-			bind:this={textareaElement}
-			class="w-full p-3 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all"
-			style="
-				background-color: var(--bg-primary);
-				color: var(--text-primary);
-				border: 1px solid var(--border);
-				--tw-ring-color: var(--accent);
-			"
-			rows="2"
-			placeholder="Layout test area"
-			onkeydown={handleKeyDown}></textarea>
-	</div>
+	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
+		<div class="flex flex-col gap-4 shrink-0">
+			{#if filterStore.showLayoutStats}
+				<pre
+					class="stats-block shrink-0"
+					class:stats-block--unavailable={!botStats}
+					style={botStats ? 'color: var(--text-secondary);' : undefined}>{statsBlock}</pre>
+			{/if}
+			{#if filterStore.showLayoutTestArea}
+				<textarea
+					bind:this={textareaElement}
+					class="w-full px-3 pt-3 pb-0 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all block"
+					style="
+						background-color: var(--bg-primary);
+						color: var(--text-primary);
+						border: 1px solid var(--border);
+						--tw-ring-color: var(--accent);
+					"
+					rows="2"
+					placeholder="Layout test area"
+					onkeydown={handleKeyDown}></textarea>
+			{/if}
+		</div>
+	{/if}
 </div>

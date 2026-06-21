@@ -1,7 +1,7 @@
 <script lang="ts">
 	import LayoutCard from './LayoutCard.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
-	import { LAYOUT_CARD_ITEM_SIZE, TAILWIND_BREAKPOINTS } from '$lib/constants';
+	import { getLayoutCardItemSize, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -27,6 +27,10 @@
 
 	const columns = $derived(xlUp.current ? 4 : lgUp.current ? 3 : smUp.current ? 2 : 1);
 
+	const cardItemSize = $derived(
+		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
+	);
+
 	// Group layouts into rows for grid virtualization
 	// Store row start indices as integers to avoid object allocation
 	const rows = $derived.by(() => {
@@ -37,11 +41,11 @@
 		return result;
 	});
 
-	// Force virtualizer to recalculate when columns change by triggering a scroll event
+	// Force virtualizer to recalculate when columns or card height change
 	$effect(() => {
-		// When columns change, trigger a scroll event to force virtualizer to recalculate visibility
 		void columns;
-		// Use requestAnimationFrame to ensure DOM is updated
+		void filterStore.showLayoutStats;
+		void filterStore.showLayoutTestArea;
 		requestAnimationFrame(() => {
 			window.dispatchEvent(new Event('scroll'));
 		});
@@ -69,8 +73,9 @@
 	bind:this={virtualizer}
 	data={rows}
 	bufferSize={300}
-	itemSize={LAYOUT_CARD_ITEM_SIZE}
-	getKey={(startIndex) => `${columns}:${startIndex}`}
+	itemSize={cardItemSize}
+	getKey={(startIndex) =>
+		`${columns}:${cardItemSize}:${filterStore.showLayoutStats}:${filterStore.showLayoutTestArea}:${startIndex}`}
 >
 	{#snippet children(startIndex)}
 		{@const end = Math.min(startIndex + columns, layouts.length)}

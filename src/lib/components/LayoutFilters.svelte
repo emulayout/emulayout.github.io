@@ -260,24 +260,86 @@
 		{/if}
 	</div>
 
-	<label class="flex items-center gap-2 select-none">
-		<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort:</span>
-		<select
-			value={filterStore.sortOption}
-			onchange={(e) => filterStore.setSortOption(e.currentTarget.value as SortOption)}
-			class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
-			style="
-				background-color: var(--bg-secondary);
-				color: var(--text-primary);
-				border: 1px solid {filterStore.sortOption !== 'date-desc' ? 'var(--accent)' : 'var(--border)'};
-				--tw-ring-color: var(--accent);
-			"
-		>
-			<option value="name">Alphabetical</option>
-			<option value="date-asc">Date (oldest first)</option>
-			<option value="date-desc">Date (newest first)</option>
-		</select>
-	</label>
+	<div
+		class="flex flex-wrap items-center gap-x-6 gap-y-3 w-full sm:w-auto justify-start sm:justify-end"
+	>
+		<label class="flex items-center gap-2 select-none cursor-pointer">
+			<span class="relative">
+				<input
+					type="checkbox"
+					checked={filterStore.hideLayoutTestArea}
+					onchange={(e) => filterStore.setHideLayoutTestArea(e.currentTarget.checked)}
+					class="size-4 rounded appearance-none cursor-pointer relative"
+					style="
+						background-color: {filterStore.hideLayoutTestArea ? 'var(--accent)' : 'var(--bg-primary)'};
+						border: 1px solid var(--border);
+					"
+				/>
+				{#if filterStore.hideLayoutTestArea}
+					<svg
+						class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+						style="color: white;"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="3"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				{/if}
+			</span>
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+				>Hide test area</span
+			>
+		</label>
+
+		<label class="flex items-center gap-2 select-none cursor-pointer">
+			<span class="relative">
+				<input
+					type="checkbox"
+					checked={filterStore.hideLayoutStats}
+					onchange={(e) => filterStore.setHideLayoutStats(e.currentTarget.checked)}
+					class="size-4 rounded appearance-none cursor-pointer relative"
+					style="
+						background-color: {filterStore.hideLayoutStats ? 'var(--accent)' : 'var(--bg-primary)'};
+						border: 1px solid var(--border);
+					"
+				/>
+				{#if filterStore.hideLayoutStats}
+					<svg
+						class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+						style="color: white;"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="3"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				{/if}
+			</span>
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Hide stats</span>
+		</label>
+
+		<label class="flex items-center gap-2 select-none">
+			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort:</span>
+			<select
+				value={filterStore.sortOption}
+				onchange={(e) => filterStore.setSortOption(e.currentTarget.value as SortOption)}
+				class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
+				style="
+					background-color: var(--bg-secondary);
+					color: var(--text-primary);
+					border: 1px solid {filterStore.sortOption !== 'date-desc' ? 'var(--accent)' : 'var(--border)'};
+					--tw-ring-color: var(--accent);
+				"
+			>
+				<option value="name">Alphabetical</option>
+				<option value="date-asc">Date (oldest first)</option>
+				<option value="date-desc">Date (newest first)</option>
+			</select>
+		</label>
+	</div>
 </div>
 
 <style>

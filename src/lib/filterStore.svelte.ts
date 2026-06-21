@@ -64,6 +64,16 @@ export class FilterStore {
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 	focusLayoutName: string | null = $state(null);
 	sortOption: SortOption = $state('date-desc');
+	hideLayoutStats: boolean = $state(false);
+	hideLayoutTestArea: boolean = $state(false);
+
+	get showLayoutStats(): boolean {
+		return !this.hideLayoutStats;
+	}
+
+	get showLayoutTestArea(): boolean {
+		return !this.hideLayoutTestArea;
+	}
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -153,6 +163,14 @@ export class FilterStore {
 		if (sort === 'name' || sort === 'date-asc' || sort === 'date-desc') {
 			this.sortOption = sort;
 		}
+
+		if (url.searchParams.get('stats') === '0') {
+			this.hideLayoutStats = true;
+		}
+
+		if (url.searchParams.get('testArea') === '0') {
+			this.hideLayoutTestArea = true;
+		}
 	}
 
 	#saveToUrl() {
@@ -214,6 +232,14 @@ export class FilterStore {
 
 		if (this.sortOption !== 'date-desc') {
 			url.searchParams.set('sort', this.sortOption);
+		}
+
+		if (this.hideLayoutStats) {
+			url.searchParams.set('stats', '0');
+		}
+
+		if (this.hideLayoutTestArea) {
+			url.searchParams.set('testArea', '0');
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -288,6 +314,16 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	setHideLayoutStats(value: boolean) {
+		this.hideLayoutStats = value;
+		this.#saveToUrl();
+	}
+
+	setHideLayoutTestArea(value: boolean) {
+		this.hideLayoutTestArea = value;
+		this.#saveToUrl();
+	}
+
 	setNameFilter(value: string) {
 		this.nameFilterInput = value;
 		// Debounce the actual filter update
@@ -344,6 +380,8 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
+		this.hideLayoutStats = false;
+		this.hideLayoutTestArea = false;
 		this.selectedAuthors.clear();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
