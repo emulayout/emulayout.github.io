@@ -35,12 +35,22 @@
 <div class="min-h-screen">
 	<header class="grid grid-cols-3 items-center p-6 px-3 max-w-7xl mx-auto">
 		<div></div>
-		<div class="flex items-center justify-center gap-3">
-			<img src="/keycap.png" alt="E keycap" class="shrink-0 h-8" />
+		<a
+			href="/"
+			data-sveltekit-reload
+			class="flex items-center justify-center gap-3 no-underline hover:opacity-90 transition-opacity"
+		>
+			<img
+				src="/keycap.png"
+				alt=""
+				width="71"
+				height="72"
+				class="shrink-0 h-8 w-auto"
+			/>
 			<h1 class="text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
 				Emulayout
 			</h1>
-		</div>
+		</a>
 		<div class="flex justify-end gap-2">
 			<button
 				onclick={() => (showRecentLayouts = true)}

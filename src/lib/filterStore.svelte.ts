@@ -380,6 +380,7 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
+		this.sortOption = 'date-desc';
 		this.hideLayoutStats = false;
 		this.hideLayoutTestArea = false;
 		this.selectedAuthors.clear();
