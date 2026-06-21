@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
+import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { readLayoutCacheStats, DEFAULT_STATS_CORPUS } from './layout-stats.js';
 
@@ -114,7 +115,7 @@ async function run() {
 			const rawLayout = JSON.parse(originalContent);
 			const transformedLayout = transformLayout(rawLayout);
 			transformedLayout.updatedAt = layoutTimestamps[filename];
-			transformedLayouts.push(transformedLayout);
+			transformedLayouts.push(encodeLayout(transformedLayout));
 
 			const stats = await readLayoutCacheStats(CACHE_DIR, filename);
 			if (stats) {
@@ -129,9 +130,9 @@ async function run() {
 	}
 
 	// Sort layouts by name for consistent output
-	transformedLayouts.sort((a, b) => a.name.localeCompare(b.name));
+	transformedLayouts.sort((a, b) => a[0].localeCompare(b[0]));
 
-	// Write single JSON file (minified — GitHub Pages gzip-compresses on transfer)
+	// Write compact layout tuples (minified — GitHub Pages gzip-compresses on transfer)
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
 
 	console.log('→ Merging layout stats from cmini cache...');
@@ -149,24 +150,25 @@ async function run() {
 	await $`cp ${CACHE_DIR}/authors.json static/authors.json`;
 
 	// Calculate changes by comparing layout names
-	const beforeNames = new Set(beforeLayouts.map((l) => l.name));
-	const afterNames = new Set(transformedLayouts.map((l) => l.name));
+	const beforeNames = new Set(beforeLayouts.map(layoutEntryName));
+	const afterNames = new Set(transformedLayouts.map((l) => l[0]));
 
-	const added = transformedLayouts.filter((l) => !beforeNames.has(l.name)).map((l) => l.name);
-	const removed = beforeLayouts.filter((l) => !afterNames.has(l.name)).map((l) => l.name);
+	const added = transformedLayouts.filter((l) => !beforeNames.has(l[0])).map((l) => l[0]);
+	const removed = beforeLayouts.filter((l) => !afterNames.has(layoutEntryName(l))).map(layoutEntryName);
 
 	// For modified, compare by hash (name + content hash)
 	const beforeHashes = new Map(
-		beforeLayouts.map((l) => [l.name, createHash('md5').update(JSON.stringify(l)).digest('hex')])
+		beforeLayouts.map((l) => [layoutEntryName(l), createHash('md5').update(JSON.stringify(l)).digest('hex')])
 	);
 	const modified = transformedLayouts
 		.filter((l) => {
-			const beforeHash = beforeHashes.get(l.name);
+			const name = l[0];
+			const beforeHash = beforeHashes.get(name);
 			if (!beforeHash) return false;
 			const afterHash = createHash('md5').update(JSON.stringify(l)).digest('hex');
 			return beforeHash !== afterHash;
 		})
-		.map((l) => l.name);
+		.map((l) => l[0]);
 
 	// Print changes
 	if (added.length === 0 && modified.length === 0 && removed.length === 0) {

@@ -1,4 +1,5 @@
 import type { LayoutData, LayoutStatsMap } from '$lib/layout';
+import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
@@ -11,7 +12,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		showStats ? fetch('/layout-stats.json') : Promise.resolve(null)
 	]);
 
-	const layouts: LayoutData[] = await layoutsResponse.json();
+	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
+	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
 
 	let layoutStats: LayoutStatsMap = {};

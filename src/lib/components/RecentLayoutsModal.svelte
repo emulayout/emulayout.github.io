@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
+	import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 	import { getRecentLayoutsByDay, type LayoutsByDay } from '$lib/recentLayouts';
 	import { filterStore } from '$lib/filterStore.svelte';
 
@@ -45,7 +46,8 @@
 		loading = true;
 		Promise.all([fetch('/all-layouts.json'), fetch('/authors.json')])
 			.then(async ([layoutsResponse, authorsResponse]) => {
-				const layouts: LayoutData[] = await layoutsResponse.json();
+				const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
+				const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 				const authorsData: Record<string, number> = await authorsResponse.json();
 				authorById = new Map(
 					Object.entries(authorsData).map(([name, id]) => [id as number, name])
