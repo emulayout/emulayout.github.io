@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
 	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
+	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { LAYOUT_CARD_HEIGHT } from '$lib/constants';
 
@@ -77,6 +78,12 @@
 	function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
 		const url = generatePlaygroundUrl(layout);
+		window.open(url, '_blank');
+	}
+
+	function handleColemakCampClick(event: MouseEvent) {
+		event.preventDefault();
+		const url = createColemakCampURLFromKeyMap(keyMap, layout.board);
 		window.open(url, '_blank');
 	}
 
@@ -159,6 +166,23 @@
 					<path d="M21 3v5h-5" />
 					<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
 					<path d="M3 21v-5h5" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				onclick={handleColemakCampClick}
+				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+				style="
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+				"
+				title="Practice on Colemak Camp"
+				aria-label="Practice on Colemak Camp"
+			>
+				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<rect x="2" y="4" width="20" height="16" rx="2" />
+					<path stroke-linecap="round" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8" />
 				</svg>
 			</button>
 			<button
