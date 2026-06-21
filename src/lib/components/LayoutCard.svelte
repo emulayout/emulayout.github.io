@@ -5,9 +5,9 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { LAYOUT_CARD_HEIGHT } from '$lib/constants';
 	import {
-		DEFAULT_STATS_CORPUS,
 		deriveBotStats,
-		formatStatPercent,
+		formatBotStatsBlock,
+		formatStatsUnavailableBlock,
 		getLayoutCorpusStats
 	} from '$lib/layoutStats';
 
@@ -51,6 +51,9 @@
 
 	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
+	const statsBlock = $derived(
+		botStats ? formatBotStatsBlock(botStats) : formatStatsUnavailableBlock()
+	);
 
 	function getModeFromBoard(board: string): string {
 		// Map board types to cyanophage mode parameter
@@ -239,34 +242,10 @@
 			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
-	{#if botStats}
-		<div
-			class="text-[10px] font-mono leading-[1.35] tabular-nums shrink-0"
-			style="color: var(--text-secondary);"
-		>
-			<div class="uppercase tracking-wider mb-0.5">{DEFAULT_STATS_CORPUS}</div>
-			<div>Alt: {formatStatPercent(botStats.alternate)}</div>
-			<div>
-				Rol: {formatStatPercent(botStats.roll)} (In/Out: {formatStatPercent(botStats.rollIn)} |
-				{formatStatPercent(botStats.rollOut)})
-			</div>
-			<div>
-				One: {formatStatPercent(botStats.one)} (In/Out: {formatStatPercent(botStats.oneIn)} |
-				{formatStatPercent(botStats.oneOut)})
-			</div>
-			<div>
-				Rtl: {formatStatPercent(botStats.rtl)} (In/Out: {formatStatPercent(botStats.rtlIn)} |
-				{formatStatPercent(botStats.rtlOut)})
-			</div>
-			<div>
-				Red: {formatStatPercent(botStats.red)} (Bad: {formatStatPercent(botStats.badRedirect)})
-			</div>
-			<div>
-				SFS: {formatStatPercent(botStats.sfs)} (Red/Alt: {formatStatPercent(botStats.dsfbRed)} |
-				{formatStatPercent(botStats.dsfbAlt)})
-			</div>
-		</div>
-	{/if}
+	<pre
+		class="stats-block shrink-0"
+		class:stats-block--unavailable={!botStats}
+		style={botStats ? 'color: var(--text-secondary);' : undefined}>{statsBlock}</pre>
 	<div class="shrink-0">
 		<textarea
 			bind:this={textareaElement}

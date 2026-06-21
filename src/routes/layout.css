@@ -40,3 +40,21 @@ body {
 		background-color 0.3s ease,
 		color 0.3s ease;
 }
+
+.stats-block {
+	--stats-font-size: 10px;
+	--stats-line-height: 1.35;
+	--stats-line-count: 8;
+	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+		monospace;
+	font-size: var(--stats-font-size);
+	line-height: var(--stats-line-height);
+	min-height: calc(var(--stats-line-count) * var(--stats-line-height) * var(--stats-font-size));
+	white-space: pre;
+	font-variant-numeric: tabular-nums;
+	margin: 0;
+}
+
+.stats-block--unavailable {
+	color: var(--text-caption);
+}
