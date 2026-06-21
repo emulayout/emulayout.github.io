@@ -31,8 +31,11 @@ export interface LayoutCorpusStats {
 	'dsfb-alt': number;
 }
 
-/** All corpora stats for one layout, keyed by corpus name. */
-export type LayoutStats = Record<string, LayoutCorpusStats>;
+/**
+ * Compact stats: 9 fixed-point values (×10_000) in bot stat key order.
+ * @see BOT_STAT_KEYS in layoutStats.ts
+ */
+export type CompactLayoutStats = number[];
 
-/** Layout stats keyed by layout name (monkeyracer corpus). Loaded from /layout-stats.json. */
-export type LayoutStatsMap = Record<string, LayoutCorpusStats>;
+/** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
+export type LayoutStatsMap = Record<string, CompactLayoutStats>;

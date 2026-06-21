@@ -3,6 +3,22 @@ import type { LayoutCorpusStats, LayoutStatsMap } from '$lib/layout';
 /** Default corpus for layout stats (matches common cmini bot preference). */
 export const DEFAULT_STATS_CORPUS = 'monkeyracer';
 
+/** Keep in sync with BOT_STAT_KEYS in bin/layout-stats.js. */
+export const BOT_STAT_KEYS = [
+	'alternate',
+	'roll-in',
+	'roll-out',
+	'oneh-in',
+	'oneh-out',
+	'redirect',
+	'bad-redirect',
+	'dsfb-red',
+	'dsfb-alt'
+] as const satisfies readonly (keyof LayoutCorpusStats)[];
+
+export const STAT_VALUE_SCALE = 10_000;
+export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
+
 export interface DerivedBotStats {
 	alternate: number;
 	roll: number;
@@ -21,13 +37,27 @@ export interface DerivedBotStats {
 	dsfbAlt: number;
 }
 
+export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefined {
+	if (values.length !== COMPACT_STAT_FIELD_COUNT) {
+		return undefined;
+	}
+
+	const stats = {} as LayoutCorpusStats;
+	for (let i = 0; i < BOT_STAT_KEYS.length; i++) {
+		stats[BOT_STAT_KEYS[i]] = values[i] / STAT_VALUE_SCALE;
+	}
+	return stats;
+}
+
 export function getLayoutCorpusStats(
 	statsMap: LayoutStatsMap,
 	layoutName: string,
 	corpus = DEFAULT_STATS_CORPUS
 ): LayoutCorpusStats | undefined {
 	if (corpus !== DEFAULT_STATS_CORPUS) return undefined;
-	return statsMap[layoutName];
+	const encoded = statsMap[layoutName];
+	if (encoded === undefined) return undefined;
+	return decodeCorpusStats(encoded);
 }
 
 export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {

@@ -142,7 +142,7 @@ async function run() {
 	);
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files, ${DEFAULT_STATS_CORPUS} corpus only)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files, ${DEFAULT_STATS_CORPUS} corpus, compact arrays)\n`
 	);
 
 	console.log('→ Syncing authors...');

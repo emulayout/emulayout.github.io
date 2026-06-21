@@ -32,7 +32,12 @@ export const BOT_STAT_KEYS = [
 	'dsfb-alt'
 ];
 
+/** Fixed-point scale for compact stat arrays (4 decimal places). */
+export const STAT_VALUE_SCALE = 10_000;
+
 /** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} CorpusStats */
+
+/** @typedef {number[]} CompactLayoutStats */
 
 /**
  * @param {Record<string, Record<string, number>>} cacheData
@@ -61,9 +66,17 @@ function transformCorpusStats(stats) {
 }
 
 /**
+ * @param {CorpusStats} stats
+ * @returns {CompactLayoutStats}
+ */
+export function encodeCorpusStats(stats) {
+	return BOT_STAT_KEYS.map((key) => Math.round((stats[key] ?? 0) * STAT_VALUE_SCALE));
+}
+
+/**
  * @param {string} cacheDir
  * @param {string} layoutFilename
- * @returns {Promise<CorpusStats | null>}
+ * @returns {Promise<CompactLayoutStats | null>}
  */
 export async function readLayoutCacheStats(cacheDir, layoutFilename) {
 	const cacheName = layoutFilename.replace(/\.json$/i, '');
@@ -71,7 +84,8 @@ export async function readLayoutCacheStats(cacheDir, layoutFilename) {
 
 	try {
 		const content = await readFile(cachePath, 'utf-8');
-		return extractCorpusStats(JSON.parse(content));
+		const stats = extractCorpusStats(JSON.parse(content));
+		return stats ? encodeCorpusStats(stats) : null;
 	} catch {
 		return null;
 	}
