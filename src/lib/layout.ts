@@ -17,3 +17,22 @@ export interface LayoutData {
 	hasMagicKey: boolean;
 	updatedAt: string;
 }
+
+/** Bot-display stat fields for one corpus (from cmini cache). */
+export interface LayoutCorpusStats {
+	alternate: number;
+	'roll-in': number;
+	'roll-out': number;
+	'oneh-in': number;
+	'oneh-out': number;
+	redirect: number;
+	'bad-redirect': number;
+	'dsfb-red': number;
+	'dsfb-alt': number;
+}
+
+/** All corpora stats for one layout, keyed by corpus name. */
+export type LayoutStats = Record<string, LayoutCorpusStats>;
+
+/** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
+export type LayoutStatsMap = Record<string, LayoutStats>;

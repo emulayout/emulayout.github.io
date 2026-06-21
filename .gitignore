@@ -28,3 +28,4 @@ vite.config.ts.timestamp-*
 # Generated data files
 static/all-layouts.json
 static/authors.json
+static/layout-stats.json

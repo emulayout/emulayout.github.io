@@ -6,10 +6,13 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
+import { readLayoutCacheStats } from './layout-stats.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
+const STATS_FILE = 'static/layout-stats.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
+const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache'];
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 
@@ -35,7 +38,7 @@ async function ensureCache() {
 		console.log('→ Initial clone (this may take a while)...');
 		await mkdir(CACHE_DIR, { recursive: true });
 		await $`git clone --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
-		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone layouts /authors.json`;
+		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
 	} else {
 		console.log('→ Updating cache...');
 		const isShallow = (await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()).trim();
@@ -58,7 +61,7 @@ async function ensureCache() {
 			}
 		}
 		// Re-apply sparse-checkout after reset
-		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone layouts /authors.json`;
+		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
 	}
 }
 
@@ -89,6 +92,10 @@ async function run() {
 
 	// Transform all layouts
 	const transformedLayouts = [];
+	const layoutStats = {};
+	let statsLoaded = 0;
+	let statsMissing = 0;
+
 	for (const filename of layoutFiles) {
 		// Check if blacklisted (handle both with and without .json extension)
 		const layoutName = filename.replace('.json', '');
@@ -108,6 +115,14 @@ async function run() {
 			const transformedLayout = transformLayout(rawLayout);
 			transformedLayout.updatedAt = layoutTimestamps[filename];
 			transformedLayouts.push(transformedLayout);
+
+			const stats = await readLayoutCacheStats(CACHE_DIR, filename);
+			if (stats) {
+				layoutStats[rawLayout.name] = stats;
+				statsLoaded++;
+			} else {
+				statsMissing++;
+			}
 		} catch (err) {
 			console.error(`  ⚠ Error processing ${filename}:`, err.message);
 		}
@@ -118,6 +133,15 @@ async function run() {
 
 	// Write single JSON file
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts, null, '\t') + '\n', 'utf-8');
+
+	console.log('→ Merging layout stats from cmini cache...');
+	const sortedStats = Object.fromEntries(
+		Object.keys(layoutStats)
+			.sort((a, b) => a.localeCompare(b))
+			.map((name) => [name, layoutStats[name]])
+	);
+	await writeFile(STATS_FILE, JSON.stringify(sortedStats, null, '\t') + '\n', 'utf-8');
+	console.log(`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files)\n`);
 
 	console.log('→ Syncing authors...');
 	await $`cp ${CACHE_DIR}/authors.json static/authors.json`;
