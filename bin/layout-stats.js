@@ -16,7 +16,8 @@ import { join } from 'node:path';
  * - sfb, lh/rh
  */
 
-/** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} CorpusStats */
+/** Corpus exported to the site (matches cmini Discord bot default). */
+export const DEFAULT_STATS_CORPUS = 'monkeyracer';
 
 /** @type {readonly ['alternate', 'roll-in', 'roll-out', 'oneh-in', 'oneh-out', 'redirect', 'bad-redirect', 'dsfb-red', 'dsfb-alt']} */
 export const BOT_STAT_KEYS = [
@@ -31,21 +32,17 @@ export const BOT_STAT_KEYS = [
 	'dsfb-alt'
 ];
 
+/** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} CorpusStats */
+
 /**
  * @param {Record<string, Record<string, number>>} cacheData
- * @returns {Record<string, CorpusStats>}
+ * @returns {CorpusStats | null}
  */
-export function transformCacheStats(cacheData) {
-	/** @type {Record<string, CorpusStats>} */
-	const result = {};
-
-	for (const [corpus, stats] of Object.entries(cacheData)) {
-		result[corpus] = transformCorpusStats(stats);
-	}
-
-	return result;
+function extractCorpusStats(cacheData) {
+	const stats = cacheData[DEFAULT_STATS_CORPUS];
+	if (!stats) return null;
+	return transformCorpusStats(stats);
 }
-
 /**
  * @param {Record<string, number>} stats
  * @returns {CorpusStats}
@@ -66,7 +63,7 @@ function transformCorpusStats(stats) {
 /**
  * @param {string} cacheDir
  * @param {string} layoutFilename
- * @returns {Promise<Record<string, CorpusStats> | null>}
+ * @returns {Promise<CorpusStats | null>}
  */
 export async function readLayoutCacheStats(cacheDir, layoutFilename) {
 	const cacheName = layoutFilename.replace(/\.json$/i, '');
@@ -74,7 +71,7 @@ export async function readLayoutCacheStats(cacheDir, layoutFilename) {
 
 	try {
 		const content = await readFile(cachePath, 'utf-8');
-		return transformCacheStats(JSON.parse(content));
+		return extractCorpusStats(JSON.parse(content));
 	} catch {
 		return null;
 	}

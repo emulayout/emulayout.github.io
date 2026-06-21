@@ -34,5 +34,5 @@ export interface LayoutCorpusStats {
 /** All corpora stats for one layout, keyed by corpus name. */
 export type LayoutStats = Record<string, LayoutCorpusStats>;
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
-export type LayoutStatsMap = Record<string, LayoutStats>;
+/** Layout stats keyed by layout name (monkeyracer corpus). Loaded from /layout-stats.json. */
+export type LayoutStatsMap = Record<string, LayoutCorpusStats>;

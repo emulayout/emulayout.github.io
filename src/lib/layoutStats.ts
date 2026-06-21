@@ -26,7 +26,8 @@ export function getLayoutCorpusStats(
 	layoutName: string,
 	corpus = DEFAULT_STATS_CORPUS
 ): LayoutCorpusStats | undefined {
-	return statsMap[layoutName]?.[corpus];
+	if (corpus !== DEFAULT_STATS_CORPUS) return undefined;
+	return statsMap[layoutName];
 }
 
 export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {

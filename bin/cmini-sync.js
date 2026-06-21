@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
-import { readLayoutCacheStats } from './layout-stats.js';
+import { readLayoutCacheStats, DEFAULT_STATS_CORPUS } from './layout-stats.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const STATS_FILE = 'static/layout-stats.json';
@@ -140,8 +140,10 @@ async function run() {
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, layoutStats[name]])
 	);
-	await writeFile(STATS_FILE, JSON.stringify(sortedStats, null, '\t') + '\n', 'utf-8');
-	console.log(`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files)\n`);
+	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
+	console.log(
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files, ${DEFAULT_STATS_CORPUS} corpus only)\n`
+	);
 
 	console.log('→ Syncing authors...');
 	await $`cp ${CACHE_DIR}/authors.json static/authors.json`;
