@@ -38,22 +38,21 @@
 			displaySettingsOpen = false;
 		}
 
+		function handleFocusIn(event: FocusEvent) {
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (displaySettingsContainer?.contains(target)) return;
+			displaySettingsOpen = false;
+		}
+
 		document.addEventListener('pointerdown', handlePointerDown);
+		document.addEventListener('focusin', handleFocusIn);
 
 		return () => {
 			document.removeEventListener('pointerdown', handlePointerDown);
+			document.removeEventListener('focusin', handleFocusIn);
 		};
 	});
-
-	function handleDisplaySettingsFocusOut() {
-		if (!displaySettingsOpen) return;
-
-		requestAnimationFrame(() => {
-			const active = document.activeElement;
-			if (active && displaySettingsContainer?.contains(active)) return;
-			displaySettingsOpen = false;
-		});
-	}
 
 	function handleDisplaySettingsKeyDown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && displaySettingsOpen) {
@@ -355,7 +354,6 @@
 			<div
 				bind:this={displaySettingsContainer}
 				class="relative ml-3"
-				onfocusout={handleDisplaySettingsFocusOut}
 				onkeydown={handleDisplaySettingsKeyDown}
 			>
 				<button
