@@ -6,33 +6,37 @@ html {
 }
 
 :root {
-	--bg-primary: #faf9f7;
-	--bg-secondary: #f0ede8;
-	--text-primary: #1a1815;
-	--text-secondary: #6b6560;
-	--text-caption: #9a9590;
-	--accent: #c26e4b;
-	--accent-hover: #a85a3a;
-	--link: #6b7a8f;
-	--border: #e0dcd5;
-	--key-bg: #ffffff;
-	--key-home-bg: #e8e5df;
-	--key-shadow: #d4cfc7;
+	--bg-primary: #f3f0eb;
+	--bg-secondary: #ffffff;
+	--text-primary: #14120f;
+	--text-secondary: #504b45;
+	--text-caption: #7a746c;
+	--accent: #c45532;
+	--accent-hover: #a84528;
+	--link: #4a6278;
+	--border: #d8d2c9;
+	--key-bg: #faf9f7;
+	--key-home-bg: #e8e2d9;
+	--key-shadow: #ccc5bc;
+	--stats-fg: #3a3632;
+	--stats-fg-highlight: var(--accent);
 }
 
 .dark {
-	--bg-primary: #141210;
-	--bg-secondary: #1e1b18;
-	--text-primary: #f5f3f0;
-	--text-secondary: #9a9590;
-	--text-caption: #6b6560;
-	--accent: #e89070;
-	--accent-hover: #f0a080;
-	--link: #8a9bb0;
-	--border: #2d2a26;
-	--key-bg: #252220;
-	--key-home-bg: #32302c;
+	--bg-primary: #100f0d;
+	--bg-secondary: #2a2724;
+	--text-primary: #faf8f5;
+	--text-secondary: #c9c4bc;
+	--text-caption: #949088;
+	--accent: #ff9b6a;
+	--accent-hover: #ffb088;
+	--link: #9eb4d4;
+	--border: #403c38;
+	--key-bg: #353230;
+	--key-home-bg: #45423d;
 	--key-shadow: #0a0908;
+	--stats-fg: #e8e4de;
+	--stats-fg-highlight: var(--accent);
 }
 
 body {
@@ -43,8 +47,14 @@ body {
 		color 0.3s ease;
 }
 
+input::placeholder,
+textarea::placeholder {
+	color: var(--text-caption);
+	opacity: 1;
+}
+
 .stats-block {
-	--stats-font-size: 10px;
+	--stats-font-size: 11px;
 	--stats-line-height: 1.35;
 	--stats-line-count: 8;
 	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
@@ -54,6 +64,16 @@ body {
 	min-height: calc(var(--stats-line-count) * var(--stats-line-height) * var(--stats-font-size));
 	font-variant-numeric: tabular-nums;
 	margin: 0;
+	color: var(--stats-fg);
+}
+
+.layout-display {
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.layout-meta {
+	font-size: 13px;
 }
 
 .stats-block-line {
@@ -67,5 +87,5 @@ body {
 }
 
 .stats-block-highlight {
-	color: var(--text-primary);
+	color: var(--stats-fg-highlight);
 }

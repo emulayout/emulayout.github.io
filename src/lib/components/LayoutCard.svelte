@@ -212,7 +212,7 @@
 			</button>
 		</div>
 	</div>
-	<p class="text-xs flex items-center gap-1 min-w-0 -mt-1" style="color: var(--text-secondary);">
+	<p class="text-xs layout-meta flex items-center gap-1 min-w-0 -mt-1" style="color: var(--text-secondary);">
 		<span class="shrink-0">{layout.board} · by</span>
 		<button
 			type="button"
@@ -231,14 +231,14 @@
 	</p>
 	<div class="flex-1 min-h-0 overflow-x-auto min-w-0 flex flex-col justify-center">
 		<pre
-			class="font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
+			class="layout-display font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="flex flex-col gap-4 shrink-0">
 			{#if filterStore.showLayoutStats}
 				{#if statsBlockLines}
-					<div class="stats-block shrink-0" style="color: var(--text-secondary);">
+					<div class="stats-block shrink-0">
 						{#each statsBlockLines as line, lineIndex (lineIndex)}
 							<div class="stats-block-line">
 								{#each line as segment, segmentIndex (segmentIndex)}
