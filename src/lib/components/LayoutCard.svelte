@@ -12,6 +12,7 @@
 		getLayoutCorpusStats,
 		getStatSortHighlightKey
 	} from '$lib/layoutStats';
+	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 
 	interface Props {
 		layout: LayoutData;
@@ -70,37 +71,8 @@
 		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 
-	function getModeFromBoard(board: string): string {
-		// Map board types to cyanophage mode parameter
-		switch (board) {
-			case 'angle':
-				return 'iso';
-			case 'stagger':
-				return 'ansi';
-			case 'ortho':
-				return 'ergo';
-			case 'mini':
-				return 'ergo';
-			default:
-				return 'ergo';
-		}
-	}
-
-	function formatLayoutForUrl(displayValue: string): string {
-		// Split by newlines to get rows
-		const rows = displayValue.split('\n');
-		// Remove all spaces from each row
-		const cleanedRows = rows.map((row) => row.replace(/\s+/g, ''));
-		// Join with newline character
-		return cleanedRows.join('\n');
-	}
-
 	function generatePlaygroundUrl(layout: LayoutData): string {
-		const layoutParam = formatLayoutForUrl(layout.displayValue);
-		const mode = getModeFromBoard(layout.board);
-		// URL encode the layout param (newlines will become %0A)
-		const encodedLayout = encodeURIComponent(layoutParam);
-		return `https://cyanophage.github.io/playground.html?layout=${encodedLayout}&mode=${mode}`;
+		return buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
 	}
 
 	function handlePlaygroundClick(event: MouseEvent) {
