@@ -187,7 +187,7 @@ function formatStatField(value: number, width: number): string {
 }
 
 function formatStatLabel(label: string): string {
-	return ` ${label.padStart(5)}`;
+	return `${label} `;
 }
 
 export interface StatsBlockSegment {
@@ -211,12 +211,12 @@ export function buildBotStatsBlockLines(
 		[{ text: `${corpus.toUpperCase()}:` }],
 		[
 			{ text: formatStatLabel('Alt:') },
-			{ text: ` ${formatStatField(stats.alternate, 6)}`, highlight: hl('alternate') }
+			{ text: formatStatField(stats.alternate, 6), highlight: hl('alternate') }
 		],
 		[
 			{ text: formatStatLabel('Rol:') },
-			{ text: ` ${formatStatField(stats.roll, 6)}`, highlight: hl('roll') },
-			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.roll, 6), highlight: hl('roll') },
+			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.rollIn, 6), highlight: hl('rollIn') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rollOut, 6), highlight: hl('rollOut') },
@@ -224,8 +224,8 @@ export function buildBotStatsBlockLines(
 		],
 		[
 			{ text: formatStatLabel('One:') },
-			{ text: ` ${formatStatField(stats.one, 6)}`, highlight: hl('one') },
-			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.one, 6), highlight: hl('one') },
+			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.oneIn, 6), highlight: hl('oneIn') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.oneOut, 6), highlight: hl('oneOut') },
@@ -233,8 +233,8 @@ export function buildBotStatsBlockLines(
 		],
 		[
 			{ text: formatStatLabel('Rtl:') },
-			{ text: ` ${formatStatField(stats.rtl, 6)}`, highlight: hl('rtl') },
-			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.rtl, 6), highlight: hl('rtl') },
+			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.rtlIn, 6), highlight: hl('rtlIn') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rtlOut, 6), highlight: hl('rtlOut') },
@@ -242,16 +242,16 @@ export function buildBotStatsBlockLines(
 		],
 		[
 			{ text: formatStatLabel('Red:') },
-			{ text: ` ${formatStatField(stats.red, 6)}`, highlight: hl('red') },
-			{ text: '   (Bad: ' },
+			{ text: formatStatField(stats.red, 6), highlight: hl('red') },
+			{ text: ' (Bad: ' },
 			{ text: formatStatField(stats.badRedirect, 9), highlight: hl('badRedirect') },
 			{ text: ')' }
 		],
 		[{ text: '' }],
 		[
 			{ text: formatStatLabel('SFS:') },
-			{ text: ` ${formatStatField(stats.sfs, 6)}`, highlight: hl('sfs') },
-			{ text: '   (Red/Alt: ' },
+			{ text: formatStatField(stats.sfs, 6), highlight: hl('sfs') },
+			{ text: ' (Red/Alt: ' },
 			{ text: formatStatField(stats.dsfbRed, 5), highlight: hl('dsfbRed') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.dsfbAlt, 5), highlight: hl('dsfbAlt') },
@@ -273,8 +273,8 @@ export function formatBotStatsBlock(
 /** Placeholder with the same line count as a full stats block. */
 export function formatStatsLoadingBlock(): string {
 	return [
-		' LOADING STATS',
-		' …',
+		'LOADING STATS',
+		'…',
 		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
 	].join('\n');
 }
@@ -282,8 +282,8 @@ export function formatStatsLoadingBlock(): string {
 /** Placeholder with the same line count as a full stats block. */
 export function formatStatsUnavailableBlock(): string {
 	return [
-		' STATS UNAVAILABLE',
-		' stats synced nightly',
+		'STATS UNAVAILABLE',
+		'stats synced nightly',
 		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
 	].join('\n');
 }

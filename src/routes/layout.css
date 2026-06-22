@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+@theme {
+	--font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
 html {
 	scrollbar-gutter: stable;
 }
@@ -40,6 +45,7 @@ html {
 }
 
 body {
+	font-family: var(--font-sans);
 	background-color: var(--bg-primary);
 	color: var(--text-primary);
 	transition:
@@ -57,8 +63,7 @@ textarea::placeholder {
 	--stats-font-size: 11px;
 	--stats-line-height: 1.35;
 	--stats-line-count: 8;
-	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
-		monospace;
+	font-family: var(--font-mono);
 	font-size: var(--stats-font-size);
 	line-height: var(--stats-line-height);
 	min-height: calc(var(--stats-line-count) * var(--stats-line-height) * var(--stats-font-size));
@@ -71,8 +76,10 @@ textarea::placeholder {
 	--layout-font-size: 14px;
 	--layout-line-height: 1.5;
 	--layout-max-rows: 4;
+	font-family: var(--font-mono);
 	font-size: var(--layout-font-size);
 	line-height: var(--layout-line-height);
+	font-variant-numeric: tabular-nums;
 }
 
 .layout-display-area {
