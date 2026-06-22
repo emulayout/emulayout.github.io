@@ -10,6 +10,7 @@
 		type BoardTypeFilter,
 		type SortOption
 	} from '$lib/filterStore.svelte';
+	import { STAT_SORT_OPTIONS } from '$lib/layoutStats';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
@@ -334,9 +335,16 @@
 					--tw-ring-color: var(--accent);
 				"
 			>
-				<option value="name">Alphabetical</option>
-				<option value="date-asc">Date (oldest first)</option>
-				<option value="date-desc">Date (newest first)</option>
+				<optgroup label="Layout">
+					<option value="name">Alphabetical</option>
+					<option value="date-asc">Date (oldest first)</option>
+					<option value="date-desc">Date (newest first)</option>
+				</optgroup>
+				<optgroup label="Stats (monkeyracer)">
+					{#each STAT_SORT_OPTIONS as option (option.value)}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</optgroup>
 			</select>
 		</label>
 	</div>

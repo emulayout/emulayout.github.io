@@ -1,11 +1,18 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
-import type { LayoutData } from './layout';
+import {
+	deriveBotStats,
+	getLayoutCorpusStats,
+	getStatSortOption,
+	isSortOption,
+	type SortOption
+} from './layoutStats';
+import type { LayoutData, LayoutStatsMap } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
-export type SortOption = 'name' | 'date-asc' | 'date-desc';
+export type { SortOption };
 
 const ROWS = 3;
 const COLS = 10;
@@ -160,7 +167,7 @@ export class FilterStore {
 		}
 
 		const sort = url.searchParams.get('sort');
-		if (sort === 'name' || sort === 'date-asc' || sort === 'date-desc') {
+		if (sort && isSortOption(sort)) {
 			this.sortOption = sort;
 		}
 
@@ -655,8 +662,27 @@ export class FilterStore {
 		});
 	}
 
-	sortLayouts(layouts: LayoutData[]): LayoutData[] {
+	sortLayouts(layouts: LayoutData[], statsMap: LayoutStatsMap = {}): LayoutData[] {
 		const sorted = [...layouts];
+		const statSort = getStatSortOption(this.sortOption);
+
+		if (statSort) {
+			return sorted.sort((a, b) => {
+				const aCorpusStats = getLayoutCorpusStats(statsMap, a.name);
+				const bCorpusStats = getLayoutCorpusStats(statsMap, b.name);
+				const aValue = aCorpusStats ? deriveBotStats(aCorpusStats)[statSort.key] : null;
+				const bValue = bCorpusStats ? deriveBotStats(bCorpusStats)[statSort.key] : null;
+
+				if (aValue === null && bValue === null) {
+					return a.name.localeCompare(b.name);
+				}
+				if (aValue === null) return 1;
+				if (bValue === null) return -1;
+
+				const diff = statSort.descending ? bValue - aValue : aValue - bValue;
+				return diff !== 0 ? diff : a.name.localeCompare(b.name);
+			});
+		}
 
 		if (this.sortOption === 'date-asc') {
 			return sorted.sort((a, b) => {

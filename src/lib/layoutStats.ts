@@ -37,6 +37,69 @@ export interface DerivedBotStats {
 	dsfbAlt: number;
 }
 
+export type StatSortKey = keyof DerivedBotStats;
+
+export interface StatSortOption {
+	value: string;
+	label: string;
+	key: StatSortKey;
+	/** When true, higher values sort first (matches cmini !rank defaults). */
+	descending: boolean;
+}
+
+/** Sort options for bot stats (monkeyracer corpus). */
+export const STAT_SORT_OPTIONS = [
+	{ value: 'alternate-desc', label: 'Alternate (high → low)', key: 'alternate', descending: true },
+	{ value: 'roll-desc', label: 'Roll (high → low)', key: 'roll', descending: true },
+	{ value: 'roll-in-desc', label: 'Roll in (high → low)', key: 'rollIn', descending: true },
+	{ value: 'roll-out-desc', label: 'Roll out (high → low)', key: 'rollOut', descending: true },
+	{ value: 'one-desc', label: 'One-hand (high → low)', key: 'one', descending: true },
+	{ value: 'one-in-desc', label: 'One-hand in (high → low)', key: 'oneIn', descending: true },
+	{ value: 'one-out-desc', label: 'One-hand out (high → low)', key: 'oneOut', descending: true },
+	{ value: 'rtl-desc', label: 'Roll total (high → low)', key: 'rtl', descending: true },
+	{ value: 'rtl-in-desc', label: 'Roll total in (high → low)', key: 'rtlIn', descending: true },
+	{ value: 'rtl-out-desc', label: 'Roll total out (high → low)', key: 'rtlOut', descending: true },
+	{ value: 'red-asc', label: 'Redirect (low → high)', key: 'red', descending: false },
+	{ value: 'bad-redirect-asc', label: 'Bad redirect (low → high)', key: 'badRedirect', descending: false },
+	{ value: 'sfs-asc', label: 'Same-finger skip (low → high)', key: 'sfs', descending: false },
+	{ value: 'dsfb-red-asc', label: 'Same-finger skip redirect (low → high)', key: 'dsfbRed', descending: false },
+	{
+		value: 'dsfb-alt-asc',
+		label: 'Same-finger skip alternate (low → high)',
+		key: 'dsfbAlt',
+		descending: false
+	}
+] as const satisfies readonly StatSortOption[];
+
+export type StatSortOptionValue = (typeof STAT_SORT_OPTIONS)[number]['value'];
+
+export type LayoutSortOption = 'name' | 'date-asc' | 'date-desc';
+
+export type SortOption = LayoutSortOption | StatSortOptionValue;
+
+const STAT_SORT_OPTION_BY_VALUE = new Map<string, StatSortOption>(
+	STAT_SORT_OPTIONS.map((option) => [option.value, option])
+);
+
+const SORT_OPTIONS = new Set<string>([
+	'name',
+	'date-asc',
+	'date-desc',
+	...STAT_SORT_OPTIONS.map((option) => option.value)
+]);
+
+export function isSortOption(value: string): value is SortOption {
+	return SORT_OPTIONS.has(value);
+}
+
+export function isStatSortOption(sort: SortOption): sort is StatSortOptionValue {
+	return STAT_SORT_OPTION_BY_VALUE.has(sort);
+}
+
+export function getStatSortOption(sort: SortOption): StatSortOption | undefined {
+	return STAT_SORT_OPTION_BY_VALUE.get(sort);
+}
+
 export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefined {
 	if (values.length !== COMPACT_STAT_FIELD_COUNT) {
 		return undefined;

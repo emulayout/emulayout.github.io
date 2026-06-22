@@ -2,15 +2,17 @@
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { isStatSortOption } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
 	const layoutStats = $derived(layoutStatsStore.map);
+	const needsStatsForSort = $derived(isStatSortOption(filterStore.sortOption));
 
 	$effect(() => {
-		void layoutStatsStore.loadWhenVisible(filterStore.showLayoutStats);
+		void layoutStatsStore.loadWhenVisible(filterStore.showLayoutStats, needsStatsForSort);
 	});
 
 	// Create reverse lookup: user_id -> author_name
@@ -30,7 +32,7 @@
 	}
 
 	const filteredLayouts = $derived(
-		filterStore.sortLayouts(filterStore.filterLayouts(layouts))
+		filterStore.sortLayouts(filterStore.filterLayouts(layouts), layoutStats)
 	);
 </script>
 

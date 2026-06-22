@@ -23,8 +23,8 @@ class LayoutStatsStore {
 		this.loading = false;
 	}
 
-	async loadWhenVisible(showStats: boolean): Promise<void> {
-		if (!showStats) {
+	async loadWhenVisible(showStats: boolean, needsStatsForSort = false): Promise<void> {
+		if (!showStats && !needsStatsForSort) {
 			this.#abortController?.abort();
 			this.#abortController = null;
 			this.loading = false;

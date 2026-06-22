@@ -1,15 +1,18 @@
 import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
+import { isSortOption, isStatSortOption } from '$lib/layoutStats';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch, url }) => {
-	const showStats = url.searchParams.get('stats') !== '0';
+	const sortParam = url.searchParams.get('sort');
+	const needsStatsForSort = sortParam !== null && isSortOption(sortParam) && isStatSortOption(sortParam);
+	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
 
 	const [layoutsResponse, authorsResponse, statsResponse] = await Promise.all([
 		fetch('/all-layouts.json'),
 		fetch('/authors.json'),
-		showStats ? fetch('/layout-stats.json') : Promise.resolve(null)
+		loadStats ? fetch('/layout-stats.json') : Promise.resolve(null)
 	]);
 
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
@@ -18,7 +21,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 
 	let layoutStats: LayoutStatsMap = {};
 
-	if (showStats && statsResponse) {
+	if (loadStats && statsResponse) {
 		layoutStats = statsResponse.ok ? await statsResponse.json() : {};
 		layoutStatsStore.hydrate(layoutStats);
 	} else {
