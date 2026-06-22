@@ -54,7 +54,7 @@
 	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
 	const statsLoading = $derived(layoutStatsStore.loading);
-	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortOption));
+	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortBy));
 	const statsBlockLines = $derived(
 		botStats ? buildBotStatsBlockLines(botStats, highlightStatKey) : null
 	);

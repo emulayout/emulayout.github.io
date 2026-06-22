@@ -8,9 +8,10 @@
 		type MagicKeyFilter,
 		type CharacterSetFilter,
 		type BoardTypeFilter,
-		type SortOption
+		type SortBy,
+		type SortOrder
 	} from '$lib/filterStore.svelte';
-	import { STAT_SORT_OPTIONS } from '$lib/layoutStats';
+	import { STAT_SORT_FIELDS } from '$lib/layoutStats';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
@@ -18,6 +19,7 @@
 	}
 
 	const { authorList, filteredCount }: Props = $props();
+	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
 </script>
 
 <!-- Name Search & Author Filter -->
@@ -322,31 +324,50 @@
 			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Hide stats</span>
 		</label>
 
-		<label class="flex items-center gap-2 select-none">
-			<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort:</span>
-			<select
-				value={filterStore.sortOption}
-				onchange={(e) => filterStore.setSortOption(e.currentTarget.value as SortOption)}
-				class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
-				style="
-					background-color: var(--bg-secondary);
-					color: var(--text-primary);
-					border: 1px solid {filterStore.sortOption !== 'date-desc' ? 'var(--accent)' : 'var(--border)'};
-					--tw-ring-color: var(--accent);
-				"
-			>
-				<optgroup label="Layout">
-					<option value="name">Alphabetical</option>
-					<option value="date-asc">Date (oldest first)</option>
-					<option value="date-desc">Date (newest first)</option>
-				</optgroup>
-				<optgroup label="Stats (monkeyracer)">
-					{#each STAT_SORT_OPTIONS as option (option.value)}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</optgroup>
-			</select>
-		</label>
+		<div class="flex flex-wrap items-center gap-2">
+			<label class="flex items-center gap-2 select-none">
+				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort by:</span>
+				<select
+					value={filterStore.sortBy}
+					onchange={(e) => filterStore.setSortBy(e.currentTarget.value as SortBy)}
+					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
+					style="
+						background-color: var(--bg-secondary);
+						color: var(--text-primary);
+						border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
+						--tw-ring-color: var(--accent);
+					"
+				>
+					<optgroup label="Layout">
+						<option value="name">Name</option>
+						<option value="date">Date</option>
+					</optgroup>
+					<optgroup label="Stats (monkeyracer)">
+						{#each STAT_SORT_FIELDS as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+				</select>
+			</label>
+
+			<label class="flex items-center gap-2 select-none">
+				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Order:</span>
+				<select
+					value={filterStore.sortOrder}
+					onchange={(e) => filterStore.setSortOrder(e.currentTarget.value as SortOrder)}
+					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
+					style="
+						background-color: var(--bg-secondary);
+						color: var(--text-primary);
+						border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
+						--tw-ring-color: var(--accent);
+					"
+				>
+					<option value="asc">Ascending</option>
+					<option value="desc">Descending</option>
+				</select>
+			</label>
+		</div>
 	</div>
 </div>
 

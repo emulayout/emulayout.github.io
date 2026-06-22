@@ -2,9 +2,13 @@ import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import {
 	deriveBotStats,
 	getLayoutCorpusStats,
-	getStatSortOption,
-	isSortOption,
-	type SortOption
+	getStatSortField,
+	isSortBy,
+	isSortOrder,
+	isStatSortBy,
+	parseLegacySortParam,
+	type SortBy,
+	type SortOrder
 } from './layoutStats';
 import type { LayoutData, LayoutStatsMap } from './layout';
 
@@ -12,7 +16,7 @@ export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
-export type { SortOption };
+export type { SortBy, SortOrder };
 
 const ROWS = 3;
 const COLS = 10;
@@ -70,7 +74,8 @@ export class FilterStore {
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 	focusLayoutName: string | null = $state(null);
-	sortOption: SortOption = $state('date-desc');
+	sortBy: SortBy = $state('date');
+	sortOrder: SortOrder = $state('desc');
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
 
@@ -167,8 +172,22 @@ export class FilterStore {
 		}
 
 		const sort = url.searchParams.get('sort');
-		if (sort && isSortOption(sort)) {
-			this.sortOption = sort;
+		const order = url.searchParams.get('order');
+
+		if (sort) {
+			const legacy = parseLegacySortParam(sort);
+			if (legacy) {
+				this.sortBy = legacy.sortBy;
+				if (!order) {
+					this.sortOrder = legacy.sortOrder;
+				}
+			} else if (isSortBy(sort)) {
+				this.sortBy = sort;
+			}
+		}
+
+		if (order && isSortOrder(order)) {
+			this.sortOrder = order;
 		}
 
 		if (url.searchParams.get('stats') === '0') {
@@ -237,8 +256,9 @@ export class FilterStore {
 			url.searchParams.set('includeOr', includeOrSerialized);
 		}
 
-		if (this.sortOption !== 'date-desc') {
-			url.searchParams.set('sort', this.sortOption);
+		if (this.sortBy !== 'date' || this.sortOrder !== 'desc') {
+			url.searchParams.set('sort', this.sortBy);
+			url.searchParams.set('order', this.sortOrder);
 		}
 
 		if (this.hideLayoutStats) {
@@ -316,8 +336,13 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	setSortOption(value: SortOption) {
-		this.sortOption = value;
+	setSortBy(value: SortBy) {
+		this.sortBy = value;
+		this.#saveToUrl();
+	}
+
+	setSortOrder(value: SortOrder) {
+		this.sortOrder = value;
 		this.#saveToUrl();
 	}
 
@@ -387,7 +412,8 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
-		this.sortOption = 'date-desc';
+		this.sortBy = 'date';
+		this.sortOrder = 'desc';
 		this.hideLayoutStats = false;
 		this.hideLayoutTestArea = false;
 		this.selectedAuthors.clear();
@@ -664,7 +690,8 @@ export class FilterStore {
 
 	sortLayouts(layouts: LayoutData[], statsMap: LayoutStatsMap = {}): LayoutData[] {
 		const sorted = [...layouts];
-		const statSort = getStatSortOption(this.sortOption);
+		const descending = this.sortOrder === 'desc';
+		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
 
 		if (statSort) {
 			return sorted.sort((a, b) => {
@@ -679,26 +706,23 @@ export class FilterStore {
 				if (aValue === null) return 1;
 				if (bValue === null) return -1;
 
-				const diff = statSort.descending ? bValue - aValue : aValue - bValue;
+				const diff = descending ? bValue - aValue : aValue - bValue;
 				return diff !== 0 ? diff : a.name.localeCompare(b.name);
 			});
 		}
 
-		if (this.sortOption === 'date-asc') {
+		if (this.sortBy === 'date') {
 			return sorted.sort((a, b) => {
 				const byDate = a.updatedAt.localeCompare(b.updatedAt);
-				return byDate !== 0 ? byDate : a.name.localeCompare(b.name);
+				const diff = descending ? -byDate : byDate;
+				return diff !== 0 ? diff : a.name.localeCompare(b.name);
 			});
 		}
 
-		if (this.sortOption === 'date-desc') {
-			return sorted.sort((a, b) => {
-				const byDate = b.updatedAt.localeCompare(a.updatedAt);
-				return byDate !== 0 ? byDate : a.name.localeCompare(b.name);
-			});
-		}
-
-		return sorted.sort((a, b) => a.name.localeCompare(b.name));
+		return sorted.sort((a, b) => {
+			const byName = a.name.localeCompare(b.name);
+			return descending ? -byName : byName;
+		});
 	}
 }
 

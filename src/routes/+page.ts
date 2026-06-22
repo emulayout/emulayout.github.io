@@ -1,12 +1,14 @@
 import type { LayoutData, LayoutStatsMap } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { isSortOption, isStatSortOption } from '$lib/layoutStats';
+import { isSortBy, isStatSortBy, parseLegacySortParam } from '$lib/layoutStats';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const sortParam = url.searchParams.get('sort');
-	const needsStatsForSort = sortParam !== null && isSortOption(sortParam) && isStatSortOption(sortParam);
+	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
+	const sortBy = legacySort?.sortBy ?? (sortParam && isSortBy(sortParam) ? sortParam : 'date');
+	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
 
 	const [layoutsResponse, authorsResponse, statsResponse] = await Promise.all([

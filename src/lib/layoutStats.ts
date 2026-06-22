@@ -39,65 +39,92 @@ export interface DerivedBotStats {
 
 export type StatSortKey = keyof DerivedBotStats;
 
-export interface StatSortOption {
+export interface StatSortField {
 	value: string;
 	label: string;
 	key: StatSortKey;
-	/** When true, higher values sort first (matches cmini !rank defaults). */
-	descending: boolean;
 }
 
-/** Sort options for bot stats (monkeyracer corpus). */
-export const STAT_SORT_OPTIONS = [
-	{ value: 'alternate-desc', label: 'Alternate (high → low)', key: 'alternate', descending: true },
-	{ value: 'roll-desc', label: 'Roll (high → low)', key: 'roll', descending: true },
-	{ value: 'roll-in-desc', label: 'Roll in (high → low)', key: 'rollIn', descending: true },
-	{ value: 'roll-out-desc', label: 'Roll out (high → low)', key: 'rollOut', descending: true },
-	{ value: 'one-desc', label: 'One-hand (high → low)', key: 'one', descending: true },
-	{ value: 'one-in-desc', label: 'One-hand in (high → low)', key: 'oneIn', descending: true },
-	{ value: 'one-out-desc', label: 'One-hand out (high → low)', key: 'oneOut', descending: true },
-	{ value: 'rtl-desc', label: 'Roll total (high → low)', key: 'rtl', descending: true },
-	{ value: 'rtl-in-desc', label: 'Roll total in (high → low)', key: 'rtlIn', descending: true },
-	{ value: 'rtl-out-desc', label: 'Roll total out (high → low)', key: 'rtlOut', descending: true },
-	{ value: 'red-asc', label: 'Redirect (low → high)', key: 'red', descending: false },
-	{ value: 'bad-redirect-asc', label: 'Bad redirect (low → high)', key: 'badRedirect', descending: false },
-	{ value: 'sfs-asc', label: 'Same-finger skip (low → high)', key: 'sfs', descending: false },
-	{ value: 'dsfb-red-asc', label: 'Same-finger skip redirect (low → high)', key: 'dsfbRed', descending: false },
-	{
-		value: 'dsfb-alt-asc',
-		label: 'Same-finger skip alternate (low → high)',
-		key: 'dsfbAlt',
-		descending: false
-	}
-] as const satisfies readonly StatSortOption[];
+/** Sortable bot stats (monkeyracer corpus). */
+export const STAT_SORT_FIELDS = [
+	{ value: 'alternate', label: 'Alternate', key: 'alternate' },
+	{ value: 'roll', label: 'Roll', key: 'roll' },
+	{ value: 'roll-in', label: 'Roll in', key: 'rollIn' },
+	{ value: 'roll-out', label: 'Roll out', key: 'rollOut' },
+	{ value: 'one', label: 'One-hand', key: 'one' },
+	{ value: 'one-in', label: 'One-hand in', key: 'oneIn' },
+	{ value: 'one-out', label: 'One-hand out', key: 'oneOut' },
+	{ value: 'roll-total', label: 'Roll total', key: 'rtl' },
+	{ value: 'roll-total-in', label: 'Roll total in', key: 'rtlIn' },
+	{ value: 'roll-total-out', label: 'Roll total out', key: 'rtlOut' },
+	{ value: 'redirect', label: 'Redirect', key: 'red' },
+	{ value: 'bad-redirect', label: 'Bad redirect', key: 'badRedirect' },
+	{ value: 'same-finger-skip', label: 'Same-finger skip', key: 'sfs' },
+	{ value: 'same-finger-skip-redirect', label: 'Same-finger skip redirect', key: 'dsfbRed' },
+	{ value: 'same-finger-skip-alternate', label: 'Same-finger skip alternate', key: 'dsfbAlt' }
+] as const satisfies readonly StatSortField[];
 
-export type StatSortOptionValue = (typeof STAT_SORT_OPTIONS)[number]['value'];
+export type StatSortBy = (typeof STAT_SORT_FIELDS)[number]['value'];
 
-export type LayoutSortOption = 'name' | 'date-asc' | 'date-desc';
+export type LayoutSortBy = 'name' | 'date';
 
-export type SortOption = LayoutSortOption | StatSortOptionValue;
+export type SortBy = LayoutSortBy | StatSortBy;
 
-const STAT_SORT_OPTION_BY_VALUE = new Map<string, StatSortOption>(
-	STAT_SORT_OPTIONS.map((option) => [option.value, option])
+export type SortOrder = 'asc' | 'desc';
+
+const STAT_SORT_FIELD_BY_VALUE = new Map<string, StatSortField>(
+	STAT_SORT_FIELDS.map((field) => [field.value, field])
 );
 
-const SORT_OPTIONS = new Set<string>([
-	'name',
-	'date-asc',
-	'date-desc',
-	...STAT_SORT_OPTIONS.map((option) => option.value)
-]);
+const SORT_BY_VALUES = new Set<string>(['name', 'date', ...STAT_SORT_FIELDS.map((field) => field.value)]);
 
-export function isSortOption(value: string): value is SortOption {
-	return SORT_OPTIONS.has(value);
+const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrder }> = {
+	name: { sortBy: 'name', sortOrder: 'asc' },
+	'date-asc': { sortBy: 'date', sortOrder: 'asc' },
+	'date-desc': { sortBy: 'date', sortOrder: 'desc' },
+	'alternate-desc': { sortBy: 'alternate', sortOrder: 'desc' },
+	'roll-desc': { sortBy: 'roll', sortOrder: 'desc' },
+	'roll-in-desc': { sortBy: 'roll-in', sortOrder: 'desc' },
+	'roll-out-desc': { sortBy: 'roll-out', sortOrder: 'desc' },
+	'one-desc': { sortBy: 'one', sortOrder: 'desc' },
+	'one-in-desc': { sortBy: 'one-in', sortOrder: 'desc' },
+	'one-out-desc': { sortBy: 'one-out', sortOrder: 'desc' },
+	'rtl-desc': { sortBy: 'roll-total', sortOrder: 'desc' },
+	'rtl-in-desc': { sortBy: 'roll-total-in', sortOrder: 'desc' },
+	'rtl-out-desc': { sortBy: 'roll-total-out', sortOrder: 'desc' },
+	'red-asc': { sortBy: 'redirect', sortOrder: 'asc' },
+	'bad-redirect-asc': { sortBy: 'bad-redirect', sortOrder: 'asc' },
+	'sfs-asc': { sortBy: 'same-finger-skip', sortOrder: 'asc' },
+	'dsfb-red-asc': { sortBy: 'same-finger-skip-redirect', sortOrder: 'asc' },
+	'dsfb-alt-asc': { sortBy: 'same-finger-skip-alternate', sortOrder: 'asc' }
+};
+
+export function isSortBy(value: string): value is SortBy {
+	return SORT_BY_VALUES.has(value);
 }
 
-export function isStatSortOption(sort: SortOption): sort is StatSortOptionValue {
-	return STAT_SORT_OPTION_BY_VALUE.has(sort);
+export function isSortOrder(value: string): value is SortOrder {
+	return value === 'asc' || value === 'desc';
 }
 
-export function getStatSortOption(sort: SortOption): StatSortOption | undefined {
-	return STAT_SORT_OPTION_BY_VALUE.get(sort);
+export function isStatSortBy(sortBy: SortBy): sortBy is StatSortBy {
+	return STAT_SORT_FIELD_BY_VALUE.has(sortBy);
+}
+
+export function getStatSortField(sortBy: SortBy): StatSortField | undefined {
+	return STAT_SORT_FIELD_BY_VALUE.get(sortBy);
+}
+
+export function parseLegacySortParam(
+	sort: string
+): { sortBy: SortBy; sortOrder: SortOrder } | undefined {
+	if (sort in LEGACY_SORT_BY_ORDER) {
+		return LEGACY_SORT_BY_ORDER[sort];
+	}
+	if (isSortBy(sort)) {
+		return { sortBy: sort, sortOrder: 'desc' };
+	}
+	return undefined;
 }
 
 export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefined {
@@ -168,8 +195,8 @@ export interface StatsBlockSegment {
 	highlight?: boolean;
 }
 
-export function getStatSortHighlightKey(sort: SortOption): StatSortKey | undefined {
-	return getStatSortOption(sort)?.key;
+export function getStatSortHighlightKey(sortBy: SortBy): StatSortKey | undefined {
+	return getStatSortField(sortBy)?.key;
 }
 
 /** Lines of segments for rendering; optional highlight on the active sort stat. */

@@ -2,14 +2,14 @@
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { isStatSortOption } from '$lib/layoutStats';
+	import { isStatSortBy } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
 	const layoutStats = $derived(layoutStatsStore.map);
-	const needsStatsForSort = $derived(isStatSortOption(filterStore.sortOption));
+	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 
 	$effect(() => {
 		void layoutStatsStore.loadWhenVisible(filterStore.showLayoutStats, needsStatsForSort);
