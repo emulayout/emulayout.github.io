@@ -412,10 +412,6 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
-		this.sortBy = 'date';
-		this.sortOrder = 'desc';
-		this.hideLayoutStats = false;
-		this.hideLayoutTestArea = false;
 		this.selectedAuthors.clear();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
