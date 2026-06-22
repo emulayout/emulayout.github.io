@@ -163,21 +163,84 @@ function formatStatLabel(label: string): string {
 	return ` ${label.padStart(5)}`;
 }
 
+export interface StatsBlockSegment {
+	text: string;
+	highlight?: boolean;
+}
+
+export function getStatSortHighlightKey(sort: SortOption): StatSortKey | undefined {
+	return getStatSortOption(sort)?.key;
+}
+
+/** Lines of segments for rendering; optional highlight on the active sort stat. */
+export function buildBotStatsBlockLines(
+	stats: DerivedBotStats,
+	highlightKey?: StatSortKey,
+	corpus = DEFAULT_STATS_CORPUS
+): StatsBlockSegment[][] {
+	const hl = (key: StatSortKey): boolean => highlightKey === key;
+
+	return [
+		[{ text: `${corpus.toUpperCase()}:` }],
+		[
+			{ text: formatStatLabel('Alt:') },
+			{ text: ` ${formatStatField(stats.alternate, 6)}`, highlight: hl('alternate') }
+		],
+		[
+			{ text: formatStatLabel('Rol:') },
+			{ text: ` ${formatStatField(stats.roll, 6)}`, highlight: hl('roll') },
+			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.rollIn, 6), highlight: hl('rollIn') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.rollOut, 6), highlight: hl('rollOut') },
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('One:') },
+			{ text: ` ${formatStatField(stats.one, 6)}`, highlight: hl('one') },
+			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.oneIn, 6), highlight: hl('oneIn') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.oneOut, 6), highlight: hl('oneOut') },
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('Rtl:') },
+			{ text: ` ${formatStatField(stats.rtl, 6)}`, highlight: hl('rtl') },
+			{ text: '   (In/Out: ' },
+			{ text: formatStatField(stats.rtlIn, 6), highlight: hl('rtlIn') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.rtlOut, 6), highlight: hl('rtlOut') },
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('Red:') },
+			{ text: ` ${formatStatField(stats.red, 6)}`, highlight: hl('red') },
+			{ text: '   (Bad: ' },
+			{ text: formatStatField(stats.badRedirect, 9), highlight: hl('badRedirect') },
+			{ text: ')' }
+		],
+		[{ text: '' }],
+		[
+			{ text: formatStatLabel('SFS:') },
+			{ text: ` ${formatStatField(stats.sfs, 6)}`, highlight: hl('sfs') },
+			{ text: '   (Red/Alt: ' },
+			{ text: formatStatField(stats.dsfbRed, 5), highlight: hl('dsfbRed') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.dsfbAlt, 5), highlight: hl('dsfbAlt') },
+			{ text: ')' }
+		]
+	];
+}
+
 /** Fixed-width block matching cmini Discord bot layout (minus SFB and LH/RH). */
 export function formatBotStatsBlock(
 	stats: DerivedBotStats,
 	corpus = DEFAULT_STATS_CORPUS
 ): string {
-	return [
-		`${corpus.toUpperCase()}:`,
-		`${formatStatLabel('Alt:')} ${formatStatField(stats.alternate, 6)}`,
-		`${formatStatLabel('Rol:')} ${formatStatField(stats.roll, 6)}   (In/Out: ${formatStatField(stats.rollIn, 6)} | ${formatStatField(stats.rollOut, 6)})`,
-		`${formatStatLabel('One:')} ${formatStatField(stats.one, 6)}   (In/Out: ${formatStatField(stats.oneIn, 6)} | ${formatStatField(stats.oneOut, 6)})`,
-		`${formatStatLabel('Rtl:')} ${formatStatField(stats.rtl, 6)}   (In/Out: ${formatStatField(stats.rtlIn, 6)} | ${formatStatField(stats.rtlOut, 6)})`,
-		`${formatStatLabel('Red:')} ${formatStatField(stats.red, 6)}   (Bad: ${formatStatField(stats.badRedirect, 9)})`,
-		'',
-		`${formatStatLabel('SFS:')} ${formatStatField(stats.sfs, 6)}   (Red/Alt: ${formatStatField(stats.dsfbRed, 5)} | ${formatStatField(stats.dsfbAlt, 5)})`
-	].join('\n');
+	return buildBotStatsBlockLines(stats, undefined, corpus)
+		.map((line) => line.map((segment) => segment.text).join(''))
+		.join('\n');
 }
 
 /** Placeholder with the same line count as a full stats block. */

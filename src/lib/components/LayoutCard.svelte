@@ -5,11 +5,12 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
+		buildBotStatsBlockLines,
 		deriveBotStats,
-		formatBotStatsBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
-		getLayoutCorpusStats
+		getLayoutCorpusStats,
+		getStatSortHighlightKey
 	} from '$lib/layoutStats';
 
 	interface Props {
@@ -53,12 +54,16 @@
 	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
 	const statsLoading = $derived(layoutStatsStore.loading);
+	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortOption));
+	const statsBlockLines = $derived(
+		botStats ? buildBotStatsBlockLines(botStats, highlightStatKey) : null
+	);
 	const statsBlock = $derived(
-		botStats
-			? formatBotStatsBlock(botStats)
-			: statsLoading
-				? formatStatsLoadingBlock()
-				: formatStatsUnavailableBlock()
+		statsLoading
+			? formatStatsLoadingBlock()
+			: !botStats
+				? formatStatsUnavailableBlock()
+				: null
 	);
 
 	const cardHeight = $derived(
@@ -232,10 +237,22 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="flex flex-col gap-4 shrink-0">
 			{#if filterStore.showLayoutStats}
-				<pre
-					class="stats-block shrink-0"
-					class:stats-block--unavailable={!botStats && !statsLoading}
-					style={botStats ? 'color: var(--text-secondary);' : undefined}>{statsBlock}</pre>
+				{#if statsBlockLines}
+					<div class="stats-block shrink-0" style="color: var(--text-secondary);">
+						{#each statsBlockLines as line, lineIndex (lineIndex)}
+							<div class="stats-block-line">
+								{#each line as segment, segmentIndex (segmentIndex)}
+									<span class:stats-block-highlight={segment.highlight}>{segment.text}</span>
+								{/each}
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<pre
+						class="stats-block shrink-0"
+						class:stats-block--unavailable={!statsLoading}
+					>{statsBlock}</pre>
+				{/if}
 			{/if}
 			{#if filterStore.showLayoutTestArea}
 				<textarea

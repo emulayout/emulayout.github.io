@@ -50,11 +50,20 @@ body {
 	font-size: var(--stats-font-size);
 	line-height: var(--stats-line-height);
 	min-height: calc(var(--stats-line-count) * var(--stats-line-height) * var(--stats-font-size));
-	white-space: pre;
 	font-variant-numeric: tabular-nums;
 	margin: 0;
 }
 
+.stats-block-line {
+	white-space: pre;
+	min-height: calc(var(--stats-line-height) * var(--stats-font-size));
+}
+
 .stats-block--unavailable {
 	color: var(--text-caption);
+	white-space: pre;
+}
+
+.stats-block-highlight {
+	color: var(--text-primary);
 }
