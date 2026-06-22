@@ -16,6 +16,7 @@ html {
 	--link: #6b7a8f;
 	--border: #e0dcd5;
 	--key-bg: #ffffff;
+	--key-home-bg: #e8e5df;
 	--key-shadow: #d4cfc7;
 }
 
@@ -30,6 +31,7 @@ html {
 	--link: #8a9bb0;
 	--border: #2d2a26;
 	--key-bg: #252220;
+	--key-home-bg: #32302c;
 	--key-shadow: #0a0908;
 }
 

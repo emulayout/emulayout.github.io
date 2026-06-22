@@ -39,6 +39,18 @@
 	const hasActiveFilters = $derived(
 		grid.some((row) => row.some((cell) => cell !== '')) || thumbKeys.some((key) => key !== '')
 	);
+
+	const HOME_ROW_INDEX = 1;
+
+	function isHomeKeyPosition(rowIdx: number, colIdx: number): boolean {
+		if (rowIdx !== HOME_ROW_INDEX) return false;
+		// Per hand: fingers 0–3 rest on home (e.g. ASDF / JKL;), not finger 4 (G / H).
+		return colIdx < SPLIT_COL - 1 || colIdx > SPLIT_COL;
+	}
+
+	function keyBackgroundColor(rowIdx: number, colIdx: number): string {
+		return isHomeKeyPosition(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
+	}
 </script>
 
 <div
@@ -74,7 +86,7 @@
 						class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
 						style="
 							width: {Math.max(2, cell.length) * 0.6 + 0.8}rem;
-							background-color: var(--key-bg);
+							background-color: {keyBackgroundColor(rowIdx, colIdx)};
 							color: var(--text-primary);
 							border: 1px solid {cell ? accentColor : 'var(--border)'};
 							--tw-ring-color: {accentColor};
