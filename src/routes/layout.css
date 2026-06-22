@@ -18,7 +18,7 @@ html {
 	--key-bg: #faf9f7;
 	--key-home-bg: #e8e2d9;
 	--key-shadow: #ccc5bc;
-	--stats-fg: #3a3632;
+	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
 }
 
@@ -35,7 +35,7 @@ html {
 	--key-bg: #353230;
 	--key-home-bg: #45423d;
 	--key-shadow: #0a0908;
-	--stats-fg: #e8e4de;
+	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
 }
 
@@ -68,8 +68,17 @@ textarea::placeholder {
 }
 
 .layout-display {
-	font-size: 13px;
-	line-height: 1.5;
+	--layout-font-size: 14px;
+	--layout-line-height: 1.5;
+	--layout-max-rows: 4;
+	font-size: var(--layout-font-size);
+	line-height: var(--layout-line-height);
+}
+
+.layout-display-area {
+	min-height: calc(
+		var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size)
+	);
 }
 
 .layout-meta {

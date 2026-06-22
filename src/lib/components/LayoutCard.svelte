@@ -155,87 +155,96 @@
 	class="px-5 pt-5 pb-3 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col gap-3"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"
 >
-	<div class="flex items-center gap-2">
-		<h2
-			class="text-lg font-semibold flex-1 truncate"
-			style="color: var(--text-primary);"
-			title={layout.name}
-		>
-			{layout.name}
-		</h2>
-		<div class="flex items-center gap-1 shrink-0">
-			<button
-				type="button"
-				onclick={() => (anglemod = !anglemod)}
-				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
-				style="
-					background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
-					color: {anglemod ? 'white' : 'var(--text-primary)'};
-					border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
-				"
-				title="Anglemod"
+	<div class="shrink-0 flex flex-col gap-1">
+		<div class="flex items-center gap-2">
+			<h2
+				class="text-lg font-semibold flex-1 truncate"
+				style="color: var(--text-primary);"
+				title={layout.name}
 			>
-				<svg
-					class="size-4"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+				{layout.name}
+			</h2>
+			<div class="flex items-center gap-1 shrink-0">
+				<button
+					type="button"
+					onclick={() => (anglemod = !anglemod)}
+					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+					style="
+						background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
+						color: {anglemod ? 'white' : 'var(--text-primary)'};
+						border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
+					"
+					title="Anglemod"
 				>
-					<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-					<path d="M21 3v5h-5" />
-					<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-					<path d="M3 21v-5h5" />
-				</svg>
-			</button>
-			<button
-				type="button"
-				onclick={handlePlaygroundClick}
-				class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
-				style="
-					background-color: var(--bg-primary);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-				"
-				title="View on Cyanophage"
-				aria-label="View on Cyanophage"
-			>
-				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
 						stroke-linecap="round"
 						stroke-linejoin="round"
-						d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-					/>
-				</svg>
-			</button>
+					>
+						<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+						<path d="M21 3v5h-5" />
+						<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+						<path d="M3 21v-5h5" />
+					</svg>
+				</button>
+				<button
+					type="button"
+					onclick={handlePlaygroundClick}
+					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+					style="
+						background-color: var(--bg-primary);
+						color: var(--text-primary);
+						border: 1px solid var(--border);
+					"
+					title="View on Cyanophage"
+					aria-label="View on Cyanophage"
+				>
+					<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+						/>
+					</svg>
+				</button>
+			</div>
 		</div>
+		<p class="text-xs layout-meta flex items-center gap-1 min-w-0" style="color: var(--text-secondary);">
+			<span class="shrink-0">{layout.board} · by</span>
+			<button
+				type="button"
+				onclick={() => {
+					filterStore.clearAuthors();
+					filterStore.toggleAuthor(layout.user);
+					window.scrollTo({ top: 0, behavior: 'smooth' });
+				}}
+				class="hover:underline cursor-pointer truncate min-w-0"
+				style="color: var(--text-secondary);"
+				title={authorName}
+			>
+				{authorName}
+			</button>
+			<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
+		</p>
 	</div>
-	<p class="text-xs layout-meta flex items-center gap-1 min-w-0 -mt-1" style="color: var(--text-secondary);">
-		<span class="shrink-0">{layout.board} · by</span>
-		<button
-			type="button"
-			onclick={() => {
-				filterStore.clearAuthors();
-				filterStore.toggleAuthor(layout.user);
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-			}}
-			class="hover:underline cursor-pointer truncate min-w-0"
-			style="color: var(--text-secondary);"
-			title={authorName}
-		>
-			{authorName}
-		</button>
-		<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
-	</p>
-	<div class="flex-1 min-h-0 overflow-x-auto min-w-0 flex flex-col justify-center">
+
+	<div
+		class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center"
+	>
 		<pre
-			class="layout-display font-mono text-xs leading-relaxed tracking-widest whitespace-pre"
+			class="layout-display font-mono whitespace-pre m-0"
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
+
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
-		<div class="flex flex-col gap-4 shrink-0">
+		<div
+			class="card-footer shrink-0 pt-4 flex flex-col gap-4"
+			style="border-top: 1px solid var(--border);"
+		>
 			{#if filterStore.showLayoutStats}
 				{#if statsBlockLines}
 					<div class="stats-block shrink-0">

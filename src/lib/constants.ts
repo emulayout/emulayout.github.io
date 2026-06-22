@@ -1,5 +1,7 @@
 // LayoutCard dimensions constants
-export const LAYOUT_CARD_HEIGHT = 383; // px — full card with stats and test area
+export const LAYOUT_CARD_HEIGHT = 423; // px — full card with stats and test area (fits 4-row layouts)
+/** Min height for layout display area (4 rows × 14px × 1.5 line-height). */
+export const LAYOUT_DISPLAY_MIN_HEIGHT = 84;
 export const LAYOUT_CARD_ROW_GAP = 16; // px (mb-4 = 1rem = 16px)
 export const LAYOUT_CARD_SECTION_GAP = 12; // px (gap-3 between main sections)
 export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 16; // px (gap-4 between stats and test area)
