@@ -74,6 +74,7 @@ export class FilterStore {
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 	focusLayoutName: string | null = $state(null);
+	similarReferenceName: string | null = $state(null);
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
 	hideLayoutStats: boolean = $state(false);
@@ -197,6 +198,11 @@ export class FilterStore {
 		if (url.searchParams.get('testArea') === '0') {
 			this.hideLayoutTestArea = true;
 		}
+
+		const similar = url.searchParams.get('similar');
+		if (similar) {
+			this.similarReferenceName = similar;
+		}
 	}
 
 	#saveToUrl() {
@@ -267,6 +273,10 @@ export class FilterStore {
 
 		if (this.hideLayoutTestArea) {
 			url.searchParams.set('testArea', '0');
+		}
+
+		if (this.similarReferenceName) {
+			url.searchParams.set('similar', this.similarReferenceName);
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -413,6 +423,7 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
+		this.similarReferenceName = null;
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
@@ -445,6 +456,25 @@ export class FilterStore {
 		this.focusLayoutName = null;
 	}
 
+	toggleSimilarReference(name: string) {
+		if (this.similarReferenceName === name) {
+			this.similarReferenceName = null;
+		} else {
+			this.similarReferenceName = name;
+			window.scrollTo(0, 0);
+		}
+		this.#saveToUrl();
+	}
+
+	clearSimilarReference() {
+		this.similarReferenceName = null;
+		this.#saveToUrl();
+	}
+
+	get hasSimilarReference(): boolean {
+		return this.similarReferenceName !== null;
+	}
+
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
@@ -463,7 +493,8 @@ export class FilterStore {
 			this.characterSetFilter !== 'english' ||
 			this.boardTypeFilter !== 'all' ||
 			this.nameFilterInput !== '' ||
-			this.selectedAuthors.size > 0
+			this.selectedAuthors.size > 0 ||
+			this.similarReferenceName !== null
 		);
 	}
 

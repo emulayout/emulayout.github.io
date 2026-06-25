@@ -18,13 +18,16 @@
 		layout: LayoutData;
 		authorName: string;
 		layoutStats: LayoutStatsMap;
+		similarMatchPercent?: number;
 	}
 
-	const { layout, authorName, layoutStats }: Props = $props();
+	const { layout, authorName, layoutStats, similarMatchPercent }: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
 	let anglemod = $state(false);
+
+	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 
 	// Transform displayValue when anglemod is enabled
 	const transformedDisplayValue = $derived.by(() => {
@@ -79,6 +82,10 @@
 		event.preventDefault();
 		const url = generatePlaygroundUrl(layout);
 		window.open(url, '_blank');
+	}
+
+	function handleFindSimilarClick() {
+		filterStore.toggleSimilarReference(layout.name);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -137,6 +144,44 @@
 				{layout.name}
 			</h2>
 			<div class="flex items-center gap-1 shrink-0">
+				{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}
+					<span
+						class="px-2 py-1 rounded-lg text-sm font-medium tabular-nums"
+						style="color: var(--accent); background-color: var(--bg-primary); border: 1px solid var(--border);"
+						title="Position match"
+					>
+						{similarMatchPercent}%
+					</span>
+				{:else if !filterStore.hasSimilarReference || isSimilarActive}
+					<button
+						type="button"
+						onclick={handleFindSimilarClick}
+						class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+						style="
+							background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
+							color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
+							border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
+						"
+						title={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
+						aria-label={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
+						aria-pressed={isSimilarActive}
+					>
+						<svg
+							class="size-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<rect x="3" y="3" width="7" height="7" rx="1" />
+							<rect x="14" y="3" width="7" height="7" rx="1" />
+							<rect x="3" y="14" width="7" height="7" rx="1" />
+							<rect x="14" y="14" width="7" height="7" rx="1" />
+						</svg>
+					</button>
+				{/if}
 				<button
 					type="button"
 					onclick={() => (anglemod = !anglemod)}

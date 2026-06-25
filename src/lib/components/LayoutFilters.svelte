@@ -289,7 +289,13 @@
 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
 	<div class="flex flex-col sm:flex-row items-center gap-4">
 		<p style="color: var(--text-secondary);">
-			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span> layouts
+			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
+			{filterStore.hasSimilarReference ? 'layouts similar to' : 'layouts'}
+			{#if filterStore.similarReferenceName}
+				<span style="color: var(--text-primary); font-weight: 600;"
+					>{filterStore.similarReferenceName}</span
+				>
+			{/if}
 		</p>
 
 		{#if filterStore.hasActiveFilters}

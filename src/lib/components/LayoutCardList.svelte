@@ -10,9 +10,15 @@
 		layouts: LayoutData[];
 		getAuthorName: (userId: number) => string;
 		layoutStats: LayoutStatsMap;
+		similarityPercents?: Map<string, number>;
 	}
 
-	const { layouts, getAuthorName, layoutStats }: Props = $props();
+	const {
+		layouts,
+		getAuthorName,
+		layoutStats,
+		similarityPercents = new Map()
+	}: Props = $props();
 
 	let virtualizer = $state<{
 		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
@@ -83,7 +89,12 @@
 
 		<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
 			{#each rowItems as layout (layout.name)}
-				<LayoutCard {layout} authorName={getAuthorName(layout.user)} {layoutStats} />
+				<LayoutCard
+					{layout}
+					authorName={getAuthorName(layout.user)}
+					{layoutStats}
+					similarMatchPercent={similarityPercents.get(layout.name)}
+				/>
 			{/each}
 		</div>
 	{/snippet}
