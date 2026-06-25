@@ -3,6 +3,7 @@
 	import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 	import { getRecentLayoutsByDay, type LayoutsByDay } from '$lib/recentLayouts';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { lockPageScroll } from '$lib/modalScrollLock';
 
 	interface Props {
 		open: boolean;
@@ -19,11 +20,7 @@
 	$effect(() => {
 		if (!open) return;
 
-		const scrollY = window.scrollY;
-		document.body.style.position = 'fixed';
-		document.body.style.top = `-${scrollY}px`;
-		document.body.style.width = '100%';
-		document.body.style.overflow = 'hidden';
+		const unlock = lockPageScroll();
 
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key === 'Escape') onClose();
@@ -32,11 +29,7 @@
 		document.addEventListener('keydown', handleKeyDown);
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown);
-			document.body.style.position = '';
-			document.body.style.top = '';
-			document.body.style.width = '';
-			document.body.style.overflow = '';
-			window.scrollTo(0, scrollY);
+			unlock();
 		};
 	});
 
