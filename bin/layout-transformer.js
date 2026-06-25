@@ -71,8 +71,7 @@ function computeDisplayValue(layout, splitCol = 5) {
 		rows[info.row][info.col] = key;
 	});
 
-	const isStaggered = layout.board === 'stagger';
-	const isAngle = layout.board === 'angle';
+	const isAnsiDisplay = layout.board === 'stagger' || layout.board === 'angle';
 
 	const out = Object.keys(rows)
 		.sort((a, b) => Number(a) - Number(b))
@@ -88,21 +87,12 @@ function computeDisplayValue(layout, splitCol = 5) {
 				'  ' + // extra gap between hands
 				filled.slice(splitCol).join(' ');
 
-			// Add extra spaces for staggered layouts
-			if (isStaggered) {
+			if (isAnsiDisplay) {
 				if (rowNum === 1) {
-					// Row 1: add 1 extra space at the beginning
 					return ' ' + rowString;
 				} else if (rowNum === 2) {
-					// Row 2: add 2 extra spaces at the beginning
 					return '  ' + rowString;
 				}
-			}
-
-			// Add extra spaces for angle layouts
-			if (isAngle && rowNum === 1) {
-				// Row 1: add 1 extra space at the beginning
-				return ' ' + rowString;
 			}
 
 			return rowString;

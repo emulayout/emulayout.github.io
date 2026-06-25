@@ -1,6 +1,11 @@
 <script lang="ts">
 	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
-	import { applyAnglemodToDisplayValue, buildKeyMap, buildShiftKeyMap } from '$lib/cmini/keyboard';
+	import {
+		applyAnglemodToDisplayValue,
+		buildKeyMap,
+		buildShiftKeyMap,
+		removeAnglemodFromDisplayValue
+	} from '$lib/cmini/keyboard';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { getLayoutCardHeight } from '$lib/constants';
@@ -29,10 +34,14 @@
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 
-	// Transform displayValue when anglemod is enabled
+	const isAngleBoard = $derived(layout.board === 'angle');
+
+	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
 	const transformedDisplayValue = $derived.by(() => {
 		if (!anglemod) return layout.displayValue;
-		return applyAnglemodToDisplayValue(layout.displayValue);
+		return isAngleBoard
+			? removeAnglemodFromDisplayValue(layout.displayValue)
+			: applyAnglemodToDisplayValue(layout.displayValue);
 	});
 
 	// Parse displayValue and create key mapping
@@ -191,7 +200,9 @@
 						color: {anglemod ? 'white' : 'var(--text-primary)'};
 						border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
 					"
-					title="Anglemod"
+					title={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
+					aria-label={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
+					aria-pressed={anglemod}
 				>
 					<svg
 						class="size-4"

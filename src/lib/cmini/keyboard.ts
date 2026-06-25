@@ -68,12 +68,11 @@ function splitRowChars(row: string): string[] {
 }
 
 /**
- * Applies anglemod to the QWERTY bottom row (row index 2) by left-rotating
- * the first 5 columns.
- *
- * Example: "z x c v b" -> "x c v b z"
+ * Rotates the left-hand bottom row (first 5 columns) left or right.
+ * Left:  z x c v b -> x c v b z (apply anglemod)
+ * Right: x c v b z -> z x c v b (remove anglemod)
  */
-export function applyAnglemodToDisplayValue(displayValue: string): string {
+function rotateBottomRowLeftHand(displayValue: string, direction: 'left' | 'right'): string {
 	const rows = displayValue.split('\n');
 	if (rows.length <= 2) return displayValue;
 
@@ -81,11 +80,12 @@ export function applyAnglemodToDisplayValue(displayValue: string): string {
 	const chars = splitRowChars(originalRow2);
 	if (chars.length < SPLIT_COL) return displayValue;
 
-	// Left rotation for first 5 columns: [0,1,2,3,4] -> [1,2,3,4,0]
-	const transformed = [chars[1], chars[2], chars[3], chars[4], chars[0], ...chars.slice(SPLIT_COL)];
+	const leftHand =
+		direction === 'left'
+			? [chars[1], chars[2], chars[3], chars[4], chars[0]]
+			: [chars[4], chars[0], chars[1], chars[2], chars[3]];
+	const transformed = [...leftHand, ...chars.slice(SPLIT_COL)];
 
-	// Reconstruct with spacing similar to original: a single space between keys,
-	// with a double-space after the split between hands.
 	let rebuiltRow = '';
 	for (let i = 0; i < transformed.length; i++) {
 		rebuiltRow += transformed[i];
@@ -96,16 +96,33 @@ export function applyAnglemodToDisplayValue(displayValue: string): string {
 		}
 	}
 
-	// Preserve leading/trailing whitespace from original
 	const leadingWhitespace = originalRow2.match(/^\s*/)?.[0] ?? '';
 	const trailingWhitespace = originalRow2.match(/\s*$/)?.[0] ?? '';
 
-	const result = [
+	return [
 		...rows.slice(0, 2),
 		leadingWhitespace + rebuiltRow + trailingWhitespace,
 		...rows.slice(3)
-	];
-	return result.join('\n');
+	].join('\n');
+}
+
+/**
+ * Applies anglemod to the QWERTY bottom row (row index 2) by left-rotating
+ * the first 5 columns.
+ *
+ * Example: "z x c v b" -> "x c v b z"
+ */
+export function applyAnglemodToDisplayValue(displayValue: string): string {
+	return rotateBottomRowLeftHand(displayValue, 'left');
+}
+
+/**
+ * Removes anglemod from the bottom row by right-rotating the first 5 columns.
+ *
+ * Example: "x c v b z" -> "z x c v b"
+ */
+export function removeAnglemodFromDisplayValue(displayValue: string): string {
+	return rotateBottomRowLeftHand(displayValue, 'right');
 }
 
 /**
