@@ -13,11 +13,19 @@ export const BOT_STAT_KEYS = [
 	'redirect',
 	'bad-redirect',
 	'dsfb-red',
-	'dsfb-alt'
+	'dsfb-alt',
+	'sfb',
+	'lh',
+	'rh'
 ] as const satisfies readonly (keyof LayoutCorpusStats)[];
 
 export const STAT_VALUE_SCALE = 10_000;
 export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
+
+/** Cache trigram stats are valid when alternate is non-zero (always true for analyzed layouts). */
+export function isValidCorpusStats(stats: LayoutCorpusStats): boolean {
+	return stats.alternate > 0;
+}
 
 export interface DerivedBotStats {
 	alternate: number;
@@ -32,9 +40,12 @@ export interface DerivedBotStats {
 	rtlOut: number;
 	red: number;
 	badRedirect: number;
+	sfb: number;
 	sfs: number;
 	dsfbRed: number;
 	dsfbAlt: number;
+	lh: number;
+	rh: number;
 }
 
 export type StatSortKey = keyof DerivedBotStats;
@@ -59,6 +70,7 @@ export const STAT_SORT_FIELDS = [
 	{ value: 'roll-total-out', label: 'Roll total out', key: 'rtlOut' },
 	{ value: 'redirect', label: 'Redirect', key: 'red' },
 	{ value: 'bad-redirect', label: 'Bad redirect', key: 'badRedirect' },
+	{ value: 'sfb', label: 'Same-finger bigrams', key: 'sfb' },
 	{ value: 'same-finger-skip', label: 'Same-finger skip', key: 'sfs' },
 	{ value: 'same-finger-skip-redirect', label: 'Same-finger skip redirect', key: 'dsfbRed' },
 	{ value: 'same-finger-skip-alternate', label: 'Same-finger skip alternate', key: 'dsfbAlt' }
@@ -94,6 +106,7 @@ const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrde
 	'rtl-out-desc': { sortBy: 'roll-total-out', sortOrder: 'desc' },
 	'red-asc': { sortBy: 'redirect', sortOrder: 'asc' },
 	'bad-redirect-asc': { sortBy: 'bad-redirect', sortOrder: 'asc' },
+	'sfb-asc': { sortBy: 'sfb', sortOrder: 'asc' },
 	'sfs-asc': { sortBy: 'same-finger-skip', sortOrder: 'asc' },
 	'dsfb-red-asc': { sortBy: 'same-finger-skip-redirect', sortOrder: 'asc' },
 	'dsfb-alt-asc': { sortBy: 'same-finger-skip-alternate', sortOrder: 'asc' }
@@ -136,7 +149,7 @@ export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefin
 	for (let i = 0; i < BOT_STAT_KEYS.length; i++) {
 		stats[BOT_STAT_KEYS[i]] = values[i] / STAT_VALUE_SCALE;
 	}
-	return stats;
+	return isValidCorpusStats(stats) ? stats : undefined;
 }
 
 export function getLayoutCorpusStats(
@@ -169,14 +182,17 @@ export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {
 		rtl: rollIn + rollOut + oneIn + oneOut,
 		badRedirect: stats['bad-redirect'],
 		red: stats.redirect + stats['bad-redirect'],
+		sfb: stats.sfb,
 		dsfbRed: stats['dsfb-red'],
 		dsfbAlt: stats['dsfb-alt'],
-		sfs: stats['dsfb-red'] + stats['dsfb-alt']
+		sfs: stats['dsfb-red'] + stats['dsfb-alt'],
+		lh: stats.lh,
+		rh: stats.rh
 	};
 }
 
 /** Line count of `formatBotStatsBlock` output — keep in sync with `.stats-block` in layout.css. */
-export const STATS_BLOCK_LINE_COUNT = 8;
+export const STATS_BLOCK_LINE_COUNT = 11;
 
 export function formatStatPercent(value: number): string {
 	return `${(value * 100).toFixed(2)}%`;
@@ -249,6 +265,10 @@ export function buildBotStatsBlockLines(
 		],
 		[{ text: '' }],
 		[
+			{ text: formatStatLabel('SFB:') },
+			{ text: formatStatField(stats.sfb, 6), highlight: hl('sfb') }
+		],
+		[
 			{ text: formatStatLabel('SFS:') },
 			{ text: formatStatField(stats.sfs, 6), highlight: hl('sfs') },
 			{ text: ' (Red/Alt: ' },
@@ -256,11 +276,17 @@ export function buildBotStatsBlockLines(
 			{ text: ' | ' },
 			{ text: formatStatField(stats.dsfbAlt, 5), highlight: hl('dsfbAlt') },
 			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('LH/RH:') },
+			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
 		]
 	];
 }
 
-/** Fixed-width block matching cmini Discord bot layout (minus SFB and LH/RH). */
+/** Fixed-width block matching the cmini Discord bot layout. */
 export function formatBotStatsBlock(
 	stats: DerivedBotStats,
 	corpus = DEFAULT_STATS_CORPUS
@@ -283,7 +309,7 @@ export function formatStatsLoadingBlock(): string {
 export function formatStatsUnavailableBlock(): string {
 	return [
 		'STATS UNAVAILABLE',
-		'stats synced nightly',
+		'no cmini cache for this layout',
 		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
 	].join('\n');
 }

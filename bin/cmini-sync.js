@@ -7,13 +7,13 @@ import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
-import { readLayoutCacheStats, DEFAULT_STATS_CORPUS } from './layout-stats.js';
+import { buildLayoutStats, DEFAULT_STATS_CORPUS, loadCorpusData } from './layout-stats.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const STATS_FILE = 'static/layout-stats.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
-const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache'];
+const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache', 'corpora/monkeyracer'];
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 
@@ -91,11 +91,20 @@ async function run() {
 	console.log('→ Resolving layout timestamps from git history...');
 	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
 
+	let corpusData = null;
+	try {
+		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_CORPUS);
+		console.log(`→ Loaded ${DEFAULT_STATS_CORPUS} corpus for SFB / LH-RH`);
+	} catch (err) {
+		console.warn(`  ⚠ Could not load corpus data (${err.message}); SFB/LH-RH will be zero`);
+	}
+
 	// Transform all layouts
 	const transformedLayouts = [];
 	const layoutStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
+	let statsInvalid = 0;
 
 	for (const filename of layoutFiles) {
 		// Check if blacklisted (handle both with and without .json extension)
@@ -117,12 +126,15 @@ async function run() {
 			transformedLayout.updatedAt = layoutTimestamps[filename];
 			transformedLayouts.push(encodeLayout(transformedLayout));
 
-			const stats = await readLayoutCacheStats(CACHE_DIR, filename);
+			const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData);
 			if (stats) {
 				layoutStats[rawLayout.name] = stats;
 				statsLoaded++;
 			} else {
-				statsMissing++;
+				const cachePath = join(CACHE_DIR, 'cache', filename);
+				const hasCache = await access(cachePath).then(() => true).catch(() => false);
+				if (hasCache) statsInvalid++;
+				else statsMissing++;
 			}
 		} catch (err) {
 			console.error(`  ⚠ Error processing ${filename}:`, err.message);
@@ -135,7 +147,7 @@ async function run() {
 	// Write compact layout tuples (minified — GitHub Pages gzip-compresses on transfer)
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
 
-	console.log('→ Merging layout stats from cmini cache...');
+	console.log('→ Merging layout stats (cache trigrams + computed SFB/LH-RH)...');
 	const sortedStats = Object.fromEntries(
 		Object.keys(layoutStats)
 			.sort((a, b) => a.localeCompare(b))
@@ -143,7 +155,7 @@ async function run() {
 	);
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing cache files, ${DEFAULT_STATS_CORPUS} corpus, compact arrays)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${statsInvalid} invalid cache, ${DEFAULT_STATS_CORPUS} corpus)\n`
 	);
 
 	console.log('→ Syncing authors...');

@@ -45,7 +45,7 @@ jobs:
           path: |
             .cache/cmini-repo
             .cache/layout-timestamps.json
-          key: ${{ runner.os }}-cmini-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js') }}
+          key: ${{ runner.os }}-cmini-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/cmini-analyzer.js') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 

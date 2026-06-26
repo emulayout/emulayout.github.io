@@ -18,7 +18,7 @@ export interface LayoutData {
 	updatedAt: string;
 }
 
-/** Bot-display stat fields for one corpus (from cmini cache). */
+/** Bot-display stat fields for one corpus. */
 export interface LayoutCorpusStats {
 	alternate: number;
 	'roll-in': number;
@@ -29,10 +29,13 @@ export interface LayoutCorpusStats {
 	'bad-redirect': number;
 	'dsfb-red': number;
 	'dsfb-alt': number;
+	sfb: number;
+	lh: number;
+	rh: number;
 }
 
 /**
- * Compact stats: 9 fixed-point values (×10_000) in bot stat key order.
+ * Compact stats: fixed-point values (×10_000) in bot stat key order.
  * @see BOT_STAT_KEYS in layoutStats.ts
  */
 export type CompactLayoutStats = number[];
