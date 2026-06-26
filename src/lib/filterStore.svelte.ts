@@ -658,6 +658,30 @@ export class FilterStore {
 		return terms.some((term) => name.includes(term));
 	}
 
+	/** Lower rank = better match when a name filter is active. */
+	#getNameSearchRank(layout: LayoutData): number {
+		if (!this.nameFilter) return 0;
+		const terms = this.nameFilter
+			.split(',')
+			.map((term) => term.trim().toLowerCase())
+			.filter((term) => term !== '');
+		if (terms.length === 0) return 0;
+
+		const name = layout.name.toLowerCase();
+		let best = 2;
+		for (const term of terms) {
+			if (!name.includes(term)) continue;
+			if (name === term) return 0;
+			if (name.startsWith(term)) best = Math.min(best, 1);
+		}
+		return best;
+	}
+
+	#compareNameSearchRank(a: LayoutData, b: LayoutData): number {
+		if (!this.nameFilter) return 0;
+		return this.#getNameSearchRank(a) - this.#getNameSearchRank(b);
+	}
+
 	// Check if layout author matches filter
 	#matchesAuthor(layout: LayoutData): boolean {
 		if (this.selectedAuthors.size === 0) return true;
@@ -740,6 +764,9 @@ export class FilterStore {
 
 		if (this.sortBy === 'date') {
 			return sorted.sort((a, b) => {
+				const byRank = this.#compareNameSearchRank(a, b);
+				if (byRank !== 0) return byRank;
+
 				const byDate = a.updatedAt.localeCompare(b.updatedAt);
 				const diff = descending ? -byDate : byDate;
 				return diff !== 0 ? diff : a.name.localeCompare(b.name);
@@ -747,6 +774,9 @@ export class FilterStore {
 		}
 
 		return sorted.sort((a, b) => {
+			const byRank = this.#compareNameSearchRank(a, b);
+			if (byRank !== 0) return byRank;
+
 			const byName = a.name.localeCompare(b.name);
 			return descending ? -byName : byName;
 		});
