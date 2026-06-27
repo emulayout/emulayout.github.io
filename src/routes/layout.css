@@ -62,7 +62,7 @@ textarea::placeholder {
 .stats-block {
 	--stats-font-size: 11px;
 	--stats-line-height: 1.35;
-	--stats-line-count: 11;
+	--stats-line-count: 16;
 	font-family: var(--font-mono);
 	font-size: var(--stats-font-size);
 	line-height: var(--stats-line-height);

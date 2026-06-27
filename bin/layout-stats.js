@@ -1,19 +1,18 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { handUse, sfbBigram } from './cmini-analyzer.js';
+import { FINGERS, fingerUsage, handUse, sfbBigram } from './cmini-analyzer.js';
 
 /**
  * Layout stats for the site (monkeyracer corpus).
  *
  * Trigram stats (Alt, Rol, Red, SFS, …) come from cmini cache.
- * SFB and LH/RH are computed at sync time — the cache `sfb` field is
- * trigram-derived and does not match the Discord bot (which uses bigrams).
+ * SFB, LH/RH, and per-finger usage are computed at sync time.
  */
 
 /** Corpus exported to the site (matches cmini Discord bot default). */
 export const DEFAULT_STATS_CORPUS = 'monkeyracer';
 
-/** @type {readonly ['alternate', 'roll-in', 'roll-out', 'oneh-in', 'oneh-out', 'redirect', 'bad-redirect', 'dsfb-red', 'dsfb-alt', 'sfb', 'lh', 'rh']} */
+/** @type {readonly ['alternate', 'roll-in', 'roll-out', 'oneh-in', 'oneh-out', 'redirect', 'bad-redirect', 'dsfb-red', 'dsfb-alt', 'sfb', 'lh', 'rh', ...typeof FINGERS]} */
 export const BOT_STAT_KEYS = [
 	'alternate',
 	'roll-in',
@@ -26,19 +25,24 @@ export const BOT_STAT_KEYS = [
 	'dsfb-alt',
 	'sfb',
 	'lh',
-	'rh'
+	'rh',
+	...FINGERS
 ];
+
+const COMPUTED_STAT_KEYS = new Set(['sfb', 'lh', 'rh', ...FINGERS]);
+
+/** Trigram stats from cache (excludes sync-computed fields). */
+export const TRIGRAM_STAT_KEYS = BOT_STAT_KEYS.filter((key) => !COMPUTED_STAT_KEYS.has(key));
 
 /** Fixed-point scale for compact stat arrays (4 decimal places). */
 export const STAT_VALUE_SCALE = 10_000;
-
-/** Trigram stats from cache (excludes computed sfb/lh/rh). */
-export const TRIGRAM_STAT_KEYS = BOT_STAT_KEYS.filter((key) => key !== 'sfb' && key !== 'lh' && key !== 'rh');
 
 /** Cache is usable when cmini produced a real trigram distribution. */
 export function isValidTrigramStats(stats) {
 	return (stats.alternate ?? 0) > 0;
 }
+
+/** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} CorpusStats */
 
 /** @typedef {number[]} CompactLayoutStats */
 
@@ -48,11 +52,12 @@ export function isValidTrigramStats(stats) {
  */
 export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_CORPUS) {
 	const base = join(cacheDir, 'corpora', corpus);
-	const [bigrams, monograms] = await Promise.all([
+	const [bigrams, monograms, trigrams] = await Promise.all([
 		readFile(join(base, 'bigrams.json'), 'utf-8').then(JSON.parse),
-		readFile(join(base, 'monograms.json'), 'utf-8').then(JSON.parse)
+		readFile(join(base, 'monograms.json'), 'utf-8').then(JSON.parse),
+		readFile(join(base, 'trigrams.json'), 'utf-8').then(JSON.parse)
 	]);
-	return { bigrams, monograms };
+	return { bigrams, monograms, trigrams };
 }
 
 /**
@@ -75,14 +80,20 @@ function extractCacheTrigramStats(cacheData) {
 /**
  * @param {object} rawLayout
  * @param {CorpusStats} cacheStats
- * @param {{ bigrams: Record<string, number>, monograms: Record<string, number> } | null} corpusData
+ * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
  * @returns {CorpusStats}
  */
 export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
 	/** @type {CorpusStats} */
-	const stats = { ...cacheStats, sfb: 0, lh: 0, rh: 0 };
+	const stats = {
+		...cacheStats,
+		sfb: 0,
+		lh: 0,
+		rh: 0,
+		...Object.fromEntries(FINGERS.map((finger) => [finger, 0]))
+	};
 
-	if (!corpusData?.bigrams || !corpusData?.monograms || !rawLayout?.keys) {
+	if (!corpusData?.bigrams || !corpusData?.monograms || !corpusData?.trigrams || !rawLayout?.keys) {
 		return stats;
 	}
 
@@ -93,6 +104,13 @@ export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
 	if (use) {
 		stats.lh = use.lh;
 		stats.rh = use.rh;
+	}
+
+	const fingers = fingerUsage(rawLayout.keys, corpusData.trigrams);
+	if (fingers) {
+		for (const finger of FINGERS) {
+			stats[finger] = fingers[finger];
+		}
 	}
 
 	return stats;
@@ -110,7 +128,7 @@ export function encodeCorpusStats(stats) {
  * @param {string} cacheDir
  * @param {string} layoutFilename
  * @param {object} rawLayout
- * @param {{ bigrams: Record<string, number>, monograms: Record<string, number> } | null} corpusData
+ * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
  * @returns {Promise<CompactLayoutStats | null>}
  */
 export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corpusData) {

@@ -1,9 +1,15 @@
 /**
- * Port of cmini util/analyzer.py — sfb_bigram and use (LH/RH).
+ * Port of cmini util/analyzer.py and cmds/fingers.py (usage metric).
  * Keep in sync with Apsu/cmini when those functions change.
  */
 
 /** @typedef {Record<string, { finger?: string }>} FingerKeys */
+
+/** @type {readonly ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']} */
+export const FINGERS = ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB'];
+
+export const LEFT_HAND = ['LI', 'LM', 'LR', 'LP'];
+export const RIGHT_HAND = ['RI', 'RM', 'RR', 'RP'];
 
 /**
  * Same-finger bigram rate (bot display SFB).
@@ -66,4 +72,46 @@ export function handUse(keys, monograms) {
 	}
 
 	return { lh, rh };
+}
+
+/**
+ * Per-finger usage (cmini `fingers [layout] usage`).
+ * @param {FingerKeys} keys
+ * @param {Record<string, number>} trigrams
+ * @returns {Record<(typeof FINGERS)[number], number> | null}
+ */
+export function fingerUsage(keys, trigrams) {
+	/** @type {Record<string, number>} */
+	const usage = Object.fromEntries(FINGERS.map((finger) => [finger, 0]));
+	let total = 0;
+
+	for (const [trigram, freq] of Object.entries(trigrams)) {
+		if (trigram.includes(' ')) continue;
+
+		const fingerList = [];
+		for (const ch of trigram.toLowerCase()) {
+			const info = keys[ch];
+			if (!info?.finger) continue;
+			let finger = info.finger;
+			if (finger === 'TB') finger = 'RT';
+			if (usage[finger] === undefined) continue;
+			fingerList.push(finger);
+		}
+
+		if (fingerList.length === 0) continue;
+
+		const share = freq / fingerList.length;
+		for (const finger of fingerList) {
+			usage[finger] += share;
+		}
+		total += freq;
+	}
+
+	if (total === 0) return null;
+
+	for (const finger of FINGERS) {
+		usage[finger] /= total;
+	}
+
+	return /** @type {Record<(typeof FINGERS)[number], number>} */ (usage);
 }

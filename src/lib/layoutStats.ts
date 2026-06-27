@@ -3,6 +3,26 @@ import type { LayoutCorpusStats, LayoutStatsMap } from '$lib/layout';
 /** Default corpus for layout stats (matches common cmini bot preference). */
 export const DEFAULT_STATS_CORPUS = 'monkeyracer';
 
+/** Keep in sync with FINGERS in bin/cmini-analyzer.js */
+export const FINGER_USAGE_KEYS = [
+	'LI',
+	'LM',
+	'LR',
+	'LP',
+	'RI',
+	'RM',
+	'RR',
+	'RP',
+	'LT',
+	'RT',
+	'TB'
+] as const;
+
+export type FingerUsageKey = (typeof FINGER_USAGE_KEYS)[number];
+
+export const LEFT_HAND_FINGERS = ['LI', 'LM', 'LR', 'LP'] as const;
+export const RIGHT_HAND_FINGERS = ['RI', 'RM', 'RR', 'RP'] as const;
+
 /** Keep in sync with BOT_STAT_KEYS in bin/layout-stats.js. */
 export const BOT_STAT_KEYS = [
 	'alternate',
@@ -16,7 +36,8 @@ export const BOT_STAT_KEYS = [
 	'dsfb-alt',
 	'sfb',
 	'lh',
-	'rh'
+	'rh',
+	...FINGER_USAGE_KEYS
 ] as const satisfies readonly (keyof LayoutCorpusStats)[];
 
 export const STAT_VALUE_SCALE = 10_000;
@@ -27,7 +48,7 @@ export function isValidCorpusStats(stats: LayoutCorpusStats): boolean {
 	return stats.alternate > 0;
 }
 
-export interface DerivedBotStats {
+export type DerivedBotStats = {
 	alternate: number;
 	roll: number;
 	rollIn: number;
@@ -46,7 +67,7 @@ export interface DerivedBotStats {
 	dsfbAlt: number;
 	lh: number;
 	rh: number;
-}
+} & Record<FingerUsageKey, number>;
 
 export type StatSortKey = keyof DerivedBotStats;
 
@@ -187,12 +208,13 @@ export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {
 		dsfbAlt: stats['dsfb-alt'],
 		sfs: stats['dsfb-red'] + stats['dsfb-alt'],
 		lh: stats.lh,
-		rh: stats.rh
-	};
+		rh: stats.rh,
+		...Object.fromEntries(FINGER_USAGE_KEYS.map((finger) => [finger, stats[finger]]))
+	} as DerivedBotStats;
 }
 
 /** Line count of `formatBotStatsBlock` output — keep in sync with `.stats-block` in layout.css. */
-export const STATS_BLOCK_LINE_COUNT = 11;
+export const STATS_BLOCK_LINE_COUNT = 16;
 
 export function formatStatPercent(value: number): string {
 	return `${(value * 100).toFixed(2)}%`;
@@ -282,7 +304,18 @@ export function buildBotStatsBlockLines(
 			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
-		]
+		],
+		[{ text: '' }],
+		...LEFT_HAND_FINGERS.map((left, index) => {
+			const right = RIGHT_HAND_FINGERS[index];
+			return [
+				{ text: `${left}: ` },
+				{ text: formatStatField(stats[left], 6) },
+				{ text: '    ' },
+				{ text: `${right}: ` },
+				{ text: formatStatField(stats[right], 6) }
+			];
+		})
 	];
 }
 
