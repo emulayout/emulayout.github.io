@@ -3,6 +3,17 @@ import type { LayoutCorpusStats, LayoutStatsMap } from '$lib/layout';
 /** Default corpus for layout stats (matches common cmini bot preference). */
 export const DEFAULT_STATS_CORPUS = 'monkeyracer';
 
+/** Corpora available for stats display, sorting, and filtering. */
+export const STAT_CORPORA = [{ value: DEFAULT_STATS_CORPUS, label: 'monkeyracer' }] as const;
+
+export type StatsCorpus = (typeof STAT_CORPORA)[number]['value'];
+
+const STATS_CORPUS_VALUES = new Set<string>(STAT_CORPORA.map((corpus) => corpus.value));
+
+export function isStatsCorpus(value: string): value is StatsCorpus {
+	return STATS_CORPUS_VALUES.has(value);
+}
+
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js */
 export const FINGER_USAGE_KEYS = [
 	'LI',
@@ -97,6 +108,77 @@ export const STAT_SORT_FIELDS = [
 	{ value: 'same-finger-skip-alternate', label: 'Same-finger skip alternate', key: 'dsfbAlt' }
 ] as const satisfies readonly StatSortField[];
 
+export interface StatFilterField {
+	key: StatSortKey;
+	label: string;
+	/** Longer name for tooltips and aria labels when `label` is abbreviated. */
+	title?: string;
+}
+
+/** Max related stats per general-stat row (matches layout card group width). */
+export const GENERAL_STAT_FILTER_COLUMN_COUNT = 3;
+
+/**
+ * General stat limits in card-style rows: one row per stat group,
+ * up to three columns for related stats (empty cells omitted at render time).
+ */
+export const GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] = [
+	[{ key: 'alternate', label: 'Alt' }],
+	[
+		{ key: 'roll', label: 'Rol' },
+		{ key: 'rollIn', label: 'In', title: 'Roll in' },
+		{ key: 'rollOut', label: 'Out', title: 'Roll out' }
+	],
+	[
+		{ key: 'one', label: 'One' },
+		{ key: 'oneIn', label: 'In', title: 'One-hand in' },
+		{ key: 'oneOut', label: 'Out', title: 'One-hand out' }
+	],
+	[
+		{ key: 'rtl', label: 'Rtl' },
+		{ key: 'rtlIn', label: 'In', title: 'Roll total in' },
+		{ key: 'rtlOut', label: 'Out', title: 'Roll total out' }
+	],
+	[
+		{ key: 'red', label: 'Red' },
+		{ key: 'badRedirect', label: 'Bad', title: 'Bad redirect' }
+	],
+	[{ key: 'sfb', label: 'SFB' }],
+	[
+		{ key: 'sfs', label: 'SFS' },
+		{ key: 'dsfbRed', label: 'Red', title: 'Same-finger skip redirect' },
+		{ key: 'dsfbAlt', label: 'Alt', title: 'Same-finger skip alternate' }
+	]
+];
+
+/** Flat list of general stat filter fields — keep in sync with filterStore. */
+export const GENERAL_STAT_FILTER_FIELDS = GENERAL_STAT_FILTER_ROWS.flat();
+
+export const LEFT_HAND_STAT_FILTER_FIELDS = [
+	{ key: 'lh', label: 'Hand' },
+	{ key: 'LI', label: 'Index' },
+	{ key: 'LM', label: 'Middle' },
+	{ key: 'LR', label: 'Ring' },
+	{ key: 'LP', label: 'Pinky' },
+	{ key: 'LT', label: 'Thumb' }
+] as const satisfies readonly StatFilterField[];
+
+export const RIGHT_HAND_STAT_FILTER_FIELDS = [
+	{ key: 'rh', label: 'Hand' },
+	{ key: 'RI', label: 'Index' },
+	{ key: 'RM', label: 'Middle' },
+	{ key: 'RR', label: 'Ring' },
+	{ key: 'RP', label: 'Pinky' },
+	{ key: 'RT', label: 'Thumb' }
+] as const satisfies readonly StatFilterField[];
+
+/** All filterable stats — keep in sync with filterStore stat limit state. */
+export const STAT_FILTER_FIELDS = [
+	...GENERAL_STAT_FILTER_FIELDS,
+	...LEFT_HAND_STAT_FILTER_FIELDS,
+	...RIGHT_HAND_STAT_FILTER_FIELDS
+] as const satisfies readonly StatFilterField[];
+
 export type StatSortBy = (typeof STAT_SORT_FIELDS)[number]['value'];
 
 export type LayoutSortBy = 'name' | 'date';
@@ -176,7 +258,7 @@ export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefin
 export function getLayoutCorpusStats(
 	statsMap: LayoutStatsMap,
 	layoutName: string,
-	corpus = DEFAULT_STATS_CORPUS
+	corpus: StatsCorpus = DEFAULT_STATS_CORPUS
 ): LayoutCorpusStats | undefined {
 	if (corpus !== DEFAULT_STATS_CORPUS) return undefined;
 	const encoded = statsMap[layoutName];
@@ -214,7 +296,7 @@ export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {
 }
 
 /** Line count of `formatBotStatsBlock` output — keep in sync with `.stats-block` in layout.css. */
-export const STATS_BLOCK_LINE_COUNT = 16;
+export const STATS_BLOCK_LINE_COUNT = 14;
 
 export function formatStatPercent(value: number): string {
 	return `${(value * 100).toFixed(2)}%`;
@@ -240,13 +322,11 @@ export function getStatSortHighlightKey(sortBy: SortBy): StatSortKey | undefined
 /** Lines of segments for rendering; optional highlight on the active sort stat. */
 export function buildBotStatsBlockLines(
 	stats: DerivedBotStats,
-	highlightKey?: StatSortKey,
-	corpus = DEFAULT_STATS_CORPUS
+	highlightKey?: StatSortKey
 ): StatsBlockSegment[][] {
 	const hl = (key: StatSortKey): boolean => highlightKey === key;
 
 	return [
-		[{ text: `${corpus.toUpperCase()}:` }],
 		[
 			{ text: formatStatLabel('Alt:') },
 			{ text: formatStatField(stats.alternate, 6), highlight: hl('alternate') }
@@ -320,11 +400,8 @@ export function buildBotStatsBlockLines(
 }
 
 /** Fixed-width block matching the cmini Discord bot layout. */
-export function formatBotStatsBlock(
-	stats: DerivedBotStats,
-	corpus = DEFAULT_STATS_CORPUS
-): string {
-	return buildBotStatsBlockLines(stats, undefined, corpus)
+export function formatBotStatsBlock(stats: DerivedBotStats): string {
+	return buildBotStatsBlockLines(stats)
 		.map((line) => line.map((segment) => segment.text).join(''))
 		.join('\n');
 }

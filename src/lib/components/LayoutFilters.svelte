@@ -1,6 +1,7 @@
 <script lang="ts">
 	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
+	import StatLimitFilters from '$lib/components/StatLimitFilters.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		filterStore,
@@ -11,7 +12,7 @@
 		type SortBy,
 		type SortOrder
 	} from '$lib/filterStore.svelte';
-	import { STAT_SORT_FIELDS } from '$lib/layoutStats';
+	import { STAT_SORT_FIELDS, DEFAULT_STATS_CORPUS, STAT_CORPORA, type StatsCorpus } from '$lib/layoutStats';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
@@ -20,6 +21,7 @@
 
 	const { authorList, filteredCount }: Props = $props();
 	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
+	const corpusIsDefault = $derived(filterStore.statsCorpus === DEFAULT_STATS_CORPUS);
 	const displaySettingsActive = $derived(
 		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea
 	);
@@ -140,6 +142,9 @@
 			onClear={() => filterStore.clearExclude()}
 			tooltipText="Use this filter to exclude layouts that include unwanted keys in specific row and column positions. You can specify multiple keys in the same field to return layouts that do not include any of the keys."
 		/>
+	</div>
+	<div class="grid-area-stat-limits">
+		<StatLimitFilters />
 	</div>
 	<div
 		class="p-4 rounded-xl grid-area-other-options flex flex-col items-center"
@@ -314,6 +319,25 @@
 	>
 		<div class="flex flex-wrap items-center gap-2">
 			<label class="flex items-center gap-2 select-none">
+				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Corpus:</span>
+				<select
+					value={filterStore.statsCorpus}
+					onchange={(e) => filterStore.setStatsCorpus(e.currentTarget.value as StatsCorpus)}
+					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
+					style="
+						background-color: var(--bg-secondary);
+						color: var(--text-primary);
+						border: 1px solid {!corpusIsDefault ? 'var(--accent)' : 'var(--border)'};
+						--tw-ring-color: var(--accent);
+					"
+				>
+					{#each STAT_CORPORA as corpus (corpus.value)}
+						<option value={corpus.value}>{corpus.label}</option>
+					{/each}
+				</select>
+			</label>
+
+			<label class="flex items-center gap-2 select-none">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Sort by:</span>
 				<select
 					value={filterStore.sortBy}
@@ -330,7 +354,7 @@
 						<option value="name">Name</option>
 						<option value="date">Date</option>
 					</optgroup>
-					<optgroup label="Stats (monkeyracer)">
+					<optgroup label="Stats">
 						{#each STAT_SORT_FIELDS as field (field.value)}
 							<option value={field.value}>{field.label}</option>
 						{/each}
@@ -484,6 +508,7 @@
 			'includeAnd'
 			'includeOr'
 			'exclude'
+			'statLimits'
 			'otherOptions';
 	}
 
@@ -492,7 +517,9 @@
 			grid-template-columns: repeat(2, 1fr);
 			grid-template-areas:
 				'includeAnd includeOr'
-				'exclude otherOptions';
+				'exclude exclude'
+				'statLimits statLimits'
+				'otherOptions otherOptions';
 		}
 	}
 
@@ -501,6 +528,7 @@
 			grid-template-columns: repeat(3, 1fr);
 			grid-template-areas:
 				'includeAnd includeOr exclude'
+				'statLimits statLimits statLimits'
 				'otherOptions otherOptions otherOptions';
 		}
 	}
@@ -521,6 +549,10 @@
 		grid-area: exclude;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.grid-area-stat-limits {
+		grid-area: statLimits;
 	}
 
 	.grid-area-other-options {

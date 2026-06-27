@@ -11,9 +11,13 @@
 	const authorsData = $derived(data.authorsData);
 	const layoutStats = $derived(layoutStatsStore.map);
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
+	const needsStatsForFilter = $derived(filterStore.hasActiveStatLimits);
 
 	$effect(() => {
-		void layoutStatsStore.loadWhenVisible(filterStore.showLayoutStats, needsStatsForSort);
+		void layoutStatsStore.loadWhenVisible(
+			filterStore.showLayoutStats,
+			needsStatsForSort || needsStatsForFilter
+		);
 	});
 
 	// Drop stale ?similar= from URL when the layout no longer exists
@@ -53,7 +57,7 @@
 	});
 
 	const filteredLayouts = $derived.by(() => {
-		let result = filterStore.filterLayouts(layouts);
+		let result = filterStore.filterLayouts(layouts, layoutStats, layoutStatsStore.loaded);
 
 		if (filterStore.similarReferenceName) {
 			result = result.filter((layout) =>

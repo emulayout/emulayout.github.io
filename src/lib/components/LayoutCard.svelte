@@ -64,7 +64,9 @@
 		})
 	);
 
-	const corpusStats = $derived(getLayoutCorpusStats(layoutStats, layout.name));
+	const corpusStats = $derived(
+		getLayoutCorpusStats(layoutStats, layout.name, filterStore.statsCorpus)
+	);
 	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
 	const statsLoading = $derived(layoutStatsStore.loading);
 	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortBy));

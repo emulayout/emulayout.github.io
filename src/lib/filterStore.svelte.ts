@@ -6,9 +6,14 @@ import {
 	isSortBy,
 	isSortOrder,
 	isStatSortBy,
+	isStatsCorpus,
 	parseLegacySortParam,
+	STAT_FILTER_FIELDS,
+	DEFAULT_STATS_CORPUS,
 	type SortBy,
-	type SortOrder
+	type SortOrder,
+	type StatSortKey,
+	type StatsCorpus
 } from './layoutStats';
 import type { LayoutData, LayoutStatsMap } from './layout';
 
@@ -16,7 +21,57 @@ export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
+export type StatLimitOperator = 'lt' | 'gt';
 export type { SortBy, SortOrder };
+
+export interface StatLimit {
+	operator: StatLimitOperator;
+	value: string;
+}
+
+function createEmptyStatLimits(): Record<StatSortKey, StatLimit> {
+	const limits = {} as Record<StatSortKey, StatLimit>;
+	for (const field of STAT_FILTER_FIELDS) {
+		limits[field.key] = { operator: 'lt', value: '' };
+	}
+	return limits;
+}
+
+function serializeStatLimits(limits: Record<StatSortKey, StatLimit>): string {
+	const parts: string[] = [];
+	for (const field of STAT_FILTER_FIELDS) {
+		const limit = limits[field.key];
+		const value = limit.value.trim();
+		if (!value) continue;
+		parts.push(`${field.key}:${limit.operator}:${value}`);
+	}
+	return parts.join(',');
+}
+
+function deserializeStatLimits(str: string): Record<StatSortKey, StatLimit> {
+	const limits = createEmptyStatLimits();
+	if (!str) return limits;
+
+	for (const part of str.split(',')) {
+		const [key, operator, ...valueParts] = part.split(':');
+		if (!key || !operator || valueParts.length === 0) continue;
+		if (!(key in limits)) continue;
+		if (operator !== 'lt' && operator !== 'gt') continue;
+		limits[key as StatSortKey] = {
+			operator,
+			value: valueParts.join(':')
+		};
+	}
+	return limits;
+}
+
+function parseStatLimitPercent(value: string): number | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const parsed = Number.parseFloat(trimmed);
+	if (!Number.isFinite(parsed)) return null;
+	return parsed / 100;
+}
 
 const ROWS = 3;
 const COLS = 10;
@@ -77,8 +132,10 @@ export class FilterStore {
 	similarReferenceName: string | null = $state(null);
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
+	statsCorpus: StatsCorpus = $state(DEFAULT_STATS_CORPUS);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
+	statLimits: Record<StatSortKey, StatLimit> = $state(createEmptyStatLimits());
 
 	get showLayoutStats(): boolean {
 		return !this.hideLayoutStats;
@@ -191,6 +248,11 @@ export class FilterStore {
 			this.sortOrder = order;
 		}
 
+		const corpus = url.searchParams.get('corpus');
+		if (corpus && isStatsCorpus(corpus)) {
+			this.statsCorpus = corpus;
+		}
+
 		if (url.searchParams.get('stats') === '0') {
 			this.hideLayoutStats = true;
 		}
@@ -202,6 +264,11 @@ export class FilterStore {
 		const similar = url.searchParams.get('similar');
 		if (similar) {
 			this.similarReferenceName = similar;
+		}
+
+		const statLimits = url.searchParams.get('statLimits');
+		if (statLimits) {
+			this.statLimits = deserializeStatLimits(statLimits);
 		}
 	}
 
@@ -267,6 +334,10 @@ export class FilterStore {
 			url.searchParams.set('order', this.sortOrder);
 		}
 
+		if (this.statsCorpus !== DEFAULT_STATS_CORPUS) {
+			url.searchParams.set('corpus', this.statsCorpus);
+		}
+
 		if (this.hideLayoutStats) {
 			url.searchParams.set('stats', '0');
 		}
@@ -277,6 +348,11 @@ export class FilterStore {
 
 		if (this.similarReferenceName) {
 			url.searchParams.set('similar', this.similarReferenceName);
+		}
+
+		const statLimitsSerialized = serializeStatLimits(this.statLimits);
+		if (statLimitsSerialized) {
+			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -356,6 +432,11 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	setStatsCorpus(value: StatsCorpus) {
+		this.statsCorpus = value;
+		this.#saveToUrl();
+	}
+
 	setHideLayoutStats(value: boolean) {
 		this.hideLayoutStats = value;
 		this.#saveToUrl();
@@ -364,6 +445,16 @@ export class FilterStore {
 	setHideLayoutTestArea(value: boolean) {
 		this.hideLayoutTestArea = value;
 		this.#saveToUrl();
+	}
+
+	setStatLimitOperator(key: StatSortKey, operator: StatLimitOperator) {
+		this.statLimits[key].operator = operator;
+		this.#debouncedSave();
+	}
+
+	setStatLimitValue(key: StatSortKey, value: string) {
+		this.statLimits[key].value = value;
+		this.#debouncedSave();
 	}
 
 	setNameFilter(value: string) {
@@ -424,6 +515,8 @@ export class FilterStore {
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
 		this.similarReferenceName = null;
+		this.statLimits = createEmptyStatLimits();
+		this.statsCorpus = DEFAULT_STATS_CORPUS;
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
@@ -475,6 +568,10 @@ export class FilterStore {
 		return this.similarReferenceName !== null;
 	}
 
+	get hasActiveStatLimits(): boolean {
+		return STAT_FILTER_FIELDS.some((field) => this.statLimits[field.key].value.trim() !== '');
+	}
+
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
@@ -494,7 +591,8 @@ export class FilterStore {
 			this.boardTypeFilter !== 'all' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0 ||
-			this.similarReferenceName !== null
+			this.similarReferenceName !== null ||
+			this.hasActiveStatLimits
 		);
 	}
 
@@ -713,8 +811,34 @@ export class FilterStore {
 		return layout.board === this.boardTypeFilter;
 	}
 
+	#matchesStatLimits(layout: LayoutData, statsMap: LayoutStatsMap, statsReady: boolean): boolean {
+		if (!this.hasActiveStatLimits) return true;
+		if (!statsReady) return true;
+
+		const corpusStats = getLayoutCorpusStats(statsMap, layout.name, this.statsCorpus);
+		if (!corpusStats) return false;
+
+		const stats = deriveBotStats(corpusStats);
+
+		for (const field of STAT_FILTER_FIELDS) {
+			const limit = this.statLimits[field.key];
+			const threshold = parseStatLimitPercent(limit.value);
+			if (threshold === null) continue;
+
+			const value = stats[field.key];
+			if (limit.operator === 'lt' && value >= threshold) return false;
+			if (limit.operator === 'gt' && value <= threshold) return false;
+		}
+
+		return true;
+	}
+
 	// Filter layouts based on all criteria
-	filterLayouts(layouts: LayoutData[]): LayoutData[] {
+	filterLayouts(
+		layouts: LayoutData[],
+		statsMap: LayoutStatsMap = {},
+		statsReady = false
+	): LayoutData[] {
 		return layouts.filter((l) => {
 			// Only apply hasAllLetters filter if not filtering by international character set
 			// A layout is considered "finished" if it has all letters OR has a magic key
@@ -729,6 +853,7 @@ export class FilterStore {
 			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			if (!this.#matchesBoardType(l)) return false;
+			if (!this.#matchesStatLimits(l, statsMap, statsReady)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&
@@ -746,8 +871,8 @@ export class FilterStore {
 
 		if (statSort) {
 			return sorted.sort((a, b) => {
-				const aCorpusStats = getLayoutCorpusStats(statsMap, a.name);
-				const bCorpusStats = getLayoutCorpusStats(statsMap, b.name);
+				const aCorpusStats = getLayoutCorpusStats(statsMap, a.name, this.statsCorpus);
+				const bCorpusStats = getLayoutCorpusStats(statsMap, b.name, this.statsCorpus);
 				const aValue = aCorpusStats ? deriveBotStats(aCorpusStats)[statSort.key] : null;
 				const bValue = bCorpusStats ? deriveBotStats(bCorpusStats)[statSort.key] : null;
 
