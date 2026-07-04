@@ -8,9 +8,15 @@ import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_CORPUS, loadCorpusData } from './layout-stats.js';
+import {
+	buildCyanophageStats,
+	CYANOPHAGE_STATS_CORPUS,
+	loadCyanophageData
+} from './cyanophage-stats.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const STATS_FILE = 'static/layout-stats.json';
+const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache', 'corpora/monkeyracer'];
@@ -99,12 +105,23 @@ async function run() {
 		console.warn(`  ⚠ Could not load corpus data (${err.message}); SFB/LH-RH will be zero`);
 	}
 
+	let cyanophageData = null;
+	try {
+		cyanophageData = await loadCyanophageData();
+		console.log(`→ Loaded ${CYANOPHAGE_STATS_CORPUS} corpus for effort metrics`);
+	} catch (err) {
+		console.warn(`  ⚠ Could not load cyanophage data (${err.message}); cyanophage stats will be skipped`);
+	}
+
 	// Transform all layouts
 	const transformedLayouts = [];
 	const layoutStats = {};
+	const cyanophageStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
 	let statsInvalid = 0;
+	let cyanophageStatsLoaded = 0;
+	let cyanophageStatsSkipped = 0;
 
 	for (const filename of layoutFiles) {
 		// Check if blacklisted (handle both with and without .json extension)
@@ -136,6 +153,14 @@ async function run() {
 				if (hasCache) statsInvalid++;
 				else statsMissing++;
 			}
+
+			const cyanStats = buildCyanophageStats(rawLayout, cyanophageData);
+			if (cyanStats) {
+				cyanophageStats[rawLayout.name] = cyanStats;
+				cyanophageStatsLoaded++;
+			} else {
+				cyanophageStatsSkipped++;
+			}
 		} catch (err) {
 			console.error(`  ⚠ Error processing ${filename}:`, err.message);
 		}
@@ -156,6 +181,17 @@ async function run() {
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
 	console.log(
 		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${statsInvalid} invalid cache, ${DEFAULT_STATS_CORPUS} corpus)\n`
+	);
+
+	console.log('→ Building cyanophage effort stats...');
+	const sortedCyanophageStats = Object.fromEntries(
+		Object.keys(cyanophageStats)
+			.sort((a, b) => a.localeCompare(b))
+			.map((name) => [name, cyanophageStats[name]])
+	);
+	await writeFile(CYANOPHAGE_STATS_FILE, JSON.stringify(sortedCyanophageStats) + '\n', 'utf-8');
+	console.log(
+		`  ✔ Cyanophage stats for ${cyanophageStatsLoaded} layouts (${cyanophageStatsSkipped} skipped, ${CYANOPHAGE_STATS_CORPUS} corpus)\n`
 	);
 
 	console.log('→ Syncing authors...');
