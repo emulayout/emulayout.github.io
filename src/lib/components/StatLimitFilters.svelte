@@ -34,6 +34,10 @@
 			--tw-ring-color: var(--accent);
 		`;
 	}
+
+	let expanded = $state(filterStore.hasActiveStatLimits);
+
+	const hasActiveFilters = $derived(filterStore.hasActiveStatLimits);
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
@@ -66,56 +70,90 @@
 	</div>
 {/snippet}
 
-<div class="stat-limits-panel">
-	<div class="stat-limits-header">
-		<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat limits</span>
+<div
+	class="stat-filters-panel"
+	class:stat-filters-panel--active={hasActiveFilters}
+>
+	<div class="stat-filters-header">
+		<button
+			type="button"
+			class="stat-filters-toggle"
+			aria-expanded={expanded}
+			aria-controls="stat-filters-content"
+			onclick={() => (expanded = !expanded)}
+		>
+			<svg
+				class="stat-filters-chevron"
+				class:stat-filters-chevron--expanded={expanded}
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d="M9 18l6-6-6-6" />
+			</svg>
+			<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
+		</button>
 		<Tooltip
-			text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any limit is set."
+			text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any filter is set."
 		/>
 	</div>
 
-	<div class="stat-limits-body">
-		<section class="stat-limits-general" aria-label="General stat limits">
-			{#each GENERAL_STAT_FILTER_ROWS as row, rowIndex (rowIndex)}
-				<div class="stat-limit-row">
-					{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
-						{@const field = row[colIndex]}
-						{#if field}
-							{@render statLimitControl(field, '2.5rem')}
-						{:else}
-							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-						{/if}
+	<div
+		id="stat-filters-content"
+		class="stat-filters-body"
+		class:stat-filters-body--expanded={expanded}
+		aria-hidden={!expanded}
+		inert={!expanded}
+	>
+		<div class="stat-filters-body-inner">
+			<div class="stat-limits-body">
+				<section class="stat-limits-general" aria-label="General stat filters">
+					{#each GENERAL_STAT_FILTER_ROWS as row, rowIndex (rowIndex)}
+						<div class="stat-limit-row">
+							{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+								{@const field = row[colIndex]}
+								{#if field}
+									{@render statLimitControl(field, '2.5rem')}
+								{:else}
+									<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+								{/if}
+							{/each}
+						</div>
 					{/each}
-				</div>
-			{/each}
-		</section>
+				</section>
 
-		<section class="stat-limits-hands" aria-label="Hand and finger stat limits">
-			<h3 class="stat-limits-hands-title">Hands &amp; fingers</h3>
-			<div class="stat-limits-hand-grid">
-				<div>
-					<div class="stat-limits-hand-heading">Left hand</div>
-					<div class="stat-limits-hand-list">
-						{#each LEFT_HAND_STAT_FILTER_FIELDS as field (field.key)}
-							{@render statLimitControl(field, '3.25rem')}
-						{/each}
+				<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
+					<h3 class="stat-limits-hands-title">Hands &amp; fingers</h3>
+					<div class="stat-limits-hand-grid">
+						<div>
+							<div class="stat-limits-hand-heading">Left hand</div>
+							<div class="stat-limits-hand-list">
+								{#each LEFT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+									{@render statLimitControl(field, '3.25rem')}
+								{/each}
+							</div>
+						</div>
+						<div>
+							<div class="stat-limits-hand-heading">Right hand</div>
+							<div class="stat-limits-hand-list">
+								{#each RIGHT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+									{@render statLimitControl(field, '3.25rem')}
+								{/each}
+							</div>
+						</div>
 					</div>
-				</div>
-				<div>
-					<div class="stat-limits-hand-heading">Right hand</div>
-					<div class="stat-limits-hand-list">
-						{#each RIGHT_HAND_STAT_FILTER_FIELDS as field (field.key)}
-							{@render statLimitControl(field, '3.25rem')}
-						{/each}
-					</div>
-				</div>
+				</section>
 			</div>
-		</section>
+		</div>
 	</div>
 </div>
 
 <style>
-	.stat-limits-panel {
+	.stat-filters-panel {
 		--stat-cell-gap: 0.75rem;
 
 		padding: 1rem;
@@ -124,12 +162,62 @@
 		border: 1px solid var(--border);
 	}
 
-	.stat-limits-header {
+	.stat-filters-panel--active {
+		border-color: var(--accent);
+	}
+
+	.stat-filters-header {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem 0.75rem;
-		margin-bottom: 0.75rem;
+	}
+
+	.stat-filters-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0;
+		border: none;
+		background: none;
+		cursor: pointer;
+		outline: none;
+		border-radius: 0.375rem;
+	}
+
+	.stat-filters-toggle:focus-visible {
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.stat-filters-chevron {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		color: var(--text-secondary);
+		transition: transform 0.2s ease;
+	}
+
+	.stat-filters-chevron--expanded {
+		transform: rotate(90deg);
+	}
+
+	.stat-filters-body {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.2s ease;
+	}
+
+	.stat-filters-body--expanded {
+		grid-template-rows: 1fr;
+	}
+
+	.stat-filters-body-inner {
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.stat-filters-body--expanded .stat-filters-body-inner {
+		padding-top: 0.75rem;
 	}
 
 	.stat-limits-body {
