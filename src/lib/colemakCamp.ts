@@ -1,7 +1,6 @@
 import type { BoardType } from '$lib/layout';
 
-/** Replace with production URL when deployed. */
-export const COLEMAK_CAMP_BASE_URL = 'http://localhost:8000/';
+export const COLEMAK_CAMP_BASE_URL = 'https://emulayout.github.io/colemakcamp/';
 
 export const CUSTOM_LAYOUT_URL_KEYS = [
 	'KeyQ',

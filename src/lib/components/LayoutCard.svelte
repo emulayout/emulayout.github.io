@@ -19,6 +19,7 @@
 		type StatSortKey
 	} from '$lib/layoutStats';
 	import { buildCyanophagePlaygroundUrl, CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
+	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import {
 		applyAnglemodToDisplayValue,
 		buildKeyMap,
@@ -131,12 +132,18 @@
 		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 
+	function handleColemakCampClick(event: MouseEvent) {
+		event.preventDefault();
+		const url = createColemakCampURLFromKeyMap(keyMap, layout.board);
+		window.open(url, '_blank', 'noopener,noreferrer');
+	}
+
 	function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
 		if (!layout.cyanophageCompatible) return;
 		const url = buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
 		if (!url) return;
-		window.open(url, '_blank');
+		window.open(url, '_blank', 'noopener,noreferrer');
 	}
 
 	function handleFindSimilarClick() {
@@ -190,104 +197,23 @@
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"
 >
 	<div class="shrink-0 flex flex-col gap-1">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-2 min-w-0">
 			<h2
-				class="text-lg font-semibold flex-1 truncate"
+				class="text-lg font-semibold flex-1 truncate min-w-0"
 				style="color: var(--text-primary);"
 				title={layout.name}
 			>
 				{layout.name}
 			</h2>
-			<div class="flex items-center gap-1 shrink-0">
-				{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}
-					<span
-						class="px-2 py-1 rounded-lg text-sm font-medium tabular-nums"
-						style="color: var(--accent); background-color: var(--bg-primary); border: 1px solid var(--border);"
-						title="Position match"
-					>
-						{similarMatchPercent}%
-					</span>
-				{:else if !filterStore.hasSimilarReference || isSimilarActive}
-					<button
-						type="button"
-						onclick={handleFindSimilarClick}
-						class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
-						style="
-							background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
-							color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
-							border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
-						"
-						title={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
-						aria-label={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
-						aria-pressed={isSimilarActive}
-					>
-						<svg
-							class="size-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<rect x="3" y="3" width="7" height="7" rx="1" />
-							<rect x="14" y="3" width="7" height="7" rx="1" />
-							<rect x="3" y="14" width="7" height="7" rx="1" />
-							<rect x="14" y="14" width="7" height="7" rx="1" />
-						</svg>
-					</button>
-				{/if}
-				<button
-					type="button"
-					onclick={() => (anglemod = !anglemod)}
-					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
-					style="
-						background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
-						color: {anglemod ? 'white' : 'var(--text-primary)'};
-						border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
-					"
-					title={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
-					aria-label={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
-					aria-pressed={anglemod}
+			{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}
+				<span
+					class="px-2 py-1 rounded-lg text-sm font-medium tabular-nums shrink-0"
+					style="color: var(--accent); background-color: var(--bg-primary); border: 1px solid var(--border);"
+					title="Position match"
 				>
-					<svg
-						class="size-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-						<path d="M21 3v5h-5" />
-						<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-						<path d="M3 21v-5h5" />
-					</svg>
-				</button>
-				<button
-					type="button"
-					onclick={handlePlaygroundClick}
-					disabled={!layout.cyanophageCompatible}
-					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-					style="
-						background-color: var(--bg-primary);
-						color: var(--text-primary);
-						border: 1px solid var(--border);
-					"
-					title={cyanophageLinkTitle}
-					aria-label={cyanophageLinkTitle}
-					aria-disabled={!layout.cyanophageCompatible}
-				>
-					<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-						/>
-					</svg>
-				</button>
-			</div>
+					{similarMatchPercent}%
+				</span>
+			{/if}
 		</div>
 		<p class="text-xs layout-meta flex items-center gap-1 min-w-0" style="color: var(--text-secondary);">
 			<span class="shrink-0">{layout.board} · by</span>
@@ -316,11 +242,110 @@
 			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
 	</div>
 
+	<div class="card-action-divider shrink-0" aria-label="Layout actions">
+		<div class="card-action-toolbar">
+			{#if !filterStore.hasSimilarReference || isSimilarActive}
+				<button
+					type="button"
+					onclick={handleFindSimilarClick}
+					class="card-action-button"
+					style="
+						background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
+						color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
+						border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
+					"
+					title={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
+					aria-label={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
+					aria-pressed={isSimilarActive}
+				>
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<rect x="3" y="3" width="7" height="7" rx="1" />
+						<rect x="14" y="3" width="7" height="7" rx="1" />
+						<rect x="3" y="14" width="7" height="7" rx="1" />
+						<rect x="14" y="14" width="7" height="7" rx="1" />
+					</svg>
+				</button>
+			{/if}
+			<button
+				type="button"
+				onclick={() => (anglemod = !anglemod)}
+				class="card-action-button"
+				style="
+					background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
+					color: {anglemod ? 'white' : 'var(--text-primary)'};
+					border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
+				"
+				title={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
+				aria-label={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
+				aria-pressed={anglemod}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+					<path d="M21 3v5h-5" />
+					<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+					<path d="M3 21v-5h5" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				onclick={handleColemakCampClick}
+				class="card-action-button"
+				style="
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+				"
+				title="Practice on Colemak Camp"
+				aria-label="Practice on Colemak Camp"
+			>
+				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<rect x="2" y="4" width="20" height="16" rx="2" />
+					<path stroke-linecap="round" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				onclick={handlePlaygroundClick}
+				disabled={!layout.cyanophageCompatible}
+				class="card-action-button disabled:opacity-40 disabled:cursor-not-allowed"
+				style="
+					background-color: var(--bg-primary);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+				"
+				title={cyanophageLinkTitle}
+				aria-label={cyanophageLinkTitle}
+				aria-disabled={!layout.cyanophageCompatible}
+			>
+				<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+					/>
+				</svg>
+			</button>
+		</div>
+	</div>
+
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
-		<div
-			class="card-footer shrink-0 pt-4 flex flex-col gap-4"
-			style="border-top: 1px solid var(--border);"
-		>
+		<div class="card-footer shrink-0 pt-2 flex flex-col gap-4">
 			{#if filterStore.showLayoutStats}
 				{#if statsBlockLines}
 					<div class="stats-block shrink-0">
@@ -356,3 +381,44 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.card-action-divider {
+		position: relative;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 0.375rem 0;
+	}
+
+	.card-action-divider::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 50%;
+		border-top: 1px solid var(--border);
+		pointer-events: none;
+	}
+
+	.card-action-toolbar {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0 0.375rem;
+		background-color: var(--bg-secondary);
+	}
+
+	.card-action-button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.25rem 0.5rem;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		transition: all 0.15s ease;
+	}
+</style>
