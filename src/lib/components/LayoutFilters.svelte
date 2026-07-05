@@ -12,7 +12,12 @@
 		type SortBy,
 		type SortOrder
 	} from '$lib/filterStore.svelte';
-	import { STAT_SORT_FIELDS, DEFAULT_STATS_CORPUS, STAT_CORPORA, type StatsCorpus } from '$lib/layoutStats';
+	import {
+		DEFAULT_STATS_ANALYZER,
+		getStatSortFieldsForAnalyzer,
+		STAT_ANALYZERS,
+		type StatsAnalyzer
+	} from '$lib/layoutStats';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
@@ -21,7 +26,8 @@
 
 	const { authorList, filteredCount }: Props = $props();
 	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
-	const corpusIsDefault = $derived(filterStore.statsCorpus === DEFAULT_STATS_CORPUS);
+	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
+	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
 	const displaySettingsActive = $derived(
 		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea
 	);
@@ -144,7 +150,18 @@
 		/>
 	</div>
 	<div class="grid-area-stat-limits">
-		<StatLimitFilters />
+		{#if filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER}
+			<StatLimitFilters />
+		{:else}
+			<div
+				class="p-4 rounded-xl h-full flex items-center justify-center text-center"
+				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+			>
+				<p class="text-sm" style="color: var(--text-caption);">
+					Stat filters apply to monkeyracer stats.
+				</p>
+			</div>
+		{/if}
 	</div>
 	<div
 		class="p-4 rounded-xl grid-area-other-options flex flex-col items-center"
@@ -319,20 +336,20 @@
 	>
 		<div class="flex flex-wrap items-center gap-2">
 			<label class="flex items-center gap-2 select-none">
-				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Corpus:</span>
+				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);">Analyzer:</span>
 				<select
-					value={filterStore.statsCorpus}
-					onchange={(e) => filterStore.setStatsCorpus(e.currentTarget.value as StatsCorpus)}
+					value={filterStore.statsAnalyzer}
+					onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzer)}
 					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
 					style="
 						background-color: var(--bg-secondary);
 						color: var(--text-primary);
-						border: 1px solid {!corpusIsDefault ? 'var(--accent)' : 'var(--border)'};
+						border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
 						--tw-ring-color: var(--accent);
 					"
 				>
-					{#each STAT_CORPORA as corpus (corpus.value)}
-						<option value={corpus.value}>{corpus.label}</option>
+					{#each STAT_ANALYZERS as analyzer (analyzer.value)}
+						<option value={analyzer.value}>{analyzer.label}</option>
 					{/each}
 				</select>
 			</label>
@@ -355,7 +372,7 @@
 						<option value="date">Date</option>
 					</optgroup>
 					<optgroup label="Stats">
-						{#each STAT_SORT_FIELDS as field (field.value)}
+						{#each statSortFields as field (field.value)}
 							<option value={field.value}>{field.label}</option>
 						{/each}
 					</optgroup>

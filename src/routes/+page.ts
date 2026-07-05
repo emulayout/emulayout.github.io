@@ -1,38 +1,79 @@
-import type { LayoutData, LayoutStatsMap } from '$lib/layout';
+import type { LayoutData, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { isSortBy, isStatSortBy, parseLegacySortParam } from '$lib/layoutStats';
+import {
+	CYANOPHAGE_ANALYZER,
+	DEFAULT_STATS_ANALYZER,
+	getStatSortAnalyzer,
+	isSortBy,
+	isStatSortBy,
+	isStatsAnalyzer,
+	parseLegacySortParam,
+	type SortBy,
+	type StatsAnalyzer
+} from '$lib/layoutStats';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
+
+function getInitialStatsAnalyzer(url: URL): StatsAnalyzer {
+	const analyzer = url.searchParams.get('analyzer');
+	return analyzer && isStatsAnalyzer(analyzer) ? analyzer : DEFAULT_STATS_ANALYZER;
+}
+
+function getAnalyzersToPreload(
+	loadStats: boolean,
+	statsAnalyzer: StatsAnalyzer,
+	sortBy: SortBy
+): StatsAnalyzer[] {
+	const analyzers = new Set<StatsAnalyzer>();
+
+	if (loadStats) {
+		analyzers.add(statsAnalyzer);
+	}
+
+	if (isStatSortBy(sortBy)) {
+		const sortAnalyzer = getStatSortAnalyzer(sortBy);
+		if (sortAnalyzer) analyzers.add(sortAnalyzer);
+	}
+
+	return [...analyzers];
+}
 
 export const load: PageLoad = async ({ fetch, url }) => {
 	const sortParam = url.searchParams.get('sort');
 	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
-	const sortBy = legacySort?.sortBy ?? (sortParam && isSortBy(sortParam) ? sortParam : 'date');
+	const sortBy: SortBy =
+		legacySort?.sortBy ?? (sortParam && isSortBy(sortParam) ? sortParam : 'date');
+	const statsAnalyzer = getInitialStatsAnalyzer(url);
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
+	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzer, sortBy);
 
-	const [layoutsResponse, authorsResponse, statsResponse] = await Promise.all([
+	const [layoutsResponse, authorsResponse, ...statsResponses] = await Promise.all([
 		fetch('/all-layouts.json'),
 		fetch('/authors.json'),
-		loadStats ? fetch('/layout-stats.json') : Promise.resolve(null)
+		...analyzersToPreload.map((analyzer) =>
+			fetch(analyzer === CYANOPHAGE_ANALYZER ? '/layout-stats-cyanophage.json' : '/layout-stats.json')
+		)
 	]);
 
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
 
-	let layoutStats: LayoutStatsMap = {};
+	layoutStatsStore.reset();
 
-	if (loadStats && statsResponse) {
-		layoutStats = statsResponse.ok ? await statsResponse.json() : {};
-		layoutStatsStore.hydrate(layoutStats);
-	} else {
-		layoutStatsStore.reset();
+	const statsMaps: StatsMaps = {};
+	for (let i = 0; i < analyzersToPreload.length; i++) {
+		const analyzer = analyzersToPreload[i];
+		const response = statsResponses[i];
+		const map = response.ok ? await response.json() : {};
+		statsMaps[analyzer] = map;
+		layoutStatsStore.hydrate(analyzer, map);
 	}
 
 	return {
 		layouts,
 		authorsData,
-		layoutStats
+		statsMaps
 	};
 };

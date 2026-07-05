@@ -1,21 +1,23 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import {
+	DEFAULT_STATS_ANALYZER,
 	deriveBotStats,
-	getLayoutCorpusStats,
+	getLayoutAnalyzerStats,
 	getStatSortField,
+	getStatSortValue,
 	isSortBy,
 	isSortOrder,
 	isStatSortBy,
-	isStatsCorpus,
+	isStatSortByForAnalyzer,
+	isStatsAnalyzer,
 	parseLegacySortParam,
 	STAT_FILTER_FIELDS,
-	DEFAULT_STATS_CORPUS,
 	type SortBy,
 	type SortOrder,
 	type StatSortKey,
-	type StatsCorpus
+	type StatsAnalyzer
 } from './layoutStats';
-import type { LayoutData, LayoutStatsMap } from './layout';
+import type { MonkeyracerStats, LayoutData, StatsMaps } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -132,7 +134,7 @@ export class FilterStore {
 	similarReferenceName: string | null = $state(null);
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
-	statsCorpus: StatsCorpus = $state(DEFAULT_STATS_CORPUS);
+	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
 	statLimits: Record<StatSortKey, StatLimit> = $state(createEmptyStatLimits());
@@ -248,9 +250,9 @@ export class FilterStore {
 			this.sortOrder = order;
 		}
 
-		const corpus = url.searchParams.get('corpus');
-		if (corpus && isStatsCorpus(corpus)) {
-			this.statsCorpus = corpus;
+		const analyzer = url.searchParams.get('analyzer');
+		if (analyzer && isStatsAnalyzer(analyzer)) {
+			this.statsAnalyzer = analyzer;
 		}
 
 		if (url.searchParams.get('stats') === '0') {
@@ -334,8 +336,8 @@ export class FilterStore {
 			url.searchParams.set('order', this.sortOrder);
 		}
 
-		if (this.statsCorpus !== DEFAULT_STATS_CORPUS) {
-			url.searchParams.set('corpus', this.statsCorpus);
+		if (this.statsAnalyzer !== DEFAULT_STATS_ANALYZER) {
+			url.searchParams.set('analyzer', this.statsAnalyzer);
 		}
 
 		if (this.hideLayoutStats) {
@@ -432,8 +434,12 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
-	setStatsCorpus(value: StatsCorpus) {
-		this.statsCorpus = value;
+	setStatsAnalyzer(value: StatsAnalyzer) {
+		this.statsAnalyzer = value;
+		if (isStatSortBy(this.sortBy) && !isStatSortByForAnalyzer(this.sortBy, value)) {
+			this.sortBy = 'date';
+			this.sortOrder = 'desc';
+		}
 		this.#saveToUrl();
 	}
 
@@ -516,7 +522,7 @@ export class FilterStore {
 		this.selectedAuthors.clear();
 		this.similarReferenceName = null;
 		this.statLimits = createEmptyStatLimits();
-		this.statsCorpus = DEFAULT_STATS_CORPUS;
+		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
@@ -811,14 +817,15 @@ export class FilterStore {
 		return layout.board === this.boardTypeFilter;
 	}
 
-	#matchesStatLimits(layout: LayoutData, statsMap: LayoutStatsMap, statsReady: boolean): boolean {
+	#matchesStatLimits(layout: LayoutData, statsMaps: StatsMaps, statsReady: boolean): boolean {
+		if (this.statsAnalyzer !== DEFAULT_STATS_ANALYZER) return true;
 		if (!this.hasActiveStatLimits) return true;
 		if (!statsReady) return true;
 
-		const corpusStats = getLayoutCorpusStats(statsMap, layout.name, this.statsCorpus);
-		if (!corpusStats) return false;
+		const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, DEFAULT_STATS_ANALYZER, layout.keys);
+		if (!analyzerStats) return false;
 
-		const stats = deriveBotStats(corpusStats);
+		const stats = deriveBotStats(analyzerStats as MonkeyracerStats);
 
 		for (const field of STAT_FILTER_FIELDS) {
 			const limit = this.statLimits[field.key];
@@ -836,7 +843,7 @@ export class FilterStore {
 	// Filter layouts based on all criteria
 	filterLayouts(
 		layouts: LayoutData[],
-		statsMap: LayoutStatsMap = {},
+		statsMaps: StatsMaps = {},
 		statsReady = false
 	): LayoutData[] {
 		return layouts.filter((l) => {
@@ -853,7 +860,7 @@ export class FilterStore {
 			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			if (!this.#matchesBoardType(l)) return false;
-			if (!this.#matchesStatLimits(l, statsMap, statsReady)) return false;
+			if (!this.#matchesStatLimits(l, statsMaps, statsReady)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&
@@ -864,17 +871,15 @@ export class FilterStore {
 		});
 	}
 
-	sortLayouts(layouts: LayoutData[], statsMap: LayoutStatsMap = {}): LayoutData[] {
+	sortLayouts(layouts: LayoutData[], statsMaps: StatsMaps = {}): LayoutData[] {
 		const sorted = [...layouts];
 		const descending = this.sortOrder === 'desc';
 		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
 
 		if (statSort) {
 			return sorted.sort((a, b) => {
-				const aCorpusStats = getLayoutCorpusStats(statsMap, a.name, this.statsCorpus);
-				const bCorpusStats = getLayoutCorpusStats(statsMap, b.name, this.statsCorpus);
-				const aValue = aCorpusStats ? deriveBotStats(aCorpusStats)[statSort.key] : null;
-				const bValue = bCorpusStats ? deriveBotStats(bCorpusStats)[statSort.key] : null;
+				const aValue = getStatSortValue(statsMaps, a, this.sortBy);
+				const bValue = getStatSortValue(statsMaps, b, this.sortBy);
 
 				if (aValue === null && bValue === null) {
 					return a.name.localeCompare(b.name);

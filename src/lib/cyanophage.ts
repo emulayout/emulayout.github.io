@@ -140,6 +140,61 @@ function pickPunctPlaceholder(used: ReadonlySet<string>, fallbacks: readonly str
 
 const CYANOPHAGE_IMPORT_SLOT_COUNT = 34;
 
+/** Fixed row/col per import slot after cyanophage import (indices 0–31, shared across modes). */
+const CYANOPHAGE_LETTER_SLOT_GEOMETRY: readonly { row: number; col: number }[] = [
+	...Array.from({ length: 10 }, (_, index) => ({ row: 0, col: index + 1 })),
+	{ row: 0, col: 11 },
+	...Array.from({ length: 9 }, (_, index) => ({ row: 1, col: index + 1 })),
+	{ row: 1, col: 10 },
+	{ row: 1, col: 11 },
+	...Array.from({ length: 10 }, (_, index) => ({ row: 2, col: index + 1 }))
+];
+
+function getImportSlotGeometry(
+	board: BoardType,
+	importString: string
+): readonly { row: number; col: number }[] {
+	const geometry = CYANOPHAGE_LETTER_SLOT_GEOMETRY.map((slot) => ({ ...slot }));
+	const defaultThumb = importString.charAt(33) === '^';
+
+	if (board === 'stagger' && defaultThumb) {
+		geometry.push({ row: 0, col: 12 }, { row: 2, col: -1 });
+	} else if (board === 'angle' && defaultThumb) {
+		geometry.push({ row: 2, col: 0 }, { row: 2, col: -1 });
+	} else {
+		geometry.push({ row: 2, col: 0 }, { row: 3, col: 4 });
+	}
+
+	return geometry;
+}
+
+/**
+ * Map each letter to cyanophage rcdata row/col (same geometry the playground uses after import).
+ */
+export function buildCyanophageCharPositionMap(
+	keys: Record<string, KeyInfo>,
+	board: BoardType
+): Map<string, { row: number; col: number }> {
+	const importString = formatLayoutImportString(keys, board);
+	if (importString.length !== CYANOPHAGE_IMPORT_SLOT_COUNT) {
+		return new Map();
+	}
+
+	const geometry = getImportSlotGeometry(board, importString);
+	const map = new Map<string, { row: number; col: number }>();
+
+	for (let index = 0; index < CYANOPHAGE_IMPORT_SLOT_COUNT; index++) {
+		const char = importString.charAt(index);
+		if (char.length !== 1) continue;
+
+		const position = geometry[index];
+		map.set(char, position);
+		map.set(char.toLowerCase(), position);
+	}
+
+	return map;
+}
+
 function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType): string {
 	const grid = buildKeyGrid(keys);
 	const slots = getSlotsForBoard(board);

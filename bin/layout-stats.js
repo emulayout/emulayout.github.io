@@ -3,14 +3,14 @@ import { join } from 'node:path';
 import { FINGERS, fingerUsage, handUse, sfbBigram } from './cmini-analyzer.js';
 
 /**
- * Layout stats for the site (monkeyracer corpus).
+ * Layout stats for the site (monkeyracer analyzer).
  *
  * Trigram stats (Alt, Rol, Red, SFS, …) come from cmini cache.
  * SFB, LH/RH, and per-finger usage are computed at sync time.
  */
 
-/** Corpus exported to the site (matches cmini Discord bot default). */
-export const DEFAULT_STATS_CORPUS = 'monkeyracer';
+/** Analyzer id exported to the site (matches cmini Discord bot default). */
+export const DEFAULT_STATS_ANALYZER = 'monkeyracer';
 
 /** @type {readonly ['alternate', 'roll-in', 'roll-out', 'oneh-in', 'oneh-out', 'redirect', 'bad-redirect', 'dsfb-red', 'dsfb-alt', 'sfb', 'lh', 'rh', ...typeof FINGERS]} */
 export const BOT_STAT_KEYS = [
@@ -42,7 +42,7 @@ export function isValidTrigramStats(stats) {
 	return (stats.alternate ?? 0) > 0;
 }
 
-/** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} CorpusStats */
+/** @typedef {Record<(typeof BOT_STAT_KEYS)[number], number>} MonkeyracerStats */
 
 /** @typedef {number[]} CompactLayoutStats */
 
@@ -50,7 +50,7 @@ export function isValidTrigramStats(stats) {
  * @param {string} cacheDir
  * @param {string} corpus
  */
-export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_CORPUS) {
+export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_ANALYZER) {
 	const base = join(cacheDir, 'corpora', corpus);
 	const [bigrams, monograms, trigrams] = await Promise.all([
 		readFile(join(base, 'bigrams.json'), 'utf-8').then(JSON.parse),
@@ -62,13 +62,13 @@ export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_CORPUS) {
 
 /**
  * @param {Record<string, Record<string, number>>} cacheData
- * @returns {CorpusStats | null}
+ * @returns {MonkeyracerStats | null}
  */
 function extractCacheTrigramStats(cacheData) {
-	const stats = cacheData[DEFAULT_STATS_CORPUS];
+	const stats = cacheData[DEFAULT_STATS_ANALYZER];
 	if (!stats) return null;
 
-	/** @type {CorpusStats} */
+	/** @type {MonkeyracerStats} */
 	const result = {};
 	for (const key of TRIGRAM_STAT_KEYS) {
 		if (key in stats) result[key] = stats[key];
@@ -79,12 +79,12 @@ function extractCacheTrigramStats(cacheData) {
 
 /**
  * @param {object} rawLayout
- * @param {CorpusStats} cacheStats
+ * @param {MonkeyracerStats} cacheStats
  * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
- * @returns {CorpusStats}
+ * @returns {MonkeyracerStats}
  */
 export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
-	/** @type {CorpusStats} */
+	/** @type {MonkeyracerStats} */
 	const stats = {
 		...cacheStats,
 		sfb: 0,
@@ -117,10 +117,10 @@ export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
 }
 
 /**
- * @param {CorpusStats} stats
+ * @param {MonkeyracerStats} stats
  * @returns {CompactLayoutStats}
  */
-export function encodeCorpusStats(stats) {
+export function encodeMonkeyracerStats(stats) {
 	return BOT_STAT_KEYS.map((key) => Math.round((stats[key] ?? 0) * STAT_VALUE_SCALE));
 }
 
@@ -139,7 +139,7 @@ export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corp
 		const content = await readFile(cachePath, 'utf-8');
 		const cacheStats = extractCacheTrigramStats(JSON.parse(content));
 		if (!cacheStats) return null;
-		return encodeCorpusStats(mergeLayoutStats(rawLayout, cacheStats, corpusData));
+		return encodeMonkeyracerStats(mergeLayoutStats(rawLayout, cacheStats, corpusData));
 	} catch {
 		return null;
 	}

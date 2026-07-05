@@ -18,8 +18,8 @@ export interface LayoutData {
 	updatedAt: string;
 }
 
-/** Bot-display stat fields for one corpus. */
-export interface LayoutCorpusStats {
+/** Monkeyracer bot-display stat fields. */
+export interface MonkeyracerStats {
 	alternate: number;
 	'roll-in': number;
 	'roll-out': number;
@@ -53,3 +53,24 @@ export type CompactLayoutStats = number[];
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
+
+/** Cyanophage tier-1 stats: total word effort and effort. */
+export interface CyanophageStats {
+	'total-word-effort': number;
+	effort: number;
+}
+
+/**
+ * Compact cyanophage stats: fixed-point values (×10_000) in CYANOPHAGE_STAT_KEYS order.
+ * @see CYANOPHAGE_STAT_KEYS in layoutStats.ts
+ */
+export type CompactCyanophageStats = [number, number];
+
+/** Layout stats keyed by layout name. Loaded from /layout-stats-cyanophage.json. */
+export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
+
+/** Loaded stat payloads keyed by analyzer id. */
+export type StatsMaps = Partial<{
+	monkeyracer: LayoutStatsMap;
+	cyanophage: CyanophageStatsMap;
+}>;

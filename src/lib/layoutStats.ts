@@ -1,17 +1,24 @@
-import type { LayoutCorpusStats, LayoutStatsMap } from '$lib/layout';
+import type { CyanophageStats, KeyInfo, MonkeyracerStats, LayoutData, StatsMaps } from '$lib/layout';
+import { isCyanophageCompatible } from '$lib/cyanophage';
 
-/** Default corpus for layout stats (matches common cmini bot preference). */
-export const DEFAULT_STATS_CORPUS = 'monkeyracer';
+/** Default analyzer for layout stats (matches common cmini bot preference). */
+export const DEFAULT_STATS_ANALYZER = 'monkeyracer';
 
-/** Corpora available for stats display, sorting, and filtering. */
-export const STAT_CORPORA = [{ value: DEFAULT_STATS_CORPUS, label: 'monkeyracer' }] as const;
+/** Cyanophage stats analyzer. */
+export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
-export type StatsCorpus = (typeof STAT_CORPORA)[number]['value'];
+/** Analyzers available for stats display, sorting, and filtering. */
+export const STAT_ANALYZERS = [
+	{ value: DEFAULT_STATS_ANALYZER, label: 'monkeyracer' },
+	{ value: CYANOPHAGE_ANALYZER, label: 'cyanophage' }
+] as const;
 
-const STATS_CORPUS_VALUES = new Set<string>(STAT_CORPORA.map((corpus) => corpus.value));
+export type StatsAnalyzer = (typeof STAT_ANALYZERS)[number]['value'];
 
-export function isStatsCorpus(value: string): value is StatsCorpus {
-	return STATS_CORPUS_VALUES.has(value);
+const STATS_ANALYZER_VALUES = new Set<string>(STAT_ANALYZERS.map((analyzer) => analyzer.value));
+
+export function isStatsAnalyzer(value: string): value is StatsAnalyzer {
+	return STATS_ANALYZER_VALUES.has(value);
 }
 
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js */
@@ -49,13 +56,28 @@ export const BOT_STAT_KEYS = [
 	'lh',
 	'rh',
 	...FINGER_USAGE_KEYS
-] as const satisfies readonly (keyof LayoutCorpusStats)[];
+] as const satisfies readonly (keyof MonkeyracerStats)[];
 
 export const STAT_VALUE_SCALE = 10_000;
 export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
 
+/** Keep in sync with CYANOPHAGE_STAT_KEYS in bin/cyanophage-stats.js. */
+export const CYANOPHAGE_STAT_KEYS = ['total-word-effort', 'effort'] as const;
+
+export const CYANOPHAGE_STAT_VALUE_SCALE = 10_000;
+export const CYANOPHAGE_COMPACT_STAT_FIELD_COUNT = CYANOPHAGE_STAT_KEYS.length;
+
+export type DerivedCyanophageStats = {
+	totalWordEffort: number;
+	effort: number;
+};
+
+export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
+
+export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 2;
+
 /** Cache trigram stats are valid when alternate is non-zero (always true for analyzed layouts). */
-export function isValidCorpusStats(stats: LayoutCorpusStats): boolean {
+export function isValidMonkeyracerStats(stats: MonkeyracerStats): boolean {
 	return stats.alternate > 0;
 }
 
@@ -85,28 +107,51 @@ export type StatSortKey = keyof DerivedBotStats;
 export interface StatSortField {
 	value: string;
 	label: string;
-	key: StatSortKey;
+	key: StatSortKey | CyanophageStatSortKey;
+	analyzer: StatsAnalyzer;
 }
 
-/** Sortable bot stats (monkeyracer corpus). */
-export const STAT_SORT_FIELDS = [
-	{ value: 'alternate', label: 'Alternate', key: 'alternate' },
-	{ value: 'roll', label: 'Roll', key: 'roll' },
-	{ value: 'roll-in', label: 'Roll in', key: 'rollIn' },
-	{ value: 'roll-out', label: 'Roll out', key: 'rollOut' },
-	{ value: 'one', label: 'One-hand', key: 'one' },
-	{ value: 'one-in', label: 'One-hand in', key: 'oneIn' },
-	{ value: 'one-out', label: 'One-hand out', key: 'oneOut' },
-	{ value: 'roll-total', label: 'Roll total', key: 'rtl' },
-	{ value: 'roll-total-in', label: 'Roll total in', key: 'rtlIn' },
-	{ value: 'roll-total-out', label: 'Roll total out', key: 'rtlOut' },
-	{ value: 'redirect', label: 'Redirect', key: 'red' },
-	{ value: 'bad-redirect', label: 'Bad redirect', key: 'badRedirect' },
-	{ value: 'sfb', label: 'Same-finger bigrams', key: 'sfb' },
-	{ value: 'same-finger-skip', label: 'Same-finger skip', key: 'sfs' },
-	{ value: 'same-finger-skip-redirect', label: 'Same-finger skip redirect', key: 'dsfbRed' },
-	{ value: 'same-finger-skip-alternate', label: 'Same-finger skip alternate', key: 'dsfbAlt' }
+export const CYANOPHAGE_STAT_SORT_FIELDS = [
+	{
+		value: 'total-word-effort',
+		label: 'Total word effort',
+		key: 'totalWordEffort',
+		analyzer: CYANOPHAGE_ANALYZER
+	},
+	{ value: 'effort', label: 'Effort', key: 'effort', analyzer: CYANOPHAGE_ANALYZER }
 ] as const satisfies readonly StatSortField[];
+
+/** Sortable bot stats (monkeyracer). */
+export const STAT_SORT_FIELDS = [
+	{ value: 'alternate', label: 'Alternate', key: 'alternate', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll', label: 'Roll', key: 'roll', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll-in', label: 'Roll in', key: 'rollIn', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll-out', label: 'Roll out', key: 'rollOut', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'one', label: 'One-hand', key: 'one', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'one-in', label: 'One-hand in', key: 'oneIn', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'one-out', label: 'One-hand out', key: 'oneOut', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll-total', label: 'Roll total', key: 'rtl', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll-total-in', label: 'Roll total in', key: 'rtlIn', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'roll-total-out', label: 'Roll total out', key: 'rtlOut', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'redirect', label: 'Redirect', key: 'red', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'bad-redirect', label: 'Bad redirect', key: 'badRedirect', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'sfb', label: 'Same-finger bigrams', key: 'sfb', analyzer: DEFAULT_STATS_ANALYZER },
+	{ value: 'same-finger-skip', label: 'Same-finger skip', key: 'sfs', analyzer: DEFAULT_STATS_ANALYZER },
+	{
+		value: 'same-finger-skip-redirect',
+		label: 'Same-finger skip redirect',
+		key: 'dsfbRed',
+		analyzer: DEFAULT_STATS_ANALYZER
+	},
+	{
+		value: 'same-finger-skip-alternate',
+		label: 'Same-finger skip alternate',
+		key: 'dsfbAlt',
+		analyzer: DEFAULT_STATS_ANALYZER
+	}
+] as const satisfies readonly StatSortField[];
+
+const ALL_STAT_SORT_FIELDS = [...STAT_SORT_FIELDS, ...CYANOPHAGE_STAT_SORT_FIELDS] as const;
 
 export interface StatFilterField {
 	key: StatSortKey;
@@ -179,7 +224,7 @@ export const STAT_FILTER_FIELDS = [
 	...RIGHT_HAND_STAT_FILTER_FIELDS
 ] as const satisfies readonly StatFilterField[];
 
-export type StatSortBy = (typeof STAT_SORT_FIELDS)[number]['value'];
+export type StatSortBy = (typeof ALL_STAT_SORT_FIELDS)[number]['value'];
 
 export type LayoutSortBy = 'name' | 'date';
 
@@ -188,10 +233,10 @@ export type SortBy = LayoutSortBy | StatSortBy;
 export type SortOrder = 'asc' | 'desc';
 
 const STAT_SORT_FIELD_BY_VALUE = new Map<string, StatSortField>(
-	STAT_SORT_FIELDS.map((field) => [field.value, field])
+	ALL_STAT_SORT_FIELDS.map((field) => [field.value, field])
 );
 
-const SORT_BY_VALUES = new Set<string>(['name', 'date', ...STAT_SORT_FIELDS.map((field) => field.value)]);
+const SORT_BY_VALUES = new Set<string>(['name', 'date', ...ALL_STAT_SORT_FIELDS.map((field) => field.value)]);
 
 const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrder }> = {
 	name: { sortBy: 'name', sortOrder: 'asc' },
@@ -231,6 +276,19 @@ export function getStatSortField(sortBy: SortBy): StatSortField | undefined {
 	return STAT_SORT_FIELD_BY_VALUE.get(sortBy);
 }
 
+export function getStatSortAnalyzer(sortBy: SortBy): StatsAnalyzer | undefined {
+	return getStatSortField(sortBy)?.analyzer;
+}
+
+export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatSortField[] {
+	return ALL_STAT_SORT_FIELDS.filter((field) => field.analyzer === analyzer);
+}
+
+export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {
+	const field = getStatSortField(sortBy);
+	return field?.analyzer === analyzer;
+}
+
 export function parseLegacySortParam(
 	sort: string
 ): { sortBy: SortBy; sortOrder: SortOrder } | undefined {
@@ -243,30 +301,92 @@ export function parseLegacySortParam(
 	return undefined;
 }
 
-export function decodeCorpusStats(values: number[]): LayoutCorpusStats | undefined {
+export function decodeMonkeyracerStats(values: number[]): MonkeyracerStats | undefined {
 	if (values.length !== COMPACT_STAT_FIELD_COUNT) {
 		return undefined;
 	}
 
-	const stats = {} as LayoutCorpusStats;
+	const stats = {} as MonkeyracerStats;
 	for (let i = 0; i < BOT_STAT_KEYS.length; i++) {
 		stats[BOT_STAT_KEYS[i]] = values[i] / STAT_VALUE_SCALE;
 	}
-	return isValidCorpusStats(stats) ? stats : undefined;
+	return isValidMonkeyracerStats(stats) ? stats : undefined;
 }
 
-export function getLayoutCorpusStats(
-	statsMap: LayoutStatsMap,
-	layoutName: string,
-	corpus: StatsCorpus = DEFAULT_STATS_CORPUS
-): LayoutCorpusStats | undefined {
-	if (corpus !== DEFAULT_STATS_CORPUS) return undefined;
-	const encoded = statsMap[layoutName];
+export function isValidCyanophageStats(stats: CyanophageStats): boolean {
+	return stats['total-word-effort'] > 0;
+}
+
+export function decodeCyanophageStats(values: number[]): CyanophageStats | undefined {
+	if (values.length !== CYANOPHAGE_COMPACT_STAT_FIELD_COUNT) {
+		return undefined;
+	}
+
+	const stats = {
+		'total-word-effort': values[0] / CYANOPHAGE_STAT_VALUE_SCALE,
+		effort: values[1] / CYANOPHAGE_STAT_VALUE_SCALE
+	} satisfies CyanophageStats;
+
+	return isValidCyanophageStats(stats) ? stats : undefined;
+}
+
+export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophageStats {
+	return {
+		totalWordEffort: stats['total-word-effort'],
+		effort: stats.effort
+	};
+}
+
+export function getLayoutCyanophageStats(
+	statsMaps: StatsMaps,
+	layoutName: string
+): CyanophageStats | undefined {
+	const encoded = statsMaps.cyanophage?.[layoutName];
 	if (encoded === undefined) return undefined;
-	return decodeCorpusStats(encoded);
+	return decodeCyanophageStats(encoded);
 }
 
-export function deriveBotStats(stats: LayoutCorpusStats): DerivedBotStats {
+export function getLayoutAnalyzerStats(
+	statsMaps: StatsMaps,
+	layoutName: string,
+	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER,
+	keys?: Record<string, KeyInfo>
+): MonkeyracerStats | CyanophageStats | undefined {
+	if (analyzer === CYANOPHAGE_ANALYZER) {
+		if (keys && !isCyanophageCompatible(keys)) return undefined;
+		return getLayoutCyanophageStats(statsMaps, layoutName);
+	}
+
+	const encoded = statsMaps.monkeyracer?.[layoutName];
+	if (encoded === undefined) return undefined;
+	return decodeMonkeyracerStats(encoded);
+}
+
+export function isAnalyzerStatsReady(statsMaps: StatsMaps, analyzer: StatsAnalyzer): boolean {
+	return statsMaps[analyzer] !== undefined;
+}
+
+export function getStatSortValue(
+	statsMaps: StatsMaps,
+	layout: LayoutData,
+	sortBy: SortBy
+): number | null {
+	const field = getStatSortField(sortBy);
+	if (!field) return null;
+
+	const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, field.analyzer, layout.keys);
+	if (!analyzerStats) return null;
+
+	if (field.analyzer === CYANOPHAGE_ANALYZER) {
+		return deriveCyanophageStats(analyzerStats as CyanophageStats)[
+			field.key as CyanophageStatSortKey
+		];
+	}
+
+	return deriveBotStats(analyzerStats as MonkeyracerStats)[field.key as StatSortKey];
+}
+
+export function deriveBotStats(stats: MonkeyracerStats): DerivedBotStats {
 	const rollIn = stats['roll-in'];
 	const rollOut = stats['roll-out'];
 	const oneIn = stats['oneh-in'];
@@ -315,8 +435,48 @@ export interface StatsBlockSegment {
 	highlight?: boolean;
 }
 
-export function getStatSortHighlightKey(sortBy: SortBy): StatSortKey | undefined {
+export function getStatSortHighlightKey(
+	sortBy: SortBy
+): StatSortKey | CyanophageStatSortKey | undefined {
 	return getStatSortField(sortBy)?.key;
+}
+
+export function formatCyanophageStatValue(value: number): string {
+	return value.toFixed(1);
+}
+
+export function buildCyanophageStatsBlockLines(
+	stats: DerivedCyanophageStats,
+	highlightKey?: CyanophageStatSortKey
+): StatsBlockSegment[][] {
+	const hl = (key: CyanophageStatSortKey): boolean => highlightKey === key;
+
+	return [
+		[
+			{ text: 'TWE: ' },
+			{
+				text: formatCyanophageStatValue(stats.totalWordEffort).padStart(8),
+				highlight: hl('totalWordEffort')
+			}
+		],
+		[
+			{ text: 'Eff: ' },
+			{
+				text: formatCyanophageStatValue(stats.effort).padStart(8),
+				highlight: hl('effort')
+			}
+		]
+	];
+}
+
+/** Placeholder with the same line count as a cyanophage stats block. */
+export function formatCyanophageStatsLoadingBlock(): string {
+	return ['LOADING STATS', '…'].join('\n');
+}
+
+/** Placeholder with the same line count as a cyanophage stats block. */
+export function formatCyanophageStatsUnavailableBlock(reason?: string): string {
+	return ['STATS UNAVAILABLE', reason ?? 'no cyanophage stats for this layout'].join('\n');
 }
 
 /** Lines of segments for rendering; optional highlight on the active sort stat. */

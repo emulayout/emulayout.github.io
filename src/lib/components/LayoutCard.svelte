@@ -1,32 +1,44 @@
 <script lang="ts">
-	import type { LayoutData, LayoutStatsMap } from '$lib/layout';
+	import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps } from '$lib/layout';
+	import { filterStore } from '$lib/filterStore.svelte';
+	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { getLayoutCardHeight } from '$lib/constants';
+	import {
+		buildBotStatsBlockLines,
+		buildCyanophageStatsBlockLines,
+		CYANOPHAGE_ANALYZER,
+		deriveBotStats,
+		deriveCyanophageStats,
+		formatCyanophageStatsLoadingBlock,
+		formatCyanophageStatsUnavailableBlock,
+		formatStatsLoadingBlock,
+		formatStatsUnavailableBlock,
+		getLayoutAnalyzerStats,
+		getStatSortHighlightKey,
+		type CyanophageStatSortKey,
+		type StatSortKey
+	} from '$lib/layoutStats';
+	import {
+		buildCyanophagePlaygroundUrl,
+		formatCyanophageIncompatibilities,
+		getCyanophageIncompatibilities,
+		isCyanophageCompatible
+	} from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayValue,
 		buildKeyMap,
 		buildShiftKeyMap,
 		removeAnglemodFromDisplayValue
 	} from '$lib/cmini/keyboard';
-	import { filterStore } from '$lib/filterStore.svelte';
-	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-	import { getLayoutCardHeight } from '$lib/constants';
-	import {
-		buildBotStatsBlockLines,
-		deriveBotStats,
-		formatStatsLoadingBlock,
-		formatStatsUnavailableBlock,
-		getLayoutCorpusStats,
-		getStatSortHighlightKey
-	} from '$lib/layoutStats';
-	import { buildCyanophagePlaygroundUrl, formatCyanophageIncompatibilities, getCyanophageIncompatibilities, isCyanophageCompatible } from '$lib/cyanophage';
 
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
-		layoutStats: LayoutStatsMap;
+		statsMaps: StatsMaps;
 		similarMatchPercent?: number;
 	}
 
-	const { layout, authorName, layoutStats, similarMatchPercent }: Props = $props();
+	const { layout, authorName, statsMaps, similarMatchPercent }: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
@@ -64,6 +76,7 @@
 		})
 	);
 
+	const isCyanophageAnalyzer = $derived(filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER);
 	const cyanophageCompatible = $derived(isCyanophageCompatible(layout.keys));
 	const cyanophageIncompatibilities = $derived(getCyanophageIncompatibilities(layout.keys));
 	const cyanophageLinkTitle = $derived(
@@ -72,21 +85,52 @@
 			: `Not supported on Cyanophage (${formatCyanophageIncompatibilities(cyanophageIncompatibilities)})`
 	);
 
-	const corpusStats = $derived(
-		getLayoutCorpusStats(layoutStats, layout.name, filterStore.statsCorpus)
+	const analyzerStats = $derived(
+		getLayoutAnalyzerStats(statsMaps, layout.name, filterStore.statsAnalyzer, layout.keys)
 	);
-	const botStats = $derived(corpusStats ? deriveBotStats(corpusStats) : null);
-	const statsLoading = $derived(layoutStatsStore.loading);
+	const botStats = $derived(
+		analyzerStats && !isCyanophageAnalyzer
+			? deriveBotStats(analyzerStats as MonkeyracerStats)
+			: null
+	);
+	const cyanophageStats = $derived(
+		analyzerStats && isCyanophageAnalyzer
+			? deriveCyanophageStats(analyzerStats as CyanophageStats)
+			: null
+	);
+	const statsLoading = $derived(layoutStatsStore.isLoading(filterStore.statsAnalyzer));
 	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortBy));
+	const botHighlightKey = $derived(
+		!isCyanophageAnalyzer ? (highlightStatKey as StatSortKey | undefined) : undefined
+	);
+	const cyanophageHighlightKey = $derived(
+		isCyanophageAnalyzer ? (highlightStatKey as CyanophageStatSortKey | undefined) : undefined
+	);
 	const statsBlockLines = $derived(
-		botStats ? buildBotStatsBlockLines(botStats, highlightStatKey) : null
+		isCyanophageAnalyzer
+			? cyanophageStats
+				? buildCyanophageStatsBlockLines(cyanophageStats, cyanophageHighlightKey)
+				: null
+			: botStats
+				? buildBotStatsBlockLines(botStats, botHighlightKey)
+				: null
 	);
 	const statsBlock = $derived(
 		statsLoading
-			? formatStatsLoadingBlock()
-			: !botStats
-				? formatStatsUnavailableBlock()
-				: null
+			? isCyanophageAnalyzer
+				? formatCyanophageStatsLoadingBlock()
+				: formatStatsLoadingBlock()
+			: isCyanophageAnalyzer
+				? !cyanophageStats
+					? formatCyanophageStatsUnavailableBlock(
+							!cyanophageCompatible
+								? formatCyanophageIncompatibilities(cyanophageIncompatibilities)
+								: undefined
+						)
+					: null
+				: !botStats
+					? formatStatsUnavailableBlock()
+					: null
 	);
 
 	const cardHeight = $derived(

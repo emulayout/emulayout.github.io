@@ -2,21 +2,44 @@
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { isStatSortBy } from '$lib/layoutStats';
+	import {
+		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
+		getStatSortAnalyzer,
+		isAnalyzerStatsReady,
+		isStatSortBy
+	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { buildSimilarityPercentMap, isSimilarLayoutMatch, sortLayoutsBySimilarity } from '$lib/layoutSimilarity';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
-	const layoutStats = $derived(layoutStatsStore.map);
+	const statsMaps = $derived(layoutStatsStore.maps);
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasActiveStatLimits);
+	const statsReady = $derived(isAnalyzerStatsReady(statsMaps, filterStore.statsAnalyzer));
+
+	const analyzersToLoad = $derived.by(() => {
+		const analyzers = new Set<typeof DEFAULT_STATS_ANALYZER | typeof CYANOPHAGE_ANALYZER>();
+
+		if (needsStatsForFilter) {
+			analyzers.add(DEFAULT_STATS_ANALYZER);
+		}
+
+		if (needsStatsForSort) {
+			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy);
+			if (sortAnalyzer) analyzers.add(sortAnalyzer);
+		}
+
+		return analyzers;
+	});
 
 	$effect(() => {
 		void layoutStatsStore.loadWhenVisible(
 			filterStore.showLayoutStats,
-			needsStatsForSort || needsStatsForFilter
+			filterStore.statsAnalyzer,
+			analyzersToLoad
 		);
 	});
 
@@ -57,7 +80,7 @@
 	});
 
 	const filteredLayouts = $derived.by(() => {
-		let result = filterStore.filterLayouts(layouts, layoutStats, layoutStatsStore.loaded);
+		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady);
 
 		if (filterStore.similarReferenceName) {
 			result = result.filter((layout) =>
@@ -69,7 +92,7 @@
 			);
 			result = sortLayoutsBySimilarity(result, similarityPercents);
 		} else {
-			result = filterStore.sortLayouts(result, layoutStats);
+			result = filterStore.sortLayouts(result, statsMaps);
 		}
 
 		if (similarReferenceLayout) {
@@ -89,7 +112,7 @@
 	<LayoutCardList
 		layouts={filteredLayouts}
 		{getAuthorName}
-		{layoutStats}
+		{statsMaps}
 		{similarityPercents}
 	/>
 </div>

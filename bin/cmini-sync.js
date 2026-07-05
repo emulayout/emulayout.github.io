@@ -7,10 +7,10 @@ import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
-import { buildLayoutStats, DEFAULT_STATS_CORPUS, loadCorpusData } from './layout-stats.js';
+import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
 	buildCyanophageStats,
-	CYANOPHAGE_STATS_CORPUS,
+	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
 } from './cyanophage-stats.js';
 
@@ -99,16 +99,16 @@ async function run() {
 
 	let corpusData = null;
 	try {
-		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_CORPUS);
-		console.log(`→ Loaded ${DEFAULT_STATS_CORPUS} corpus for SFB / LH-RH`);
+		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
+		console.log(`→ Loaded ${DEFAULT_STATS_ANALYZER} analyzer data for SFB / LH-RH`);
 	} catch (err) {
-		console.warn(`  ⚠ Could not load corpus data (${err.message}); SFB/LH-RH will be zero`);
+		console.warn(`  ⚠ Could not load analyzer data (${err.message}); SFB/LH-RH will be zero`);
 	}
 
 	let cyanophageData = null;
 	try {
 		cyanophageData = await loadCyanophageData();
-		console.log(`→ Loaded ${CYANOPHAGE_STATS_CORPUS} corpus for effort metrics`);
+		console.log(`→ Loaded ${CYANOPHAGE_ANALYZER} analyzer data for effort metrics`);
 	} catch (err) {
 		console.warn(`  ⚠ Could not load cyanophage data (${err.message}); cyanophage stats will be skipped`);
 	}
@@ -180,7 +180,7 @@ async function run() {
 	);
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${statsInvalid} invalid cache, ${DEFAULT_STATS_CORPUS} corpus)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${statsInvalid} invalid cache, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
 	);
 
 	console.log('→ Building cyanophage effort stats...');
@@ -191,7 +191,7 @@ async function run() {
 	);
 	await writeFile(CYANOPHAGE_STATS_FILE, JSON.stringify(sortedCyanophageStats) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Cyanophage stats for ${cyanophageStatsLoaded} layouts (${cyanophageStatsSkipped} skipped, ${CYANOPHAGE_STATS_CORPUS} corpus)\n`
+		`  ✔ Cyanophage stats for ${cyanophageStatsLoaded} layouts (${cyanophageStatsSkipped} skipped, ${CYANOPHAGE_ANALYZER} analyzer)\n`
 	);
 
 	console.log('→ Syncing authors...');

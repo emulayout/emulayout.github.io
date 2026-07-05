@@ -1,16 +1,17 @@
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isCyanophageCompatible, buildCyanophageCharPositionMap } from '../src/lib/cyanophage.ts';
 
 /**
- * Cyanophage corpus stats (English word-frequency corpus).
+ * Cyanophage stats (English word-frequency input).
  * Tier 1 metrics only: Total Word Effort and Effort.
  *
  * Ported from cyanophage keyboard_svg.js measureDictionary / measureWords.
  */
 
-/** Corpus id exported to the site (separate from cmini monkeyracer). */
-export const CYANOPHAGE_STATS_CORPUS = 'cyanophage';
+/** Analyzer id exported to the site (separate from cmini monkeyracer). */
+export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
 /** @type {readonly ['total-word-effort', 'effort']} */
 export const CYANOPHAGE_STAT_KEYS = ['total-word-effort', 'effort'];
@@ -46,7 +47,7 @@ const DEFAULT_EFFORT_GRID = [
 /** @typedef {Map<string, { row: number, col: number }>} CharPositionMap */
 /** @typedef {Record<string, number>} WordFrequencyMap */
 /** @typedef {number[]} CompactCyanophageStats */
-/** @typedef {{ totalWordEffort: number, effort: number }} CyanophageCorpusStats */
+/** @typedef {{ totalWordEffort: number, effort: number }} CyanophageStats */
 
 let cachedData = null;
 
@@ -77,20 +78,11 @@ export async function loadCyanophageData() {
 
 /**
  * @param {Record<string, { row?: number, col?: number }>} keys
+ * @param {string} board
  * @returns {CharPositionMap}
  */
-export function buildCharPositionMap(keys) {
-	/** @type {CharPositionMap} */
-	const map = new Map();
-
-	for (const [char, info] of Object.entries(keys ?? {})) {
-		if (!info || typeof info.row !== 'number' || typeof info.col !== 'number') continue;
-		if (char.length !== 1) continue;
-		map.set(char, { row: info.row, col: info.col });
-		map.set(char.toLowerCase(), { row: info.row, col: info.col });
-	}
-
-	return map;
+export function buildCharPositionMap(keys, board = 'ortho') {
+	return buildCyanophageCharPositionMap(keys, board);
 }
 
 /**
@@ -179,7 +171,7 @@ export function measureDictionaryWordEffort(charMap, dictionary, bigramEffort) {
  * @param {WordFrequencyMap} words
  * @param {Record<string, number>} wordEffort
  * @param {number[][]} effortGrid
- * @returns {CyanophageCorpusStats | null}
+ * @returns {CyanophageStats | null}
  */
 export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
 	let inputLength = 0;
@@ -219,7 +211,7 @@ export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
 }
 
 /**
- * @param {CyanophageCorpusStats} stats
+ * @param {CyanophageStats} stats
  * @returns {CompactCyanophageStats}
  */
 export function encodeCyanophageStats(stats) {
@@ -236,13 +228,15 @@ export function encodeCyanophageStats(stats) {
  */
 export function buildCyanophageStats(rawLayout, data) {
 	if (!data?.words || !rawLayout?.keys) return null;
+	if (!isCyanophageCompatible(rawLayout.keys)) return null;
 
-	const charMap = buildCharPositionMap(rawLayout.keys);
+	const board = rawLayout.board ?? 'ortho';
+	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, board);
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.dictionary, data.bigramEffort);
-	const corpusStats = measureCorpusEffort(charMap, data.words, wordEffort, data.effortGrid);
-	if (!corpusStats) return null;
+	const analyzerStats = measureCorpusEffort(charMap, data.words, wordEffort, data.effortGrid);
+	if (!analyzerStats) return null;
 
-	return encodeCyanophageStats(corpusStats);
+	return encodeCyanophageStats(analyzerStats);
 }

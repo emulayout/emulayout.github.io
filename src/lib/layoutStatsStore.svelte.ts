@@ -1,55 +1,101 @@
-import type { LayoutStatsMap } from '$lib/layout';
+import type { StatsMaps } from '$lib/layout';
+import {
+	CYANOPHAGE_ANALYZER,
+	DEFAULT_STATS_ANALYZER,
+	type StatsAnalyzer
+} from '$lib/layoutStats';
+
+const ANALYZER_STATS_URL: Record<StatsAnalyzer, string> = {
+	monkeyracer: '/layout-stats.json',
+	cyanophage: '/layout-stats-cyanophage.json'
+};
 
 class LayoutStatsStore {
-	map: LayoutStatsMap = $state({});
-	loaded = $state(false);
-	loading = $state(false);
+	maps: StatsMaps = $state({});
+	loadingAnalyzers: Partial<Record<StatsAnalyzer, boolean>> = $state({});
 
-	#abortController: AbortController | null = null;
+	#abortControllers = new Map<StatsAnalyzer, AbortController>();
 
-	hydrate(map: LayoutStatsMap): void {
-		this.#abortController?.abort();
-		this.#abortController = null;
-		this.map = map;
-		this.loaded = true;
-		this.loading = false;
+	isLoaded(analyzer: StatsAnalyzer): boolean {
+		return this.maps[analyzer] !== undefined;
+	}
+
+	isLoading(analyzer: StatsAnalyzer): boolean {
+		return this.loadingAnalyzers[analyzer] === true;
+	}
+
+	get loading(): boolean {
+		return Object.values(this.loadingAnalyzers).some(Boolean);
+	}
+
+	get loaded(): boolean {
+		return this.isLoaded(DEFAULT_STATS_ANALYZER);
+	}
+
+	get map(): StatsMaps[typeof DEFAULT_STATS_ANALYZER] {
+		return this.maps[DEFAULT_STATS_ANALYZER] ?? {};
+	}
+
+	hydrate(analyzer: StatsAnalyzer, map: NonNullable<StatsMaps[StatsAnalyzer]>): void {
+		this.#abortControllers.get(analyzer)?.abort();
+		this.#abortControllers.delete(analyzer);
+		this.maps = { ...this.maps, [analyzer]: map };
+		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
 	}
 
 	reset(): void {
-		this.#abortController?.abort();
-		this.#abortController = null;
-		this.map = {};
-		this.loaded = false;
-		this.loading = false;
+		for (const controller of this.#abortControllers.values()) {
+			controller.abort();
+		}
+		this.#abortControllers.clear();
+		this.maps = {};
+		this.loadingAnalyzers = {};
 	}
 
-	async loadWhenVisible(showStats: boolean, needsStatsForSort = false): Promise<void> {
-		if (!showStats && !needsStatsForSort) {
-			this.#abortController?.abort();
-			this.#abortController = null;
-			this.loading = false;
-			return;
-		}
-
-		if (this.loaded || this.loading) return;
+	async ensureLoaded(analyzer: StatsAnalyzer): Promise<void> {
+		if (this.isLoaded(analyzer) || this.isLoading(analyzer)) return;
 
 		const abortController = new AbortController();
-		this.#abortController = abortController;
-		this.loading = true;
+		this.#abortControllers.set(analyzer, abortController);
+		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: true };
 
 		try {
-			const response = await fetch('/layout-stats.json', { signal: abortController.signal });
-			this.map = response.ok ? await response.json() : {};
-			this.loaded = true;
+			const response = await fetch(ANALYZER_STATS_URL[analyzer], { signal: abortController.signal });
+			const map = response.ok ? await response.json() : {};
+			if (this.#abortControllers.get(analyzer) === abortController) {
+				this.maps = { ...this.maps, [analyzer]: map };
+			}
 		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
 			throw err;
 		} finally {
-			if (this.#abortController === abortController) {
-				this.#abortController = null;
-				this.loading = false;
+			if (this.#abortControllers.get(analyzer) === abortController) {
+				this.#abortControllers.delete(analyzer);
+				this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
 			}
 		}
+	}
+
+	async loadWhenVisible(
+		showStats: boolean,
+		statsAnalyzer: StatsAnalyzer,
+		needsAnalyzers: Iterable<StatsAnalyzer>
+	): Promise<void> {
+		const analyzers = new Set<StatsAnalyzer>(needsAnalyzers);
+		if (showStats) {
+			analyzers.add(statsAnalyzer);
+		}
+
+		if (analyzers.size === 0) {
+			for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
+				this.#abortControllers.get(analyzer)?.abort();
+				this.#abortControllers.delete(analyzer);
+			}
+			this.loadingAnalyzers = {};
+			return;
+		}
+
+		await Promise.all([...analyzers].map((analyzer) => this.ensureLoaded(analyzer)));
 	}
 }
 
