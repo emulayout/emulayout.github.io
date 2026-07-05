@@ -61,7 +61,16 @@ export const STAT_VALUE_SCALE = 10_000;
 export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
 
 /** Keep in sync with CYANOPHAGE_STAT_KEYS in bin/cyanophage-stats.js. */
-export const CYANOPHAGE_STAT_KEYS = ['total-word-effort', 'effort'] as const;
+export const CYANOPHAGE_STAT_KEYS = [
+	'total-word-effort',
+	'effort',
+	'sfb',
+	'sfs',
+	'scissors',
+	'lsb',
+	'lh',
+	'rh'
+] as const;
 
 export const CYANOPHAGE_STAT_VALUE_SCALE = 10_000;
 export const CYANOPHAGE_COMPACT_STAT_FIELD_COUNT = CYANOPHAGE_STAT_KEYS.length;
@@ -69,11 +78,20 @@ export const CYANOPHAGE_COMPACT_STAT_FIELD_COUNT = CYANOPHAGE_STAT_KEYS.length;
 export type DerivedCyanophageStats = {
 	totalWordEffort: number;
 	effort: number;
+	sfb: number;
+	sfs: number;
+	scissors: number;
+	lsb: number;
+	lh: number;
+	rh: number;
 };
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
-export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 2;
+export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 9;
+
+/** Longest cyanophage stat label in `buildCyanophageStatsBlockLines` (for value column alignment). */
+const CYANOPHAGE_STAT_LABEL_WIDTH = 20;
 
 /** Cache trigram stats are valid when alternate is non-zero (always true for analyzed layouts). */
 export function isValidMonkeyracerStats(stats: MonkeyracerStats): boolean {
@@ -113,11 +131,17 @@ export interface StatSortField {
 export const CYANOPHAGE_STAT_SORT_FIELDS = [
 	{
 		value: 'total-word-effort',
-		label: 'Total word effort',
+		label: 'Total Word Effort',
 		key: 'totalWordEffort',
 		analyzer: CYANOPHAGE_ANALYZER
 	},
-	{ value: 'effort', label: 'Effort', key: 'effort', analyzer: CYANOPHAGE_ANALYZER }
+	{ value: 'effort', label: 'Effort', key: 'effort', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'sfb', label: 'Same Finger Bigrams', key: 'sfb', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'sfs', label: 'Skip Bigrams', key: 'sfs', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'scissors', label: 'Scissors', key: 'scissors', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'lsb', label: 'Lat Stretch Bigrams', key: 'lsb', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'lh', label: 'Left hand', key: 'lh', analyzer: CYANOPHAGE_ANALYZER },
+	{ value: 'rh', label: 'Right hand', key: 'rh', analyzer: CYANOPHAGE_ANALYZER }
 ] as const satisfies readonly StatSortField[];
 
 /** Sortable bot stats (monkeyracer). */
@@ -321,10 +345,10 @@ export function decodeCyanophageStats(values: number[]): CyanophageStats | undef
 		return undefined;
 	}
 
-	const stats = {
-		'total-word-effort': values[0] / CYANOPHAGE_STAT_VALUE_SCALE,
-		effort: values[1] / CYANOPHAGE_STAT_VALUE_SCALE
-	} satisfies CyanophageStats;
+	const stats = {} as CyanophageStats;
+	for (let i = 0; i < CYANOPHAGE_STAT_KEYS.length; i++) {
+		stats[CYANOPHAGE_STAT_KEYS[i]] = values[i] / CYANOPHAGE_STAT_VALUE_SCALE;
+	}
 
 	return isValidCyanophageStats(stats) ? stats : undefined;
 }
@@ -332,7 +356,13 @@ export function decodeCyanophageStats(values: number[]): CyanophageStats | undef
 export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophageStats {
 	return {
 		totalWordEffort: stats['total-word-effort'],
-		effort: stats.effort
+		effort: stats.effort,
+		sfb: stats.sfb,
+		sfs: stats.sfs,
+		scissors: stats.scissors,
+		lsb: stats.lsb,
+		lh: stats.lh,
+		rh: stats.rh
 	};
 }
 
@@ -430,8 +460,11 @@ function formatStatField(value: number, width: number): string {
 	return formatStatPercent(value).padStart(width);
 }
 
-function formatStatLabel(label: string): string {
-	return `${label} `;
+function formatStatLabel(label: string, width?: number): string {
+	if (width === undefined) {
+		return `${label} `;
+	}
+	return `${label.padStart(width)} `;
 }
 
 export interface StatsBlockSegment {
@@ -457,30 +490,62 @@ export function buildCyanophageStatsBlockLines(
 
 	return [
 		[
-			{ text: 'TWE: ' },
+			{ text: formatStatLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
 			{
-				text: formatCyanophageStatValue(stats.totalWordEffort).padStart(8),
+				text: formatCyanophageStatValue(stats.totalWordEffort).padStart(6),
 				highlight: hl('totalWordEffort')
 			}
 		],
 		[
-			{ text: 'Eff: ' },
+			{ text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
 			{
-				text: formatCyanophageStatValue(stats.effort).padStart(8),
+				text: formatCyanophageStatValue(stats.effort).padStart(6),
 				highlight: hl('effort')
 			}
+		],
+		[{ text: '' }],
+		[
+			{ text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{ text: formatStatField(stats.sfb, 6), highlight: hl('sfb') }
+		],
+		[
+			{ text: formatStatLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{ text: formatStatField(stats.sfs, 6), highlight: hl('sfs') }
+		],
+		[
+			{ text: formatStatLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{ text: formatStatField(stats.lsb, 6), highlight: hl('lsb') }
+		],
+		[
+			{ text: formatStatLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{ text: formatStatField(stats.scissors, 6), highlight: hl('scissors') }
+		],
+		[{ text: '' }],
+		[
+			{ text: formatStatLabel('LH/RH:') },
+			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
+			{ text: ' | ' },
+			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
 		]
 	];
 }
 
 /** Placeholder with the same line count as a cyanophage stats block. */
 export function formatCyanophageStatsLoadingBlock(): string {
-	return ['LOADING STATS', '…'].join('\n');
+	return [
+		'LOADING STATS',
+		'…',
+		...Array(Math.max(0, CYANOPHAGE_STATS_BLOCK_LINE_COUNT - 2)).fill('')
+	].join('\n');
 }
 
 /** Placeholder with the same line count as a cyanophage stats block. */
 export function formatCyanophageStatsUnavailableBlock(reason?: string): string {
-	return ['STATS UNAVAILABLE', reason ?? 'no cyanophage stats for this layout'].join('\n');
+	return [
+		'STATS UNAVAILABLE',
+		reason ?? 'no cyanophage stats for this layout',
+		...Array(Math.max(0, CYANOPHAGE_STATS_BLOCK_LINE_COUNT - 2)).fill('')
+	].join('\n');
 }
 
 /** Lines of segments for rendering; optional highlight on the active sort stat. */

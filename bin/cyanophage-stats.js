@@ -5,16 +5,23 @@ import { isCyanophageCompatible, buildCyanophageCharPositionMap } from '../src/l
 
 /**
  * Cyanophage stats (English word-frequency input).
- * Tier 1 metrics only: Total Word Effort and Effort.
- *
  * Ported from cyanophage keyboard_svg.js measureDictionary / measureWords.
  */
 
 /** Analyzer id exported to the site (separate from cmini monkeyracer). */
 export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
-/** @type {readonly ['total-word-effort', 'effort']} */
-export const CYANOPHAGE_STAT_KEYS = ['total-word-effort', 'effort'];
+/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'lh', 'rh']} */
+export const CYANOPHAGE_STAT_KEYS = [
+	'total-word-effort',
+	'effort',
+	'sfb',
+	'sfs',
+	'scissors',
+	'lsb',
+	'lh',
+	'rh'
+];
 
 /** Fixed-point scale for compact stat arrays (4 decimal places). */
 export const CYANOPHAGE_STAT_VALUE_SCALE = 10_000;
@@ -44,10 +51,28 @@ const DEFAULT_EFFORT_GRID = [
 	[7, 3, 2, 2, 1, 8, 8, 1, 2, 2, 3, 7]
 ];
 
+/** col 0–12 finger ids — keyboard_svg.js fingerAssignment (ergo). */
+const FINGER_ASSIGNMENT = [
+	[1, 1, 2, 3, 4, 4, 7, 7, 8, 9, 10, 10, 10],
+	[1, 1, 2, 3, 4, 4, 7, 7, 8, 9, 10, 10, 10],
+	[1, 1, 2, 3, 4, 4, 7, 7, 8, 9, 10, 10, 10]
+];
+
 /** @typedef {Map<string, { row: number, col: number }>} CharPositionMap */
 /** @typedef {Record<string, number>} WordFrequencyMap */
 /** @typedef {number[]} CompactCyanophageStats */
-/** @typedef {{ totalWordEffort: number, effort: number }} CyanophageStats */
+/**
+ * @typedef {{
+ *   totalWordEffort: number,
+ *   effort: number,
+ *   sfb: number,
+ *   sfs: number,
+ *   scissors: number,
+ *   lsb: number,
+ *   lh: number,
+ *   rh: number
+ * }} CyanophageStats
+ */
 
 let cachedData = null;
 
@@ -87,10 +112,32 @@ export function buildCharPositionMap(keys, board = 'ortho') {
 
 /**
  * @param {CharPositionMap} charMap
+ * @param {string} char
+ * @returns {{ row: number, col: number } | null}
+ */
+function getPosition(charMap, char) {
+	const pos = charMap.get(char);
+	if (!pos || pos.col < 0) return null;
+	return pos;
+}
+
+/**
  * @param {number} row
  * @param {number} col
  */
-function getEffort(charMap, effortGrid, row, col) {
+function getFinger(row, col) {
+	if (row > 2) {
+		return col <= 4 ? 5 : 6;
+	}
+	return FINGER_ASSIGNMENT[row]?.[col] ?? -1;
+}
+
+/**
+ * @param {number[][]} effortGrid
+ * @param {number} row
+ * @param {number} col
+ */
+function getEffort(effortGrid, row, col) {
 	if (row < 0 || col < 0) return 0;
 	return effortGrid[row]?.[col] ?? 0;
 }
@@ -167,16 +214,39 @@ export function measureDictionaryWordEffort(charMap, dictionary, bigramEffort) {
 }
 
 /**
+ * @param {number} prevCol
+ * @param {number} col
+ */
+function isLatStretch(prevCol, col) {
+	return (
+		(prevCol === 3 && col === 5) ||
+		(prevCol === 8 && col === 6) ||
+		(prevCol === 5 && col === 3) ||
+		(prevCol === 6 && col === 8) ||
+		(prevCol === 2 && col === 5) ||
+		(prevCol === 9 && col === 6) ||
+		(prevCol === 5 && col === 2) ||
+		(prevCol === 6 && col === 9)
+	);
+}
+
+/**
  * @param {CharPositionMap} charMap
  * @param {WordFrequencyMap} words
  * @param {Record<string, number>} wordEffort
  * @param {number[][]} effortGrid
  * @returns {CyanophageStats | null}
  */
-export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
+export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	let inputLength = 0;
 	let totalWordEffort = 0;
-	let effort = 0;
+	let effortSum = 0;
+	let sfb = 0;
+	let sfs = 0;
+	let scissors = 0;
+	let lsb = 0;
+	let lh = 0;
+	let rh = 0;
 	let wordCount = 0;
 
 	for (const word in words) {
@@ -191,23 +261,89 @@ export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
 			totalWordEffort += wordEffort[word] * count;
 		}
 
+		let prevChar = '';
+		let prevCol = -1;
+		let prevRow = -1;
+		let prevFinger = -1;
+		let ppFinger = -1;
+		let ppChar = '';
+
 		for (let i = 0; i < wordLen; i++) {
 			const char = word.charAt(i);
-			const pos = charMap.get(char);
-			if (!pos || pos.col < 0) continue;
-			effort += count * getEffort(charMap, effortGrid, pos.row, pos.col);
+			if (i > 0) prevChar = word.charAt(i - 1);
+
+			const pos = getPosition(charMap, char);
+			if (!pos) continue;
+
+			const { row, col } = pos;
+			if (i > 0) {
+				const prevPos = getPosition(charMap, prevChar);
+				if (prevPos) prevCol = prevPos.col;
+			}
+
+			if (col <= 5) {
+				lh += count;
+			} else {
+				rh += count;
+			}
+
+			effortSum += count * getEffort(effortGrid, row, col);
+
+			const finger = getFinger(row, col);
+
+			if (i > 0 && prevCol >= 0) {
+				if (finger === prevFinger && prevChar !== char) {
+					sfb += count;
+				}
+
+				if (isLatStretch(prevCol, col)) {
+					lsb += count;
+				}
+
+				if (
+					Math.abs(col - prevCol) === 1 &&
+					Math.abs(row - prevRow) >= 2 &&
+					((finger <= 4 && prevFinger <= 4 && finger !== prevFinger) ||
+						(finger >= 7 && prevFinger >= 7 && finger !== prevFinger))
+				) {
+					scissors += count;
+				}
+			}
+
+			if (i > 1 && prevCol >= 0 && finger === ppFinger && ppChar !== char) {
+				sfs += count;
+			}
+
+			ppChar = prevChar;
+			ppFinger = prevFinger;
+			prevCol = col;
+			prevRow = row;
+			prevChar = char;
+			prevFinger = finger;
 		}
 	}
 
 	if (inputLength === 0) return null;
 
 	const invInputLength = 1 / inputLength;
+	const handTotal = lh + rh;
 	totalWordEffort *= TOTAL_WORD_EFFORT_CORPUS_SCALE * invInputLength;
 
 	return {
 		totalWordEffort: totalWordEffort / TOTAL_WORD_EFFORT_DISPLAY_DIVISOR,
-		effort: EFFORT_DISPLAY_MULTIPLIER * effort * invInputLength
+		effort: EFFORT_DISPLAY_MULTIPLIER * effortSum * invInputLength,
+		sfb: sfb * invInputLength,
+		sfs: sfs * invInputLength,
+		scissors: scissors * invInputLength,
+		lsb: lsb * invInputLength,
+		lh: handTotal > 0 ? lh / handTotal : 0.5,
+		rh: handTotal > 0 ? rh / handTotal : 0.5
 	};
+}
+
+/** @deprecated Use measureLayoutStats */
+export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
+	return measureLayoutStats(charMap, words, wordEffort, effortGrid);
 }
 
 /**
@@ -217,7 +353,13 @@ export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
 export function encodeCyanophageStats(stats) {
 	return [
 		Math.round(stats.totalWordEffort * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.effort * CYANOPHAGE_STAT_VALUE_SCALE)
+		Math.round(stats.effort * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.sfb * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.sfs * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.scissors * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.lsb * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.lh * CYANOPHAGE_STAT_VALUE_SCALE),
+		Math.round(stats.rh * CYANOPHAGE_STAT_VALUE_SCALE)
 	];
 }
 
@@ -235,8 +377,8 @@ export function buildCyanophageStats(rawLayout, data) {
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.dictionary, data.bigramEffort);
-	const analyzerStats = measureCorpusEffort(charMap, data.words, wordEffort, data.effortGrid);
-	if (!analyzerStats) return null;
+	const stats = measureLayoutStats(charMap, data.words, wordEffort, data.effortGrid);
+	if (!stats) return null;
 
-	return encodeCyanophageStats(analyzerStats);
+	return encodeCyanophageStats(stats);
 }

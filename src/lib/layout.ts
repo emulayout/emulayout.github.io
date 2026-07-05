@@ -55,17 +55,23 @@ export type CompactLayoutStats = number[];
 /** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
 
-/** Cyanophage tier-1 stats: total word effort and effort. */
+/** Cyanophage stats keyed by CYANOPHAGE_STAT_KEYS in layoutStats.ts. */
 export interface CyanophageStats {
 	'total-word-effort': number;
 	effort: number;
+	sfb: number;
+	sfs: number;
+	scissors: number;
+	lsb: number;
+	lh: number;
+	rh: number;
 }
 
 /**
  * Compact cyanophage stats: fixed-point values (×10_000) in CYANOPHAGE_STAT_KEYS order.
  * @see CYANOPHAGE_STAT_KEYS in layoutStats.ts
  */
-export type CompactCyanophageStats = [number, number];
+export type CompactCyanophageStats = number[];
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats-cyanophage.json. */
 export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
