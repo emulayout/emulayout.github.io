@@ -65,6 +65,16 @@ export interface CyanophageStats {
 	lsb: number;
 	lh: number;
 	rh: number;
+	LI: number;
+	LM: number;
+	LR: number;
+	LP: number;
+	RI: number;
+	RM: number;
+	RR: number;
+	RP: number;
+	LT: number;
+	RT: number;
 }
 
 /**

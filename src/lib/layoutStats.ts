@@ -37,6 +37,13 @@ export const FINGER_USAGE_KEYS = [
 
 export type FingerUsageKey = (typeof FINGER_USAGE_KEYS)[number];
 
+/** Cyanophage finger usage keys (no TB; thumbs are LT/RT). */
+export const CYANOPHAGE_FINGER_STAT_KEYS = FINGER_USAGE_KEYS.filter(
+	(finger): finger is Exclude<FingerUsageKey, 'TB'> => finger !== 'TB'
+);
+
+export type CyanophageFingerUsageKey = (typeof CYANOPHAGE_FINGER_STAT_KEYS)[number];
+
 export const LEFT_HAND_FINGERS = ['LI', 'LM', 'LR', 'LP'] as const;
 export const RIGHT_HAND_FINGERS = ['RI', 'RM', 'RR', 'RP'] as const;
 
@@ -69,7 +76,8 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'scissors',
 	'lsb',
 	'lh',
-	'rh'
+	'rh',
+	...CYANOPHAGE_FINGER_STAT_KEYS
 ] as const;
 
 export const CYANOPHAGE_STAT_VALUE_SCALE = 10_000;
@@ -84,11 +92,11 @@ export type DerivedCyanophageStats = {
 	lsb: number;
 	lh: number;
 	rh: number;
-};
+} & Record<CyanophageFingerUsageKey, number>;
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
-export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 9;
+export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 14;
 
 /** Longest cyanophage stat label in `buildCyanophageStatsBlockLines` (for value column alignment). */
 const CYANOPHAGE_STAT_LABEL_WIDTH = 20;
@@ -362,8 +370,11 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 		scissors: stats.scissors,
 		lsb: stats.lsb,
 		lh: stats.lh,
-		rh: stats.rh
-	};
+		rh: stats.rh,
+		...Object.fromEntries(
+			CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]])
+		)
+	} as DerivedCyanophageStats;
 }
 
 export function getLayoutCyanophageStats(
@@ -526,7 +537,18 @@ export function buildCyanophageStatsBlockLines(
 			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
-		]
+		],
+		[{ text: '' }],
+		...LEFT_HAND_FINGERS.map((left, index) => {
+			const right = RIGHT_HAND_FINGERS[index];
+			return [
+				{ text: `${left}: ` },
+				{ text: formatStatField(stats[left], 6) },
+				{ text: '    ' },
+				{ text: `${right}: ` },
+				{ text: formatStatField(stats[right], 6) }
+			];
+		})
 	];
 }
 

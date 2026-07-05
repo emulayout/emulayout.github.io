@@ -11,7 +11,21 @@ import { isCyanophageCompatible, buildCyanophageCharPositionMap } from '../src/l
 /** Analyzer id exported to the site (separate from cmini monkeyracer). */
 export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
-/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'lh', 'rh']} */
+/** Cmini-style finger keys (cyanophage ids 1–10, 5/6 = thumbs; no TB). */
+export const CYANOPHAGE_FINGER_STAT_KEYS = [
+	'LI',
+	'LM',
+	'LR',
+	'LP',
+	'RI',
+	'RM',
+	'RR',
+	'RP',
+	'LT',
+	'RT'
+];
+
+/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'lh', 'rh', ...typeof CYANOPHAGE_FINGER_STAT_KEYS]} */
 export const CYANOPHAGE_STAT_KEYS = [
 	'total-word-effort',
 	'effort',
@@ -20,7 +34,8 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'scissors',
 	'lsb',
 	'lh',
-	'rh'
+	'rh',
+	...CYANOPHAGE_FINGER_STAT_KEYS
 ];
 
 /** Fixed-point scale for compact stat arrays (4 decimal places). */
@@ -58,6 +73,20 @@ const FINGER_ASSIGNMENT = [
 	[1, 1, 2, 3, 4, 4, 7, 7, 8, 9, 10, 10, 10]
 ];
 
+/** Cyanophage finger id → cmini-style key (keyboard_svg.js chart labels 1–10). */
+const CYANOPHAGE_FINGER_ID_TO_KEY = {
+	1: 'LP',
+	2: 'LR',
+	3: 'LM',
+	4: 'LI',
+	5: 'LT',
+	6: 'RT',
+	7: 'RI',
+	8: 'RM',
+	9: 'RR',
+	10: 'RP'
+};
+
 /** @typedef {Map<string, { row: number, col: number }>} CharPositionMap */
 /** @typedef {Record<string, number>} WordFrequencyMap */
 /** @typedef {number[]} CompactCyanophageStats */
@@ -70,7 +99,17 @@ const FINGER_ASSIGNMENT = [
  *   scissors: number,
  *   lsb: number,
  *   lh: number,
- *   rh: number
+ *   rh: number,
+ *   LI: number,
+ *   LM: number,
+ *   LR: number,
+ *   LP: number,
+ *   RI: number,
+ *   RM: number,
+ *   RR: number,
+ *   RP: number,
+ *   LT: number,
+ *   RT: number
  * }} CyanophageStats
  */
 
@@ -247,6 +286,8 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	let lsb = 0;
 	let lh = 0;
 	let rh = 0;
+	/** @type {Record<string, number>} */
+	const fingerUsage = Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((key) => [key, 0]));
 	let wordCount = 0;
 
 	for (const word in words) {
@@ -290,6 +331,10 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 			effortSum += count * getEffort(effortGrid, row, col);
 
 			const finger = getFinger(row, col);
+			const fingerKey = CYANOPHAGE_FINGER_ID_TO_KEY[finger];
+			if (fingerKey) {
+				fingerUsage[fingerKey] += count;
+			}
 
 			if (i > 0 && prevCol >= 0) {
 				if (finger === prevFinger && prevChar !== char) {
@@ -329,6 +374,15 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	const handTotal = lh + rh;
 	totalWordEffort *= TOTAL_WORD_EFFORT_CORPUS_SCALE * invInputLength;
 
+	let fingerTotal = 0;
+	for (const key of CYANOPHAGE_FINGER_STAT_KEYS) {
+		fingerTotal += fingerUsage[key];
+	}
+	const invFingerTotal = fingerTotal > 0 ? 1 / fingerTotal : 0;
+	for (const key of CYANOPHAGE_FINGER_STAT_KEYS) {
+		fingerUsage[key] *= invFingerTotal;
+	}
+
 	return {
 		totalWordEffort: totalWordEffort / TOTAL_WORD_EFFORT_DISPLAY_DIVISOR,
 		effort: EFFORT_DISPLAY_MULTIPLIER * effortSum * invInputLength,
@@ -337,7 +391,8 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 		scissors: scissors * invInputLength,
 		lsb: lsb * invInputLength,
 		lh: handTotal > 0 ? lh / handTotal : 0.5,
-		rh: handTotal > 0 ? rh / handTotal : 0.5
+		rh: handTotal > 0 ? rh / handTotal : 0.5,
+		...fingerUsage
 	};
 }
 
@@ -351,16 +406,10 @@ export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
  * @returns {CompactCyanophageStats}
  */
 export function encodeCyanophageStats(stats) {
-	return [
-		Math.round(stats.totalWordEffort * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.effort * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.sfb * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.sfs * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.scissors * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.lsb * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.lh * CYANOPHAGE_STAT_VALUE_SCALE),
-		Math.round(stats.rh * CYANOPHAGE_STAT_VALUE_SCALE)
-	];
+	return CYANOPHAGE_STAT_KEYS.map((key) => {
+		const value = key === 'total-word-effort' ? stats.totalWordEffort : stats[key];
+		return Math.round(value * CYANOPHAGE_STAT_VALUE_SCALE);
+	});
 }
 
 /**
