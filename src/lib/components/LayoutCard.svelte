@@ -17,7 +17,7 @@
 		getLayoutCorpusStats,
 		getStatSortHighlightKey
 	} from '$lib/layoutStats';
-	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
+	import { buildCyanophagePlaygroundUrl, formatCyanophageIncompatibilities, getCyanophageIncompatibilities, isCyanophageCompatible } from '$lib/cyanophage';
 
 	interface Props {
 		layout: LayoutData;
@@ -64,6 +64,14 @@
 		})
 	);
 
+	const cyanophageCompatible = $derived(isCyanophageCompatible(layout.keys));
+	const cyanophageIncompatibilities = $derived(getCyanophageIncompatibilities(layout.keys));
+	const cyanophageLinkTitle = $derived(
+		cyanophageCompatible
+			? 'View on Cyanophage'
+			: `Not supported on Cyanophage (${formatCyanophageIncompatibilities(cyanophageIncompatibilities)})`
+	);
+
 	const corpusStats = $derived(
 		getLayoutCorpusStats(layoutStats, layout.name, filterStore.statsCorpus)
 	);
@@ -85,13 +93,10 @@
 		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 
-	function generatePlaygroundUrl(layout: LayoutData): string {
-		return buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
-	}
-
 	function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
-		const url = generatePlaygroundUrl(layout);
+		const url = buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
+		if (!url) return;
 		window.open(url, '_blank');
 	}
 
@@ -224,14 +229,16 @@
 				<button
 					type="button"
 					onclick={handlePlaygroundClick}
-					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center"
+					disabled={!cyanophageCompatible}
+					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
 					style="
 						background-color: var(--bg-primary);
 						color: var(--text-primary);
 						border: 1px solid var(--border);
 					"
-					title="View on Cyanophage"
-					aria-label="View on Cyanophage"
+					title={cyanophageLinkTitle}
+					aria-label={cyanophageLinkTitle}
+					aria-disabled={!cyanophageCompatible}
 				>
 					<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path
