@@ -323,6 +323,9 @@ export function getUnsupportedCyanophageChars(keys: Record<string, KeyInfo>): st
 	return [...unsupported].sort();
 }
 
+/** Shown when a layout cannot be linked or measured in cyanophage. */
+export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Not supported by Cyanophage (unsupported characters)';
+
 /** True when the layout can be imported and measured faithfully in cyanophage. */
 export function isCyanophageCompatible(keys: Record<string, KeyInfo>): boolean {
 	if (!keys || Object.keys(keys).length === 0) return false;

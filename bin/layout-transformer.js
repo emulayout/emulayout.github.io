@@ -3,6 +3,8 @@
  * This allows us to pre-compute values that would otherwise be calculated on the client.
  */
 
+import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
+
 /**
  * Transforms a layout object by adding computed properties.
  * @param {Object} layout - The raw layout object from the repo
@@ -33,7 +35,8 @@ export function transformLayout(layout) {
 		displayValue: computeDisplayValue(stripped),
 		characterSet: computeCharacterSet(stripped),
 		hasAllLetters: computeHasAllLetters(stripped),
-		hasMagicKey: computeHasMagicKey(stripped)
+		hasMagicKey: computeHasMagicKey(stripped),
+		cyanophageCompatible: isCyanophageCompatible(keys)
 	};
 }
 

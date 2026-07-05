@@ -822,7 +822,7 @@ export class FilterStore {
 		if (!this.hasActiveStatLimits) return true;
 		if (!statsReady) return true;
 
-		const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, DEFAULT_STATS_ANALYZER, layout.keys);
+		const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, DEFAULT_STATS_ANALYZER);
 		if (!analyzerStats) return false;
 
 		const stats = deriveBotStats(analyzerStats as MonkeyracerStats);

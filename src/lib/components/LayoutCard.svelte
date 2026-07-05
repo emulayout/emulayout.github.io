@@ -18,12 +18,7 @@
 		type CyanophageStatSortKey,
 		type StatSortKey
 	} from '$lib/layoutStats';
-	import {
-		buildCyanophagePlaygroundUrl,
-		formatCyanophageIncompatibilities,
-		getCyanophageIncompatibilities,
-		isCyanophageCompatible
-	} from '$lib/cyanophage';
+	import { buildCyanophagePlaygroundUrl, CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayValue,
 		buildKeyMap,
@@ -77,16 +72,17 @@
 	);
 
 	const isCyanophageAnalyzer = $derived(filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER);
-	const cyanophageCompatible = $derived(isCyanophageCompatible(layout.keys));
-	const cyanophageIncompatibilities = $derived(getCyanophageIncompatibilities(layout.keys));
 	const cyanophageLinkTitle = $derived(
-		cyanophageCompatible
-			? 'View on Cyanophage'
-			: `Not supported on Cyanophage (${formatCyanophageIncompatibilities(cyanophageIncompatibilities)})`
+		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
 
 	const analyzerStats = $derived(
-		getLayoutAnalyzerStats(statsMaps, layout.name, filterStore.statsAnalyzer, layout.keys)
+		getLayoutAnalyzerStats(
+			statsMaps,
+			layout.name,
+			filterStore.statsAnalyzer,
+			layout.cyanophageCompatible
+		)
 	);
 	const botStats = $derived(
 		analyzerStats && !isCyanophageAnalyzer
@@ -123,9 +119,7 @@
 			: isCyanophageAnalyzer
 				? !cyanophageStats
 					? formatCyanophageStatsUnavailableBlock(
-							!cyanophageCompatible
-								? formatCyanophageIncompatibilities(cyanophageIncompatibilities)
-								: undefined
+							!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
 						)
 					: null
 				: !botStats
@@ -139,6 +133,7 @@
 
 	function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
+		if (!layout.cyanophageCompatible) return;
 		const url = buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
 		if (!url) return;
 		window.open(url, '_blank');
@@ -273,7 +268,7 @@
 				<button
 					type="button"
 					onclick={handlePlaygroundClick}
-					disabled={!cyanophageCompatible}
+					disabled={!layout.cyanophageCompatible}
 					class="px-2 py-1 rounded-lg text-sm transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
 					style="
 						background-color: var(--bg-primary);
@@ -282,7 +277,7 @@
 					"
 					title={cyanophageLinkTitle}
 					aria-label={cyanophageLinkTitle}
-					aria-disabled={!cyanophageCompatible}
+					aria-disabled={!layout.cyanophageCompatible}
 				>
 					<svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path

@@ -1,5 +1,4 @@
-import type { CyanophageStats, KeyInfo, MonkeyracerStats, LayoutData, StatsMaps } from '$lib/layout';
-import { isCyanophageCompatible } from '$lib/cyanophage';
+import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps } from '$lib/layout';
 
 /** Default analyzer for layout stats (matches common cmini bot preference). */
 export const DEFAULT_STATS_ANALYZER = 'monkeyracer';
@@ -350,10 +349,10 @@ export function getLayoutAnalyzerStats(
 	statsMaps: StatsMaps,
 	layoutName: string,
 	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER,
-	keys?: Record<string, KeyInfo>
+	cyanophageCompatible = true
 ): MonkeyracerStats | CyanophageStats | undefined {
 	if (analyzer === CYANOPHAGE_ANALYZER) {
-		if (keys && !isCyanophageCompatible(keys)) return undefined;
+		if (!cyanophageCompatible) return undefined;
 		return getLayoutCyanophageStats(statsMaps, layoutName);
 	}
 
@@ -374,7 +373,12 @@ export function getStatSortValue(
 	const field = getStatSortField(sortBy);
 	if (!field) return null;
 
-	const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, field.analyzer, layout.keys);
+	const analyzerStats = getLayoutAnalyzerStats(
+		statsMaps,
+		layout.name,
+		field.analyzer,
+		layout.cyanophageCompatible
+	);
 	if (!analyzerStats) return null;
 
 	if (field.analyzer === CYANOPHAGE_ANALYZER) {

@@ -15,6 +15,7 @@ export interface LayoutData {
 	characterSet: 'english' | 'international';
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;
+	cyanophageCompatible: boolean;
 	updatedAt: string;
 }
 
