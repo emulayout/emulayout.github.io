@@ -96,6 +96,9 @@ export type DerivedCyanophageStats = {
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
+/** Keys usable in stat limit filters (union of both analyzers). */
+export type StatLimitKey = StatSortKey | CyanophageStatSortKey;
+
 export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 14;
 
 /** Longest cyanophage stat label in `buildCyanophageStatsBlockLines` (for value column alignment). */
@@ -185,10 +188,12 @@ export const STAT_SORT_FIELDS = [
 const ALL_STAT_SORT_FIELDS = [...STAT_SORT_FIELDS, ...CYANOPHAGE_STAT_SORT_FIELDS] as const;
 
 export interface StatFilterField {
-	key: StatSortKey;
+	key: StatLimitKey;
 	label: string;
 	/** Longer name for tooltips and aria labels when `label` is abbreviated. */
 	title?: string;
+	/** How filter input values are interpreted. Defaults to percent (0–100). */
+	unit?: 'percent' | 'raw';
 }
 
 /** Max related stats per general-stat row (matches layout card group width). */
@@ -198,7 +203,7 @@ export const GENERAL_STAT_FILTER_COLUMN_COUNT = 3;
  * General stat limits in card-style rows: one row per stat group,
  * up to three columns for related stats (empty cells omitted at render time).
  */
-export const GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] = [
+export const MONKEY_GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] = [
 	[{ key: 'alternate', label: 'Alt' }],
 	[
 		{ key: 'roll', label: 'Rol' },
@@ -227,8 +232,31 @@ export const GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] =
 	]
 ];
 
+/** Cyanophage general stat filter rows (matches stats card grouping). */
+export const CYANOPHAGE_GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] = [
+	[
+		{ key: 'totalWordEffort', label: 'TWE', title: 'Total Word Effort', unit: 'raw' },
+		{ key: 'effort', label: 'Effort', title: 'Effort', unit: 'raw' }
+	],
+	[
+		{ key: 'sfb', label: 'SFB', title: 'Same Finger Bigrams' },
+		{ key: 'sfs', label: 'SFS', title: 'Skip Bigrams' },
+		{ key: 'lsb', label: 'LSB', title: 'Lat Stretch Bigrams' }
+	],
+	[{ key: 'scissors', label: 'Sci', title: 'Scissors' }]
+];
+
+/** @deprecated Use MONKEY_GENERAL_STAT_FILTER_ROWS or getGeneralStatFilterRowsForAnalyzer */
+export const GENERAL_STAT_FILTER_ROWS = MONKEY_GENERAL_STAT_FILTER_ROWS;
+
+/** Flat list of monkey general stat filter fields. */
+export const MONKEY_GENERAL_STAT_FILTER_FIELDS = MONKEY_GENERAL_STAT_FILTER_ROWS.flat();
+
+/** Flat list of cyanophage general stat filter fields. */
+export const CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS = CYANOPHAGE_GENERAL_STAT_FILTER_ROWS.flat();
+
 /** Flat list of general stat filter fields — keep in sync with filterStore. */
-export const GENERAL_STAT_FILTER_FIELDS = GENERAL_STAT_FILTER_ROWS.flat();
+export const GENERAL_STAT_FILTER_FIELDS = MONKEY_GENERAL_STAT_FILTER_FIELDS;
 
 export const LEFT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'lh', label: 'Hand' },
@@ -248,12 +276,49 @@ export const RIGHT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'RT', label: 'Thumb' }
 ] as const satisfies readonly StatFilterField[];
 
-/** All filterable stats — keep in sync with filterStore stat limit state. */
-export const STAT_FILTER_FIELDS = [
-	...GENERAL_STAT_FILTER_FIELDS,
+function uniqueStatFilterFields(fields: readonly StatFilterField[]): StatFilterField[] {
+	const byKey = new Map<string, StatFilterField>();
+	for (const field of fields) {
+		if (!byKey.has(field.key)) byKey.set(field.key, field);
+	}
+	return [...byKey.values()];
+}
+
+/** All stat limit keys (both analyzers) — used for URL state and empty limit records. */
+export const ALL_STAT_FILTER_FIELDS = uniqueStatFilterFields([
+	...MONKEY_GENERAL_STAT_FILTER_FIELDS,
+	...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
 	...LEFT_HAND_STAT_FILTER_FIELDS,
 	...RIGHT_HAND_STAT_FILTER_FIELDS
-] as const satisfies readonly StatFilterField[];
+]);
+
+/** @deprecated Use ALL_STAT_FILTER_FIELDS or getStatFilterFieldsForAnalyzer */
+export const STAT_FILTER_FIELDS = ALL_STAT_FILTER_FIELDS;
+
+export function getGeneralStatFilterRowsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly (readonly StatFilterField[])[] {
+	return analyzer === CYANOPHAGE_ANALYZER
+		? CYANOPHAGE_GENERAL_STAT_FILTER_ROWS
+		: MONKEY_GENERAL_STAT_FILTER_ROWS;
+}
+
+export function getStatFilterFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatFilterField[] {
+	return [
+		...getGeneralStatFilterRowsForAnalyzer(analyzer).flat(),
+		...LEFT_HAND_STAT_FILTER_FIELDS,
+		...RIGHT_HAND_STAT_FILTER_FIELDS
+	];
+}
+
+/** Parse a stat filter input value for comparison against stored stats. */
+export function parseStatFilterThreshold(field: StatFilterField, value: string): number | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const parsed = Number.parseFloat(trimmed);
+	if (!Number.isFinite(parsed)) return null;
+	return field.unit === 'raw' ? parsed : parsed / 100;
+}
 
 export type StatSortBy = (typeof ALL_STAT_SORT_FIELDS)[number]['value'];
 

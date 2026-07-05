@@ -24,7 +24,7 @@
 		const analyzers = new Set<typeof DEFAULT_STATS_ANALYZER | typeof CYANOPHAGE_ANALYZER>();
 
 		if (needsStatsForFilter) {
-			analyzers.add(DEFAULT_STATS_ANALYZER);
+			analyzers.add(filterStore.statsAnalyzer);
 		}
 
 		if (needsStatsForSort) {

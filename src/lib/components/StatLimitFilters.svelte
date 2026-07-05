@@ -3,26 +3,26 @@
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import {
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
-		GENERAL_STAT_FILTER_ROWS,
+		getGeneralStatFilterRowsForAnalyzer,
 		LEFT_HAND_STAT_FILTER_FIELDS,
 		RIGHT_HAND_STAT_FILTER_FIELDS,
 		type StatFilterField,
-		type StatSortKey
+		type StatLimitKey
 	} from '$lib/layoutStats';
 
 	function fieldTitle(field: StatFilterField): string {
 		return field.title ?? field.label;
 	}
 
-	function isActive(key: StatSortKey): boolean {
+	function isActive(key: StatLimitKey): boolean {
 		return filterStore.statLimits[key].value.trim() !== '';
 	}
 
-	function handleOperatorChange(key: StatSortKey, operator: StatLimitOperator) {
+	function handleOperatorChange(key: StatLimitKey, operator: StatLimitOperator) {
 		filterStore.setStatLimitOperator(key, operator);
 	}
 
-	function handleValueInput(key: StatSortKey, value: string) {
+	function handleValueInput(key: StatLimitKey, value: string) {
 		filterStore.setStatLimitValue(key, value);
 	}
 
@@ -38,6 +38,9 @@
 	let expanded = $state(filterStore.hasActiveStatLimits);
 
 	const hasActiveFilters = $derived(filterStore.hasActiveStatLimits);
+	const generalStatFilterRows = $derived(
+		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
+	);
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
@@ -66,7 +69,7 @@
 			placeholder="—"
 			aria-label="{title} limit"
 		/>
-		<span class="stat-limit-unit">%</span>
+		<span class="stat-limit-unit">{field.unit === 'raw' ? '' : '%'}</span>
 	</div>
 {/snippet}
 
@@ -112,7 +115,7 @@
 		<div class="stat-filters-body-inner">
 			<div class="stat-limits-body">
 				<section class="stat-limits-general" aria-label="General stat filters">
-					{#each GENERAL_STAT_FILTER_ROWS as row, rowIndex (rowIndex)}
+					{#each generalStatFilterRows as row, rowIndex (rowIndex)}
 						<div class="stat-limit-row">
 							{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
 								{@const field = row[colIndex]}

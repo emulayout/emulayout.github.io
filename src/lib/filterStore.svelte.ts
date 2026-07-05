@@ -1,8 +1,11 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import {
+	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	deriveBotStats,
+	deriveCyanophageStats,
 	getLayoutAnalyzerStats,
+	getStatFilterFieldsForAnalyzer,
 	getStatSortField,
 	getStatSortValue,
 	isSortBy,
@@ -11,13 +14,14 @@ import {
 	isStatSortByForAnalyzer,
 	isStatsAnalyzer,
 	parseLegacySortParam,
-	STAT_FILTER_FIELDS,
+	parseStatFilterThreshold,
+	ALL_STAT_FILTER_FIELDS,
 	type SortBy,
 	type SortOrder,
-	type StatSortKey,
+	type StatLimitKey,
 	type StatsAnalyzer
 } from './layoutStats';
-import type { MonkeyracerStats, LayoutData, StatsMaps } from './layout';
+import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -31,17 +35,17 @@ export interface StatLimit {
 	value: string;
 }
 
-function createEmptyStatLimits(): Record<StatSortKey, StatLimit> {
-	const limits = {} as Record<StatSortKey, StatLimit>;
-	for (const field of STAT_FILTER_FIELDS) {
+function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
+	const limits = {} as Record<StatLimitKey, StatLimit>;
+	for (const field of ALL_STAT_FILTER_FIELDS) {
 		limits[field.key] = { operator: 'lt', value: '' };
 	}
 	return limits;
 }
 
-function serializeStatLimits(limits: Record<StatSortKey, StatLimit>): string {
+function serializeStatLimits(limits: Record<StatLimitKey, StatLimit>): string {
 	const parts: string[] = [];
-	for (const field of STAT_FILTER_FIELDS) {
+	for (const field of ALL_STAT_FILTER_FIELDS) {
 		const limit = limits[field.key];
 		const value = limit.value.trim();
 		if (!value) continue;
@@ -50,7 +54,7 @@ function serializeStatLimits(limits: Record<StatSortKey, StatLimit>): string {
 	return parts.join(',');
 }
 
-function deserializeStatLimits(str: string): Record<StatSortKey, StatLimit> {
+function deserializeStatLimits(str: string): Record<StatLimitKey, StatLimit> {
 	const limits = createEmptyStatLimits();
 	if (!str) return limits;
 
@@ -59,20 +63,12 @@ function deserializeStatLimits(str: string): Record<StatSortKey, StatLimit> {
 		if (!key || !operator || valueParts.length === 0) continue;
 		if (!(key in limits)) continue;
 		if (operator !== 'lt' && operator !== 'gt') continue;
-		limits[key as StatSortKey] = {
+		limits[key as StatLimitKey] = {
 			operator,
 			value: valueParts.join(':')
 		};
 	}
 	return limits;
-}
-
-function parseStatLimitPercent(value: string): number | null {
-	const trimmed = value.trim();
-	if (!trimmed) return null;
-	const parsed = Number.parseFloat(trimmed);
-	if (!Number.isFinite(parsed)) return null;
-	return parsed / 100;
 }
 
 const ROWS = 3;
@@ -137,7 +133,7 @@ export class FilterStore {
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
-	statLimits: Record<StatSortKey, StatLimit> = $state(createEmptyStatLimits());
+	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
 	get showLayoutStats(): boolean {
 		return !this.hideLayoutStats;
@@ -453,12 +449,12 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
-	setStatLimitOperator(key: StatSortKey, operator: StatLimitOperator) {
+	setStatLimitOperator(key: StatLimitKey, operator: StatLimitOperator) {
 		this.statLimits[key].operator = operator;
 		this.#debouncedSave();
 	}
 
-	setStatLimitValue(key: StatSortKey, value: string) {
+	setStatLimitValue(key: StatLimitKey, value: string) {
 		this.statLimits[key].value = value;
 		this.#debouncedSave();
 	}
@@ -575,7 +571,9 @@ export class FilterStore {
 	}
 
 	get hasActiveStatLimits(): boolean {
-		return STAT_FILTER_FIELDS.some((field) => this.statLimits[field.key].value.trim() !== '');
+		return getStatFilterFieldsForAnalyzer(this.statsAnalyzer).some(
+			(field) => this.statLimits[field.key].value.trim() !== ''
+		);
 	}
 
 	get hasActiveFilters(): boolean {
@@ -818,21 +816,29 @@ export class FilterStore {
 	}
 
 	#matchesStatLimits(layout: LayoutData, statsMaps: StatsMaps, statsReady: boolean): boolean {
-		if (this.statsAnalyzer !== DEFAULT_STATS_ANALYZER) return true;
-		if (!this.hasActiveStatLimits) return true;
+		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
+		if (!fields.some((field) => this.statLimits[field.key].value.trim() !== '')) return true;
 		if (!statsReady) return true;
 
-		const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, DEFAULT_STATS_ANALYZER);
+		const analyzerStats = getLayoutAnalyzerStats(
+			statsMaps,
+			layout.name,
+			this.statsAnalyzer,
+			layout.cyanophageCompatible
+		);
 		if (!analyzerStats) return false;
 
-		const stats = deriveBotStats(analyzerStats as MonkeyracerStats);
+		const stats =
+			this.statsAnalyzer === CYANOPHAGE_ANALYZER
+				? deriveCyanophageStats(analyzerStats as CyanophageStats)
+				: deriveBotStats(analyzerStats as MonkeyracerStats);
 
-		for (const field of STAT_FILTER_FIELDS) {
+		for (const field of fields) {
 			const limit = this.statLimits[field.key];
-			const threshold = parseStatLimitPercent(limit.value);
+			const threshold = parseStatFilterThreshold(field, limit.value);
 			if (threshold === null) continue;
 
-			const value = stats[field.key];
+			const value = stats[field.key as keyof typeof stats];
 			if (limit.operator === 'lt' && value >= threshold) return false;
 			if (limit.operator === 'gt' && value <= threshold) return false;
 		}

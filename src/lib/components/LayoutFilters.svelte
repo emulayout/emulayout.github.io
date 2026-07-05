@@ -150,18 +150,7 @@
 		/>
 	</div>
 	<div class="grid-area-stat-limits">
-		{#if filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER}
-			<StatLimitFilters />
-		{:else}
-			<div
-				class="p-4 rounded-xl h-full flex items-center justify-center text-center"
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-			>
-				<p class="text-sm" style="color: var(--text-caption);">
-					Stat filters apply to monkeyracer stats.
-				</p>
-			</div>
-		{/if}
+		<StatLimitFilters />
 	</div>
 	<div
 		class="p-4 rounded-xl grid-area-other-options flex flex-col items-center"
