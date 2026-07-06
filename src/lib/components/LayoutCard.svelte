@@ -141,7 +141,12 @@
 	function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
 		if (!layout.cyanophageCompatible) return;
-		const url = buildCyanophagePlaygroundUrl(layout.keys, layout.board, layout.displayValue);
+		const url = buildCyanophagePlaygroundUrl(
+			layout.keys,
+			layout.board,
+			layout.displayValue,
+			layout.cyanophageThumb ?? 'l'
+		);
 		if (!url) return;
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}

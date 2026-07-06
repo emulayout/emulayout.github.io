@@ -32,11 +32,12 @@ export function transformLayout(layout) {
 	return {
 		...stripped,
 		hasThumbKeys: computeHasThumbKeys(stripped),
-		displayValue: computeDisplayValue(stripped),
+		displayValue: computeDisplayValue(layout),
 		characterSet: computeCharacterSet(stripped),
 		hasAllLetters: computeHasAllLetters(stripped),
 		hasMagicKey: computeHasMagicKey(stripped),
-		cyanophageCompatible: isCyanophageCompatible(keys)
+		cyanophageCompatible: isCyanophageCompatible(keys),
+		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
 	};
 }
 
@@ -61,6 +62,82 @@ function computeHasThumbKeys(layout) {
 }
 
 /**
+ * Cyanophage supports one thumb key; playground uses thumb=l|r from cmini finger.
+ * @param {Object} layout - raw layout with finger on keys
+ * @returns {'l' | 'r' | undefined}
+ */
+function computeCyanophageThumb(layout) {
+	if (!layout.keys || typeof layout.keys !== 'object') return undefined;
+
+	const thumbs = Object.entries(layout.keys).filter(([, info]) => info && info.row >= 3);
+	if (thumbs.length !== 1) return undefined;
+
+	const [, info] = thumbs[0];
+	const finger = info.finger;
+	if (typeof finger === 'string') {
+		if (finger[0] === 'L') return 'l';
+		if (finger[0] === 'R') return 'r';
+	}
+	return typeof info.col === 'number' && info.col < 5 ? 'l' : 'r';
+}
+
+const THUMB_ROW = 3;
+
+/**
+ * @param {string | undefined} finger
+ * @returns {'left' | 'right' | null}
+ */
+function thumbHand(finger) {
+	if (!finger || typeof finger !== 'string') return null;
+	if (finger[0] === 'L') return 'left';
+	if (finger[0] === 'R') return 'right';
+	return null;
+}
+
+/**
+ * Place thumb keys under the hand they belong to, aligned with main-row columns.
+ * Left-thumb keys are right-aligned in the left hand (e.g. under h/k); right-thumb
+ * keys are left-aligned in the right hand.
+ *
+ * @param {Array<{ key: string, col: number, finger?: string }>} entries
+ * @param {number} splitCol
+ */
+function formatThumbRow(entries, splitCol) {
+	const left = [];
+	const right = [];
+	for (const entry of entries) {
+		const hand = thumbHand(entry.finger);
+		if (hand === 'left') {
+			left.push(entry);
+		} else if (hand === 'right') {
+			right.push(entry);
+		} else if (entry.col < splitCol) {
+			left.push(entry);
+		} else {
+			right.push(entry);
+		}
+	}
+	left.sort((a, b) => a.col - b.col);
+	right.sort((a, b) => a.col - b.col);
+
+	const maxCol = Math.max(
+		left.length > 0 ? splitCol - 1 : 0,
+		right.length > 0 ? splitCol + right.length - 1 : 0
+	);
+	/** @type {string[]} */
+	const slots = Array.from({ length: maxCol + 1 }, () => ' ');
+
+	for (let i = 0; i < left.length; i++) {
+		slots[splitCol - left.length + i] = left[i].key;
+	}
+	for (let i = 0; i < right.length; i++) {
+		slots[splitCol + i] = right[i].key;
+	}
+
+	return slots.slice(0, splitCol).join(' ') + '  ' + slots.slice(splitCol).join(' ');
+}
+
+/**
  * Computes the displayValue string representation of a layout.
  */
 function computeDisplayValue(layout, splitCol = 5) {
@@ -68,10 +145,12 @@ function computeDisplayValue(layout, splitCol = 5) {
 		return '';
 	}
 
+	/** @type {Record<number, Array<{ key: string, col: number, finger?: string }>>} */
 	const rows = {};
 	Object.entries(layout.keys).forEach(([key, info]) => {
+		if (!info || typeof info.row !== 'number' || typeof info.col !== 'number') return;
 		if (!rows[info.row]) rows[info.row] = [];
-		rows[info.row][info.col] = key;
+		rows[info.row].push({ key, col: info.col, finger: info.finger });
 	});
 
 	const isAnsiDisplay = layout.board === 'stagger' || layout.board === 'angle';
@@ -80,15 +159,24 @@ function computeDisplayValue(layout, splitCol = 5) {
 		.sort((a, b) => Number(a) - Number(b))
 		.map((row) => {
 			const rowNum = Number(row);
-			const r = rows[rowNum];
-			// Find the max column that has a key
-			const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
-			// Fill gaps with space, up to maxCol
-			const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
-			const rowString =
-				filled.slice(0, splitCol).join(' ') +
-				'  ' + // extra gap between hands
-				filled.slice(splitCol).join(' ');
+			const entries = rows[rowNum];
+
+			let rowString;
+			if (rowNum >= THUMB_ROW) {
+				rowString = formatThumbRow(entries, splitCol);
+			} else {
+				/** @type {string[]} */
+				const r = [];
+				for (const { key, col } of entries) {
+					r[col] = key;
+				}
+				const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
+				const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
+				rowString =
+					filled.slice(0, splitCol).join(' ') +
+					'  ' +
+					filled.slice(splitCol).join(' ');
+			}
 
 			if (isAnsiDisplay) {
 				if (rowNum === 1) {

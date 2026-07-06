@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isCyanophageCompatible, buildCyanophageCharPositionMap } from '../src/lib/cyanophage.ts';
+import { isCyanophageCompatible, buildCyanophageCharPositionMap, resolveCyanophageThumb } from '../src/lib/cyanophage.ts';
 
 /**
  * Cyanophage stats (English word-frequency input).
@@ -143,10 +143,11 @@ export async function loadCyanophageData() {
 /**
  * @param {Record<string, { row?: number, col?: number }>} keys
  * @param {string} board
+ * @param {'l' | 'r'} [thumb]
  * @returns {CharPositionMap}
  */
-export function buildCharPositionMap(keys, board = 'ortho') {
-	return buildCyanophageCharPositionMap(keys, board);
+export function buildCharPositionMap(keys, board = 'ortho', thumb = 'l') {
+	return buildCyanophageCharPositionMap(keys, board, thumb);
 }
 
 /**
@@ -422,7 +423,8 @@ export function buildCyanophageStats(rawLayout, data) {
 	if (!isCyanophageCompatible(rawLayout.keys)) return null;
 
 	const board = rawLayout.board ?? 'ortho';
-	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, board);
+	const thumb = rawLayout.cyanophageThumb ?? resolveCyanophageThumb(rawLayout.keys) ?? 'l';
+	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, board, thumb);
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.dictionary, data.bigramEffort);

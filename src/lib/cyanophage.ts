@@ -18,9 +18,13 @@ const CYAN_DEFAULTS =
 
 type CyanSlot = { row: number; col: number; defaultChar?: string } | { defaultChar: string };
 
+const CYANOPHAGE_THUMB_ROW = 3;
+
+/** Letter grid for cyanophage import slots 0–32 (main keys only; thumb row excluded). */
 function buildKeyGrid(keys: Record<string, KeyInfo>): Map<string, string> {
 	const grid = new Map<string, string>();
 	for (const [char, { row, col }] of Object.entries(keys)) {
+		if (row >= CYANOPHAGE_THUMB_ROW) continue;
 		grid.set(`${row},${col}`, char);
 	}
 	return grid;
@@ -140,6 +144,24 @@ function pickPunctPlaceholder(used: ReadonlySet<string>, fallbacks: readonly str
 
 const CYANOPHAGE_IMPORT_SLOT_COUNT = 34;
 
+/** rcdata[33] / rcdata[39] positions after cyanophage thumb=l|r swap (ergo). */
+export const CYANOPHAGE_LEFT_THUMB_POSITION = { row: 3, col: 4 } as const;
+export const CYANOPHAGE_RIGHT_THUMB_POSITION = { row: 3, col: 7 } as const;
+
+/** Infer playground thumb side from cmini finger on the sole thumb key. */
+export function resolveCyanophageThumb(
+	keys: Record<string, KeyInfo & { finger?: string }>
+): 'l' | 'r' | undefined {
+	const thumbKeys = getCyanophageThumbKeys(keys);
+	if (thumbKeys.length !== 1) return undefined;
+
+	const finger = keys[thumbKeys[0].char]?.finger;
+	if (typeof finger !== 'string') return undefined;
+	if (finger[0] === 'L') return 'l';
+	if (finger[0] === 'R') return 'r';
+	return undefined;
+}
+
 /** Fixed row/col per import slot after cyanophage import (indices 0–31, shared across modes). */
 const CYANOPHAGE_LETTER_SLOT_GEOMETRY: readonly { row: number; col: number }[] = [
 	...Array.from({ length: 10 }, (_, index) => ({ row: 0, col: index + 1 })),
@@ -170,10 +192,12 @@ function getImportSlotGeometry(
 
 /**
  * Map each letter to cyanophage rcdata row/col (same geometry the playground uses after import).
+ * Pass thumb so the sole thumb key maps to rcdata[39] (space) when thumb=r.
  */
 export function buildCyanophageCharPositionMap(
 	keys: Record<string, KeyInfo>,
-	board: BoardType
+	board: BoardType,
+	thumb: 'l' | 'r' = 'l'
 ): Map<string, { row: number; col: number }> {
 	const importString = formatLayoutImportString(keys, board);
 	if (importString.length !== CYANOPHAGE_IMPORT_SLOT_COUNT) {
@@ -181,6 +205,10 @@ export function buildCyanophageCharPositionMap(
 	}
 
 	const geometry = getImportSlotGeometry(board, importString);
+	if (thumb === 'r') {
+		geometry[33] = { ...CYANOPHAGE_RIGHT_THUMB_POSITION };
+	}
+
 	const map = new Map<string, { row: number; col: number }>();
 
 	for (let index = 0; index < CYANOPHAGE_IMPORT_SLOT_COUNT; index++) {
@@ -196,6 +224,10 @@ export function buildCyanophageCharPositionMap(
 }
 
 function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType): string {
+	const thumbKeys = getCyanophageThumbKeys(keys);
+	const thumbChar = thumbKeys.length === 1 ? thumbKeys[0].char : null;
+	const reserved = new Set(thumbChar ? [thumbChar] : []);
+
 	const grid = buildKeyGrid(keys);
 	const slots = getSlotsForBoard(board);
 	const chars: Array<string | null> = Array.from({ length: CYANOPHAGE_IMPORT_SLOT_COUNT }, () => null);
@@ -207,14 +239,22 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 		if (assigned) chars[index] = assigned;
 	}
 
-	const thumbKeys = getCyanophageThumbKeys(keys);
-	chars[33] = thumbKeys.length === 1 ? thumbKeys[0].char : '^';
+	chars[33] = thumbChar ?? '^';
+
+	const usedChars = (): Set<string> =>
+		new Set([
+			...reserved,
+			...chars.filter((char): char is string => char !== null)
+		]);
 
 	for (const index of [10, 21]) {
 		if (chars[index] !== null) continue;
-		const used = new Set(
-			chars.filter((char, charIndex): char is string => char !== null && charIndex !== index)
-		);
+		const used = new Set([
+			...reserved,
+			...chars.flatMap((char, charIndex) =>
+				char !== null && charIndex !== index ? [char] : []
+			)
+		]);
 		const fallbacks = index === 10 ? PUNCT_PLACEHOLDER_SLOT_10 : PUNCT_PLACEHOLDER_SLOT_21;
 		chars[index] = pickPunctPlaceholder(used, fallbacks);
 	}
@@ -223,13 +263,11 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 		if (chars[index] !== null) continue;
 		const slot = slots[index];
 		if ('defaultChar' in slot && slot.defaultChar) {
-			const used = new Set(chars.filter((char): char is string => char !== null));
-			chars[index] = pickPunctPlaceholder(used, [slot.defaultChar]);
+			chars[index] = pickPunctPlaceholder(usedChars(), [slot.defaultChar]);
 			continue;
 		}
-		const used = new Set(chars.filter((char): char is string => char !== null));
 		const fallback = CYAN_DEFAULTS[index] ?? '-';
-		chars[index] = pickPunctPlaceholder(used, [fallback]);
+		chars[index] = pickPunctPlaceholder(usedChars(), [fallback]);
 	}
 
 	return chars.join('');
@@ -324,7 +362,7 @@ export function getUnsupportedCyanophageChars(keys: Record<string, KeyInfo>): st
 }
 
 /** Shown when a layout cannot be linked or measured in cyanophage. */
-export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Not supported by Cyanophage (unsupported characters)';
+export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
 
 /** True when the layout can be imported and measured faithfully in cyanophage. */
 export function isCyanophageCompatible(keys: Record<string, KeyInfo>): boolean {
@@ -349,12 +387,18 @@ function encodeCyanophageLayoutParam(layout: string): string {
 export function buildCyanophagePlaygroundUrl(
 	keys: Record<string, KeyInfo>,
 	board: BoardType,
-	displayValue?: string
+	displayValue?: string,
+	thumb: 'l' | 'r' = 'l'
 ): string | null {
 	if (!isCyanophageCompatible(keys)) return null;
 
 	const mode = board === 'stagger' ? 'ansi' : board === 'angle' ? 'iso' : 'ergo';
+	// importLayout() reads the 34-char import string (^ empty slots, thumb letter at [33]).
+	// Use thumb=l|r for side; do not use exportLayout() output (= markers, "space" suffix) —
+	// reloading that format breaks swaps because charAt(33) is "s" from the "space" suffix.
 	const layoutParam = formatLayoutForCyanophage(keys, board, displayValue);
+	if (layoutParam.length < CYANOPHAGE_IMPORT_SLOT_COUNT) return null;
+
 	const encodedLayout = encodeCyanophageLayoutParam(layoutParam);
-	return `https://cyanophage.github.io/playground.html?layout=${encodedLayout}&mode=${mode}&lan=english&thumb=l`;
+	return `https://cyanophage.github.io/playground.html?layout=${encodedLayout}&mode=${mode}&lan=english&thumb=${thumb}`;
 }

@@ -8,7 +8,7 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
 /** Analyzers available for stats display, sorting, and filtering. */
 export const STAT_ANALYZERS = [
-	{ value: DEFAULT_STATS_ANALYZER, label: 'monkeyracer' },
+	{ value: DEFAULT_STATS_ANALYZER, label: 'cmini (monkeyracer)' },
 	{ value: CYANOPHAGE_ANALYZER, label: 'cyanophage' }
 ] as const;
 

@@ -16,6 +16,8 @@ export interface LayoutData {
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;
 	cyanophageCompatible: boolean;
+	/** Set when the layout has exactly one thumb key (cyanophage playground). */
+	cyanophageThumb?: 'l' | 'r';
 	updatedAt: string;
 }
 
