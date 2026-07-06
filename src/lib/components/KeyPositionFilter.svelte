@@ -3,6 +3,23 @@
 
 	const SPLIT_COL = 5;
 	const THUMB_KEYS_PER_HAND = 4;
+	const DEFAULT_THUMB_SLOTS_PER_HAND = 2;
+
+	/** Show 2 slots by default; add one more when all visible slots on that hand are filled (max 4). */
+	function visibleThumbSlotCount(keys: readonly string[]): number {
+		const maxFilledIndex = keys.reduce((max, key, index) => (key !== '' ? index : max), -1);
+
+		let visible = DEFAULT_THUMB_SLOTS_PER_HAND;
+		while (visible < THUMB_KEYS_PER_HAND && keys.slice(0, visible).every((key) => key !== '')) {
+			visible++;
+		}
+
+		if (maxFilledIndex >= visible) {
+			visible = Math.min(maxFilledIndex + 1, THUMB_KEYS_PER_HAND);
+		}
+
+		return visible;
+	}
 
 	interface Props {
 		label: string;
@@ -46,6 +63,9 @@
 			leftThumbKeys.some((key) => key !== '') ||
 			rightThumbKeys.some((key) => key !== '')
 	);
+
+	const leftThumbVisibleCount = $derived(visibleThumbSlotCount(leftThumbKeys));
+	const rightThumbVisibleCount = $derived(visibleThumbSlotCount(rightThumbKeys));
 
 	const HOME_ROW_INDEX = 1;
 
@@ -120,13 +140,13 @@
 				</p>
 				<div class="flex gap-1">
 					<div class="flex gap-1 justify-end flex-1 min-w-0">
-						{#each leftThumbKeys as key, idx (idx)}
+						{#each { length: leftThumbVisibleCount } as _, idx (idx)}
 							<input
 								type="text"
-								value={key}
+								value={leftThumbKeys[idx]}
 								oninput={(e) => onLeftThumbKeyChange?.(idx, e.currentTarget.value)}
 								class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-								style={thumbInputStyle(key)}
+								style={thumbInputStyle(leftThumbKeys[idx])}
 								placeholder="·"
 								aria-label={`Left thumb key ${idx + 1}`}
 							/>
@@ -134,13 +154,13 @@
 					</div>
 					<div class="w-3 shrink-0"></div>
 					<div class="flex gap-1 flex-1 min-w-0">
-						{#each rightThumbKeys as key, idx (idx)}
+						{#each { length: rightThumbVisibleCount } as _, idx (idx)}
 							<input
 								type="text"
-								value={key}
+								value={rightThumbKeys[idx]}
 								oninput={(e) => onRightThumbKeyChange?.(idx, e.currentTarget.value)}
 								class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-								style={thumbInputStyle(key)}
+								style={thumbInputStyle(rightThumbKeys[idx])}
 								placeholder="·"
 								aria-label={`Right thumb key ${idx + 1}`}
 							/>
