@@ -388,7 +388,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 0.375rem 0;
+		padding: 0.25rem 0;
 	}
 
 	.card-action-divider::before {

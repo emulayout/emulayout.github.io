@@ -75,7 +75,7 @@ textarea::placeholder {
 .layout-display {
 	--layout-font-size: 14px;
 	--layout-line-height: 1.5;
-	--layout-max-rows: 4;
+	--layout-max-rows: 4.5;
 	font-family: var(--font-mono);
 	font-size: var(--layout-font-size);
 	line-height: var(--layout-line-height);

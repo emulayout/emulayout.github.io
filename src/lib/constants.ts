@@ -1,7 +1,9 @@
 // LayoutCard dimensions constants
-export const LAYOUT_CARD_HEIGHT = 512; // px — full card with stats and test area (fits 4-row layouts)
-/** Min height for layout display area (4 rows × 14px × 1.5 line-height). */
-export const LAYOUT_DISPLAY_MIN_HEIGHT = 84;
+/** Action toolbar between layout display and stats (`.card-action-divider`). */
+export const LAYOUT_CARD_ACTION_BAR_HEIGHT = 40;
+export const LAYOUT_CARD_HEIGHT = 548; // px — 512 base + action toolbar row
+/** Min height for layout display area (~4.5 rows × 14px × 1.5 line-height). */
+export const LAYOUT_DISPLAY_MIN_HEIGHT = 94;
 export const LAYOUT_CARD_ROW_GAP = 16; // px (mb-4 = 1rem = 16px)
 export const LAYOUT_CARD_SECTION_GAP = 12; // px (gap-3 between main sections)
 export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 16; // px (gap-4 between stats and test area)
