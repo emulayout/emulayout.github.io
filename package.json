@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"type": "module",
 	"scripts": {
+		"predev": "bun run ./bin/ensure-static-data.js",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",

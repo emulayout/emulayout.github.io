@@ -36,16 +36,23 @@ async function loadBlacklist() {
 	}
 }
 
-async function ensureCache() {
+async function ensureCache(offline = false) {
 	const cacheExists = await access(CACHE_DIR)
 		.then(() => true)
 		.catch(() => false);
 
 	if (!cacheExists) {
+		if (offline) {
+			throw new Error(
+				`cmini cache missing at ${CACHE_DIR}. Run: bun run ./bin/cmini-sync.js`
+			);
+		}
 		console.log('→ Initial clone (this may take a while)...');
 		await mkdir(CACHE_DIR, { recursive: true });
 		await $`git clone --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
 		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
+	} else if (offline) {
+		console.log('→ Using existing cmini cache (offline)...');
 	} else {
 		console.log('→ Updating cache...');
 		const isShallow = (await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()).trim();
@@ -73,7 +80,8 @@ async function ensureCache() {
 }
 
 async function run() {
-	await ensureCache();
+	const offline = process.argv.includes('--offline') || process.env.CMINI_SYNC_OFFLINE === '1';
+	await ensureCache(offline);
 
 	const blacklist = await loadBlacklist();
 
