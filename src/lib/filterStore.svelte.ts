@@ -21,7 +21,7 @@ import {
 	type StatLimitKey,
 	type StatsAnalyzer
 } from './layoutStats';
-import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps } from './layout';
+import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps, KeyInfo } from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -73,7 +73,13 @@ function deserializeStatLimits(str: string): Record<StatLimitKey, StatLimit> {
 
 const ROWS = 3;
 const COLS = 10;
+const THUMB_SPLIT_COL = 5;
+const THUMB_KEYS_PER_HAND = 4;
 const DEBOUNCE_MS = 300;
+
+function createEmptyThumbKeyFilters(): string[] {
+	return Array.from({ length: THUMB_KEYS_PER_HAND }, () => '');
+}
 
 function createEmptyGrid(): string[][] {
 	return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
@@ -116,8 +122,12 @@ export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
 	includeOrGrid: string[][] = $state(createEmptyGrid());
-	includeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
-	excludeThumbKeys: string[] = $state(['', '', '', '']); // 4 thumb key position filters
+	includeOrLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	includeOrRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	includeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	includeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	excludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	excludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	showUnfinished: boolean = $state(false);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
@@ -173,8 +183,12 @@ export class FilterStore {
 			this.thumbKeyFilter = thumbKeys;
 			// Clear thumb key filters when set to excluded
 			if (thumbKeys === 'excluded') {
-				this.includeThumbKeys = ['', '', '', ''];
-				this.excludeThumbKeys = ['', '', '', ''];
+				this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+				this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+				this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+				this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+				this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+				this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 			}
 		}
 
@@ -210,21 +224,53 @@ export class FilterStore {
 			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
 		}
 
+		const parseThumbFilters = (value: string | null): string[] =>
+			value ? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, THUMB_KEYS_PER_HAND) : createEmptyThumbKeyFilters();
+
+		const includeLeftThumbs = url.searchParams.get('includeLeftThumbs');
+		if (includeLeftThumbs) {
+			this.includeLeftThumbKeys = parseThumbFilters(includeLeftThumbs);
+		}
+
+		const includeRightThumbs = url.searchParams.get('includeRightThumbs');
+		if (includeRightThumbs) {
+			this.includeRightThumbKeys = parseThumbFilters(includeRightThumbs);
+		}
+
+		const excludeLeftThumbs = url.searchParams.get('excludeLeftThumbs');
+		if (excludeLeftThumbs) {
+			this.excludeLeftThumbKeys = parseThumbFilters(excludeLeftThumbs);
+		}
+
+		const excludeRightThumbs = url.searchParams.get('excludeRightThumbs');
+		if (excludeRightThumbs) {
+			this.excludeRightThumbKeys = parseThumbFilters(excludeRightThumbs);
+		}
+
+		// Legacy: single combined thumb filter → left hand only
 		const includeThumbs = url.searchParams.get('includeThumbs');
-		if (includeThumbs) {
-			const parsed = includeThumbs.split('|');
-			this.includeThumbKeys = [...parsed, '', '', '', ''].slice(0, 4);
+		if (includeThumbs && !includeLeftThumbs && !includeRightThumbs) {
+			this.includeLeftThumbKeys = parseThumbFilters(includeThumbs);
 		}
 
 		const excludeThumbs = url.searchParams.get('excludeThumbs');
-		if (excludeThumbs) {
-			const parsed = excludeThumbs.split('|');
-			this.excludeThumbKeys = [...parsed, '', '', '', ''].slice(0, 4);
+		if (excludeThumbs && !excludeLeftThumbs && !excludeRightThumbs) {
+			this.excludeLeftThumbKeys = parseThumbFilters(excludeThumbs);
 		}
 
 		const includeOr = url.searchParams.get('includeOr');
 		if (includeOr) {
 			this.includeOrGrid = deserializeGrid(includeOr);
+		}
+
+		const includeOrLeftThumbs = url.searchParams.get('includeOrLeftThumbs');
+		if (includeOrLeftThumbs) {
+			this.includeOrLeftThumbKeys = parseThumbFilters(includeOrLeftThumbs);
+		}
+
+		const includeOrRightThumbs = url.searchParams.get('includeOrRightThumbs');
+		if (includeOrRightThumbs) {
+			this.includeOrRightThumbKeys = parseThumbFilters(includeOrRightThumbs);
 		}
 
 		const sort = url.searchParams.get('sort');
@@ -312,19 +358,41 @@ export class FilterStore {
 			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
 		}
 
-		const includeThumbsSerialized = this.includeThumbKeys.filter((k) => k !== '').join('|');
-		if (includeThumbsSerialized) {
-			url.searchParams.set('includeThumbs', includeThumbsSerialized);
+		const serializeThumbFilters = (filters: string[]) => filters.filter((k) => k !== '').join('|');
+
+		const includeLeftThumbsSerialized = serializeThumbFilters(this.includeLeftThumbKeys);
+		if (includeLeftThumbsSerialized) {
+			url.searchParams.set('includeLeftThumbs', includeLeftThumbsSerialized);
 		}
 
-		const excludeThumbsSerialized = this.excludeThumbKeys.filter((k) => k !== '').join('|');
-		if (excludeThumbsSerialized) {
-			url.searchParams.set('excludeThumbs', excludeThumbsSerialized);
+		const includeRightThumbsSerialized = serializeThumbFilters(this.includeRightThumbKeys);
+		if (includeRightThumbsSerialized) {
+			url.searchParams.set('includeRightThumbs', includeRightThumbsSerialized);
+		}
+
+		const excludeLeftThumbsSerialized = serializeThumbFilters(this.excludeLeftThumbKeys);
+		if (excludeLeftThumbsSerialized) {
+			url.searchParams.set('excludeLeftThumbs', excludeLeftThumbsSerialized);
+		}
+
+		const excludeRightThumbsSerialized = serializeThumbFilters(this.excludeRightThumbKeys);
+		if (excludeRightThumbsSerialized) {
+			url.searchParams.set('excludeRightThumbs', excludeRightThumbsSerialized);
 		}
 
 		const includeOrSerialized = serializeGrid(this.includeOrGrid);
 		if (includeOrSerialized) {
 			url.searchParams.set('includeOr', includeOrSerialized);
+		}
+
+		const includeOrLeftThumbsSerialized = serializeThumbFilters(this.includeOrLeftThumbKeys);
+		if (includeOrLeftThumbsSerialized) {
+			url.searchParams.set('includeOrLeftThumbs', includeOrLeftThumbsSerialized);
+		}
+
+		const includeOrRightThumbsSerialized = serializeThumbFilters(this.includeOrRightThumbKeys);
+		if (includeOrRightThumbsSerialized) {
+			url.searchParams.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
 		}
 
 		if (this.sortBy !== 'date' || this.sortOrder !== 'desc') {
@@ -375,13 +443,33 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	setIncludeThumbKey(index: number, value: string) {
-		this.includeThumbKeys[index] = value;
+	setIncludeLeftThumbKey(index: number, value: string) {
+		this.includeLeftThumbKeys[index] = value;
 		this.#debouncedSave();
 	}
 
-	setExcludeThumbKey(index: number, value: string) {
-		this.excludeThumbKeys[index] = value;
+	setIncludeRightThumbKey(index: number, value: string) {
+		this.includeRightThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setExcludeLeftThumbKey(index: number, value: string) {
+		this.excludeLeftThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setExcludeRightThumbKey(index: number, value: string) {
+		this.excludeRightThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setIncludeOrLeftThumbKey(index: number, value: string) {
+		this.includeOrLeftThumbKeys[index] = value;
+		this.#debouncedSave();
+	}
+
+	setIncludeOrRightThumbKey(index: number, value: string) {
+		this.includeOrRightThumbKeys[index] = value;
 		this.#debouncedSave();
 	}
 
@@ -399,8 +487,12 @@ export class FilterStore {
 		this.thumbKeyFilter = value;
 		// Clear thumb key filters when set to excluded
 		if (value === 'excluded') {
-			this.includeThumbKeys = ['', '', '', ''];
-			this.excludeThumbKeys = ['', '', '', ''];
+			this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+			this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+			this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+			this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+			this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+			this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		}
 		this.#debouncedSave();
 	}
@@ -473,18 +565,22 @@ export class FilterStore {
 
 	clearInclude() {
 		this.includeGrid = createEmptyGrid();
-		this.includeThumbKeys = ['', '', '', ''];
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#debouncedSave();
 	}
 
 	clearIncludeOr() {
 		this.includeOrGrid = createEmptyGrid();
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#debouncedSave();
 	}
 
 	clearExclude() {
 		this.excludeGrid = createEmptyGrid();
-		this.excludeThumbKeys = ['', '', '', ''];
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#debouncedSave();
 	}
 
@@ -506,8 +602,12 @@ export class FilterStore {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
 		this.includeOrGrid = createEmptyGrid();
-		this.includeThumbKeys = ['', '', '', ''];
-		this.excludeThumbKeys = ['', '', '', ''];
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
@@ -529,8 +629,12 @@ export class FilterStore {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
 		this.includeOrGrid = createEmptyGrid();
-		this.includeThumbKeys = ['', '', '', ''];
-		this.excludeThumbKeys = ['', '', '', ''];
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.selectedAuthors.clear();
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
@@ -579,9 +683,16 @@ export class FilterStore {
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
-		const hasIncludeOr = this.includeOrGrid.some((row) => row.some((cell) => cell !== ''));
-		const hasIncludeThumbs = this.includeThumbKeys.some((k) => k !== '');
-		const hasExcludeThumbs = this.excludeThumbKeys.some((k) => k !== '');
+		const hasIncludeOr =
+			this.includeOrGrid.some((row) => row.some((cell) => cell !== '')) ||
+			this.includeOrLeftThumbKeys.some((k) => k !== '') ||
+			this.includeOrRightThumbKeys.some((k) => k !== '');
+		const hasIncludeThumbs =
+			this.includeLeftThumbKeys.some((k) => k !== '') ||
+			this.includeRightThumbKeys.some((k) => k !== '');
+		const hasExcludeThumbs =
+			this.excludeLeftThumbKeys.some((k) => k !== '') ||
+			this.excludeRightThumbKeys.some((k) => k !== '');
 		return (
 			hasInclude ||
 			hasExclude ||
@@ -608,11 +719,15 @@ export class FilterStore {
 		return undefined;
 	}
 
-	// Get all keys in row 3 with their column positions, sorted by column
-	#getThumbKeysWithCols(layout: LayoutData): Array<{ key: string; col: number }> {
+	#resolveThumbHand(info: KeyInfo): 'l' | 'r' {
+		return info.thumbHand ?? (info.col < THUMB_SPLIT_COL ? 'l' : 'r');
+	}
+
+	// Thumb keys for one hand, sorted left to right within that hand
+	#getThumbKeysForHand(layout: LayoutData, hand: 'l' | 'r'): Array<{ key: string; col: number }> {
 		const thumbKeys: Array<{ key: string; col: number }> = [];
 		for (const [key, info] of Object.entries(layout.keys)) {
-			if (info.row === ROWS) {
+			if (info.row === ROWS && this.#resolveThumbHand(info) === hand) {
 				thumbKeys.push({ key: key.toLowerCase(), col: info.col });
 			}
 		}
@@ -687,43 +802,58 @@ export class FilterStore {
 				}
 			}
 		}
-		// Check thumb keys (row 3) - positional ordering
-		// Only check if there are non-empty filters
-		if (this.includeThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysWithCols(layout);
-			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeThumbKeys)) return false;
+		// Check thumb keys per hand (row 3) — order within each hand, not column
+		if (this.includeLeftThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
+			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeLeftThumbKeys)) return false;
+		}
+		if (this.includeRightThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
+			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeRightThumbKeys)) return false;
 		}
 		return true;
 	}
 
+	// One thumb filter slot: does this hand's Nth thumb key (left-to-right) match chars?
+	#matchesThumbKeyAtSlot(
+		thumbKeys: Array<{ key: string; col: number }>,
+		slotIndex: number,
+		chars: string
+	): boolean {
+		const filter = createEmptyThumbKeyFilters();
+		filter[slotIndex] = chars;
+		return this.#matchesThumbKeyPosition(thumbKeys, filter);
+	}
+
 	// Check if layout matches include OR filter (OR logic - at least one position must match)
 	#matchesIncludeOr(layout: LayoutData): boolean {
-		// Collect all non-empty filter positions
-		const filterPositions: Array<{ row: number; col: number; chars: string }> = [];
+		const matches: boolean[] = [];
+
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
 				const filterChars = this.includeOrGrid[row][col].toLowerCase();
-				if (filterChars) {
-					filterPositions.push({ row, col, chars: filterChars });
-				}
+				if (!filterChars) continue;
+				const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
+				matches.push(Boolean(keyAtPos && filterChars.includes(keyAtPos)));
 			}
 		}
 
-		// If no filters, return true
-		if (filterPositions.length === 0) {
-			return true;
+		const leftThumbKeys = this.#getThumbKeysForHand(layout, 'l');
+		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
+			const filterChars = this.includeOrLeftThumbKeys[index].toLowerCase();
+			if (!filterChars) continue;
+			matches.push(this.#matchesThumbKeyAtSlot(leftThumbKeys, index, filterChars));
 		}
 
-		// OR logic: at least one position must match
-		for (const { row, col, chars } of filterPositions) {
-			const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
-			if (keyAtPos && chars.includes(keyAtPos)) {
-				// At least one position matches
-				return true;
-			}
+		const rightThumbKeys = this.#getThumbKeysForHand(layout, 'r');
+		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
+			const filterChars = this.includeOrRightThumbKeys[index].toLowerCase();
+			if (!filterChars) continue;
+			matches.push(this.#matchesThumbKeyAtSlot(rightThumbKeys, index, filterChars));
 		}
-		// No positions matched
-		return false;
+
+		if (matches.length === 0) return true;
+		return matches.some(Boolean);
 	}
 
 	// Check if layout matches exclude filter (key must NOT be any of the specified chars)
@@ -739,11 +869,14 @@ export class FilterStore {
 				}
 			}
 		}
-		// Check thumb keys (row 3) - if matches positional filter, exclude
-		// Only check if there are non-empty filters
-		if (this.excludeThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysWithCols(layout);
-			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeThumbKeys)) return false;
+		// Check thumb keys per hand — if matches positional filter, exclude
+		if (this.excludeLeftThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
+			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeLeftThumbKeys)) return false;
+		}
+		if (this.excludeRightThumbKeys.some((k) => k !== '')) {
+			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
+			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeRightThumbKeys)) return false;
 		}
 		return true;
 	}

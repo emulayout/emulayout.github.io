@@ -17,7 +17,7 @@ export const LAYOUT_FLAG_INTERNATIONAL = 8;
 export const LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE = 16;
 export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
 
-export const COMPACT_LAYOUT_FIELD_COUNT = 9;
+export const COMPACT_LAYOUT_FIELD_COUNT = 10;
 
 /** Wire format for one layout in all-layouts.json */
 export type CompactLayout = [
@@ -29,17 +29,33 @@ export type CompactLayout = [
 	keyChars: string[],
 	rows: number[],
 	cols: number[],
-	displayValue: string
+	displayValue: string,
+	/** Thumb keys in column order: 'l' or 'r' per thumb key. */
+	thumbHands?: string
 ];
 
 export type CompactLayoutFile = CompactLayout[];
 
 export function decodeLayout(entry: CompactLayout): LayoutData {
-	const [name, user, boardCode, updatedAt, flags, keyChars, rows, cols, displayValue] = entry;
+	const [name, user, boardCode, updatedAt, flags, keyChars, rows, cols, displayValue, thumbHands] =
+		entry;
 
 	const keys: Record<string, KeyInfo> = {};
+	const thumbIndices: number[] = [];
 	for (let i = 0; i < keyChars.length; i++) {
-		keys[keyChars[i]] = { row: rows[i], col: cols[i] };
+		const keyInfo: KeyInfo = { row: rows[i], col: cols[i] };
+		if (rows[i] >= 3) {
+			thumbIndices.push(i);
+		}
+		keys[keyChars[i]] = keyInfo;
+	}
+
+	if (thumbHands && thumbIndices.length > 0) {
+		thumbIndices.sort((a, b) => cols[a] - cols[b]);
+		for (let j = 0; j < thumbIndices.length; j++) {
+			const hand = thumbHands[j] === 'r' ? 'r' : 'l';
+			keys[keyChars[thumbIndices[j]]].thumbHand = hand;
+		}
 	}
 
 	return {

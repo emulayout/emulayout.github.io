@@ -204,7 +204,7 @@ export function buildCyanophageCharPositionMap(
 		return new Map();
 	}
 
-	const geometry = getImportSlotGeometry(board, importString);
+	const geometry = [...getImportSlotGeometry(board, importString)];
 	if (thumb === 'r') {
 		geometry[33] = { ...CYANOPHAGE_RIGHT_THUMB_POSITION };
 	}

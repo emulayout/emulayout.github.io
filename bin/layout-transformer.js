@@ -5,6 +5,9 @@
 
 import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
 
+const THUMB_ROW = 3;
+const SPLIT_COL = 5;
+
 /**
  * Transforms a layout object by adding computed properties.
  * @param {Object} layout - The raw layout object from the repo
@@ -18,6 +21,9 @@ export function transformLayout(layout) {
 		for (const [key, info] of Object.entries(layout.keys)) {
 			if (info && typeof info.row === 'number' && typeof info.col === 'number') {
 				keys[key] = { row: info.row, col: info.col };
+				if (info.row >= THUMB_ROW) {
+					keys[key].thumbHand = computeKeyThumbHand(info);
+				}
 			}
 		}
 	}
@@ -78,10 +84,31 @@ function computeCyanophageThumb(layout) {
 		if (finger[0] === 'L') return 'l';
 		if (finger[0] === 'R') return 'r';
 	}
-	return typeof info.col === 'number' && info.col < 5 ? 'l' : 'r';
+	return typeof info.col === 'number' && info.col < SPLIT_COL ? 'l' : 'r';
 }
 
-const THUMB_ROW = 3;
+/**
+ * @param {{ row: number, col: number, finger?: string }} info
+ * @returns {'l' | 'r'}
+ */
+function computeKeyThumbHand(info) {
+	const hand = thumbHand(info.finger);
+	if (hand === 'left') return 'l';
+	if (hand === 'right') return 'r';
+	return info.col < SPLIT_COL ? 'l' : 'r';
+}
+
+/**
+ * @param {Record<string, { row: number, col: number, thumbHand?: 'l' | 'r' }>} keys
+ * @returns {string}
+ */
+export function encodeThumbHands(keys) {
+	return Object.entries(keys ?? {})
+		.filter(([, info]) => info.row >= THUMB_ROW)
+		.sort((a, b) => a[1].col - b[1].col)
+		.map(([, info]) => info.thumbHand ?? (info.col < SPLIT_COL ? 'l' : 'r'))
+		.join('');
+}
 
 /**
  * @param {string | undefined} finger

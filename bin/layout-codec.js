@@ -1,5 +1,7 @@
 /** Keep in sync with layoutCodec.ts */
 
+import { encodeThumbHands } from './layout-transformer.js';
+
 /** @type {readonly ['angle', 'stagger', 'ortho', 'mini']} */
 export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini'];
 
@@ -27,7 +29,8 @@ export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
  *   string[],
  *   number[],
  *   number[],
- *   string
+ *   string,
+ *   string | undefined
  * ]} CompactLayout */
 
 /**
@@ -54,7 +57,8 @@ export function encodeLayout(layout) {
 		entries.map(([key]) => key),
 		entries.map(([, info]) => info.row),
 		entries.map(([, info]) => info.col),
-		layout.displayValue
+		layout.displayValue,
+		encodeThumbHands(layout.keys) || undefined
 	];
 }
 
