@@ -122,14 +122,10 @@ function thumbHand(finger) {
 }
 
 /**
- * Place thumb keys under the hand they belong to, aligned with main-row columns.
- * Left-thumb keys are right-aligned in the left hand (e.g. under h/k); right-thumb
- * keys are left-aligned in the right hand.
- *
  * @param {Array<{ key: string, col: number, finger?: string }>} entries
  * @param {number} splitCol
  */
-function formatThumbRow(entries, splitCol) {
+function splitThumbEntries(entries, splitCol) {
 	const left = [];
 	const right = [];
 	for (const entry of entries) {
@@ -146,22 +142,71 @@ function formatThumbRow(entries, splitCol) {
 	}
 	left.sort((a, b) => a.col - b.col);
 	right.sort((a, b) => a.col - b.col);
+	return { left, right };
+}
 
-	const maxCol = Math.max(
-		left.length > 0 ? splitCol - 1 : 0,
-		right.length > 0 ? splitCol + right.length - 1 : 0
+/**
+ * Thumb columns aligned with index-finger home positions (cols 3 and 6).
+ * Left: 1 key → col 3; 2 keys → cols 3–4; 3 keys → cols 2–4; …
+ * Right: 1 key → col 6; 2 keys → cols 6–7; 3 keys → cols 6–8; …
+ *
+ * @param {'left' | 'right'} hand
+ * @param {number} count
+ * @returns {number[]}
+ */
+function thumbTargetCols(hand, count) {
+	if (count === 0) return [];
+
+	if (hand === 'left') {
+		if (count === 1) return [3];
+		const startCol = 4 - (count - 1);
+		return Array.from({ length: count }, (_, i) => startCol + i);
+	}
+
+	const start = 6;
+	return Array.from({ length: count }, (_, i) => start + i);
+}
+
+/**
+ * @param {string[]} slots
+ * @param {number} splitCol
+ * @param {number} [minCol]
+ */
+function joinDisplayRow(slots, splitCol, minCol = 0) {
+	const occupiedMax = slots.reduce(
+		(max, _, i) => (slots[i] !== undefined && slots[i] !== ' ' ? i : max),
+		0
 	);
+	const maxCol = Math.max(minCol, occupiedMax);
+	const filled = Array.from({ length: maxCol + 1 }, (_, i) => slots[i] ?? ' ');
+	return filled.slice(0, splitCol).join(' ') + '  ' + filled.slice(splitCol).join(' ');
+}
+
+/**
+ * Place thumb keys under index-finger home columns (left col 3, right col 6).
+ * Used for all board types so left/right thumb keys are visually distinct.
+ *
+ * @param {Array<{ key: string, col: number, finger?: string }>} entries
+ * @param {number} splitCol
+ * @param {number} mainRowMaxCol
+ */
+function formatThumbRow(entries, splitCol, mainRowMaxCol) {
+	const { left, right } = splitThumbEntries(entries, splitCol);
+	const maxCol = Math.max(mainRowMaxCol, 9, ...entries.map((entry) => entry.col));
 	/** @type {string[]} */
 	const slots = Array.from({ length: maxCol + 1 }, () => ' ');
 
+	const leftCols = thumbTargetCols('left', left.length);
+	const rightCols = thumbTargetCols('right', right.length);
+
 	for (let i = 0; i < left.length; i++) {
-		slots[splitCol - left.length + i] = left[i].key;
+		slots[leftCols[i]] = left[i].key;
 	}
 	for (let i = 0; i < right.length; i++) {
-		slots[splitCol + i] = right[i].key;
+		slots[rightCols[i]] = right[i].key;
 	}
 
-	return slots.slice(0, splitCol).join(' ') + '  ' + slots.slice(splitCol).join(' ');
+	return joinDisplayRow(slots, splitCol, mainRowMaxCol);
 }
 
 /**
@@ -182,6 +227,14 @@ function computeDisplayValue(layout, splitCol = 5) {
 
 	const isAnsiDisplay = layout.board === 'stagger' || layout.board === 'angle';
 
+	let mainRowMaxCol = 0;
+	for (const [row, entries] of Object.entries(rows)) {
+		if (Number(row) >= THUMB_ROW) continue;
+		for (const { col } of entries) {
+			mainRowMaxCol = Math.max(mainRowMaxCol, col);
+		}
+	}
+
 	const out = Object.keys(rows)
 		.sort((a, b) => Number(a) - Number(b))
 		.map((row) => {
@@ -190,7 +243,7 @@ function computeDisplayValue(layout, splitCol = 5) {
 
 			let rowString;
 			if (rowNum >= THUMB_ROW) {
-				rowString = formatThumbRow(entries, splitCol);
+				rowString = formatThumbRow(entries, splitCol, mainRowMaxCol);
 			} else {
 				/** @type {string[]} */
 				const r = [];
@@ -210,6 +263,9 @@ function computeDisplayValue(layout, splitCol = 5) {
 					return ' ' + rowString;
 				} else if (rowNum === 2) {
 					return '  ' + rowString;
+				} else if (rowNum >= THUMB_ROW) {
+					// Match home-row indent so thumb keys line up with index columns above
+					return ' ' + rowString;
 				}
 			}
 
@@ -217,7 +273,7 @@ function computeDisplayValue(layout, splitCol = 5) {
 		})
 		.join('\n');
 
-	return out.trim();
+	return out.trimStart().replace(/\n+$/, '');
 }
 
 /**

@@ -131,11 +131,15 @@ export async function loadCyanophageData() {
 		? dictionaryPayload.dictionary
 		: [];
 
+	const dictionarySet = new Set(dictionary);
+
 	cachedData = {
 		words,
 		dictionary,
 		bigramEffort,
-		effortGrid: DEFAULT_EFFORT_GRID
+		effortGrid: DEFAULT_EFFORT_GRID,
+		/** Corpus words that appear in the dictionary — only these affect total-word-effort. */
+		effortWords: Object.keys(words).filter((word) => dictionarySet.has(word))
 	};
 	return cachedData;
 }
@@ -427,7 +431,7 @@ export function buildCyanophageStats(rawLayout, data) {
 	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, board, thumb);
 	if (charMap.size === 0) return null;
 
-	const wordEffort = measureDictionaryWordEffort(charMap, data.dictionary, data.bigramEffort);
+	const wordEffort = measureDictionaryWordEffort(charMap, data.effortWords, data.bigramEffort);
 	const stats = measureLayoutStats(charMap, data.words, wordEffort, data.effortGrid);
 	if (!stats) return null;
 

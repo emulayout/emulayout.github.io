@@ -55,9 +55,13 @@ export async function buildLayoutTimestamps(cacheDir, layoutFilenames) {
 }
 
 async function applyCommits(cacheDir, commits, needed, timestamps, overwrite) {
+	const dates = await loadCommitDates(cacheDir, commits);
+	const filesByCommit = await loadChangedLayoutFilesByCommit(cacheDir, commits);
+
 	for (const sha of commits) {
-		const date = await getCommitDate(cacheDir, sha);
-		const files = await getChangedLayoutFiles(cacheDir, sha);
+		const date = dates.get(sha);
+		if (!date) continue;
+		const files = filesByCommit.get(sha) ?? [];
 
 		for (const filename of files) {
 			if (!needed.has(filename)) continue;
@@ -72,8 +76,49 @@ async function applyCommits(cacheDir, commits, needed, timestamps, overwrite) {
 	}
 }
 
-async function getCommitDate(cacheDir, sha) {
-	return (await $`git -C ${cacheDir} log -1 --format=%aI ${sha}`.text()).trim();
+/** @param {string} cacheDir @param {string[]} commits @returns {Promise<Map<string, string>>} */
+async function loadCommitDates(cacheDir, commits) {
+	/** @type {Map<string, string>} */
+	const dates = new Map();
+	if (commits.length === 0) return dates;
+
+	for (let i = 0; i < commits.length; i += 256) {
+		const chunk = commits.slice(i, i + 256);
+		const output = await $`git -C ${cacheDir} log --format=%H%x09%aI ${chunk}`.text();
+		for (const line of output.trim().split('\n')) {
+			if (!line) continue;
+			const tab = line.indexOf('\t');
+			if (tab === -1) continue;
+			dates.set(line.slice(0, tab), line.slice(tab + 1));
+		}
+	}
+	return dates;
+}
+
+/** @param {string} cacheDir @param {string[]} commits @returns {Promise<Map<string, string[]>>} */
+async function loadChangedLayoutFilesByCommit(cacheDir, commits) {
+	/** @type {Map<string, string[]>} */
+	const filesByCommit = new Map();
+	if (commits.length === 0) return filesByCommit;
+
+	for (let i = 0; i < commits.length; i += 256) {
+		const chunk = commits.slice(i, i + 256);
+		const output = await $`git -C ${cacheDir} log --name-only --format=commit:%H ${chunk}`.text();
+		let currentSha = '';
+		for (const line of output.trim().split('\n')) {
+			if (!line) continue;
+			if (line.startsWith('commit:')) {
+				currentSha = line.slice('commit:'.length);
+				if (!filesByCommit.has(currentSha)) {
+					filesByCommit.set(currentSha, []);
+				}
+				continue;
+			}
+			if (!currentSha || !line.startsWith('layouts/')) continue;
+			filesByCommit.get(currentSha).push(line.replace(/^layouts\//, ''));
+		}
+	}
+	return filesByCommit;
 }
 
 async function loadTimestampCache() {
@@ -105,18 +150,4 @@ async function getRevList(cacheDir, range) {
 		.trim()
 		.split('\n')
 		.filter(Boolean);
-}
-
-async function getChangedLayoutFiles(cacheDir, sha) {
-	const output = await $`git -C ${cacheDir} diff-tree --no-commit-id --name-only -r ${sha} -- layouts/`
-		.nothrow()
-		.quiet()
-		.text()
-		.catch(() => '');
-
-	return output
-		.trim()
-		.split('\n')
-		.filter(Boolean)
-		.map((path) => path.replace(/^layouts\//, ''));
 }

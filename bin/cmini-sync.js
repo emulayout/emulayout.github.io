@@ -22,6 +22,18 @@ const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache', 'corpora/monkeyracer'];
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
+const SYNC_CONCURRENCY = Number(process.env.CMINI_SYNC_CONCURRENCY ?? 16);
+
+async function resolveDefaultBranch() {
+	try {
+		const branch = await $`git -C ${CACHE_DIR} rev-parse --abbrev-ref origin/HEAD`.text();
+		return branch.trim().replace('origin/', '');
+	} catch {
+		const main = await $`git -C ${CACHE_DIR} rev-parse origin/main`.quiet().nothrow();
+		if (main.exitCode === 0) return 'main';
+		return 'master';
+	}
+}
 
 async function loadBlacklist() {
 	try {
@@ -60,21 +72,15 @@ async function ensureCache(offline = false) {
 			console.log('→ Unshallowing cache for layout timestamps...');
 			await $`git -C ${CACHE_DIR} fetch --unshallow`.nothrow();
 		}
-		await $`cd ${CACHE_DIR} && git fetch origin`;
-		// Try to get the default branch, fallback to master/main
-		try {
-			const branch = await $`cd ${CACHE_DIR} && git rev-parse --abbrev-ref origin/HEAD`.text();
-			const branchName = branch.trim().replace('origin/', '');
-			await $`cd ${CACHE_DIR} && git reset --hard origin/${branchName}`;
-		} catch {
-			// Fallback: try common branch names
-			try {
-				await $`cd ${CACHE_DIR} && git reset --hard origin/main`;
-			} catch {
-				await $`cd ${CACHE_DIR} && git reset --hard origin/master`;
-			}
+		const branchName = await resolveDefaultBranch();
+		const localHead = (await $`git -C ${CACHE_DIR} rev-parse HEAD`.text()).trim();
+		await $`cd ${CACHE_DIR} && git fetch origin ${branchName}`;
+		const remoteHead = (await $`git -C ${CACHE_DIR} rev-parse origin/${branchName}`.text()).trim();
+		if (localHead === remoteHead) {
+			console.log('→ Cache already up to date');
+			return;
 		}
-		// Re-apply sparse-checkout after reset
+		await $`cd ${CACHE_DIR} && git reset --hard origin/${branchName}`;
 		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
 	}
 }
@@ -127,50 +133,63 @@ async function run() {
 	const cyanophageStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
-	let statsInvalid = 0;
 	let cyanophageStatsLoaded = 0;
 	let cyanophageStatsSkipped = 0;
 
-	for (const filename of layoutFiles) {
-		// Check if blacklisted (handle both with and without .json extension)
+	/**
+	 * @param {string} filename
+	 */
+	async function processLayoutFile(filename) {
 		const layoutName = filename.replace('.json', '');
 		const isBlacklisted = blacklist.some(
 			(entry) =>
 				entry === layoutName || entry === filename || entry.replace('.json', '') === layoutName
 		);
-		if (isBlacklisted) {
-			continue; // Skip blacklisted layouts
-		}
+		if (isBlacklisted) return null;
 
 		const cachePath = join(cacheLayoutsDir, filename);
+		const originalContent = await readFile(cachePath, 'utf-8');
+		const rawLayout = JSON.parse(originalContent);
+		const transformedLayout = transformLayout(rawLayout);
+		transformedLayout.updatedAt = layoutTimestamps[filename];
 
-		try {
-			const originalContent = await readFile(cachePath, 'utf-8');
-			const rawLayout = JSON.parse(originalContent);
-			const transformedLayout = transformLayout(rawLayout);
-			transformedLayout.updatedAt = layoutTimestamps[filename];
-			transformedLayouts.push(encodeLayout(transformedLayout));
+		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData);
+		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData);
 
-			const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData);
-			if (stats) {
-				layoutStats[rawLayout.name] = stats;
+		return {
+			encoded: encodeLayout(transformedLayout),
+			name: rawLayout.name,
+			stats,
+			cyanStats
+		};
+	}
+
+	for (let i = 0; i < layoutFiles.length; i += SYNC_CONCURRENCY) {
+		const batch = layoutFiles.slice(i, i + SYNC_CONCURRENCY);
+		const results = await Promise.all(
+			batch.map((filename) =>
+				processLayoutFile(filename).catch((err) => {
+					console.error(`  ⚠ Error processing ${filename}:`, err.message);
+					return null;
+				})
+			)
+		);
+
+		for (const result of results) {
+			if (!result) continue;
+			transformedLayouts.push(result.encoded);
+			if (result.stats) {
+				layoutStats[result.name] = result.stats;
 				statsLoaded++;
 			} else {
-				const cachePath = join(CACHE_DIR, 'cache', filename);
-				const hasCache = await access(cachePath).then(() => true).catch(() => false);
-				if (hasCache) statsInvalid++;
-				else statsMissing++;
+				statsMissing++;
 			}
-
-			const cyanStats = buildCyanophageStats(rawLayout, cyanophageData);
-			if (cyanStats) {
-				cyanophageStats[rawLayout.name] = cyanStats;
+			if (result.cyanStats) {
+				cyanophageStats[result.name] = result.cyanStats;
 				cyanophageStatsLoaded++;
 			} else {
 				cyanophageStatsSkipped++;
 			}
-		} catch (err) {
-			console.error(`  ⚠ Error processing ${filename}:`, err.message);
 		}
 	}
 
@@ -188,7 +207,7 @@ async function run() {
 	);
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${statsInvalid} invalid cache, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
 	);
 
 	console.log('→ Building cyanophage effort stats...');
