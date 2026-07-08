@@ -58,6 +58,7 @@ export type CompactLayoutStats = number[];
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
+export type LayoutLikesMap = Record<string, number>;
 
 /** Cyanophage stats keyed by CYANOPHAGE_STAT_KEYS in layoutStats.ts. */
 export interface CyanophageStats {

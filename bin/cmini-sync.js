@@ -17,9 +17,10 @@ import {
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const STATS_FILE = 'static/layout-stats.json';
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
+const LIKES_FILE = 'static/layout-likes.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
-const SPARSE_CHECKOUT = ['layouts', '/authors.json', 'cache', 'corpora/monkeyracer'];
+const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json', 'cache', 'corpora/monkeyracer'];
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 const SYNC_CONCURRENCY = Number(process.env.CMINI_SYNC_CONCURRENCY ?? 16);
@@ -45,6 +46,37 @@ async function loadBlacklist() {
 	} catch {
 		// File doesn't exist, return empty array
 		return [];
+	}
+}
+
+/**
+ * Load per-layout like counts from cmini's likes.json.
+ * Keeps only total counts; individual user ids are not shipped.
+ *
+ * @param {Set<string>} validLayoutNames
+ * @returns {Promise<Record<string, number>>}
+ */
+async function loadLayoutLikes(validLayoutNames) {
+	try {
+		const content = await readFile(join(CACHE_DIR, 'likes.json'), 'utf-8');
+		const parsed = JSON.parse(content);
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+		const likeCounts = {};
+		for (const [layoutName, likes] of Object.entries(parsed)) {
+			if (!validLayoutNames.has(layoutName)) continue;
+			if (!Array.isArray(likes)) continue;
+			likeCounts[layoutName] = likes.length;
+		}
+
+		return Object.fromEntries(
+			Object.keys(likeCounts)
+				.sort((a, b) => a.localeCompare(b))
+				.map((name) => [name, likeCounts[name]])
+		);
+	} catch (err) {
+		console.warn(`  ⚠ Could not load likes.json (${err.message}); likes will be skipped`);
+		return {};
 	}
 }
 
@@ -198,6 +230,11 @@ async function run() {
 
 	// Write compact layout tuples (minified — GitHub Pages gzip-compresses on transfer)
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
+
+	console.log('→ Building layout likes...');
+	const layoutLikes = await loadLayoutLikes(new Set(transformedLayouts.map((layout) => layout[0])));
+	await writeFile(LIKES_FILE, JSON.stringify(layoutLikes) + '\n', 'utf-8');
+	console.log(`  ✔ Likes for ${Object.keys(layoutLikes).length} layouts\n`);
 
 	console.log('→ Merging layout stats (cache trigrams + computed SFB/LH-RH)...');
 	const sortedStats = Object.fromEntries(

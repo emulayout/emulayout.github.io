@@ -1,4 +1,4 @@
-import type { LayoutData, StatsMaps } from '$lib/layout';
+import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import {
 	CYANOPHAGE_ANALYZER,
@@ -39,18 +39,21 @@ function getAnalyzersToPreload(
 }
 
 export const load: PageLoad = async ({ fetch, url }) => {
+	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
 	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
-	const sortBy: SortBy =
+	const parsedSortBy: SortBy =
 		legacySort?.sortBy ?? (sortParam && isSortBy(sortParam) ? sortParam : 'date');
+	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const statsAnalyzer = getInitialStatsAnalyzer(url);
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
 	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzer, sortBy);
 
-	const [layoutsResponse, authorsResponse, ...statsResponses] = await Promise.all([
+	const [layoutsResponse, authorsResponse, likesResponse, ...statsResponses] = await Promise.all([
 		fetch('/all-layouts.json'),
 		fetch('/authors.json'),
+		loadLikes ? fetch('/layout-likes.json') : Promise.resolve(null),
 		...analyzersToPreload.map((analyzer) =>
 			fetch(analyzer === CYANOPHAGE_ANALYZER ? '/layout-stats-cyanophage.json' : '/layout-stats.json')
 		)
@@ -59,6 +62,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
+	const likesData: LayoutLikesMap =
+		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
 
 	layoutStatsStore.reset();
 
@@ -74,6 +79,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	return {
 		layouts,
 		authorsData,
+		likesData,
 		statsMaps
 	};
 };

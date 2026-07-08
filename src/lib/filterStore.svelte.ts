@@ -21,7 +21,14 @@ import {
 	type StatLimitKey,
 	type StatsAnalyzer
 } from './layoutStats';
-import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps, KeyInfo } from './layout';
+import type {
+	CyanophageStats,
+	MonkeyracerStats,
+	LayoutData,
+	LayoutLikesMap,
+	StatsMaps,
+	KeyInfo
+} from './layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -40,6 +47,7 @@ function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
 	for (const field of ALL_STAT_FILTER_FIELDS) {
 		limits[field.key] = { operator: 'lt', value: '' };
 	}
+	limits.likes = { operator: 'gt', value: '' };
 	return limits;
 }
 
@@ -143,6 +151,8 @@ export class FilterStore {
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
+	hideLayoutLikes: boolean = $state(false);
+	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
 	get showLayoutStats(): boolean {
@@ -151,6 +161,14 @@ export class FilterStore {
 
 	get showLayoutTestArea(): boolean {
 		return !this.hideLayoutTestArea;
+	}
+
+	get showLayoutLikes(): boolean {
+		return !this.hideLayoutLikes;
+	}
+
+	get canUseLikes(): boolean {
+		return this.showLayoutLikes && this.likesDataAvailable;
 	}
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -273,6 +291,10 @@ export class FilterStore {
 			this.includeOrRightThumbKeys = parseThumbFilters(includeOrRightThumbs);
 		}
 
+		if (url.searchParams.get('likes') === '0') {
+			this.hideLayoutLikes = true;
+		}
+
 		const sort = url.searchParams.get('sort');
 		const order = url.searchParams.get('order');
 
@@ -313,6 +335,9 @@ export class FilterStore {
 		const statLimits = url.searchParams.get('statLimits');
 		if (statLimits) {
 			this.statLimits = deserializeStatLimits(statLimits);
+			if (this.hideLayoutLikes) {
+				this.statLimits.likes = { operator: 'lt', value: '' };
+			}
 		}
 	}
 
@@ -410,6 +435,10 @@ export class FilterStore {
 
 		if (this.hideLayoutTestArea) {
 			url.searchParams.set('testArea', '0');
+		}
+
+		if (this.hideLayoutLikes) {
+			url.searchParams.set('likes', '0');
 		}
 
 		if (this.similarReferenceName) {
@@ -539,6 +568,32 @@ export class FilterStore {
 	setHideLayoutTestArea(value: boolean) {
 		this.hideLayoutTestArea = value;
 		this.#saveToUrl();
+	}
+
+	setHideLayoutLikes(value: boolean) {
+		this.hideLayoutLikes = value;
+		if (value && this.sortBy === 'likes') {
+			this.sortBy = 'date';
+			this.sortOrder = 'desc';
+		}
+		if (value) {
+			this.statLimits.likes = { operator: 'lt', value: '' };
+		}
+		this.#saveToUrl();
+	}
+
+	setLikesDataAvailable(value: boolean) {
+		this.likesDataAvailable = value;
+		if (!this.canUseLikes) {
+			if (this.sortBy === 'likes') {
+				this.sortBy = 'date';
+				this.sortOrder = 'desc';
+			}
+			if (this.statLimits.likes.value.trim() !== '') {
+				this.statLimits.likes = { operator: 'lt', value: '' };
+				this.#saveToUrl();
+			}
+		}
 	}
 
 	setStatLimitOperator(key: StatLimitKey, operator: StatLimitOperator) {
@@ -675,7 +730,11 @@ export class FilterStore {
 	}
 
 	get hasActiveStatLimits(): boolean {
-		return getStatFilterFieldsForAnalyzer(this.statsAnalyzer).some(
+		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
+		const availableFields = this.canUseLikes
+			? [...fields, { key: 'likes' as const }]
+			: fields;
+		return availableFields.some(
 			(field) => this.statLimits[field.key].value.trim() !== ''
 		);
 	}
@@ -948,10 +1007,18 @@ export class FilterStore {
 		return layout.board === this.boardTypeFilter;
 	}
 
-	#matchesStatLimits(layout: LayoutData, statsMaps: StatsMaps, statsReady: boolean): boolean {
+	#matchesStatLimits(
+		layout: LayoutData,
+		statsMaps: StatsMaps,
+		statsReady: boolean,
+		likesData: LayoutLikesMap = {}
+	): boolean {
 		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		if (!fields.some((field) => this.statLimits[field.key].value.trim() !== '')) return true;
-		if (!statsReady) return true;
+		const hasStatsLimits = fields.some((field) => this.statLimits[field.key].value.trim() !== '');
+		const hasLikesLimit = this.canUseLikes && this.statLimits.likes.value.trim() !== '';
+		if (!hasStatsLimits && !hasLikesLimit)
+			return true;
+		if (hasStatsLimits && !statsReady) return true;
 
 		const analyzerStats = getLayoutAnalyzerStats(
 			statsMaps,
@@ -976,6 +1043,15 @@ export class FilterStore {
 			if (limit.operator === 'gt' && value <= threshold) return false;
 		}
 
+		if (hasLikesLimit) {
+			const threshold = Number.parseFloat(this.statLimits.likes.value.trim());
+			if (Number.isFinite(threshold)) {
+				const value = likesData[layout.name] ?? 0;
+				if (this.statLimits.likes.operator === 'lt' && value >= threshold) return false;
+				if (this.statLimits.likes.operator === 'gt' && value <= threshold) return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -983,7 +1059,8 @@ export class FilterStore {
 	filterLayouts(
 		layouts: LayoutData[],
 		statsMaps: StatsMaps = {},
-		statsReady = false
+		statsReady = false,
+		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
 		return layouts.filter((l) => {
 			// Only apply hasAllLetters filter if not filtering by international character set
@@ -999,7 +1076,7 @@ export class FilterStore {
 			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			if (!this.#matchesBoardType(l)) return false;
-			if (!this.#matchesStatLimits(l, statsMaps, statsReady)) return false;
+			if (!this.#matchesStatLimits(l, statsMaps, statsReady, likesData)) return false;
 			return (
 				this.#matchesName(l) &&
 				this.#matchesAuthor(l) &&
@@ -1010,7 +1087,11 @@ export class FilterStore {
 		});
 	}
 
-	sortLayouts(layouts: LayoutData[], statsMaps: StatsMaps = {}): LayoutData[] {
+	sortLayouts(
+		layouts: LayoutData[],
+		statsMaps: StatsMaps = {},
+		likesData: LayoutLikesMap = {}
+	): LayoutData[] {
 		const sorted = [...layouts];
 		const descending = this.sortOrder === 'desc';
 		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
@@ -1038,6 +1119,18 @@ export class FilterStore {
 
 				const byDate = a.updatedAt.localeCompare(b.updatedAt);
 				const diff = descending ? -byDate : byDate;
+				return diff !== 0 ? diff : a.name.localeCompare(b.name);
+			});
+		}
+
+		if (this.sortBy === 'likes') {
+			return sorted.sort((a, b) => {
+				const byRank = this.#compareNameSearchRank(a, b);
+				if (byRank !== 0) return byRank;
+
+				const aLikes = likesData[a.name] ?? 0;
+				const bLikes = likesData[b.name] ?? 0;
+				const diff = descending ? bLikes - aLikes : aLikes - bLikes;
 				return diff !== 0 ? diff : a.name.localeCompare(b.name);
 			});
 		}

@@ -30,11 +30,12 @@
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
+		likeCount: number;
 		statsMaps: StatsMaps;
 		similarMatchPercent?: number;
 	}
 
-	const { layout, authorName, statsMaps, similarMatchPercent }: Props = $props();
+	const { layout, authorName, likeCount, statsMaps, similarMatchPercent }: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let cardElement: HTMLDivElement | null = $state(null);
@@ -210,6 +211,15 @@
 			>
 				{layout.name}
 			</h2>
+			{#if filterStore.showLayoutLikes}
+				<span
+					class="text-xs shrink-0"
+					style="color: var(--text-secondary);"
+					title={`${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
+				>
+					{likeCount} {likeCount === 1 ? 'like' : 'likes'}
+				</span>
+			{/if}
 			{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}
 				<span
 					class="px-2 py-1 rounded-lg text-sm font-medium tabular-nums shrink-0"

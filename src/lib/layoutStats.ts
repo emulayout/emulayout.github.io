@@ -97,7 +97,7 @@ export type DerivedCyanophageStats = {
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
 /** Keys usable in stat limit filters (union of both analyzers). */
-export type StatLimitKey = StatSortKey | CyanophageStatSortKey;
+export type StatLimitKey = StatSortKey | CyanophageStatSortKey | 'likes';
 
 export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 14;
 
@@ -196,6 +196,13 @@ export interface StatFilterField {
 	unit?: 'percent' | 'raw';
 }
 
+export const LIKES_STAT_FILTER_FIELD = {
+	key: 'likes',
+	label: 'Likes',
+	title: 'Likes',
+	unit: 'raw'
+} as const satisfies StatFilterField;
+
 /** Max related stats per general-stat row (matches layout card group width). */
 export const GENERAL_STAT_FILTER_COLUMN_COUNT = 3;
 
@@ -289,7 +296,8 @@ export const ALL_STAT_FILTER_FIELDS = uniqueStatFilterFields([
 	...MONKEY_GENERAL_STAT_FILTER_FIELDS,
 	...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
 	...LEFT_HAND_STAT_FILTER_FIELDS,
-	...RIGHT_HAND_STAT_FILTER_FIELDS
+	...RIGHT_HAND_STAT_FILTER_FIELDS,
+	LIKES_STAT_FILTER_FIELD
 ]);
 
 /** @deprecated Use ALL_STAT_FILTER_FIELDS or getStatFilterFieldsForAnalyzer */
@@ -322,7 +330,7 @@ export function parseStatFilterThreshold(field: StatFilterField, value: string):
 
 export type StatSortBy = (typeof ALL_STAT_SORT_FIELDS)[number]['value'];
 
-export type LayoutSortBy = 'name' | 'date';
+export type LayoutSortBy = 'name' | 'date' | 'likes';
 
 export type SortBy = LayoutSortBy | StatSortBy;
 
@@ -332,12 +340,18 @@ const STAT_SORT_FIELD_BY_VALUE = new Map<string, StatSortField>(
 	ALL_STAT_SORT_FIELDS.map((field) => [field.value, field])
 );
 
-const SORT_BY_VALUES = new Set<string>(['name', 'date', ...ALL_STAT_SORT_FIELDS.map((field) => field.value)]);
+const SORT_BY_VALUES = new Set<string>([
+	'name',
+	'date',
+	'likes',
+	...ALL_STAT_SORT_FIELDS.map((field) => field.value)
+]);
 
 const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrder }> = {
 	name: { sortBy: 'name', sortOrder: 'asc' },
 	'date-asc': { sortBy: 'date', sortOrder: 'asc' },
 	'date-desc': { sortBy: 'date', sortOrder: 'desc' },
+	'likes-desc': { sortBy: 'likes', sortOrder: 'desc' },
 	'alternate-desc': { sortBy: 'alternate', sortOrder: 'desc' },
 	'roll-desc': { sortBy: 'roll', sortOrder: 'desc' },
 	'roll-in-desc': { sortBy: 'roll-in', sortOrder: 'desc' },

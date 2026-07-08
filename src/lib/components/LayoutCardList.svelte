@@ -2,13 +2,14 @@
 	import LayoutCard from './LayoutCard.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
 	import { getLayoutCardItemSize, TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import type { LayoutData, StatsMaps } from '$lib/layout';
+	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 
 	interface Props {
 		layouts: LayoutData[];
 		getAuthorName: (userId: number) => string;
+		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
 		similarityPercents?: Map<string, number>;
 	}
@@ -16,6 +17,7 @@
 	const {
 		layouts,
 		getAuthorName,
+		likesData,
 		statsMaps,
 		similarityPercents = new Map()
 	}: Props = $props();
@@ -92,6 +94,7 @@
 				<LayoutCard
 					{layout}
 					authorName={getAuthorName(layout.user)}
+					likeCount={likesData[layout.name] ?? 0}
 					{statsMaps}
 					similarMatchPercent={similarityPercents.get(layout.name)}
 				/>

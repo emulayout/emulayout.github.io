@@ -22,14 +22,15 @@
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
 		filteredCount: number;
+		likesSortAvailable: boolean;
 	}
 
-	const { authorList, filteredCount }: Props = $props();
+	const { authorList, filteredCount, likesSortAvailable }: Props = $props();
 	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
 	const displaySettingsActive = $derived(
-		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea
+		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea || filterStore.hideLayoutLikes
 	);
 
 	let displaySettingsOpen = $state(false);
@@ -367,6 +368,9 @@
 					<optgroup label="Layout">
 						<option value="name">Name</option>
 						<option value="date">Date</option>
+						{#if likesSortAvailable}
+							<option value="likes">Likes</option>
+						{/if}
 					</optgroup>
 					<optgroup label="Stats">
 						{#each statSortFields as field (field.value)}
@@ -505,6 +509,38 @@
 							</span>
 							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 								>Hide stats</span
+							>
+						</label>
+
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.hideLayoutLikes}
+									onchange={(e) => filterStore.setHideLayoutLikes(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+										background-color: {filterStore.hideLayoutLikes
+										? 'var(--accent)'
+										: 'var(--bg-primary)'};
+										border: 1px solid var(--border);
+									"
+								/>
+								{#if filterStore.hideLayoutLikes}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Hide likes</span
 							>
 						</label>
 					</div>

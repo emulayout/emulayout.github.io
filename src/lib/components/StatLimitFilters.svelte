@@ -4,6 +4,7 @@
 	import {
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
 		getGeneralStatFilterRowsForAnalyzer,
+		LIKES_STAT_FILTER_FIELD,
 		LEFT_HAND_STAT_FILTER_FIELDS,
 		RIGHT_HAND_STAT_FILTER_FIELDS,
 		type StatFilterField,
@@ -41,6 +42,7 @@
 	const generalStatFilterRows = $derived(
 		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
 	);
+	const showLikesFilter = $derived(filterStore.canUseLikes);
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
@@ -127,6 +129,15 @@
 							{/each}
 						</div>
 					{/each}
+					{#if showLikesFilter}
+						<div class="stat-limit-row">
+							<div>
+								{@render statLimitControl(LIKES_STAT_FILTER_FIELD, '2.5rem')}
+							</div>
+							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+						</div>
+					{/if}
 				</section>
 
 				<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
@@ -238,6 +249,7 @@
 		gap: 0.5rem;
 		width: 100%;
 		min-width: 0;
+		padding-bottom: 0.125rem;
 	}
 
 	.stat-limit-row {
@@ -245,6 +257,7 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--stat-cell-gap);
 		min-width: 0;
+		align-items: start;
 	}
 
 	.stat-limit-cell-empty {
