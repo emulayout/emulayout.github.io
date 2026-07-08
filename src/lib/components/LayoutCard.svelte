@@ -191,6 +191,8 @@
 				const newValue = value.slice(0, start) + mappedChar + value.slice(end);
 
 				textareaElement.value = newValue;
+				const nextCursor = start + mappedChar.length;
+				textareaElement.setSelectionRange(nextCursor, nextCursor);
 			}
 		}
 	}
