@@ -18,7 +18,7 @@
 	const authorsData = $derived(data.authorsData);
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
 	let likesData: LayoutLikesMap | null = $state(null);
-	const statsMaps = $derived(layoutStatsStore.maps);
+	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasActiveStatLimits);
 	let likesLoading = $state(false);
