@@ -108,11 +108,12 @@ async function ensureCache(offline = false) {
 		const localHead = (await $`git -C ${CACHE_DIR} rev-parse HEAD`.text()).trim();
 		await $`cd ${CACHE_DIR} && git fetch origin ${branchName}`;
 		const remoteHead = (await $`git -C ${CACHE_DIR} rev-parse origin/${branchName}`.text()).trim();
-		if (localHead === remoteHead) {
+		if (localHead !== remoteHead) {
+			await $`cd ${CACHE_DIR} && git reset --hard origin/${branchName}`;
+		} else {
 			console.log('→ Cache already up to date');
-			return;
 		}
-		await $`cd ${CACHE_DIR} && git reset --hard origin/${branchName}`;
+		// Always re-apply sparse-checkout so newly added paths (e.g. likes.json) are present
 		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
 	}
 }

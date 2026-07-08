@@ -80,6 +80,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		layouts,
 		authorsData,
 		likesData,
+		/** True when the load function attempted to fetch likes (even if empty/404). */
+		likesAttempted: loadLikes,
 		statsMaps
 	};
 };

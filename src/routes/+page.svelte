@@ -16,14 +16,17 @@
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
-	let likesData: LayoutLikesMap = $state({});
+	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
+	let likesData: LayoutLikesMap | null = $state(null);
 	const statsMaps = $derived(layoutStatsStore.maps);
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasActiveStatLimits);
 	let likesLoading = $state(false);
 	const statsReady = $derived(isAnalyzerStatsReady(statsMaps, filterStore.statsAnalyzer));
+	const resolvedLikesData = $derived(likesData ?? {});
+	const likesLoaded = $derived(likesData !== null);
 	const likesSortAvailable = $derived(
-		filterStore.showLayoutLikes && Object.keys(likesData).length > 0
+		filterStore.showLayoutLikes && likesLoaded && Object.keys(resolvedLikesData).length > 0
 	);
 
 	const analyzersToLoad = $derived.by(() => {
@@ -49,25 +52,32 @@
 		);
 	});
 
+	// Page load already fetched likes when likes were not hidden (`likes !== 0`).
 	$effect(() => {
-		if (Object.keys(likesData).length === 0 && Object.keys(data.likesData).length > 0) {
-			likesData = data.likesData;
+		if (likesData !== null) return;
+		if (data.likesAttempted) {
+			likesData = data.likesData ?? {};
 		}
 	});
 
 	$effect(() => {
-		filterStore.setLikesDataAvailable(Object.keys(likesData).length > 0);
+		filterStore.setLikesDataAvailable(likesLoaded && Object.keys(resolvedLikesData).length > 0);
 	});
 
+	// Lazy-load when likes become visible. Track loaded vs empty separately so an empty/404
+	// response never restarts the fetch (that loop only showed up in prod with missing file).
 	$effect(() => {
 		if (!filterStore.showLayoutLikes) return;
-		if (likesLoading || Object.keys(likesData).length > 0) return;
+		if (likesLoaded || likesLoading) return;
 
 		likesLoading = true;
 		void fetch('/layout-likes.json')
 			.then((response) => (response.ok ? response.json() : {}))
-			.then((data) => {
-				likesData = data;
+			.then((fetched: LayoutLikesMap) => {
+				likesData = fetched ?? {};
+			})
+			.catch(() => {
+				likesData = {};
 			})
 			.finally(() => {
 				likesLoading = false;
@@ -118,7 +128,7 @@
 	});
 
 	const filteredLayouts = $derived.by(() => {
-		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, likesData);
+		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
 
 		if (filterStore.similarReferenceName) {
 			result = result.filter((layout) =>
@@ -130,7 +140,7 @@
 			);
 			result = sortLayoutsBySimilarity(result, similarityPercents);
 		} else {
-			result = filterStore.sortLayouts(result, statsMaps, likesData);
+			result = filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
 		}
 
 		if (similarReferenceLayout) {
@@ -150,7 +160,7 @@
 	<LayoutCardList
 		layouts={filteredLayouts}
 		{getAuthorName}
-		{likesData}
+		likesData={resolvedLikesData}
 		{statsMaps}
 		{similarityPercents}
 	/>
