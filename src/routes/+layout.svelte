@@ -4,28 +4,55 @@
 
 	let { children } = $props();
 
-	let dark = $state(false);
-	let showRecentLayouts = $state(false);
+	type ThemeMode = 'system' | 'light' | 'dark';
 
-	// Initialize theme from localStorage or system preference
+	let themeMode: ThemeMode = $state('system');
+	let systemPrefersDark = $state(false);
+	let showRecentLayouts = $state(false);
+	let mediaQuery: MediaQueryList | null = null;
+
+	const dark = $derived.by(() => {
+		return themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
+	});
+
+	// Initialize theme mode and follow OS changes while in system mode.
 	$effect(() => {
 		const stored = localStorage.getItem('theme');
-		if (stored) {
-			dark = stored === 'dark';
-		} else {
-			dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		}
+		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+
+		mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		systemPrefersDark = mediaQuery.matches;
+
+		const handleChange = (event: MediaQueryListEvent) => {
+			systemPrefersDark = event.matches;
+		};
+
+		mediaQuery.addEventListener('change', handleChange);
+		return () => mediaQuery?.removeEventListener('change', handleChange);
 	});
 
 	// Apply theme class to document
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', dark);
-		localStorage.setItem('theme', dark ? 'dark' : 'light');
+		if (themeMode === 'system') {
+			localStorage.removeItem('theme');
+		} else {
+			localStorage.setItem('theme', themeMode);
+		}
 	});
 
 	function toggleTheme() {
-		dark = !dark;
+		themeMode =
+			themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
 	}
+
+	const themeButtonLabel = $derived(
+		themeMode === 'system'
+			? `Theme: system (${dark ? 'dark' : 'light'}). Switch to light mode`
+			: themeMode === 'light'
+				? 'Theme: light. Switch to dark mode'
+				: 'Theme: dark. Switch to system mode'
+	);
 </script>
 
 <svelte:head>
@@ -73,7 +100,8 @@
 				onclick={toggleTheme}
 				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
 				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+				aria-label={themeButtonLabel}
+				title={themeButtonLabel}
 			>
 				<!-- Sun icon -->
 				<svg

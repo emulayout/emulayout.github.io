@@ -6,9 +6,10 @@
 		<script>
 			(function () {
 				const stored = localStorage.getItem('theme');
-				const dark = stored
-					? stored === 'dark'
-					: window.matchMedia('(prefers-color-scheme: dark)').matches;
+				const mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+				const dark =
+					mode === 'dark' ||
+					(mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 				if (dark) {
 					document.documentElement.classList.add('dark');
 				}
