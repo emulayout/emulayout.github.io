@@ -9,6 +9,13 @@ import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
+	buildAnalyzerFingerprint,
+	buildCorpusFingerprint,
+	createStatsCacheContext,
+	pruneStatsCache,
+	saveStatsCache
+} from './layout-stats-cache.js';
+import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
@@ -153,8 +160,12 @@ async function run() {
 	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
 
 	let corpusData = null;
+	let statsCache = null;
 	try {
 		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
+		const corpusFingerprint = await buildCorpusFingerprint(CACHE_DIR, DEFAULT_STATS_ANALYZER);
+		const analyzerFingerprint = await buildAnalyzerFingerprint();
+		statsCache = await createStatsCacheContext(corpusFingerprint, analyzerFingerprint);
 		console.log(`→ Loaded ${DEFAULT_STATS_ANALYZER} analyzer data for SFB / LH-RH`);
 	} catch (err) {
 		console.warn(`  ⚠ Could not load analyzer data (${err.message}); SFB/LH-RH will be zero`);
@@ -194,7 +205,10 @@ async function run() {
 		const transformedLayout = transformLayout(rawLayout);
 		transformedLayout.updatedAt = layoutTimestamps[filename];
 
-		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData);
+		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData, {
+			statsCache: statsCache ?? undefined,
+			layoutContent: originalContent
+		});
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData);
 
 		return {
@@ -252,8 +266,15 @@ async function run() {
 			.map((name) => [name, layoutStats[name]])
 	);
 	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
+	if (statsCache) {
+		pruneStatsCache(statsCache, new Set(layoutFiles));
+		await saveStatsCache(statsCache);
+		console.log(
+			`  ✔ Stats cache: ${statsCache.hits} hits, ${statsCache.misses} rebuilt (${Object.keys(statsCache.layouts).length} stored)`
+		);
+	}
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} no cache, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} unavailable, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
 	);
 
 	console.log('→ Building cyanophage effort stats...');

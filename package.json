@@ -13,7 +13,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint ."
+		"lint": "prettier --check . && eslint .",
+		"verify:monkeyracer-stats": "bun run ./bin/verify-monkeyracer-stats.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",

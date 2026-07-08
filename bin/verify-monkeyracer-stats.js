@@ -1,0 +1,142 @@
+#!/usr/bin/env bun
+
+/**
+ * Verify sync-time trigram computation matches cmini cache files exactly.
+ * Skips stale cmini caches where the layout was updated without refreshed stats.
+ * Exits non-zero only on true algorithm mismatches.
+ */
+
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { $ } from 'bun';
+import {
+	TRIGRAM_STAT_KEYS,
+	DEFAULT_STATS_ANALYZER,
+	loadCorpusData
+} from './layout-stats.js';
+import { computeTrigramStats } from './cmini-analyzer.js';
+
+const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
+const MAX_REPORTED = 20;
+
+/**
+ * @param {Record<string, number>} computed
+ * @param {Record<string, number>} cached
+ */
+function compareTrigramStats(computed, cached) {
+	/** @type {Array<{ key: string, computed: number, cached: number }>} */
+	const mismatches = [];
+
+	for (const key of TRIGRAM_STAT_KEYS) {
+		const a = computed[key] ?? 0;
+		const b = cached[key] ?? 0;
+		if (a !== b) {
+			mismatches.push({ key, computed: a, cached: b });
+		}
+	}
+
+	return mismatches;
+}
+
+/**
+ * @param {string} layoutName
+ * @param {Record<string, number>} cached
+ * @param {Record<string, number>} trigrams
+ */
+async function findMatchingLayoutCommit(layoutName, cached, trigrams) {
+	const commits = (
+		await $`git -C ${CACHE_DIR} log --format=%H -- layouts/${layoutName}.json`.text()
+	)
+		.trim()
+		.split('\n')
+		.filter(Boolean);
+
+	for (const commit of commits) {
+		try {
+			const content = await $`git -C ${CACHE_DIR} show ${commit}:layouts/${layoutName}.json`.text();
+			const rawLayout = JSON.parse(content);
+			const computed = await computeTrigramStats(rawLayout.keys, trigrams);
+			if (compareTrigramStats(computed, cached).length === 0) {
+				return commit;
+			}
+		} catch {
+			continue;
+		}
+	}
+
+	return null;
+}
+
+async function run() {
+	const corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
+	const cacheDir = join(CACHE_DIR, 'cache');
+	const files = (await readdir(cacheDir)).filter((name) => name.endsWith('.json'));
+
+	let checked = 0;
+	let skipped = 0;
+	let stale = 0;
+	/** @type {Array<{ layout: string, mismatches: ReturnType<typeof compareTrigramStats> }>} */
+	const failures = [];
+
+	for (const filename of files) {
+		const cachePath = join(cacheDir, filename);
+		const cacheContent = await readFile(cachePath, 'utf-8');
+		const cacheData = JSON.parse(cacheContent);
+		const cached = cacheData[DEFAULT_STATS_ANALYZER];
+		if (!cached || (cached.alternate ?? 0) <= 0) {
+			skipped++;
+			continue;
+		}
+
+		const layoutName = filename.replace(/\.json$/i, '');
+		const layoutPath = join(CACHE_DIR, 'layouts', `${layoutName}.json`);
+		let rawLayout;
+		try {
+			rawLayout = JSON.parse(await readFile(layoutPath, 'utf-8'));
+		} catch {
+			skipped++;
+			continue;
+		}
+
+		const computed = await computeTrigramStats(rawLayout.keys, corpusData.trigrams);
+		const mismatches = compareTrigramStats(computed, cached);
+		checked++;
+
+		if (mismatches.length === 0) continue;
+
+		const matchingCommit = await findMatchingLayoutCommit(layoutName, cached, corpusData.trigrams);
+		if (matchingCommit) {
+			stale++;
+			continue;
+		}
+
+		failures.push({ layout: layoutName, mismatches });
+	}
+
+	console.log(`Checked ${checked} cmini cache files (${skipped} skipped, ${stale} stale layout/cache pairs)`);
+
+	if (failures.length === 0) {
+		console.log('✔ All computed trigram stats match cmini cache (or stale cmini cache was skipped)');
+		return;
+	}
+
+	console.error(`✖ ${failures.length} layout(s) have true algorithm mismatches:`);
+	for (const failure of failures.slice(0, MAX_REPORTED)) {
+		console.error(`  ${failure.layout}:`);
+		for (const mismatch of failure.mismatches) {
+			console.error(
+				`    ${mismatch.key}: computed=${mismatch.computed} cached=${mismatch.cached}`
+			);
+		}
+	}
+	if (failures.length > MAX_REPORTED) {
+		console.error(`  … and ${failures.length - MAX_REPORTED} more`);
+	}
+
+	process.exit(1);
+}
+
+run().catch((err) => {
+	console.error('❌ Verification failed:', err);
+	process.exit(1);
+});

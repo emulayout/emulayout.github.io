@@ -1,12 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { FINGERS, fingerUsage, handUse, sfbBigram } from './cmini-analyzer.js';
+import {
+	FINGERS,
+	computeTrigramStats,
+	fingerUsage,
+	handUse,
+	sfbBigram
+} from './cmini-analyzer.js';
+import {
+	getCachedLayoutStats,
+	hashLayoutContent,
+	hashTrigramSource,
+	setCachedLayoutStats
+} from './layout-stats-cache.js';
 
 /**
  * Layout stats for the site (monkeyracer analyzer).
  *
- * Trigram stats (Alt, Rol, Red, SFS, …) come from cmini cache.
- * SFB, LH/RH, and per-finger usage are computed at sync time.
+ * Trigram stats (Alt, Rol, Red, SFS, …) come from cmini cache when present,
+ * otherwise computed from the monkeyracer corpus at sync time.
+ * SFB, LH/RH, and per-finger usage are always computed at sync time.
  */
 
 /** Analyzer id exported to the site (matches cmini Discord bot default). */
@@ -64,8 +77,7 @@ export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_ANALYZER) 
  * @param {Record<string, Record<string, number>>} cacheData
  * @returns {MonkeyracerStats | null}
  */
-function extractCacheTrigramStats(cacheData) {
-	const stats = cacheData[DEFAULT_STATS_ANALYZER];
+function extractTrigramStats(stats) {
 	if (!stats) return null;
 
 	/** @type {MonkeyracerStats} */
@@ -75,6 +87,25 @@ function extractCacheTrigramStats(cacheData) {
 	}
 	if (!isValidTrigramStats(result)) return null;
 	return result;
+}
+
+/**
+ * @param {Record<string, Record<string, number>>} cacheData
+ * @returns {MonkeyracerStats | null}
+ */
+function extractCacheTrigramStats(cacheData) {
+	return extractTrigramStats(cacheData[DEFAULT_STATS_ANALYZER]);
+}
+
+/**
+ * @param {object} rawLayout
+ * @param {{ trigrams: Record<string, number> } | null} corpusData
+ * @returns {Promise<MonkeyracerStats | null>}
+ */
+async function computeLayoutTrigramStats(rawLayout, corpusData) {
+	if (!corpusData?.trigrams || !rawLayout?.keys) return null;
+	const stats = await computeTrigramStats(rawLayout.keys, corpusData.trigrams);
+	return extractTrigramStats(stats);
 }
 
 /**
@@ -129,18 +160,62 @@ export function encodeMonkeyracerStats(stats) {
  * @param {string} layoutFilename
  * @param {object} rawLayout
  * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
+ * @param {{ statsCache?: import('./layout-stats-cache.js').StatsCacheContext, layoutContent?: string }} [options]
  * @returns {Promise<CompactLayoutStats | null>}
  */
-export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corpusData) {
+export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corpusData, options = {}) {
 	const cacheName = layoutFilename.replace(/\.json$/i, '');
 	const cachePath = join(cacheDir, 'cache', `${cacheName}.json`);
+	const layoutContent = options.layoutContent ?? JSON.stringify(rawLayout);
+	const layoutHash = hashLayoutContent(layoutContent);
+	const statsCache = options.statsCache;
+
+	let trigramStats = null;
+	let trigramSourceHash = null;
 
 	try {
-		const content = await readFile(cachePath, 'utf-8');
-		const cacheStats = extractCacheTrigramStats(JSON.parse(content));
-		if (!cacheStats) return null;
-		return encodeMonkeyracerStats(mergeLayoutStats(rawLayout, cacheStats, corpusData));
+		const cminiCacheContent = await readFile(cachePath, 'utf-8');
+		trigramSourceHash = hashTrigramSource(cminiCacheContent);
+		if (statsCache) {
+			const cached = getCachedLayoutStats(
+				statsCache,
+				layoutFilename,
+				layoutHash,
+				trigramSourceHash
+			);
+			if (cached) return cached;
+		}
+		trigramStats = extractCacheTrigramStats(JSON.parse(cminiCacheContent));
 	} catch {
-		return null;
+		// Cache file missing — fall back to sync-time computation below.
 	}
+
+	if (!trigramStats) {
+		if (statsCache) {
+			const cached = getCachedLayoutStats(
+				statsCache,
+				layoutFilename,
+				layoutHash,
+				'computed'
+			);
+			if (cached) return cached;
+		}
+		trigramStats = await computeLayoutTrigramStats(rawLayout, corpusData);
+		trigramSourceHash = 'computed';
+	}
+	if (!trigramStats || !trigramSourceHash) return null;
+
+	const stats = encodeMonkeyracerStats(mergeLayoutStats(rawLayout, trigramStats, corpusData));
+
+	if (statsCache) {
+		setCachedLayoutStats(
+			statsCache,
+			layoutFilename,
+			layoutHash,
+			trigramSourceHash,
+			stats
+		);
+	}
+
+	return stats;
 }

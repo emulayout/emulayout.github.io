@@ -1,7 +1,23 @@
+import { readFile } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /**
  * Port of cmini util/analyzer.py and cmds/fingers.py (usage metric).
  * Keep in sync with Apsu/cmini when those functions change.
  */
+
+const TABLE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'cmini-data', 'table.json');
+
+/** @type {Promise<Record<string, string>> | null} */
+let tablePromise = null;
+
+async function loadFingerComboTable() {
+	if (!tablePromise) {
+		tablePromise = readFile(TABLE_PATH, 'utf-8').then(JSON.parse);
+	}
+	return tablePromise;
+}
 
 /** @typedef {Record<string, { finger?: string }>} FingerKeys */
 
@@ -114,4 +130,60 @@ export function fingerUsage(keys, trigrams) {
 	}
 
 	return /** @type {Record<(typeof FINGERS)[number], number>} */ (usage);
+}
+
+/**
+ * Trigram distribution (cmini `trigrams()` / monkeyracer cache stats).
+ * @param {FingerKeys} keys
+ * @param {Record<string, number>} grams
+ * @param {Record<string, string>} table
+ * @returns {Record<string, number>}
+ */
+export function trigramStats(keys, grams, table) {
+	/** @type {Record<string, number>} */
+	const counts = Object.fromEntries(
+		[...new Set([...Object.values(table), 'sfR', 'unknown'])].map((key) => [key, 0])
+	);
+	/** @type {Record<string, string>} */
+	const fingers = {};
+	for (const [key, info] of Object.entries(keys)) {
+		if (info?.finger) fingers[key] = info.finger;
+	}
+
+	for (const [gram, count] of Object.entries(grams)) {
+		const g = gram.toLowerCase();
+		if (g.includes(' ')) continue;
+		if (g.length < 3) continue;
+
+		if (g[0] === g[1] || g[1] === g[2] || g[0] === g[2]) {
+			counts.sfR += count;
+			continue;
+		}
+
+		const fingerCombo = [...g]
+			.filter((ch) => ch in fingers)
+			.map((ch) => fingers[ch])
+			.join('-')
+			.replaceAll('TB', 'RT');
+		const gramType = table[fingerCombo] ?? 'unknown';
+		counts[gramType] += count;
+	}
+
+	const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+	if (total === 0) return counts;
+
+	for (const key of Object.keys(counts)) {
+		counts[key] /= total;
+	}
+
+	return counts;
+}
+
+/**
+ * @param {FingerKeys} keys
+ * @param {Record<string, number>} grams
+ */
+export async function computeTrigramStats(keys, grams) {
+	const table = await loadFingerComboTable();
+	return trigramStats(keys, grams, table);
 }
