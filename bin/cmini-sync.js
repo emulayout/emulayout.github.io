@@ -80,6 +80,13 @@ async function loadLayoutLikes(validLayoutNames) {
 	}
 }
 
+async function applySparseCheckout() {
+	await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
+	// sparse-checkout set updates patterns but does not materialize newly added paths in an
+	// existing partial clone (e.g. CI cache from before cache/ was in SPARSE_CHECKOUT).
+	await $`git -C ${CACHE_DIR} checkout HEAD -- ${SPARSE_CHECKOUT}`;
+}
+
 async function ensureCache(offline = false) {
 	const cacheExists = await access(CACHE_DIR)
 		.then(() => true)
@@ -94,7 +101,7 @@ async function ensureCache(offline = false) {
 		console.log('→ Initial clone (this may take a while)...');
 		await mkdir(CACHE_DIR, { recursive: true });
 		await $`git clone --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
-		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
+		await applySparseCheckout();
 	} else if (offline) {
 		console.log('→ Using existing cmini cache (offline)...');
 	} else {
@@ -113,8 +120,7 @@ async function ensureCache(offline = false) {
 		} else {
 			console.log('→ Cache already up to date');
 		}
-		// Always re-apply sparse-checkout so newly added paths (e.g. likes.json) are present
-		await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
+		await applySparseCheckout();
 	}
 }
 
