@@ -101,7 +101,7 @@
 		{@const end = Math.min(startIndex + columns, layouts.length)}
 		{@const rowItems = layouts.slice(startIndex, end)}
 
-		<div class="grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
+		<div class="layout-card-row grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
 			{#each rowItems as layout (layout.name)}
 				<LayoutCard
 					{layout}
@@ -114,3 +114,12 @@
 		</div>
 	{/snippet}
 </WindowVirtualizer>
+
+<style>
+	/* Help Safari paint row contents while virtua translates the row. */
+	.layout-card-row {
+		transform: translateZ(0);
+		-webkit-backface-visibility: hidden;
+		backface-visibility: hidden;
+	}
+</style>
