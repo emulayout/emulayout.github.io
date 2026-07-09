@@ -8,7 +8,7 @@
 	} from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-	import { getLayoutCardHeight } from '$lib/constants';
+	import { getLayoutCardHeight, LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import {
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
@@ -399,18 +399,27 @@
 				{/if}
 			{/if}
 			{#if filterStore.showLayoutTestArea}
-				<textarea
-					bind:this={textareaElement}
-					class="w-full px-3 pt-3 pb-0 rounded-lg text-sm resize-none outline-none focus:ring-2 transition-all block"
+				<!--
+					Wrapper paints the background: iOS Safari often under-paints
+					<textarea> backgrounds inside virtua-transformed rows until focus.
+				-->
+				<div
+					class="layout-test-area"
 					style="
+						height: {LAYOUT_CARD_TEST_AREA_HEIGHT}px;
 						background-color: var(--bg-primary);
-						color: var(--text-primary);
 						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
-					rows="2"
-					placeholder="Layout test area"
-					onkeydown={handleKeyDown}></textarea>
+				>
+					<textarea
+						bind:this={textareaElement}
+						class="layout-test-area-input"
+						style="color: var(--text-primary);"
+						rows="2"
+						placeholder="Layout test area"
+						onkeydown={handleKeyDown}></textarea>
+				</div>
 			{/if}
 		</div>
 	{/if}
@@ -467,5 +476,34 @@
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		transition: all 0.15s ease;
+	}
+
+	.layout-test-area {
+		width: 100%;
+		border-radius: 0.5rem;
+		overflow: hidden;
+		transform: translateZ(0);
+		-webkit-backface-visibility: hidden;
+		backface-visibility: hidden;
+	}
+
+	.layout-test-area:focus-within {
+		outline: 2px solid var(--tw-ring-color, var(--accent));
+		outline-offset: 0;
+	}
+
+	.layout-test-area-input {
+		display: block;
+		width: 100%;
+		height: 100%;
+		padding: 0.75rem 0.75rem 0;
+		margin: 0;
+		border: 0;
+		border-radius: 0;
+		resize: none;
+		outline: none;
+		background: transparent;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
 	}
 </style>
