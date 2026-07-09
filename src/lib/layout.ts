@@ -23,7 +23,6 @@ export interface LayoutData {
 	/** Pre-sorted thumb keys per hand (lowercase key chars). */
 	thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] };
 	hasThumbKeys: boolean;
-	displayValue: string;
 	characterSet: 'english' | 'international';
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;

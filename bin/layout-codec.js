@@ -29,7 +29,6 @@ export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
  *   string[],
  *   number[],
  *   number[],
- *   string,
  *   string | undefined
  * ]} CompactLayout */
 
@@ -57,7 +56,6 @@ export function encodeLayout(layout) {
 		entries.map(([key]) => key),
 		entries.map(([, info]) => info.row),
 		entries.map(([, info]) => info.col),
-		layout.displayValue,
 		encodeThumbHands(layout.keys) || undefined
 	];
 }

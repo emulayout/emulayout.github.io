@@ -1,4 +1,5 @@
 import type { BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
+import { THUMB_ROW } from '$lib/layoutDisplay';
 
 /** Keep in sync with BOARD_TYPES in bin/layout-codec.js */
 export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini'] as const satisfies readonly BoardType[];
@@ -17,13 +18,16 @@ export const LAYOUT_FLAG_INTERNATIONAL = 8;
 export const LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE = 16;
 export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
 
-export const COMPACT_LAYOUT_FIELD_COUNT = 10;
+/** Current wire format field count (no displayValue). */
+export const COMPACT_LAYOUT_FIELD_COUNT = 9;
 
-/** Thumb row index and default hand split (matches filterStore / keyboard). */
-const THUMB_ROW = 3;
+/** Default hand split for thumb keys without an explicit thumbHand. */
 const THUMB_SPLIT_COL = 5;
 
-/** Wire format for one layout in all-layouts.json */
+/**
+ * Wire format for one layout in all-layouts.json.
+ * Legacy entries may still include a displayValue string before thumbHands.
+ */
 export type CompactLayout = [
 	name: string,
 	user: number,
@@ -33,7 +37,6 @@ export type CompactLayout = [
 	keyChars: string[],
 	rows: number[],
 	cols: number[],
-	displayValue: string,
 	/** Thumb keys in column order: 'l' or 'r' per thumb key. */
 	thumbHands?: string
 ];
@@ -44,9 +47,31 @@ export function positionSlotKey(row: number, col: number): string {
 	return `${row},${col}`;
 }
 
-export function decodeLayout(entry: CompactLayout): LayoutData {
-	const [name, user, boardCode, updatedAt, flags, keyChars, rows, cols, displayValue, thumbHands] =
-		entry;
+/**
+ * Resolve optional trailing fields. Current format: [..., thumbHands?].
+ * Legacy format: [..., displayValue, thumbHands?].
+ */
+function resolveTrailingFields(entry: unknown[]): { thumbHands: string | undefined } {
+	const a = entry[8];
+	const b = entry[9];
+
+	// Current: field 8 is thumbHands ('l'/'r' only) or absent
+	if (typeof a === 'string' && /^[lr]*$/.test(a) && b === undefined) {
+		return { thumbHands: a || undefined };
+	}
+	// Legacy: field 8 is displayValue, field 9 is thumbHands
+	if (typeof b === 'string') {
+		return { thumbHands: b || undefined };
+	}
+	if (typeof a === 'string' && /^[lr]*$/.test(a)) {
+		return { thumbHands: a || undefined };
+	}
+	return { thumbHands: undefined };
+}
+
+export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
+	const [name, user, boardCode, updatedAt, flags, keyChars, rows, cols] = entry as CompactLayout;
+	const { thumbHands } = resolveTrailingFields(entry as unknown[]);
 
 	const keys: Record<string, KeyInfo> = {};
 	const positionBySlot = new Map<string, string>();
@@ -84,7 +109,6 @@ export function decodeLayout(entry: CompactLayout): LayoutData {
 		keys,
 		positionBySlot,
 		thumbKeysByHand,
-		displayValue,
 		hasThumbKeys: (flags & LAYOUT_FLAG_THUMB_KEYS) !== 0,
 		hasAllLetters: (flags & LAYOUT_FLAG_ALL_LETTERS) !== 0,
 		hasMagicKey: (flags & LAYOUT_FLAG_MAGIC_KEY) !== 0,

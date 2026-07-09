@@ -33,6 +33,7 @@
 		removeAnglemodFromDisplayValue,
 		type KeyMap
 	} from '$lib/cmini/keyboard';
+	import { computeDisplayValue } from '$lib/layoutDisplay';
 
 	interface Props {
 		layout: LayoutData;
@@ -55,12 +56,14 @@
 
 	const isAngleBoard = $derived(layout.board === 'angle');
 
+	const baseDisplayValue = $derived(computeDisplayValue(layout));
+
 	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
 	const transformedDisplayValue = $derived.by(() => {
-		if (!anglemod) return layout.displayValue;
+		if (!anglemod) return baseDisplayValue;
 		return isAngleBoard
-			? removeAnglemodFromDisplayValue(layout.displayValue)
-			: applyAnglemodToDisplayValue(layout.displayValue);
+			? removeAnglemodFromDisplayValue(baseDisplayValue)
+			: applyAnglemodToDisplayValue(baseDisplayValue);
 	});
 
 	const updatedLabel = $derived(
@@ -158,7 +161,7 @@
 		const url = buildCyanophagePlaygroundUrl(
 			layout.keys,
 			layout.board,
-			layout.displayValue,
+			baseDisplayValue,
 			layout.cyanophageThumb ?? 'l'
 		);
 		if (!url) return;

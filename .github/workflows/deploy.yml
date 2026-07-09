@@ -46,7 +46,7 @@ jobs:
             .cache/cmini-repo
             .cache/layout-timestamps.json
             .cache/layout-stats-monkeyracer.json
-          key: ${{ runner.os }}-cmini-v4-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**') }}
+          key: ${{ runner.os }}-cmini-v4-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
