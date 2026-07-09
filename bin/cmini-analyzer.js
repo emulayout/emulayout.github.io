@@ -7,19 +7,33 @@ import { fileURLToPath } from 'node:url';
  * Keep in sync with Apsu/cmini when those functions change.
  */
 
-const TABLE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'cmini-data', 'table.json');
+const BIN_DIR = dirname(fileURLToPath(import.meta.url));
+export const TABLE_PATH = join(BIN_DIR, 'cmini-data', 'table.json');
 
 /** @type {Promise<Record<string, string>> | null} */
 let tablePromise = null;
 
+/** @type {string[] | null} */
+let tableCountKeys = null;
+
 async function loadFingerComboTable() {
 	if (!tablePromise) {
-		tablePromise = readFile(TABLE_PATH, 'utf-8').then(JSON.parse);
+		tablePromise = readFile(TABLE_PATH, 'utf-8').then((text) => {
+			const table = JSON.parse(text);
+			tableCountKeys = [...new Set([...Object.values(table), 'sfR', 'unknown'])];
+			return table;
+		});
 	}
 	return tablePromise;
 }
 
 /** @typedef {Record<string, { finger?: string }>} FingerKeys */
+
+/**
+ * @typedef {Object} FingerIndex
+ * @property {Record<string, string>} fingerByKey
+ * @property {Set<string>} validKeys
+ */
 
 /** @type {readonly ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']} */
 export const FINGERS = ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB'];
@@ -28,16 +42,37 @@ export const LEFT_HAND = ['LI', 'LM', 'LR', 'LP'];
 export const RIGHT_HAND = ['RI', 'RM', 'RR', 'RP'];
 
 /**
+ * Shared finger lookup for SFB / hands / usage / trigrams.
+ * @param {FingerKeys} keys
+ * @returns {FingerIndex}
+ */
+export function buildFingerIndex(keys) {
+	/** @type {Record<string, string>} */
+	const fingerByKey = {};
+	const validKeys = new Set();
+	for (const [key, info] of Object.entries(keys)) {
+		validKeys.add(key);
+		if (info?.finger) fingerByKey[key] = info.finger;
+	}
+	return { fingerByKey, validKeys };
+}
+
+/**
+ * @param {Record<string, string>} table
+ */
+function emptyTrigramCounts(table) {
+	const keys = tableCountKeys ?? [...new Set([...Object.values(table), 'sfR', 'unknown'])];
+	return Object.fromEntries(keys.map((key) => [key, 0]));
+}
+
+/**
  * Same-finger bigram rate (bot display SFB).
  * @param {FingerKeys} keys
  * @param {Record<string, number>} bigrams
+ * @param {FingerIndex} [index]
  */
-export function sfbBigram(keys, bigrams) {
-	const validKeys = new Set(Object.keys(keys));
-	const fingerByKey = /** @type {Record<string, string>} */ ({});
-	for (const [key, info] of Object.entries(keys)) {
-		if (info?.finger) fingerByKey[key] = info.finger;
-	}
+export function sfbBigram(keys, bigrams, index = buildFingerIndex(keys)) {
+	const { fingerByKey, validKeys } = index;
 	if (Object.keys(fingerByKey).length === 0) return null;
 
 	let total = 0;
@@ -48,8 +83,16 @@ export function sfbBigram(keys, bigrams) {
 	for (const [gram, count] of Object.entries(bigrams)) {
 		const g = gram.toLowerCase();
 		if (g.length < 2) continue;
-		if ([...g].some((ch) => !validKeys.has(ch))) continue;
 		if (g.includes(' ') || g[0] === g[1]) continue;
+
+		let allValid = true;
+		for (let i = 0; i < g.length; i++) {
+			if (!validKeys.has(g[i])) {
+				allValid = false;
+				break;
+			}
+		}
+		if (!allValid) continue;
 
 		const f0 = fingerByKey[g[0]];
 		const f1 = fingerByKey[g[1]];
@@ -64,16 +107,17 @@ export function sfbBigram(keys, bigrams) {
  * Left/right hand typing share (bot LH/RH line).
  * @param {FingerKeys} keys
  * @param {Record<string, number>} monograms
+ * @param {FingerIndex} [index]
  */
-export function handUse(keys, monograms) {
+export function handUse(keys, monograms, index = buildFingerIndex(keys)) {
+	const { fingerByKey } = index;
 	/** @type {Record<string, number>} */
 	const fingers = {};
 
 	for (const [gram, count] of Object.entries(monograms)) {
-		const g = gram.toLowerCase();
-		const info = keys[g];
-		if (!info?.finger) continue;
-		fingers[info.finger] = (fingers[info.finger] ?? 0) + count;
+		const finger = fingerByKey[gram.toLowerCase()];
+		if (!finger) continue;
+		fingers[finger] = (fingers[finger] ?? 0) + count;
 	}
 
 	const total = Object.values(fingers).reduce((sum, n) => sum + n, 0);
@@ -94,9 +138,11 @@ export function handUse(keys, monograms) {
  * Per-finger usage (cmini `fingers [layout] usage`).
  * @param {FingerKeys} keys
  * @param {Record<string, number>} trigrams
+ * @param {FingerIndex} [index]
  * @returns {Record<(typeof FINGERS)[number], number> | null}
  */
-export function fingerUsage(keys, trigrams) {
+export function fingerUsage(keys, trigrams, index = buildFingerIndex(keys)) {
+	const { fingerByKey } = index;
 	/** @type {Record<string, number>} */
 	const usage = Object.fromEntries(FINGERS.map((finger) => [finger, 0]));
 	let total = 0;
@@ -105,10 +151,10 @@ export function fingerUsage(keys, trigrams) {
 		if (trigram.includes(' ')) continue;
 
 		const fingerList = [];
-		for (const ch of trigram.toLowerCase()) {
-			const info = keys[ch];
-			if (!info?.finger) continue;
-			let finger = info.finger;
+		const g = trigram.toLowerCase();
+		for (let i = 0; i < g.length; i++) {
+			let finger = fingerByKey[g[i]];
+			if (!finger) continue;
 			if (finger === 'TB') finger = 'RT';
 			if (usage[finger] === undefined) continue;
 			fingerList.push(finger);
@@ -137,18 +183,13 @@ export function fingerUsage(keys, trigrams) {
  * @param {FingerKeys} keys
  * @param {Record<string, number>} grams
  * @param {Record<string, string>} table
+ * @param {FingerIndex} [index]
  * @returns {Record<string, number>}
  */
-export function trigramStats(keys, grams, table) {
+export function trigramStats(keys, grams, table, index = buildFingerIndex(keys)) {
 	/** @type {Record<string, number>} */
-	const counts = Object.fromEntries(
-		[...new Set([...Object.values(table), 'sfR', 'unknown'])].map((key) => [key, 0])
-	);
-	/** @type {Record<string, string>} */
-	const fingers = {};
-	for (const [key, info] of Object.entries(keys)) {
-		if (info?.finger) fingers[key] = info.finger;
-	}
+	const counts = emptyTrigramCounts(table);
+	const { fingerByKey } = index;
 
 	for (const [gram, count] of Object.entries(grams)) {
 		const g = gram.toLowerCase();
@@ -160,11 +201,13 @@ export function trigramStats(keys, grams, table) {
 			continue;
 		}
 
-		const fingerCombo = [...g]
-			.filter((ch) => ch in fingers)
-			.map((ch) => fingers[ch])
-			.join('-')
-			.replaceAll('TB', 'RT');
+		let fingerCombo = '';
+		for (let i = 0; i < g.length; i++) {
+			const finger = fingerByKey[g[i]];
+			if (!finger) continue;
+			if (fingerCombo) fingerCombo += '-';
+			fingerCombo += finger === 'TB' ? 'RT' : finger;
+		}
 		const gramType = table[fingerCombo] ?? 'unknown';
 		counts[gramType] += count;
 	}
@@ -182,8 +225,9 @@ export function trigramStats(keys, grams, table) {
 /**
  * @param {FingerKeys} keys
  * @param {Record<string, number>} grams
+ * @param {FingerIndex} [index]
  */
-export async function computeTrigramStats(keys, grams) {
+export async function computeTrigramStats(keys, grams, index) {
 	const table = await loadFingerComboTable();
-	return trigramStats(keys, grams, table);
+	return trigramStats(keys, grams, table, index);
 }

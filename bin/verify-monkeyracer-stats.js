@@ -18,6 +18,7 @@ import { computeTrigramStats } from './cmini-analyzer.js';
 
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const MAX_REPORTED = 20;
+const VERIFY_CONCURRENCY = Number(process.env.CMINI_VERIFY_CONCURRENCY ?? 16);
 
 /**
  * @param {Record<string, number>} computed
@@ -67,6 +68,42 @@ async function findMatchingLayoutCommit(layoutName, cached, trigrams) {
 	return null;
 }
 
+/**
+ * @param {string} filename
+ * @param {Record<string, number>} trigrams
+ */
+async function checkCacheFile(filename, trigrams) {
+	const cachePath = join(CACHE_DIR, 'cache', filename);
+	const cacheContent = await readFile(cachePath, 'utf-8');
+	const cacheData = JSON.parse(cacheContent);
+	const cached = cacheData[DEFAULT_STATS_ANALYZER];
+	if (!cached || (cached.alternate ?? 0) <= 0) {
+		return { kind: 'skipped' };
+	}
+
+	const layoutName = filename.replace(/\.json$/i, '');
+	const layoutPath = join(CACHE_DIR, 'layouts', `${layoutName}.json`);
+	let rawLayout;
+	try {
+		rawLayout = JSON.parse(await readFile(layoutPath, 'utf-8'));
+	} catch {
+		return { kind: 'skipped' };
+	}
+
+	const computed = await computeTrigramStats(rawLayout.keys, trigrams);
+	const mismatches = compareTrigramStats(computed, cached);
+	if (mismatches.length === 0) {
+		return { kind: 'ok' };
+	}
+
+	const matchingCommit = await findMatchingLayoutCommit(layoutName, cached, trigrams);
+	if (matchingCommit) {
+		return { kind: 'stale' };
+	}
+
+	return { kind: 'failure', layout: layoutName, mismatches };
+}
+
 async function run() {
 	const corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
 	const cacheDir = join(CACHE_DIR, 'cache');
@@ -78,39 +115,25 @@ async function run() {
 	/** @type {Array<{ layout: string, mismatches: ReturnType<typeof compareTrigramStats> }>} */
 	const failures = [];
 
-	for (const filename of files) {
-		const cachePath = join(cacheDir, filename);
-		const cacheContent = await readFile(cachePath, 'utf-8');
-		const cacheData = JSON.parse(cacheContent);
-		const cached = cacheData[DEFAULT_STATS_ANALYZER];
-		if (!cached || (cached.alternate ?? 0) <= 0) {
-			skipped++;
-			continue;
+	for (let i = 0; i < files.length; i += VERIFY_CONCURRENCY) {
+		const batch = files.slice(i, i + VERIFY_CONCURRENCY);
+		const results = await Promise.all(
+			batch.map((filename) => checkCacheFile(filename, corpusData.trigrams))
+		);
+
+		for (const result of results) {
+			if (result.kind === 'skipped') {
+				skipped++;
+				continue;
+			}
+			checked++;
+			if (result.kind === 'ok') continue;
+			if (result.kind === 'stale') {
+				stale++;
+				continue;
+			}
+			failures.push({ layout: result.layout, mismatches: result.mismatches });
 		}
-
-		const layoutName = filename.replace(/\.json$/i, '');
-		const layoutPath = join(CACHE_DIR, 'layouts', `${layoutName}.json`);
-		let rawLayout;
-		try {
-			rawLayout = JSON.parse(await readFile(layoutPath, 'utf-8'));
-		} catch {
-			skipped++;
-			continue;
-		}
-
-		const computed = await computeTrigramStats(rawLayout.keys, corpusData.trigrams);
-		const mismatches = compareTrigramStats(computed, cached);
-		checked++;
-
-		if (mismatches.length === 0) continue;
-
-		const matchingCommit = await findMatchingLayoutCommit(layoutName, cached, corpusData.trigrams);
-		if (matchingCommit) {
-			stale++;
-			continue;
-		}
-
-		failures.push({ layout: layoutName, mismatches });
 	}
 
 	console.log(`Checked ${checked} cmini cache files (${skipped} skipped, ${stale} stale layout/cache pairs)`);

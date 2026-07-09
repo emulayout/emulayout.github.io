@@ -10,7 +10,6 @@ import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
 	buildAnalyzerFingerprint,
-	buildCorpusFingerprint,
 	createStatsCacheContext,
 	pruneStatsCache,
 	saveStatsCache
@@ -27,7 +26,15 @@ const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const LIKES_FILE = 'static/layout-likes.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
-const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json', 'cache', 'corpora/monkeyracer'];
+const SPARSE_CHECKOUT = [
+	'layouts',
+	'/authors.json',
+	'/likes.json',
+	'cache',
+	'corpora/monkeyracer/bigrams.json',
+	'corpora/monkeyracer/monograms.json',
+	'corpora/monkeyracer/trigrams.json'
+];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
 const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
@@ -48,13 +55,21 @@ async function resolveDefaultBranch() {
 async function loadBlacklist() {
 	try {
 		const content = await readFile(BLACKLIST_FILE, 'utf-8');
-		return content
+		const names = content
 			.split('\n')
 			.map((line) => line.trim())
 			.filter((line) => line && !line.startsWith('#'));
+		/** @type {Set<string>} */
+		const blacklist = new Set();
+		for (const entry of names) {
+			blacklist.add(entry);
+			blacklist.add(entry.replace(/\.json$/i, ''));
+			if (!entry.endsWith('.json')) blacklist.add(`${entry}.json`);
+		}
+		return blacklist;
 	} catch {
-		// File doesn't exist, return empty array
-		return [];
+		// File doesn't exist, return empty set
+		return new Set();
 	}
 }
 
@@ -163,9 +178,8 @@ async function run() {
 	let statsCache = null;
 	try {
 		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
-		const corpusFingerprint = await buildCorpusFingerprint(CACHE_DIR, DEFAULT_STATS_ANALYZER);
 		const analyzerFingerprint = await buildAnalyzerFingerprint();
-		statsCache = await createStatsCacheContext(corpusFingerprint, analyzerFingerprint);
+		statsCache = await createStatsCacheContext(corpusData.fingerprint, analyzerFingerprint);
 		console.log(`→ Loaded ${DEFAULT_STATS_ANALYZER} analyzer data for SFB / LH-RH`);
 	} catch (err) {
 		console.warn(`  ⚠ Could not load analyzer data (${err.message}); SFB/LH-RH will be zero`);
@@ -193,11 +207,7 @@ async function run() {
 	 */
 	async function processLayoutFile(filename) {
 		const layoutName = filename.replace('.json', '');
-		const isBlacklisted = blacklist.some(
-			(entry) =>
-				entry === layoutName || entry === filename || entry.replace('.json', '') === layoutName
-		);
-		if (isBlacklisted) return null;
+		if (blacklist.has(layoutName) || blacklist.has(filename)) return null;
 
 		const cachePath = join(cacheLayoutsDir, filename);
 		const originalContent = await readFile(cachePath, 'utf-8');
@@ -328,7 +338,7 @@ async function run() {
 		if (removed.length > 0) {
 			console.log(`  Removed (${removed.length}):`);
 			removed.sort().forEach((name) => {
-				const reason = blacklist.includes(name) ? ' (blacklisted)' : ' (removed from repo)';
+				const reason = blacklist.has(name) ? ' (blacklisted)' : ' (removed from repo)';
 				console.log(`    - ${name}${reason}`);
 			});
 		}

@@ -2,12 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
 	FINGERS,
+	buildFingerIndex,
 	computeTrigramStats,
 	fingerUsage,
 	handUse,
 	sfbBigram
 } from './cmini-analyzer.js';
 import {
+	fingerprintCorpusBuffers,
 	getCachedLayoutStats,
 	hashLayoutContent,
 	hashTrigramSource,
@@ -50,6 +52,8 @@ export const TRIGRAM_STAT_KEYS = BOT_STAT_KEYS.filter((key) => !COMPUTED_STAT_KE
 /** Fixed-point scale for compact stat arrays (4 decimal places). */
 export const STAT_VALUE_SCALE = 10_000;
 
+const CORPUS_FILES = ['bigrams.json', 'monograms.json', 'trigrams.json'];
+
 /** Cache is usable when cmini produced a real trigram distribution. */
 export function isValidTrigramStats(stats) {
 	return (stats.alternate ?? 0) > 0;
@@ -60,21 +64,30 @@ export function isValidTrigramStats(stats) {
 /** @typedef {number[]} CompactLayoutStats */
 
 /**
+ * @typedef {{
+ *   bigrams: Record<string, number>,
+ *   monograms: Record<string, number>,
+ *   trigrams: Record<string, number>,
+ *   fingerprint: string
+ * }} CorpusData
+ */
+
+/**
+ * Load monkeyracer corpus once; fingerprint uses the same file bytes.
  * @param {string} cacheDir
  * @param {string} corpus
+ * @returns {Promise<CorpusData>}
  */
 export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_ANALYZER) {
 	const base = join(cacheDir, 'corpora', corpus);
-	const [bigrams, monograms, trigrams] = await Promise.all([
-		readFile(join(base, 'bigrams.json'), 'utf-8').then(JSON.parse),
-		readFile(join(base, 'monograms.json'), 'utf-8').then(JSON.parse),
-		readFile(join(base, 'trigrams.json'), 'utf-8').then(JSON.parse)
-	]);
-	return { bigrams, monograms, trigrams };
+	const buffers = await Promise.all(CORPUS_FILES.map((filename) => readFile(join(base, filename))));
+	const fingerprint = fingerprintCorpusBuffers(buffers);
+	const [bigrams, monograms, trigrams] = buffers.map((buffer) => JSON.parse(buffer.toString('utf-8')));
+	return { bigrams, monograms, trigrams, fingerprint };
 }
 
 /**
- * @param {Record<string, Record<string, number>>} cacheData
+ * @param {Record<string, number> | null | undefined} stats
  * @returns {MonkeyracerStats | null}
  */
 function extractTrigramStats(stats) {
@@ -99,22 +112,24 @@ function extractCacheTrigramStats(cacheData) {
 
 /**
  * @param {object} rawLayout
- * @param {{ trigrams: Record<string, number> } | null} corpusData
+ * @param {CorpusData | null} corpusData
+ * @param {import('./cmini-analyzer.js').FingerIndex} [index]
  * @returns {Promise<MonkeyracerStats | null>}
  */
-async function computeLayoutTrigramStats(rawLayout, corpusData) {
+async function computeLayoutTrigramStats(rawLayout, corpusData, index) {
 	if (!corpusData?.trigrams || !rawLayout?.keys) return null;
-	const stats = await computeTrigramStats(rawLayout.keys, corpusData.trigrams);
+	const stats = await computeTrigramStats(rawLayout.keys, corpusData.trigrams, index);
 	return extractTrigramStats(stats);
 }
 
 /**
  * @param {object} rawLayout
  * @param {MonkeyracerStats} cacheStats
- * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
+ * @param {CorpusData | null} corpusData
+ * @param {import('./cmini-analyzer.js').FingerIndex} [index]
  * @returns {MonkeyracerStats}
  */
-export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
+export function mergeLayoutStats(rawLayout, cacheStats, corpusData, index) {
 	/** @type {MonkeyracerStats} */
 	const stats = {
 		...cacheStats,
@@ -128,16 +143,18 @@ export function mergeLayoutStats(rawLayout, cacheStats, corpusData) {
 		return stats;
 	}
 
-	const sfb = sfbBigram(rawLayout.keys, corpusData.bigrams);
+	const fingerIndex = index ?? buildFingerIndex(rawLayout.keys);
+
+	const sfb = sfbBigram(rawLayout.keys, corpusData.bigrams, fingerIndex);
 	if (sfb !== null) stats.sfb = sfb;
 
-	const use = handUse(rawLayout.keys, corpusData.monograms);
+	const use = handUse(rawLayout.keys, corpusData.monograms, fingerIndex);
 	if (use) {
 		stats.lh = use.lh;
 		stats.rh = use.rh;
 	}
 
-	const fingers = fingerUsage(rawLayout.keys, corpusData.trigrams);
+	const fingers = fingerUsage(rawLayout.keys, corpusData.trigrams, fingerIndex);
 	if (fingers) {
 		for (const finger of FINGERS) {
 			stats[finger] = fingers[finger];
@@ -159,7 +176,7 @@ export function encodeMonkeyracerStats(stats) {
  * @param {string} cacheDir
  * @param {string} layoutFilename
  * @param {object} rawLayout
- * @param {{ bigrams: Record<string, number>, monograms: Record<string, number>, trigrams: Record<string, number> } | null} corpusData
+ * @param {CorpusData | null} corpusData
  * @param {{ statsCache?: import('./layout-stats-cache.js').StatsCacheContext, layoutContent?: string }} [options]
  * @returns {Promise<CompactLayoutStats | null>}
  */
@@ -200,12 +217,19 @@ export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corp
 			);
 			if (cached) return cached;
 		}
-		trigramStats = await computeLayoutTrigramStats(rawLayout, corpusData);
 		trigramSourceHash = 'computed';
 	}
-	if (!trigramStats || !trigramSourceHash) return null;
+	if (!trigramSourceHash) return null;
 
-	const stats = encodeMonkeyracerStats(mergeLayoutStats(rawLayout, trigramStats, corpusData));
+	const index = rawLayout?.keys ? buildFingerIndex(rawLayout.keys) : undefined;
+	if (!trigramStats) {
+		trigramStats = await computeLayoutTrigramStats(rawLayout, corpusData, index);
+	}
+	if (!trigramStats) return null;
+
+	const stats = encodeMonkeyracerStats(
+		mergeLayoutStats(rawLayout, trigramStats, corpusData, index)
+	);
 
 	if (statsCache) {
 		setCachedLayoutStats(

@@ -2,9 +2,17 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TABLE_PATH } from './cmini-analyzer.js';
 
 const STATS_CACHE_FILE = join(process.cwd(), '.cache', 'layout-stats-monkeyracer.json');
-const TABLE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'cmini-data', 'table.json');
+const BIN_DIR = dirname(fileURLToPath(import.meta.url));
+
+/** Files whose contents affect computed monkeyracer stats (beyond STATS_ALGORITHM_VERSION). */
+const ANALYZER_FINGERPRINT_FILES = [
+	TABLE_PATH,
+	join(BIN_DIR, 'cmini-analyzer.js'),
+	join(BIN_DIR, 'layout-stats.js')
+];
 
 /** Bump when trigram / merge logic changes and all cached stats must be rebuilt. */
 export const STATS_ALGORITHM_VERSION = 1;
@@ -34,26 +42,6 @@ export const STATS_ALGORITHM_VERSION = 1;
  */
 
 /**
- * @param {string} cacheDir
- * @param {string} corpus
- */
-export async function buildCorpusFingerprint(cacheDir, corpus) {
-	const base = join(cacheDir, 'corpora', corpus);
-	const hash = createHash('sha256');
-	for (const filename of ['bigrams.json', 'monograms.json', 'trigrams.json']) {
-		hash.update(await readFile(join(base, filename)));
-	}
-	return hash.digest('hex');
-}
-
-export async function buildAnalyzerFingerprint() {
-	const hash = createHash('sha256');
-	hash.update(String(STATS_ALGORITHM_VERSION));
-	hash.update(await readFile(TABLE_PATH));
-	return hash.digest('hex');
-}
-
-/**
  * @param {string} layoutContent
  */
 export function hashLayoutContent(layoutContent) {
@@ -65,6 +53,25 @@ export function hashLayoutContent(layoutContent) {
  */
 export function hashTrigramSource(content) {
 	return createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * Hash corpus file buffers (same bytes used for JSON.parse in loadCorpusData).
+ * @param {Buffer[]} buffers
+ */
+export function fingerprintCorpusBuffers(buffers) {
+	const hash = createHash('sha256');
+	for (const buffer of buffers) hash.update(buffer);
+	return hash.digest('hex');
+}
+
+export async function buildAnalyzerFingerprint() {
+	const hash = createHash('sha256');
+	hash.update(String(STATS_ALGORITHM_VERSION));
+	for (const file of ANALYZER_FINGERPRINT_FILES) {
+		hash.update(await readFile(file));
+	}
+	return hash.digest('hex');
 }
 
 /** @param {string} corpusFingerprint @param {string} analyzerFingerprint */
@@ -103,7 +110,6 @@ export function getCachedLayoutStats(ctx, layoutFilename, layoutHash, trigramSou
 		return entry.stats;
 	}
 
-	ctx.misses++;
 	return null;
 }
 
@@ -121,6 +127,7 @@ export function setCachedLayoutStats(
 	trigramSourceHash,
 	stats
 ) {
+	ctx.misses++;
 	ctx.layouts[layoutFilename] = { layoutHash, trigramSourceHash, stats };
 }
 
