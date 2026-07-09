@@ -1,4 +1,4 @@
-import type { KeyInfo, LayoutData } from '$lib/layout';
+import type { LayoutData } from '$lib/layout';
 
 export interface PositionMatch {
 	matches: number;
@@ -11,14 +11,6 @@ export interface SimilarLayoutResult {
 	match: PositionMatch;
 }
 
-function buildPositionMap(keys: Record<string, KeyInfo>): Map<string, string> {
-	const map = new Map<string, string>();
-	for (const [char, { row, col }] of Object.entries(keys)) {
-		map.set(`${row},${col}`, char);
-	}
-	return map;
-}
-
 /** Compare key positions; only slots present in both layouts are scored. */
 export function compareLayoutPositions(
 	reference: LayoutData,
@@ -26,8 +18,8 @@ export function compareLayoutPositions(
 ): PositionMatch | null {
 	if (reference.board !== candidate.board) return null;
 
-	const referencePositions = buildPositionMap(reference.keys);
-	const candidatePositions = buildPositionMap(candidate.keys);
+	const referencePositions = reference.positionBySlot;
+	const candidatePositions = candidate.positionBySlot;
 
 	let matches = 0;
 	let total = 0;

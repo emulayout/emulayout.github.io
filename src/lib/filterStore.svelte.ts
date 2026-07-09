@@ -27,8 +27,9 @@ import type {
 	LayoutData,
 	LayoutLikesMap,
 	StatsMaps,
-	KeyInfo
+	ThumbKeyEntry
 } from './layout';
+import { positionSlotKey } from './layoutCodec';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -81,7 +82,6 @@ function deserializeStatLimits(str: string): Record<StatLimitKey, StatLimit> {
 
 const ROWS = 3;
 const COLS = 10;
-const THUMB_SPLIT_COL = 5;
 const THUMB_KEYS_PER_HAND = 4;
 const DEBOUNCE_MS = 300;
 
@@ -155,6 +155,18 @@ export class FilterStore {
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
+	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
+	appliedIncludeGrid: string[][] = $state(createEmptyGrid());
+	appliedExcludeGrid: string[][] = $state(createEmptyGrid());
+	appliedIncludeOrGrid: string[][] = $state(createEmptyGrid());
+	appliedIncludeOrLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedIncludeOrRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedIncludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedIncludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedExcludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedExcludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
+	appliedStatLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
+
 	get showLayoutStats(): boolean {
 		return !this.hideLayoutStats;
 	}
@@ -173,9 +185,63 @@ export class FilterStore {
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
+	#filterApplyTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
 		this.#loadFromUrl();
+		this.#applyFiltersFromInputs();
+	}
+
+	#cloneGrid(grid: string[][]): string[][] {
+		return grid.map((row) => [...row]);
+	}
+
+	#cloneThumbKeys(keys: string[]): string[] {
+		return [...keys];
+	}
+
+	#cloneStatLimits(limits: Record<StatLimitKey, StatLimit>): Record<StatLimitKey, StatLimit> {
+		const next = createEmptyStatLimits();
+		for (const key of Object.keys(limits) as StatLimitKey[]) {
+			next[key] = { operator: limits[key].operator, value: limits[key].value };
+		}
+		return next;
+	}
+
+	#applyFiltersFromInputs() {
+		this.appliedIncludeGrid = this.#cloneGrid(this.includeGrid);
+		this.appliedExcludeGrid = this.#cloneGrid(this.excludeGrid);
+		this.appliedIncludeOrGrid = this.#cloneGrid(this.includeOrGrid);
+		this.appliedIncludeOrLeftThumbKeys = this.#cloneThumbKeys(this.includeOrLeftThumbKeys);
+		this.appliedIncludeOrRightThumbKeys = this.#cloneThumbKeys(this.includeOrRightThumbKeys);
+		this.appliedIncludeLeftThumbKeys = this.#cloneThumbKeys(this.includeLeftThumbKeys);
+		this.appliedIncludeRightThumbKeys = this.#cloneThumbKeys(this.includeRightThumbKeys);
+		this.appliedExcludeLeftThumbKeys = this.#cloneThumbKeys(this.excludeLeftThumbKeys);
+		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(this.excludeRightThumbKeys);
+		this.appliedStatLimits = this.#cloneStatLimits(this.statLimits);
+	}
+
+	#scheduleFilterApply() {
+		if (this.#filterApplyTimeout) {
+			clearTimeout(this.#filterApplyTimeout);
+		}
+		this.#filterApplyTimeout = setTimeout(() => {
+			this.#applyFiltersFromInputs();
+			this.#saveToUrl();
+			this.#filterApplyTimeout = null;
+		}, DEBOUNCE_MS);
+	}
+
+	#cancelFilterApply() {
+		if (this.#filterApplyTimeout) {
+			clearTimeout(this.#filterApplyTimeout);
+			this.#filterApplyTimeout = null;
+		}
+	}
+
+	#applyFiltersNow() {
+		this.#cancelFilterApply();
+		this.#applyFiltersFromInputs();
 	}
 
 	#loadFromUrl() {
@@ -464,47 +530,47 @@ export class FilterStore {
 
 	setIncludeCell(row: number, col: number, value: string) {
 		this.includeGrid[row][col] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setExcludeCell(row: number, col: number, value: string) {
 		this.excludeGrid[row][col] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setIncludeLeftThumbKey(index: number, value: string) {
 		this.includeLeftThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setIncludeRightThumbKey(index: number, value: string) {
 		this.includeRightThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setExcludeLeftThumbKey(index: number, value: string) {
 		this.excludeLeftThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setExcludeRightThumbKey(index: number, value: string) {
 		this.excludeRightThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrLeftThumbKey(index: number, value: string) {
 		this.includeOrLeftThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrRightThumbKey(index: number, value: string) {
 		this.includeOrRightThumbKeys[index] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrCell(row: number, col: number, value: string) {
 		this.includeOrGrid[row][col] = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setShowUnfinished(value: boolean) {
@@ -522,6 +588,7 @@ export class FilterStore {
 			this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 			this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
 			this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+			this.#applyFiltersNow();
 		}
 		this.#debouncedSave();
 	}
@@ -578,6 +645,7 @@ export class FilterStore {
 		}
 		if (value) {
 			this.statLimits.likes = { operator: 'lt', value: '' };
+			this.#applyFiltersNow();
 		}
 		this.#saveToUrl();
 	}
@@ -591,6 +659,7 @@ export class FilterStore {
 			}
 			if (this.statLimits.likes.value.trim() !== '') {
 				this.statLimits.likes = { operator: 'lt', value: '' };
+				this.#applyFiltersNow();
 				this.#saveToUrl();
 			}
 		}
@@ -598,12 +667,12 @@ export class FilterStore {
 
 	setStatLimitOperator(key: StatLimitKey, operator: StatLimitOperator) {
 		this.statLimits[key].operator = operator;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setStatLimitValue(key: StatLimitKey, value: string) {
 		this.statLimits[key].value = value;
-		this.#debouncedSave();
+		this.#scheduleFilterApply();
 	}
 
 	setNameFilter(value: string) {
@@ -622,6 +691,7 @@ export class FilterStore {
 		this.includeGrid = createEmptyGrid();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
 
@@ -629,6 +699,7 @@ export class FilterStore {
 		this.includeOrGrid = createEmptyGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
 
@@ -636,6 +707,7 @@ export class FilterStore {
 		this.excludeGrid = createEmptyGrid();
 		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
 
@@ -677,6 +749,7 @@ export class FilterStore {
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
+		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
 
@@ -702,6 +775,7 @@ export class FilterStore {
 			clearTimeout(this.#nameDebounceTimeout);
 			this.#nameDebounceTimeout = null;
 		}
+		this.#applyFiltersNow();
 		this.focusLayoutName = name;
 		this.#saveToUrl();
 	}
@@ -739,6 +813,17 @@ export class FilterStore {
 		);
 	}
 
+	/** Applied (debounced) stat limits — used by page load / filter pipeline. */
+	get hasAppliedStatLimits(): boolean {
+		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
+		const availableFields = this.canUseLikes
+			? [...fields, { key: 'likes' as const }]
+			: fields;
+		return availableFields.some(
+			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
+		);
+	}
+
 	get hasActiveFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
@@ -770,27 +855,12 @@ export class FilterStore {
 		);
 	}
 
-	// Get key at a specific position in a layout
 	#getKeyAt(layout: LayoutData, row: number, col: number): string | undefined {
-		for (const [key, info] of Object.entries(layout.keys)) {
-			if (info.row === row && info.col === col) return key;
-		}
-		return undefined;
+		return layout.positionBySlot.get(positionSlotKey(row, col));
 	}
 
-	#resolveThumbHand(info: KeyInfo): 'l' | 'r' {
-		return info.thumbHand ?? (info.col < THUMB_SPLIT_COL ? 'l' : 'r');
-	}
-
-	// Thumb keys for one hand, sorted left to right within that hand
-	#getThumbKeysForHand(layout: LayoutData, hand: 'l' | 'r'): Array<{ key: string; col: number }> {
-		const thumbKeys: Array<{ key: string; col: number }> = [];
-		for (const [key, info] of Object.entries(layout.keys)) {
-			if (info.row === ROWS && this.#resolveThumbHand(info) === hand) {
-				thumbKeys.push({ key: key.toLowerCase(), col: info.col });
-			}
-		}
-		return thumbKeys.sort((a, b) => a.col - b.col);
+	#getThumbKeysForHand(layout: LayoutData, hand: 'l' | 'r'): ThumbKeyEntry[] {
+		return layout.thumbKeysByHand[hand];
 	}
 
 	// Check if thumb keys match positional filter (keys must exist in order)
@@ -853,7 +923,7 @@ export class FilterStore {
 		// Check rows 0-2 (position-specific)
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.includeGrid[row][col].toLowerCase();
+				const filterChars = this.appliedIncludeGrid[row][col].toLowerCase();
 				if (filterChars) {
 					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
 					// Key must match one of the filter characters
@@ -862,20 +932,20 @@ export class FilterStore {
 			}
 		}
 		// Check thumb keys per hand (row 3) — order within each hand, not column
-		if (this.includeLeftThumbKeys.some((k) => k !== '')) {
+		if (this.appliedIncludeLeftThumbKeys.some((k) => k !== '')) {
 			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
-			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeLeftThumbKeys)) return false;
+			if (!this.#matchesThumbKeyPosition(thumbKeys, this.appliedIncludeLeftThumbKeys)) return false;
 		}
-		if (this.includeRightThumbKeys.some((k) => k !== '')) {
+		if (this.appliedIncludeRightThumbKeys.some((k) => k !== '')) {
 			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
-			if (!this.#matchesThumbKeyPosition(thumbKeys, this.includeRightThumbKeys)) return false;
+			if (!this.#matchesThumbKeyPosition(thumbKeys, this.appliedIncludeRightThumbKeys)) return false;
 		}
 		return true;
 	}
 
 	// One thumb filter slot: does this hand's Nth thumb key (left-to-right) match chars?
 	#matchesThumbKeyAtSlot(
-		thumbKeys: Array<{ key: string; col: number }>,
+		thumbKeys: ThumbKeyEntry[],
 		slotIndex: number,
 		chars: string
 	): boolean {
@@ -890,7 +960,7 @@ export class FilterStore {
 
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.includeOrGrid[row][col].toLowerCase();
+				const filterChars = this.appliedIncludeOrGrid[row][col].toLowerCase();
 				if (!filterChars) continue;
 				const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
 				matches.push(Boolean(keyAtPos && filterChars.includes(keyAtPos)));
@@ -899,14 +969,14 @@ export class FilterStore {
 
 		const leftThumbKeys = this.#getThumbKeysForHand(layout, 'l');
 		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
-			const filterChars = this.includeOrLeftThumbKeys[index].toLowerCase();
+			const filterChars = this.appliedIncludeOrLeftThumbKeys[index].toLowerCase();
 			if (!filterChars) continue;
 			matches.push(this.#matchesThumbKeyAtSlot(leftThumbKeys, index, filterChars));
 		}
 
 		const rightThumbKeys = this.#getThumbKeysForHand(layout, 'r');
 		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
-			const filterChars = this.includeOrRightThumbKeys[index].toLowerCase();
+			const filterChars = this.appliedIncludeOrRightThumbKeys[index].toLowerCase();
 			if (!filterChars) continue;
 			matches.push(this.#matchesThumbKeyAtSlot(rightThumbKeys, index, filterChars));
 		}
@@ -920,7 +990,7 @@ export class FilterStore {
 		// Check rows 0-2 (position-specific)
 		for (let row = 0; row < ROWS; row++) {
 			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.excludeGrid[row][col].toLowerCase();
+				const filterChars = this.appliedExcludeGrid[row][col].toLowerCase();
 				if (filterChars) {
 					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
 					// If key matches any of the filter characters, exclude it
@@ -929,13 +999,13 @@ export class FilterStore {
 			}
 		}
 		// Check thumb keys per hand — if matches positional filter, exclude
-		if (this.excludeLeftThumbKeys.some((k) => k !== '')) {
+		if (this.appliedExcludeLeftThumbKeys.some((k) => k !== '')) {
 			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
-			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeLeftThumbKeys)) return false;
+			if (this.#matchesThumbKeyPosition(thumbKeys, this.appliedExcludeLeftThumbKeys)) return false;
 		}
-		if (this.excludeRightThumbKeys.some((k) => k !== '')) {
+		if (this.appliedExcludeRightThumbKeys.some((k) => k !== '')) {
 			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
-			if (this.#matchesThumbKeyPosition(thumbKeys, this.excludeRightThumbKeys)) return false;
+			if (this.#matchesThumbKeyPosition(thumbKeys, this.appliedExcludeRightThumbKeys)) return false;
 		}
 		return true;
 	}
@@ -1014,10 +1084,12 @@ export class FilterStore {
 		likesData: LayoutLikesMap = {}
 	): boolean {
 		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		const hasStatsLimits = fields.some((field) => this.statLimits[field.key].value.trim() !== '');
-		const hasLikesLimit = this.canUseLikes && this.statLimits.likes.value.trim() !== '';
-		if (!hasStatsLimits && !hasLikesLimit)
-			return true;
+		const hasStatsLimits = fields.some(
+			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
+		);
+		const hasLikesLimit =
+			this.canUseLikes && this.appliedStatLimits.likes.value.trim() !== '';
+		if (!hasStatsLimits && !hasLikesLimit) return true;
 		if (hasStatsLimits && !statsReady) return true;
 
 		const analyzerStats = getLayoutAnalyzerStats(
@@ -1034,7 +1106,7 @@ export class FilterStore {
 				: deriveBotStats(analyzerStats as MonkeyracerStats);
 
 		for (const field of fields) {
-			const limit = this.statLimits[field.key];
+			const limit = this.appliedStatLimits[field.key];
 			const threshold = parseStatFilterThreshold(field, limit.value);
 			if (threshold === null) continue;
 
@@ -1044,11 +1116,11 @@ export class FilterStore {
 		}
 
 		if (hasLikesLimit) {
-			const threshold = Number.parseFloat(this.statLimits.likes.value.trim());
+			const threshold = Number.parseFloat(this.appliedStatLimits.likes.value.trim());
 			if (Number.isFinite(threshold)) {
 				const value = likesData[layout.name] ?? 0;
-				if (this.statLimits.likes.operator === 'lt' && value >= threshold) return false;
-				if (this.statLimits.likes.operator === 'gt' && value <= threshold) return false;
+				if (this.appliedStatLimits.likes.operator === 'lt' && value >= threshold) return false;
+				if (this.appliedStatLimits.likes.operator === 'gt' && value <= threshold) return false;
 			}
 		}
 
@@ -1063,8 +1135,7 @@ export class FilterStore {
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
 		return layouts.filter((l) => {
-			// Only apply hasAllLetters filter if not filtering by international character set
-			// A layout is considered "finished" if it has all letters OR has a magic key
+			// Cheap boolean / enum filters first
 			if (
 				!this.showUnfinished &&
 				this.characterSetFilter !== 'international' &&
@@ -1076,14 +1147,13 @@ export class FilterStore {
 			if (!this.#matchesMagicKeyFilter(l)) return false;
 			if (!this.#matchesCharacterSet(l)) return false;
 			if (!this.#matchesBoardType(l)) return false;
-			if (!this.#matchesStatLimits(l, statsMaps, statsReady, likesData)) return false;
-			return (
-				this.#matchesName(l) &&
-				this.#matchesAuthor(l) &&
-				this.#matchesInclude(l) &&
-				this.#matchesExclude(l) &&
-				this.#matchesIncludeOr(l)
-			);
+			if (!this.#matchesName(l)) return false;
+			if (!this.#matchesAuthor(l)) return false;
+			if (!this.#matchesInclude(l)) return false;
+			if (!this.#matchesExclude(l)) return false;
+			if (!this.#matchesIncludeOr(l)) return false;
+			// Stat derivation last — only for layouts that already passed cheaper filters
+			return this.#matchesStatLimits(l, statsMaps, statsReady, likesData);
 		});
 	}
 

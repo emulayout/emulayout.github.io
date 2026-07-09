@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { LayoutData } from '$lib/layout';
-	import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 	import { getRecentLayoutsByDay, type LayoutsByDay } from '$lib/recentLayouts';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { lockPageScroll } from '$lib/modalScrollLock';
 
 	interface Props {
@@ -12,10 +11,16 @@
 
 	let { open, onClose }: Props = $props();
 
-	let loading = $state(false);
-	let groups = $state<LayoutsByDay[]>([]);
-	let authorById = $state<Map<number, string>>(new Map());
-	let loaded = $state(false);
+	const authorById = $derived(
+		new Map<number, string>(
+			Object.entries(layoutsCatalog.authorsData).map(([name, id]) => [id as number, name])
+		)
+	);
+
+	const groups = $derived.by((): LayoutsByDay[] => {
+		if (layoutsCatalog.layouts.length === 0) return [];
+		return getRecentLayoutsByDay(layoutsCatalog.layouts);
+	});
 
 	$effect(() => {
 		if (!open) return;
@@ -31,26 +36,6 @@
 			document.removeEventListener('keydown', handleKeyDown);
 			unlock();
 		};
-	});
-
-	$effect(() => {
-		if (!open || loaded) return;
-
-		loading = true;
-		Promise.all([fetch('/all-layouts.json'), fetch('/authors.json')])
-			.then(async ([layoutsResponse, authorsResponse]) => {
-				const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
-				const layouts: LayoutData[] = decodeLayouts(compactLayouts);
-				const authorsData: Record<string, number> = await authorsResponse.json();
-				authorById = new Map(
-					Object.entries(authorsData).map(([name, id]) => [id as number, name])
-				);
-				groups = getRecentLayoutsByDay(layouts);
-				loaded = true;
-			})
-			.finally(() => {
-				loading = false;
-			});
 	});
 
 	function getAuthorName(userId: number): string {
@@ -111,7 +96,7 @@
 			</div>
 
 			<div class="overflow-y-auto px-5 py-4">
-				{#if loading}
+				{#if layoutsCatalog.layouts.length === 0}
 					<p class="text-sm" style="color: var(--text-secondary);">Loading…</p>
 				{:else if groups.length === 0}
 					<p class="text-sm" style="color: var(--text-secondary);">

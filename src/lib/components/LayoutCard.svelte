@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { CyanophageStats, MonkeyracerStats, LayoutData, StatsMaps } from '$lib/layout';
+	import type {
+		CompactCyanophageStats,
+		CompactLayoutStats,
+		CyanophageStats,
+		MonkeyracerStats,
+		LayoutData
+	} from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { getLayoutCardHeight } from '$lib/constants';
@@ -7,39 +13,43 @@
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
 		CYANOPHAGE_ANALYZER,
+		decodeCyanophageStats,
+		decodeMonkeyracerStats,
 		deriveBotStats,
 		deriveCyanophageStats,
 		formatCyanophageStatsLoadingBlock,
 		formatCyanophageStatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
-		getLayoutAnalyzerStats,
 		getStatSortHighlightKey,
 		type CyanophageStatSortKey,
 		type StatSortKey
 	} from '$lib/layoutStats';
-	import { buildCyanophagePlaygroundUrl, CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
+	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayValue,
 		buildKeyMap,
 		buildShiftKeyMap,
-		removeAnglemodFromDisplayValue
+		removeAnglemodFromDisplayValue,
+		type KeyMap
 	} from '$lib/cmini/keyboard';
 
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		statsMaps: StatsMaps;
+		/** Compact stats for the active analyzer only (avoids full statsMaps fan-out). */
+		compactStats?: CompactLayoutStats | CompactCyanophageStats;
 		similarMatchPercent?: number;
 	}
 
-	const { layout, authorName, likeCount, statsMaps, similarMatchPercent }: Props = $props();
+	const { layout, authorName, likeCount, compactStats, similarMatchPercent }: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
-	let cardElement: HTMLDivElement | null = $state(null);
 	let anglemod = $state(false);
+	let keyMapCache: KeyMap | null = null;
+	let shiftKeyMapCache: KeyMap | null = null;
+	let keyMapSource = '';
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 
@@ -51,18 +61,6 @@
 		return isAngleBoard
 			? removeAnglemodFromDisplayValue(layout.displayValue)
 			: applyAnglemodToDisplayValue(layout.displayValue);
-	});
-
-	// Parse displayValue and create key mapping
-	const keyMap = $derived.by(() => {
-		return buildKeyMap(transformedDisplayValue);
-	});
-
-	// Create shift key map: maps key codes to layout characters when shift is pressed
-	// For punctuation keys: get the base character from layout, find its shifted version, then find where that appears in layout
-	// For letter keys: uppercase the character from the layout at that position
-	const shiftKeyMap = $derived.by(() => {
-		return buildShiftKeyMap(keyMap);
 	});
 
 	const updatedLabel = $derived(
@@ -78,14 +76,15 @@
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
 
-	const analyzerStats = $derived(
-		getLayoutAnalyzerStats(
-			statsMaps,
-			layout.name,
-			filterStore.statsAnalyzer,
-			layout.cyanophageCompatible
-		)
-	);
+	const analyzerStats = $derived.by(() => {
+		if (!compactStats) return undefined;
+		if (isCyanophageAnalyzer) {
+			if (!layout.cyanophageCompatible) return undefined;
+			return decodeCyanophageStats(compactStats as CompactCyanophageStats);
+		}
+		return decodeMonkeyracerStats(compactStats as CompactLayoutStats);
+	});
+
 	const botStats = $derived(
 		analyzerStats && !isCyanophageAnalyzer
 			? deriveBotStats(analyzerStats as MonkeyracerStats)
@@ -133,15 +132,29 @@
 		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 
-	function handleColemakCampClick(event: MouseEvent) {
+	function getKeyMaps(): { keyMap: KeyMap; shiftKeyMap: KeyMap } {
+		const source = transformedDisplayValue;
+		if (keyMapCache && shiftKeyMapCache && keyMapSource === source) {
+			return { keyMap: keyMapCache, shiftKeyMap: shiftKeyMapCache };
+		}
+		keyMapSource = source;
+		keyMapCache = buildKeyMap(source);
+		shiftKeyMapCache = buildShiftKeyMap(keyMapCache);
+		return { keyMap: keyMapCache, shiftKeyMap: shiftKeyMapCache };
+	}
+
+	async function handleColemakCampClick(event: MouseEvent) {
 		event.preventDefault();
+		const { keyMap } = getKeyMaps();
+		const { createColemakCampURLFromKeyMap } = await import('$lib/colemakCamp');
 		const url = createColemakCampURLFromKeyMap(keyMap, layout.board);
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}
 
-	function handlePlaygroundClick(event: MouseEvent) {
+	async function handlePlaygroundClick(event: MouseEvent) {
 		event.preventDefault();
 		if (!layout.cyanophageCompatible) return;
+		const { buildCyanophagePlaygroundUrl } = await import('$lib/cyanophage');
 		const url = buildCyanophagePlaygroundUrl(
 			layout.keys,
 			layout.board,
@@ -169,6 +182,8 @@
 		if (event.metaKey || event.ctrlKey || event.altKey) {
 			return;
 		}
+
+		const { keyMap, shiftKeyMap } = getKeyMaps();
 
 		// Check if this is a remappable key
 		if (event.code in keyMap) {
@@ -199,7 +214,6 @@
 </script>
 
 <div
-	bind:this={cardElement}
 	data-layout-name={layout.name}
 	class="px-5 pt-5 pb-3 rounded-xl transition-all duration-300 min-w-0 overflow-hidden flex flex-col gap-3"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"

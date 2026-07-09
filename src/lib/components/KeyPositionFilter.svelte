@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Tooltip from './Tooltip.svelte';
+	import { SPLIT_COL } from '$lib/cmini/keyboard';
 
-	const SPLIT_COL = 5;
 	const THUMB_KEYS_PER_HAND = 4;
 	const DEFAULT_THUMB_SLOTS_PER_HAND = 2;
 

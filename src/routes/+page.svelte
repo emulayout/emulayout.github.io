@@ -11,6 +11,7 @@
 		isStatSortBy
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { buildSimilarityPercentMap, isSimilarLayoutMatch, sortLayoutsBySimilarity } from '$lib/layoutSimilarity';
 
 	const { data } = $props();
@@ -20,7 +21,7 @@
 	let likesData: LayoutLikesMap | null = $state(null);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
-	const needsStatsForFilter = $derived(filterStore.hasActiveStatLimits);
+	const needsStatsForFilter = $derived(filterStore.hasAppliedStatLimits);
 	let likesLoading = $state(false);
 	const statsReady = $derived(isAnalyzerStatsReady(statsMaps, filterStore.statsAnalyzer));
 	const resolvedLikesData = $derived(likesData ?? {});
@@ -28,6 +29,10 @@
 	const likesSortAvailable = $derived(
 		filterStore.showLayoutLikes && likesLoaded && Object.keys(resolvedLikesData).length > 0
 	);
+
+	$effect(() => {
+		layoutsCatalog.hydrate(layouts, authorsData);
+	});
 
 	const analyzersToLoad = $derived.by(() => {
 		const analyzers = new Set<typeof DEFAULT_STATS_ANALYZER | typeof CYANOPHAGE_ANALYZER>();

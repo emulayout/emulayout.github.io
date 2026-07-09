@@ -2,9 +2,16 @@
 	import LayoutCard from './LayoutCard.svelte';
 	import { WindowVirtualizer } from 'virtua/svelte';
 	import { getLayoutCardItemSize, TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
+	import type {
+		CompactCyanophageStats,
+		CompactLayoutStats,
+		LayoutData,
+		LayoutLikesMap,
+		StatsMaps
+	} from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
 
 	interface Props {
 		layouts: LayoutData[];
@@ -27,9 +34,6 @@
 	}>();
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
-	// md tier reserved for future column breakpoints between sm (2 cols) and lg (3 cols).
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars -- intentional placeholder
-	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
 	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
 
@@ -37,6 +41,12 @@
 
 	const cardItemSize = $derived(
 		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
+	);
+
+	const activeStatsMap = $derived(
+		filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
+			? statsMaps.cyanophage
+			: statsMaps.monkeyracer
 	);
 
 	// Group layouts into rows for grid virtualization
@@ -52,8 +62,7 @@
 	// Force virtualizer to recalculate when columns or card height change
 	$effect(() => {
 		void columns;
-		void filterStore.showLayoutStats;
-		void filterStore.showLayoutTestArea;
+		void cardItemSize;
 		requestAnimationFrame(() => {
 			window.dispatchEvent(new Event('scroll'));
 		});
@@ -75,15 +84,18 @@
 			});
 		});
 	});
+
+	function compactStatsFor(layout: LayoutData): CompactLayoutStats | CompactCyanophageStats | undefined {
+		return activeStatsMap?.[layout.name];
+	}
 </script>
 
 <WindowVirtualizer
 	bind:this={virtualizer}
 	data={rows}
-	bufferSize={300}
+	bufferSize={120}
 	itemSize={cardItemSize}
-	getKey={(startIndex) =>
-		`${columns}:${cardItemSize}:${filterStore.showLayoutStats}:${filterStore.showLayoutTestArea}:${startIndex}`}
+	getKey={(startIndex) => `${columns}:${cardItemSize}:${startIndex}`}
 >
 	{#snippet children(startIndex)}
 		{@const end = Math.min(startIndex + columns, layouts.length)}
@@ -95,7 +107,7 @@
 					{layout}
 					authorName={getAuthorName(layout.user)}
 					likeCount={likesData[layout.name] ?? 0}
-					{statsMaps}
+					compactStats={compactStatsFor(layout)}
 					similarMatchPercent={similarityPercents.get(layout.name)}
 				/>
 			{/each}

@@ -43,6 +43,10 @@
 		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
 	);
 	const showLikesFilter = $derived(filterStore.canUseLikes);
+
+	$effect(() => {
+		if (hasActiveFilters) expanded = true;
+	});
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}

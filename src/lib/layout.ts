@@ -7,11 +7,21 @@ export interface KeyInfo {
 
 export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini';
 
+/** Thumb key on one hand, sorted left-to-right by column. */
+export interface ThumbKeyEntry {
+	key: string;
+	col: number;
+}
+
 export interface LayoutData {
 	name: string;
 	user: number;
 	board: BoardType;
 	keys: Record<string, KeyInfo>;
+	/** `"row,col"` → key character for O(1) position lookups. */
+	positionBySlot: Map<string, string>;
+	/** Pre-sorted thumb keys per hand (lowercase key chars). */
+	thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] };
 	hasThumbKeys: boolean;
 	displayValue: string;
 	characterSet: 'english' | 'international';
