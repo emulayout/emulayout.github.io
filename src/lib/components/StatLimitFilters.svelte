@@ -36,6 +36,23 @@
 		`;
 	}
 
+	function operatorSymbol(operator: StatLimitOperator): string {
+		return operator === 'lt' ? '<' : '>';
+	}
+
+	function formatActiveLimit(field: StatFilterField, label: string): string | null {
+		const limit = filterStore.statLimits[field.key];
+		const value = limit.value.trim();
+		if (!value) return null;
+		const unit = field.unit === 'raw' ? '' : '%';
+		return `${label} ${operatorSymbol(limit.operator)} ${value}${unit}`;
+	}
+
+	function handSummaryLabel(hand: 'LH' | 'RH', field: StatFilterField): string {
+		if (field.key === 'lh' || field.key === 'rh') return hand;
+		return `${hand} ${field.label}`;
+	}
+
 	let expanded = $state(filterStore.hasActiveStatLimits);
 
 	const hasActiveFilters = $derived(filterStore.hasActiveStatLimits);
@@ -43,6 +60,34 @@
 		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
 	);
 	const showLikesFilter = $derived(filterStore.canUseLikes);
+
+	const activeFilterSummary = $derived.by(() => {
+		const parts: string[] = [];
+
+		for (const row of generalStatFilterRows) {
+			for (const field of row) {
+				const part = formatActiveLimit(field, field.label);
+				if (part) parts.push(part);
+			}
+		}
+
+		if (showLikesFilter) {
+			const part = formatActiveLimit(LIKES_STAT_FILTER_FIELD, LIKES_STAT_FILTER_FIELD.label);
+			if (part) parts.push(part);
+		}
+
+		for (const field of LEFT_HAND_STAT_FILTER_FIELDS) {
+			const part = formatActiveLimit(field, handSummaryLabel('LH', field));
+			if (part) parts.push(part);
+		}
+
+		for (const field of RIGHT_HAND_STAT_FILTER_FIELDS) {
+			const part = formatActiveLimit(field, handSummaryLabel('RH', field));
+			if (part) parts.push(part);
+		}
+
+		return parts.join(' • ');
+	});
 
 	$effect(() => {
 		if (hasActiveFilters) expanded = true;
@@ -106,9 +151,16 @@
 			</svg>
 			<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
 		</button>
-		<Tooltip
-			text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any filter is set."
-		/>
+		<div class="stat-filters-help">
+			<Tooltip
+				text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any filter is set."
+			/>
+		</div>
+		{#if !expanded && activeFilterSummary}
+			<p class="stat-filters-summary" title={activeFilterSummary} style="color: var(--text-primary);">
+				{activeFilterSummary}
+			</p>
+		{/if}
 	</div>
 
 	<div
@@ -186,9 +238,10 @@
 
 	.stat-filters-header {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		align-items: center;
 		gap: 0.5rem 0.75rem;
+		min-width: 0;
 	}
 
 	.stat-filters-toggle {
@@ -201,6 +254,7 @@
 		cursor: pointer;
 		outline: none;
 		border-radius: 0.375rem;
+		flex-shrink: 0;
 	}
 
 	.stat-filters-toggle:focus-visible {
@@ -217,6 +271,23 @@
 
 	.stat-filters-chevron--expanded {
 		transform: rotate(90deg);
+	}
+
+	.stat-filters-summary {
+		flex: 1 1 0;
+		min-width: 0;
+		margin: 0;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.stat-filters-help {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
 	}
 
 	.stat-filters-body {
