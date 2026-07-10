@@ -330,7 +330,7 @@ export function parseStatFilterThreshold(field: StatFilterField, value: string):
 
 export type StatSortBy = (typeof ALL_STAT_SORT_FIELDS)[number]['value'];
 
-export type LayoutSortBy = 'name' | 'date' | 'likes';
+export type LayoutSortBy = 'name' | 'date' | 'likes' | 'similarity';
 
 export type SortBy = LayoutSortBy | StatSortBy;
 
@@ -344,6 +344,7 @@ const SORT_BY_VALUES = new Set<string>([
 	'name',
 	'date',
 	'likes',
+	'similarity',
 	...ALL_STAT_SORT_FIELDS.map((field) => field.value)
 ]);
 
@@ -382,12 +383,30 @@ export function isStatSortBy(sortBy: SortBy): sortBy is StatSortBy {
 	return STAT_SORT_FIELD_BY_VALUE.has(sortBy);
 }
 
-export function getStatSortField(sortBy: SortBy): StatSortField | undefined {
-	return STAT_SORT_FIELD_BY_VALUE.get(sortBy);
+/**
+ * Resolve a sort field. Shared values like `sfb` exist for both analyzers — pass
+ * `analyzer` so sorting/highlighting use the same stats the UI is showing.
+ */
+export function getStatSortField(
+	sortBy: SortBy,
+	analyzer?: StatsAnalyzer
+): StatSortField | undefined {
+	if (analyzer) {
+		return ALL_STAT_SORT_FIELDS.find(
+			(field) => field.value === sortBy && field.analyzer === analyzer
+		);
+	}
+
+	const matches = ALL_STAT_SORT_FIELDS.filter((field) => field.value === sortBy);
+	if (matches.length <= 1) return matches[0];
+	return matches.find((field) => field.analyzer === DEFAULT_STATS_ANALYZER) ?? matches[0];
 }
 
-export function getStatSortAnalyzer(sortBy: SortBy): StatsAnalyzer | undefined {
-	return getStatSortField(sortBy)?.analyzer;
+export function getStatSortAnalyzer(
+	sortBy: SortBy,
+	analyzer?: StatsAnalyzer
+): StatsAnalyzer | undefined {
+	return getStatSortField(sortBy, analyzer)?.analyzer;
 }
 
 export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatSortField[] {
@@ -395,8 +414,9 @@ export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly 
 }
 
 export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {
-	const field = getStatSortField(sortBy);
-	return field?.analyzer === analyzer;
+	return ALL_STAT_SORT_FIELDS.some(
+		(field) => field.value === sortBy && field.analyzer === analyzer
+	);
 }
 
 export function parseLegacySortParam(
@@ -488,9 +508,10 @@ export function isAnalyzerStatsReady(statsMaps: StatsMaps, analyzer: StatsAnalyz
 export function getStatSortValue(
 	statsMaps: StatsMaps,
 	layout: LayoutData,
-	sortBy: SortBy
+	sortBy: SortBy,
+	analyzer?: StatsAnalyzer
 ): number | null {
-	const field = getStatSortField(sortBy);
+	const field = getStatSortField(sortBy, analyzer);
 	if (!field) return null;
 
 	const analyzerStats = getLayoutAnalyzerStats(
@@ -563,9 +584,10 @@ export interface StatsBlockSegment {
 }
 
 export function getStatSortHighlightKey(
-	sortBy: SortBy
+	sortBy: SortBy,
+	analyzer?: StatsAnalyzer
 ): StatSortKey | CyanophageStatSortKey | undefined {
-	return getStatSortField(sortBy)?.key;
+	return getStatSortField(sortBy, analyzer)?.key;
 }
 
 export function formatCyanophageStatValue(value: number): string {

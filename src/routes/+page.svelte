@@ -12,7 +12,7 @@
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { buildSimilarityPercentMap, isSimilarLayoutMatch, sortLayoutsBySimilarity } from '$lib/layoutSimilarity';
+	import { buildSimilarityPercentMap, isSimilarLayoutMatch, matchesSimilarityPercentFilter, sortLayoutsBySimilarity } from '$lib/layoutSimilarity';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -42,7 +42,7 @@
 		}
 
 		if (needsStatsForSort) {
-			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy);
+			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy, filterStore.statsAnalyzer);
 			if (sortAnalyzer) analyzers.add(sortAnalyzer);
 		}
 
@@ -96,6 +96,13 @@
 		}
 	});
 
+	$effect(() => {
+		if (!filterStore.hasSimilarReference && filterStore.sortBy === 'similarity') {
+			filterStore.setSortBy('date');
+			filterStore.setSortOrder('desc');
+		}
+	});
+
 	// Drop stale ?similar= from URL when the layout no longer exists
 	$effect(() => {
 		const name = filterStore.similarReferenceName;
@@ -136,32 +143,46 @@
 		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
 
 		if (filterStore.similarReferenceName) {
-			result = result.filter((layout) =>
-				isSimilarLayoutMatch(
-					filterStore.similarReferenceName,
-					layout.name,
-					similarityPercents
-				)
-			);
-			result = sortLayoutsBySimilarity(result, similarityPercents);
-		} else {
-			result = filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
+			result = result.filter((layout) => {
+				if (
+					!isSimilarLayoutMatch(
+						filterStore.similarReferenceName,
+						layout.name,
+						similarityPercents
+					)
+				) {
+					return false;
+				}
+				const percent = similarityPercents.get(layout.name);
+				if (percent === undefined) return false;
+				return matchesSimilarityPercentFilter(
+					percent,
+					filterStore.similarityFilterOperator,
+					filterStore.similarityFilterValue
+				);
+			});
 		}
 
-		if (similarReferenceLayout) {
-			return [similarReferenceLayout, ...result];
+		if (filterStore.sortBy === 'similarity') {
+			return sortLayoutsBySimilarity(result, similarityPercents, filterStore.sortOrder);
 		}
 
-		return result;
+		return filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
 	});
 
-	const filteredCount = $derived(
-		filterStore.similarReferenceName ? filteredLayouts.length - 1 : filteredLayouts.length
-	);
+	const filteredCount = $derived(filteredLayouts.length);
 </script>
 
 <div class="max-w-7xl mx-auto">
-	<LayoutFilters {authorList} {filteredCount} {likesSortAvailable} />
+	<LayoutFilters
+		{authorList}
+		{filteredCount}
+		{likesSortAvailable}
+		{similarReferenceLayout}
+		{getAuthorName}
+		likesData={resolvedLikesData}
+		{statsMaps}
+	/>
 	<LayoutCardList
 		layouts={filteredLayouts}
 		{getAuthorName}

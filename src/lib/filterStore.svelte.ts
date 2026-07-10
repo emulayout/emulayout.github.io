@@ -145,7 +145,10 @@ export class FilterStore {
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
 	focusLayoutName: string | null = $state(null);
+	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
+	similarityFilterOperator: StatLimitOperator = $state('gt');
+	similarityFilterValue: string = $state('50');
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
@@ -396,6 +399,20 @@ export class FilterStore {
 		const similar = url.searchParams.get('similar');
 		if (similar) {
 			this.similarReferenceName = similar;
+			// Match click behavior: default to Similarity when no explicit sort is in the URL
+			if (!sort) {
+				this.sortBy = 'similarity';
+				if (!order) this.sortOrder = 'desc';
+			}
+		}
+
+		const similarFilter = url.searchParams.get('similarFilter');
+		if (similarFilter) {
+			const [operator, ...valueParts] = similarFilter.split(':');
+			if ((operator === 'lt' || operator === 'gt') && valueParts.length > 0) {
+				this.similarityFilterOperator = operator;
+				this.similarityFilterValue = valueParts.join(':');
+			}
 		}
 
 		const statLimits = url.searchParams.get('statLimits');
@@ -509,6 +526,16 @@ export class FilterStore {
 
 		if (this.similarReferenceName) {
 			url.searchParams.set('similar', this.similarReferenceName);
+			const filterValue = this.similarityFilterValue.trim();
+			if (
+				filterValue &&
+				(this.similarityFilterOperator !== 'gt' || filterValue !== '50')
+			) {
+				url.searchParams.set(
+					'similarFilter',
+					`${this.similarityFilterOperator}:${filterValue}`
+				);
+			}
 		}
 
 		const statLimitsSerialized = serializeStatLimits(this.statLimits);
@@ -675,6 +702,21 @@ export class FilterStore {
 		this.#scheduleFilterApply();
 	}
 
+	setSimilarityFilterOperator(operator: StatLimitOperator) {
+		this.similarityFilterOperator = operator;
+		this.#saveToUrl();
+	}
+
+	setSimilarityFilterValue(value: string) {
+		this.similarityFilterValue = value;
+		this.#saveToUrl();
+	}
+
+	#resetSimilarityFilter() {
+		this.similarityFilterOperator = 'gt';
+		this.similarityFilterValue = '50';
+	}
+
 	setNameFilter(value: string) {
 		this.nameFilterInput = value;
 		// Debounce the actual filter update
@@ -744,6 +786,11 @@ export class FilterStore {
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
 		this.similarReferenceName = null;
+		if (this.sortBy === 'similarity') {
+			this.sortBy = 'date';
+			this.sortOrder = 'desc';
+		}
+		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
 		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
 		if (this.#nameDebounceTimeout) {
@@ -787,15 +834,34 @@ export class FilterStore {
 	toggleSimilarReference(name: string) {
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;
+			if (this.sortBy === 'similarity') {
+				this.sortBy = 'date';
+				this.sortOrder = 'desc';
+			}
+			this.#resetSimilarityFilter();
 		} else {
 			this.similarReferenceName = name;
+			this.sortBy = 'similarity';
+			this.sortOrder = 'desc';
+			this.#resetSimilarityFilter();
+			this.scrollToSelectedLayout = true;
+			// Reset scroll before virtua applies length-change jumps from a deep offset.
 			window.scrollTo(0, 0);
 		}
 		this.#saveToUrl();
 	}
 
+	clearScrollToSelectedLayout() {
+		this.scrollToSelectedLayout = false;
+	}
+
 	clearSimilarReference() {
 		this.similarReferenceName = null;
+		if (this.sortBy === 'similarity') {
+			this.sortBy = 'date';
+			this.sortOrder = 'desc';
+		}
+		this.#resetSimilarityFilter();
 		this.#saveToUrl();
 	}
 
@@ -1164,12 +1230,14 @@ export class FilterStore {
 	): LayoutData[] {
 		const sorted = [...layouts];
 		const descending = this.sortOrder === 'desc';
-		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
+		const statSort = isStatSortBy(this.sortBy)
+			? getStatSortField(this.sortBy, this.statsAnalyzer)
+			: undefined;
 
 		if (statSort) {
 			return sorted.sort((a, b) => {
-				const aValue = getStatSortValue(statsMaps, a, this.sortBy);
-				const bValue = getStatSortValue(statsMaps, b, this.sortBy);
+				const aValue = getStatSortValue(statsMaps, a, this.sortBy, this.statsAnalyzer);
+				const bValue = getStatSortValue(statsMaps, b, this.sortBy, this.statsAnalyzer);
 
 				if (aValue === null && bValue === null) {
 					return a.name.localeCompare(b.name);

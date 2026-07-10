@@ -1,6 +1,7 @@
 <script lang="ts">
 	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
+	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import StatLimitFilters from '$lib/components/StatLimitFilters.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
@@ -10,32 +11,89 @@
 		type CharacterSetFilter,
 		type BoardTypeFilter,
 		type SortBy,
-		type SortOrder
+		type SortOrder,
+		type StatLimitOperator
 	} from '$lib/filterStore.svelte';
 	import {
 		DEFAULT_STATS_ANALYZER,
 		getStatSortFieldsForAnalyzer,
 		STAT_ANALYZERS,
+		CYANOPHAGE_ANALYZER,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
+	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
 		filteredCount: number;
 		likesSortAvailable: boolean;
+		similarReferenceLayout?: LayoutData | null;
+		getAuthorName?: (userId: number) => string;
+		likesData?: LayoutLikesMap;
+		statsMaps?: StatsMaps;
 	}
 
-	const { authorList, filteredCount, likesSortAvailable }: Props = $props();
+	const {
+		authorList,
+		filteredCount,
+		likesSortAvailable,
+		similarReferenceLayout = null,
+		getAuthorName,
+		likesData = {},
+		statsMaps = {}
+	}: Props = $props();
 	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
 	const displaySettingsActive = $derived(
 		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea || filterStore.hideLayoutLikes
 	);
+	const similarReferenceCompactStats = $derived.by(() => {
+		if (!similarReferenceLayout) return undefined;
+		const map =
+			filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
+				? statsMaps.cyanophage
+				: statsMaps.monkeyracer;
+		return map?.[similarReferenceLayout.name];
+	});
 
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);
 	let displaySettingsContainer = $state<HTMLDivElement | undefined>(undefined);
+	let selectedLayoutSection = $state<HTMLElement | undefined>(undefined);
+
+	$effect(() => {
+		if (!filterStore.scrollToSelectedLayout) return;
+		if (!selectedLayoutSection) return;
+
+		const section = selectedLayoutSection;
+		let cancelled = false;
+		let attempts = 0;
+
+		function tryScroll() {
+			if (cancelled || !filterStore.scrollToSelectedLayout) return;
+
+			const top = section.getBoundingClientRect().top + window.scrollY - 10;
+			window.scrollTo(0, Math.max(0, top));
+			attempts += 1;
+
+			const aligned = Math.abs(section.getBoundingClientRect().top - 10) < 2;
+			if (!aligned && attempts < 12) {
+				requestAnimationFrame(tryScroll);
+				return;
+			}
+
+			filterStore.clearScrollToSelectedLayout();
+		}
+
+		requestAnimationFrame(() => {
+			requestAnimationFrame(tryScroll);
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	});
 
 	$effect(() => {
 		if (!displaySettingsOpen) return;
@@ -306,6 +364,69 @@
 	</div>
 </div>
 
+{#if similarReferenceLayout && getAuthorName}
+	{@const similarityFilterActive = filterStore.similarityFilterValue.trim() !== ''}
+	<div id="selected-layout" class="mb-8" bind:this={selectedLayoutSection}>
+		<p class="text-sm mb-3" style="color: var(--text-secondary);">Selected layout</p>
+		<div class="flex flex-col sm:flex-row gap-4 items-start">
+			<div class="w-full sm:max-w-sm lg:max-w-xs shrink-0">
+				<LayoutCard
+					layout={similarReferenceLayout}
+					authorName={getAuthorName(similarReferenceLayout.user)}
+					likeCount={likesData[similarReferenceLayout.name] ?? 0}
+					compactStats={similarReferenceCompactStats}
+				/>
+			</div>
+			<div
+				class="similarity-filter p-4 rounded-xl"
+				style="background-color: var(--bg-secondary); border: 1px solid {similarityFilterActive
+					? 'var(--accent)'
+					: 'var(--border)'};"
+			>
+				<div class="text-sm font-medium mb-3" style="color: var(--text-secondary);">
+					Similarity filter
+				</div>
+				<div class="flex items-center gap-1.5 min-w-0">
+					<select
+						value={filterStore.similarityFilterOperator}
+						onchange={(e) =>
+							filterStore.setSimilarityFilterOperator(
+								e.currentTarget.value as StatLimitOperator
+							)}
+						class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+						style="
+							background-color: var(--bg-secondary);
+							color: var(--text-primary);
+							border: 1px solid {similarityFilterActive ? 'var(--accent)' : 'var(--border)'};
+							--tw-ring-color: var(--accent);
+						"
+						aria-label="Similarity comparison"
+					>
+						<option value="lt">Less than</option>
+						<option value="gt">Greater than</option>
+					</select>
+					<input
+						type="text"
+						inputmode="decimal"
+						value={filterStore.similarityFilterValue}
+						oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
+						class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
+						style="
+							background-color: var(--bg-secondary);
+							color: var(--text-primary);
+							border: 1px solid {similarityFilterActive ? 'var(--accent)' : 'var(--border)'};
+							--tw-ring-color: var(--accent);
+						"
+						placeholder="—"
+						aria-label="Similarity percent limit"
+					/>
+					<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
 	<div class="flex flex-col sm:flex-row items-center gap-4">
 		<p style="color: var(--text-secondary);">
@@ -366,6 +487,9 @@
 					"
 				>
 					<optgroup label="Layout">
+						{#if filterStore.hasSimilarReference}
+							<option value="similarity">Similarity</option>
+						{/if}
 						<option value="name">Name</option>
 						<option value="date">Date</option>
 						{#if likesSortAvailable}

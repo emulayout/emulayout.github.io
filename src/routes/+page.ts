@@ -31,7 +31,7 @@ function getAnalyzersToPreload(
 	}
 
 	if (isStatSortBy(sortBy)) {
-		const sortAnalyzer = getStatSortAnalyzer(sortBy);
+		const sortAnalyzer = getStatSortAnalyzer(sortBy, statsAnalyzer);
 		if (sortAnalyzer) analyzers.add(sortAnalyzer);
 	}
 

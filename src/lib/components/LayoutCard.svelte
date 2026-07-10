@@ -99,7 +99,9 @@
 			: null
 	);
 	const statsLoading = $derived(layoutStatsStore.isLoading(filterStore.statsAnalyzer));
-	const highlightStatKey = $derived(getStatSortHighlightKey(filterStore.sortBy));
+	const highlightStatKey = $derived(
+		getStatSortHighlightKey(filterStore.sortBy, filterStore.statsAnalyzer)
+	);
 	const botHighlightKey = $derived(
 		!isCyanophageAnalyzer ? (highlightStatKey as StatSortKey | undefined) : undefined
 	);

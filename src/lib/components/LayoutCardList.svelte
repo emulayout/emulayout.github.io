@@ -49,6 +49,10 @@
 			: statsMaps.monkeyracer
 	);
 
+	// Remount when similar mode toggles so virtua doesn't keep the old list height /
+	// scroll-jump state (which fights window.scrollTo when the result set shrinks).
+	const virtualizerKey = $derived(filterStore.similarReferenceName ?? '');
+
 	// Group layouts into rows for grid virtualization
 	// Store row start indices as integers to avoid object allocation
 	const rows = $derived.by(() => {
@@ -88,32 +92,40 @@
 	function compactStatsFor(layout: LayoutData): CompactLayoutStats | CompactCyanophageStats | undefined {
 		return activeStatsMap?.[layout.name];
 	}
+
+	// Include the first layout name so sort/filter reorders change keys. Index-only keys
+	// leave virtua's rows mounted with stale cards (highlights update, order does not).
+	function rowKey(startIndex: number): string {
+		return `${columns}:${cardItemSize}:${startIndex}:${layouts[startIndex]?.name ?? ''}`;
+	}
 </script>
 
-<WindowVirtualizer
-	bind:this={virtualizer}
-	data={rows}
-	bufferSize={120}
-	itemSize={cardItemSize}
-	getKey={(startIndex) => `${columns}:${cardItemSize}:${startIndex}`}
->
-	{#snippet children(startIndex)}
-		{@const end = Math.min(startIndex + columns, layouts.length)}
-		{@const rowItems = layouts.slice(startIndex, end)}
+{#key virtualizerKey}
+	<WindowVirtualizer
+		bind:this={virtualizer}
+		data={rows}
+		bufferSize={120}
+		itemSize={cardItemSize}
+		getKey={rowKey}
+	>
+		{#snippet children(startIndex)}
+			{@const end = Math.min(startIndex + columns, layouts.length)}
+			{@const rowItems = layouts.slice(startIndex, end)}
 
-		<div class="layout-card-row grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
-			{#each rowItems as layout (layout.name)}
-				<LayoutCard
-					{layout}
-					authorName={getAuthorName(layout.user)}
-					likeCount={likesData[layout.name] ?? 0}
-					compactStats={compactStatsFor(layout)}
-					similarMatchPercent={similarityPercents.get(layout.name)}
-				/>
-			{/each}
-		</div>
-	{/snippet}
-</WindowVirtualizer>
+			<div class="layout-card-row grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
+				{#each rowItems as layout (layout.name)}
+					<LayoutCard
+						{layout}
+						authorName={getAuthorName(layout.user)}
+						likeCount={likesData[layout.name] ?? 0}
+						compactStats={compactStatsFor(layout)}
+						similarMatchPercent={similarityPercents.get(layout.name)}
+					/>
+				{/each}
+			</div>
+		{/snippet}
+	</WindowVirtualizer>
+{/key}
 
 <style>
 	/* Help Safari paint row contents while virtua translates the row. */

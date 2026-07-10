@@ -102,14 +102,32 @@ export function isSimilarLayoutMatch(
 	return similarityPercents.has(layoutName);
 }
 
+/** `gt` means at least threshold; `lt` means strictly below. Empty value = no filter. */
+export function matchesSimilarityPercentFilter(
+	percent: number,
+	operator: 'lt' | 'gt',
+	value: string
+): boolean {
+	const trimmed = value.trim();
+	if (!trimmed) return true;
+	const threshold = Number.parseFloat(trimmed);
+	if (!Number.isFinite(threshold)) return true;
+	if (operator === 'lt') return percent < threshold;
+	return percent >= threshold;
+}
+
 export function sortLayoutsBySimilarity(
 	layouts: LayoutData[],
-	similarityPercents: Map<string, number>
+	similarityPercents: Map<string, number>,
+	sortOrder: 'asc' | 'desc' = 'desc'
 ): LayoutData[] {
+	const descending = sortOrder === 'desc';
 	return [...layouts].sort((a, b) => {
 		const aPercent = similarityPercents.get(a.name) ?? 0;
 		const bPercent = similarityPercents.get(b.name) ?? 0;
-		if (bPercent !== aPercent) return bPercent - aPercent;
+		if (aPercent !== bPercent) {
+			return descending ? bPercent - aPercent : aPercent - bPercent;
+		}
 		return a.name.localeCompare(b.name);
 	});
 }
