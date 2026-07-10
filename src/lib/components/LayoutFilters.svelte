@@ -378,7 +378,7 @@
 				/>
 			</div>
 			<div
-				class="similarity-filter p-4 rounded-xl"
+				class="similarity-filter w-full sm:w-auto p-4 rounded-xl"
 				style="background-color: var(--bg-secondary); border: 1px solid {similarityFilterActive
 					? 'var(--accent)'
 					: 'var(--border)'};"
