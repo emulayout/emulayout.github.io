@@ -128,7 +128,10 @@
 	class="stat-filters-panel"
 	class:stat-filters-panel--active={hasActiveFilters}
 >
-	<div class="stat-filters-header">
+	<div
+		class="stat-filters-header"
+		class:stat-filters-header--collapsed={!expanded}
+	>
 		<button
 			type="button"
 			class="stat-filters-toggle"
@@ -136,31 +139,40 @@
 			aria-controls="stat-filters-content"
 			onclick={() => (expanded = !expanded)}
 		>
-			<svg
-				class="stat-filters-chevron"
-				class:stat-filters-chevron--expanded={expanded}
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M9 18l6-6-6-6" />
-			</svg>
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
+			<span class="sr-only">Stat filters</span>
 		</button>
-		<div class="stat-filters-help">
-			<Tooltip
-				text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any filter is set."
-			/>
+		<div class="stat-filters-header-content">
+			<span class="stat-filters-title">
+				<svg
+					class="stat-filters-chevron"
+					class:stat-filters-chevron--expanded={expanded}
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M9 18l6-6-6-6" />
+				</svg>
+				<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
+			</span>
+			<div class="stat-filters-help">
+				<Tooltip
+					text="Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are hidden when any filter is set."
+				/>
+			</div>
+			{#if !expanded && activeFilterSummary}
+				<p
+					class="stat-filters-summary"
+					title={activeFilterSummary}
+					style="color: var(--text-primary);"
+				>
+					{activeFilterSummary}
+				</p>
+			{/if}
 		</div>
-		{#if !expanded && activeFilterSummary}
-			<p class="stat-filters-summary" title={activeFilterSummary} style="color: var(--text-primary);">
-				{activeFilterSummary}
-			</p>
-		{/if}
 	</div>
 
 	<div
@@ -237,28 +249,52 @@
 	}
 
 	.stat-filters-header {
+		position: relative;
+		margin: -1rem -1rem 0;
+		padding: 1rem;
+		min-width: 0;
+	}
+
+	.stat-filters-header--collapsed {
+		margin-bottom: -1rem;
+	}
+
+	.stat-filters-toggle {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		padding: 0;
+		border: none;
+		border-radius: 0.75rem 0.75rem 0 0;
+		background: none;
+		cursor: pointer;
+		outline: none;
+	}
+
+	.stat-filters-header--collapsed .stat-filters-toggle {
+		border-radius: 0.75rem;
+	}
+
+	.stat-filters-toggle:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--accent);
+	}
+
+	.stat-filters-header-content {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		flex-wrap: nowrap;
 		align-items: center;
 		gap: 0.5rem 0.75rem;
 		min-width: 0;
+		pointer-events: none;
 	}
 
-	.stat-filters-toggle {
+	.stat-filters-title {
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
-		padding: 0;
-		border: none;
-		background: none;
-		cursor: pointer;
-		outline: none;
-		border-radius: 0.375rem;
 		flex-shrink: 0;
-	}
-
-	.stat-filters-toggle:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
 	}
 
 	.stat-filters-chevron {
@@ -288,6 +324,19 @@
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
+		pointer-events: auto;
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	.stat-filters-body {
