@@ -14,9 +14,10 @@ export interface SimilarLayoutResult {
 /** Compare key positions; only slots present in both layouts are scored. */
 export function compareLayoutPositions(
 	reference: LayoutData,
-	candidate: LayoutData
+	candidate: LayoutData,
+	{ sameBoardOnly = false }: { sameBoardOnly?: boolean } = {}
 ): PositionMatch | null {
-	if (reference.board !== candidate.board) return null;
+	if (sameBoardOnly && reference.board !== candidate.board) return null;
 
 	const referencePositions = reference.positionBySlot;
 	const candidatePositions = candidate.positionBySlot;
@@ -43,14 +44,24 @@ export function compareLayoutPositions(
 export function findSimilarLayouts(
 	reference: LayoutData,
 	candidates: LayoutData[],
-	{ limit = 30, minComparableSlots = 10, minPercent = 1 } = {}
+	{
+		limit = 30,
+		minComparableSlots = 10,
+		minPercent = 1,
+		sameBoardOnly = false
+	}: {
+		limit?: number;
+		minComparableSlots?: number;
+		minPercent?: number;
+		sameBoardOnly?: boolean;
+	} = {}
 ): SimilarLayoutResult[] {
 	const results: SimilarLayoutResult[] = [];
 
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate);
+		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;
@@ -74,14 +85,22 @@ const DEFAULT_MIN_PERCENT = 1;
 export function buildSimilarityPercentMap(
 	reference: LayoutData,
 	candidates: LayoutData[],
-	{ minComparableSlots = DEFAULT_MIN_COMPARABLE_SLOTS, minPercent = DEFAULT_MIN_PERCENT } = {}
+	{
+		minComparableSlots = DEFAULT_MIN_COMPARABLE_SLOTS,
+		minPercent = DEFAULT_MIN_PERCENT,
+		sameBoardOnly = false
+	}: {
+		minComparableSlots?: number;
+		minPercent?: number;
+		sameBoardOnly?: boolean;
+	} = {}
 ): Map<string, number> {
 	const map = new Map<string, number>();
 
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate);
+		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;

@@ -365,7 +365,8 @@
 </div>
 
 {#if similarReferenceLayout && getAuthorName}
-	{@const similarityFilterActive = filterStore.similarityFilterValue.trim() !== ''}
+	{@const similarityFilterActive =
+		filterStore.similarityFilterValue.trim() !== '' || filterStore.similaritySameBoardOnly}
 	<div id="selected-layout" class="mb-8" bind:this={selectedLayoutSection}>
 		<p class="text-sm mb-3" style="color: var(--text-secondary);">Selected layout</p>
 		<div class="flex flex-col sm:flex-row gap-4 items-start">
@@ -386,41 +387,65 @@
 				<div class="text-sm font-medium mb-3" style="color: var(--text-secondary);">
 					Similarity filter
 				</div>
-				<div class="flex items-center gap-1.5 min-w-0">
+				<div class="flex flex-col gap-2">
+					<div class="flex items-center gap-1.5 min-w-0">
+						<select
+							value={filterStore.similarityFilterOperator}
+							onchange={(e) =>
+								filterStore.setSimilarityFilterOperator(
+									e.currentTarget.value as StatLimitOperator
+								)}
+							class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+							style="
+								background-color: var(--bg-secondary);
+								color: var(--text-primary);
+								border: 1px solid {filterStore.similarityFilterValue.trim()
+								? 'var(--accent)'
+								: 'var(--border)'};
+								--tw-ring-color: var(--accent);
+							"
+							aria-label="Similarity comparison"
+						>
+							<option value="lt">Less than</option>
+							<option value="gt">Greater than</option>
+						</select>
+						<input
+							type="text"
+							inputmode="decimal"
+							value={filterStore.similarityFilterValue}
+							oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
+							class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
+							style="
+								background-color: var(--bg-secondary);
+								color: var(--text-primary);
+								border: 1px solid {filterStore.similarityFilterValue.trim()
+								? 'var(--accent)'
+								: 'var(--border)'};
+								--tw-ring-color: var(--accent);
+							"
+							placeholder="—"
+							aria-label="Similarity percent limit"
+						/>
+						<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
+					</div>
 					<select
-						value={filterStore.similarityFilterOperator}
+						value={filterStore.similaritySameBoardOnly ? 'same' : 'any'}
 						onchange={(e) =>
-							filterStore.setSimilarityFilterOperator(
-								e.currentTarget.value as StatLimitOperator
-							)}
-						class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+							filterStore.setSimilaritySameBoardOnly(e.currentTarget.value === 'same')}
+						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 						style="
 							background-color: var(--bg-secondary);
 							color: var(--text-primary);
-							border: 1px solid {similarityFilterActive ? 'var(--accent)' : 'var(--border)'};
+							border: 1px solid {filterStore.similaritySameBoardOnly
+							? 'var(--accent)'
+							: 'var(--border)'};
 							--tw-ring-color: var(--accent);
 						"
-						aria-label="Similarity comparison"
+						aria-label="Similarity board matching"
 					>
-						<option value="lt">Less than</option>
-						<option value="gt">Greater than</option>
+						<option value="any">Any board</option>
+						<option value="same">Same board only</option>
 					</select>
-					<input
-						type="text"
-						inputmode="decimal"
-						value={filterStore.similarityFilterValue}
-						oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
-						class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
-						style="
-							background-color: var(--bg-secondary);
-							color: var(--text-primary);
-							border: 1px solid {similarityFilterActive ? 'var(--accent)' : 'var(--border)'};
-							--tw-ring-color: var(--accent);
-						"
-						placeholder="—"
-						aria-label="Similarity percent limit"
-					/>
-					<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
 				</div>
 			</div>
 		</div>

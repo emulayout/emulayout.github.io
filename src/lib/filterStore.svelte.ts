@@ -149,6 +149,8 @@ export class FilterStore {
 	similarReferenceName: string | null = $state(null);
 	similarityFilterOperator: StatLimitOperator = $state('gt');
 	similarityFilterValue: string = $state('50');
+	/** When true, only compare layouts with the same board type. Default: any board. */
+	similaritySameBoardOnly: boolean = $state(false);
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
@@ -415,6 +417,13 @@ export class FilterStore {
 			}
 		}
 
+		const similarBoard = url.searchParams.get('similarBoard');
+		if (similarBoard === 'same') {
+			this.similaritySameBoardOnly = true;
+		} else if (similarBoard === 'any') {
+			this.similaritySameBoardOnly = false;
+		}
+
 		const statLimits = url.searchParams.get('statLimits');
 		if (statLimits) {
 			this.statLimits = deserializeStatLimits(statLimits);
@@ -535,6 +544,9 @@ export class FilterStore {
 					'similarFilter',
 					`${this.similarityFilterOperator}:${filterValue}`
 				);
+			}
+			if (this.similaritySameBoardOnly) {
+				url.searchParams.set('similarBoard', 'same');
 			}
 		}
 
@@ -712,9 +724,15 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	setSimilaritySameBoardOnly(value: boolean) {
+		this.similaritySameBoardOnly = value;
+		this.#saveToUrl();
+	}
+
 	#resetSimilarityFilter() {
 		this.similarityFilterOperator = 'gt';
 		this.similarityFilterValue = '50';
+		this.similaritySameBoardOnly = false;
 	}
 
 	setNameFilter(value: string) {
