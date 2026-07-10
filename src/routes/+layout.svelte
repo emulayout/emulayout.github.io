@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import RecentLayoutsModal from '$lib/components/RecentLayoutsModal.svelte';
+	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 
 	let { children } = $props();
 
@@ -9,6 +10,7 @@
 	let themeMode: ThemeMode = $state('system');
 	let systemPrefersDark = $state(false);
 	let showRecentLayouts = $state(false);
+	let showQuickFind = $state(false);
 	let mediaQuery: MediaQueryList | null = null;
 
 	const dark = $derived.by(() => {
@@ -41,6 +43,30 @@
 		}
 	});
 
+	// Cmd+K (Mac) / Ctrl+K (Windows, Linux) opens quick find
+	$effect(() => {
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key.toLowerCase() !== 'k') return;
+			if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+			event.preventDefault();
+			showRecentLayouts = false;
+			showQuickFind = true;
+		}
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	});
+
+	function openQuickFind() {
+		showRecentLayouts = false;
+		showQuickFind = true;
+	}
+
+	function openRecentLayouts() {
+		showQuickFind = false;
+		showRecentLayouts = true;
+	}
+
 	function toggleTheme() {
 		themeMode =
 			themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
@@ -60,12 +86,14 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<header class="grid grid-cols-3 items-center p-6 px-3 max-w-7xl mx-auto">
-		<div></div>
+	<header
+		class="flex items-center justify-between gap-3 p-6 px-3 max-w-7xl mx-auto md:grid md:grid-cols-3"
+	>
+		<div class="hidden md:block"></div>
 		<a
 			href="/"
 			data-sveltekit-reload
-			class="flex items-center justify-center gap-3 no-underline hover:opacity-90 transition-opacity"
+			class="flex min-w-0 items-center justify-start gap-3 no-underline hover:opacity-90 transition-opacity md:justify-center"
 		>
 			<img
 				src="/keycap.png"
@@ -74,13 +102,13 @@
 				height="72"
 				class="shrink-0 h-8 w-auto"
 			/>
-			<h1 class="text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
+			<h1 class="truncate text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
 				Emulayout
 			</h1>
 		</a>
-		<div class="flex justify-end gap-2">
+		<div class="flex shrink-0 justify-end gap-2">
 			<button
-				onclick={() => (showRecentLayouts = true)}
+				onclick={openRecentLayouts}
 				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
 				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 				aria-label="New layouts from the last 7 days"
@@ -94,6 +122,24 @@
 					stroke-width="2"
 				>
 					<path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+				</svg>
+			</button>
+			<button
+				onclick={openQuickFind}
+				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				aria-label="Quick find layouts"
+				title="Quick find (⌘K / Ctrl+K)"
+			>
+				<svg
+					class="absolute inset-0 m-auto size-5 transition-all duration-300"
+					style="color: var(--accent);"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
 				</svg>
 			</button>
 			<button
@@ -142,3 +188,4 @@
 </div>
 
 <RecentLayoutsModal open={showRecentLayouts} onClose={() => (showRecentLayouts = false)} />
+<QuickFindModal open={showQuickFind} onClose={() => (showQuickFind = false)} />
