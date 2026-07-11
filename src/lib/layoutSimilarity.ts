@@ -1,3 +1,4 @@
+import { isHomeKeySlot } from '$lib/cmini/keyboard';
 import type { LayoutData } from '$lib/layout';
 
 export interface PositionMatch {
@@ -11,11 +12,29 @@ export interface SimilarLayoutResult {
 	match: PositionMatch;
 }
 
+export interface CompareLayoutOptions {
+	sameBoardOnly?: boolean;
+	weightHomeKeys?: boolean;
+}
+
+/** Home keys count double when weightHomeKeys is enabled. */
+const HOME_KEY_WEIGHT = 2;
+
+function parseSlot(position: string): { row: number; col: number } {
+	const [rowStr, colStr] = position.split(',');
+	return { row: Number(rowStr), col: Number(colStr) };
+}
+
+function slotWeight(row: number, col: number, weightHomeKeys: boolean): number {
+	if (!weightHomeKeys) return 1;
+	return isHomeKeySlot(row, col) ? HOME_KEY_WEIGHT : 1;
+}
+
 /** Compare key positions; only slots present in both layouts are scored. */
 export function compareLayoutPositions(
 	reference: LayoutData,
 	candidate: LayoutData,
-	{ sameBoardOnly = false }: { sameBoardOnly?: boolean } = {}
+	{ sameBoardOnly = false, weightHomeKeys = false }: CompareLayoutOptions = {}
 ): PositionMatch | null {
 	if (sameBoardOnly && reference.board !== candidate.board) return null;
 
@@ -24,20 +43,34 @@ export function compareLayoutPositions(
 
 	let matches = 0;
 	let total = 0;
+	let weightedMatches = 0;
+	let weightedTotal = 0;
 
 	for (const [position, referenceChar] of referencePositions) {
 		const candidateChar = candidatePositions.get(position);
 		if (candidateChar === undefined) continue;
+
+		const { row, col } = parseSlot(position);
+		const weight = slotWeight(row, col, weightHomeKeys);
+
 		total++;
-		if (candidateChar === referenceChar) matches++;
+		weightedTotal += weight;
+		if (candidateChar === referenceChar) {
+			matches++;
+			weightedMatches += weight;
+		}
 	}
 
 	if (total === 0) return null;
 
+	const percent = weightHomeKeys
+		? Math.round((weightedMatches / weightedTotal) * 100)
+		: Math.round((matches / total) * 100);
+
 	return {
 		matches,
 		total,
-		percent: Math.round((matches / total) * 100)
+		percent
 	};
 }
 
@@ -48,20 +81,20 @@ export function findSimilarLayouts(
 		limit = 30,
 		minComparableSlots = 10,
 		minPercent = 1,
-		sameBoardOnly = false
+		sameBoardOnly = false,
+		weightHomeKeys = false
 	}: {
 		limit?: number;
 		minComparableSlots?: number;
 		minPercent?: number;
-		sameBoardOnly?: boolean;
-	} = {}
+	} & CompareLayoutOptions = {}
 ): SimilarLayoutResult[] {
 	const results: SimilarLayoutResult[] = [];
 
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly });
+		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly, weightHomeKeys });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;
@@ -88,19 +121,19 @@ export function buildSimilarityPercentMap(
 	{
 		minComparableSlots = DEFAULT_MIN_COMPARABLE_SLOTS,
 		minPercent = DEFAULT_MIN_PERCENT,
-		sameBoardOnly = false
+		sameBoardOnly = false,
+		weightHomeKeys = false
 	}: {
 		minComparableSlots?: number;
 		minPercent?: number;
-		sameBoardOnly?: boolean;
-	} = {}
+	} & CompareLayoutOptions = {}
 ): Map<string, number> {
 	const map = new Map<string, number>();
 
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly });
+		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly, weightHomeKeys });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;

@@ -8,6 +8,15 @@ export type KeyMap = Record<string, string>;
  */
 export const SPLIT_COL = 5;
 
+/** Home row in the 3-row main grid (matches KeyPositionFilter). */
+export const HOME_ROW_INDEX = 1;
+
+/** Home keys on row 1, excluding the split gap column. */
+export function isHomeKeySlot(row: number, col: number): boolean {
+	if (row !== HOME_ROW_INDEX) return false;
+	return col < SPLIT_COL - 1 || col > SPLIT_COL;
+}
+
 // Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
 // Row 0: q w e r t y u i o p [ ]
 // Row 1: a s d f g h j k l ; '

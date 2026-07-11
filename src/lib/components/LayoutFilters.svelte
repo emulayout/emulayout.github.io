@@ -366,7 +366,9 @@
 
 {#if similarReferenceLayout && getAuthorName}
 	{@const similarityFilterActive =
-		filterStore.similarityFilterValue.trim() !== '' || filterStore.similaritySameBoardOnly}
+		filterStore.similarityFilterValue.trim() !== '' ||
+		filterStore.similaritySameBoardOnly ||
+		filterStore.similarityWeightHomeKeys}
 	<div id="selected-layout" class="mb-8" bind:this={selectedLayoutSection}>
 		<p class="text-sm mb-3" style="color: var(--text-secondary);">Selected layout</p>
 		<div class="flex flex-col sm:flex-row gap-4 items-start">
@@ -385,67 +387,106 @@
 					: 'var(--border)'};"
 			>
 				<div class="text-sm font-medium mb-3" style="color: var(--text-secondary);">
-					Similarity filter
+					Similarity filters
 				</div>
-				<div class="flex flex-col gap-2">
-					<div class="flex items-center gap-1.5 min-w-0">
-						<select
-							value={filterStore.similarityFilterOperator}
-							onchange={(e) =>
-								filterStore.setSimilarityFilterOperator(
-									e.currentTarget.value as StatLimitOperator
-								)}
-							class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-							style="
-								background-color: var(--bg-secondary);
-								color: var(--text-primary);
-								border: 1px solid {filterStore.similarityFilterValue.trim()
-								? 'var(--accent)'
-								: 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							aria-label="Similarity comparison"
-						>
-							<option value="lt">Less than</option>
-							<option value="gt">Greater than</option>
-						</select>
-						<input
-							type="text"
-							inputmode="decimal"
-							value={filterStore.similarityFilterValue}
-							oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
-							class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
-							style="
-								background-color: var(--bg-secondary);
-								color: var(--text-primary);
-								border: 1px solid {filterStore.similarityFilterValue.trim()
-								? 'var(--accent)'
-								: 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							placeholder="—"
-							aria-label="Similarity percent limit"
-						/>
-						<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
+				<div class="flex flex-col gap-3">
+					<div>
+						<div class="block text-sm mb-2" style="color: var(--text-secondary);">Match percent</div>
+						<div class="flex items-center gap-1.5 min-w-0">
+							<select
+								value={filterStore.similarityFilterOperator}
+								onchange={(e) =>
+									filterStore.setSimilarityFilterOperator(
+										e.currentTarget.value as StatLimitOperator
+									)}
+								class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+								style="
+									background-color: var(--bg-secondary);
+									color: var(--text-primary);
+									border: 1px solid {filterStore.similarityFilterValue.trim()
+									? 'var(--accent)'
+									: 'var(--border)'};
+									--tw-ring-color: var(--accent);
+								"
+								aria-label="Similarity comparison"
+							>
+								<option value="lt">Less than</option>
+								<option value="gt">Greater than</option>
+							</select>
+							<input
+								type="text"
+								inputmode="decimal"
+								value={filterStore.similarityFilterValue}
+								oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
+								class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
+								style="
+									background-color: var(--bg-secondary);
+									color: var(--text-primary);
+									border: 1px solid {filterStore.similarityFilterValue.trim()
+									? 'var(--accent)'
+									: 'var(--border)'};
+									--tw-ring-color: var(--accent);
+								"
+								placeholder="—"
+								aria-label="Similarity percent limit"
+							/>
+							<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
+						</div>
 					</div>
-					<select
-						value={filterStore.similaritySameBoardOnly ? 'same' : 'any'}
-						onchange={(e) =>
-							filterStore.setSimilaritySameBoardOnly(e.currentTarget.value === 'same')}
-						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-						style="
-							background-color: var(--bg-secondary);
-							color: var(--text-primary);
-							border: 1px solid {filterStore.similaritySameBoardOnly
-							? 'var(--accent)'
-							: 'var(--border)'};
-							--tw-ring-color: var(--accent);
-						"
-						aria-label="Similarity board matching"
-					>
-						<option value="any">Any board</option>
-						<option value="same">Same board only</option>
-					</select>
+					<div>
+						<label
+							for="similarity-board-filter"
+							class="block text-sm mb-2"
+							style="color: var(--text-secondary);"
+						>
+							Board type
+						</label>
+						<select
+							id="similarity-board-filter"
+							value={filterStore.similaritySameBoardOnly ? 'same' : 'any'}
+							onchange={(e) =>
+								filterStore.setSimilaritySameBoardOnly(e.currentTarget.value === 'same')}
+							class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+							style="
+								background-color: var(--bg-secondary);
+								color: var(--text-primary);
+								border: 1px solid {filterStore.similaritySameBoardOnly
+								? 'var(--accent)'
+								: 'var(--border)'};
+								--tw-ring-color: var(--accent);
+							"
+						>
+							<option value="any">Any board type</option>
+							<option value="same">Same board type only</option>
+						</select>
+					</div>
+					<div>
+						<label
+							for="similarity-home-filter"
+							class="block text-sm mb-2"
+							style="color: var(--text-secondary);"
+						>
+							Scoring
+						</label>
+						<select
+							id="similarity-home-filter"
+							value={filterStore.similarityWeightHomeKeys ? 'weighted' : 'equal'}
+							onchange={(e) =>
+								filterStore.setSimilarityWeightHomeKeys(e.currentTarget.value === 'weighted')}
+							class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+							style="
+								background-color: var(--bg-secondary);
+								color: var(--text-primary);
+								border: 1px solid {filterStore.similarityWeightHomeKeys
+								? 'var(--accent)'
+								: 'var(--border)'};
+								--tw-ring-color: var(--accent);
+							"
+						>
+							<option value="equal">All keys count equally</option>
+							<option value="weighted">Home row keys count double</option>
+						</select>
+					</div>
 				</div>
 			</div>
 		</div>

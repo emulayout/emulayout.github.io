@@ -280,36 +280,42 @@
 
 	<div class="card-action-divider shrink-0" aria-label="Layout actions">
 		<div class="card-action-toolbar">
-			{#if !filterStore.hasSimilarReference || isSimilarActive}
-				<button
-					type="button"
-					onclick={handleFindSimilarClick}
-					class="card-action-button"
-					style="
-						background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
-						color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
-						border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
-					"
-					title={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
-					aria-label={isSimilarActive ? 'Stop showing similar layouts' : 'Find similar layouts'}
-					aria-pressed={isSimilarActive}
+			<button
+				type="button"
+				onclick={handleFindSimilarClick}
+				class="card-action-button"
+				style="
+					background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
+					color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
+					border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
+				"
+				title={isSimilarActive
+					? 'Stop showing similar layouts'
+					: filterStore.hasSimilarReference
+						? 'Show layouts similar to this one'
+						: 'Find similar layouts'}
+				aria-label={isSimilarActive
+					? 'Stop showing similar layouts'
+					: filterStore.hasSimilarReference
+						? 'Show layouts similar to this one'
+						: 'Find similar layouts'}
+				aria-pressed={isSimilarActive}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
 				>
-					<svg
-						class="size-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<rect x="3" y="3" width="7" height="7" rx="1" />
-						<rect x="14" y="3" width="7" height="7" rx="1" />
-						<rect x="3" y="14" width="7" height="7" rx="1" />
-						<rect x="14" y="14" width="7" height="7" rx="1" />
-					</svg>
-				</button>
-			{/if}
+					<rect x="3" y="3" width="7" height="7" rx="1" />
+					<rect x="14" y="3" width="7" height="7" rx="1" />
+					<rect x="3" y="14" width="7" height="7" rx="1" />
+					<rect x="14" y="14" width="7" height="7" rx="1" />
+				</svg>
+			</button>
 			<button
 				type="button"
 				onclick={() => (anglemod = !anglemod)}

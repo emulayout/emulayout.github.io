@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Tooltip from './Tooltip.svelte';
-	import { SPLIT_COL } from '$lib/cmini/keyboard';
+	import { isHomeKeySlot, SPLIT_COL } from '$lib/cmini/keyboard';
 
 	const THUMB_KEYS_PER_HAND = 4;
 	const DEFAULT_THUMB_SLOTS_PER_HAND = 2;
@@ -67,15 +67,8 @@
 	const leftThumbVisibleCount = $derived(visibleThumbSlotCount(leftThumbKeys));
 	const rightThumbVisibleCount = $derived(visibleThumbSlotCount(rightThumbKeys));
 
-	const HOME_ROW_INDEX = 1;
-
-	function isHomeKeyPosition(rowIdx: number, colIdx: number): boolean {
-		if (rowIdx !== HOME_ROW_INDEX) return false;
-		return colIdx < SPLIT_COL - 1 || colIdx > SPLIT_COL;
-	}
-
 	function keyBackgroundColor(rowIdx: number, colIdx: number): string {
-		return isHomeKeyPosition(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
+		return isHomeKeySlot(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
 	}
 
 	function thumbInputStyle(key: string): string {

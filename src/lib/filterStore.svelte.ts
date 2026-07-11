@@ -151,6 +151,8 @@ export class FilterStore {
 	similarityFilterValue: string = $state('50');
 	/** When true, only compare layouts with the same board type. Default: any board. */
 	similaritySameBoardOnly: boolean = $state(false);
+	/** When true, home-row keys count double in similarity scoring. */
+	similarityWeightHomeKeys: boolean = $state(false);
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
@@ -411,7 +413,7 @@ export class FilterStore {
 		const similarFilter = url.searchParams.get('similarFilter');
 		if (similarFilter) {
 			const [operator, ...valueParts] = similarFilter.split(':');
-			if ((operator === 'lt' || operator === 'gt') && valueParts.length > 0) {
+			if (operator === 'lt' || operator === 'gt') {
 				this.similarityFilterOperator = operator;
 				this.similarityFilterValue = valueParts.join(':');
 			}
@@ -422,6 +424,10 @@ export class FilterStore {
 			this.similaritySameBoardOnly = true;
 		} else if (similarBoard === 'any') {
 			this.similaritySameBoardOnly = false;
+		}
+
+		if (url.searchParams.get('similarHome') === '1') {
+			this.similarityWeightHomeKeys = true;
 		}
 
 		const statLimits = url.searchParams.get('statLimits');
@@ -535,18 +541,15 @@ export class FilterStore {
 
 		if (this.similarReferenceName) {
 			url.searchParams.set('similar', this.similarReferenceName);
-			const filterValue = this.similarityFilterValue.trim();
-			if (
-				filterValue &&
-				(this.similarityFilterOperator !== 'gt' || filterValue !== '50')
-			) {
-				url.searchParams.set(
-					'similarFilter',
-					`${this.similarityFilterOperator}:${filterValue}`
-				);
-			}
+			url.searchParams.set(
+				'similarFilter',
+				`${this.similarityFilterOperator}:${this.similarityFilterValue.trim()}`
+			);
 			if (this.similaritySameBoardOnly) {
 				url.searchParams.set('similarBoard', 'same');
+			}
+			if (this.similarityWeightHomeKeys) {
+				url.searchParams.set('similarHome', '1');
 			}
 		}
 
@@ -729,10 +732,16 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	setSimilarityWeightHomeKeys(value: boolean) {
+		this.similarityWeightHomeKeys = value;
+		this.#saveToUrl();
+	}
+
 	#resetSimilarityFilter() {
 		this.similarityFilterOperator = 'gt';
 		this.similarityFilterValue = '50';
 		this.similaritySameBoardOnly = false;
+		this.similarityWeightHomeKeys = false;
 	}
 
 	setNameFilter(value: string) {
@@ -858,10 +867,13 @@ export class FilterStore {
 			}
 			this.#resetSimilarityFilter();
 		} else {
+			const switchingReference = this.similarReferenceName !== null;
 			this.similarReferenceName = name;
 			this.sortBy = 'similarity';
 			this.sortOrder = 'desc';
-			this.#resetSimilarityFilter();
+			if (!switchingReference) {
+				this.#resetSimilarityFilter();
+			}
 			this.scrollToSelectedLayout = true;
 			// Reset scroll before virtua applies length-change jumps from a deep offset.
 			window.scrollTo(0, 0);

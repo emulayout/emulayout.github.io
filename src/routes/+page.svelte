@@ -137,7 +137,8 @@
 	const similarityPercents = $derived.by(() => {
 		if (!similarReferenceLayout) return new Map<string, number>();
 		return buildSimilarityPercentMap(similarReferenceLayout, layouts, {
-			sameBoardOnly: filterStore.similaritySameBoardOnly
+			sameBoardOnly: filterStore.similaritySameBoardOnly,
+			weightHomeKeys: filterStore.similarityWeightHomeKeys
 		});
 	});
 
