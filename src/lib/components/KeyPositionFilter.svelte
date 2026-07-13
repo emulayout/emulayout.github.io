@@ -29,6 +29,8 @@
 		accentColor?: string;
 		hideThumbKeys?: boolean;
 		tooltipText?: string;
+		/** When true, render without outer panel chrome (for nested use). */
+		nested?: boolean;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onLeftThumbKeyChange?: (index: number, value: string) => void;
 		onRightThumbKeyChange?: (index: number, value: string) => void;
@@ -43,6 +45,7 @@
 		accentColor = 'var(--accent)',
 		hideThumbKeys = false,
 		tooltipText = 'Placeholder tooltip text - please fill in with helpful instructions',
+		nested = false,
 		onCellChange,
 		onLeftThumbKeyChange,
 		onRightThumbKeyChange,
@@ -83,8 +86,11 @@
 </script>
 
 <div
-	class="p-4 rounded-xl flex flex-col items-center"
-	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+	class="key-filter flex flex-col items-center"
+	class:key-filter--nested={nested}
+	style={nested
+		? 'background-color: var(--bg-primary); border: 1px solid var(--border);'
+		: 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
 >
 	<div class="flex flex-col gap-1 font-mono">
 		<div class="flex items-center justify-between mb-3 w-full gap-3">
@@ -169,3 +175,11 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.key-filter {
+		padding: 1rem;
+		border-radius: 0.75rem;
+		height: 100%;
+	}
+</style>

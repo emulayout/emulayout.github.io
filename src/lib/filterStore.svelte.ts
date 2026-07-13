@@ -780,6 +780,26 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	clearKeyFilters() {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearStatLimits() {
+		this.statLimits = createEmptyStatLimits();
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
 	toggleAuthor(authorId: number) {
 		if (this.selectedAuthors.has(authorId)) {
 			this.selectedAuthors.delete(authorId);
@@ -909,18 +929,7 @@ export class FilterStore {
 		);
 	}
 
-	/** Applied (debounced) stat limits — used by page load / filter pipeline. */
-	get hasAppliedStatLimits(): boolean {
-		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		const availableFields = this.canUseLikes
-			? [...fields, { key: 'likes' as const }]
-			: fields;
-		return availableFields.some(
-			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
-		);
-	}
-
-	get hasActiveFilters(): boolean {
+	get hasActiveKeyFilters(): boolean {
 		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
 		const hasIncludeOr =
@@ -933,12 +942,23 @@ export class FilterStore {
 		const hasExcludeThumbs =
 			this.excludeLeftThumbKeys.some((k) => k !== '') ||
 			this.excludeRightThumbKeys.some((k) => k !== '');
+		return hasInclude || hasExclude || hasIncludeOr || hasIncludeThumbs || hasExcludeThumbs;
+	}
+
+	/** Applied (debounced) stat limits — used by page load / filter pipeline. */
+	get hasAppliedStatLimits(): boolean {
+		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
+		const availableFields = this.canUseLikes
+			? [...fields, { key: 'likes' as const }]
+			: fields;
+		return availableFields.some(
+			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
+		);
+	}
+
+	get hasActiveFilters(): boolean {
 		return (
-			hasInclude ||
-			hasExclude ||
-			hasIncludeOr ||
-			hasIncludeThumbs ||
-			hasExcludeThumbs ||
+			this.hasActiveKeyFilters ||
 			this.showUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||

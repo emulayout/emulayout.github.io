@@ -1,5 +1,5 @@
 <script lang="ts">
-	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
+	import KeyPositionFilters from '$lib/components/KeyPositionFilters.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import StatLimitFilters from '$lib/components/StatLimitFilters.svelte';
@@ -168,53 +168,10 @@
 	</div>
 </div>
 
-<!-- Filter Grids -->
-<!-- Filters grid: Responsive layout using CSS Grid -->
+<!-- Filter panels -->
 <div class="filters-grid gap-4 mb-8">
-	<div class="grid-area-include-and">
-		<KeyPositionFilter
-			label="Include keys (AND)"
-			grid={filterStore.includeGrid}
-			leftThumbKeys={filterStore.includeLeftThumbKeys}
-			rightThumbKeys={filterStore.includeRightThumbKeys}
-			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
-			accentColor="#4ade80"
-			onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
-			onLeftThumbKeyChange={(index, value) => filterStore.setIncludeLeftThumbKey(index, value)}
-			onRightThumbKeyChange={(index, value) => filterStore.setIncludeRightThumbKey(index, value)}
-			onClear={() => filterStore.clearInclude()}
-			tooltipText="Use this filter to find layouts that include desired keys in specific row and column positions. All specified positions must match (AND logic). You can specify multiple keys in the same field to return layouts that include any of those keys at that position. Thumb keys are filtered separately per hand."
-		/>
-	</div>
-	<div class="grid-area-include-or">
-		<KeyPositionFilter
-			label="Include keys (OR)"
-			grid={filterStore.includeOrGrid}
-			leftThumbKeys={filterStore.includeOrLeftThumbKeys}
-			rightThumbKeys={filterStore.includeOrRightThumbKeys}
-			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
-			accentColor="#60a5fa"
-			onCellChange={(row, col, value) => filterStore.setIncludeOrCell(row, col, value)}
-			onLeftThumbKeyChange={(index, value) => filterStore.setIncludeOrLeftThumbKey(index, value)}
-			onRightThumbKeyChange={(index, value) => filterStore.setIncludeOrRightThumbKey(index, value)}
-			onClear={() => filterStore.clearIncludeOr()}
-			tooltipText="Use this filter to find layouts where at least one specified position matches (OR logic). For example, E at left middle finger OR E at right middle finger. Thumb keys work the same way: e on the left thumb OR r on the right thumb."
-		/>
-	</div>
-	<div class="grid-area-exclude">
-		<KeyPositionFilter
-			label="Exclude keys"
-			grid={filterStore.excludeGrid}
-			leftThumbKeys={filterStore.excludeLeftThumbKeys}
-			rightThumbKeys={filterStore.excludeRightThumbKeys}
-			hideThumbKeys={filterStore.thumbKeyFilter === 'excluded'}
-			accentColor="#f87171"
-			onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
-			onLeftThumbKeyChange={(index, value) => filterStore.setExcludeLeftThumbKey(index, value)}
-			onRightThumbKeyChange={(index, value) => filterStore.setExcludeRightThumbKey(index, value)}
-			onClear={() => filterStore.clearExclude()}
-			tooltipText="Use this filter to exclude layouts that include unwanted keys in specific row and column positions. You can specify multiple keys in the same field to return layouts that do not include any of the keys. Thumb keys are filtered separately per hand."
-		/>
+	<div class="grid-area-key-filters">
+		<KeyPositionFilters />
 	</div>
 	<div class="grid-area-stat-limits">
 		<StatLimitFilters />
@@ -745,50 +702,13 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		grid-template-areas:
-			'includeAnd'
-			'includeOr'
-			'exclude'
+			'keyFilters'
 			'statLimits'
 			'otherOptions';
 	}
 
-	@media (min-width: 890px) {
-		.filters-grid {
-			grid-template-columns: repeat(2, 1fr);
-			grid-template-areas:
-				'includeAnd includeOr'
-				'exclude exclude'
-				'statLimits statLimits'
-				'otherOptions otherOptions';
-		}
-	}
-
-	@media (min-width: 1280px) {
-		.filters-grid {
-			grid-template-columns: repeat(3, 1fr);
-			grid-template-areas:
-				'includeAnd includeOr exclude'
-				'statLimits statLimits statLimits'
-				'otherOptions otherOptions otherOptions';
-		}
-	}
-
-	.grid-area-include-and {
-		grid-area: includeAnd;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.grid-area-include-or {
-		grid-area: includeOr;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.grid-area-exclude {
-		grid-area: exclude;
-		display: flex;
-		flex-direction: column;
+	.grid-area-key-filters {
+		grid-area: keyFilters;
 	}
 
 	.grid-area-stat-limits {
@@ -799,17 +719,5 @@
 		grid-area: otherOptions;
 		display: flex;
 		flex-direction: column;
-	}
-
-	.grid-area-include-and > :global(*) {
-		flex: 1;
-	}
-
-	.grid-area-include-or > :global(*) {
-		flex: 1;
-	}
-
-	.grid-area-exclude > :global(*) {
-		flex: 1;
 	}
 </style>

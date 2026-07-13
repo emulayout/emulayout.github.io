@@ -172,6 +172,18 @@
 					{activeFilterSummary}
 				</p>
 			{/if}
+			{#if hasActiveFilters}
+				<button
+					type="button"
+					class="stat-filters-clear"
+					onclick={(e) => {
+						e.stopPropagation();
+						filterStore.clearStatLimits();
+					}}
+				>
+					Clear all
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -327,6 +339,20 @@
 		pointer-events: auto;
 	}
 
+	.stat-filters-clear {
+		flex-shrink: 0;
+		margin-left: auto;
+		padding: 0.25rem 0.5rem;
+		border: none;
+		border-radius: 0.25rem;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		cursor: pointer;
+		pointer-events: auto;
+		color: var(--accent);
+		background-color: var(--bg-primary);
+	}
+
 	.sr-only {
 		position: absolute;
 		width: 1px;
@@ -352,10 +378,6 @@
 	.stat-filters-body-inner {
 		overflow: hidden;
 		min-height: 0;
-	}
-
-	.stat-filters-body--expanded .stat-filters-body-inner {
-		padding-top: 0.75rem;
 	}
 
 	.stat-limits-body {
