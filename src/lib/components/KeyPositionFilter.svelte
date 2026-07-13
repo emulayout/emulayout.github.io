@@ -89,7 +89,7 @@
 	class="key-filter flex flex-col items-center"
 	class:key-filter--nested={nested}
 	style={nested
-		? 'background-color: var(--bg-primary); border: 1px solid var(--border);'
+		? 'background-color: var(--key-filter-bg); border: 1px solid var(--border);'
 		: 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
 >
 	<div class="flex flex-col gap-1 font-mono">

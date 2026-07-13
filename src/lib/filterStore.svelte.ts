@@ -161,6 +161,10 @@ export class FilterStore {
 	hideLayoutLikes: boolean = $state(false);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
+	/** Key filters panel expanded. Default collapsed. */
+	keyFiltersExpanded: boolean = $state(false);
+	/** Stat filters panel expanded. Default collapsed. */
+	statFiltersExpanded: boolean = $state(false);
 
 	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
 	appliedIncludeGrid: string[][] = $state(createEmptyGrid());
@@ -437,6 +441,14 @@ export class FilterStore {
 				this.statLimits.likes = { operator: 'lt', value: '' };
 			}
 		}
+
+		if (url.searchParams.get('keysOpen') === '1') {
+			this.keyFiltersExpanded = true;
+		}
+
+		if (url.searchParams.get('statsOpen') === '1') {
+			this.statFiltersExpanded = true;
+		}
 	}
 
 	#saveToUrl() {
@@ -556,6 +568,14 @@ export class FilterStore {
 		const statLimitsSerialized = serializeStatLimits(this.statLimits);
 		if (statLimitsSerialized) {
 			url.searchParams.set('statLimits', statLimitsSerialized);
+		}
+
+		if (this.keyFiltersExpanded) {
+			url.searchParams.set('keysOpen', '1');
+		}
+
+		if (this.statFiltersExpanded) {
+			url.searchParams.set('statsOpen', '1');
 		}
 
 		window.history.replaceState({}, '', url.toString());
@@ -734,6 +754,16 @@ export class FilterStore {
 
 	setSimilarityWeightHomeKeys(value: boolean) {
 		this.similarityWeightHomeKeys = value;
+		this.#saveToUrl();
+	}
+
+	setKeyFiltersExpanded(value: boolean) {
+		this.keyFiltersExpanded = value;
+		this.#saveToUrl();
+	}
+
+	setStatFiltersExpanded(value: boolean) {
+		this.statFiltersExpanded = value;
 		this.#saveToUrl();
 	}
 

@@ -23,6 +23,7 @@ html {
 	--key-bg: #faf9f7;
 	--key-home-bg: #e8e2d9;
 	--key-shadow: #ccc5bc;
+	--key-filter-bg: #faf9f7;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
 }
@@ -40,6 +41,7 @@ html {
 	--key-bg: #353230;
 	--key-home-bg: #45423d;
 	--key-shadow: #0a0908;
+	--key-filter-bg: #13120f;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
 }

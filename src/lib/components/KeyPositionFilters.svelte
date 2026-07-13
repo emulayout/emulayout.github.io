@@ -46,7 +46,7 @@
 		return `${label}: ${hands.join(', ')}`;
 	}
 
-	let expanded = $state(filterStore.hasActiveKeyFilters);
+	let expanded = $derived(filterStore.keyFiltersExpanded);
 
 	const hasActiveFilters = $derived(filterStore.hasActiveKeyFilters);
 
@@ -74,10 +74,6 @@
 
 		return parts.join(' • ');
 	});
-
-	$effect(() => {
-		if (hasActiveFilters) expanded = true;
-	});
 </script>
 
 <div
@@ -93,7 +89,7 @@
 			class="key-filters-toggle"
 			aria-expanded={expanded}
 			aria-controls="key-filters-content"
-			onclick={() => (expanded = !expanded)}
+			onclick={() => filterStore.setKeyFiltersExpanded(!expanded)}
 		>
 			<span class="sr-only">Key filters</span>
 		</button>

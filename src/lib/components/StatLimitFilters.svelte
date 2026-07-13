@@ -53,7 +53,7 @@
 		return `${hand} ${field.label}`;
 	}
 
-	let expanded = $state(filterStore.hasActiveStatLimits);
+	let expanded = $derived(filterStore.statFiltersExpanded);
 
 	const hasActiveFilters = $derived(filterStore.hasActiveStatLimits);
 	const generalStatFilterRows = $derived(
@@ -87,10 +87,6 @@
 		}
 
 		return parts.join(' • ');
-	});
-
-	$effect(() => {
-		if (hasActiveFilters) expanded = true;
 	});
 </script>
 
@@ -137,7 +133,7 @@
 			class="stat-filters-toggle"
 			aria-expanded={expanded}
 			aria-controls="stat-filters-content"
-			onclick={() => (expanded = !expanded)}
+			onclick={() => filterStore.setStatFiltersExpanded(!expanded)}
 		>
 			<span class="sr-only">Stat filters</span>
 		</button>
