@@ -31,9 +31,9 @@ const SPARSE_CHECKOUT = [
 	'/authors.json',
 	'/likes.json',
 	'cache',
-	'corpora/monkeyracer/bigrams.json',
-	'corpora/monkeyracer/monograms.json',
-	'corpora/monkeyracer/trigrams.json'
+	'/corpora/monkeyracer/bigrams.json',
+	'/corpora/monkeyracer/monograms.json',
+	'/corpora/monkeyracer/trigrams.json'
 ];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
 const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
