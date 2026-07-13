@@ -149,7 +149,7 @@
 			oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
 			class="w-full px-4 py-2 rounded-xl text-sm outline-none focus:ring-2 transition-all duration-200"
 			style="
-				background-color: var(--bg-secondary);
+				background-color: var(--input-bg);
 				color: var(--text-primary);
 				border: 1px solid {filterStore.nameFilterInput ? 'var(--accent)' : 'var(--border)'};
 				--tw-ring-color: var(--accent);
@@ -190,7 +190,7 @@
 					onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
 					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all w-full"
 					style="
-					background-color: var(--bg-secondary);
+					background-color: var(--input-bg);
 					color: var(--text-primary);
 					border: 1px solid {filterStore.thumbKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
 					--tw-ring-color: var(--accent);
@@ -218,7 +218,7 @@
 					onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
 					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all w-full"
 					style="
-					background-color: var(--bg-secondary);
+					background-color: var(--input-bg);
 					color: var(--text-primary);
 					border: 1px solid {filterStore.magicKeyFilter !== 'optional' ? 'var(--accent)' : 'var(--border)'};
 					--tw-ring-color: var(--accent);
@@ -239,7 +239,7 @@
 					onchange={(e) => filterStore.setBoardTypeFilter(e.currentTarget.value as BoardTypeFilter)}
 					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all w-full"
 					style="
-					background-color: var(--bg-secondary);
+					background-color: var(--input-bg);
 					color: var(--text-primary);
 					border: 1px solid {filterStore.boardTypeFilter !== 'all' ? 'var(--accent)' : 'var(--border)'};
 					--tw-ring-color: var(--accent);
@@ -263,7 +263,7 @@
 						filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
 					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all w-full"
 					style="
-					background-color: var(--bg-secondary);
+					background-color: var(--input-bg);
 					color: var(--text-primary);
 					border: 1px solid {filterStore.characterSetFilter !== 'english'
 						? 'var(--accent)'
@@ -358,7 +358,7 @@
 									)}
 								class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 								style="
-									background-color: var(--bg-secondary);
+									background-color: var(--input-bg);
 									color: var(--text-primary);
 									border: 1px solid {filterStore.similarityFilterValue.trim()
 									? 'var(--accent)'
@@ -377,7 +377,7 @@
 								oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
 								class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
 								style="
-									background-color: var(--bg-secondary);
+									background-color: var(--input-bg);
 									color: var(--text-primary);
 									border: 1px solid {filterStore.similarityFilterValue.trim()
 									? 'var(--accent)'
@@ -405,7 +405,7 @@
 								filterStore.setSimilaritySameBoardOnly(e.currentTarget.value === 'same')}
 							class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 							style="
-								background-color: var(--bg-secondary);
+								background-color: var(--input-bg);
 								color: var(--text-primary);
 								border: 1px solid {filterStore.similaritySameBoardOnly
 								? 'var(--accent)'
@@ -432,7 +432,7 @@
 								filterStore.setSimilarityWeightHomeKeys(e.currentTarget.value === 'weighted')}
 							class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 							style="
-								background-color: var(--bg-secondary);
+								background-color: var(--input-bg);
 								color: var(--text-primary);
 								border: 1px solid {filterStore.similarityWeightHomeKeys
 								? 'var(--accent)'
@@ -484,7 +484,7 @@
 					onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzer)}
 					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
 					style="
-						background-color: var(--bg-secondary);
+						background-color: var(--input-bg);
 						color: var(--text-primary);
 						border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
 						--tw-ring-color: var(--accent);
@@ -503,7 +503,7 @@
 					onchange={(e) => filterStore.setSortBy(e.currentTarget.value as SortBy)}
 					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
 					style="
-						background-color: var(--bg-secondary);
+						background-color: var(--input-bg);
 						color: var(--text-primary);
 						border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
 						--tw-ring-color: var(--accent);
@@ -534,7 +534,7 @@
 					onchange={(e) => filterStore.setSortOrder(e.currentTarget.value as SortOrder)}
 					class="px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all min-w-0"
 					style="
-						background-color: var(--bg-secondary);
+						background-color: var(--input-bg);
 						color: var(--text-primary);
 						border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
 						--tw-ring-color: var(--accent);

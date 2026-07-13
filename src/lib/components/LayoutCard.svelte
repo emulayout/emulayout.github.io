@@ -415,7 +415,7 @@
 					class="layout-test-area"
 					style="
 						height: {LAYOUT_CARD_TEST_AREA_HEIGHT}px;
-						background-color: var(--bg-primary);
+						background-color: var(--input-bg);
 						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"

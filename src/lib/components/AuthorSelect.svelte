@@ -69,7 +69,7 @@
 		onclick={() => (open = !open)}
 		class="w-full px-4 py-2 rounded-xl text-sm text-left flex items-center justify-between transition-all duration-200 outline-none focus:ring-2"
 		style="
-			background-color: var(--bg-secondary);
+			background-color: var(--input-bg);
 			color: var(--text-primary);
 			border: 1px solid {selectedCount > 0 ? 'var(--accent)' : 'var(--border)'};
 			--tw-ring-color: var(--accent);
@@ -119,7 +119,7 @@
 					placeholder="Search authors..."
 					bind:value={search}
 					class="w-full px-3 py-1.5 rounded-lg text-sm outline-none"
-					style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border);"
+					style="background-color: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);"
 				/>
 			</div>
 

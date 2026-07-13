@@ -29,7 +29,7 @@
 
 	function fieldStyle(active: boolean): string {
 		return `
-			background-color: var(--bg-secondary);
+			background-color: var(--input-bg);
 			color: var(--text-primary);
 			border: 1px solid ${active ? 'var(--accent)' : 'var(--border)'};
 			--tw-ring-color: var(--accent);

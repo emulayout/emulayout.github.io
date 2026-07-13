@@ -193,7 +193,7 @@
 					placeholder="Search layout names…"
 					class="w-full rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all duration-200"
 					style="
-						background-color: var(--bg-secondary);
+						background-color: var(--input-bg);
 						color: var(--text-primary);
 						border: 1px solid {query ? 'var(--accent)' : 'var(--border)'};
 						--tw-ring-color: var(--accent);
