@@ -350,6 +350,7 @@
 			<button
 				type="button"
 				onclick={handleFindSimilarClick}
+				data-layout-card-first-action
 				class="card-action-button"
 				style="
 					background-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--bg-primary)'};

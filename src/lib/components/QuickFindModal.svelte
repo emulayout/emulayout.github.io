@@ -18,6 +18,7 @@
 	let activeIndex = $state(0);
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
 	let resultsList = $state<HTMLUListElement | undefined>(undefined);
+	let previewPane = $state<HTMLDivElement | undefined>(undefined);
 
 	const MAX_RESULTS = 100;
 
@@ -96,9 +97,15 @@
 			if (event.key === 'Escape') onClose();
 		}
 
+		function handleRefocus() {
+			focusPreviewFirstAction();
+		}
+
 		document.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('emulayout:quick-find-refocus', handleRefocus);
 		return () => {
 			document.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('emulayout:quick-find-refocus', handleRefocus);
 			unlock();
 		};
 	});
@@ -109,6 +116,17 @@
 		const item = resultsList.children[activeIndex] as HTMLElement | undefined;
 		item?.scrollIntoView({ block: 'nearest' });
 	});
+
+	function focusPreviewFirstAction() {
+		const firstAction = previewPane?.querySelector(
+			'[data-layout-card-first-action]'
+		) as HTMLElement | null;
+		if (firstAction) {
+			firstAction.focus();
+			return;
+		}
+		searchInput?.focus();
+	}
 
 	function showLayout(name: string) {
 		filterStore.focusLayout(name);
@@ -259,7 +277,10 @@
 					{/if}
 				</div>
 
-				<div class="hidden min-h-0 flex-1 overflow-y-auto p-5 md:block">
+				<div
+					bind:this={previewPane}
+					class="hidden min-h-0 flex-1 overflow-y-auto p-5 md:block"
+				>
 					{#if highlightedLayout}
 						{#key highlightedLayout.name}
 							<LayoutCard

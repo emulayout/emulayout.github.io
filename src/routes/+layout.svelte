@@ -50,6 +50,10 @@
 			if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
 			event.preventDefault();
 			showRecentLayouts = false;
+			if (showQuickFind) {
+				window.dispatchEvent(new Event('emulayout:quick-find-refocus'));
+				return;
+			}
 			showQuickFind = true;
 		}
 
