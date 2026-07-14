@@ -71,6 +71,7 @@
 	const isAngleBoard = $derived(layout.board === 'angle');
 
 	const baseDisplayRows = $derived(computeDisplayRows(layout));
+	const baseDisplayValue = $derived(displayRowsToString(baseDisplayRows));
 
 	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
 	const transformedDisplayRows = $derived.by((): DisplayCell[][] => {
