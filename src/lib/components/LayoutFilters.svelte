@@ -26,7 +26,7 @@
 	}
 
 	const { authorList, filteredCount, likesSortAvailable }: Props = $props();
-	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'asc');
+	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
 	const displaySettingsActive = $derived(

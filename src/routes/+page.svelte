@@ -98,14 +98,12 @@
 	$effect(() => {
 		if (!likesSortAvailable && filterStore.sortBy === 'likes') {
 			filterStore.setSortBy('date');
-			filterStore.setSortOrder('asc');
 		}
 	});
 
 	$effect(() => {
 		if (!filterStore.hasSimilarReference && filterStore.sortBy === 'similarity') {
 			filterStore.setSortBy('date');
-			filterStore.setSortOrder('asc');
 		}
 	});
 
