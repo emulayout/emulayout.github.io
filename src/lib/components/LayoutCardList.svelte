@@ -37,7 +37,18 @@
 	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
 
-	const columns = $derived(xlUp.current ? 4 : lgUp.current ? 3 : smUp.current ? 2 : 1);
+	// Similarity mode reserves one column for the sticky reference panel (sm+).
+	const columns = $derived.by(() => {
+		if (filterStore.hasSimilarReference) {
+			if (xlUp.current) return 3;
+			if (lgUp.current) return 2;
+			return 1;
+		}
+		if (xlUp.current) return 4;
+		if (lgUp.current) return 3;
+		if (smUp.current) return 2;
+		return 1;
+	});
 
 	const cardItemSize = $derived(
 		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea)

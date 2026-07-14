@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
+	import SimilarReferencePanel from '$lib/components/SimilarReferencePanel.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
@@ -12,7 +13,12 @@
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { buildSimilarityPercentMap, isSimilarLayoutMatch, matchesSimilarityPercentFilter, sortLayoutsBySimilarity } from '$lib/layoutSimilarity';
+	import {
+		buildSimilarityPercentMap,
+		isSimilarLayoutMatch,
+		matchesSimilarityPercentFilter,
+		sortLayoutsBySimilarity
+	} from '$lib/layoutSimilarity';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -112,12 +118,10 @@
 		}
 	});
 
-	// Create reverse lookup: user_id -> author_name
 	const authorById = $derived(
 		new Map<number, string>(Object.entries(authorsData).map(([name, id]) => [id as number, name]))
 	);
 
-	// Create sorted list of unique authors for the select
 	const authorList = $derived(
 		Array.from(authorById.entries())
 			.map(([id, name]) => ({ id, name }))
@@ -130,7 +134,7 @@
 
 	const similarReferenceLayout = $derived(
 		filterStore.similarReferenceName
-			? layouts.find((layout) => layout.name === filterStore.similarReferenceName) ?? null
+			? (layouts.find((layout) => layout.name === filterStore.similarReferenceName) ?? null)
 			: null
 	);
 
@@ -177,20 +181,73 @@
 </script>
 
 <div class="max-w-7xl mx-auto">
-	<LayoutFilters
-		{authorList}
-		{filteredCount}
-		{likesSortAvailable}
-		{similarReferenceLayout}
-		{getAuthorName}
-		likesData={resolvedLikesData}
-		{statsMaps}
-	/>
-	<LayoutCardList
-		layouts={filteredLayouts}
-		{getAuthorName}
-		likesData={resolvedLikesData}
-		{statsMaps}
-		{similarityPercents}
-	/>
+	<LayoutFilters {authorList} {filteredCount} {likesSortAvailable} />
+
+	{#if similarReferenceLayout}
+		<div class="similar-results-layout">
+			<aside class="similar-sidebar">
+				<SimilarReferencePanel
+					layout={similarReferenceLayout}
+					authorName={getAuthorName(similarReferenceLayout.user)}
+					likesData={resolvedLikesData}
+					{statsMaps}
+				/>
+			</aside>
+			<div class="similar-results min-w-0">
+				<LayoutCardList
+					layouts={filteredLayouts}
+					{getAuthorName}
+					likesData={resolvedLikesData}
+					{statsMaps}
+					{similarityPercents}
+				/>
+			</div>
+		</div>
+	{:else}
+		<LayoutCardList
+			layouts={filteredLayouts}
+			{getAuthorName}
+			likesData={resolvedLikesData}
+			{statsMaps}
+			{similarityPercents}
+		/>
+	{/if}
 </div>
+
+<style>
+	.similar-results-layout {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 0.75rem;
+		align-items: start;
+	}
+
+	@media (min-width: 640px) {
+		.similar-results-layout {
+			/* Sticky reference (1) + one results column (1) */
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		}
+
+		.similar-sidebar {
+			position: sticky;
+			top: 0.75rem;
+			align-self: start;
+			max-height: calc(100vh - 1.5rem);
+			overflow-y: auto;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.similar-results-layout {
+			/* Sticky reference (1) + two results columns (2) */
+			grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		}
+	}
+
+	@media (min-width: 1280px) {
+		.similar-results-layout {
+			/* Sticky reference (1) + three results columns (3) */
+			grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+		}
+	}
+</style>

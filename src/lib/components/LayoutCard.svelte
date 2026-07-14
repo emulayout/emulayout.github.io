@@ -221,7 +221,9 @@
 <div
 	data-layout-name={layout.name}
 	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
-	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"
+	style="background-color: var(--bg-secondary); border: 1px solid {isSimilarActive
+		? 'var(--accent)'
+		: 'var(--border)'}; height: {cardHeight}px;"
 >
 	<div class="shrink-0 flex flex-col gap-1">
 		<div class="flex items-center gap-2 min-w-0">
