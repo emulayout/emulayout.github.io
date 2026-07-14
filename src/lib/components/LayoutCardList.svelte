@@ -19,6 +19,8 @@
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
 		similarityPercents?: Map<string, number>;
+		/** Reference layout slots for per-key diff highlighting in similarity mode. */
+		similarDiffPositions?: Map<string, string>;
 	}
 
 	const {
@@ -26,7 +28,8 @@
 		getAuthorName,
 		likesData,
 		statsMaps,
-		similarityPercents = new Map()
+		similarityPercents = new Map(),
+		similarDiffPositions
 	}: Props = $props();
 
 	let virtualizer = $state<{
@@ -155,6 +158,7 @@
 						likeCount={likesData[layout.name] ?? 0}
 						compactStats={compactStatsFor(layout)}
 						similarMatchPercent={similarityPercents.get(layout.name)}
+						{similarDiffPositions}
 					/>
 				{/each}
 			</div>

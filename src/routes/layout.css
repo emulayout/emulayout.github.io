@@ -18,6 +18,7 @@ html {
 	--text-caption: #7a746c;
 	--accent: #c45532;
 	--accent-hover: #a84528;
+	--similar-diff: #2f6b4f;
 	--link: #4a6278;
 	--border: #d8d2c9;
 	--key-bg: #faf9f7;
@@ -37,6 +38,7 @@ html {
 	--text-caption: #949088;
 	--accent: #ff9b6a;
 	--accent-hover: #ffb088;
+	--similar-diff: #5faf7e;
 	--link: #9eb4d4;
 	--border: #403c38;
 	--key-bg: #353230;

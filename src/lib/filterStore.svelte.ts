@@ -152,7 +152,7 @@ export class FilterStore {
 	/** When true, home-row keys count double in similarity scoring. */
 	similarityWeightHomeKeys: boolean = $state(false);
 	sortBy: SortBy = $state('date');
-	sortOrder: SortOrder = $state('desc');
+	sortOrder: SortOrder = $state('asc');
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
@@ -521,7 +521,7 @@ export class FilterStore {
 			url.searchParams.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
 		}
 
-		if (this.sortBy !== 'date' || this.sortOrder !== 'desc') {
+		if (this.sortBy !== 'date' || this.sortOrder !== 'asc') {
 			url.searchParams.set('sort', this.sortBy);
 			url.searchParams.set('order', this.sortOrder);
 		}
@@ -672,7 +672,7 @@ export class FilterStore {
 		this.statsAnalyzer = value;
 		if (isStatSortBy(this.sortBy) && !isStatSortByForAnalyzer(this.sortBy, value)) {
 			this.sortBy = 'date';
-			this.sortOrder = 'desc';
+			this.sortOrder = 'asc';
 		}
 		this.#saveToUrl();
 	}
@@ -691,7 +691,7 @@ export class FilterStore {
 		this.hideLayoutLikes = value;
 		if (value && this.sortBy === 'likes') {
 			this.sortBy = 'date';
-			this.sortOrder = 'desc';
+			this.sortOrder = 'asc';
 		}
 		if (value) {
 			this.statLimits.likes = { operator: 'lt', value: '' };
@@ -705,7 +705,7 @@ export class FilterStore {
 		if (!this.canUseLikes) {
 			if (this.sortBy === 'likes') {
 				this.sortBy = 'date';
-				this.sortOrder = 'desc';
+				this.sortOrder = 'asc';
 			}
 			if (this.statLimits.likes.value.trim() !== '') {
 				this.statLimits.likes = { operator: 'lt', value: '' };
@@ -847,7 +847,7 @@ export class FilterStore {
 		this.similarReferenceName = null;
 		if (this.sortBy === 'similarity') {
 			this.sortBy = 'date';
-			this.sortOrder = 'desc';
+			this.sortOrder = 'asc';
 		}
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
@@ -895,7 +895,7 @@ export class FilterStore {
 			this.similarReferenceName = null;
 			if (this.sortBy === 'similarity') {
 				this.sortBy = 'date';
-				this.sortOrder = 'desc';
+				this.sortOrder = 'asc';
 			}
 			this.#resetSimilarityFilter();
 		} else {
@@ -919,7 +919,7 @@ export class FilterStore {
 		this.similarReferenceName = null;
 		if (this.sortBy === 'similarity') {
 			this.sortBy = 'date';
-			this.sortOrder = 'desc';
+			this.sortOrder = 'asc';
 		}
 		this.#resetSimilarityFilter();
 		this.#saveToUrl();

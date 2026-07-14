@@ -23,6 +23,9 @@
 		return map?.[layout.name];
 	});
 
+	const matchOperatorActive = $derived(filterStore.similarityFilterOperator !== 'gt');
+	const matchValueActive = $derived(filterStore.similarityFilterValue.trim() !== '50');
+
 	$effect(() => {
 		if (!filterStore.scrollToSelectedLayout) return;
 		if (!selectedLayoutSection) return;
@@ -93,9 +96,7 @@
 							style="
 								background-color: var(--input-bg);
 								color: var(--text-primary);
-								border: 1px solid {filterStore.similarityFilterValue.trim()
-								? 'var(--accent)'
-								: 'var(--border)'};
+								border: 1px solid {matchOperatorActive ? 'var(--accent)' : 'var(--border)'};
 								--tw-ring-color: var(--accent);
 							"
 							aria-label="Similarity comparison"
@@ -112,9 +113,7 @@
 							style="
 								background-color: var(--input-bg);
 								color: var(--text-primary);
-								border: 1px solid {filterStore.similarityFilterValue.trim()
-								? 'var(--accent)'
-								: 'var(--border)'};
+								border: 1px solid {matchValueActive ? 'var(--accent)' : 'var(--border)'};
 								--tw-ring-color: var(--accent);
 							"
 							placeholder="—"

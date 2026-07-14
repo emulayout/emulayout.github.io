@@ -3,6 +3,12 @@ import { SPLIT_COL } from '$lib/cmini/keyboard';
 
 export const THUMB_ROW = 3;
 
+/** One character in the monospace layout display; `slot` is `"row,col"` for real keys. */
+export type DisplayCell = {
+	char: string;
+	slot: string | null;
+};
+
 type DisplayKeyInfo = {
 	row: number;
 	col: number;
@@ -76,54 +82,88 @@ function thumbTargetCols(hand: 'left' | 'right', count: number): number[] {
 	return Array.from({ length: count }, (_, i) => start + i);
 }
 
-function joinDisplayRow(slots: string[], splitCol: number, minCol = 0): string {
-	const occupiedMax = slots.reduce(
-		(max, _, i) => (slots[i] !== undefined && slots[i] !== ' ' ? i : max),
+function cell(char: string, slot: string | null = null): DisplayCell {
+	return { char, slot };
+}
+
+function joinDisplayRowCells(
+	slotChars: Array<{ char: string; slot: string | null } | undefined>,
+	splitCol: number,
+	minCol = 0
+): DisplayCell[] {
+	const occupiedMax = slotChars.reduce(
+		(max, entry, i) => (entry !== undefined && entry.char !== ' ' ? i : max),
 		0
 	);
 	const maxCol = Math.max(minCol, occupiedMax);
-	const filled = Array.from({ length: maxCol + 1 }, (_, i) => slots[i] ?? ' ');
-	return filled.slice(0, splitCol).join(' ') + '  ' + filled.slice(splitCol).join(' ');
+	const filled = Array.from({ length: maxCol + 1 }, (_, i) => slotChars[i] ?? { char: ' ', slot: null });
+	const left = filled.slice(0, splitCol);
+	const right = filled.slice(splitCol);
+	const out: DisplayCell[] = [];
+	for (let i = 0; i < left.length; i++) {
+		if (i > 0) out.push(cell(' '));
+		out.push(cell(left[i].char, left[i].slot));
+	}
+	out.push(cell(' '), cell(' '));
+	for (let i = 0; i < right.length; i++) {
+		if (i > 0) out.push(cell(' '));
+		out.push(cell(right[i].char, right[i].slot));
+	}
+	return out;
 }
 
 /**
  * Place thumb keys under index-finger home columns (left col 3, right col 6).
  */
-function formatThumbRow(
+function formatThumbRowCells(
 	entries: DisplayKeyEntry[],
+	rowNum: number,
 	splitCol: number,
 	mainRowMaxCol: number
-): string {
+): DisplayCell[] {
 	const { left, right } = splitThumbEntries(entries, splitCol);
 	const maxCol = Math.max(mainRowMaxCol, 9, ...entries.map((entry) => entry.col));
-	const slots = Array.from({ length: maxCol + 1 }, () => ' ');
+	const slots: Array<{ char: string; slot: string | null } | undefined> = Array.from(
+		{ length: maxCol + 1 },
+		() => undefined
+	);
 
 	const leftCols = thumbTargetCols('left', left.length);
 	const rightCols = thumbTargetCols('right', right.length);
 
 	for (let i = 0; i < left.length; i++) {
-		slots[leftCols[i]] = left[i].key;
+		const entry = left[i];
+		slots[leftCols[i]] = { char: entry.key, slot: `${rowNum},${entry.col}` };
 	}
 	for (let i = 0; i < right.length; i++) {
-		slots[rightCols[i]] = right[i].key;
+		const entry = right[i];
+		slots[rightCols[i]] = { char: entry.key, slot: `${rowNum},${entry.col}` };
 	}
 
-	return joinDisplayRow(slots, splitCol, mainRowMaxCol);
+	for (let i = 0; i < slots.length; i++) {
+		if (!slots[i]) slots[i] = { char: ' ', slot: null };
+	}
+
+	return joinDisplayRowCells(slots, splitCol, mainRowMaxCol);
+}
+
+function indentCells(count: number): DisplayCell[] {
+	return Array.from({ length: count }, () => cell(' '));
 }
 
 /**
- * Computes the monospace display string for a layout from key positions.
+ * Monospace layout rows with optional `"row,col"` slots for per-key styling.
  * Keep in sync with historical sync-time formatting (thumb packing + stagger/angle indents).
  */
-export function computeDisplayValue(
+export function computeDisplayRows(
 	layout: {
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
 		board?: BoardType | string;
 	},
 	splitCol = SPLIT_COL
-): string {
+): DisplayCell[][] {
 	if (!layout.keys || typeof layout.keys !== 'object') {
-		return '';
+		return [];
 	}
 
 	/** @type {Record<number, DisplayKeyEntry[]>} */
@@ -155,34 +195,139 @@ export function computeDisplayValue(
 			const rowNum = Number(row);
 			const entries = rows[rowNum];
 
-			let rowString: string;
+			let rowCells: DisplayCell[];
 			if (rowNum >= THUMB_ROW) {
-				rowString = formatThumbRow(entries, splitCol, mainRowMaxCol);
+				rowCells = formatThumbRowCells(entries, rowNum, splitCol, mainRowMaxCol);
 			} else {
-				const r: string[] = [];
+				const r: Array<{ char: string; slot: string | null } | undefined> = [];
 				for (const { key, col } of entries) {
-					r[col] = key;
+					r[col] = { char: key, slot: `${rowNum},${col}` };
 				}
 				const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
-				const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? ' ');
-				rowString =
-					filled.slice(0, splitCol).join(' ') + '  ' + filled.slice(splitCol).join(' ');
+				const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? { char: ' ', slot: null });
+				rowCells = joinDisplayRowCells(filled, splitCol);
 			}
 
 			if (isAnsiDisplay) {
 				if (rowNum === 1) {
-					return ' ' + rowString;
+					return [...indentCells(1), ...rowCells];
 				} else if (rowNum === 2) {
-					return '  ' + rowString;
+					return [...indentCells(2), ...rowCells];
 				} else if (rowNum >= THUMB_ROW) {
 					// Match home-row indent so thumb keys line up with index columns above
-					return ' ' + rowString;
+					return [...indentCells(1), ...rowCells];
 				}
 			}
 
-			return rowString;
-		})
-		.join('\n');
+			return rowCells;
+		});
 
-	return out.trimStart().replace(/\n+$/, '');
+	// Match computeDisplayValue: trim leading whitespace on first row, drop trailing empty rows.
+	if (out.length === 0) return out;
+
+	const first = out[0];
+	let start = 0;
+	while (start < first.length && first[start].char === ' ' && first[start].slot === null) {
+		start++;
+	}
+	out[0] = first.slice(start);
+
+	while (
+		out.length > 0 &&
+		out[out.length - 1].every((c) => c.char === ' ' && c.slot === null)
+	) {
+		out.pop();
+	}
+
+	return out;
+}
+
+/**
+ * Computes the monospace display string for a layout from key positions.
+ */
+export function computeDisplayValue(
+	layout: {
+		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
+		board?: BoardType | string;
+	},
+	splitCol = SPLIT_COL
+): string {
+	return computeDisplayRows(layout, splitCol)
+		.map((row) => row.map((c) => c.char).join(''))
+		.join('\n');
+}
+
+function rotateBottomRowLeftHandCells(
+	rows: DisplayCell[][],
+	direction: 'left' | 'right'
+): DisplayCell[][] {
+	if (rows.length <= 2) return rows;
+
+	const originalRow = rows[2];
+	const leading: DisplayCell[] = [];
+	const tokens: DisplayCell[] = [];
+	const trailing: DisplayCell[] = [];
+
+	let i = 0;
+	while (i < originalRow.length && originalRow[i].char === ' ' && originalRow[i].slot === null) {
+		leading.push(originalRow[i]);
+		i++;
+	}
+	let j = originalRow.length - 1;
+	while (j >= i && originalRow[j].char === ' ' && originalRow[j].slot === null) {
+		trailing.unshift(originalRow[j]);
+		j--;
+	}
+
+	const middle = originalRow.slice(i, j + 1);
+	for (const c of middle) {
+		if (c.char !== ' ') tokens.push(c);
+	}
+
+	if (tokens.length < SPLIT_COL) return rows;
+
+	const leftHand =
+		direction === 'left'
+			? [tokens[1], tokens[2], tokens[3], tokens[4], tokens[0]]
+			: [tokens[4], tokens[0], tokens[1], tokens[2], tokens[3]];
+	const transformed = [...leftHand, ...tokens.slice(SPLIT_COL)];
+
+	const rebuilt: DisplayCell[] = [...leading];
+	for (let t = 0; t < transformed.length; t++) {
+		rebuilt.push(transformed[t]);
+		if (t === SPLIT_COL - 1) {
+			rebuilt.push(cell(' '), cell(' '));
+		} else if (t < transformed.length - 1) {
+			rebuilt.push(cell(' '));
+		}
+	}
+	rebuilt.push(...trailing);
+
+	return [...rows.slice(0, 2), rebuilt, ...rows.slice(3)];
+}
+
+/** Anglemod left-rotate of bottom-row left hand, preserving slot metadata. */
+export function applyAnglemodToDisplayRows(rows: DisplayCell[][]): DisplayCell[][] {
+	return rotateBottomRowLeftHandCells(rows, 'left');
+}
+
+/** Undo anglemod on structured rows. */
+export function removeAnglemodFromDisplayRows(rows: DisplayCell[][]): DisplayCell[][] {
+	return rotateBottomRowLeftHandCells(rows, 'right');
+}
+
+export function displayRowsToString(rows: DisplayCell[][]): string {
+	return rows.map((row) => row.map((c) => c.char).join('')).join('\n');
+}
+
+/** True when this slot's character differs from the reference layout. */
+export function isSimilarDiffSlot(
+	slot: string | null,
+	char: string,
+	referencePositions: Map<string, string> | null | undefined
+): boolean {
+	if (!slot || !referencePositions) return false;
+	const referenceChar = referencePositions.get(slot);
+	if (referenceChar === undefined) return true;
+	return referenceChar !== char;
 }

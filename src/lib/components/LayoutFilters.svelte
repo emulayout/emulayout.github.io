@@ -26,7 +26,7 @@
 	}
 
 	const { authorList, filteredCount, likesSortAvailable }: Props = $props();
-	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
+	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'asc');
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
 	const displaySettingsActive = $derived(
@@ -267,7 +267,11 @@
 	<div class="flex flex-col sm:flex-row items-center gap-3">
 		<p style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
-			{filterStore.hasSimilarReference ? 'layouts similar to' : 'layouts'}
+			{#if filterStore.hasSimilarReference}
+				layouts <span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
+			{:else}
+				layouts
+			{/if}
 			{#if filterStore.similarReferenceName}
 				<span style="color: var(--text-primary); font-weight: 600;"
 					>{filterStore.similarReferenceName}</span

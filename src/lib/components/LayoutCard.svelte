@@ -27,13 +27,18 @@
 	} from '$lib/layoutStats';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
-		applyAnglemodToDisplayValue,
 		buildKeyMap,
 		buildShiftKeyMap,
-		removeAnglemodFromDisplayValue,
 		type KeyMap
 	} from '$lib/cmini/keyboard';
-	import { computeDisplayValue } from '$lib/layoutDisplay';
+	import {
+		applyAnglemodToDisplayRows,
+		computeDisplayRows,
+		displayRowsToString,
+		isSimilarDiffSlot,
+		removeAnglemodFromDisplayRows,
+		type DisplayCell
+	} from '$lib/layoutDisplay';
 
 	interface Props {
 		layout: LayoutData;
@@ -42,9 +47,18 @@
 		/** Compact stats for the active analyzer only (avoids full statsMaps fan-out). */
 		compactStats?: CompactLayoutStats | CompactCyanophageStats;
 		similarMatchPercent?: number;
+		/** When set, keys that differ from this reference layout are highlighted. */
+		similarDiffPositions?: Map<string, string>;
 	}
 
-	const { layout, authorName, likeCount, compactStats, similarMatchPercent }: Props = $props();
+	const {
+		layout,
+		authorName,
+		likeCount,
+		compactStats,
+		similarMatchPercent,
+		similarDiffPositions
+	}: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let anglemod = $state(false);
@@ -56,15 +70,21 @@
 
 	const isAngleBoard = $derived(layout.board === 'angle');
 
-	const baseDisplayValue = $derived(computeDisplayValue(layout));
+	const baseDisplayRows = $derived(computeDisplayRows(layout));
 
 	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
-	const transformedDisplayValue = $derived.by(() => {
-		if (!anglemod) return baseDisplayValue;
+	const transformedDisplayRows = $derived.by((): DisplayCell[][] => {
+		if (!anglemod) return baseDisplayRows;
 		return isAngleBoard
-			? removeAnglemodFromDisplayValue(baseDisplayValue)
-			: applyAnglemodToDisplayValue(baseDisplayValue);
+			? removeAnglemodFromDisplayRows(baseDisplayRows)
+			: applyAnglemodToDisplayRows(baseDisplayRows);
 	});
+
+	const transformedDisplayValue = $derived(displayRowsToString(transformedDisplayRows));
+
+	const showSimilarDiffs = $derived(
+		Boolean(similarDiffPositions && similarDiffPositions.size > 0 && !isSimilarActive)
+	);
 
 	const updatedLabel = $derived(
 		new Date(layout.updatedAt).toLocaleDateString(undefined, {
@@ -222,7 +242,7 @@
 	data-layout-name={layout.name}
 	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
 	style="background-color: var(--bg-secondary); border: 1px solid {isSimilarActive
-		? 'var(--accent)'
+		? 'var(--similar-diff)'
 		: 'var(--border)'}; height: {cardHeight}px;"
 >
 	<div class="shrink-0 flex flex-col gap-1">
@@ -246,7 +266,7 @@
 			{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}
 				<span
 					class="px-2 py-1 rounded-lg text-sm font-medium tabular-nums shrink-0"
-					style="color: var(--accent); background-color: var(--bg-primary); border: 1px solid var(--border);"
+					style="color: var(--similar-diff); background-color: var(--bg-primary); border: 1px solid var(--border);"
 					title="Position match"
 				>
 					{similarMatchPercent}%
@@ -275,9 +295,27 @@
 	<div
 		class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center px-2"
 	>
-		<pre
-			class="layout-display font-mono whitespace-pre m-0"
-			style="color: var(--text-primary);">{transformedDisplayValue}</pre>
+		{#if showSimilarDiffs}
+			<div
+				class="layout-display layout-display--diff font-mono whitespace-pre m-0"
+				style="color: var(--text-primary);"
+				aria-label="Layout keys; green marks differences from the selected layout"
+			>
+				{#each transformedDisplayRows as row, rowIndex (rowIndex)}
+					<div class="layout-display-row">
+						{#each row as cell, cellIndex (`${rowIndex}:${cellIndex}`)}
+							{#if isSimilarDiffSlot(cell.slot, cell.char, similarDiffPositions)}
+								<span class="layout-key-diff">{cell.char}</span>
+							{:else}{cell.char}{/if}
+						{/each}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<pre
+				class="layout-display font-mono whitespace-pre m-0"
+				style="color: var(--text-primary);">{transformedDisplayValue}</pre>
+		{/if}
 	</div>
 
 	<div class="card-action-divider shrink-0" aria-label="Layout actions">
@@ -287,9 +325,9 @@
 				onclick={handleFindSimilarClick}
 				class="card-action-button"
 				style="
-					background-color: {isSimilarActive ? 'var(--accent)' : 'var(--bg-primary)'};
+					background-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--bg-primary)'};
 					color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
-					border: 1px solid {isSimilarActive ? 'var(--accent)' : 'var(--border)'};
+					border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
 				"
 				title={isSimilarActive
 					? 'Stop showing similar layouts'
@@ -515,5 +553,17 @@
 		background: transparent;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
+	}
+
+	.layout-display--diff {
+		line-height: 1.25;
+	}
+
+	.layout-display-row {
+		white-space: pre;
+	}
+
+	.layout-key-diff {
+		color: var(--similar-diff);
 	}
 </style>

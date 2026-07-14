@@ -98,14 +98,14 @@
 	$effect(() => {
 		if (!likesSortAvailable && filterStore.sortBy === 'likes') {
 			filterStore.setSortBy('date');
-			filterStore.setSortOrder('desc');
+			filterStore.setSortOrder('asc');
 		}
 	});
 
 	$effect(() => {
 		if (!filterStore.hasSimilarReference && filterStore.sortBy === 'similarity') {
 			filterStore.setSortBy('date');
-			filterStore.setSortOrder('desc');
+			filterStore.setSortOrder('asc');
 		}
 	});
 
@@ -199,6 +199,7 @@
 					likesData={resolvedLikesData}
 					{statsMaps}
 					{similarityPercents}
+					similarDiffPositions={similarReferenceLayout.positionBySlot}
 				/>
 			</div>
 		</div>
