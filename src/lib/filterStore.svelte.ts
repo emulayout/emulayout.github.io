@@ -12,6 +12,7 @@ import {
 	isSortOrder,
 	isStatSortBy,
 	isStatSortByForAnalyzer,
+	getDefaultSortOrder,
 	isStatsAnalyzer,
 	parseLegacySortParam,
 	parseStatFilterThreshold,
@@ -155,6 +156,21 @@ export class FilterStore {
 	sortOrder: SortOrder = $state('desc');
 	/** True after the user explicitly changes Order; then order persists across sort fields. */
 	#sortOrderManual = false;
+	/**
+	 * Sort state from just before entering similarity mode (restored if user stays on
+	 * "similarity" sort until exit).
+	 */
+	#sortBeforeSimilar: {
+		sortBy: SortBy;
+		sortOrder: SortOrder;
+		sortOrderManual: boolean;
+	} | null = null;
+	/** Sort to restore when leaving similarity mode (may diverge if user picks another sort). */
+	#exitSortRestore: {
+		sortBy: SortBy;
+		sortOrder: SortOrder;
+		sortOrderManual: boolean;
+	} | null = null;
 	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
@@ -385,7 +401,7 @@ export class FilterStore {
 			} else if (isSortBy(sort)) {
 				this.sortBy = sort;
 				if (!order) {
-					this.sortOrder = this.#defaultSortOrderFor(sort);
+					this.sortOrder = getDefaultSortOrder(sort);
 				}
 			}
 		}
@@ -414,7 +430,7 @@ export class FilterStore {
 			// Match click behavior: default to Similarity when no explicit sort is in the URL
 			if (!sort) {
 				this.sortBy = 'similarity';
-				if (!order) this.sortOrder = 'desc';
+				if (!order) this.sortOrder = getDefaultSortOrder('similarity');
 			}
 		}
 
@@ -667,26 +683,62 @@ export class FilterStore {
 	setSortBy(value: SortBy) {
 		this.sortBy = value;
 		if (!this.#sortOrderManual) {
-			this.sortOrder = this.#defaultSortOrderFor(value);
+			this.sortOrder = getDefaultSortOrder(value);
 		}
+		this.#syncSimilarExitSortRestore(value);
 		this.#saveToUrl();
 	}
 
 	setSortOrder(value: SortOrder) {
 		this.sortOrder = value;
 		this.#sortOrderManual = true;
+		if (this.similarReferenceName !== null && this.sortBy !== 'similarity') {
+			this.#exitSortRestore = this.#snapshotSort();
+		}
 		this.#saveToUrl();
 	}
 
-	#defaultSortOrderFor(sortBy: SortBy): SortOrder {
-		// Date / similarity: best/newest first. Other metrics: ascending (lower is better).
-		return sortBy === 'date' || sortBy === 'similarity' ? 'desc' : 'asc';
+	#snapshotSort(): {
+		sortBy: SortBy;
+		sortOrder: SortOrder;
+		sortOrderManual: boolean;
+	} {
+		return {
+			sortBy: this.sortBy === 'similarity' ? 'date' : this.sortBy,
+			sortOrder: this.sortOrder,
+			sortOrderManual: this.#sortOrderManual
+		};
+	}
+
+	#syncSimilarExitSortRestore(sortBy: SortBy) {
+		if (this.similarReferenceName === null) return;
+		if (sortBy === 'similarity') {
+			// Back on similarity sort → restore the pre-entry snapshot on exit.
+			this.#exitSortRestore = this.#sortBeforeSimilar;
+		} else {
+			this.#exitSortRestore = this.#snapshotSort();
+		}
+	}
+
+	#restoreSortAfterSimilar() {
+		const restore = this.#exitSortRestore ?? this.#sortBeforeSimilar;
+		this.#sortBeforeSimilar = null;
+		this.#exitSortRestore = null;
+		if (restore) {
+			this.sortBy = restore.sortBy === 'similarity' ? 'date' : restore.sortBy;
+			this.sortOrder = restore.sortOrder;
+			this.#sortOrderManual = restore.sortOrderManual;
+			return;
+		}
+		if (this.sortBy === 'similarity') {
+			this.#resetSortToDateDefault();
+		}
 	}
 
 	#resetSortToDateDefault() {
 		this.sortBy = 'date';
 		if (!this.#sortOrderManual) {
-			this.sortOrder = 'desc';
+			this.sortOrder = getDefaultSortOrder('date');
 		}
 	}
 
@@ -864,9 +916,7 @@ export class FilterStore {
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
 		this.similarReferenceName = null;
-		if (this.sortBy === 'similarity') {
-			this.#resetSortToDateDefault();
-		}
+		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
 		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
@@ -911,19 +961,19 @@ export class FilterStore {
 	toggleSimilarReference(name: string) {
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;
-			if (this.sortBy === 'similarity') {
-				this.#resetSortToDateDefault();
-			}
+			this.#restoreSortAfterSimilar();
 			this.#resetSimilarityFilter();
 		} else {
 			const switchingReference = this.similarReferenceName !== null;
+			if (!switchingReference) {
+				this.#sortBeforeSimilar = this.#snapshotSort();
+				this.#exitSortRestore = this.#sortBeforeSimilar;
+				this.#resetSimilarityFilter();
+			}
 			this.similarReferenceName = name;
 			this.sortBy = 'similarity';
 			if (!this.#sortOrderManual) {
-				this.sortOrder = 'desc';
-			}
-			if (!switchingReference) {
-				this.#resetSimilarityFilter();
+				this.sortOrder = getDefaultSortOrder('similarity');
 			}
 			this.scrollToSelectedLayout = true;
 		}
@@ -936,9 +986,7 @@ export class FilterStore {
 
 	clearSimilarReference() {
 		this.similarReferenceName = null;
-		if (this.sortBy === 'similarity') {
-			this.#resetSortToDateDefault();
-		}
+		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.#saveToUrl();
 	}

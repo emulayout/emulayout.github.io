@@ -379,6 +379,30 @@ export function isSortOrder(value: string): value is SortOrder {
 	return value === 'asc' || value === 'desc';
 }
 
+/**
+ * Default Order for a Sort-by field when the user hasn't manually overridden it.
+ * Desc = higher/newer/more is better; Asc = lower is better (errors, effort, etc.).
+ */
+const DESC_DEFAULT_SORT_BY = new Set<SortBy>([
+	'date',
+	'similarity',
+	'likes',
+	'alternate',
+	'roll',
+	'roll-in',
+	'roll-out',
+	'one',
+	'one-in',
+	'one-out',
+	'roll-total',
+	'roll-total-in',
+	'roll-total-out'
+]);
+
+export function getDefaultSortOrder(sortBy: SortBy): SortOrder {
+	return DESC_DEFAULT_SORT_BY.has(sortBy) ? 'desc' : 'asc';
+}
+
 export function isStatSortBy(sortBy: SortBy): sortBy is StatSortBy {
 	return STAT_SORT_FIELD_BY_VALUE.has(sortBy);
 }
