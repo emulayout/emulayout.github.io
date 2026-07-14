@@ -43,14 +43,17 @@
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
+	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
 
 	// Similarity mode reserves one column for the sticky reference panel (sm+).
 	const columns = $derived.by(() => {
 		if (filterStore.hasSimilarReference) {
+			if (xxlUp.current) return 4;
 			if (xlUp.current) return 3;
 			if (lgUp.current) return 2;
 			return 1;
 		}
+		if (xxlUp.current) return 5;
 		if (xlUp.current) return 4;
 		if (lgUp.current) return 3;
 		if (smUp.current) return 2;

@@ -91,7 +91,7 @@
 
 <div class="min-h-screen">
 	<header
-		class="flex items-center justify-between gap-3 py-3 px-3 max-w-7xl mx-auto md:grid md:grid-cols-3"
+		class="flex items-center justify-between gap-3 py-3 px-3 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
 	>
 		<div class="hidden md:block"></div>
 		<a

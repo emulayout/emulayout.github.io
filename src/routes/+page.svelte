@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
+	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import SimilarReferencePanel from '$lib/components/SimilarReferencePanel.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -184,7 +185,7 @@
 	const filteredCount = $derived(filteredLayouts.length);
 </script>
 
-<div class="max-w-7xl mx-auto">
+<div class="max-w-screen-2xl mx-auto">
 	<LayoutFilters {authorList} {filteredCount} {likesSortAvailable} />
 
 	{#if similarReferenceLayout}
@@ -198,6 +199,7 @@
 				/>
 			</aside>
 			<div class="similar-results min-w-0">
+				<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
 				<LayoutCardList
 					layouts={filteredLayouts}
 					{getAuthorName}
@@ -231,6 +233,7 @@
 		.similar-results-layout {
 			/* Sticky reference (1) + one results column (1) */
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			gap: 0.75rem 1rem;
 		}
 
 		.similar-sidebar {
@@ -239,6 +242,11 @@
 			align-self: start;
 			max-height: calc(100vh - 1.5rem);
 			overflow-y: auto;
+		}
+
+		.similar-results {
+			border-left: 1px solid var(--border);
+			padding-left: 1rem;
 		}
 	}
 
@@ -253,6 +261,13 @@
 		.similar-results-layout {
 			/* Sticky reference (1) + three results columns (3) */
 			grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+		}
+	}
+
+	@media (min-width: 1536px) {
+		.similar-results-layout {
+			/* Sticky reference (1) + four results columns (4) */
+			grid-template-columns: minmax(0, 1fr) minmax(0, 4fr);
 		}
 	}
 </style>
