@@ -17,8 +17,6 @@
 
 	const { layout, authorName, likesData = {}, statsMaps = {} }: Props = $props();
 
-	let selectedLayoutSection = $state<HTMLElement | undefined>(undefined);
-
 	const compactStats = $derived.by(() => {
 		const map =
 			filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
@@ -29,49 +27,9 @@
 
 	const matchOperatorActive = $derived(filterStore.similarityFilterOperator !== 'gt');
 	const matchValueActive = $derived(filterStore.similarityFilterValue.trim() !== '50');
-
-	$effect(() => {
-		if (!filterStore.scrollToSelectedLayout) return;
-		if (!selectedLayoutSection) return;
-
-		const section = selectedLayoutSection;
-		let cancelled = false;
-		let attempts = 0;
-
-		function tryScroll() {
-			if (cancelled || !filterStore.scrollToSelectedLayout) return;
-
-			const sectionTop = section.getBoundingClientRect().top + window.scrollY - 10;
-
-			// Only scroll up when the page is below the selected-layout section.
-			if (window.scrollY <= sectionTop) {
-				filterStore.clearScrollToSelectedLayout();
-				return;
-			}
-
-			window.scrollTo(0, Math.max(0, sectionTop));
-			attempts += 1;
-
-			const aligned = Math.abs(section.getBoundingClientRect().top - 10) < 2;
-			if (!aligned && attempts < 12) {
-				requestAnimationFrame(tryScroll);
-				return;
-			}
-
-			filterStore.clearScrollToSelectedLayout();
-		}
-
-		requestAnimationFrame(() => {
-			requestAnimationFrame(tryScroll);
-		});
-
-		return () => {
-			cancelled = true;
-		};
-	});
 </script>
 
-<div id="selected-layout" class="similar-reference-panel" bind:this={selectedLayoutSection}>
+<div id="selected-layout" class="similar-reference-panel">
 	<div class="flex flex-col gap-3">
 		<LayoutCard
 			{layout}

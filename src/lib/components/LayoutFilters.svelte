@@ -36,6 +36,32 @@
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);
 	let displaySettingsContainer = $state<HTMLDivElement | undefined>(undefined);
+	let resultsStatus = $state<HTMLElement | undefined>(undefined);
+
+	// One-shot: after picking a similar layout from deep in the list, scroll up to the
+	// "Showing N layouts…" bar (document flow — not the sticky sidebar).
+	$effect(() => {
+		if (!filterStore.scrollToSelectedLayout || !resultsStatus) return;
+
+		const section = resultsStatus;
+		let cancelled = false;
+
+		// Wait a frame so similar-mode layout (sidebar + shorter list) can settle.
+		const frame = requestAnimationFrame(() => {
+			if (cancelled) return;
+
+			const top = section.getBoundingClientRect().top + window.scrollY - 10;
+			if (window.scrollY > top) {
+				window.scrollTo(0, Math.max(0, top));
+			}
+			filterStore.clearScrollToSelectedLayout();
+		});
+
+		return () => {
+			cancelled = true;
+			cancelAnimationFrame(frame);
+		};
+	});
 
 	$effect(() => {
 		if (!displaySettingsOpen) return;
@@ -263,7 +289,11 @@
 	</div>
 </div>
 
-<div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
+<div
+	bind:this={resultsStatus}
+	id="results-status"
+	class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2"
+>
 	<div class="flex flex-col sm:flex-row items-center gap-3">
 		<p style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
