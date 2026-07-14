@@ -925,8 +925,6 @@ export class FilterStore {
 				this.#resetSimilarityFilter();
 			}
 			this.scrollToSelectedLayout = true;
-			// Reset scroll before virtua applies length-change jumps from a deep offset.
-			window.scrollTo(0, 0);
 		}
 		this.#saveToUrl();
 	}

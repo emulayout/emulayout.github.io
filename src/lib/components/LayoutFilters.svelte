@@ -73,8 +73,15 @@
 		function tryScroll() {
 			if (cancelled || !filterStore.scrollToSelectedLayout) return;
 
-			const top = section.getBoundingClientRect().top + window.scrollY - 10;
-			window.scrollTo(0, Math.max(0, top));
+			const sectionTop = section.getBoundingClientRect().top + window.scrollY - 10;
+
+			// Only scroll up when the page is below the selected-layout section.
+			if (window.scrollY <= sectionTop) {
+				filterStore.clearScrollToSelectedLayout();
+				return;
+			}
+
+			window.scrollTo(0, Math.max(0, sectionTop));
 			attempts += 1;
 
 			const aligned = Math.abs(section.getBoundingClientRect().top - 10) < 2;
