@@ -74,13 +74,37 @@
 		return result;
 	});
 
-	// Force virtualizer to recalculate when columns or card height change
+	// WindowVirtualizer only recomputes its visible range on scroll. Entering similarity
+	// mode remounts it (via virtualizerKey) while scrollY may still be deep in the old
+	// list — if we fire scroll before onMount attaches the listener, the list stays blank
+	// until the user scrolls. Depend on `virtualizer` so this runs after mount.
 	$effect(() => {
+		void virtualizer;
+		void virtualizerKey;
 		void columns;
 		void cardItemSize;
-		requestAnimationFrame(() => {
+		void rows.length;
+		if (!virtualizer) return;
+
+		let cancelled = false;
+		const wake = () => {
+			if (cancelled) return;
+			// scroll updates visible range; resize covers a 0-height viewport on first paint
 			window.dispatchEvent(new Event('scroll'));
+			window.dispatchEvent(new Event('resize'));
+		};
+
+		requestAnimationFrame(() => {
+			wake();
+			requestAnimationFrame(wake);
 		});
+		// Fallback if layout/scroll-to-selected shifts after the rAF pair.
+		const timeoutId = window.setTimeout(wake, 50);
+
+		return () => {
+			cancelled = true;
+			window.clearTimeout(timeoutId);
+		};
 	});
 
 	$effect(() => {
