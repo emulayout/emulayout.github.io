@@ -125,33 +125,6 @@
 				</div>
 				<div>
 					<label
-						for="similarity-board-filter"
-						class="block text-sm mb-1"
-						style="color: var(--text-secondary);"
-					>
-						Board type
-					</label>
-					<select
-						id="similarity-board-filter"
-						value={filterStore.similaritySameBoardOnly ? 'same' : 'any'}
-						onchange={(e) =>
-							filterStore.setSimilaritySameBoardOnly(e.currentTarget.value === 'same')}
-						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-						style="
-							background-color: var(--input-bg);
-							color: var(--text-primary);
-							border: 1px solid {filterStore.similaritySameBoardOnly
-							? 'var(--accent)'
-							: 'var(--border)'};
-							--tw-ring-color: var(--accent);
-						"
-					>
-						<option value="any">Any board type</option>
-						<option value="same">Same board type only</option>
-					</select>
-				</div>
-				<div>
-					<label
 						for="similarity-home-filter"
 						class="block text-sm mb-1"
 						style="color: var(--text-secondary);"

@@ -13,7 +13,6 @@ export interface SimilarLayoutResult {
 }
 
 export interface CompareLayoutOptions {
-	sameBoardOnly?: boolean;
 	weightHomeKeys?: boolean;
 }
 
@@ -34,10 +33,8 @@ function slotWeight(row: number, col: number, weightHomeKeys: boolean): number {
 export function compareLayoutPositions(
 	reference: LayoutData,
 	candidate: LayoutData,
-	{ sameBoardOnly = false, weightHomeKeys = false }: CompareLayoutOptions = {}
+	{ weightHomeKeys = false }: CompareLayoutOptions = {}
 ): PositionMatch | null {
-	if (sameBoardOnly && reference.board !== candidate.board) return null;
-
 	const referencePositions = reference.positionBySlot;
 	const candidatePositions = candidate.positionBySlot;
 
@@ -81,7 +78,6 @@ export function findSimilarLayouts(
 		limit = 30,
 		minComparableSlots = 10,
 		minPercent = 1,
-		sameBoardOnly = false,
 		weightHomeKeys = false
 	}: {
 		limit?: number;
@@ -94,7 +90,7 @@ export function findSimilarLayouts(
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly, weightHomeKeys });
+		const match = compareLayoutPositions(reference, candidate, { weightHomeKeys });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;
@@ -121,7 +117,6 @@ export function buildSimilarityPercentMap(
 	{
 		minComparableSlots = DEFAULT_MIN_COMPARABLE_SLOTS,
 		minPercent = DEFAULT_MIN_PERCENT,
-		sameBoardOnly = false,
 		weightHomeKeys = false
 	}: {
 		minComparableSlots?: number;
@@ -133,7 +128,7 @@ export function buildSimilarityPercentMap(
 	for (const candidate of candidates) {
 		if (candidate.name === reference.name) continue;
 
-		const match = compareLayoutPositions(reference, candidate, { sameBoardOnly, weightHomeKeys });
+		const match = compareLayoutPositions(reference, candidate, { weightHomeKeys });
 		if (!match) continue;
 		if (match.total < minComparableSlots) continue;
 		if (match.percent < minPercent) continue;
