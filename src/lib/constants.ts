@@ -1,15 +1,15 @@
 // LayoutCard dimensions constants
 /** Action toolbar between layout display and stats (`.card-action-divider`). */
 export const LAYOUT_CARD_ACTION_BAR_HEIGHT = 40;
-export const LAYOUT_CARD_HEIGHT = 548; // px — 512 base + action toolbar row
+export const LAYOUT_CARD_HEIGHT = 524; // px — compact padding vs prior 548
 /** Min height for layout display area (~4.5 rows × 14px × 1.5 line-height). */
 export const LAYOUT_DISPLAY_MIN_HEIGHT = 94;
-export const LAYOUT_CARD_ROW_GAP = 16; // px (mb-4 = 1rem = 16px)
-export const LAYOUT_CARD_SECTION_GAP = 12; // px (gap-3 between main sections)
-export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 16; // px (gap-4 between stats and test area)
+export const LAYOUT_CARD_ROW_GAP = 12; // px (mb-3 = 0.75rem = 12px)
+export const LAYOUT_CARD_SECTION_GAP = 8; // px (gap-2 between main sections)
+export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 12; // px (gap-3 between stats and test area)
 /** Matches `.stats-block` min-height in layout.css (14 × 1.35 × 11px). */
 export const LAYOUT_CARD_STATS_HEIGHT = 208;
-/** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-3). */
+/** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-2). */
 export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
 
 export function getLayoutCardHeight(showStats = true, showTestArea = true): number {

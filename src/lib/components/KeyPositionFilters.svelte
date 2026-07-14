@@ -197,7 +197,7 @@
 
 <style>
 	.key-filters-panel {
-		padding: 1rem;
+		padding: 0.75rem;
 		border-radius: 0.75rem;
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
@@ -209,13 +209,13 @@
 
 	.key-filters-header {
 		position: relative;
-		margin: -1rem -1rem 0;
-		padding: 1rem;
+		margin: -0.75rem -0.75rem 0;
+		padding: 0.75rem;
 		min-width: 0;
 	}
 
 	.key-filters-header--collapsed {
-		margin-bottom: -1rem;
+		margin-bottom: -0.75rem;
 	}
 
 	.key-filters-toggle {
@@ -330,7 +330,7 @@
 	.key-filters-grid {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 1rem;
+		gap: 0.75rem;
 		min-width: 0;
 	}
 

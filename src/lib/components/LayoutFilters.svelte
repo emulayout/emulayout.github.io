@@ -130,11 +130,11 @@
 </script>
 
 <!-- Name Search & Author Filter -->
-<div class="grid gap-4 sm:grid-cols-2 mb-4">
+<div class="grid gap-3 sm:grid-cols-2 mb-3">
 	<div>
 		<label
 			for="name-filter"
-			class="block text-sm mb-2 truncate"
+			class="block text-sm mb-1 truncate"
 			style="color: var(--text-secondary);"
 		>
 			Layout name
@@ -158,7 +158,7 @@
 		/>
 	</div>
 	<div>
-		<div class="block text-sm mb-2" style="color: var(--text-secondary);">Author</div>
+		<div class="block text-sm mb-1" style="color: var(--text-secondary);">Author</div>
 		<AuthorSelect
 			authors={authorList}
 			selectedIds={filterStore.selectedAuthors}
@@ -169,7 +169,7 @@
 </div>
 
 <!-- Filter panels -->
-<div class="filters-grid gap-4 mb-8">
+<div class="filters-grid gap-3 mb-4">
 	<div class="grid-area-key-filters">
 		<KeyPositionFilters />
 	</div>
@@ -177,11 +177,11 @@
 		<StatLimitFilters />
 	</div>
 	<div
-		class="p-4 rounded-xl grid-area-other-options flex flex-col items-center"
+		class="p-3 rounded-xl grid-area-other-options flex flex-col items-center"
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
 		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
-			<label class="flex flex-col items-start gap-1 select-none w-40">
+			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 					>Thumb keys:</span
 				>
@@ -202,7 +202,7 @@
 				</select>
 			</label>
 
-			<label class="flex flex-col items-start gap-1 select-none w-40">
+			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span
 					class="text-sm flex items-center gap-1 whitespace-nowrap"
 					style="color: var(--text-secondary);"
@@ -230,7 +230,7 @@
 				</select>
 			</label>
 
-			<label class="flex flex-col items-start gap-1 select-none w-40">
+			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 					>Board type:</span
 				>
@@ -253,7 +253,7 @@
 				</select>
 			</label>
 
-			<label class="flex flex-col items-start gap-1 select-none w-44">
+			<label class="flex flex-col items-start gap-0.5 select-none w-44">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 					>Character set:</span
 				>
@@ -326,9 +326,9 @@
 		filterStore.similarityFilterValue.trim() !== '' ||
 		filterStore.similaritySameBoardOnly ||
 		filterStore.similarityWeightHomeKeys}
-	<div id="selected-layout" class="mb-8" bind:this={selectedLayoutSection}>
-		<p class="text-sm mb-3" style="color: var(--text-secondary);">Selected layout</p>
-		<div class="flex flex-col sm:flex-row gap-4 items-start">
+	<div id="selected-layout" class="mb-4" bind:this={selectedLayoutSection}>
+		<p class="text-sm mb-2" style="color: var(--text-secondary);">Selected layout</p>
+		<div class="flex flex-col sm:flex-row gap-3 items-start">
 			<div class="w-full sm:max-w-sm lg:max-w-xs shrink-0">
 				<LayoutCard
 					layout={similarReferenceLayout}
@@ -338,17 +338,17 @@
 				/>
 			</div>
 			<div
-				class="similarity-filter w-full sm:w-auto p-4 rounded-xl"
+				class="similarity-filter w-full sm:w-auto p-3 rounded-xl"
 				style="background-color: var(--bg-secondary); border: 1px solid {similarityFilterActive
 					? 'var(--accent)'
 					: 'var(--border)'};"
 			>
-				<div class="text-sm font-medium mb-3" style="color: var(--text-secondary);">
+				<div class="text-sm font-medium mb-1" style="color: var(--text-secondary);">
 					Similarity filters
 				</div>
-				<div class="flex flex-col gap-3">
+				<div class="flex flex-col gap-2">
 					<div>
-						<div class="block text-sm mb-2" style="color: var(--text-secondary);">Match percent</div>
+						<div class="block text-sm mb-1" style="color: var(--text-secondary);">Match percent</div>
 						<div class="flex items-center gap-1.5 min-w-0">
 							<select
 								value={filterStore.similarityFilterOperator}
@@ -393,7 +393,7 @@
 					<div>
 						<label
 							for="similarity-board-filter"
-							class="block text-sm mb-2"
+							class="block text-sm mb-1"
 							style="color: var(--text-secondary);"
 						>
 							Board type
@@ -420,7 +420,7 @@
 					<div>
 						<label
 							for="similarity-home-filter"
-							class="block text-sm mb-2"
+							class="block text-sm mb-1"
 							style="color: var(--text-secondary);"
 						>
 							Scoring
@@ -450,8 +450,8 @@
 	</div>
 {/if}
 
-<div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
-	<div class="flex flex-col sm:flex-row items-center gap-4">
+<div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2">
+	<div class="flex flex-col sm:flex-row items-center gap-3">
 		<p style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
 			{filterStore.hasSimilarReference ? 'layouts similar to' : 'layouts'}

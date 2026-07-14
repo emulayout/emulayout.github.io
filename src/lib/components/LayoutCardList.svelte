@@ -112,7 +112,7 @@
 			{@const end = Math.min(startIndex + columns, layouts.length)}
 			{@const rowItems = layouts.slice(startIndex, end)}
 
-			<div class="layout-card-row grid gap-4 mb-4" style="grid-template-columns: repeat({columns}, 1fr);">
+			<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
 				{#each rowItems as layout (layout.name)}
 					<LayoutCard
 						{layout}

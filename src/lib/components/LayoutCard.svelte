@@ -220,7 +220,7 @@
 
 <div
 	data-layout-name={layout.name}
-	class="layout-card px-5 pt-5 pb-3 rounded-xl min-w-0 flex flex-col gap-3"
+	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border); height: {cardHeight}px;"
 >
 	<div class="shrink-0 flex flex-col gap-1">
@@ -271,7 +271,7 @@
 	</div>
 
 	<div
-		class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center"
+		class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center px-2"
 	>
 		<pre
 			class="layout-display font-mono whitespace-pre m-0"
@@ -387,7 +387,7 @@
 	</div>
 
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
-		<div class="card-footer shrink-0 pt-2 flex flex-col gap-4">
+		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
 				{#if statsBlockLines}
 					<div class="stats-block shrink-0">
