@@ -71,6 +71,15 @@
 							inputmode="decimal"
 							value={filterStore.similarityFilterValue}
 							oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
+							onkeydown={(e) => {
+								if (e.key === 'ArrowUp') {
+									e.preventDefault();
+									filterStore.nudgeSimilarityFilterValue(1);
+								} else if (e.key === 'ArrowDown') {
+									e.preventDefault();
+									filterStore.nudgeSimilarityFilterValue(-1);
+								}
+							}}
 							class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
 							style="
 								background-color: var(--input-bg);

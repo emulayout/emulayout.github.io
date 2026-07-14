@@ -155,6 +155,8 @@ export class FilterStore {
 	similarReferenceName: string | null = $state(null);
 	similarityFilterOperator: StatLimitOperator = $state('gt');
 	similarityFilterValue: string = $state('50');
+	/** Debounced match % used by the filter pipeline (input stays on similarityFilterValue). */
+	appliedSimilarityFilterValue: string = $state('50');
 	/** When true, home-row keys count double in similarity scoring. */
 	similarityWeightHomeKeys: boolean = $state(false);
 	/** Mirror matching: excluded (default), optional, or required (mirror-only). */
@@ -253,6 +255,7 @@ export class FilterStore {
 		this.appliedExcludeLeftThumbKeys = this.#cloneThumbKeys(this.excludeLeftThumbKeys);
 		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(this.excludeRightThumbKeys);
 		this.appliedStatLimits = this.#cloneStatLimits(this.statLimits);
+		this.appliedSimilarityFilterValue = this.similarityFilterValue;
 	}
 
 	#scheduleFilterApply() {
@@ -585,7 +588,7 @@ export class FilterStore {
 			url.searchParams.set('similar', this.similarReferenceName);
 			url.searchParams.set(
 				'similarFilter',
-				`${this.similarityFilterOperator}:${this.similarityFilterValue.trim()}`
+				`${this.similarityFilterOperator}:${this.appliedSimilarityFilterValue.trim()}`
 			);
 			if (this.similarityWeightHomeKeys) {
 				url.searchParams.set('similarHome', '1');
@@ -816,6 +819,14 @@ export class FilterStore {
 		this.#scheduleFilterApply();
 	}
 
+	/** Step a stat limit by delta (e.g. ±0.1); uses the same debounce as typing. */
+	nudgeStatLimitValue(key: StatLimitKey, delta: number) {
+		const parsed = Number.parseFloat(this.statLimits[key].value.trim());
+		const current = Number.isFinite(parsed) ? parsed : 0;
+		const next = Math.round((current + delta) * 10) / 10;
+		this.setStatLimitValue(key, String(next));
+	}
+
 	setSimilarityFilterOperator(operator: StatLimitOperator) {
 		this.similarityFilterOperator = operator;
 		this.#saveToUrl();
@@ -823,7 +834,15 @@ export class FilterStore {
 
 	setSimilarityFilterValue(value: string) {
 		this.similarityFilterValue = value;
-		this.#saveToUrl();
+		this.#scheduleFilterApply();
+	}
+
+	/** Step the match % up/down (clamped 0–100); uses the same debounce as typing. */
+	nudgeSimilarityFilterValue(delta: number) {
+		const parsed = Number.parseFloat(this.similarityFilterValue.trim());
+		const current = Number.isFinite(parsed) ? parsed : 50;
+		const next = Math.min(100, Math.max(0, Math.round(current + delta)));
+		this.setSimilarityFilterValue(String(next));
 	}
 
 	setSimilarityWeightHomeKeys(value: boolean) {
@@ -849,6 +868,7 @@ export class FilterStore {
 	#resetSimilarityFilter() {
 		this.similarityFilterOperator = 'gt';
 		this.similarityFilterValue = '50';
+		this.appliedSimilarityFilterValue = '50';
 		this.similarityWeightHomeKeys = false;
 		this.similarityMirrorMode = 'excluded';
 	}

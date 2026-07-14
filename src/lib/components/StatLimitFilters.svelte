@@ -27,6 +27,16 @@
 		filterStore.setStatLimitValue(key, value);
 	}
 
+	function handleValueKeyDown(key: StatLimitKey, event: KeyboardEvent) {
+		if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			filterStore.nudgeStatLimitValue(key, 0.1);
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			filterStore.nudgeStatLimitValue(key, -0.1);
+		}
+	}
+
 	function fieldStyle(active: boolean): string {
 		return `
 			background-color: var(--input-bg);
@@ -111,6 +121,7 @@
 			inputmode="decimal"
 			value={limit.value}
 			oninput={(e) => handleValueInput(field.key, e.currentTarget.value)}
+			onkeydown={(e) => handleValueKeyDown(field.key, e)}
 			class="stat-limit-value"
 			style={fieldStyle(isActive(field.key))}
 			placeholder="—"

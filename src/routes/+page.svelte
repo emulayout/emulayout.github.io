@@ -170,7 +170,7 @@
 				return matchesSimilarityPercentFilter(
 					info.percent,
 					filterStore.similarityFilterOperator,
-					filterStore.similarityFilterValue
+					filterStore.appliedSimilarityFilterValue
 				);
 			});
 		}
