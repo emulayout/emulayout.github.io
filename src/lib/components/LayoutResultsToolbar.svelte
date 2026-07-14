@@ -100,11 +100,10 @@
 		{#if filterStore.hasActiveFilters}
 			<button
 				onclick={() => filterStore.clearAll()}
-				class="results-toolbar-reset text-sm px-3 py-1.5 rounded-lg transition-colors shrink-0"
+				class="text-sm px-3 py-1.5 rounded-lg transition-colors shrink-0"
 				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
 			>
-				<span class="reset-full">Reset filters</span>
-				<span class="reset-short">Reset</span>
+				Reset filters
 			</button>
 		{/if}
 	</div>
@@ -340,10 +339,6 @@
 		min-width: 0;
 	}
 
-	.results-toolbar-reset .reset-short {
-		display: none;
-	}
-
 	.results-toolbar-controls {
 		display: flex;
 		flex-wrap: nowrap;
@@ -369,14 +364,6 @@
 		.results-toolbar-status {
 			flex: 0 0 auto;
 			width: 100%;
-		}
-
-		.results-toolbar-reset .reset-full {
-			display: none;
-		}
-
-		.results-toolbar-reset .reset-short {
-			display: inline;
 		}
 
 		.results-toolbar-controls {
