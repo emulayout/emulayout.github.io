@@ -91,7 +91,7 @@
 
 <div class="min-h-screen">
 	<header
-		class="flex items-center justify-between gap-3 py-3 px-3 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
+		class="flex items-center justify-between gap-3 py-3 px-3 md:px-6 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
 	>
 		<div class="hidden md:block"></div>
 		<a
@@ -186,7 +186,7 @@
 		</div>
 	</header>
 
-	<main class="px-3 pb-4">
+	<main class="px-3 pb-4 md:px-6">
 		{@render children()}
 	</main>
 </div>

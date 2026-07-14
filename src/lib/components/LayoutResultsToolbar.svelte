@@ -326,18 +326,18 @@
 
 	.results-toolbar-status {
 		display: flex;
-		flex-wrap: nowrap;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem 0.75rem;
 		min-width: 0;
-		flex: 1 1 12rem;
+		/* Don't grow — keep Reset tight against the count; spare space sits before Sort/Order */
+		flex: 0 1 auto;
 	}
 
 	.results-toolbar-count {
 		margin: 0;
 		line-height: 1.35;
 		min-width: 0;
-		flex: 1 1 auto;
 	}
 
 	.results-toolbar-reset .reset-short {

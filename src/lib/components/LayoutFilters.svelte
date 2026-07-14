@@ -175,6 +175,12 @@
 				</select>
 			</label>
 
+			<div
+				class="self-stretch w-px shrink-0"
+				style="background-color: var(--border);"
+				aria-hidden="true"
+			></div>
+
 			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 					>Analyzer:</span
