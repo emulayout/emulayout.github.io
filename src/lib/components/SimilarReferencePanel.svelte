@@ -1,6 +1,10 @@
 <script lang="ts">
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
-	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
+	import {
+		filterStore,
+		type SimilarityMirrorMode,
+		type StatLimitOperator
+	} from '$lib/filterStore.svelte';
 	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 
@@ -147,6 +151,36 @@
 					>
 						<option value="equal">All keys count equally</option>
 						<option value="weighted">Home row keys count double</option>
+					</select>
+				</div>
+				<div>
+					<label
+						for="similarity-mirror-filter"
+						class="block text-sm mb-1"
+						style="color: var(--text-secondary);"
+					>
+						Mirror matches
+					</label>
+					<select
+						id="similarity-mirror-filter"
+						value={filterStore.similarityMirrorMode}
+						onchange={(e) =>
+							filterStore.setSimilarityMirrorMode(
+								e.currentTarget.value as SimilarityMirrorMode
+							)}
+						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+						style="
+							background-color: var(--input-bg);
+							color: var(--text-primary);
+							border: 1px solid {filterStore.similarityMirrorMode !== 'excluded'
+							? 'var(--accent)'
+							: 'var(--border)'};
+							--tw-ring-color: var(--accent);
+						"
+					>
+						<option value="excluded">Excluded</option>
+						<option value="optional">Optional</option>
+						<option value="required">Required</option>
 					</select>
 				</div>
 			</div>

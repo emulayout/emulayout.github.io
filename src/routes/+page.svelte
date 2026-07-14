@@ -14,7 +14,8 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import {
-		buildSimilarityPercentMap,
+		buildMirroredPositionMap,
+		buildSimilarityMatchMap,
 		isSimilarLayoutMatch,
 		matchesSimilarityPercentFilter,
 		sortLayoutsBySimilarity
@@ -136,11 +137,17 @@
 			: null
 	);
 
-	const similarityPercents = $derived.by(() => {
-		if (!similarReferenceLayout) return new Map<string, number>();
-		return buildSimilarityPercentMap(similarReferenceLayout, layouts, {
-			weightHomeKeys: filterStore.similarityWeightHomeKeys
+	const similarityMatches = $derived.by(() => {
+		if (!similarReferenceLayout) return new Map();
+		return buildSimilarityMatchMap(similarReferenceLayout, layouts, {
+			weightHomeKeys: filterStore.similarityWeightHomeKeys,
+			mirrorMode: filterStore.similarityMirrorMode
 		});
+	});
+
+	const mirroredReferencePositions = $derived.by(() => {
+		if (!similarReferenceLayout || filterStore.similarityMirrorMode === 'excluded') return null;
+		return buildMirroredPositionMap(similarReferenceLayout.positionBySlot);
 	});
 
 	const filteredLayouts = $derived.by(() => {
@@ -152,15 +159,15 @@
 					!isSimilarLayoutMatch(
 						filterStore.similarReferenceName,
 						layout.name,
-						similarityPercents
+						similarityMatches
 					)
 				) {
 					return false;
 				}
-				const percent = similarityPercents.get(layout.name);
-				if (percent === undefined) return false;
+				const info = similarityMatches.get(layout.name);
+				if (info === undefined) return false;
 				return matchesSimilarityPercentFilter(
-					percent,
+					info.percent,
 					filterStore.similarityFilterOperator,
 					filterStore.similarityFilterValue
 				);
@@ -168,7 +175,7 @@
 		}
 
 		if (filterStore.sortBy === 'similarity') {
-			return sortLayoutsBySimilarity(result, similarityPercents, filterStore.sortOrder);
+			return sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder);
 		}
 
 		return filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
@@ -196,8 +203,9 @@
 					{getAuthorName}
 					likesData={resolvedLikesData}
 					{statsMaps}
-					{similarityPercents}
+					{similarityMatches}
 					similarDiffPositions={similarReferenceLayout.positionBySlot}
+					similarMirrorDiffPositions={mirroredReferencePositions}
 				/>
 			</div>
 		</div>
@@ -207,7 +215,6 @@
 			{getAuthorName}
 			likesData={resolvedLikesData}
 			{statsMaps}
-			{similarityPercents}
 		/>
 	{/if}
 </div>

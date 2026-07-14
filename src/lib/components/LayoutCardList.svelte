@@ -12,15 +12,18 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
+	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 
 	interface Props {
 		layouts: LayoutData[];
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
-		similarityPercents?: Map<string, number>;
-		/** Reference layout slots for per-key diff highlighting in similarity mode. */
+		similarityMatches?: Map<string, SimilarityMatchInfo>;
+		/** Direct reference slots for per-key diff highlighting. */
 		similarDiffPositions?: Map<string, string>;
+		/** Mirrored reference slots when a result's best match is mirrored. */
+		similarMirrorDiffPositions?: Map<string, string> | null;
 	}
 
 	const {
@@ -28,8 +31,9 @@
 		getAuthorName,
 		likesData,
 		statsMaps,
-		similarityPercents = new Map(),
-		similarDiffPositions
+		similarityMatches = new Map(),
+		similarDiffPositions,
+		similarMirrorDiffPositions = null
 	}: Props = $props();
 
 	let virtualizer = $state<{
@@ -152,13 +156,17 @@
 
 			<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
 				{#each rowItems as layout (layout.name)}
+					{@const matchInfo = similarityMatches.get(layout.name)}
 					<LayoutCard
 						{layout}
 						authorName={getAuthorName(layout.user)}
 						likeCount={likesData[layout.name] ?? 0}
 						compactStats={compactStatsFor(layout)}
-						similarMatchPercent={similarityPercents.get(layout.name)}
-						{similarDiffPositions}
+						similarMatchPercent={matchInfo?.percent}
+						similarMirrored={matchInfo?.mirrored ?? false}
+						similarDiffPositions={matchInfo?.mirrored
+							? (similarMirrorDiffPositions ?? similarDiffPositions)
+							: similarDiffPositions}
 					/>
 				{/each}
 			</div>

@@ -31,6 +31,10 @@ import type {
 	ThumbKeyEntry
 } from './layout';
 import { positionSlotKey } from './layoutCodec';
+import {
+	isSimilarityMirrorMode,
+	type SimilarityMirrorMode
+} from './layoutSimilarity';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -38,6 +42,7 @@ export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
 export type { SortBy, SortOrder };
+export type { SimilarityMirrorMode };
 
 export interface StatLimit {
 	operator: StatLimitOperator;
@@ -152,6 +157,8 @@ export class FilterStore {
 	similarityFilterValue: string = $state('50');
 	/** When true, home-row keys count double in similarity scoring. */
 	similarityWeightHomeKeys: boolean = $state(false);
+	/** Mirror matching: excluded (default), optional, or required (mirror-only). */
+	similarityMirrorMode: SimilarityMirrorMode = $state('excluded');
 	sortBy: SortBy = $state('date');
 	sortOrder: SortOrder = $state('desc');
 	/** True after the user explicitly changes Order; then order persists across sort fields. */
@@ -447,6 +454,16 @@ export class FilterStore {
 			this.similarityWeightHomeKeys = true;
 		}
 
+		const similarMirror = url.searchParams.get('similarMirror');
+		if (similarMirror === '1' || similarMirror === 'include') {
+			// Legacy checkbox / Include label
+			this.similarityMirrorMode = 'optional';
+		} else if (similarMirror === 'exclude') {
+			this.similarityMirrorMode = 'excluded';
+		} else if (similarMirror && isSimilarityMirrorMode(similarMirror)) {
+			this.similarityMirrorMode = similarMirror;
+		}
+
 		const statLimits = url.searchParams.get('statLimits');
 		if (statLimits) {
 			this.statLimits = deserializeStatLimits(statLimits);
@@ -572,6 +589,9 @@ export class FilterStore {
 			);
 			if (this.similarityWeightHomeKeys) {
 				url.searchParams.set('similarHome', '1');
+			}
+			if (this.similarityMirrorMode !== 'excluded') {
+				url.searchParams.set('similarMirror', this.similarityMirrorMode);
 			}
 		}
 
@@ -811,6 +831,11 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	setSimilarityMirrorMode(value: SimilarityMirrorMode) {
+		this.similarityMirrorMode = value;
+		this.#saveToUrl();
+	}
+
 	setKeyFiltersExpanded(value: boolean) {
 		this.keyFiltersExpanded = value;
 		this.#saveToUrl();
@@ -825,6 +850,7 @@ export class FilterStore {
 		this.similarityFilterOperator = 'gt';
 		this.similarityFilterValue = '50';
 		this.similarityWeightHomeKeys = false;
+		this.similarityMirrorMode = 'excluded';
 	}
 
 	setNameFilter(value: string) {
