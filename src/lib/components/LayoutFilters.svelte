@@ -146,6 +146,7 @@
 					<option value="all">All</option>
 					<option value="angle">Angle</option>
 					<option value="stagger">Stagger</option>
+					<option value="angle-stagger">Angle + stagger</option>
 					<option value="ortho">Ortho</option>
 					<option value="mini">Mini</option>
 				</select>

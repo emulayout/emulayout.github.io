@@ -354,7 +354,7 @@
 				class="card-action-button"
 				style="
 					background-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--bg-primary)'};
-					color: {isSimilarActive ? 'white' : 'var(--text-primary)'};
+					color: {isSimilarActive ? 'var(--similar-active-fg)' : 'var(--text-primary)'};
 					border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
 				"
 				title={isSimilarActive
@@ -572,7 +572,7 @@
 		display: block;
 		width: 100%;
 		height: 100%;
-		padding: 0.75rem 0.75rem 0;
+		padding: 0.4rem;
 		margin: 0;
 		border: 0;
 		border-radius: 0;

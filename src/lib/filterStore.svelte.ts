@@ -39,7 +39,7 @@ import {
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
-export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'ortho' | 'mini';
+export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
@@ -328,6 +328,7 @@ export class FilterStore {
 			boardType === 'all' ||
 			boardType === 'angle' ||
 			boardType === 'stagger' ||
+			boardType === 'angle-stagger' ||
 			boardType === 'ortho' ||
 			boardType === 'mini'
 		) {
@@ -1312,6 +1313,9 @@ export class FilterStore {
 	// Check if layout matches board type filter
 	#matchesBoardType(layout: LayoutData): boolean {
 		if (this.boardTypeFilter === 'all') return true;
+		if (this.boardTypeFilter === 'angle-stagger') {
+			return layout.board === 'angle' || layout.board === 'stagger';
+		}
 		return layout.board === this.boardTypeFilter;
 	}
 
