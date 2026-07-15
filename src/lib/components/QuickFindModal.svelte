@@ -1,10 +1,10 @@
 <script lang="ts">
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
+	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-	import { lockPageScroll } from '$lib/modalScrollLock';
 	import type { LayoutData } from '$lib/layout';
 
 	interface Props {
@@ -88,25 +88,16 @@
 			return;
 		}
 
-		const unlock = lockPageScroll();
-
 		// Focus after the input mounts
 		requestAnimationFrame(() => searchInput?.focus());
-
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === 'Escape') onClose();
-		}
 
 		function handleRefocus() {
 			focusPreviewFirstAction();
 		}
 
-		document.addEventListener('keydown', handleKeyDown);
 		window.addEventListener('emulayout:quick-find-refocus', handleRefocus);
 		return () => {
-			document.removeEventListener('keydown', handleKeyDown);
 			window.removeEventListener('emulayout:quick-find-refocus', handleRefocus);
-			unlock();
 		};
 	});
 
@@ -156,150 +147,118 @@
 			if (name) showLayout(name);
 		}
 	}
-
-	function blockBackgroundScroll(event: Event) {
-		event.preventDefault();
-	}
 </script>
 
-{#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-		<div
-			class="absolute inset-0 bg-black/40"
-			role="presentation"
+<ModalShell
+	{open}
+	{onClose}
+	labelledBy="quick-find-title"
+	panelClass="max-h-[min(90vh,720px)] max-w-4xl"
+>
+	<div
+		class="flex items-center justify-between border-b px-5 py-4"
+		style="border-color: var(--border);"
+	>
+		<h2 id="quick-find-title" class="text-lg font-semibold" style="color: var(--text-primary);">
+			Quick find
+		</h2>
+		<button
 			onclick={onClose}
-			onwheel={blockBackgroundScroll}
-			ontouchmove={blockBackgroundScroll}
-		></div>
-
-		<div
-			class="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-4xl flex-col rounded-2xl shadow-xl"
-			style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="quick-find-title"
+			class="flex size-8 items-center justify-center rounded-full transition-colors"
+			style="color: var(--text-secondary);"
+			aria-label="Close"
 		>
-			<div
-				class="flex items-center justify-between border-b px-5 py-4"
-				style="border-color: var(--border);"
-			>
-				<h2
-					id="quick-find-title"
-					class="text-lg font-semibold"
-					style="color: var(--text-primary);"
-				>
-					Quick find
-				</h2>
-				<button
-					onclick={onClose}
-					class="flex size-8 items-center justify-center rounded-full transition-colors"
-					style="color: var(--text-secondary);"
-					aria-label="Close"
-				>
-					<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<path d="M18 6L6 18M6 6l12 12" />
-					</svg>
-				</button>
-			</div>
+			<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path d="M18 6L6 18M6 6l12 12" />
+			</svg>
+		</button>
+	</div>
 
-			<div class="border-b px-5 py-3" style="border-color: var(--border);">
-				<input
-					bind:this={searchInput}
-					type="text"
-					bind:value={query}
-					onkeydown={handleSearchKeyDown}
-					placeholder="Search layout names…"
-					class="w-full rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all duration-200"
-					style="
-						background-color: var(--input-bg);
-						color: var(--text-primary);
-						border: 1px solid {query ? 'var(--accent)' : 'var(--border)'};
-						--tw-ring-color: var(--accent);
-					"
-					aria-label="Search layout names"
-					aria-controls="quick-find-results"
-					aria-activedescendant={matches[activeIndex]
-						? `quick-find-option-${activeIndex}`
-						: undefined}
-					role="combobox"
-					aria-expanded={matches.length > 0}
-					aria-autocomplete="list"
-				/>
-			</div>
+	<div class="border-b px-5 py-3" style="border-color: var(--border);">
+		<input
+			bind:this={searchInput}
+			type="text"
+			bind:value={query}
+			onkeydown={handleSearchKeyDown}
+			placeholder="Search layout names…"
+			class="w-full rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all duration-200"
+			style="
+				background-color: var(--input-bg);
+				color: var(--text-primary);
+				border: 1px solid {query ? 'var(--accent)' : 'var(--border)'};
+				--tw-ring-color: var(--accent);
+			"
+			aria-label="Search layout names"
+			aria-controls="quick-find-results"
+			aria-activedescendant={matches[activeIndex] ? `quick-find-option-${activeIndex}` : undefined}
+			role="combobox"
+			aria-expanded={matches.length > 0}
+			aria-autocomplete="list"
+		/>
+	</div>
 
-			<div class="flex min-h-0 flex-1 flex-col md:flex-row">
+	<div class="flex min-h-0 flex-1 flex-col md:flex-row">
+		<div
+			class="min-h-0 flex-1 overflow-y-auto px-5 py-4 md:max-w-sm md:border-r"
+			style="border-color: var(--border);"
+		>
+			{#if layoutsCatalog.layouts.length === 0}
+				<p class="text-sm" style="color: var(--text-secondary);">Loading…</p>
+			{:else if !query.trim()}
+				<p class="text-sm" style="color: var(--text-secondary);">Type to search layout names.</p>
+			{:else if matches.length === 0}
+				<p class="text-sm" style="color: var(--text-secondary);">No layouts match.</p>
+			{:else}
+				<ul
+					bind:this={resultsList}
+					id="quick-find-results"
+					class="space-y-1"
+					role="listbox"
+					aria-label="Matching layouts"
+				>
+					{#each matches as name, index (name)}
+						<li role="option" aria-selected={index === activeIndex} id="quick-find-option-{index}">
+							<button
+								type="button"
+								onclick={() => showLayout(name)}
+								onpointerenter={() => (activeIndex = index)}
+								class="flex w-full items-baseline rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors"
+								style="
+									color: var(--text-primary);
+									background-color: {index === activeIndex ? 'var(--bg-secondary)' : 'transparent'};
+								"
+							>
+								{name}
+							</button>
+						</li>
+					{/each}
+				</ul>
+				{#if matches.length === MAX_RESULTS}
+					<p class="mt-3 text-xs" style="color: var(--text-caption);">
+						Showing first {MAX_RESULTS} matches. Refine your search for more.
+					</p>
+				{/if}
+			{/if}
+		</div>
+
+		<div bind:this={previewPane} class="hidden min-h-0 flex-1 overflow-y-auto p-5 md:block">
+			{#if highlightedLayout}
+				{#key highlightedLayout.name}
+					<LayoutCard
+						layout={highlightedLayout}
+						authorName={highlightedAuthorName}
+						likeCount={0}
+						compactStats={highlightedCompactStats}
+					/>
+				{/key}
+			{:else}
 				<div
-					class="min-h-0 flex-1 overflow-y-auto px-5 py-4 md:max-w-sm md:border-r"
-					style="border-color: var(--border);"
+					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
+					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
 				>
-					{#if layoutsCatalog.layouts.length === 0}
-						<p class="text-sm" style="color: var(--text-secondary);">Loading…</p>
-					{:else if !query.trim()}
-						<p class="text-sm" style="color: var(--text-secondary);">
-							Type to search layout names.
-						</p>
-					{:else if matches.length === 0}
-						<p class="text-sm" style="color: var(--text-secondary);">No layouts match.</p>
-					{:else}
-						<ul
-							bind:this={resultsList}
-							id="quick-find-results"
-							class="space-y-1"
-							role="listbox"
-							aria-label="Matching layouts"
-						>
-							{#each matches as name, index (name)}
-								<li
-									role="option"
-									aria-selected={index === activeIndex}
-									id="quick-find-option-{index}"
-								>
-									<button
-										type="button"
-										onclick={() => showLayout(name)}
-										onpointerenter={() => (activeIndex = index)}
-										class="flex w-full items-baseline rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors"
-										style="
-											color: var(--text-primary);
-											background-color: {index === activeIndex ? 'var(--bg-secondary)' : 'transparent'};
-										"
-									>
-										{name}
-									</button>
-								</li>
-							{/each}
-						</ul>
-						{#if matches.length === MAX_RESULTS}
-							<p class="mt-3 text-xs" style="color: var(--text-caption);">
-								Showing first {MAX_RESULTS} matches. Refine your search for more.
-							</p>
-						{/if}
-					{/if}
+					Highlight a layout to preview it here.
 				</div>
-
-				<div
-					bind:this={previewPane}
-					class="hidden min-h-0 flex-1 overflow-y-auto p-5 md:block"
-				>
-					{#if highlightedLayout}
-						{#key highlightedLayout.name}
-							<LayoutCard
-								layout={highlightedLayout}
-								authorName={highlightedAuthorName}
-								likeCount={0}
-								compactStats={highlightedCompactStats}
-							/>
-						{/key}
-					{:else}
-						<div
-							class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
-							style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
-						>
-							Highlight a layout to preview it here.
-						</div>
-					{/if}
-				</div>
-			</div>
+			{/if}
 		</div>
 	</div>
-{/if}
+</ModalShell>

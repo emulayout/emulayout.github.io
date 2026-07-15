@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CompareLayoutSide from '$lib/components/CompareLayoutSide.svelte';
 	import CompareStatsDiff from '$lib/components/CompareStatsDiff.svelte';
+	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
@@ -10,7 +11,6 @@
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-	import { lockPageScroll } from '$lib/modalScrollLock';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 
 	interface Props {
@@ -63,189 +63,155 @@
 		if (!open) return;
 		void layoutStatsStore.ensureLoaded(compareAnalyzer);
 	});
-
-	$effect(() => {
-		if (!open) return;
-
-		const unlock = lockPageScroll();
-
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === 'Escape') onClose();
-		}
-
-		document.addEventListener('keydown', handleKeyDown);
-		return () => {
-			document.removeEventListener('keydown', handleKeyDown);
-			unlock();
-		};
-	});
-
-	function blockBackgroundScroll(event: Event) {
-		event.preventDefault();
-	}
 </script>
 
-{#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-		<div
-			class="absolute inset-0 bg-black/60"
-			role="presentation"
-			onclick={onClose}
-			onwheel={blockBackgroundScroll}
-			ontouchmove={blockBackgroundScroll}
-		></div>
-
-		<div
-			class="relative z-10 flex max-h-[min(92vh,960px)] w-full max-w-6xl flex-col rounded-2xl shadow-xl"
-			style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="compare-layouts-title"
+<ModalShell
+	{open}
+	{onClose}
+	labelledBy="compare-layouts-title"
+	panelClass="max-h-[min(92vh,960px)] max-w-6xl"
+>
+	<div
+		class="flex items-center justify-between gap-3 border-b px-5 py-4"
+		style="border-color: var(--border);"
+	>
+		<h2
+			id="compare-layouts-title"
+			class="text-lg font-semibold shrink-0"
+			style="color: var(--text-primary);"
 		>
-			<div
-				class="flex items-center justify-between gap-3 border-b px-5 py-4"
-				style="border-color: var(--border);"
-			>
-				<h2
-					id="compare-layouts-title"
-					class="text-lg font-semibold shrink-0"
-					style="color: var(--text-primary);"
+			Compare
+		</h2>
+		<div class="flex items-center gap-2 min-w-0">
+			<label class="flex items-center gap-2 min-w-0 select-none">
+				<span class="text-sm shrink-0 hidden sm:inline" style="color: var(--text-secondary);"
+					>Analyzer</span
 				>
-					Compare
-				</h2>
-				<div class="flex items-center gap-2 min-w-0">
-					<label class="flex items-center gap-2 min-w-0 select-none">
-						<span class="text-sm shrink-0 hidden sm:inline" style="color: var(--text-secondary);"
-							>Analyzer</span
-						>
-						<select
-							value={compareAnalyzer}
-							onchange={(e) =>
-								(compareAnalyzer = e.currentTarget.value as StatsAnalyzer)}
-							class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all max-w-[11rem] sm:max-w-[14rem]"
-							style="
-								background-color: var(--input-bg);
-								color: var(--text-primary);
-								border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							aria-label="Analyzer"
-						>
-							{#each STAT_ANALYZERS as option (option.value)}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
-					</label>
-					<button
-						onclick={onClose}
-						class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
-						style="color: var(--text-secondary);"
-						aria-label="Close"
-					>
-						<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-							<path d="M18 6L6 18M6 6l12 12" />
-						</svg>
-					</button>
-				</div>
-			</div>
-
-			<div class="overflow-y-auto px-5 py-4">
-				{#if !newLayout}
-					<p class="text-sm" style="color: var(--text-secondary);">No layouts selected.</p>
-				{:else if !oldLayout}
-					<div class="compare-single">
-						<CompareLayoutSide
-							layout={newLayout}
-							authorName={getAuthorName(newLayout.user)}
-							likeCount={likesData[newLayout.name] ?? 0}
-							compactStats={activeStatsMap?.[newLayout.name]}
-							analyzer={compareAnalyzer}
-						/>
-						<p class="text-sm mt-3" style="color: var(--text-secondary);">
-							Select a second layout to compare.
-						</p>
-					</div>
-				{:else}
-					<div class="compare-grid">
-						<div class="compare-col">
-							<CompareLayoutSide
-								layout={newLayout}
-								authorName={getAuthorName(newLayout.user)}
-								likeCount={likesData[newLayout.name] ?? 0}
-								compactStats={activeStatsMap?.[newLayout.name]}
-								analyzer={compareAnalyzer}
-							/>
-						</div>
-
-						<div class="compare-vdiv" aria-hidden="true"></div>
-
-						<div class="compare-col compare-col-diff">
-							<button
-								type="button"
-								class="compare-swap-button"
-								style="
-									color: var(--text-secondary);
-									background-color: var(--bg-secondary);
-									border: 1px solid var(--border);
-								"
-								aria-label="Swap layouts"
-								title="Swap layouts"
-								onclick={() => filterStore.swapCompareLayouts()}
-							>
-								<svg
-									class="size-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									aria-hidden="true"
-								>
-									<path d="M8 3L4 7l4 4" />
-									<path d="M4 7h16" />
-									<path d="M16 21l4-4-4-4" />
-									<path d="M20 17H4" />
-								</svg>
-								Swap
-							</button>
-							<div class="compare-stats-heading compare-stats-heading--diff">
-								<span
-									class="compare-diff-caption"
-									style="color: var(--text-secondary);"
-									title="{newLayout.name} − {oldLayout.name}"
-								>
-									{newLayout.name} − {oldLayout.name}
-								</span>
-								<Tooltip
-									text={`Green = better on ${newLayout.name}.\nRed = better on ${oldLayout.name}.`}
-								/>
-							</div>
-							<CompareStatsDiff
-								newCompact={activeStatsMap?.[newLayout.name]}
-								oldCompact={activeStatsMap?.[oldLayout.name]}
-								analyzer={compareAnalyzer}
-								{statsLoading}
-							/>
-						</div>
-
-						<div class="compare-vdiv" aria-hidden="true"></div>
-
-						<div class="compare-col">
-							<CompareLayoutSide
-								layout={oldLayout}
-								authorName={getAuthorName(oldLayout.user)}
-								likeCount={likesData[oldLayout.name] ?? 0}
-								compactStats={activeStatsMap?.[oldLayout.name]}
-								analyzer={compareAnalyzer}
-							/>
-						</div>
-					</div>
-				{/if}
-			</div>
+				<select
+					value={compareAnalyzer}
+					onchange={(e) => (compareAnalyzer = e.currentTarget.value as StatsAnalyzer)}
+					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all max-w-[11rem] sm:max-w-[14rem]"
+					style="
+						background-color: var(--input-bg);
+						color: var(--text-primary);
+						border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
+						--tw-ring-color: var(--accent);
+					"
+					aria-label="Analyzer"
+				>
+					{#each STAT_ANALYZERS as option (option.value)}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</select>
+			</label>
+			<button
+				onclick={onClose}
+				class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
+				style="color: var(--text-secondary);"
+				aria-label="Close"
+			>
+				<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path d="M18 6L6 18M6 6l12 12" />
+				</svg>
+			</button>
 		</div>
 	</div>
-{/if}
+
+	<div class="overflow-y-auto px-5 py-4">
+		{#if !newLayout}
+			<p class="text-sm" style="color: var(--text-secondary);">No layouts selected.</p>
+		{:else if !oldLayout}
+			<div class="compare-single">
+				<CompareLayoutSide
+					layout={newLayout}
+					authorName={getAuthorName(newLayout.user)}
+					likeCount={likesData[newLayout.name] ?? 0}
+					compactStats={activeStatsMap?.[newLayout.name]}
+					analyzer={compareAnalyzer}
+				/>
+				<p class="text-sm mt-3" style="color: var(--text-secondary);">
+					Select a second layout to compare.
+				</p>
+			</div>
+		{:else}
+			<div class="compare-grid">
+				<div class="compare-col">
+					<CompareLayoutSide
+						layout={newLayout}
+						authorName={getAuthorName(newLayout.user)}
+						likeCount={likesData[newLayout.name] ?? 0}
+						compactStats={activeStatsMap?.[newLayout.name]}
+						analyzer={compareAnalyzer}
+					/>
+				</div>
+
+				<div class="compare-vdiv" aria-hidden="true"></div>
+
+				<div class="compare-col compare-col-diff">
+					<button
+						type="button"
+						class="compare-swap-button"
+						style="
+							color: var(--text-secondary);
+							background-color: var(--bg-secondary);
+							border: 1px solid var(--border);
+						"
+						aria-label="Swap layouts"
+						title="Swap layouts"
+						onclick={() => filterStore.swapCompareLayouts()}
+					>
+						<svg
+							class="size-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M8 3L4 7l4 4" />
+							<path d="M4 7h16" />
+							<path d="M16 21l4-4-4-4" />
+							<path d="M20 17H4" />
+						</svg>
+						Swap
+					</button>
+					<div class="compare-stats-heading compare-stats-heading--diff">
+						<span
+							class="compare-diff-caption"
+							style="color: var(--text-secondary);"
+							title="{newLayout.name} − {oldLayout.name}"
+						>
+							{newLayout.name} − {oldLayout.name}
+						</span>
+						<Tooltip
+							text={`Green = better on ${newLayout.name}.\nRed = better on ${oldLayout.name}.`}
+						/>
+					</div>
+					<CompareStatsDiff
+						newCompact={activeStatsMap?.[newLayout.name]}
+						oldCompact={activeStatsMap?.[oldLayout.name]}
+						analyzer={compareAnalyzer}
+						{statsLoading}
+					/>
+				</div>
+
+				<div class="compare-vdiv" aria-hidden="true"></div>
+
+				<div class="compare-col">
+					<CompareLayoutSide
+						layout={oldLayout}
+						authorName={getAuthorName(oldLayout.user)}
+						likeCount={likesData[oldLayout.name] ?? 0}
+						compactStats={activeStatsMap?.[oldLayout.name]}
+						analyzer={compareAnalyzer}
+					/>
+				</div>
+			</div>
+		{/if}
+	</div>
+</ModalShell>
 
 <style>
 	.compare-single {
