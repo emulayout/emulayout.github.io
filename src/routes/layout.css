@@ -29,6 +29,8 @@ html {
 	--input-bg: #ffffff;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
+	--stats-diff-better: var(--similar-diff);
+	--stats-diff-worse: #c44b3a;
 }
 
 .dark {
@@ -50,6 +52,8 @@ html {
 	--input-bg: #1d1a19;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
+	--stats-diff-better: var(--similar-diff);
+	--stats-diff-worse: #e07060;
 }
 
 body {
@@ -112,4 +116,12 @@ textarea::placeholder {
 
 .stats-block-highlight {
 	color: var(--stats-fg-highlight);
+}
+
+.stats-diff-better {
+	color: var(--stats-diff-better);
+}
+
+.stats-diff-worse {
+	color: var(--stats-diff-worse);
 }

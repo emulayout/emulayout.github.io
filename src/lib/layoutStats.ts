@@ -605,6 +605,223 @@ function formatStatLabel(label: string, width?: number): string {
 export interface StatsBlockSegment {
 	text: string;
 	highlight?: boolean;
+	/** Compare-delta tone: improvement for the right layout relative to the left. */
+	tone?: 'better' | 'worse' | 'neutral';
+}
+
+/**
+ * Whether higher values are better for a sortable stat key, or `null` when the
+ * metric is not ranked (hand/finger balance, etc.).
+ */
+export function isHigherBetterStatKey(
+	key: StatSortKey | CyanophageStatSortKey,
+	analyzer: StatsAnalyzer
+): boolean | null {
+	// Hand share is a balance metric, not unilaterally better higher or lower.
+	if (key === 'lh' || key === 'rh') return null;
+
+	const field = ALL_STAT_SORT_FIELDS.find(
+		(entry) => entry.key === key && entry.analyzer === analyzer
+	);
+	if (!field) return null;
+	return getDefaultSortOrder(field.value) === 'desc';
+}
+
+function toneForStatDelta(
+	delta: number,
+	higherIsBetter: boolean | null,
+	display: string
+): 'better' | 'worse' | 'neutral' {
+	if (higherIsBetter === null || delta === 0) return 'neutral';
+	// Match displayed rounding so ±0.00% / ±0.0 stays neutral.
+	const numeric = Number(display.replace(/[+%\s]/g, ''));
+	if (Number.isFinite(numeric) && numeric === 0) return 'neutral';
+	const improved = higherIsBetter ? delta > 0 : delta < 0;
+	return improved ? 'better' : 'worse';
+}
+
+/** Signed percent delta like cmini compare (` 0.16%` / `-0.18%`). */
+function formatStatDiffField(delta: number, width: number): string {
+	const sign = delta > 0 ? ' ' : delta < 0 ? '-' : ' ';
+	const body = `${(Math.abs(delta) * 100).toFixed(2)}%`;
+	return `${sign}${body}`.padStart(width);
+}
+
+function formatCyanophageStatDiffField(delta: number, width: number): string {
+	const sign = delta > 0 ? '+' : delta < 0 ? '-' : ' ';
+	const body = Math.abs(delta).toFixed(1);
+	return `${sign}${body}`.padStart(width);
+}
+
+const CYANOPHAGE_RAW_DIFF_KEYS = new Set<CyanophageStatSortKey>(['totalWordEffort', 'effort']);
+
+function diffSegment(
+	delta: number,
+	width: number,
+	higherIsBetter: boolean | null,
+	format: 'percent' | 'raw'
+): StatsBlockSegment {
+	const text =
+		format === 'raw' ? formatCyanophageStatDiffField(delta, width) : formatStatDiffField(delta, width);
+	return {
+		text,
+		tone: toneForStatDelta(delta, higherIsBetter, text)
+	};
+}
+
+function botDiff(
+	newStats: DerivedBotStats,
+	oldStats: DerivedBotStats,
+	key: StatSortKey,
+	width: number
+): StatsBlockSegment {
+	return diffSegment(
+		newStats[key] - oldStats[key],
+		width,
+		isHigherBetterStatKey(key, DEFAULT_STATS_ANALYZER),
+		'percent'
+	);
+}
+
+function cyanophageDiff(
+	newStats: DerivedCyanophageStats,
+	oldStats: DerivedCyanophageStats,
+	key: CyanophageStatSortKey,
+	width: number
+): StatsBlockSegment {
+	return diffSegment(
+		newStats[key] - oldStats[key],
+		width,
+		isHigherBetterStatKey(key, CYANOPHAGE_ANALYZER),
+		CYANOPHAGE_RAW_DIFF_KEYS.has(key) ? 'raw' : 'percent'
+	);
+}
+
+/**
+ * cmini-style compare block: `new − old` for each displayed bot stat field.
+ * Tones mark whether the delta is an improvement for the new (left) layout.
+ */
+export function buildBotStatsDiffBlockLines(
+	newStats: DerivedBotStats,
+	oldStats: DerivedBotStats
+): StatsBlockSegment[][] {
+	return [
+		[{ text: formatStatLabel('Alt:') }, botDiff(newStats, oldStats, 'alternate', 7)],
+		[
+			{ text: formatStatLabel('Rol:') },
+			botDiff(newStats, oldStats, 'roll', 7),
+			{ text: ' (In/Out: ' },
+			botDiff(newStats, oldStats, 'rollIn', 7),
+			{ text: ' | ' },
+			botDiff(newStats, oldStats, 'rollOut', 7),
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('One:') },
+			botDiff(newStats, oldStats, 'one', 7),
+			{ text: ' (In/Out: ' },
+			botDiff(newStats, oldStats, 'oneIn', 7),
+			{ text: ' | ' },
+			botDiff(newStats, oldStats, 'oneOut', 7),
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('Rtl:') },
+			botDiff(newStats, oldStats, 'rtl', 7),
+			{ text: ' (In/Out: ' },
+			botDiff(newStats, oldStats, 'rtlIn', 7),
+			{ text: ' | ' },
+			botDiff(newStats, oldStats, 'rtlOut', 7),
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('Red:') },
+			botDiff(newStats, oldStats, 'red', 7),
+			{ text: ' (Bad: ' },
+			botDiff(newStats, oldStats, 'badRedirect', 10),
+			{ text: ')' }
+		],
+		[{ text: '' }],
+		[{ text: formatStatLabel('SFB:') }, botDiff(newStats, oldStats, 'sfb', 7)],
+		[
+			{ text: formatStatLabel('SFS:') },
+			botDiff(newStats, oldStats, 'sfs', 7),
+			{ text: ' (Red/Alt: ' },
+			botDiff(newStats, oldStats, 'dsfbRed', 6),
+			{ text: ' | ' },
+			botDiff(newStats, oldStats, 'dsfbAlt', 6),
+			{ text: ')' }
+		],
+		[
+			{ text: formatStatLabel('LH/RH:') },
+			botDiff(newStats, oldStats, 'lh', 7),
+			{ text: ' | ' },
+			botDiff(newStats, oldStats, 'rh', 7)
+		],
+		[{ text: '' }],
+		...LEFT_HAND_FINGERS.map((finger, index) => {
+			const rightFinger = RIGHT_HAND_FINGERS[index];
+			return [
+				{ text: `${finger}: ` },
+				botDiff(newStats, oldStats, finger, 7),
+				{ text: '    ' },
+				{ text: `${rightFinger}: ` },
+				botDiff(newStats, oldStats, rightFinger, 7)
+			];
+		})
+	];
+}
+
+/** Cyanophage compare block: `new − old` (effort metrics use raw units). */
+export function buildCyanophageStatsDiffBlockLines(
+	newStats: DerivedCyanophageStats,
+	oldStats: DerivedCyanophageStats
+): StatsBlockSegment[][] {
+	return [
+		[
+			{ text: formatStatLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'totalWordEffort', 7)
+		],
+		[
+			{ text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'effort', 7)
+		],
+		[{ text: '' }],
+		[
+			{ text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'sfb', 7)
+		],
+		[
+			{ text: formatStatLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'sfs', 7)
+		],
+		[
+			{ text: formatStatLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'lsb', 7)
+		],
+		[
+			{ text: formatStatLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'scissors', 7)
+		],
+		[{ text: '' }],
+		[
+			{ text: formatStatLabel('LH/RH:') },
+			cyanophageDiff(newStats, oldStats, 'lh', 7),
+			{ text: ' | ' },
+			cyanophageDiff(newStats, oldStats, 'rh', 7)
+		],
+		[{ text: '' }],
+		...LEFT_HAND_FINGERS.map((finger, index) => {
+			const rightFinger = RIGHT_HAND_FINGERS[index];
+			return [
+				{ text: `${finger}: ` },
+				cyanophageDiff(newStats, oldStats, finger, 7),
+				{ text: '    ' },
+				{ text: `${rightFinger}: ` },
+				cyanophageDiff(newStats, oldStats, rightFinger, 7)
+			];
+		})
+	];
 }
 
 export function getStatSortHighlightKey(

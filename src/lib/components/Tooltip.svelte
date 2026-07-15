@@ -37,7 +37,7 @@
 				max-width: 16rem;
 				word-wrap: break-word;
 				overflow-wrap: break-word;
-				white-space: normal;
+				white-space: pre-line;
 			"
 		>
 			<span style="display: block; word-wrap: break-word; overflow-wrap: break-word;">{text}</span>

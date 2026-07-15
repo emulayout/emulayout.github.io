@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
@@ -28,6 +29,7 @@
 	const authorsData = $derived(data.authorsData);
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
 	let likesData: LayoutLikesMap | null = $state(null);
+	let showCompareModal = $state(false);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasAppliedStatLimits);
@@ -202,6 +204,10 @@
 
 	const filteredCount = $derived(filteredLayouts.length);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
+
+	$effect(() => {
+		if (compareSelectedCount === 0) showCompareModal = false;
+	});
 </script>
 
 <div class="max-w-screen-2xl mx-auto">
@@ -247,6 +253,7 @@
 				type="button"
 				class="compare-fab-button"
 				aria-label={`Compare ${compareSelectedCount} selected layout${compareSelectedCount === 1 ? '' : 's'}`}
+				onclick={() => (showCompareModal = true)}
 			>
 				Compare
 				<span class="compare-fab-count">{compareSelectedCount}</span>
@@ -271,6 +278,15 @@
 		</div>
 	</div>
 {/if}
+
+<CompareLayoutsModal
+	open={showCompareModal}
+	onClose={() => (showCompareModal = false)}
+	{layouts}
+	{getAuthorName}
+	likesData={resolvedLikesData}
+	{statsMaps}
+/>
 
 <style>
 	.compare-fab {

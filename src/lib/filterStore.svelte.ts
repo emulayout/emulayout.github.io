@@ -1,4 +1,6 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
+import { replaceState } from '$app/navigation';
+import { page } from '$app/state';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
@@ -548,7 +550,7 @@ export class FilterStore {
 		if (this.compareSelectedNames.size > 0) {
 			url.searchParams.set(
 				'compare',
-				Array.from(this.compareSelectedNames).sort((a, b) => a.localeCompare(b)).join(',')
+				Array.from(this.compareSelectedNames).join(',')
 			);
 		}
 
@@ -640,7 +642,7 @@ export class FilterStore {
 			url.searchParams.set('statsOpen', '1');
 		}
 
-		window.history.replaceState({}, '', url.toString());
+		replaceState(url, page.state);
 	}
 
 	#debouncedSave() {
@@ -989,6 +991,18 @@ export class FilterStore {
 
 	clearCompareLayouts() {
 		this.compareSelectedNames.clear();
+		this.#saveToUrl();
+	}
+
+	/** Swap the first two compare selections (new ↔ old). */
+	swapCompareLayouts() {
+		const names = [...this.compareSelectedNames];
+		if (names.length < 2) return;
+		const [first, second, ...rest] = names;
+		this.compareSelectedNames.clear();
+		for (const name of [second, first, ...rest]) {
+			this.compareSelectedNames.add(name);
+		}
 		this.#saveToUrl();
 	}
 
