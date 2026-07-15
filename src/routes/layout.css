@@ -11,14 +11,15 @@ html {
 }
 
 :root {
-	--bg-primary: #f3f0eb;
+	--bg-primary: #f4f4f4;
 	--bg-secondary: #ffffff;
 	--text-primary: #14120f;
 	--text-secondary: #504b45;
 	--text-caption: #7a746c;
-	--accent: #c45532;
-	--accent-hover: #a84528;
-	--similar-diff: #2f6b4f;
+	--accent: #BC5E11;
+	--accent-hover: #BC5E11;
+	--similar-diff: #7AA825;
+	--similar-active-fg: white;
 	--link: #4a6278;
 	--border: #d8d2c9;
 	--key-bg: #faf9f7;
@@ -36,9 +37,10 @@ html {
 	--text-primary: #faf8f5;
 	--text-secondary: #c9c4bc;
 	--text-caption: #949088;
-	--accent: #ff9b6a;
-	--accent-hover: #ffb088;
-	--similar-diff: #5faf7e;
+	--accent: #DC6E14;
+	--accent-hover: #DC6E14;
+	--similar-diff: #92C92C;
+	--similar-active-fg: #100f0d;
 	--link: #9eb4d4;
 	--border: #403c38;
 	--key-bg: #353230;

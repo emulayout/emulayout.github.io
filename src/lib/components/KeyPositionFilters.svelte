@@ -78,7 +78,6 @@
 
 <div
 	class="key-filters-panel"
-	class:key-filters-panel--active={hasActiveFilters}
 >
 	<div
 		class="key-filters-header"
@@ -119,7 +118,7 @@
 				<p
 					class="key-filters-summary"
 					title={activeFilterSummary}
-					style="color: var(--text-primary);"
+					style="color: var(--accent);"
 				>
 					{activeFilterSummary}
 				</p>
@@ -201,10 +200,6 @@
 		border-radius: 0.75rem;
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
-	}
-
-	.key-filters-panel--active {
-		border-color: var(--accent);
 	}
 
 	.key-filters-header {

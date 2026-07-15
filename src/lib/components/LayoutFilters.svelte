@@ -78,7 +78,7 @@
 		class="p-3 rounded-xl grid-area-other-options flex flex-col items-center"
 		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
-		<div class="flex flex-wrap items-start gap-x-6 gap-y-4">
+		<div class="other-options-fields">
 			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 					>Thumb keys:</span
@@ -175,11 +175,7 @@
 				</select>
 			</label>
 
-			<div
-				class="self-stretch w-px shrink-0"
-				style="background-color: var(--border);"
-				aria-hidden="true"
-			></div>
+			<div class="other-options-divider" aria-hidden="true"></div>
 
 			<label class="flex flex-col items-start gap-0.5 select-none w-40">
 				<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
@@ -274,5 +270,33 @@
 		grid-area: otherOptions;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.other-options-fields {
+		container-type: inline-size;
+		width: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: start;
+		justify-content: center;
+		column-gap: 1.5rem;
+		row-gap: 1rem;
+	}
+
+	.other-options-divider {
+		align-self: stretch;
+		width: 1px;
+		flex-shrink: 0;
+		background-color: var(--border);
+	}
+
+	/* Narrow wrap: Character set and Analyzer aren't side-by-side — use a row rule. */
+	@container (max-width: 34rem) {
+		.other-options-divider {
+			flex-basis: 100%;
+			width: auto;
+			height: 1px;
+			align-self: auto;
+		}
 	}
 </style>

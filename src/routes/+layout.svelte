@@ -90,9 +90,10 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<header
-		class="flex items-center justify-between gap-3 py-3 px-3 md:px-6 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
-	>
+	<header class="px-3 py-3 md:px-6">
+		<div
+			class="flex items-center justify-between gap-3 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
+		>
 		<div class="hidden md:block"></div>
 		<a
 			href="/"
@@ -153,16 +154,34 @@
 				aria-label={themeButtonLabel}
 				title={themeButtonLabel}
 			>
-				<!-- Sun icon -->
+				<!-- System / auto icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {dark ? 0 : 1}; transform: rotate({dark
-						? -90
-						: 0}deg) scale({dark ? 0.5 : 1});"
+					style="color: var(--accent); opacity: {themeMode === 'system'
+						? 1
+						: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
 					stroke-width="2"
+					aria-hidden="true"
+				>
+					<rect x="2" y="3" width="20" height="14" rx="2" />
+					<path d="M8 21h8M12 17v4" />
+				</svg>
+				<!-- Sun icon -->
+				<svg
+					class="absolute inset-0 m-auto size-5 transition-all duration-300"
+					style="color: var(--accent); opacity: {themeMode === 'light'
+						? 1
+						: 0}; transform: rotate({themeMode === 'light'
+						? 0
+						: -90}deg) scale({themeMode === 'light' ? 1 : 0.5});"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					aria-hidden="true"
 				>
 					<circle cx="12" cy="12" r="4" />
 					<path
@@ -172,17 +191,21 @@
 				<!-- Moon icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {dark ? 1 : 0}; transform: rotate({dark
+					style="color: var(--accent); opacity: {themeMode === 'dark'
+						? 1
+						: 0}; transform: rotate({themeMode === 'dark'
 						? 0
-						: 90}deg) scale({dark ? 1 : 0.5});"
+						: 90}deg) scale({themeMode === 'dark' ? 1 : 0.5});"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
 					stroke-width="2"
+					aria-hidden="true"
 				>
 					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
 				</svg>
 			</button>
+		</div>
 		</div>
 	</header>
 

@@ -133,7 +133,6 @@
 
 <div
 	class="stat-filters-panel"
-	class:stat-filters-panel--active={hasActiveFilters}
 >
 	<div
 		class="stat-filters-header"
@@ -174,7 +173,7 @@
 				<p
 					class="stat-filters-summary"
 					title={activeFilterSummary}
-					style="color: var(--text-primary);"
+					style="color: var(--accent);"
 				>
 					{activeFilterSummary}
 				</p>
@@ -261,10 +260,6 @@
 		border-radius: 0.75rem;
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
-	}
-
-	.stat-filters-panel--active {
-		border-color: var(--accent);
 	}
 
 	.stat-filters-header {
