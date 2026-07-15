@@ -16,3 +16,17 @@ export function lockPageScroll(): () => void {
 		});
 	};
 }
+
+let openModalCount = 0;
+
+/** Track an open modal; call the returned function when it closes. */
+export function trackOpenModal(): () => void {
+	openModalCount += 1;
+	return () => {
+		openModalCount = Math.max(0, openModalCount - 1);
+	};
+}
+
+export function hasOpenModal(): boolean {
+	return openModalCount > 0;
+}

@@ -2,6 +2,7 @@
 	import './layout.css';
 	import RecentLayoutsModal from '$lib/components/RecentLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
+	import { hasOpenModal } from '$lib/modalScrollLock';
 
 	let { children } = $props();
 
@@ -49,11 +50,12 @@
 			if (event.key.toLowerCase() !== 'k') return;
 			if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
 			event.preventDefault();
-			showRecentLayouts = false;
 			if (showQuickFind) {
 				window.dispatchEvent(new Event('emulayout:quick-find-refocus'));
 				return;
 			}
+			if (hasOpenModal()) return;
+			showRecentLayouts = false;
 			showQuickFind = true;
 		}
 

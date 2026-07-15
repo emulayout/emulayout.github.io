@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { lockPageScroll } from '$lib/modalScrollLock';
+	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
 
 	interface Props {
 		open: boolean;
@@ -13,6 +13,11 @@
 	}
 
 	let { open, onClose, labelledBy, panelClass = '', children }: Props = $props();
+
+	$effect(() => {
+		if (!open) return;
+		return trackOpenModal();
+	});
 
 	$effect(() => {
 		if (!open) return;
