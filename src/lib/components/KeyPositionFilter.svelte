@@ -70,8 +70,33 @@
 	const leftThumbVisibleCount = $derived(visibleThumbSlotCount(leftThumbKeys));
 	const rightThumbVisibleCount = $derived(visibleThumbSlotCount(rightThumbKeys));
 
+	/** Rem widths so every cell in a column matches the widest content in that column. */
+	const columnWidthsRem = $derived.by(() => {
+		const colCount = grid[0]?.length ?? 0;
+		const widths: number[] = [];
+		for (let col = 0; col < colCount; col++) {
+			let maxLen = 2;
+			for (const row of grid) {
+				const len = row[col]?.length ?? 0;
+				if (len > maxLen) maxLen = len;
+			}
+			widths.push(maxLen * 0.6 + 0.8);
+		}
+		return widths;
+	});
+
 	function keyBackgroundColor(rowIdx: number, colIdx: number): string {
 		return isHomeKeySlot(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
+	}
+
+	function cellInputStyle(rowIdx: number, colIdx: number, cell: string): string {
+		return `
+			width: ${columnWidthsRem[colIdx] ?? 2}rem;
+			background-color: ${keyBackgroundColor(rowIdx, colIdx)};
+			color: var(--text-primary);
+			border: 1px solid ${cell ? accentColor : 'var(--border)'};
+			--tw-ring-color: ${accentColor};
+		`;
 	}
 
 	function thumbInputStyle(key: string): string {
@@ -118,14 +143,8 @@
 						type="text"
 						value={cell}
 						oninput={(e) => handleInput(rowIdx, colIdx, e)}
-						class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-						style="
-							width: {Math.max(2, cell.length) * 0.6 + 0.8}rem;
-							background-color: {keyBackgroundColor(rowIdx, colIdx)};
-							color: var(--text-primary);
-							border: 1px solid {cell ? accentColor : 'var(--border)'};
-							--tw-ring-color: {accentColor};
-						"
+						class="h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+						style={cellInputStyle(rowIdx, colIdx, cell)}
 						placeholder="·"
 					/>
 				{/each}
