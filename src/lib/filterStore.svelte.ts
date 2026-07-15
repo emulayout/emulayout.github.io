@@ -150,6 +150,8 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
+	/** Layouts checked for the upcoming compare feature. */
+	compareSelectedNames: SvelteSet<string> = new SvelteSet();
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
@@ -348,6 +350,16 @@ export class FilterStore {
 			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
 		}
 
+		const compare = url.searchParams.get('compare');
+		if (compare) {
+			this.compareSelectedNames = new SvelteSet(
+				compare
+					.split(',')
+					.map((name) => name.trim())
+					.filter(Boolean)
+			);
+		}
+
 		const parseThumbFilters = (value: string | null): string[] =>
 			value ? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, THUMB_KEYS_PER_HAND) : createEmptyThumbKeyFilters();
 
@@ -531,6 +543,13 @@ export class FilterStore {
 
 		if (this.selectedAuthors.size > 0) {
 			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
+		}
+
+		if (this.compareSelectedNames.size > 0) {
+			url.searchParams.set(
+				'compare',
+				Array.from(this.compareSelectedNames).sort((a, b) => a.localeCompare(b)).join(',')
+			);
 		}
 
 		const serializeThumbFilters = (filters: string[]) => filters.filter((k) => k !== '').join('|');
@@ -957,6 +976,33 @@ export class FilterStore {
 	clearAuthors() {
 		this.selectedAuthors.clear();
 		this.#debouncedSave();
+	}
+
+	toggleCompareLayout(name: string) {
+		if (this.compareSelectedNames.has(name)) {
+			this.compareSelectedNames.delete(name);
+		} else {
+			this.compareSelectedNames.add(name);
+		}
+		this.#saveToUrl();
+	}
+
+	clearCompareLayouts() {
+		this.compareSelectedNames.clear();
+		this.#saveToUrl();
+	}
+
+	/** Drop compare selections whose layouts are no longer in the catalog. */
+	pruneCompareLayouts(existingNames: ReadonlySet<string>) {
+		if (this.compareSelectedNames.size === 0) return;
+		let removed = false;
+		for (const name of [...this.compareSelectedNames]) {
+			if (!existingNames.has(name)) {
+				this.compareSelectedNames.delete(name);
+				removed = true;
+			}
+		}
+		if (removed) this.#saveToUrl();
 	}
 
 	clearAll() {

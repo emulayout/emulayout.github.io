@@ -70,6 +70,7 @@
 	let keyMapSource = '';
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
+	const isCompareSelected = $derived(filterStore.compareSelectedNames.has(layout.name));
 
 	const isAngleBoard = $derived(layout.board === 'angle');
 
@@ -264,20 +265,62 @@
 >
 	<div class="shrink-0 flex flex-col gap-1">
 		<div class="flex items-center gap-2 min-w-0">
-			<h2
-				class="text-lg font-semibold flex-1 truncate min-w-0"
-				style="color: var(--text-primary);"
-				title={layout.name}
-			>
-				{layout.name}
-			</h2>
+			<label class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
+				<span class="relative shrink-0 flex items-center">
+					<input
+						type="checkbox"
+						checked={isCompareSelected}
+						onchange={() => filterStore.toggleCompareLayout(layout.name)}
+						class="size-4 rounded appearance-none cursor-pointer relative"
+						style="
+							background-color: {isCompareSelected ? 'var(--accent)' : 'var(--bg-primary)'};
+							border: 1px solid var(--border);
+						"
+						aria-label={`Select ${layout.name} for comparison`}
+					/>
+					{#if isCompareSelected}
+						<svg
+							class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+							style="color: white;"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="3"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+						</svg>
+					{/if}
+				</span>
+				<h2
+					class="text-lg font-semibold truncate min-w-0"
+					style="color: var(--text-primary);"
+					title={layout.name}
+				>
+					{layout.name}
+				</h2>
+			</label>
 			{#if filterStore.showLayoutLikes}
 				<span
-					class="text-xs shrink-0"
+					class="inline-flex items-center gap-1 text-xs tabular-nums shrink-0"
 					style="color: var(--text-secondary);"
-					title={`${likeCount} ${likeCount === 1 ? 'like' : 'likes'}`}
+					title="Likes"
+					aria-label={`${likeCount} likes`}
 				>
-					{likeCount} {likeCount === 1 ? 'like' : 'likes'}
+					<svg
+						class="size-3.5 shrink-0"
+						viewBox="0 0 24 24"
+						fill={likeCount > 1 ? 'currentColor' : 'none'}
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+						/>
+					</svg>
+					{likeCount}
 				</span>
 			{/if}
 			{#if filterStore.hasSimilarReference && !isSimilarActive && similarMatchPercent !== undefined}

@@ -110,13 +110,18 @@
 		}
 	});
 
-	// Drop stale ?similar= from URL when the layout no longer exists
+	// Drop stale ?similar= / ?compare= when those layouts no longer exist
 	$effect(() => {
 		const name = filterStore.similarReferenceName;
 		if (!name || layouts.length === 0) return;
 		if (!layouts.some((layout) => layout.name === name)) {
 			filterStore.clearSimilarReference();
 		}
+	});
+
+	$effect(() => {
+		if (layouts.length === 0 || filterStore.compareSelectedNames.size === 0) return;
+		filterStore.pruneCompareLayouts(new Set(layouts.map((layout) => layout.name)));
 	});
 
 	const authorById = $derived(
@@ -196,6 +201,7 @@
 	});
 
 	const filteredCount = $derived(filteredLayouts.length);
+	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 </script>
 
 <div class="max-w-screen-2xl mx-auto">
@@ -234,7 +240,109 @@
 	{/if}
 </div>
 
+{#if compareSelectedCount > 0}
+	<div class="compare-fab" role="presentation">
+		<div class="compare-fab-group">
+			<button
+				type="button"
+				class="compare-fab-button"
+				aria-label={`Compare ${compareSelectedCount} selected layout${compareSelectedCount === 1 ? '' : 's'}`}
+			>
+				Compare
+				<span class="compare-fab-count">{compareSelectedCount}</span>
+			</button>
+			<button
+				type="button"
+				class="compare-fab-clear"
+				aria-label="Clear compare selection"
+				onclick={() => filterStore.clearCompareLayouts()}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+					aria-hidden="true"
+				>
+					<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+				</svg>
+			</button>
+		</div>
+	</div>
+{/if}
+
 <style>
+	.compare-fab {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 1.25rem;
+		z-index: 40;
+		display: flex;
+		justify-content: center;
+		pointer-events: none;
+	}
+
+	.compare-fab-group {
+		pointer-events: auto;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.compare-fab-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.625rem 1.125rem;
+		border-radius: 9999px;
+		font-size: 0.875rem;
+		font-weight: 600;
+		cursor: pointer;
+		color: var(--similar-active-fg, #fff);
+		background-color: var(--accent);
+		border: 1px solid var(--accent);
+		box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+		transition: filter 0.15s ease;
+	}
+
+	.compare-fab-button:hover {
+		filter: brightness(1.05);
+	}
+
+	.compare-fab-count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 1.5rem;
+		height: 1.5rem;
+		padding: 0 0.375rem;
+		border-radius: 9999px;
+		font-variant-numeric: tabular-nums;
+		background-color: color-mix(in srgb, var(--similar-active-fg, #fff) 18%, transparent);
+	}
+
+	.compare-fab-clear {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 9999px;
+		cursor: pointer;
+		color: var(--text-primary);
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border);
+		box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 12%, transparent);
+		transition: border-color 0.15s ease, color 0.15s ease;
+	}
+
+	.compare-fab-clear:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
 	.similar-results-layout {
 		display: grid;
 		grid-template-columns: 1fr;
