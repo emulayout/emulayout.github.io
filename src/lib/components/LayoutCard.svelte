@@ -64,7 +64,7 @@
 	}: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
-	let anglemod = $state(false);
+	let localAnglemod = $state(false);
 	let keyMapCache: KeyMap | null = null;
 	let shiftKeyMapCache: KeyMap | null = null;
 	let keyMapSource = '';
@@ -72,6 +72,19 @@
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 
 	const isAngleBoard = $derived(layout.board === 'angle');
+
+	// Similarity reference card shares anglemod with scoring; other cards keep local toggle state.
+	const anglemod = $derived(
+		isSimilarActive ? filterStore.similarReferenceAnglemod : localAnglemod
+	);
+
+	function toggleAnglemod() {
+		if (isSimilarActive) {
+			filterStore.setSimilarReferenceAnglemod(!filterStore.similarReferenceAnglemod);
+			return;
+		}
+		localAnglemod = !localAnglemod;
+	}
 
 	const baseDisplayRows = $derived(computeDisplayRows(layout));
 	const baseDisplayValue = $derived(displayRowsToString(baseDisplayRows));
@@ -195,7 +208,7 @@
 	}
 
 	function handleFindSimilarClick() {
-		filterStore.toggleSimilarReference(layout.name);
+		filterStore.toggleSimilarReference(layout.name, anglemod);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -386,7 +399,7 @@
 			</button>
 			<button
 				type="button"
-				onclick={() => (anglemod = !anglemod)}
+				onclick={toggleAnglemod}
 				class="card-action-button"
 				style="
 					background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};

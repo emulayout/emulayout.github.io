@@ -1,4 +1,4 @@
-import { isHomeKeySlot, SPLIT_COL } from '$lib/cmini/keyboard';
+import { isHomeKeySlot, SPLIT_COL, rotateBottomRowLeftHandPositions } from '$lib/cmini/keyboard';
 import type { LayoutData } from '$lib/layout';
 
 export interface PositionMatch {
@@ -122,6 +122,20 @@ export function comparePositionMaps(
 }
 
 /** Compare key positions; only slots present in both layouts are scored. */
+/** Reference with bottom-row anglemod applied to match the selected card's toggle. */
+export function withSimilarReferenceAnglemod(
+	layout: LayoutData,
+	anglemodActive: boolean
+): LayoutData {
+	if (!anglemodActive) return layout;
+	// Angle boards are stored anglemod'd — toggle removes. Others apply on toggle.
+	const direction = layout.board === 'angle' ? 'right' : 'left';
+	return {
+		...layout,
+		positionBySlot: rotateBottomRowLeftHandPositions(layout.positionBySlot, direction)
+	};
+}
+
 export function compareLayoutPositions(
 	reference: LayoutData,
 	candidate: LayoutData,

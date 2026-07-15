@@ -153,6 +153,8 @@ export class FilterStore {
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
+	/** Anglemod toggle on the similarity reference card (affects match scoring/diffs). */
+	similarReferenceAnglemod = $state(false);
 	similarityFilterOperator: StatLimitOperator = $state('gt');
 	similarityFilterValue: string = $state('50');
 	/** Debounced match % used by the filter pipeline (input stays on similarityFilterValue). */
@@ -458,6 +460,10 @@ export class FilterStore {
 			this.similarityWeightHomeKeys = true;
 		}
 
+		if (url.searchParams.get('similarAnglemod') === '1') {
+			this.similarReferenceAnglemod = true;
+		}
+
 		const similarMirror = url.searchParams.get('similarMirror');
 		if (similarMirror === '1' || similarMirror === 'include') {
 			// Legacy checkbox / Include label
@@ -593,6 +599,9 @@ export class FilterStore {
 			);
 			if (this.similarityWeightHomeKeys) {
 				url.searchParams.set('similarHome', '1');
+			}
+			if (this.similarReferenceAnglemod) {
+				url.searchParams.set('similarAnglemod', '1');
 			}
 			if (this.similarityMirrorMode !== 'excluded') {
 				url.searchParams.set('similarMirror', this.similarityMirrorMode);
@@ -872,6 +881,12 @@ export class FilterStore {
 		this.appliedSimilarityFilterValue = '50';
 		this.similarityWeightHomeKeys = false;
 		this.similarityMirrorMode = 'excluded';
+		this.similarReferenceAnglemod = false;
+	}
+
+	setSimilarReferenceAnglemod(value: boolean) {
+		this.similarReferenceAnglemod = value;
+		this.#saveToUrl();
 	}
 
 	setNameFilter(value: string) {
@@ -1005,7 +1020,7 @@ export class FilterStore {
 		this.focusLayoutName = null;
 	}
 
-	toggleSimilarReference(name: string) {
+	toggleSimilarReference(name: string, anglemod = false) {
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;
 			this.#restoreSortAfterSimilar();
@@ -1018,6 +1033,7 @@ export class FilterStore {
 				this.#resetSimilarityFilter();
 			}
 			this.similarReferenceName = name;
+			this.similarReferenceAnglemod = anglemod;
 			this.sortBy = 'similarity';
 			if (!this.#sortOrderManual) {
 				this.sortOrder = getDefaultSortOrder('similarity');

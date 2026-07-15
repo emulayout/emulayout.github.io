@@ -19,7 +19,8 @@
 		buildSimilarityMatchMap,
 		isSimilarLayoutMatch,
 		matchesSimilarityPercentFilter,
-		sortLayoutsBySimilarity
+		sortLayoutsBySimilarity,
+		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
 
 	const { data } = $props();
@@ -138,17 +139,29 @@
 			: null
 	);
 
+	/** Reference positions after the selected card's anglemod toggle (drives match + diffs). */
+	const similarReferenceForCompare = $derived(
+		similarReferenceLayout
+			? withSimilarReferenceAnglemod(
+					similarReferenceLayout,
+					filterStore.similarReferenceAnglemod
+				)
+			: null
+	);
+
 	const similarityMatches = $derived.by(() => {
-		if (!similarReferenceLayout) return new Map();
-		return buildSimilarityMatchMap(similarReferenceLayout, layouts, {
+		if (!similarReferenceForCompare) return new Map();
+		return buildSimilarityMatchMap(similarReferenceForCompare, layouts, {
 			weightHomeKeys: filterStore.similarityWeightHomeKeys,
 			mirrorMode: filterStore.similarityMirrorMode
 		});
 	});
 
 	const mirroredReferencePositions = $derived.by(() => {
-		if (!similarReferenceLayout || filterStore.similarityMirrorMode === 'excluded') return null;
-		return buildMirroredPositionMap(similarReferenceLayout.positionBySlot);
+		if (!similarReferenceForCompare || filterStore.similarityMirrorMode === 'excluded') {
+			return null;
+		}
+		return buildMirroredPositionMap(similarReferenceForCompare.positionBySlot);
 	});
 
 	const filteredLayouts = $derived.by(() => {
@@ -206,7 +219,7 @@
 					likesData={resolvedLikesData}
 					{statsMaps}
 					{similarityMatches}
-					similarDiffPositions={similarReferenceLayout.positionBySlot}
+					similarDiffPositions={similarReferenceForCompare?.positionBySlot}
 					similarMirrorDiffPositions={mirroredReferencePositions}
 				/>
 			</div>

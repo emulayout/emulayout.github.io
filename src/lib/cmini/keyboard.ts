@@ -135,6 +135,33 @@ export function removeAnglemodFromDisplayValue(displayValue: string): string {
 }
 
 /**
+ * Rotate bottom-row left-hand chars among slots `2,0`…`2,4` (same as display anglemod).
+ * Missing slots stay missing after rotation.
+ */
+export function rotateBottomRowLeftHandPositions(
+	positions: Map<string, string>,
+	direction: 'left' | 'right'
+): Map<string, string> {
+	const cols = [0, 1, 2, 3, 4] as const;
+	const values = cols.map((col) => positions.get(`2,${col}`));
+	if (values.every((value) => value === undefined)) return positions;
+
+	const rotated =
+		direction === 'left'
+			? [values[1], values[2], values[3], values[4], values[0]]
+			: [values[4], values[0], values[1], values[2], values[3]];
+
+	const result = new Map(positions);
+	for (let i = 0; i < cols.length; i++) {
+		const slot = `2,${cols[i]}`;
+		const char = rotated[i];
+		if (char === undefined) result.delete(slot);
+		else result.set(slot, char);
+	}
+	return result;
+}
+
+/**
  * Builds a KeyboardEvent.code -> layout character mapping from a layout displayValue.
  */
 export function buildKeyMap(displayValue: string): KeyMap {
