@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		filterStore,
 		type SimilarityMirrorMode,
@@ -41,8 +42,13 @@
 			class="similarity-filter w-full p-3 rounded-xl"
 			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 		>
-			<div class="text-sm font-medium mb-1" style="color: var(--text-secondary);">
-				Similarity filters
+			<div class="flex items-center gap-1.5 mb-1">
+				<span class="text-sm font-medium" style="color: var(--text-secondary);"
+					>Similarity filters</span
+				>
+				<Tooltip
+					text="Compares letter positions against the selected layout. Match percent is how many shared slots have the same character (optionally weighting home-row keys higher). Mirror matches also try a left/right flipped compare. Diff highlighting shows letters that differ from the reference."
+				/>
 			</div>
 			<div class="flex flex-col gap-2">
 				<div>
