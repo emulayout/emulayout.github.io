@@ -981,7 +981,6 @@ export class FilterStore {
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
-		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
 		}
