@@ -92,6 +92,13 @@
 		requestAnimationFrame(() => searchInput?.focus());
 
 		function handleRefocus() {
+			const active = document.activeElement;
+			const inPreview = Boolean(active && previewPane?.contains(active));
+			if (inPreview) {
+				searchInput?.focus();
+				searchInput?.select();
+				return;
+			}
 			focusPreviewFirstAction();
 		}
 
