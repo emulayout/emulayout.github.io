@@ -44,12 +44,18 @@
 		}
 	});
 
-	// Cmd+K (Mac) / Ctrl+K (Windows, Linux) opens quick find
+	// Cmd+K → quick find; Cmd+Shift+K → compare (Ctrl on Windows/Linux)
 	$effect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key.toLowerCase() !== 'k') return;
-			if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
 			event.preventDefault();
+
+			if (event.shiftKey) {
+				openCompareHotkey();
+				return;
+			}
+
 			if (showQuickFind) {
 				window.dispatchEvent(new Event('emulayout:quick-find-refocus'));
 				return;
@@ -71,6 +77,22 @@
 	function openRecentLayouts() {
 		showQuickFind = false;
 		showRecentLayouts = true;
+	}
+
+	function openCompare() {
+		showRecentLayouts = false;
+		showQuickFind = false;
+		window.dispatchEvent(
+			new CustomEvent('emulayout:open-compare', { detail: { mode: 'restore' } })
+		);
+	}
+
+	function openCompareHotkey() {
+		showRecentLayouts = false;
+		showQuickFind = false;
+		window.dispatchEvent(
+			new CustomEvent('emulayout:open-compare', { detail: { mode: 'hotkey' } })
+		);
 	}
 
 	function toggleTheme() {
@@ -129,6 +151,28 @@
 					stroke-width="2"
 				>
 					<path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+				</svg>
+			</button>
+			<button
+				onclick={openCompare}
+				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				aria-label="Compare layouts"
+				title="Compare layouts (⌘⇧K / Ctrl+Shift+K)"
+			>
+				<svg
+					class="absolute inset-0 m-auto size-5 transition-all duration-300"
+					style="color: var(--accent);"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<rect x="3" y="3" width="7" height="18" rx="1" />
+					<rect x="14" y="3" width="7" height="18" rx="1" />
 				</svg>
 			</button>
 			<button

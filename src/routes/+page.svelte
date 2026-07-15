@@ -30,6 +30,9 @@
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
 	let likesData: LayoutLikesMap | null = $state(null);
 	let showCompareModal = $state(false);
+	/** How to seed the compare modal on the next open/session bump. */
+	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
+	let compareSession = $state(0);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasAppliedStatLimits);
@@ -206,7 +209,23 @@
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 
 	$effect(() => {
-		if (compareSelectedCount === 0) showCompareModal = false;
+		function handleOpenCompare(event: Event) {
+			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
+			const mode = detail?.mode ?? 'restore';
+
+			if (mode === 'hotkey' && showCompareModal) {
+				compareSeedMode = 'reset';
+				compareSession += 1;
+				return;
+			}
+
+			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
+			compareSession += 1;
+			showCompareModal = true;
+		}
+
+		window.addEventListener('emulayout:open-compare', handleOpenCompare);
+		return () => window.removeEventListener('emulayout:open-compare', handleOpenCompare);
 	});
 </script>
 
@@ -252,16 +271,17 @@
 			<button
 				type="button"
 				class="compare-fab-button"
-				aria-label={`Compare ${compareSelectedCount} selected layout${compareSelectedCount === 1 ? '' : 's'}`}
-				onclick={() => (showCompareModal = true)}
+				class:compare-fab-button--active={filterStore.showSelectedOnly}
+				aria-pressed={filterStore.showSelectedOnly}
+				aria-label={`${filterStore.showSelectedOnly ? 'Showing' : 'Show'} (${compareSelectedCount}) selected`}
+				onclick={() => filterStore.toggleShowSelectedOnly()}
 			>
-				Compare
-				<span class="compare-fab-count">{compareSelectedCount}</span>
+				{filterStore.showSelectedOnly ? 'Showing' : 'Show'} ({compareSelectedCount}) selected
 			</button>
 			<button
 				type="button"
 				class="compare-fab-clear"
-				aria-label="Clear compare selection"
+				aria-label="Clear selection"
 				onclick={() => filterStore.clearCompareLayouts()}
 			>
 				<svg
@@ -282,6 +302,8 @@
 <CompareLayoutsModal
 	open={showCompareModal}
 	onClose={() => (showCompareModal = false)}
+	seedMode={compareSeedMode}
+	session={compareSession}
 	{layouts}
 	{getAuthorName}
 	likesData={resolvedLikesData}
@@ -310,33 +332,30 @@
 	.compare-fab-button {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.625rem 1.125rem;
+		padding: 0.5rem 0.875rem;
 		border-radius: 9999px;
-		font-size: 0.875rem;
-		font-weight: 600;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
 		cursor: pointer;
-		color: var(--similar-active-fg, #fff);
-		background-color: var(--accent);
-		border: 1px solid var(--accent);
-		box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
-		transition: filter 0.15s ease;
+		color: var(--text-primary);
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border);
+		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+		transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease,
+			box-shadow 0.15s ease;
 	}
 
 	.compare-fab-button:hover {
-		filter: brightness(1.05);
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 
-	.compare-fab-count {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 1.5rem;
-		height: 1.5rem;
-		padding: 0 0.375rem;
-		border-radius: 9999px;
-		font-variant-numeric: tabular-nums;
-		background-color: color-mix(in srgb, var(--similar-active-fg, #fff) 18%, transparent);
+	.compare-fab-button--active {
+		color: var(--accent);
+		border-color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
+		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
 	}
 
 	.compare-fab-clear {
@@ -350,8 +369,8 @@
 		color: var(--text-primary);
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
-		box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 12%, transparent);
-		transition: border-color 0.15s ease, color 0.15s ease;
+		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--text-primary) 18%, transparent);
+		transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 	}
 
 	.compare-fab-clear:hover {

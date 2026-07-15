@@ -29,9 +29,20 @@
 		likeCount: number;
 		compactStats?: CompactLayoutStats | CompactCyanophageStats;
 		analyzer: StatsAnalyzer;
+		/** When set, shows a clear (X) control after likes. */
+		onClear?: () => void;
+		clearButton?: HTMLButtonElement | undefined;
 	}
 
-	let { layout, authorName, likeCount, compactStats, analyzer }: Props = $props();
+	let {
+		layout,
+		authorName,
+		likeCount,
+		compactStats,
+		analyzer,
+		onClear,
+		clearButton = $bindable()
+	}: Props = $props();
 
 	const isCyanophage = $derived(analyzer === CYANOPHAGE_ANALYZER);
 	const displayValue = $derived(displayRowsToString(computeDisplayRows(layout)));
@@ -99,6 +110,33 @@
 				</svg>
 				{likeCount}
 			</span>
+			{#if onClear}
+				<button
+					bind:this={clearButton}
+					type="button"
+					class="compare-side-clear"
+					style="
+						color: var(--text-primary);
+						background-color: var(--bg-secondary);
+						border: 1px solid var(--border);
+					"
+					aria-label="Clear layout"
+					title="Clear layout"
+					onclick={onClear}
+				>
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						aria-hidden="true"
+					>
+						<path d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				</button>
+			{/if}
 		</div>
 		<p class="compare-side-sub layout-meta" style="color: var(--text-secondary);">
 			{layout.board} · by {authorName} · {updatedLabel}
@@ -167,6 +205,29 @@
 		font-size: 0.75rem;
 		font-variant-numeric: tabular-nums;
 		flex-shrink: 0;
+	}
+
+	.compare-side-clear {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.75rem;
+		height: 1.75rem;
+		padding: 0;
+		border-radius: 0.5rem;
+		cursor: pointer;
+		transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+	}
+
+	.compare-side-clear:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.compare-side-clear:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
 	}
 
 	.compare-side-sub {

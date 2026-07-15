@@ -152,8 +152,10 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
-	/** Layouts checked for the upcoming compare feature. */
+	/** Layouts checked for compare / "show selected" filtering. */
 	compareSelectedNames: SvelteSet<string> = new SvelteSet();
+	/** When true, the main list only includes checked layouts (plus other active filters). */
+	showSelectedOnly: boolean = $state(false);
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
@@ -362,6 +364,10 @@ export class FilterStore {
 			);
 		}
 
+		if (url.searchParams.get('showSelected') === '1' && this.compareSelectedNames.size > 0) {
+			this.showSelectedOnly = true;
+		}
+
 		const parseThumbFilters = (value: string | null): string[] =>
 			value ? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, THUMB_KEYS_PER_HAND) : createEmptyThumbKeyFilters();
 
@@ -552,6 +558,10 @@ export class FilterStore {
 				'compare',
 				Array.from(this.compareSelectedNames).join(',')
 			);
+		}
+
+		if (this.showSelectedOnly && this.compareSelectedNames.size > 0) {
+			url.searchParams.set('showSelected', '1');
 		}
 
 		const serializeThumbFilters = (filters: string[]) => filters.filter((k) => k !== '').join('|');
@@ -983,6 +993,9 @@ export class FilterStore {
 	toggleCompareLayout(name: string) {
 		if (this.compareSelectedNames.has(name)) {
 			this.compareSelectedNames.delete(name);
+			if (this.compareSelectedNames.size === 0) {
+				this.showSelectedOnly = false;
+			}
 		} else {
 			this.compareSelectedNames.add(name);
 		}
@@ -991,6 +1004,17 @@ export class FilterStore {
 
 	clearCompareLayouts() {
 		this.compareSelectedNames.clear();
+		this.showSelectedOnly = false;
+		this.#saveToUrl();
+	}
+
+	toggleShowSelectedOnly() {
+		if (this.compareSelectedNames.size === 0) {
+			this.showSelectedOnly = false;
+			this.#saveToUrl();
+			return;
+		}
+		this.showSelectedOnly = !this.showSelectedOnly;
 		this.#saveToUrl();
 	}
 
@@ -1016,6 +1040,10 @@ export class FilterStore {
 				removed = true;
 			}
 		}
+		if (this.compareSelectedNames.size === 0 && this.showSelectedOnly) {
+			this.showSelectedOnly = false;
+			removed = true;
+		}
 		if (removed) this.#saveToUrl();
 	}
 
@@ -1037,6 +1065,7 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
+		this.showSelectedOnly = false;
 		this.similarReferenceName = null;
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
@@ -1164,6 +1193,7 @@ export class FilterStore {
 			this.boardTypeFilter !== 'all' ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0 ||
+			this.showSelectedOnly ||
 			this.similarReferenceName !== null ||
 			this.hasActiveStatLimits
 		);
@@ -1466,6 +1496,7 @@ export class FilterStore {
 			if (!this.#matchesBoardType(l)) return false;
 			if (!this.#matchesName(l)) return false;
 			if (!this.#matchesAuthor(l)) return false;
+			if (this.showSelectedOnly && !this.compareSelectedNames.has(l.name)) return false;
 			if (!this.#matchesInclude(l)) return false;
 			if (!this.#matchesExclude(l)) return false;
 			if (!this.#matchesIncludeOr(l)) return false;
