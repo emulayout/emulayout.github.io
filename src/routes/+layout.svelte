@@ -21,8 +21,10 @@
 	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
 	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
+	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
 
 	const debugBreakpoint = $derived.by(() => {
+		if (xxxlUp.current) return `3xl (≥${TAILWIND_BREAKPOINTS['3xl']})`;
 		if (xxlUp.current) return `2xl (≥${TAILWIND_BREAKPOINTS['2xl']})`;
 		if (xlUp.current) return `xl (≥${TAILWIND_BREAKPOINTS.xl})`;
 		if (lgUp.current) return `lg (≥${TAILWIND_BREAKPOINTS.lg})`;

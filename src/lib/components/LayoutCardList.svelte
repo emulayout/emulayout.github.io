@@ -45,9 +45,11 @@
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
 	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
+	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
 
 	// Stacked sidebar below lg gets full width → 2 columns from sm. Split layout starts at lg.
 	const columns = $derived.by(() => {
+		if (xxxlUp.current) return 5;
 		if (xxlUp.current) return 4;
 		if (xlUp.current) return 3;
 		if (splitUp.current || smUp.current) return 2;
