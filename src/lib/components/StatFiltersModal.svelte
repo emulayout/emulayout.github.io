@@ -17,7 +17,7 @@
 	{open}
 	{onClose}
 	labelledBy="stat-filters-modal-title"
-	panelClass="max-h-[min(92vh,900px)] max-w-5xl"
+	panelClass="max-h-[min(92vh,900px)] max-w-[770px]"
 >
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4"

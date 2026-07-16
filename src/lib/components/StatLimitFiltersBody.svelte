@@ -270,8 +270,8 @@
 		grid-template-columns: 1fr;
 	}
 
-	/* Smallest screens: one field per row everywhere. */
-	@media (max-width: 639px) {
+	/* sm and below: one field per row (same as former <sm layout). */
+	@media (max-width: 767px) {
 		.stat-limit-row {
 			grid-template-columns: 1fr;
 		}
@@ -300,21 +300,6 @@
 	@container stat-limits-hands (max-width: 26rem) {
 		.stat-limits-hand-grid {
 			grid-template-columns: 1fr;
-		}
-	}
-
-	/* Wide enough for general + hands side by side. */
-	@media (min-width: 1280px) {
-		.stat-limits-body:not(.stat-limits-body--stacked) {
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-			align-items: start;
-		}
-
-		.stat-limits-body:not(.stat-limits-body--stacked) .stat-limits-hands {
-			padding-top: 0;
-			padding-left: 1.5rem;
-			border-top: none;
-			border-left: 1px solid var(--border);
 		}
 	}
 </style>

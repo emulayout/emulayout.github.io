@@ -391,6 +391,8 @@
 
 	.results-toolbar {
 		flex-shrink: 0;
+		/* Room for focus rings clipped by results-main overflow:hidden. */
+		padding: 0.25rem;
 	}
 
 	.results-sidebar,
@@ -442,6 +444,8 @@
 			overflow-y: auto;
 			overscroll-behavior: contain;
 			-webkit-overflow-scrolling: touch;
+			/* Room for focus rings — overflow-x:hidden otherwise clips the left edge. */
+			padding-left: 0.25rem;
 			padding-right: 0.25rem;
 		}
 

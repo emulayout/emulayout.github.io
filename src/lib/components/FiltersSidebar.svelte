@@ -92,25 +92,6 @@
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {statFiltersSummary ? 'var(--accent)' : 'var(--border)'};
-			"
-			onclick={() => (showStatFiltersModal = true)}
-		>
-			<span class="filter-open-button-title">Stat filters</span>
-			{#if statFiltersSummary}
-				<span
-					class="filter-open-button-summary"
-					style="color: var(--accent);"
-					title={statFiltersSummary}>{statFiltersSummary}</span
-				>
-			{/if}
-		</button>
-		<button
-			type="button"
-			class="filter-open-button"
-			style="
-				color: var(--text-primary);
-				background-color: var(--bg-secondary);
 				border: 1px solid {keyboardFiltersSummary ? 'var(--accent)' : 'var(--border)'};
 			"
 			onclick={() => (showKeyboardFiltersModal = true)}
@@ -124,7 +105,9 @@
 				>
 			{/if}
 		</button>
+	</div>
 
+	<div class="filters-sidebar-actions">
 		<label class="analyzer-field">
 			<span class="text-sm" style="color: var(--text-secondary);">Analyzer</span>
 			<select
@@ -144,6 +127,26 @@
 				{/each}
 			</select>
 		</label>
+
+		<button
+			type="button"
+			class="filter-open-button"
+			style="
+				color: var(--text-primary);
+				background-color: var(--bg-secondary);
+				border: 1px solid {statFiltersSummary ? 'var(--accent)' : 'var(--border)'};
+			"
+			onclick={() => (showStatFiltersModal = true)}
+		>
+			<span class="filter-open-button-title">Stat filters</span>
+			{#if statFiltersSummary}
+				<span
+					class="filter-open-button-summary"
+					style="color: var(--accent);"
+					title={statFiltersSummary}>{statFiltersSummary}</span
+				>
+			{/if}
+		</button>
 	</div>
 
 	{#if children}
@@ -177,7 +180,7 @@
 	.filters-sidebar {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 1.25rem;
 		min-height: 100%;
 	}
 
@@ -278,7 +281,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
-		margin-top: 0.25rem;
 	}
 
 	.analyzer-select {
