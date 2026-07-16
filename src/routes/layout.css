@@ -39,6 +39,7 @@ html {
 	--key-shadow: #ccc5bc;
 	--key-filter-bg: #faf9f7;
 	--input-bg: #ffffff;
+	--app-bar-shadow-color: #bebebe;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);
@@ -62,6 +63,7 @@ html {
 	--key-shadow: #0a0908;
 	--key-filter-bg: #13120f;
 	--input-bg: #1d1a19;
+	--app-bar-shadow-color: #000000;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);

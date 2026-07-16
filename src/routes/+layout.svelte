@@ -297,6 +297,14 @@
 		min-height: 100dvh;
 	}
 
+	.app-header {
+		position: relative;
+		z-index: 20;
+		background-color: var(--bg-primary);
+		box-shadow: var(--app-bar-shadow-color) 0px -4px 20px 7px;
+		margin-bottom: 1.5rem;
+	}
+
 	/* Desktop split view: lock the shell to the viewport so columns scroll independently. */
 	@media (min-width: 1024px) {
 		.app-shell {
