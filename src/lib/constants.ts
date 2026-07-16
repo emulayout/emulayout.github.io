@@ -47,3 +47,6 @@ export const TAILWIND_BREAKPOINTS = {
 	xl: 1280,
 	'2xl': 1536
 } as const;
+
+/** Side-by-side filter rail + results; below this the sidebar stacks (mobile/medium). */
+export const LAYOUT_SPLIT_MIN_WIDTH = TAILWIND_BREAKPOINTS.lg;

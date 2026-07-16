@@ -24,7 +24,7 @@
 	let displaySettingsContainer = $state<HTMLDivElement | undefined>(undefined);
 	let resultsStatus = $state<HTMLElement | undefined>(undefined);
 
-	// One-shot: after picking a similar layout from deep in the list, scroll up to this bar.
+	// One-shot: after picking a similar layout from deep in the list, bring this bar into view.
 	$effect(() => {
 		if (!filterStore.scrollToSelectedLayout || !resultsStatus) return;
 
@@ -34,10 +34,7 @@
 		const frame = requestAnimationFrame(() => {
 			if (cancelled) return;
 
-			const top = section.getBoundingClientRect().top + window.scrollY - 10;
-			if (window.scrollY > top) {
-				window.scrollTo(0, Math.max(0, top));
-			}
+			section.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 			filterStore.clearScrollToSelectedLayout();
 		});
 
@@ -96,16 +93,6 @@
 				>
 			{/if}
 		</p>
-
-		{#if filterStore.hasActiveFilters}
-			<button
-				onclick={() => filterStore.clearAll()}
-				class="text-sm px-3 py-1.5 rounded-lg transition-colors shrink-0"
-				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
-			>
-				Reset filters
-			</button>
-		{/if}
 	</div>
 
 	<div class="results-toolbar-controls">
@@ -329,7 +316,6 @@
 		align-items: center;
 		gap: 0.5rem 0.75rem;
 		min-width: 0;
-		/* Don't grow — keep Reset tight against the count; spare space sits before Sort/Order */
 		flex: 0 1 auto;
 	}
 

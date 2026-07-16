@@ -14,6 +14,16 @@
 
 	let { open, onClose, labelledBy, panelClass = '', children }: Props = $props();
 
+	/** Escape sticky/overflow stacking contexts so the overlay always paints above page content. */
+	function portalToBody(node: HTMLElement) {
+		document.body.appendChild(node);
+		return {
+			destroy() {
+				node.remove();
+			}
+		};
+	}
+
 	$effect(() => {
 		if (!open) return;
 		return trackOpenModal();
@@ -41,7 +51,10 @@
 </script>
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+	<div
+		use:portalToBody
+		class="fixed inset-0 z-50 flex items-center justify-center p-4"
+	>
 		<div
 			class="modal-backdrop absolute inset-0"
 			role="presentation"

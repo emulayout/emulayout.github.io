@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
+	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
-	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import SimilarReferencePanel from '$lib/components/SimilarReferencePanel.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
@@ -229,21 +229,25 @@
 	});
 </script>
 
-<div class="max-w-screen-2xl mx-auto">
-	<LayoutFilters {authorList} {filteredCount} {likesSortAvailable} />
-
-	{#if similarReferenceLayout}
-		<div class="similar-results-layout">
-			<aside class="similar-sidebar">
-				<SimilarReferencePanel
-					layout={similarReferenceLayout}
-					authorName={getAuthorName(similarReferenceLayout.user)}
-					likesData={resolvedLikesData}
-					{statsMaps}
-				/>
-			</aside>
-			<div class="similar-results min-w-0">
+<div class="page-root">
+	<div class="results-layout">
+		<aside class="results-sidebar">
+			<FiltersSidebar {authorList}>
+				{#if similarReferenceLayout}
+					<SimilarReferencePanel
+						layout={similarReferenceLayout}
+						authorName={getAuthorName(similarReferenceLayout.user)}
+						likesData={resolvedLikesData}
+						{statsMaps}
+					/>
+				{/if}
+			</FiltersSidebar>
+		</aside>
+		<div class="results-main min-w-0">
+			<div class="results-toolbar">
 				<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
+			</div>
+			<div class="results-list">
 				<LayoutCardList
 					layouts={filteredLayouts}
 					{getAuthorName}
@@ -255,14 +259,7 @@
 				/>
 			</div>
 		</div>
-	{:else}
-		<LayoutCardList
-			layouts={filteredLayouts}
-			{getAuthorName}
-			likesData={resolvedLikesData}
-			{statsMaps}
-		/>
-	{/if}
+	</div>
 </div>
 
 {#if compareSelectedCount > 0}
@@ -378,52 +375,95 @@
 		color: var(--accent);
 	}
 
-	.similar-results-layout {
+	.page-root {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		width: 100%;
+	}
+
+	.results-layout {
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 0.75rem;
 		align-items: start;
 	}
 
-	@media (min-width: 640px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + one results column (1) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-			gap: 0.75rem 1rem;
-		}
+	.results-toolbar {
+		flex-shrink: 0;
+	}
 
-		.similar-sidebar {
-			position: sticky;
-			top: 0.75rem;
-			align-self: start;
-			max-height: calc(100vh - 1.5rem);
-			overflow-y: auto;
-		}
+	.results-sidebar,
+	.results-list {
+		scrollbar-width: thin;
+		scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
+	}
 
-		.similar-results {
-			border-left: 1px solid var(--border);
-			padding-left: 1rem;
-		}
+	.results-sidebar::-webkit-scrollbar,
+	.results-list::-webkit-scrollbar,
+	.results-list :global(*)::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	.results-sidebar::-webkit-scrollbar-thumb,
+	.results-list::-webkit-scrollbar-thumb,
+	.results-list :global(*)::-webkit-scrollbar-thumb {
+		background: color-mix(in srgb, var(--text-caption) 70%, transparent);
+		border-radius: 999px;
+	}
+
+	.results-sidebar::-webkit-scrollbar-track,
+	.results-list::-webkit-scrollbar-track,
+	.results-list :global(*)::-webkit-scrollbar-track {
+		background: transparent;
 	}
 
 	@media (min-width: 1024px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + two results columns (2) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		.page-root {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
 		}
-	}
 
-	@media (min-width: 1280px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + three results columns (3) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+		.results-layout {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
+			align-items: stretch;
+			/* Fixed filter rail + flexible results (not 1fr+Nfr — that made the rail huge). */
+			grid-template-columns: 19rem minmax(0, 1fr);
+			gap: 0 1rem;
 		}
-	}
 
-	@media (min-width: 1536px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + four results columns (4) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 4fr);
+		.results-sidebar {
+			min-height: 0;
+			overflow-x: hidden;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			-webkit-overflow-scrolling: touch;
+			padding-right: 0.25rem;
+		}
+
+		.results-main {
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			/* border-left: 1px solid var(--border); */
+			/* padding-left: 1rem; */
+			min-width: 0;
+		}
+
+		.results-list {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.results-list :global(*) {
+			scrollbar-width: thin;
+			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
 		}
 	}
 </style>
