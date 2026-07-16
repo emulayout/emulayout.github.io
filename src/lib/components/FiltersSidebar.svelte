@@ -3,6 +3,11 @@
 	import KeyFiltersModal from '$lib/components/KeyFiltersModal.svelte';
 	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
 	import StatFiltersModal from '$lib/components/StatFiltersModal.svelte';
+	import {
+		getKeyFiltersSummary,
+		getKeyboardFiltersSummary,
+		getStatFiltersSummary
+	} from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		DEFAULT_STATS_ANALYZER,
@@ -22,9 +27,9 @@
 	let showKeyFiltersModal = $state(false);
 	let showKeyboardFiltersModal = $state(false);
 	let showStatFiltersModal = $state(false);
-	const keyFiltersActive = $derived(filterStore.hasActiveKeyFilters);
-	const keyboardFiltersActive = $derived(filterStore.hasActiveKeyboardFilters);
-	const statFiltersActive = $derived(filterStore.hasActiveStatLimits);
+	const keyFiltersSummary = $derived(getKeyFiltersSummary(filterStore));
+	const keyboardFiltersSummary = $derived(getKeyboardFiltersSummary(filterStore));
+	const statFiltersSummary = $derived(getStatFiltersSummary(filterStore));
 </script>
 
 <div class="filters-sidebar">
@@ -70,13 +75,15 @@
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {keyFiltersActive ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid {keyFiltersSummary ? 'var(--accent)' : 'var(--border)'};
 			"
 			onclick={() => (showKeyFiltersModal = true)}
 		>
-			Key filters
-			{#if keyFiltersActive}
-				<span class="filter-open-button-badge" style="color: var(--accent);">Active</span>
+			<span class="filter-open-button-title">Key filters</span>
+			{#if keyFiltersSummary}
+				<span class="filter-open-button-summary" style="color: var(--accent);" title={keyFiltersSummary}
+					>{keyFiltersSummary}</span
+				>
 			{/if}
 		</button>
 		<button
@@ -85,13 +92,17 @@
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {statFiltersActive ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid {statFiltersSummary ? 'var(--accent)' : 'var(--border)'};
 			"
 			onclick={() => (showStatFiltersModal = true)}
 		>
-			Stat filters
-			{#if statFiltersActive}
-				<span class="filter-open-button-badge" style="color: var(--accent);">Active</span>
+			<span class="filter-open-button-title">Stat filters</span>
+			{#if statFiltersSummary}
+				<span
+					class="filter-open-button-summary"
+					style="color: var(--accent);"
+					title={statFiltersSummary}>{statFiltersSummary}</span
+				>
 			{/if}
 		</button>
 		<button
@@ -100,13 +111,17 @@
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {keyboardFiltersActive ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid {keyboardFiltersSummary ? 'var(--accent)' : 'var(--border)'};
 			"
 			onclick={() => (showKeyboardFiltersModal = true)}
 		>
-			Keyboard filters
-			{#if keyboardFiltersActive}
-				<span class="filter-open-button-badge" style="color: var(--accent);">Active</span>
+			<span class="filter-open-button-title">Keyboard filters</span>
+			{#if keyboardFiltersSummary}
+				<span
+					class="filter-open-button-summary"
+					style="color: var(--accent);"
+					title={keyboardFiltersSummary}>{keyboardFiltersSummary}</span
+				>
 			{/if}
 		</button>
 
@@ -224,15 +239,16 @@
 	}
 
 	.filter-open-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.2rem;
 		width: 100%;
 		padding: 0.5rem 0.875rem;
 		border-radius: 0.75rem;
 		font-size: 0.875rem;
 		font-weight: 500;
+		text-align: left;
 		cursor: pointer;
 		transition:
 			border-color 0.15s ease,
@@ -244,9 +260,18 @@
 		color: var(--accent);
 	}
 
-	.filter-open-button-badge {
-		font-size: 0.75rem;
+	.filter-open-button-title {
+		line-height: 1.25;
+	}
+
+	.filter-open-button-summary {
+		max-width: 100%;
+		font-size: 0.6875rem;
 		font-weight: 600;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.analyzer-field {
