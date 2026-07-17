@@ -2,6 +2,7 @@
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import KeyFiltersModal from '$lib/components/KeyFiltersModal.svelte';
 	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
+	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFiltersModal from '$lib/components/StatFiltersModal.svelte';
 	import {
 		getKeyFiltersSummary,
@@ -14,14 +15,16 @@
 		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
+	import type { LayoutData } from '$lib/layout';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
+		layouts: LayoutData[];
 		children?: Snippet;
 	}
 
-	let { authorList, children }: Props = $props();
+	let { authorList, layouts, children }: Props = $props();
 
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	let showKeyFiltersModal = $state(false);
@@ -147,6 +150,10 @@
 				>
 			{/if}
 		</button>
+	</div>
+
+	<div class="filters-sidebar-actions">
+		<SimilarityFilters {layouts} />
 	</div>
 
 	{#if children}

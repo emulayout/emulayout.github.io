@@ -232,7 +232,7 @@
 <div class="page-root">
 	<div class="results-layout">
 		<aside class="results-sidebar">
-			<FiltersSidebar {authorList}>
+			<FiltersSidebar {authorList} {layouts}>
 				{#if similarReferenceLayout}
 					<SimilarReferencePanel
 						layout={similarReferenceLayout}
