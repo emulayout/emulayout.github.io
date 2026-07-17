@@ -192,7 +192,7 @@
 			style="
 				background-color: var(--input-bg);
 				color: var(--text-primary);
-				border: 1px solid {query ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid var(--border);
 				--tw-ring-color: var(--accent);
 			"
 			aria-label="Search layout names"

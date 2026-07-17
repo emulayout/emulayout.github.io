@@ -4,14 +4,12 @@
 	import { getStatFilterSectionSummary, type StatFilterSection } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
-		DEFAULT_STATS_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
 
 	let openSection = $state<StatFilterSection | null>(null);
 
-	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	const generalSummary = $derived(getStatFilterSectionSummary(filterStore, 'general'));
 	const handsSummary = $derived(getStatFilterSectionSummary(filterStore, 'hands'));
 	const hasActive = $derived(Boolean(generalSummary || handsSummary));
@@ -53,7 +51,7 @@
 			style="
 				background-color: var(--input-bg);
 				color: var(--text-primary);
-				border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid var(--border);
 				--tw-ring-color: var(--accent);
 			"
 			aria-label="Analyzer"

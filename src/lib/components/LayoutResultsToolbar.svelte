@@ -13,11 +13,7 @@
 
 	const { filteredCount, likesSortAvailable }: Props = $props();
 
-	const sortIsDefault = $derived(filterStore.sortBy === 'date' && filterStore.sortOrder === 'desc');
 	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
-	const displaySettingsActive = $derived(
-		filterStore.hideLayoutStats || filterStore.hideLayoutTestArea || filterStore.hideLayoutLikes
-	);
 
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);
@@ -107,7 +103,7 @@
 				style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);
-					border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
+					border: 1px solid var(--border);
 					--tw-ring-color: var(--accent);
 				"
 			>
@@ -140,7 +136,7 @@
 				style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);
-					border: 1px solid {!sortIsDefault ? 'var(--accent)' : 'var(--border)'};
+					border: 1px solid var(--border);
 					--tw-ring-color: var(--accent);
 				"
 			>
@@ -163,9 +159,7 @@
 				style="
 					background-color: var(--bg-secondary);
 					color: var(--text-primary);
-					border: 1px solid {displaySettingsActive || displaySettingsOpen
-					? 'var(--accent)'
-					: 'var(--border)'};
+					border: 1px solid {displaySettingsOpen ? 'var(--accent)' : 'var(--border)'};
 					--tw-ring-color: var(--accent);
 				"
 				aria-label="Display settings"

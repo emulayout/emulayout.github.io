@@ -89,12 +89,12 @@
 		return isHomeKeySlot(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
 	}
 
-	function cellInputStyle(rowIdx: number, colIdx: number, cell: string): string {
+	function cellInputStyle(rowIdx: number, colIdx: number): string {
 		return `
 			width: ${columnWidthsRem[colIdx] ?? 2}rem;
 			background-color: ${keyBackgroundColor(rowIdx, colIdx)};
 			color: var(--text-primary);
-			border: 1px solid ${cell ? accentColor : 'var(--border)'};
+			border: 1px solid var(--border);
 			--tw-ring-color: ${accentColor};
 		`;
 	}
@@ -104,7 +104,7 @@
 			width: ${Math.max(2, key.length) * 0.6 + 0.8}rem;
 			background-color: var(--key-bg);
 			color: var(--text-primary);
-			border: 1px solid ${key ? accentColor : 'var(--border)'};
+			border: 1px solid var(--border);
 			--tw-ring-color: ${accentColor};
 		`;
 	}
@@ -144,7 +144,7 @@
 						value={cell}
 						oninput={(e) => handleInput(rowIdx, colIdx, e)}
 						class="h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-						style={cellInputStyle(rowIdx, colIdx, cell)}
+						style={cellInputStyle(rowIdx, colIdx)}
 						placeholder="·"
 					/>
 				{/each}

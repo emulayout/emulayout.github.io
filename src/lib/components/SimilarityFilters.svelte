@@ -15,8 +15,6 @@
 	let { layouts }: Props = $props();
 
 	const hasReference = $derived(filterStore.hasSimilarReference);
-	const matchOperatorActive = $derived(filterStore.similarityFilterOperator !== 'gt');
-	const matchValueActive = $derived(filterStore.similarityFilterValue.trim() !== '50');
 
 	function selectReference(name: string) {
 		filterStore.toggleSimilarReference(name);
@@ -57,7 +55,7 @@
 						style="
 							background-color: var(--input-bg);
 							color: var(--text-primary);
-							border: 1px solid {matchOperatorActive ? 'var(--accent)' : 'var(--border)'};
+							border: 1px solid var(--border);
 							--tw-ring-color: var(--accent);
 						"
 						aria-label="Similarity comparison"
@@ -83,7 +81,7 @@
 						style="
 							background-color: var(--input-bg);
 							color: var(--text-primary);
-							border: 1px solid {matchValueActive ? 'var(--accent)' : 'var(--border)'};
+							border: 1px solid var(--border);
 							--tw-ring-color: var(--accent);
 						"
 						placeholder="—"
@@ -109,9 +107,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {filterStore.similarityWeightHomeKeys
-						? 'var(--accent)'
-						: 'var(--border)'};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>
@@ -138,9 +134,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {filterStore.similarityMirrorMode !== 'excluded'
-						? 'var(--accent)'
-						: 'var(--border)'};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>

@@ -23,10 +23,6 @@
 		return field.title ?? field.label;
 	}
 
-	function isActive(key: StatLimitKey): boolean {
-		return filterStore.statLimits[key].value.trim() !== '';
-	}
-
 	function handleOperatorChange(key: StatLimitKey, operator: StatLimitOperator) {
 		filterStore.setStatLimitOperator(key, operator);
 	}
@@ -45,14 +41,12 @@
 		}
 	}
 
-	function fieldStyle(active: boolean): string {
-		return `
-			background-color: var(--input-bg);
-			color: var(--text-primary);
-			border: 1px solid ${active ? 'var(--accent)' : 'var(--border)'};
-			--tw-ring-color: var(--accent);
-		`;
-	}
+	const fieldStyle = `
+		background-color: var(--input-bg);
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		--tw-ring-color: var(--accent);
+	`;
 
 	const generalStatFilterRows = $derived(
 		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
@@ -70,7 +64,7 @@
 			onchange={(e) =>
 				handleOperatorChange(field.key, e.currentTarget.value as StatLimitOperator)}
 			class="stat-limit-operator"
-			style={fieldStyle(isActive(field.key))}
+			style={fieldStyle}
 			aria-label="{title} comparison"
 		>
 			<option value="lt">Less than</option>
@@ -83,7 +77,7 @@
 			oninput={(e) => handleValueInput(field.key, e.currentTarget.value)}
 			onkeydown={(e) => handleValueKeyDown(field.key, e)}
 			class="stat-limit-value"
-			style={fieldStyle(isActive(field.key))}
+			style={fieldStyle}
 			placeholder="—"
 			aria-label="{title} limit"
 		/>

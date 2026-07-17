@@ -17,10 +17,6 @@
 	let { open, onClose }: Props = $props();
 
 	const hasActiveFilters = $derived(filterStore.hasActiveKeyboardFilters);
-
-	function fieldBorder(active: boolean): string {
-		return active ? 'var(--accent)' : 'var(--border)';
-	}
 </script>
 
 <ModalShell
@@ -79,7 +75,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {fieldBorder(filterStore.thumbKeyFilter !== 'optional')};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>
@@ -106,7 +102,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {fieldBorder(filterStore.magicKeyFilter !== 'optional')};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>
@@ -125,7 +121,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {fieldBorder(filterStore.boardTypeFilter !== 'all')};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>
@@ -150,7 +146,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {fieldBorder(filterStore.characterSetFilter !== 'english')};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 				>
