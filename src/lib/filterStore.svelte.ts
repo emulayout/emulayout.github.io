@@ -48,6 +48,8 @@ export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
+/** Pool of layouts that other filters operate on. */
+export type LayoutSource = 'all' | 'selected';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
 
@@ -157,10 +159,15 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
-	/** Layouts checked for compare / "show selected" filtering. */
+	/** Layouts checked for compare / "selected" source filtering. */
 	compareSelectedNames: SvelteSet<string> = new SvelteSet();
-	/** When true, the main list only includes checked layouts (plus other active filters). */
-	showSelectedOnly: boolean = $state(false);
+	/** When `selected`, other filters run only over compare-checked layouts. */
+	layoutSource: LayoutSource = $state('all');
+	/**
+	 * When true (and source is `all`), inject compare-selected layouts into the result
+	 * list even if they fail other filters.
+	 */
+	includeSelectedInResults: boolean = $state(false);
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
@@ -328,9 +335,10 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
-		this.selectedAuthors = new SvelteSet();
-		this.compareSelectedNames = new SvelteSet();
-		this.showSelectedOnly = false;
+		this.selectedAuthors.clear();
+		this.compareSelectedNames.clear();
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#sortBeforeSimilar = null;
 		this.#exitSortRestore = null;
@@ -407,21 +415,28 @@ export class FilterStore {
 
 		const authors = url.searchParams.get('authors');
 		if (authors) {
-			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
+			for (const id of authors.split(',').map(Number)) {
+				if (Number.isFinite(id)) this.selectedAuthors.add(id);
+			}
 		}
 
 		const compare = url.searchParams.get('compare');
 		if (compare) {
-			this.compareSelectedNames = new SvelteSet(
-				compare
-					.split(',')
-					.map((name) => name.trim())
-					.filter(Boolean)
-			);
+			for (const name of compare
+				.split(',')
+				.map((n) => n.trim())
+				.filter(Boolean)) {
+				this.compareSelectedNames.add(name);
+			}
 		}
 
-		if (url.searchParams.get('showSelected') === '1' && this.compareSelectedNames.size > 0) {
-			this.showSelectedOnly = true;
+		if (url.searchParams.get('source') === 'selected' && this.compareSelectedNames.size > 0) {
+			this.layoutSource = 'selected';
+		} else if (
+			url.searchParams.get('showSelected') === '1' &&
+			this.compareSelectedNames.size > 0
+		) {
+			this.includeSelectedInResults = true;
 		}
 
 		const parseThumbFilters = (value: string | null): string[] =>
@@ -616,7 +631,9 @@ export class FilterStore {
 			);
 		}
 
-		if (this.showSelectedOnly && this.compareSelectedNames.size > 0) {
+		if (this.layoutSource === 'selected' && this.compareSelectedNames.size > 0) {
+			url.searchParams.set('source', 'selected');
+		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
 		}
 
@@ -1090,7 +1107,8 @@ export class FilterStore {
 		if (this.compareSelectedNames.has(name)) {
 			this.compareSelectedNames.delete(name);
 			if (this.compareSelectedNames.size === 0) {
-				this.showSelectedOnly = false;
+				this.layoutSource = 'all';
+				this.includeSelectedInResults = false;
 			}
 		} else {
 			this.compareSelectedNames.add(name);
@@ -1100,17 +1118,32 @@ export class FilterStore {
 
 	clearCompareLayouts() {
 		this.compareSelectedNames.clear();
-		this.showSelectedOnly = false;
-		this.#saveToUrl();
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
+		// Push so Back can restore the previous selection.
+		this.#saveToUrl({ history: 'push' });
 	}
 
-	toggleShowSelectedOnly() {
-		if (this.compareSelectedNames.size === 0) {
-			this.showSelectedOnly = false;
+	setLayoutSource(source: LayoutSource) {
+		if (source === 'selected' && this.compareSelectedNames.size === 0) {
+			this.layoutSource = 'all';
 			this.#saveToUrl();
 			return;
 		}
-		this.showSelectedOnly = !this.showSelectedOnly;
+		this.layoutSource = source;
+		if (source === 'selected') {
+			this.includeSelectedInResults = false;
+		}
+		this.#saveToUrl();
+	}
+
+	toggleIncludeSelectedInResults() {
+		if (this.compareSelectedNames.size === 0 || this.layoutSource === 'selected') {
+			this.includeSelectedInResults = false;
+			this.#saveToUrl();
+			return;
+		}
+		this.includeSelectedInResults = !this.includeSelectedInResults;
 		this.#saveToUrl();
 	}
 
@@ -1136,9 +1169,12 @@ export class FilterStore {
 				removed = true;
 			}
 		}
-		if (this.compareSelectedNames.size === 0 && this.showSelectedOnly) {
-			this.showSelectedOnly = false;
-			removed = true;
+		if (this.compareSelectedNames.size === 0) {
+			if (this.layoutSource === 'selected' || this.includeSelectedInResults) {
+				this.layoutSource = 'all';
+				this.includeSelectedInResults = false;
+				removed = true;
+			}
 		}
 		if (removed) this.#saveToUrl();
 	}
@@ -1161,7 +1197,8 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
-		this.showSelectedOnly = false;
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
@@ -1301,7 +1338,7 @@ export class FilterStore {
 			this.hasActiveKeyboardFilters ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0 ||
-			this.showSelectedOnly ||
+			this.layoutSource === 'selected' ||
 			this.similarReferenceName !== null ||
 			this.hasActiveStatLimits
 		);
@@ -1590,6 +1627,11 @@ export class FilterStore {
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
 		return layouts.filter((l) => {
+			// Source pool: when "Selected layouts only", other filters apply within selection.
+			if (this.layoutSource === 'selected' && !this.compareSelectedNames.has(l.name)) {
+				return false;
+			}
+
 			// Cheap boolean / enum filters first
 			if (
 				!this.showUnfinished &&
@@ -1604,7 +1646,6 @@ export class FilterStore {
 			if (!this.#matchesBoardType(l)) return false;
 			if (!this.#matchesName(l)) return false;
 			if (!this.#matchesAuthor(l)) return false;
-			if (this.showSelectedOnly && !this.compareSelectedNames.has(l.name)) return false;
 			if (!this.#matchesInclude(l)) return false;
 			if (!this.#matchesExclude(l)) return false;
 			if (!this.#matchesIncludeOr(l)) return false;

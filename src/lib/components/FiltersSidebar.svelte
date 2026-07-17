@@ -5,7 +5,7 @@
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { getKeyboardFiltersSummary } from '$lib/filterSummaries';
-	import { filterStore } from '$lib/filterStore.svelte';
+	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import type { Snippet } from 'svelte';
 
@@ -24,12 +24,30 @@
 <div class="filters-sidebar">
 	<div class="filters-sidebar-search">
 		<label class="filters-field">
-			<span class="filters-label" style="color: var(--text-secondary);">
-				Layout name
-				<span class="filters-hint" style="color: var(--text-caption);">
-					(commas for multiple)
-				</span>
-			</span>
+			<span class="filters-label" style="color: var(--text-secondary);">Source</span>
+			<select
+				value={filterStore.layoutSource}
+				onchange={(e) =>
+					filterStore.setLayoutSource(e.currentTarget.value as LayoutSource)
+				}
+				class="filters-select"
+				style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+				aria-label="Layout source"
+			>
+				<option value="all">All layouts</option>
+				<option value="selected" disabled={filterStore.compareSelectedNames.size === 0}>
+					Selected layouts only
+				</option>
+			</select>
+		</label>
+
+		<label class="filters-field">
+			<span class="filters-label" style="color: var(--text-secondary);">Layout name</span>
 			<input
 				id="name-filter"
 				type="text"
@@ -42,7 +60,7 @@
 					border: 1px solid var(--border);
 					--tw-ring-color: var(--accent);
 				"
-				placeholder="All layouts"
+				placeholder="Use commas for multiple results"
 			/>
 		</label>
 
@@ -157,11 +175,6 @@
 		line-height: 1.25;
 	}
 
-	.filters-hint {
-		font-size: 0.625rem;
-		font-style: italic;
-	}
-
 	.filters-input {
 		width: 100%;
 		padding: 0.5rem 0.75rem;
@@ -170,7 +183,16 @@
 		outline: none;
 	}
 
-	.filters-input:focus-visible {
+	.filters-select {
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.75rem;
+		font-size: 0.875rem;
+		outline: none;
+	}
+
+	.filters-input:focus-visible,
+	.filters-select:focus-visible {
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 

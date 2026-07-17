@@ -152,10 +152,7 @@
 	/** Reference positions after the selected card's anglemod toggle (drives match + diffs). */
 	const similarReferenceForCompare = $derived(
 		similarReferenceLayout
-			? withSimilarReferenceAnglemod(
-					similarReferenceLayout,
-					filterStore.similarReferenceAnglemod
-				)
+			? withSimilarReferenceAnglemod(similarReferenceLayout, filterStore.similarReferenceAnglemod)
 			: null
 	);
 
@@ -174,17 +171,13 @@
 		return buildMirroredPositionMap(similarReferenceForCompare.positionBySlot);
 	});
 
-	const filteredLayouts = $derived.by(() => {
+	const filteredResult = $derived.by(() => {
 		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
 
 		if (filterStore.similarReferenceName) {
 			result = result.filter((layout) => {
 				if (
-					!isSimilarLayoutMatch(
-						filterStore.similarReferenceName,
-						layout.name,
-						similarityMatches
-					)
+					!isSimilarLayoutMatch(filterStore.similarReferenceName, layout.name, similarityMatches)
 				) {
 					return false;
 				}
@@ -198,13 +191,40 @@
 			});
 		}
 
-		if (filterStore.sortBy === 'similarity') {
-			return sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder);
+		const forceIncluded = new Set<string>();
+		let hiddenSelectedCount = 0;
+
+		// Count (and optionally inject) selected layouts that fail current filters.
+		if (filterStore.layoutSource === 'all' && filterStore.compareSelectedNames.size > 0) {
+			const present = new Set(result.map((layout) => layout.name));
+			for (const layout of layouts) {
+				if (
+					!filterStore.compareSelectedNames.has(layout.name) ||
+					layout.name === filterStore.similarReferenceName ||
+					present.has(layout.name)
+				) {
+					continue;
+				}
+				hiddenSelectedCount += 1;
+				if (filterStore.includeSelectedInResults) {
+					result.push(layout);
+					present.add(layout.name);
+					forceIncluded.add(layout.name);
+				}
+			}
 		}
 
-		return filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
+		const sorted =
+			filterStore.sortBy === 'similarity'
+				? sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder)
+				: filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
+
+		return { layouts: sorted, forceIncludedNames: forceIncluded, hiddenSelectedCount };
 	});
 
+	const filteredLayouts = $derived(filteredResult.layouts);
+	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
+	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
 	const filteredCount = $derived(filteredLayouts.length);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 
@@ -250,6 +270,7 @@
 			<div class="results-list">
 				<LayoutCardList
 					layouts={filteredLayouts}
+					{forceIncludedNames}
 					{getAuthorName}
 					likesData={resolvedLikesData}
 					{statsMaps}
@@ -265,33 +286,54 @@
 {#if compareSelectedCount > 0}
 	<div class="compare-fab" role="presentation">
 		<div class="compare-fab-group">
-			<button
-				type="button"
-				class="compare-fab-button"
-				class:compare-fab-button--active={filterStore.showSelectedOnly}
-				aria-pressed={filterStore.showSelectedOnly}
-				aria-label={`${filterStore.showSelectedOnly ? 'Showing' : 'Show'} (${compareSelectedCount}) selected`}
-				onclick={() => filterStore.toggleShowSelectedOnly()}
-			>
-				{filterStore.showSelectedOnly ? 'Showing' : 'Show'} ({compareSelectedCount}) selected
-			</button>
-			<button
-				type="button"
-				class="compare-fab-clear"
-				aria-label="Clear selection"
-				onclick={() => filterStore.clearCompareLayouts()}
-			>
-				<svg
-					class="size-4"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2.5"
-					aria-hidden="true"
+			{#if filterStore.layoutSource === 'selected'}
+				<button
+					type="button"
+					class="compare-fab-button"
+					aria-label={`Clear (${compareSelectedCount}) selected layouts`}
+					onclick={() => filterStore.clearCompareLayouts()}
 				>
-					<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-				</svg>
-			</button>
+					Clear ({compareSelectedCount}) selected layouts
+				</button>
+			{:else}
+				{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
+					<button
+						type="button"
+						class="compare-fab-button"
+						class:compare-fab-button--active={filterStore.includeSelectedInResults}
+						aria-pressed={filterStore.includeSelectedInResults}
+						aria-label={filterStore.includeSelectedInResults
+							? 'Always showing selected'
+							: `Show (${hiddenSelectedCount}) non-matching selected`}
+						onclick={() => filterStore.toggleIncludeSelectedInResults()}
+					>
+						{#if filterStore.includeSelectedInResults}
+							Always showing selected layouts
+						{:else}
+							Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
+								? ''
+								: 's'}
+						{/if}
+					</button>
+				{/if}
+				<button
+					type="button"
+					class="compare-fab-clear"
+					aria-label="Clear selection"
+					onclick={() => filterStore.clearCompareLayouts()}
+				>
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2.5"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -339,7 +381,10 @@
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
 		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
-		transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease,
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease,
 			box-shadow 0.15s ease;
 	}
 
@@ -367,7 +412,10 @@
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
 		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--text-primary) 18%, transparent);
-		transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+		transition:
+			border-color 0.15s ease,
+			color 0.15s ease,
+			box-shadow 0.15s ease;
 	}
 
 	.compare-fab-clear:hover {

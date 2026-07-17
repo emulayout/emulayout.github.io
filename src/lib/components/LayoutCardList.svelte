@@ -16,6 +16,8 @@
 
 	interface Props {
 		layouts: LayoutData[];
+		/** Layouts injected into results despite failing filters. */
+		forceIncludedNames?: ReadonlySet<string>;
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
@@ -28,6 +30,7 @@
 
 	const {
 		layouts,
+		forceIncludedNames = new Set(),
 		getAuthorName,
 		likesData,
 		statsMaps,
@@ -151,6 +154,7 @@
 				authorName={getAuthorName(layout.user)}
 				likeCount={likesData[layout.name] ?? 0}
 				compactStats={compactStatsFor(layout)}
+				forceIncluded={forceIncludedNames.has(layout.name)}
 				similarMatchPercent={matchInfo?.percent}
 				similarMirrored={matchInfo?.mirrored ?? false}
 				similarDiffPositions={matchInfo?.mirrored

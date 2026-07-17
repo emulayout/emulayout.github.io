@@ -78,10 +78,13 @@
 	<div class="results-toolbar-status">
 		<p class="results-toolbar-count" style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
-			{#if filterStore.hasSimilarReference}
-				layouts <span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
+			{#if filterStore.layoutSource === 'selected'}
+				selected layouts
 			{:else}
 				layouts
+			{/if}
+			{#if filterStore.hasSimilarReference}
+				<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
 			{/if}
 			{#if filterStore.similarReferenceName}
 				<span style="color: var(--text-primary); font-weight: 600;"
