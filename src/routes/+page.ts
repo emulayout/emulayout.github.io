@@ -4,9 +4,9 @@ import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	getStatSortAnalyzer,
-	isSortBy,
 	isStatSortBy,
 	isStatsAnalyzer,
+	normalizeSortBy,
 	parseLegacySortParam,
 	type SortBy,
 	type StatsAnalyzer
@@ -41,11 +41,13 @@ function getAnalyzersToPreload(
 export const load: PageLoad = async ({ fetch, url }) => {
 	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
+	const statsAnalyzer = getInitialStatsAnalyzer(url);
 	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
 	const parsedSortBy: SortBy =
-		legacySort?.sortBy ?? (sortParam && isSortBy(sortParam) ? sortParam : 'date');
+		legacySort?.sortBy ??
+		(sortParam ? normalizeSortBy(sortParam, statsAnalyzer) : undefined) ??
+		'date';
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
-	const statsAnalyzer = getInitialStatsAnalyzer(url);
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
 	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzer, sortBy);

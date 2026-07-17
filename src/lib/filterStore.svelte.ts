@@ -10,13 +10,14 @@ import {
 	getStatFilterFieldsForAnalyzer,
 	getStatSortField,
 	getStatSortValue,
-	isSortBy,
 	isSortOrder,
 	isStatSortBy,
 	isStatSortByForAnalyzer,
 	getDefaultSortOrder,
 	isStatsAnalyzer,
 	parseLegacySortParam,
+	normalizeSortBy,
+	coerceSortByForAnalyzer,
 	parseStatFilterThreshold,
 	ALL_STAT_FILTER_FIELDS,
 	LEFT_HAND_STAT_FILTER_FIELDS,
@@ -479,6 +480,12 @@ export class FilterStore {
 		const sort = url.searchParams.get('sort');
 		const order = url.searchParams.get('order');
 
+		// Analyzer before sort so ambiguous legacy values (e.g. `sfb`) disambiguate correctly.
+		const analyzer = url.searchParams.get('analyzer');
+		if (analyzer && isStatsAnalyzer(analyzer)) {
+			this.statsAnalyzer = analyzer;
+		}
+
 		if (sort) {
 			const legacy = parseLegacySortParam(sort);
 			if (legacy) {
@@ -486,22 +493,23 @@ export class FilterStore {
 				if (!order) {
 					this.sortOrder = legacy.sortOrder;
 				}
-			} else if (isSortBy(sort)) {
-				this.sortBy = sort;
-				if (!order) {
-					this.sortOrder = getDefaultSortOrder(sort);
+			} else {
+				const normalized = normalizeSortBy(sort, this.statsAnalyzer);
+				if (normalized) {
+					this.sortBy = normalized;
+					if (!order) {
+						this.sortOrder = getDefaultSortOrder(normalized);
+					}
 				}
 			}
 		}
 
 		if (order && isSortOrder(order)) {
 			this.sortOrder = order;
-			this.#sortOrderManual = true;
-		}
-
-		const analyzer = url.searchParams.get('analyzer');
-		if (analyzer && isStatsAnalyzer(analyzer)) {
-			this.statsAnalyzer = analyzer;
+			// Only treat as a manual override when it differs from the field default.
+			// Otherwise sticky Desc from e.g. date/rolls would stick on lower-is-better
+			// Cyanophage fields (SFB, scissors, effort, …) after reload.
+			this.#sortOrderManual = order !== getDefaultSortOrder(this.sortBy);
 		}
 
 		if (url.searchParams.get('stats') === '0') {
@@ -803,9 +811,13 @@ export class FilterStore {
 	}
 
 	setSortBy(value: SortBy) {
+		const previousDefault = getDefaultSortOrder(this.sortBy);
+		const wasOnDefaultOrder = !this.#sortOrderManual || this.sortOrder === previousDefault;
 		this.sortBy = value;
-		if (!this.#sortOrderManual) {
+		if (wasOnDefaultOrder) {
+			// Adopt this field's default (Asc for lower-is-better Cyanophage stats, etc.).
 			this.sortOrder = getDefaultSortOrder(value);
+			this.#sortOrderManual = false;
 		}
 		this.#syncSimilarExitSortRestore(value);
 		this.#saveToUrl();
@@ -867,7 +879,19 @@ export class FilterStore {
 	setStatsAnalyzer(value: StatsAnalyzer) {
 		this.statsAnalyzer = value;
 		if (isStatSortBy(this.sortBy) && !isStatSortByForAnalyzer(this.sortBy, value)) {
-			this.#resetSortToDateDefault();
+			const remapped = coerceSortByForAnalyzer(this.sortBy, value);
+			if (remapped && isStatSortByForAnalyzer(remapped, value)) {
+				const previousDefault = getDefaultSortOrder(this.sortBy);
+				const wasOnDefaultOrder =
+					!this.#sortOrderManual || this.sortOrder === previousDefault;
+				this.sortBy = remapped;
+				if (wasOnDefaultOrder) {
+					this.sortOrder = getDefaultSortOrder(remapped);
+					this.#sortOrderManual = false;
+				}
+			} else {
+				this.#resetSortToDateDefault();
+			}
 		}
 		this.#saveToUrl();
 	}

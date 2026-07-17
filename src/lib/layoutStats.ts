@@ -132,56 +132,219 @@ export type DerivedBotStats = {
 
 export type StatSortKey = keyof DerivedBotStats;
 
+export type SortOrder = 'asc' | 'desc';
+
 export interface StatSortField {
 	value: string;
 	label: string;
 	key: StatSortKey | CyanophageStatSortKey;
 	analyzer: StatsAnalyzer;
+	/** Default Order when this Sort-by field is selected. */
+	defaultOrder: SortOrder;
+	/**
+	 * Whether higher values are better for compare highlighting.
+	 * `null` = balance metric (not ranked higher/lower).
+	 */
+	higherIsBetter: boolean | null;
 }
 
+/** Sortable cyanophage stats — values are `cyano-*` so they never collide with cmini. */
 export const CYANOPHAGE_STAT_SORT_FIELDS = [
 	{
-		value: 'total-word-effort',
+		value: 'cyano-total-word-effort',
 		label: 'Total Word Effort',
 		key: 'totalWordEffort',
-		analyzer: CYANOPHAGE_ANALYZER
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
 	},
-	{ value: 'effort', label: 'Effort', key: 'effort', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'sfb', label: 'Same Finger Bigrams', key: 'sfb', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'sfs', label: 'Skip Bigrams', key: 'sfs', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'scissors', label: 'Scissors', key: 'scissors', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'lsb', label: 'Lat Stretch Bigrams', key: 'lsb', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'lh', label: 'Left hand', key: 'lh', analyzer: CYANOPHAGE_ANALYZER },
-	{ value: 'rh', label: 'Right hand', key: 'rh', analyzer: CYANOPHAGE_ANALYZER }
+	{
+		value: 'cyano-effort',
+		label: 'Effort',
+		key: 'effort',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'cyano-sfb',
+		label: 'Same Finger Bigrams',
+		key: 'sfb',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'cyano-sfs',
+		label: 'Skip Bigrams',
+		key: 'sfs',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'cyano-scissors',
+		label: 'Scissors',
+		key: 'scissors',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'cyano-lsb',
+		label: 'Lat Stretch Bigrams',
+		key: 'lsb',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'cyano-lh',
+		label: 'Left hand',
+		key: 'lh',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: null
+	},
+	{
+		value: 'cyano-rh',
+		label: 'Right hand',
+		key: 'rh',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: null
+	}
 ] as const satisfies readonly StatSortField[];
 
-/** Sortable bot stats (monkeyracer). */
+/** Sortable bot stats (cmini / monkeyracer). */
 export const STAT_SORT_FIELDS = [
-	{ value: 'alternate', label: 'Alternate', key: 'alternate', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll', label: 'Roll', key: 'roll', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll-in', label: 'Roll in', key: 'rollIn', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll-out', label: 'Roll out', key: 'rollOut', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'one', label: 'One-hand', key: 'one', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'one-in', label: 'One-hand in', key: 'oneIn', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'one-out', label: 'One-hand out', key: 'oneOut', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll-total', label: 'Roll total', key: 'rtl', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll-total-in', label: 'Roll total in', key: 'rtlIn', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'roll-total-out', label: 'Roll total out', key: 'rtlOut', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'redirect', label: 'Redirect', key: 'red', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'bad-redirect', label: 'Bad redirect', key: 'badRedirect', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'sfb', label: 'Same-finger bigrams', key: 'sfb', analyzer: DEFAULT_STATS_ANALYZER },
-	{ value: 'same-finger-skip', label: 'Same-finger skip', key: 'sfs', analyzer: DEFAULT_STATS_ANALYZER },
+	{
+		value: 'alternate',
+		label: 'Alternate',
+		key: 'alternate',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll',
+		label: 'Roll',
+		key: 'roll',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll-in',
+		label: 'Roll in',
+		key: 'rollIn',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll-out',
+		label: 'Roll out',
+		key: 'rollOut',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'one',
+		label: 'One-hand',
+		key: 'one',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'one-in',
+		label: 'One-hand in',
+		key: 'oneIn',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'one-out',
+		label: 'One-hand out',
+		key: 'oneOut',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll-total',
+		label: 'Roll total',
+		key: 'rtl',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll-total-in',
+		label: 'Roll total in',
+		key: 'rtlIn',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'roll-total-out',
+		label: 'Roll total out',
+		key: 'rtlOut',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'redirect',
+		label: 'Redirect',
+		key: 'red',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'bad-redirect',
+		label: 'Bad redirect',
+		key: 'badRedirect',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'sfb',
+		label: 'Same-finger bigrams',
+		key: 'sfb',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
+		value: 'same-finger-skip',
+		label: 'Same-finger skip',
+		key: 'sfs',
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
 	{
 		value: 'same-finger-skip-redirect',
 		label: 'Same-finger skip redirect',
 		key: 'dsfbRed',
-		analyzer: DEFAULT_STATS_ANALYZER
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
 	},
 	{
 		value: 'same-finger-skip-alternate',
 		label: 'Same-finger skip alternate',
 		key: 'dsfbAlt',
-		analyzer: DEFAULT_STATS_ANALYZER
+		analyzer: DEFAULT_STATS_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
 	}
 ] as const satisfies readonly StatSortField[];
 
@@ -334,8 +497,6 @@ export type LayoutSortBy = 'name' | 'date' | 'likes' | 'similarity';
 
 export type SortBy = LayoutSortBy | StatSortBy;
 
-export type SortOrder = 'asc' | 'desc';
-
 const STAT_SORT_FIELD_BY_VALUE = new Map<string, StatSortField>(
 	ALL_STAT_SORT_FIELDS.map((field) => [field.value, field])
 );
@@ -347,6 +508,28 @@ const SORT_BY_VALUES = new Set<string>([
 	'similarity',
 	...ALL_STAT_SORT_FIELDS.map((field) => field.value)
 ]);
+
+/** Layout-level Sort-by defaults (not tied to a StatSortField). */
+const LAYOUT_DEFAULT_SORT_ORDER: Record<LayoutSortBy, SortOrder> = {
+	name: 'asc',
+	date: 'desc',
+	likes: 'desc',
+	similarity: 'desc'
+};
+
+/**
+ * Pre-`cyano-*` URL values and other renames → current SortBy.
+ * Ambiguous `sfb` is handled in {@link normalizeSortBy}.
+ */
+const SORT_BY_ALIASES: Record<string, SortBy> = {
+	'total-word-effort': 'cyano-total-word-effort',
+	effort: 'cyano-effort',
+	sfs: 'cyano-sfs',
+	scissors: 'cyano-scissors',
+	lsb: 'cyano-lsb',
+	lh: 'cyano-lh',
+	rh: 'cyano-rh'
+};
 
 const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrder }> = {
 	name: { sortBy: 'name', sortOrder: 'asc' },
@@ -380,27 +563,16 @@ export function isSortOrder(value: string): value is SortOrder {
 }
 
 /**
- * Default Order for a Sort-by field when the user hasn't manually overridden it.
- * Desc = higher/newer/more is better; Asc = lower is better (errors, effort, etc.).
+ * Default Order for a Sort-by field.
+ * Prefer {@link StatSortField.defaultOrder} for stats; layout fields use fixed defaults.
  */
-const DESC_DEFAULT_SORT_BY = new Set<SortBy>([
-	'date',
-	'similarity',
-	'likes',
-	'alternate',
-	'roll',
-	'roll-in',
-	'roll-out',
-	'one',
-	'one-in',
-	'one-out',
-	'roll-total',
-	'roll-total-in',
-	'roll-total-out'
-]);
-
 export function getDefaultSortOrder(sortBy: SortBy): SortOrder {
-	return DESC_DEFAULT_SORT_BY.has(sortBy) ? 'desc' : 'asc';
+	const statField = STAT_SORT_FIELD_BY_VALUE.get(sortBy);
+	if (statField) return statField.defaultOrder;
+	if (sortBy in LAYOUT_DEFAULT_SORT_ORDER) {
+		return LAYOUT_DEFAULT_SORT_ORDER[sortBy as LayoutSortBy];
+	}
+	return 'asc';
 }
 
 export function isStatSortBy(sortBy: SortBy): sortBy is StatSortBy {
@@ -408,29 +580,24 @@ export function isStatSortBy(sortBy: SortBy): sortBy is StatSortBy {
 }
 
 /**
- * Resolve a sort field. Shared values like `sfb` exist for both analyzers — pass
- * `analyzer` so sorting/highlighting use the same stats the UI is showing.
+ * Resolve a sort field. Values are unique per analyzer (Cyanophage uses `cyano-*`).
+ * Pass `analyzer` to require a match for that analyzer.
  */
 export function getStatSortField(
 	sortBy: SortBy,
 	analyzer?: StatsAnalyzer
 ): StatSortField | undefined {
-	if (analyzer) {
-		return ALL_STAT_SORT_FIELDS.find(
-			(field) => field.value === sortBy && field.analyzer === analyzer
-		);
-	}
-
-	const matches = ALL_STAT_SORT_FIELDS.filter((field) => field.value === sortBy);
-	if (matches.length <= 1) return matches[0];
-	return matches.find((field) => field.analyzer === DEFAULT_STATS_ANALYZER) ?? matches[0];
+	const field = STAT_SORT_FIELD_BY_VALUE.get(sortBy);
+	if (!field) return undefined;
+	if (analyzer && field.analyzer !== analyzer) return undefined;
+	return field;
 }
 
 export function getStatSortAnalyzer(
 	sortBy: SortBy,
 	analyzer?: StatsAnalyzer
 ): StatsAnalyzer | undefined {
-	return getStatSortField(sortBy, analyzer)?.analyzer;
+	return getStatSortField(sortBy, analyzer)?.analyzer ?? getStatSortField(sortBy)?.analyzer;
 }
 
 export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatSortField[] {
@@ -438,9 +605,44 @@ export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly 
 }
 
 export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {
-	return ALL_STAT_SORT_FIELDS.some(
-		(field) => field.value === sortBy && field.analyzer === analyzer
+	return getStatSortField(sortBy, analyzer) !== undefined;
+}
+
+/**
+ * Map a Sort-by to the equivalent field on another analyzer (same underlying `key`),
+ * or `null` if there is no counterpart.
+ */
+export function coerceSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): SortBy | null {
+	if (!isStatSortBy(sortBy)) return sortBy;
+	if (isStatSortByForAnalyzer(sortBy, analyzer)) return sortBy;
+	const current = STAT_SORT_FIELD_BY_VALUE.get(sortBy);
+	if (!current) return null;
+	const match = ALL_STAT_SORT_FIELDS.find(
+		(field) => field.analyzer === analyzer && field.key === current.key
 	);
+	return match ? (match.value as SortBy) : null;
+}
+
+/**
+ * Normalize a URL/query sort token to a current {@link SortBy}.
+ * Handles legacy combo params, pre-`cyano-*` values, and analyzer-disambiguated `sfb`.
+ */
+export function normalizeSortBy(
+	sort: string,
+	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER
+): SortBy | undefined {
+	const legacy = parseLegacySortParam(sort);
+	if (legacy) return legacy.sortBy;
+
+	if (sort === 'sfb') {
+		return analyzer === CYANOPHAGE_ANALYZER ? 'cyano-sfb' : 'sfb';
+	}
+
+	const aliased = SORT_BY_ALIASES[sort];
+	if (aliased) return aliased;
+
+	if (isSortBy(sort)) return sort;
+	return undefined;
 }
 
 export function parseLegacySortParam(
@@ -448,9 +650,6 @@ export function parseLegacySortParam(
 ): { sortBy: SortBy; sortOrder: SortOrder } | undefined {
 	if (sort in LEGACY_SORT_BY_ORDER) {
 		return LEGACY_SORT_BY_ORDER[sort];
-	}
-	if (isSortBy(sort)) {
-		return { sortBy: sort, sortOrder: 'desc' };
 	}
 	return undefined;
 }
@@ -617,14 +816,10 @@ export function isHigherBetterStatKey(
 	key: StatSortKey | CyanophageStatSortKey,
 	analyzer: StatsAnalyzer
 ): boolean | null {
-	// Hand share is a balance metric, not unilaterally better higher or lower.
-	if (key === 'lh' || key === 'rh') return null;
-
 	const field = ALL_STAT_SORT_FIELDS.find(
 		(entry) => entry.key === key && entry.analyzer === analyzer
 	);
-	if (!field) return null;
-	return getDefaultSortOrder(field.value) === 'desc';
+	return field?.higherIsBetter ?? null;
 }
 
 function toneForStatDelta(
