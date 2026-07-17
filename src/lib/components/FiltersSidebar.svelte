@@ -57,34 +57,35 @@
 		</div>
 	</div>
 
+	<button
+		type="button"
+		class="filter-open-button"
+		onclick={() => (showKeyboardFiltersModal = true)}
+	>
+		<span class="filter-open-button-text">
+			<span class="filter-open-button-title">Keyboard filters</span>
+			{#if keyboardFiltersSummary}
+				<span
+					class="filter-open-button-summary"
+					style="color: var(--accent);"
+					title={keyboardFiltersSummary}>{keyboardFiltersSummary}</span
+				>
+			{/if}
+		</span>
+		<svg
+			class="filter-open-button-chevron"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			stroke-width="2"
+			aria-hidden="true"
+		>
+			<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+		</svg>
+	</button>
+
 	<div class="filters-sidebar-actions">
 		<KeyFilters />
-		<button
-			type="button"
-			class="filter-open-button"
-			onclick={() => (showKeyboardFiltersModal = true)}
-		>
-			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Keyboard filters</span>
-				{#if keyboardFiltersSummary}
-					<span
-						class="filter-open-button-summary"
-						style="color: var(--accent);"
-						title={keyboardFiltersSummary}>{keyboardFiltersSummary}</span
-					>
-				{/if}
-			</span>
-			<svg
-				class="filter-open-button-chevron"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				aria-hidden="true"
-			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-			</svg>
-		</button>
 	</div>
 
 	<div class="filters-sidebar-actions">
