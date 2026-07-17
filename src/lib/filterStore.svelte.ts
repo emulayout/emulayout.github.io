@@ -1197,7 +1197,6 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
-		this.layoutSource = 'all';
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#restoreSortAfterSimilar();
@@ -1338,7 +1337,6 @@ export class FilterStore {
 			this.hasActiveKeyboardFilters ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0 ||
-			this.layoutSource === 'selected' ||
 			this.similarReferenceName !== null ||
 			this.hasActiveStatLimits
 		);

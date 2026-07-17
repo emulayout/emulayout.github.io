@@ -284,38 +284,30 @@
 </div>
 
 {#if compareSelectedCount > 0}
+	{@const canIncludeNonMatching =
+		filterStore.layoutSource === 'all' &&
+		(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
 	<div class="compare-fab" role="presentation">
 		<div class="compare-fab-group">
-			{#if filterStore.layoutSource === 'selected'}
+			{#if canIncludeNonMatching}
 				<button
 					type="button"
 					class="compare-fab-button"
-					aria-label={`Clear (${compareSelectedCount}) selected layouts`}
-					onclick={() => filterStore.clearCompareLayouts()}
+					class:compare-fab-button--active={filterStore.includeSelectedInResults}
+					aria-pressed={filterStore.includeSelectedInResults}
+					aria-label={filterStore.includeSelectedInResults
+						? 'Always showing selected'
+						: `Show (${hiddenSelectedCount}) non-matching selected`}
+					onclick={() => filterStore.toggleIncludeSelectedInResults()}
 				>
-					Clear ({compareSelectedCount}) selected layouts
+					{#if filterStore.includeSelectedInResults}
+						Always showing selected layouts
+					{:else}
+						Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
+							? ''
+							: 's'}
+					{/if}
 				</button>
-			{:else}
-				{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
-					<button
-						type="button"
-						class="compare-fab-button"
-						class:compare-fab-button--active={filterStore.includeSelectedInResults}
-						aria-pressed={filterStore.includeSelectedInResults}
-						aria-label={filterStore.includeSelectedInResults
-							? 'Always showing selected'
-							: `Show (${hiddenSelectedCount}) non-matching selected`}
-						onclick={() => filterStore.toggleIncludeSelectedInResults()}
-					>
-						{#if filterStore.includeSelectedInResults}
-							Always showing selected layouts
-						{:else}
-							Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
-								? ''
-								: 's'}
-						{/if}
-					</button>
-				{/if}
 				<button
 					type="button"
 					class="compare-fab-clear"
@@ -324,6 +316,25 @@
 				>
 					<svg
 						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2.5"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				</button>
+			{:else}
+				<button
+					type="button"
+					class="compare-fab-button compare-fab-button--with-icon"
+					aria-label={`Clear (${compareSelectedCount}) selected layouts`}
+					onclick={() => filterStore.clearCompareLayouts()}
+				>
+					Clear ({compareSelectedCount}) selected layouts
+					<svg
+						class="size-4 shrink-0"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -386,6 +397,11 @@
 			border-color 0.15s ease,
 			background-color 0.15s ease,
 			box-shadow 0.15s ease;
+	}
+
+	.compare-fab-button--with-icon {
+		gap: 0.375rem;
+		padding-right: 0.625rem;
 	}
 
 	.compare-fab-button:hover {
