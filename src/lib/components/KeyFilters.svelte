@@ -39,61 +39,70 @@
 		{/if}
 	</div>
 
-	<div class="key-filters-actions">
-		<button
-			type="button"
-			class="filter-open-button"
-			style="
-				color: var(--text-primary);
-				background-color: var(--input-bg);
-				border: 1px solid var(--border);
-			"
-			onclick={() => open('and')}
-		>
-			<span class="filter-open-button-title">Include keys (AND)</span>
-			{#if andSummary}
-				<span class="filter-open-button-summary" style="color: var(--accent);" title={andSummary}
-					>{andSummary}</span
-				>
-			{/if}
+	<div class="filter-open-button-group">
+		<button type="button" class="filter-open-button" onclick={() => open('and')}>
+			<span class="filter-open-button-text">
+				<span class="filter-open-button-title">Include keys (AND)</span>
+				{#if andSummary}
+					<span class="filter-open-button-summary" style="color: var(--accent);" title={andSummary}
+						>{andSummary}</span
+					>
+				{/if}
+			</span>
+			<svg
+				class="filter-open-button-chevron"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="2"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+			</svg>
 		</button>
 
-		<button
-			type="button"
-			class="filter-open-button"
-			style="
-				color: var(--text-primary);
-				background-color: var(--input-bg);
-				border: 1px solid var(--border);
-			"
-			onclick={() => open('or')}
-		>
-			<span class="filter-open-button-title">Include keys (OR)</span>
-			{#if orSummary}
-				<span class="filter-open-button-summary" style="color: var(--accent);" title={orSummary}
-					>{orSummary}</span
-				>
-			{/if}
+		<button type="button" class="filter-open-button" onclick={() => open('or')}>
+			<span class="filter-open-button-text">
+				<span class="filter-open-button-title">Include keys (OR)</span>
+				{#if orSummary}
+					<span class="filter-open-button-summary" style="color: var(--accent);" title={orSummary}
+						>{orSummary}</span
+					>
+				{/if}
+			</span>
+			<svg
+				class="filter-open-button-chevron"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="2"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+			</svg>
 		</button>
 
-		<button
-			type="button"
-			class="filter-open-button"
-			style="
-				color: var(--text-primary);
-				background-color: var(--input-bg);
-				border: 1px solid var(--border);
-			"
-			onclick={() => open('exclude')}
-		>
-			<span class="filter-open-button-title">Exclude keys</span>
-			{#if excludeSummary}
-				<span
-					class="filter-open-button-summary"
-					style="color: var(--accent);"
-					title={excludeSummary}>{excludeSummary}</span
-				>
-			{/if}
+		<button type="button" class="filter-open-button" onclick={() => open('exclude')}>
+			<span class="filter-open-button-text">
+				<span class="filter-open-button-title">Exclude keys</span>
+				{#if excludeSummary}
+					<span
+						class="filter-open-button-summary"
+						style="color: var(--accent);"
+						title={excludeSummary}>{excludeSummary}</span
+					>
+				{/if}
+			</span>
+			<svg
+				class="filter-open-button-chevron"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="2"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+			</svg>
 		</button>
 	</div>
 </div>
@@ -104,46 +113,3 @@
 	onClose={() => (openKind = null)}
 />
 
-<style>
-	.key-filters-actions {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.filter-open-button {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.2rem;
-		width: 100%;
-		padding: 0.5rem 0.875rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		text-align: left;
-		cursor: pointer;
-		transition:
-			border-color 0.15s ease,
-			color 0.15s ease;
-	}
-
-	.filter-open-button:hover {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-
-	.filter-open-button-title {
-		line-height: 1.25;
-	}
-
-	.filter-open-button-summary {
-		max-width: 100%;
-		font-size: 0.6875rem;
-		font-weight: 600;
-		line-height: 1.3;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-</style>
