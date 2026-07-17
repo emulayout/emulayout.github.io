@@ -1,5 +1,5 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
-import { replaceState } from '$app/navigation';
+import { pushState, replaceState } from '$app/navigation';
 import { page } from '$app/state';
 import {
 	CYANOPHAGE_ANALYZER,
@@ -234,6 +234,11 @@ export class FilterStore {
 	constructor() {
 		this.#loadFromUrl();
 		this.#applyFiltersFromInputs();
+		if (typeof window !== 'undefined') {
+			window.addEventListener('popstate', () => {
+				this.#hydrateFromUrl();
+			});
+		}
 	}
 
 	#cloneGrid(grid: string[][]): string[][] {
@@ -287,6 +292,56 @@ export class FilterStore {
 	#applyFiltersNow() {
 		this.#cancelFilterApply();
 		this.#applyFiltersFromInputs();
+	}
+
+	/** Reset URL-backed filter state to empty-URL defaults, then apply current location. */
+	#hydrateFromUrl() {
+		if (this.#debounceTimeout) {
+			clearTimeout(this.#debounceTimeout);
+			this.#debounceTimeout = null;
+		}
+		if (this.#nameDebounceTimeout) {
+			clearTimeout(this.#nameDebounceTimeout);
+			this.#nameDebounceTimeout = null;
+		}
+		this.#cancelFilterApply();
+		this.#resetUrlControlledState();
+		this.#loadFromUrl();
+		this.#applyFiltersNow();
+	}
+
+	#resetUrlControlledState() {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.showUnfinished = false;
+		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
+		this.characterSetFilter = 'english';
+		this.boardTypeFilter = 'all';
+		this.nameFilterInput = '';
+		this.nameFilter = '';
+		this.selectedAuthors = new SvelteSet();
+		this.compareSelectedNames = new SvelteSet();
+		this.showSelectedOnly = false;
+		this.similarReferenceName = null;
+		this.#sortBeforeSimilar = null;
+		this.#exitSortRestore = null;
+		this.#resetSimilarityFilter();
+		this.sortBy = 'date';
+		this.sortOrder = 'desc';
+		this.#sortOrderManual = false;
+		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
+		this.hideLayoutStats = false;
+		this.hideLayoutTestArea = false;
+		this.hideLayoutLikes = false;
+		this.statLimits = createEmptyStatLimits();
 	}
 
 	#loadFromUrl() {
@@ -503,7 +558,8 @@ export class FilterStore {
 		}
 	}
 
-	#saveToUrl() {
+	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
+		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
@@ -636,7 +692,15 @@ export class FilterStore {
 			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
-		replaceState(url, page.state);
+		const next = `${url.pathname}${url.search}${url.hash}`;
+		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+		if (historyMode === 'push') {
+			if (next !== current) {
+				pushState(url, page.state);
+			}
+		} else {
+			replaceState(url, page.state);
+		}
 	}
 
 	#debouncedSave() {
@@ -1080,9 +1144,15 @@ export class FilterStore {
 		this.statLimits = createEmptyStatLimits();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
+			this.#nameDebounceTimeout = null;
+		}
+		if (this.#debounceTimeout) {
+			clearTimeout(this.#debounceTimeout);
+			this.#debounceTimeout = null;
 		}
 		this.#applyFiltersNow();
-		this.#debouncedSave();
+		// Push so Back can restore the previous filter URL.
+		this.#saveToUrl({ history: 'push' });
 	}
 
 	focusLayout(name: string) {
