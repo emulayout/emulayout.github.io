@@ -131,29 +131,40 @@ function handSummaryLabel(hand: 'LH' | 'RH', field: StatFilterField): string {
 
 /** Collapsed stat-filter preview (same format as the old accordion). */
 export function getStatFiltersSummary(store: FilterStore): string {
-	const parts: string[] = [];
-	const rows = getGeneralStatFilterRowsForAnalyzer(store.statsAnalyzer);
+	return [getStatFilterSectionSummary(store, 'general'), getStatFilterSectionSummary(store, 'hands')]
+		.filter(Boolean)
+		.join(' • ');
+}
 
-	for (const row of rows) {
-		for (const field of row) {
-			const part = formatActiveLimit(store, field, field.label);
+export type StatFilterSection = 'general' | 'hands';
+
+export function getStatFilterSectionSummary(
+	store: FilterStore,
+	section: StatFilterSection
+): string {
+	const parts: string[] = [];
+
+	if (section === 'general') {
+		const rows = getGeneralStatFilterRowsForAnalyzer(store.statsAnalyzer);
+		for (const row of rows) {
+			for (const field of row) {
+				const part = formatActiveLimit(store, field, field.label);
+				if (part) parts.push(part);
+			}
+		}
+		if (store.canUseLikes) {
+			const part = formatActiveLimit(store, LIKES_STAT_FILTER_FIELD, LIKES_STAT_FILTER_FIELD.label);
 			if (part) parts.push(part);
 		}
-	}
-
-	if (store.canUseLikes) {
-		const part = formatActiveLimit(store, LIKES_STAT_FILTER_FIELD, LIKES_STAT_FILTER_FIELD.label);
-		if (part) parts.push(part);
-	}
-
-	for (const field of LEFT_HAND_STAT_FILTER_FIELDS) {
-		const part = formatActiveLimit(store, field, handSummaryLabel('LH', field));
-		if (part) parts.push(part);
-	}
-
-	for (const field of RIGHT_HAND_STAT_FILTER_FIELDS) {
-		const part = formatActiveLimit(store, field, handSummaryLabel('RH', field));
-		if (part) parts.push(part);
+	} else {
+		for (const field of LEFT_HAND_STAT_FILTER_FIELDS) {
+			const part = formatActiveLimit(store, field, handSummaryLabel('LH', field));
+			if (part) parts.push(part);
+		}
+		for (const field of RIGHT_HAND_STAT_FILTER_FIELDS) {
+			const part = formatActiveLimit(store, field, handSummaryLabel('RH', field));
+			if (part) parts.push(part);
+		}
 	}
 
 	return parts.join(' • ');

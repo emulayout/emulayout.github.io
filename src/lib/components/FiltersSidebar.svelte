@@ -3,14 +3,9 @@
 	import KeyFilters from '$lib/components/KeyFilters.svelte';
 	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
-	import StatFiltersModal from '$lib/components/StatFiltersModal.svelte';
-	import { getKeyboardFiltersSummary, getStatFiltersSummary } from '$lib/filterSummaries';
+	import StatFilters from '$lib/components/StatFilters.svelte';
+	import { getKeyboardFiltersSummary } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		DEFAULT_STATS_ANALYZER,
-		STAT_ANALYZERS,
-		type StatsAnalyzer
-	} from '$lib/layoutStats';
 	import type { LayoutData } from '$lib/layout';
 	import type { Snippet } from 'svelte';
 
@@ -22,11 +17,8 @@
 
 	let { authorList, layouts, children }: Props = $props();
 
-	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
 	let showKeyboardFiltersModal = $state(false);
-	let showStatFiltersModal = $state(false);
 	const keyboardFiltersSummary = $derived(getKeyboardFiltersSummary(filterStore));
-	const statFiltersSummary = $derived(getStatFiltersSummary(filterStore));
 </script>
 
 <div class="filters-sidebar">
@@ -96,52 +88,7 @@
 	</div>
 
 	<div class="filters-sidebar-actions">
-		<label class="analyzer-field">
-			<span class="text-sm" style="color: var(--text-secondary);">Analyzer</span>
-			<select
-				value={filterStore.statsAnalyzer}
-				onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzer)}
-				class="analyzer-select"
-				style="
-					background-color: var(--input-bg);
-					color: var(--text-primary);
-					border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
-					--tw-ring-color: var(--accent);
-				"
-				aria-label="Analyzer"
-			>
-				{#each STAT_ANALYZERS as analyzer (analyzer.value)}
-					<option value={analyzer.value}>{analyzer.label}</option>
-				{/each}
-			</select>
-		</label>
-
-		<button
-			type="button"
-			class="filter-open-button"
-			onclick={() => (showStatFiltersModal = true)}
-		>
-			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Stat filters</span>
-				{#if statFiltersSummary}
-					<span
-						class="filter-open-button-summary"
-						style="color: var(--accent);"
-						title={statFiltersSummary}>{statFiltersSummary}</span
-					>
-				{/if}
-			</span>
-			<svg
-				class="filter-open-button-chevron"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				aria-hidden="true"
-			>
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-			</svg>
-		</button>
+		<StatFilters />
 	</div>
 
 	<div class="filters-sidebar-actions">
@@ -172,7 +119,6 @@
 	open={showKeyboardFiltersModal}
 	onClose={() => (showKeyboardFiltersModal = false)}
 />
-<StatFiltersModal open={showStatFiltersModal} onClose={() => (showStatFiltersModal = false)} />
 
 <style>
 	.filters-sidebar {
@@ -236,25 +182,6 @@
 	}
 
 	.filters-input:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-
-	.analyzer-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-	}
-
-	.analyzer-select {
-		width: 100%;
-		padding: 0.5rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		outline: none;
-		cursor: pointer;
-	}
-
-	.analyzer-select:focus-visible {
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 

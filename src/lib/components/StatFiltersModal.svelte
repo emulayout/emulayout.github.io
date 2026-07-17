@@ -2,23 +2,41 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import {
+		getStatFilterSectionSummary,
+		type StatFilterSection
+	} from '$lib/filterSummaries';
 
 	interface Props {
 		open: boolean;
+		section: StatFilterSection | null;
 		onClose: () => void;
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, section, onClose }: Props = $props();
 
-	const hasActiveFilters = $derived(filterStore.hasActiveStatLimits);
+	const title = $derived(section === 'hands' ? 'Hands & fingers' : 'General stats');
+	const intro = $derived(
+		section === 'hands'
+			? 'Filter by left/right hand and finger stats. Leave empty to ignore.'
+			: 'Filter by overall layout stats. Leave empty to ignore.'
+	);
+	const panelClass = $derived(
+		section === 'hands'
+			? 'max-h-[min(92vh,900px)] max-w-lg'
+			: 'max-h-[min(92vh,900px)] max-w-[770px]'
+	);
+	const hasActiveFilters = $derived(
+		section ? Boolean(getStatFilterSectionSummary(filterStore, section)) : false
+	);
+
+	function clearActiveSection() {
+		if (section === 'general') filterStore.clearGeneralStatLimits();
+		else if (section === 'hands') filterStore.clearHandStatLimits();
+	}
 </script>
 
-<ModalShell
-	{open}
-	{onClose}
-	labelledBy="stat-filters-modal-title"
-	panelClass="max-h-[min(92vh,900px)] max-w-[770px]"
->
+<ModalShell {open} {onClose} labelledBy="stat-filters-modal-title" {panelClass}>
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4"
 		style="border-color: var(--border);"
@@ -29,16 +47,16 @@
 				class="text-lg font-semibold shrink-0"
 				style="color: var(--text-primary);"
 			>
-				Stat filters
+				{title}
 			</h2>
 			{#if hasActiveFilters}
 				<button
 					type="button"
 					class="stat-filters-modal-clear"
 					style="color: var(--accent); background-color: var(--bg-secondary);"
-					onclick={() => filterStore.clearStatLimits()}
+					onclick={clearActiveSection}
 				>
-					Clear all
+					Clear
 				</button>
 			{/if}
 		</div>
@@ -55,11 +73,10 @@
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<p class="stat-filters-modal-intro" style="color: var(--text-secondary);">
-			Filter layouts by stats. Leave a value empty to ignore that stat. Layouts without stats are
-			hidden when any filter is set.
-		</p>
-		<StatLimitFiltersBody />
+		<p class="stat-filters-modal-intro" style="color: var(--text-secondary);">{intro}</p>
+		{#if section}
+			<StatLimitFiltersBody {section} />
+		{/if}
 	</div>
 </ModalShell>
 
@@ -74,8 +91,8 @@
 	}
 
 	.stat-filters-modal-intro {
-		margin: 0 0 1rem;
-		font-size: 0.875rem;
-		line-height: 1.45;
+		margin: 0 0 0.75rem;
+		font-size: 0.8125rem;
+		line-height: 1.4;
 	}
 </style>

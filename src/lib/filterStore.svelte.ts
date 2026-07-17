@@ -19,6 +19,10 @@ import {
 	parseLegacySortParam,
 	parseStatFilterThreshold,
 	ALL_STAT_FILTER_FIELDS,
+	LEFT_HAND_STAT_FILTER_FIELDS,
+	RIGHT_HAND_STAT_FILTER_FIELDS,
+	MONKEY_GENERAL_STAT_FILTER_FIELDS,
+	CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
 	type SortBy,
 	type SortOrder,
 	type StatLimitKey,
@@ -952,6 +956,30 @@ export class FilterStore {
 
 	clearStatLimits() {
 		this.statLimits = createEmptyStatLimits();
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearGeneralStatLimits() {
+		const next = { ...this.statLimits };
+		for (const field of [
+			...MONKEY_GENERAL_STAT_FILTER_FIELDS,
+			...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS
+		]) {
+			next[field.key] = { operator: 'lt', value: '' };
+		}
+		next.likes = { operator: 'gt', value: '' };
+		this.statLimits = next;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearHandStatLimits() {
+		const next = { ...this.statLimits };
+		for (const field of [...LEFT_HAND_STAT_FILTER_FIELDS, ...RIGHT_HAND_STAT_FILTER_FIELDS]) {
+			next[field.key] = { operator: 'lt', value: '' };
+		}
+		this.statLimits = next;
 		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}

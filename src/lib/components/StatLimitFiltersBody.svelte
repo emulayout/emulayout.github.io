@@ -9,13 +9,15 @@
 		type StatFilterField,
 		type StatLimitKey
 	} from '$lib/layoutStats';
+	import type { StatFilterSection } from '$lib/filterSummaries';
 
 	interface Props {
-		/** Force a single column (e.g. modal). Accordion keeps responsive columns. */
+		section: StatFilterSection;
+		/** Force a single column (e.g. narrow modal). */
 		stacked?: boolean;
 	}
 
-	let { stacked = false }: Props = $props();
+	let { section, stacked = false }: Props = $props();
 
 	function fieldTitle(field: StatFilterField): string {
 		return field.title ?? field.label;
@@ -90,51 +92,52 @@
 {/snippet}
 
 <div class="stat-limits-body" class:stat-limits-body--stacked={stacked}>
-	<section class="stat-limits-general" aria-label="General stat filters">
-		{#each generalStatFilterRows as row, rowIndex (rowIndex)}
-			<div class="stat-limit-row">
-				{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
-					{@const field = row[colIndex]}
-					{#if field}
-						{@render statLimitControl(field, '2.5rem')}
-					{:else}
-						<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-					{/if}
-				{/each}
-			</div>
-		{/each}
-		{#if showLikesFilter}
-			<div class="stat-limit-row">
+	{#if section === 'general'}
+		<section class="stat-limits-general" aria-label="General stat filters">
+			{#each generalStatFilterRows as row, rowIndex (rowIndex)}
+				<div class="stat-limit-row">
+					{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+						{@const field = row[colIndex]}
+						{#if field}
+							{@render statLimitControl(field, '2.5rem')}
+						{:else}
+							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+						{/if}
+					{/each}
+				</div>
+			{/each}
+			{#if showLikesFilter}
+				<div class="stat-limit-row">
+					<div>
+						{@render statLimitControl(LIKES_STAT_FILTER_FIELD, '2.5rem')}
+					</div>
+					<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+					<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+				</div>
+			{/if}
+		</section>
+	{:else}
+		<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
+			<div class="stat-limits-hand-grid">
 				<div>
-					{@render statLimitControl(LIKES_STAT_FILTER_FIELD, '2.5rem')}
+					<div class="stat-limits-hand-heading">Left hand</div>
+					<div class="stat-limits-hand-list">
+						{#each LEFT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+							{@render statLimitControl(field, '3.25rem')}
+						{/each}
+					</div>
 				</div>
-				<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-				<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-			</div>
-		{/if}
-	</section>
-
-	<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
-		<h3 class="stat-limits-hands-title">Hands &amp; fingers</h3>
-		<div class="stat-limits-hand-grid">
-			<div>
-				<div class="stat-limits-hand-heading">Left hand</div>
-				<div class="stat-limits-hand-list">
-					{#each LEFT_HAND_STAT_FILTER_FIELDS as field (field.key)}
-						{@render statLimitControl(field, '3.25rem')}
-					{/each}
+				<div>
+					<div class="stat-limits-hand-heading">Right hand</div>
+					<div class="stat-limits-hand-list">
+						{#each RIGHT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+							{@render statLimitControl(field, '3.25rem')}
+						{/each}
+					</div>
 				</div>
 			</div>
-			<div>
-				<div class="stat-limits-hand-heading">Right hand</div>
-				<div class="stat-limits-hand-list">
-					{#each RIGHT_HAND_STAT_FILTER_FIELDS as field (field.key)}
-						{@render statLimitControl(field, '3.25rem')}
-					{/each}
-				</div>
-			</div>
-		</div>
-	</section>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -228,15 +231,6 @@
 		container-name: stat-limits-hands;
 		width: 100%;
 		min-width: 0;
-		padding-top: 1.5rem;
-		border-top: 1px solid var(--border);
-	}
-
-	.stat-limits-hands-title {
-		margin: 0 0 0.75rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--text-secondary);
 	}
 
 	.stat-limits-hand-grid {
