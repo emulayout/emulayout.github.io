@@ -22,14 +22,14 @@
 	}
 
 	interface Props {
-		label: string;
+		label?: string;
 		grid: string[][];
 		leftThumbKeys?: string[];
 		rightThumbKeys?: string[];
 		accentColor?: string;
 		hideThumbKeys?: boolean;
 		tooltipText?: string;
-		/** When true, render without outer panel chrome (for nested use). */
+		/** When true, render the grid only (no panel chrome or header). */
 		nested?: boolean;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onLeftThumbKeyChange?: (index: number, value: string) => void;
@@ -38,7 +38,7 @@
 	}
 
 	let {
-		label,
+		label = '',
 		grid,
 		leftThumbKeys = Array.from({ length: THUMB_KEYS_PER_HAND }, () => ''),
 		rightThumbKeys = Array.from({ length: THUMB_KEYS_PER_HAND }, () => ''),
@@ -89,12 +89,12 @@
 		return isHomeKeySlot(rowIdx, colIdx) ? 'var(--key-home-bg)' : 'var(--key-bg)';
 	}
 
-	function cellInputStyle(rowIdx: number, colIdx: number, cell: string): string {
+	function cellInputStyle(rowIdx: number, colIdx: number): string {
 		return `
 			width: ${columnWidthsRem[colIdx] ?? 2}rem;
 			background-color: ${keyBackgroundColor(rowIdx, colIdx)};
 			color: var(--text-primary);
-			border: 1px solid ${cell ? accentColor : 'var(--border)'};
+			border: 1px solid var(--border);
 			--tw-ring-color: ${accentColor};
 		`;
 	}
@@ -104,7 +104,7 @@
 			width: ${Math.max(2, key.length) * 0.6 + 0.8}rem;
 			background-color: var(--key-bg);
 			color: var(--text-primary);
-			border: 1px solid ${key ? accentColor : 'var(--border)'};
+			border: 1px solid var(--border);
 			--tw-ring-color: ${accentColor};
 		`;
 	}
@@ -113,26 +113,26 @@
 <div
 	class="key-filter flex flex-col items-center"
 	class:key-filter--nested={nested}
-	style={nested
-		? 'background-color: var(--key-filter-bg); border: 1px solid var(--border);'
-		: 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
+	style={nested ? undefined : 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
 >
 	<div class="flex flex-col gap-1 font-mono">
-		<div class="flex items-center justify-between mb-2 w-full gap-2">
-			<div class="flex items-center gap-1.5 min-w-0">
-				<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
-				<Tooltip text={tooltipText} />
+		{#if !nested}
+			<div class="flex items-center justify-between mb-2 w-full gap-2">
+				<div class="flex items-center gap-1.5 min-w-0">
+					<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
+					<Tooltip text={tooltipText} />
+				</div>
+				{#if hasActiveFilters}
+					<button
+						onclick={handleClear}
+						class="text-xs px-2 py-1 rounded transition-colors inline-flex shrink-0"
+						style="color: {accentColor}; background-color: var(--bg-primary);"
+					>
+						Clear
+					</button>
+				{/if}
 			</div>
-			{#if hasActiveFilters}
-				<button
-					onclick={handleClear}
-					class="text-xs px-2 py-1 rounded transition-colors inline-flex shrink-0"
-					style="color: {accentColor}; background-color: var(--bg-primary);"
-				>
-					Clear
-				</button>
-			{/if}
-		</div>
+		{/if}
 		{#each grid as row, rowIdx (rowIdx)}
 			<div class="flex gap-1">
 				{#each row as cell, colIdx (`${rowIdx}-${colIdx}`)}
@@ -144,7 +144,7 @@
 						value={cell}
 						oninput={(e) => handleInput(rowIdx, colIdx, e)}
 						class="h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
-						style={cellInputStyle(rowIdx, colIdx, cell)}
+						style={cellInputStyle(rowIdx, colIdx)}
 						placeholder="·"
 					/>
 				{/each}
@@ -200,5 +200,11 @@
 		padding: 0.75rem;
 		border-radius: 0.75rem;
 		height: 100%;
+	}
+
+	.key-filter--nested {
+		padding: 0;
+		border-radius: 0;
+		height: auto;
 	}
 </style>

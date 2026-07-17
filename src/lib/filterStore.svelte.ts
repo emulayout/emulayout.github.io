@@ -1,5 +1,5 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
-import { replaceState } from '$app/navigation';
+import { pushState, replaceState } from '$app/navigation';
 import { page } from '$app/state';
 import {
 	CYANOPHAGE_ANALYZER,
@@ -10,15 +10,20 @@ import {
 	getStatFilterFieldsForAnalyzer,
 	getStatSortField,
 	getStatSortValue,
-	isSortBy,
 	isSortOrder,
 	isStatSortBy,
 	isStatSortByForAnalyzer,
 	getDefaultSortOrder,
 	isStatsAnalyzer,
 	parseLegacySortParam,
+	normalizeSortBy,
+	coerceSortByForAnalyzer,
 	parseStatFilterThreshold,
 	ALL_STAT_FILTER_FIELDS,
+	LEFT_HAND_STAT_FILTER_FIELDS,
+	RIGHT_HAND_STAT_FILTER_FIELDS,
+	MONKEY_GENERAL_STAT_FILTER_FIELDS,
+	CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
 	type SortBy,
 	type SortOrder,
 	type StatLimitKey,
@@ -43,6 +48,8 @@ export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
+/** Pool of layouts that other filters operate on. */
+export type LayoutSource = 'all' | 'selected';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
 
@@ -152,10 +159,15 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
-	/** Layouts checked for compare / "show selected" filtering. */
+	/** Layouts checked for compare / "selected" source filtering. */
 	compareSelectedNames: SvelteSet<string> = new SvelteSet();
-	/** When true, the main list only includes checked layouts (plus other active filters). */
-	showSelectedOnly: boolean = $state(false);
+	/** When `selected`, other filters run only over compare-checked layouts. */
+	layoutSource: LayoutSource = $state('all');
+	/**
+	 * When true (and source is `all`), inject compare-selected layouts into the result
+	 * list even if they fail other filters.
+	 */
+	includeSelectedInResults: boolean = $state(false);
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	similarReferenceName: string | null = $state(null);
@@ -194,10 +206,6 @@ export class FilterStore {
 	hideLayoutLikes: boolean = $state(false);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
-	/** Key filters panel expanded. Default collapsed. */
-	keyFiltersExpanded: boolean = $state(false);
-	/** Stat filters panel expanded. Default collapsed. */
-	statFiltersExpanded: boolean = $state(false);
 
 	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
 	appliedIncludeGrid: string[][] = $state(createEmptyGrid());
@@ -234,6 +242,11 @@ export class FilterStore {
 	constructor() {
 		this.#loadFromUrl();
 		this.#applyFiltersFromInputs();
+		if (typeof window !== 'undefined') {
+			window.addEventListener('popstate', () => {
+				this.#hydrateFromUrl();
+			});
+		}
 	}
 
 	#cloneGrid(grid: string[][]): string[][] {
@@ -287,6 +300,57 @@ export class FilterStore {
 	#applyFiltersNow() {
 		this.#cancelFilterApply();
 		this.#applyFiltersFromInputs();
+	}
+
+	/** Reset URL-backed filter state to empty-URL defaults, then apply current location. */
+	#hydrateFromUrl() {
+		if (this.#debounceTimeout) {
+			clearTimeout(this.#debounceTimeout);
+			this.#debounceTimeout = null;
+		}
+		if (this.#nameDebounceTimeout) {
+			clearTimeout(this.#nameDebounceTimeout);
+			this.#nameDebounceTimeout = null;
+		}
+		this.#cancelFilterApply();
+		this.#resetUrlControlledState();
+		this.#loadFromUrl();
+		this.#applyFiltersNow();
+	}
+
+	#resetUrlControlledState() {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.showUnfinished = false;
+		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
+		this.characterSetFilter = 'english';
+		this.boardTypeFilter = 'all';
+		this.nameFilterInput = '';
+		this.nameFilter = '';
+		this.selectedAuthors.clear();
+		this.compareSelectedNames.clear();
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
+		this.similarReferenceName = null;
+		this.#sortBeforeSimilar = null;
+		this.#exitSortRestore = null;
+		this.#resetSimilarityFilter();
+		this.sortBy = 'date';
+		this.sortOrder = 'desc';
+		this.#sortOrderManual = false;
+		this.statsAnalyzer = DEFAULT_STATS_ANALYZER;
+		this.hideLayoutStats = false;
+		this.hideLayoutTestArea = false;
+		this.hideLayoutLikes = false;
+		this.statLimits = createEmptyStatLimits();
 	}
 
 	#loadFromUrl() {
@@ -351,21 +415,28 @@ export class FilterStore {
 
 		const authors = url.searchParams.get('authors');
 		if (authors) {
-			this.selectedAuthors = new SvelteSet(authors.split(',').map(Number));
+			for (const id of authors.split(',').map(Number)) {
+				if (Number.isFinite(id)) this.selectedAuthors.add(id);
+			}
 		}
 
 		const compare = url.searchParams.get('compare');
 		if (compare) {
-			this.compareSelectedNames = new SvelteSet(
-				compare
-					.split(',')
-					.map((name) => name.trim())
-					.filter(Boolean)
-			);
+			for (const name of compare
+				.split(',')
+				.map((n) => n.trim())
+				.filter(Boolean)) {
+				this.compareSelectedNames.add(name);
+			}
 		}
 
-		if (url.searchParams.get('showSelected') === '1' && this.compareSelectedNames.size > 0) {
-			this.showSelectedOnly = true;
+		if (url.searchParams.get('source') === 'selected' && this.compareSelectedNames.size > 0) {
+			this.layoutSource = 'selected';
+		} else if (
+			url.searchParams.get('showSelected') === '1' &&
+			this.compareSelectedNames.size > 0
+		) {
+			this.includeSelectedInResults = true;
 		}
 
 		const parseThumbFilters = (value: string | null): string[] =>
@@ -424,6 +495,12 @@ export class FilterStore {
 		const sort = url.searchParams.get('sort');
 		const order = url.searchParams.get('order');
 
+		// Analyzer before sort so ambiguous legacy values (e.g. `sfb`) disambiguate correctly.
+		const analyzer = url.searchParams.get('analyzer');
+		if (analyzer && isStatsAnalyzer(analyzer)) {
+			this.statsAnalyzer = analyzer;
+		}
+
 		if (sort) {
 			const legacy = parseLegacySortParam(sort);
 			if (legacy) {
@@ -431,22 +508,23 @@ export class FilterStore {
 				if (!order) {
 					this.sortOrder = legacy.sortOrder;
 				}
-			} else if (isSortBy(sort)) {
-				this.sortBy = sort;
-				if (!order) {
-					this.sortOrder = getDefaultSortOrder(sort);
+			} else {
+				const normalized = normalizeSortBy(sort, this.statsAnalyzer);
+				if (normalized) {
+					this.sortBy = normalized;
+					if (!order) {
+						this.sortOrder = getDefaultSortOrder(normalized);
+					}
 				}
 			}
 		}
 
 		if (order && isSortOrder(order)) {
 			this.sortOrder = order;
-			this.#sortOrderManual = true;
-		}
-
-		const analyzer = url.searchParams.get('analyzer');
-		if (analyzer && isStatsAnalyzer(analyzer)) {
-			this.statsAnalyzer = analyzer;
+			// Only treat as a manual override when it differs from the field default.
+			// Otherwise sticky Desc from e.g. date/rolls would stick on lower-is-better
+			// Cyanophage fields (SFB, scissors, effort, …) after reload.
+			this.#sortOrderManual = order !== getDefaultSortOrder(this.sortBy);
 		}
 
 		if (url.searchParams.get('stats') === '0') {
@@ -501,17 +579,10 @@ export class FilterStore {
 				this.statLimits.likes = { operator: 'lt', value: '' };
 			}
 		}
-
-		if (url.searchParams.get('keysOpen') === '1') {
-			this.keyFiltersExpanded = true;
-		}
-
-		if (url.searchParams.get('statsOpen') === '1') {
-			this.statFiltersExpanded = true;
-		}
 	}
 
-	#saveToUrl() {
+	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
+		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
@@ -560,7 +631,9 @@ export class FilterStore {
 			);
 		}
 
-		if (this.showSelectedOnly && this.compareSelectedNames.size > 0) {
+		if (this.layoutSource === 'selected' && this.compareSelectedNames.size > 0) {
+			url.searchParams.set('source', 'selected');
+		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
 		}
 
@@ -644,15 +717,15 @@ export class FilterStore {
 			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
-		if (this.keyFiltersExpanded) {
-			url.searchParams.set('keysOpen', '1');
+		const next = `${url.pathname}${url.search}${url.hash}`;
+		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+		if (historyMode === 'push') {
+			if (next !== current) {
+				pushState(url, page.state);
+			}
+		} else {
+			replaceState(url, page.state);
 		}
-
-		if (this.statFiltersExpanded) {
-			url.searchParams.set('statsOpen', '1');
-		}
-
-		replaceState(url, page.state);
 	}
 
 	#debouncedSave() {
@@ -744,10 +817,24 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	clearKeyboardFilters() {
+		this.showUnfinished = false;
+		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
+		this.characterSetFilter = 'english';
+		this.boardTypeFilter = 'all';
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
 	setSortBy(value: SortBy) {
+		const previousDefault = getDefaultSortOrder(this.sortBy);
+		const wasOnDefaultOrder = !this.#sortOrderManual || this.sortOrder === previousDefault;
 		this.sortBy = value;
-		if (!this.#sortOrderManual) {
+		if (wasOnDefaultOrder) {
+			// Adopt this field's default (Asc for lower-is-better Cyanophage stats, etc.).
 			this.sortOrder = getDefaultSortOrder(value);
+			this.#sortOrderManual = false;
 		}
 		this.#syncSimilarExitSortRestore(value);
 		this.#saveToUrl();
@@ -809,7 +896,19 @@ export class FilterStore {
 	setStatsAnalyzer(value: StatsAnalyzer) {
 		this.statsAnalyzer = value;
 		if (isStatSortBy(this.sortBy) && !isStatSortByForAnalyzer(this.sortBy, value)) {
-			this.#resetSortToDateDefault();
+			const remapped = coerceSortByForAnalyzer(this.sortBy, value);
+			if (remapped && isStatSortByForAnalyzer(remapped, value)) {
+				const previousDefault = getDefaultSortOrder(this.sortBy);
+				const wasOnDefaultOrder =
+					!this.#sortOrderManual || this.sortOrder === previousDefault;
+				this.sortBy = remapped;
+				if (wasOnDefaultOrder) {
+					this.sortOrder = getDefaultSortOrder(remapped);
+					this.#sortOrderManual = false;
+				}
+			} else {
+				this.#resetSortToDateDefault();
+			}
 		}
 		this.#saveToUrl();
 	}
@@ -896,16 +995,6 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
-	setKeyFiltersExpanded(value: boolean) {
-		this.keyFiltersExpanded = value;
-		this.#saveToUrl();
-	}
-
-	setStatFiltersExpanded(value: boolean) {
-		this.statFiltersExpanded = value;
-		this.#saveToUrl();
-	}
-
 	#resetSimilarityFilter() {
 		this.similarityFilterOperator = 'gt';
 		this.similarityFilterValue = '50';
@@ -976,6 +1065,30 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	clearGeneralStatLimits() {
+		const next = { ...this.statLimits };
+		for (const field of [
+			...MONKEY_GENERAL_STAT_FILTER_FIELDS,
+			...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS
+		]) {
+			next[field.key] = { operator: 'lt', value: '' };
+		}
+		next.likes = { operator: 'gt', value: '' };
+		this.statLimits = next;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearHandStatLimits() {
+		const next = { ...this.statLimits };
+		for (const field of [...LEFT_HAND_STAT_FILTER_FIELDS, ...RIGHT_HAND_STAT_FILTER_FIELDS]) {
+			next[field.key] = { operator: 'lt', value: '' };
+		}
+		this.statLimits = next;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
 	toggleAuthor(authorId: number) {
 		if (this.selectedAuthors.has(authorId)) {
 			this.selectedAuthors.delete(authorId);
@@ -994,7 +1107,8 @@ export class FilterStore {
 		if (this.compareSelectedNames.has(name)) {
 			this.compareSelectedNames.delete(name);
 			if (this.compareSelectedNames.size === 0) {
-				this.showSelectedOnly = false;
+				this.layoutSource = 'all';
+				this.includeSelectedInResults = false;
 			}
 		} else {
 			this.compareSelectedNames.add(name);
@@ -1004,17 +1118,32 @@ export class FilterStore {
 
 	clearCompareLayouts() {
 		this.compareSelectedNames.clear();
-		this.showSelectedOnly = false;
-		this.#saveToUrl();
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
+		// Push so Back can restore the previous selection.
+		this.#saveToUrl({ history: 'push' });
 	}
 
-	toggleShowSelectedOnly() {
-		if (this.compareSelectedNames.size === 0) {
-			this.showSelectedOnly = false;
+	setLayoutSource(source: LayoutSource) {
+		if (source === 'selected' && this.compareSelectedNames.size === 0) {
+			this.layoutSource = 'all';
 			this.#saveToUrl();
 			return;
 		}
-		this.showSelectedOnly = !this.showSelectedOnly;
+		this.layoutSource = source;
+		if (source === 'selected') {
+			this.includeSelectedInResults = false;
+		}
+		this.#saveToUrl();
+	}
+
+	toggleIncludeSelectedInResults() {
+		if (this.compareSelectedNames.size === 0 || this.layoutSource === 'selected') {
+			this.includeSelectedInResults = false;
+			this.#saveToUrl();
+			return;
+		}
+		this.includeSelectedInResults = !this.includeSelectedInResults;
 		this.#saveToUrl();
 	}
 
@@ -1040,9 +1169,12 @@ export class FilterStore {
 				removed = true;
 			}
 		}
-		if (this.compareSelectedNames.size === 0 && this.showSelectedOnly) {
-			this.showSelectedOnly = false;
-			removed = true;
+		if (this.compareSelectedNames.size === 0) {
+			if (this.layoutSource === 'selected' || this.includeSelectedInResults) {
+				this.layoutSource = 'all';
+				this.includeSelectedInResults = false;
+				removed = true;
+			}
 		}
 		if (removed) this.#saveToUrl();
 	}
@@ -1065,16 +1197,22 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
-		this.showSelectedOnly = false;
+		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
 		if (this.#nameDebounceTimeout) {
 			clearTimeout(this.#nameDebounceTimeout);
+			this.#nameDebounceTimeout = null;
+		}
+		if (this.#debounceTimeout) {
+			clearTimeout(this.#debounceTimeout);
+			this.#debounceTimeout = null;
 		}
 		this.#applyFiltersNow();
-		this.#debouncedSave();
+		// Push so Back can restore the previous filter URL.
+		this.#saveToUrl({ history: 'push' });
 	}
 
 	focusLayout(name: string) {
@@ -1183,17 +1321,22 @@ export class FilterStore {
 		);
 	}
 
-	get hasActiveFilters(): boolean {
+	get hasActiveKeyboardFilters(): boolean {
 		return (
-			this.hasActiveKeyFilters ||
 			this.showUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
-			this.boardTypeFilter !== 'all' ||
+			this.boardTypeFilter !== 'all'
+		);
+	}
+
+	get hasActiveFilters(): boolean {
+		return (
+			this.hasActiveKeyFilters ||
+			this.hasActiveKeyboardFilters ||
 			this.nameFilterInput !== '' ||
 			this.selectedAuthors.size > 0 ||
-			this.showSelectedOnly ||
 			this.similarReferenceName !== null ||
 			this.hasActiveStatLimits
 		);
@@ -1482,6 +1625,11 @@ export class FilterStore {
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
 		return layouts.filter((l) => {
+			// Source pool: when "Selected layouts only", other filters apply within selection.
+			if (this.layoutSource === 'selected' && !this.compareSelectedNames.has(l.name)) {
+				return false;
+			}
+
 			// Cheap boolean / enum filters first
 			if (
 				!this.showUnfinished &&
@@ -1496,7 +1644,6 @@ export class FilterStore {
 			if (!this.#matchesBoardType(l)) return false;
 			if (!this.#matchesName(l)) return false;
 			if (!this.#matchesAuthor(l)) return false;
-			if (this.showSelectedOnly && !this.compareSelectedNames.has(l.name)) return false;
 			if (!this.#matchesInclude(l)) return false;
 			if (!this.#matchesExclude(l)) return false;
 			if (!this.#matchesIncludeOr(l)) return false;

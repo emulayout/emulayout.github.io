@@ -104,7 +104,6 @@
 		compareAnalyzer === CYANOPHAGE_ANALYZER ? statsMaps.cyanophage : statsMaps.monkeyracer
 	);
 
-	const analyzerIsDefault = $derived(compareAnalyzer === DEFAULT_STATS_ANALYZER);
 	const statsLoading = $derived(layoutStatsStore.isLoading(compareAnalyzer));
 
 	// Seed analyzer + view pair each time the modal is opened / reopened.
@@ -226,7 +225,7 @@
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
-						border: 1px solid {!analyzerIsDefault ? 'var(--accent)' : 'var(--border)'};
+						border: 1px solid var(--border);
 						--tw-ring-color: var(--accent);
 					"
 					aria-label="Analyzer"

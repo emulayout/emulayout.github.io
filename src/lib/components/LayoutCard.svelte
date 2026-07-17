@@ -26,11 +26,7 @@
 		type StatSortKey
 	} from '$lib/layoutStats';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-	import {
-		buildKeyMap,
-		buildShiftKeyMap,
-		type KeyMap
-	} from '$lib/cmini/keyboard';
+	import { buildKeyMap, buildShiftKeyMap, type KeyMap } from '$lib/cmini/keyboard';
 	import {
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
@@ -46,6 +42,8 @@
 		likeCount: number;
 		/** Compact stats for the active analyzer only (avoids full statsMaps fan-out). */
 		compactStats?: CompactLayoutStats | CompactCyanophageStats;
+		/** Injected into results despite failing filters (Include selected). */
+		forceIncluded?: boolean;
 		similarMatchPercent?: number;
 		/** Best similarity score came from a mirrored (left/right flipped) comparison. */
 		similarMirrored?: boolean;
@@ -58,6 +56,7 @@
 		authorName,
 		likeCount,
 		compactStats,
+		forceIncluded = false,
 		similarMatchPercent,
 		similarMirrored = false,
 		similarDiffPositions
@@ -75,9 +74,7 @@
 	const isAngleBoard = $derived(layout.board === 'angle');
 
 	// Similarity reference card shares anglemod with scoring; other cards keep local toggle state.
-	const anglemod = $derived(
-		isSimilarActive ? filterStore.similarReferenceAnglemod : localAnglemod
-	);
+	const anglemod = $derived(isSimilarActive ? filterStore.similarReferenceAnglemod : localAnglemod);
 
 	function toggleAnglemod() {
 		if (isSimilarActive) {
@@ -259,10 +256,23 @@
 <div
 	data-layout-name={layout.name}
 	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
-	style="background-color: var(--bg-secondary); border: 1px solid {isSimilarActive
-		? 'var(--similar-diff)'
-		: 'var(--border)'}; height: {cardHeight}px;"
+	class:layout-card--force-included={forceIncluded}
+	style="
+		background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
+		border: 1px solid {forceIncluded
+			? 'transparent'
+			: isSimilarActive
+				? 'var(--similar-diff)'
+				: 'var(--border)'};
+		--force-border-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
+		height: {cardHeight}px;
+	"
 >
+	{#if forceIncluded}
+		<svg class="layout-card-force-border" aria-hidden="true">
+			<rect pathLength="100" />
+		</svg>
+	{/if}
 	<div class="shrink-0 flex flex-col gap-1">
 		<div class="flex items-center gap-2 min-w-0">
 			<label class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
@@ -356,7 +366,10 @@
 				</span>
 			{/if}
 		</div>
-		<p class="text-xs layout-meta flex items-center gap-1 min-w-0" style="color: var(--text-secondary);">
+		<p
+			class="text-xs layout-meta flex items-center gap-1 min-w-0"
+			style="color: var(--text-secondary);"
+		>
 			<span class="shrink-0">{layout.board} · by</span>
 			<button
 				type="button"
@@ -375,9 +388,7 @@
 		</p>
 	</div>
 
-	<div
-		class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center px-2"
-	>
+	<div class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center px-2">
 		{#if showSimilarDiffs}
 			<div
 				class="layout-display layout-display--diff font-mono whitespace-pre m-0"
@@ -526,8 +537,7 @@
 				{:else}
 					<pre
 						class="stats-block shrink-0"
-						class:stats-block--unavailable={!statsLoading}
-					>{statsBlock}</pre>
+						class:stats-block--unavailable={!statsLoading}>{statsBlock}</pre>
 				{/if}
 			{/if}
 			{#if filterStore.showLayoutTestArea}
@@ -597,6 +607,40 @@
 		gap: 0.25rem;
 		padding: 0 0.375rem;
 		background-color: var(--bg-secondary);
+	}
+
+	.layout-card--force-included .card-action-toolbar {
+		background-color: var(--bg-primary);
+	}
+
+	/*
+	 * Native border-style:dashed ties stroke thickness to border-width.
+	 * SVG draws the dashed outline independently of the 1px layout border.
+	 */
+	.layout-card-force-border {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		overflow: visible;
+		z-index: 2;
+	}
+
+	.layout-card-force-border rect {
+		fill: none;
+		stroke: var(--force-border-color, var(--border));
+		stroke-width: 2;
+		stroke-dasharray: 0.5 0.5;
+		stroke-linecap: butt;
+		vector-effect: non-scaling-stroke;
+		x: 0.5px;
+		y: 0.5px;
+		width: calc(100% - 1px);
+		height: calc(100% - 1px);
+		/* Match Tailwind rounded-xl (12px), inset by half the layout border */
+		rx: 11.5px;
+		ry: 11.5px;
 	}
 
 	.card-action-button {

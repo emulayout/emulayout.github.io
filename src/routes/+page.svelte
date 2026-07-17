@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
+	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
-	import LayoutFilters from '$lib/components/LayoutFilters.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import SimilarReferencePanel from '$lib/components/SimilarReferencePanel.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
@@ -152,10 +152,7 @@
 	/** Reference positions after the selected card's anglemod toggle (drives match + diffs). */
 	const similarReferenceForCompare = $derived(
 		similarReferenceLayout
-			? withSimilarReferenceAnglemod(
-					similarReferenceLayout,
-					filterStore.similarReferenceAnglemod
-				)
+			? withSimilarReferenceAnglemod(similarReferenceLayout, filterStore.similarReferenceAnglemod)
 			: null
 	);
 
@@ -174,17 +171,13 @@
 		return buildMirroredPositionMap(similarReferenceForCompare.positionBySlot);
 	});
 
-	const filteredLayouts = $derived.by(() => {
+	const filteredResult = $derived.by(() => {
 		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
 
 		if (filterStore.similarReferenceName) {
 			result = result.filter((layout) => {
 				if (
-					!isSimilarLayoutMatch(
-						filterStore.similarReferenceName,
-						layout.name,
-						similarityMatches
-					)
+					!isSimilarLayoutMatch(filterStore.similarReferenceName, layout.name, similarityMatches)
 				) {
 					return false;
 				}
@@ -198,13 +191,40 @@
 			});
 		}
 
-		if (filterStore.sortBy === 'similarity') {
-			return sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder);
+		const forceIncluded = new Set<string>();
+		let hiddenSelectedCount = 0;
+
+		// Count (and optionally inject) selected layouts that fail current filters.
+		if (filterStore.layoutSource === 'all' && filterStore.compareSelectedNames.size > 0) {
+			const present = new Set(result.map((layout) => layout.name));
+			for (const layout of layouts) {
+				if (
+					!filterStore.compareSelectedNames.has(layout.name) ||
+					layout.name === filterStore.similarReferenceName ||
+					present.has(layout.name)
+				) {
+					continue;
+				}
+				hiddenSelectedCount += 1;
+				if (filterStore.includeSelectedInResults) {
+					result.push(layout);
+					present.add(layout.name);
+					forceIncluded.add(layout.name);
+				}
+			}
 		}
 
-		return filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
+		const sorted =
+			filterStore.sortBy === 'similarity'
+				? sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder)
+				: filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
+
+		return { layouts: sorted, forceIncludedNames: forceIncluded, hiddenSelectedCount };
 	});
 
+	const filteredLayouts = $derived(filteredResult.layouts);
+	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
+	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
 	const filteredCount = $derived(filteredLayouts.length);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 
@@ -229,23 +249,28 @@
 	});
 </script>
 
-<div class="max-w-screen-2xl mx-auto">
-	<LayoutFilters {authorList} {filteredCount} {likesSortAvailable} />
-
-	{#if similarReferenceLayout}
-		<div class="similar-results-layout">
-			<aside class="similar-sidebar">
-				<SimilarReferencePanel
-					layout={similarReferenceLayout}
-					authorName={getAuthorName(similarReferenceLayout.user)}
-					likesData={resolvedLikesData}
-					{statsMaps}
-				/>
-			</aside>
-			<div class="similar-results min-w-0">
+<div class="page-root">
+	<div class="results-layout">
+		<aside class="results-sidebar">
+			<FiltersSidebar {authorList} {layouts}>
+				{#if similarReferenceLayout}
+					<SimilarReferencePanel
+						layout={similarReferenceLayout}
+						authorName={getAuthorName(similarReferenceLayout.user)}
+						likesData={resolvedLikesData}
+						{statsMaps}
+					/>
+				{/if}
+			</FiltersSidebar>
+		</aside>
+		<div class="results-main min-w-0">
+			<div class="results-toolbar">
 				<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
+			</div>
+			<div class="results-list">
 				<LayoutCardList
 					layouts={filteredLayouts}
+					{forceIncludedNames}
 					{getAuthorName}
 					likesData={resolvedLikesData}
 					{statsMaps}
@@ -254,50 +279,74 @@
 					similarMirrorDiffPositions={mirroredReferencePositions}
 				/>
 			</div>
-		</div>
-	{:else}
-		<LayoutCardList
-			layouts={filteredLayouts}
-			{getAuthorName}
-			likesData={resolvedLikesData}
-			{statsMaps}
-		/>
-	{/if}
-</div>
-
-{#if compareSelectedCount > 0}
-	<div class="compare-fab" role="presentation">
-		<div class="compare-fab-group">
-			<button
-				type="button"
-				class="compare-fab-button"
-				class:compare-fab-button--active={filterStore.showSelectedOnly}
-				aria-pressed={filterStore.showSelectedOnly}
-				aria-label={`${filterStore.showSelectedOnly ? 'Showing' : 'Show'} (${compareSelectedCount}) selected`}
-				onclick={() => filterStore.toggleShowSelectedOnly()}
-			>
-				{filterStore.showSelectedOnly ? 'Showing' : 'Show'} ({compareSelectedCount}) selected
-			</button>
-			<button
-				type="button"
-				class="compare-fab-clear"
-				aria-label="Clear selection"
-				onclick={() => filterStore.clearCompareLayouts()}
-			>
-				<svg
-					class="size-4"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2.5"
-					aria-hidden="true"
-				>
-					<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-				</svg>
-			</button>
+			{#if compareSelectedCount > 0}
+				{@const canIncludeNonMatching =
+					filterStore.layoutSource === 'all' &&
+					(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
+				<div class="compare-fab" role="presentation">
+					<div class="compare-fab-group">
+						{#if canIncludeNonMatching}
+							<button
+								type="button"
+								class="compare-fab-button"
+								class:compare-fab-button--active={filterStore.includeSelectedInResults}
+								aria-pressed={filterStore.includeSelectedInResults}
+								aria-label={filterStore.includeSelectedInResults
+									? 'Always showing selected'
+									: `Show (${hiddenSelectedCount}) non-matching selected`}
+								onclick={() => filterStore.toggleIncludeSelectedInResults()}
+							>
+								{#if filterStore.includeSelectedInResults}
+									Always showing selected layouts
+								{:else}
+									Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
+										? ''
+										: 's'}
+								{/if}
+							</button>
+							<button
+								type="button"
+								class="compare-fab-clear"
+								aria-label="Clear selection"
+								onclick={() => filterStore.clearCompareLayouts()}
+							>
+								<svg
+									class="size-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="compare-fab-button compare-fab-button--with-icon"
+								aria-label={`Clear (${compareSelectedCount}) selected layouts`}
+								onclick={() => filterStore.clearCompareLayouts()}
+							>
+								Clear ({compareSelectedCount}) selected layouts
+								<svg
+									class="size-4 shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
+							</button>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
-{/if}
+</div>
 
 <CompareLayoutsModal
 	open={showCompareModal}
@@ -311,6 +360,11 @@
 />
 
 <style>
+	.results-main {
+		position: relative;
+		min-width: 0;
+	}
+
 	.compare-fab {
 		position: fixed;
 		left: 0;
@@ -320,6 +374,13 @@
 		display: flex;
 		justify-content: center;
 		pointer-events: none;
+	}
+
+	@media (min-width: 1024px) {
+		.compare-fab {
+			/* Center within the results column, not the full viewport. */
+			position: absolute;
+		}
 	}
 
 	.compare-fab-group {
@@ -342,8 +403,16 @@
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
 		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
-		transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease,
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease,
 			box-shadow 0.15s ease;
+	}
+
+	.compare-fab-button--with-icon {
+		gap: 0.375rem;
+		padding-right: 0.625rem;
 	}
 
 	.compare-fab-button:hover {
@@ -370,7 +439,10 @@
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border);
 		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--text-primary) 18%, transparent);
-		transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+		transition:
+			border-color 0.15s ease,
+			color 0.15s ease,
+			box-shadow 0.15s ease;
 	}
 
 	.compare-fab-clear:hover {
@@ -378,52 +450,100 @@
 		color: var(--accent);
 	}
 
-	.similar-results-layout {
+	.page-root {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		width: 100%;
+	}
+
+	.results-layout {
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 0.75rem;
 		align-items: start;
 	}
 
-	@media (min-width: 640px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + one results column (1) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-			gap: 0.75rem 1rem;
-		}
+	.results-toolbar {
+		flex-shrink: 0;
+		/* Room for focus rings clipped by results-main overflow:hidden. */
+		padding: 0.25rem;
+	}
 
-		.similar-sidebar {
-			position: sticky;
-			top: 0.75rem;
-			align-self: start;
-			max-height: calc(100vh - 1.5rem);
-			overflow-y: auto;
-		}
+	.results-sidebar,
+	.results-list {
+		scrollbar-width: thin;
+		scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
+	}
 
-		.similar-results {
-			border-left: 1px solid var(--border);
-			padding-left: 1rem;
-		}
+	.results-sidebar::-webkit-scrollbar,
+	.results-list::-webkit-scrollbar,
+	.results-list :global(*)::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	.results-sidebar::-webkit-scrollbar-thumb,
+	.results-list::-webkit-scrollbar-thumb,
+	.results-list :global(*)::-webkit-scrollbar-thumb {
+		background: color-mix(in srgb, var(--text-caption) 70%, transparent);
+		border-radius: 999px;
+	}
+
+	.results-sidebar::-webkit-scrollbar-track,
+	.results-list::-webkit-scrollbar-track,
+	.results-list :global(*)::-webkit-scrollbar-track {
+		background: transparent;
 	}
 
 	@media (min-width: 1024px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + two results columns (2) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		.page-root {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
 		}
-	}
 
-	@media (min-width: 1280px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + three results columns (3) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+		.results-layout {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
+			align-items: stretch;
+			/* Fixed filter rail + flexible results (not 1fr+Nfr — that made the rail huge). */
+			grid-template-columns: 19rem minmax(0, 1fr);
+			gap: 0 1rem;
 		}
-	}
 
-	@media (min-width: 1536px) {
-		.similar-results-layout {
-			/* Sticky reference (1) + four results columns (4) */
-			grid-template-columns: minmax(0, 1fr) minmax(0, 4fr);
+		.results-sidebar {
+			min-height: 0;
+			overflow-x: hidden;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			-webkit-overflow-scrolling: touch;
+			/* Room for focus rings — overflow-x:hidden otherwise clips the left edge. */
+			padding-left: 0.25rem;
+			padding-right: 0.25rem;
+		}
+
+		.results-main {
+			position: relative;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+			/* border-left: 1px solid var(--border); */
+			/* padding-left: 1rem; */
+			min-width: 0;
+		}
+
+		.results-list {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.results-list :global(*) {
+			scrollbar-width: thin;
+			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
 		}
 	}
 </style>

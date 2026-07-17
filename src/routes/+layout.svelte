@@ -2,7 +2,9 @@
 	import './layout.css';
 	import RecentLayoutsModal from '$lib/components/RecentLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
+	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { hasOpenModal } from '$lib/modalScrollLock';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children } = $props();
 
@@ -13,6 +15,33 @@
 	let showRecentLayouts = $state(false);
 	let showQuickFind = $state(false);
 	let mediaQuery: MediaQueryList | null = null;
+	let debugEnabled = $state(false);
+
+	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
+	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
+	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
+	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
+	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
+	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
+
+	const debugBreakpoint = $derived.by(() => {
+		if (!debugEnabled) return '';
+		if (xxxlUp.current) return `3xl (≥${TAILWIND_BREAKPOINTS['3xl']})`;
+		if (xxlUp.current) return `2xl (≥${TAILWIND_BREAKPOINTS['2xl']})`;
+		if (xlUp.current) return `xl (≥${TAILWIND_BREAKPOINTS.xl})`;
+		if (lgUp.current) return `lg (≥${TAILWIND_BREAKPOINTS.lg})`;
+		if (mdUp.current) return `md (≥${TAILWIND_BREAKPOINTS.md})`;
+		if (smUp.current) return `sm (≥${TAILWIND_BREAKPOINTS.sm})`;
+		return `<sm (<${TAILWIND_BREAKPOINTS.sm})`;
+	});
+
+	const debugLayoutMode = $derived(
+		!debugEnabled
+			? ''
+			: lgUp.current
+				? `split (≥${LAYOUT_SPLIT_MIN_WIDTH})`
+				: `stack (<${LAYOUT_SPLIT_MIN_WIDTH})`
+	);
 
 	const dark = $derived.by(() => {
 		return themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
@@ -20,6 +49,8 @@
 
 	// Initialize theme mode and follow OS changes while in system mode.
 	$effect(() => {
+		debugEnabled = localStorage.getItem('debug') === 'true';
+
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 
@@ -113,28 +144,36 @@
 	<title>Emulayout</title>
 </svelte:head>
 
-<div class="min-h-screen">
-	<header class="px-3 py-3 md:px-6">
-		<div
-			class="flex items-center justify-between gap-3 max-w-screen-2xl mx-auto md:grid md:grid-cols-3"
-		>
-		<div class="hidden md:block"></div>
-		<a
-			href="/"
-			data-sveltekit-reload
-			class="flex min-w-0 items-center justify-start gap-3 no-underline hover:opacity-90 transition-opacity md:justify-center"
-		>
-			<img
-				src="/keycap.png"
-				alt=""
-				width="71"
-				height="72"
-				class="shrink-0 h-8 w-auto"
-			/>
-			<h1 class="truncate text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
-				Emulayout
-			</h1>
-		</a>
+<div class="app-shell">
+	<header class="app-header px-3 py-3 md:px-6">
+		<div class="flex w-full items-center justify-between gap-3">
+		<div class="flex min-w-0 items-center gap-3">
+			<a
+				href="/"
+				data-sveltekit-reload
+				class="flex min-w-0 items-center gap-3 no-underline hover:opacity-90 transition-opacity"
+			>
+				<img
+					src="/keycap.png"
+					alt=""
+					width="71"
+					height="72"
+					class="shrink-0 h-8 w-auto"
+				/>
+				<h1 class="truncate text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
+					Emulayout
+				</h1>
+			</a>
+			{#if debugEnabled}
+				<span
+					class="shrink-0 font-mono text-xs"
+					style="color: var(--text-caption);"
+					title="Temporary layout debug label"
+				>
+					{debugBreakpoint} · {debugLayoutMode}
+				</span>
+			{/if}
+		</div>
 		<div class="flex shrink-0 justify-end gap-2">
 			<button
 				onclick={openRecentLayouts}
@@ -144,7 +183,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -162,7 +201,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -184,7 +223,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -203,7 +242,7 @@
 				<!-- System / auto icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'system'
+					style="color: var(--text-primary); opacity: {themeMode === 'system'
 						? 1
 						: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
 					fill="none"
@@ -218,7 +257,7 @@
 				<!-- Sun icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'light'
+					style="color: var(--text-primary); opacity: {themeMode === 'light'
 						? 1
 						: 0}; transform: rotate({themeMode === 'light'
 						? 0
@@ -237,7 +276,7 @@
 				<!-- Moon icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'dark'
+					style="color: var(--text-primary); opacity: {themeMode === 'dark'
 						? 1
 						: 0}; transform: rotate({themeMode === 'dark'
 						? 0
@@ -255,10 +294,47 @@
 		</div>
 	</header>
 
-	<main class="px-3 pb-4 md:px-6">
+	<main class="app-main px-3 pb-3 md:px-6 md:pb-4">
 		{@render children()}
 	</main>
 </div>
 
 <RecentLayoutsModal open={showRecentLayouts} onClose={() => (showRecentLayouts = false)} />
 <QuickFindModal open={showQuickFind} onClose={() => (showQuickFind = false)} />
+
+<style>
+	.app-shell {
+		min-height: 100dvh;
+	}
+
+	.app-header {
+		position: relative;
+		z-index: 20;
+		background-color: var(--bg-primary);
+		box-shadow: var(--app-bar-shadow-color) 0px -4px 20px 7px;
+		margin-bottom: 1.5rem;
+	}
+
+	/* Desktop split view: lock the shell to the viewport so columns scroll independently. */
+	@media (min-width: 1024px) {
+		.app-shell {
+			height: 100dvh;
+			max-height: 100dvh;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		.app-header {
+			flex-shrink: 0;
+		}
+
+		.app-main {
+			flex: 1 1 0;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+	}
+</style>

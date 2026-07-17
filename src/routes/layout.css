@@ -4,10 +4,23 @@
 @theme {
 	--font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+	--breakpoint-3xl: 1920px;
 }
 
 html {
 	scrollbar-gutter: stable;
+}
+
+@media (min-width: 1024px) {
+	/* Desktop uses pane scrollers inside a locked shell — don't reserve a page gutter. */
+	html {
+		scrollbar-gutter: auto;
+		overflow: hidden;
+	}
+
+	body {
+		overflow: hidden;
+	}
 }
 
 :root {
@@ -16,9 +29,10 @@ html {
 	--text-primary: #14120f;
 	--text-secondary: #504b45;
 	--text-caption: #7a746c;
-	--accent: #BC5E11;
-	--accent-hover: #BC5E11;
-	--similar-diff: #7AA825;
+	--accent: #bc5e11;
+	--accent-hover: #bc5e11;
+	--filter-action: #3d6a8a;
+	--similar-diff: #7aa825;
 	--similar-active-fg: white;
 	--link: #4a6278;
 	--border: #d8d2c9;
@@ -27,6 +41,7 @@ html {
 	--key-shadow: #ccc5bc;
 	--key-filter-bg: #faf9f7;
 	--input-bg: #ffffff;
+	--app-bar-shadow-color: #bebebe;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);
@@ -39,9 +54,10 @@ html {
 	--text-primary: #faf8f5;
 	--text-secondary: #c9c4bc;
 	--text-caption: #949088;
-	--accent: #DC6E14;
-	--accent-hover: #DC6E14;
-	--similar-diff: #92C92C;
+	--accent: #dc6e14;
+	--accent-hover: #dc6e14;
+	--filter-action: #7aa3c4;
+	--similar-diff: #92c92c;
 	--similar-active-fg: #100f0d;
 	--link: #9eb4d4;
 	--border: #403c38;
@@ -50,6 +66,7 @@ html {
 	--key-shadow: #0a0908;
 	--key-filter-bg: #13120f;
 	--input-bg: #1d1a19;
+	--app-bar-shadow-color: #000000;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);
@@ -69,6 +86,22 @@ input::placeholder,
 textarea::placeholder {
 	color: var(--text-caption);
 	opacity: 1;
+}
+
+/* Native selects: custom chevron with comfortable right padding */
+select:not([multiple]) {
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237a746c'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-position: right 0.5rem center;
+	background-repeat: no-repeat;
+	background-size: 1rem 1rem;
+	/* Room for 1rem chevron + 0.5rem inset (matches typical left padding) */
+	padding-right: 1.75rem !important;
+}
+
+.dark select:not([multiple]) {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23949088'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .stats-block {
@@ -95,9 +128,7 @@ textarea::placeholder {
 }
 
 .layout-display-area {
-	min-height: calc(
-		var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size)
-	);
+	min-height: calc(var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size));
 }
 
 .layout-meta {
@@ -124,4 +155,131 @@ textarea::placeholder {
 
 .stats-diff-worse {
 	color: var(--stats-diff-worse);
+}
+
+/* Action buttons that open filters — distinct from input/select fields */
+.filter-open-button {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.55rem 0.75rem;
+	border-radius: 0.75rem;
+	border: 1px solid color-mix(in srgb, var(--filter-action) 32%, var(--border));
+	background-color: color-mix(in srgb, var(--filter-action) 11%, var(--bg-primary));
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.filter-open-button:hover {
+	background-color: color-mix(in srgb, var(--filter-action) 18%, var(--bg-primary));
+	border-color: var(--filter-action);
+	color: var(--filter-action);
+}
+
+.filter-open-button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--filter-action);
+}
+
+.filter-open-button-text {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.2rem;
+}
+
+.filter-open-button-title {
+	line-height: 1.25;
+}
+
+.filter-open-button-summary {
+	max-width: 100%;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--filter-action);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.filter-open-button-chevron {
+	flex-shrink: 0;
+	width: 1rem;
+	height: 1rem;
+	opacity: 0.7;
+}
+
+.filter-open-button-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.filter-open-button-group > .filter-open-button + .filter-open-button {
+	margin-top: -1px;
+}
+
+.filter-open-button-group > .filter-open-button:first-child {
+	border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.filter-open-button-group > .filter-open-button:not(:first-child):not(:last-child) {
+	border-radius: 0;
+}
+
+.filter-open-button-group > .filter-open-button:last-child:not(:first-child) {
+	border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.filter-open-button-group > .filter-open-button:only-child {
+	border-radius: 0.75rem;
+}
+
+.filter-open-button-group > .filter-open-button:hover,
+.filter-open-button-group > .filter-open-button:focus-visible {
+	position: relative;
+	z-index: 1;
+}
+
+/* Compact reset control for filter sections / modals */
+.filter-reset-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.375rem;
+	border: 1px solid color-mix(in srgb, var(--filter-action) 32%, var(--border));
+	background-color: color-mix(in srgb, var(--filter-action) 11%, var(--bg-primary));
+	color: var(--text-primary);
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1rem;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.filter-reset-button:hover {
+	background-color: color-mix(in srgb, var(--filter-action) 18%, var(--bg-primary));
+	border-color: var(--filter-action);
+	color: var(--filter-action);
+}
+
+.filter-reset-button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 2px var(--filter-action);
 }

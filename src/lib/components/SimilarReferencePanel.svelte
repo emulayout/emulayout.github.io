@@ -1,11 +1,6 @@
 <script lang="ts">
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
-	import Tooltip from '$lib/components/Tooltip.svelte';
-	import {
-		filterStore,
-		type SimilarityMirrorMode,
-		type StatLimitOperator
-	} from '$lib/filterStore.svelte';
+	import { filterStore } from '$lib/filterStore.svelte';
 	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 
@@ -25,138 +20,8 @@
 				: statsMaps.monkeyracer;
 		return map?.[layout.name];
 	});
-
-	const matchOperatorActive = $derived(filterStore.similarityFilterOperator !== 'gt');
-	const matchValueActive = $derived(filterStore.similarityFilterValue.trim() !== '50');
 </script>
 
 <div id="selected-layout" class="similar-reference-panel">
-	<div class="flex flex-col gap-3">
-		<LayoutCard
-			{layout}
-			{authorName}
-			likeCount={likesData[layout.name] ?? 0}
-			{compactStats}
-		/>
-		<div
-			class="similarity-filter w-full p-3 rounded-xl"
-			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-		>
-			<div class="flex items-center gap-1.5 mb-1">
-				<span class="text-sm font-medium" style="color: var(--text-secondary);"
-					>Similarity filters</span
-				>
-				<Tooltip
-					text="Compares letter positions against the selected layout. Match percent is how many shared slots have the same character (optionally weighting home-row keys higher). Mirror matches also try a left/right flipped compare. Diff highlighting shows letters that differ from the reference."
-				/>
-			</div>
-			<div class="flex flex-col gap-2">
-				<div>
-					<div class="block text-sm mb-1" style="color: var(--text-secondary);">Match percent</div>
-					<div class="flex items-center gap-1.5 min-w-0">
-						<select
-							value={filterStore.similarityFilterOperator}
-							onchange={(e) =>
-								filterStore.setSimilarityFilterOperator(
-									e.currentTarget.value as StatLimitOperator
-								)}
-							class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-							style="
-								background-color: var(--input-bg);
-								color: var(--text-primary);
-								border: 1px solid {matchOperatorActive ? 'var(--accent)' : 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							aria-label="Similarity comparison"
-						>
-							<option value="lt">Less than</option>
-							<option value="gt">Greater than</option>
-						</select>
-						<input
-							type="text"
-							inputmode="decimal"
-							value={filterStore.similarityFilterValue}
-							oninput={(e) => filterStore.setSimilarityFilterValue(e.currentTarget.value)}
-							onkeydown={(e) => {
-								if (e.key === 'ArrowUp') {
-									e.preventDefault();
-									filterStore.nudgeSimilarityFilterValue(1);
-								} else if (e.key === 'ArrowDown') {
-									e.preventDefault();
-									filterStore.nudgeSimilarityFilterValue(-1);
-								}
-							}}
-							class="w-11 px-1.5 py-1 rounded-lg text-xs text-right outline-none focus:ring-2"
-							style="
-								background-color: var(--input-bg);
-								color: var(--text-primary);
-								border: 1px solid {matchValueActive ? 'var(--accent)' : 'var(--border)'};
-								--tw-ring-color: var(--accent);
-							"
-							placeholder="—"
-							aria-label="Similarity percent limit"
-						/>
-						<span class="text-xs shrink-0" style="color: var(--text-caption);">%</span>
-					</div>
-				</div>
-				<div>
-					<label
-						for="similarity-home-filter"
-						class="block text-sm mb-1"
-						style="color: var(--text-secondary);"
-					>
-						Scoring
-					</label>
-					<select
-						id="similarity-home-filter"
-						value={filterStore.similarityWeightHomeKeys ? 'weighted' : 'equal'}
-						onchange={(e) =>
-							filterStore.setSimilarityWeightHomeKeys(e.currentTarget.value === 'weighted')}
-						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-						style="
-							background-color: var(--input-bg);
-							color: var(--text-primary);
-							border: 1px solid {filterStore.similarityWeightHomeKeys
-							? 'var(--accent)'
-							: 'var(--border)'};
-							--tw-ring-color: var(--accent);
-						"
-					>
-						<option value="equal">All keys count equally</option>
-						<option value="weighted">Home row keys count double</option>
-					</select>
-				</div>
-				<div>
-					<label
-						for="similarity-mirror-filter"
-						class="block text-sm mb-1"
-						style="color: var(--text-secondary);"
-					>
-						Mirror matches
-					</label>
-					<select
-						id="similarity-mirror-filter"
-						value={filterStore.similarityMirrorMode}
-						onchange={(e) =>
-							filterStore.setSimilarityMirrorMode(
-								e.currentTarget.value as SimilarityMirrorMode
-							)}
-						class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
-						style="
-							background-color: var(--input-bg);
-							color: var(--text-primary);
-							border: 1px solid {filterStore.similarityMirrorMode !== 'excluded'
-							? 'var(--accent)'
-							: 'var(--border)'};
-							--tw-ring-color: var(--accent);
-						"
-					>
-						<option value="excluded">Excluded</option>
-						<option value="optional">Optional</option>
-						<option value="required">Required</option>
-					</select>
-				</div>
-			</div>
-		</div>
-	</div>
+	<LayoutCard {layout} {authorName} likeCount={likesData[layout.name] ?? 0} {compactStats} />
 </div>

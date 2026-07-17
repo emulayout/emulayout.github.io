@@ -1,7 +1,7 @@
 <script lang="ts">
 	import LayoutCard from './LayoutCard.svelte';
-	import { WindowVirtualizer } from 'virtua/svelte';
-	import { getLayoutCardItemSize, TAILWIND_BREAKPOINTS } from '$lib/constants';
+	import { VList, WindowVirtualizer } from 'virtua/svelte';
+	import { getLayoutCardItemSize, LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -16,6 +16,8 @@
 
 	interface Props {
 		layouts: LayoutData[];
+		/** Layouts injected into results despite failing filters. */
+		forceIncludedNames?: ReadonlySet<string>;
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
@@ -28,6 +30,7 @@
 
 	const {
 		layouts,
+		forceIncludedNames = new Set(),
 		getAuthorName,
 		likesData,
 		statsMaps,
@@ -38,25 +41,21 @@
 
 	let virtualizer = $state<{
 		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
+		scrollTo?: (offset: number) => void;
 	}>();
 
+	const splitUp = new MediaQuery(`(min-width: ${LAYOUT_SPLIT_MIN_WIDTH}px)`);
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
-	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
 	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
 	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
+	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
 
-	// Similarity mode reserves one column for the sticky reference panel (sm+).
+	// Stacked sidebar below lg gets full width → 2 columns from sm. Split layout starts at lg.
 	const columns = $derived.by(() => {
-		if (filterStore.hasSimilarReference) {
-			if (xxlUp.current) return 4;
-			if (xlUp.current) return 3;
-			if (lgUp.current) return 2;
-			return 1;
-		}
-		if (xxlUp.current) return 5;
-		if (xlUp.current) return 4;
-		if (lgUp.current) return 3;
-		if (smUp.current) return 2;
+		if (xxxlUp.current) return 5;
+		if (xxlUp.current) return 4;
+		if (xlUp.current) return 3;
+		if (splitUp.current || smUp.current) return 2;
 		return 1;
 	});
 
@@ -71,8 +70,10 @@
 	);
 
 	// Remount when similar mode toggles so virtua doesn't keep the old list height /
-	// scroll-jump state (which fights window.scrollTo when the result set shrinks).
-	const virtualizerKey = $derived(filterStore.similarReferenceName ?? '');
+	// scroll-jump state (which fights scroll restoration when the result set shrinks).
+	const virtualizerKey = $derived(
+		`${filterStore.similarReferenceName ?? ''}:${splitUp.current ? 'pane' : 'window'}`
+	);
 
 	// Group layouts into rows for grid virtualization
 	// Store row start indices as integers to avoid object allocation
@@ -84,10 +85,8 @@
 		return result;
 	});
 
-	// WindowVirtualizer only recomputes its visible range on scroll. Entering similarity
-	// mode remounts it (via virtualizerKey) while scrollY may still be deep in the old
-	// list — if we fire scroll before onMount attaches the listener, the list stays blank
-	// until the user scrolls. Depend on `virtualizer` so this runs after mount.
+	// Virtualizers only recompute their visible range on scroll/resize. Entering similarity
+	// mode remounts them (via virtualizerKey) — wake after mount so the list isn't blank.
 	$effect(() => {
 		void virtualizer;
 		void virtualizerKey;
@@ -99,7 +98,6 @@
 		let cancelled = false;
 		const wake = () => {
 			if (cancelled) return;
-			// scroll updates visible range; resize covers a 0-height viewport on first paint
 			window.dispatchEvent(new Event('scroll'));
 			window.dispatchEvent(new Event('resize'));
 		};
@@ -108,7 +106,6 @@
 			wake();
 			requestAnimationFrame(wake);
 		});
-		// Fallback if layout/scroll-to-selected shifts after the rAF pair.
 		const timeoutId = window.setTimeout(wake, 50);
 
 		return () => {
@@ -145,36 +142,56 @@
 	}
 </script>
 
-{#key virtualizerKey}
-	<WindowVirtualizer
-		bind:this={virtualizer}
-		data={rows}
-		bufferSize={120}
-		itemSize={cardItemSize}
-		getKey={rowKey}
-	>
-		{#snippet children(startIndex)}
-			{@const end = Math.min(startIndex + columns, layouts.length)}
-			{@const rowItems = layouts.slice(startIndex, end)}
+{#snippet row(startIndex: number)}
+	{@const end = Math.min(startIndex + columns, layouts.length)}
+	{@const rowItems = layouts.slice(startIndex, end)}
 
-			<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
-				{#each rowItems as layout (layout.name)}
-					{@const matchInfo = similarityMatches.get(layout.name)}
-					<LayoutCard
-						{layout}
-						authorName={getAuthorName(layout.user)}
-						likeCount={likesData[layout.name] ?? 0}
-						compactStats={compactStatsFor(layout)}
-						similarMatchPercent={matchInfo?.percent}
-						similarMirrored={matchInfo?.mirrored ?? false}
-						similarDiffPositions={matchInfo?.mirrored
-							? (similarMirrorDiffPositions ?? similarDiffPositions)
-							: similarDiffPositions}
-					/>
-				{/each}
-			</div>
-		{/snippet}
-	</WindowVirtualizer>
+	<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
+		{#each rowItems as layout (layout.name)}
+			{@const matchInfo = similarityMatches.get(layout.name)}
+			<LayoutCard
+				{layout}
+				authorName={getAuthorName(layout.user)}
+				likeCount={likesData[layout.name] ?? 0}
+				compactStats={compactStatsFor(layout)}
+				forceIncluded={forceIncludedNames.has(layout.name)}
+				similarMatchPercent={matchInfo?.percent}
+				similarMirrored={matchInfo?.mirrored ?? false}
+				similarDiffPositions={matchInfo?.mirrored
+					? (similarMirrorDiffPositions ?? similarDiffPositions)
+					: similarDiffPositions}
+			/>
+		{/each}
+	</div>
+{/snippet}
+
+{#key virtualizerKey}
+	{#if splitUp.current}
+		<VList
+			bind:this={virtualizer}
+			data={rows}
+			bufferSize={120}
+			itemSize={cardItemSize}
+			getKey={rowKey}
+			style="height: 100%;"
+		>
+			{#snippet children(startIndex)}
+				{@render row(startIndex)}
+			{/snippet}
+		</VList>
+	{:else}
+		<WindowVirtualizer
+			bind:this={virtualizer}
+			data={rows}
+			bufferSize={120}
+			itemSize={cardItemSize}
+			getKey={rowKey}
+		>
+			{#snippet children(startIndex)}
+				{@render row(startIndex)}
+			{/snippet}
+		</WindowVirtualizer>
+	{/if}
 {/key}
 
 <style>
