@@ -15,6 +15,7 @@
 	let showRecentLayouts = $state(false);
 	let showQuickFind = $state(false);
 	let mediaQuery: MediaQueryList | null = null;
+	let debugEnabled = $state(false);
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
@@ -24,6 +25,7 @@
 	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
 
 	const debugBreakpoint = $derived.by(() => {
+		if (!debugEnabled) return '';
 		if (xxxlUp.current) return `3xl (≥${TAILWIND_BREAKPOINTS['3xl']})`;
 		if (xxlUp.current) return `2xl (≥${TAILWIND_BREAKPOINTS['2xl']})`;
 		if (xlUp.current) return `xl (≥${TAILWIND_BREAKPOINTS.xl})`;
@@ -34,9 +36,11 @@
 	});
 
 	const debugLayoutMode = $derived(
-		lgUp.current
-			? `split (≥${LAYOUT_SPLIT_MIN_WIDTH})`
-			: `stack (<${LAYOUT_SPLIT_MIN_WIDTH})`
+		!debugEnabled
+			? ''
+			: lgUp.current
+				? `split (≥${LAYOUT_SPLIT_MIN_WIDTH})`
+				: `stack (<${LAYOUT_SPLIT_MIN_WIDTH})`
 	);
 
 	const dark = $derived.by(() => {
@@ -45,6 +49,8 @@
 
 	// Initialize theme mode and follow OS changes while in system mode.
 	$effect(() => {
+		debugEnabled = localStorage.getItem('debug') === 'true';
+
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 
@@ -158,13 +164,15 @@
 					Emulayout
 				</h1>
 			</a>
-			<span
-				class="shrink-0 font-mono text-xs"
-				style="color: var(--text-caption);"
-				title="Temporary layout debug label"
-			>
-				{debugBreakpoint} · {debugLayoutMode}
-			</span>
+			{#if debugEnabled}
+				<span
+					class="shrink-0 font-mono text-xs"
+					style="color: var(--text-caption);"
+					title="Temporary layout debug label"
+				>
+					{debugBreakpoint} · {debugLayoutMode}
+				</span>
+			{/if}
 		</div>
 		<div class="flex shrink-0 justify-end gap-2">
 			<button
