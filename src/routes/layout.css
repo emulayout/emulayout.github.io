@@ -31,6 +31,7 @@ html {
 	--text-caption: #7a746c;
 	--accent: #bc5e11;
 	--accent-hover: #bc5e11;
+	--filter-action: #3d6a8a;
 	--similar-diff: #7aa825;
 	--similar-active-fg: white;
 	--link: #4a6278;
@@ -55,6 +56,7 @@ html {
 	--text-caption: #949088;
 	--accent: #dc6e14;
 	--accent-hover: #dc6e14;
+	--filter-action: #7aa3c4;
 	--similar-diff: #92c92c;
 	--similar-active-fg: #100f0d;
 	--link: #9eb4d4;
@@ -165,8 +167,8 @@ select:not([multiple]) {
 	width: 100%;
 	padding: 0.55rem 0.75rem;
 	border-radius: 0.75rem;
-	border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
-	background-color: color-mix(in srgb, var(--accent) 11%, var(--bg-primary));
+	border: 1px solid color-mix(in srgb, var(--filter-action) 32%, var(--border));
+	background-color: color-mix(in srgb, var(--filter-action) 11%, var(--bg-primary));
 	color: var(--text-primary);
 	font-size: 0.875rem;
 	font-weight: 600;
@@ -179,14 +181,14 @@ select:not([multiple]) {
 }
 
 .filter-open-button:hover {
-	background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-primary));
-	border-color: var(--accent);
-	color: var(--accent);
+	background-color: color-mix(in srgb, var(--filter-action) 18%, var(--bg-primary));
+	border-color: var(--filter-action);
+	color: var(--filter-action);
 }
 
 .filter-open-button:focus-visible {
 	outline: none;
-	box-shadow: 0 0 0 2px var(--accent);
+	box-shadow: 0 0 0 2px var(--filter-action);
 }
 
 .filter-open-button-text {
@@ -207,6 +209,7 @@ select:not([multiple]) {
 	font-size: 0.6875rem;
 	font-weight: 600;
 	line-height: 1.3;
+	color: var(--filter-action);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;

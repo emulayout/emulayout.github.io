@@ -67,11 +67,7 @@
 			<span class="filter-open-button-text">
 				<span class="filter-open-button-title">General stats</span>
 				{#if generalSummary}
-					<span
-						class="filter-open-button-summary"
-						style="color: var(--accent);"
-						title={generalSummary}>{generalSummary}</span
-					>
+					<span class="filter-open-button-summary" title={generalSummary}>{generalSummary}</span>
 				{/if}
 			</span>
 			<svg
@@ -90,11 +86,7 @@
 			<span class="filter-open-button-text">
 				<span class="filter-open-button-title">Hands &amp; fingers</span>
 				{#if handsSummary}
-					<span
-						class="filter-open-button-summary"
-						style="color: var(--accent);"
-						title={handsSummary}>{handsSummary}</span
-					>
+					<span class="filter-open-button-summary" title={handsSummary}>{handsSummary}</span>
 				{/if}
 			</span>
 			<svg

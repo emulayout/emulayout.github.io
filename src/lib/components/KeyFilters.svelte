@@ -44,9 +44,7 @@
 			<span class="filter-open-button-text">
 				<span class="filter-open-button-title">Include keys (AND)</span>
 				{#if andSummary}
-					<span class="filter-open-button-summary" style="color: var(--accent);" title={andSummary}
-						>{andSummary}</span
-					>
+					<span class="filter-open-button-summary" title={andSummary}>{andSummary}</span>
 				{/if}
 			</span>
 			<svg
@@ -65,9 +63,7 @@
 			<span class="filter-open-button-text">
 				<span class="filter-open-button-title">Include keys (OR)</span>
 				{#if orSummary}
-					<span class="filter-open-button-summary" style="color: var(--accent);" title={orSummary}
-						>{orSummary}</span
-					>
+					<span class="filter-open-button-summary" title={orSummary}>{orSummary}</span>
 				{/if}
 			</span>
 			<svg
@@ -86,11 +82,7 @@
 			<span class="filter-open-button-text">
 				<span class="filter-open-button-title">Exclude keys</span>
 				{#if excludeSummary}
-					<span
-						class="filter-open-button-summary"
-						style="color: var(--accent);"
-						title={excludeSummary}>{excludeSummary}</span
-					>
+					<span class="filter-open-button-summary" title={excludeSummary}>{excludeSummary}</span>
 				{/if}
 			</span>
 			<svg

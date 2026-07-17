@@ -64,13 +64,11 @@
 	>
 		<span class="filter-open-button-text">
 			<span class="filter-open-button-title">Keyboard filters</span>
-			{#if keyboardFiltersSummary}
-				<span
-					class="filter-open-button-summary"
-					style="color: var(--accent);"
-					title={keyboardFiltersSummary}>{keyboardFiltersSummary}</span
-				>
-			{/if}
+				{#if keyboardFiltersSummary}
+					<span class="filter-open-button-summary" title={keyboardFiltersSummary}
+						>{keyboardFiltersSummary}</span
+					>
+				{/if}
 		</span>
 		<svg
 			class="filter-open-button-chevron"
