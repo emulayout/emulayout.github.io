@@ -279,75 +279,74 @@
 					similarMirrorDiffPositions={mirroredReferencePositions}
 				/>
 			</div>
-		</div>
-	</div>
-</div>
-
-{#if compareSelectedCount > 0}
-	{@const canIncludeNonMatching =
-		filterStore.layoutSource === 'all' &&
-		(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
-	<div class="compare-fab" role="presentation">
-		<div class="compare-fab-group">
-			{#if canIncludeNonMatching}
-				<button
-					type="button"
-					class="compare-fab-button"
-					class:compare-fab-button--active={filterStore.includeSelectedInResults}
-					aria-pressed={filterStore.includeSelectedInResults}
-					aria-label={filterStore.includeSelectedInResults
-						? 'Always showing selected'
-						: `Show (${hiddenSelectedCount}) non-matching selected`}
-					onclick={() => filterStore.toggleIncludeSelectedInResults()}
-				>
-					{#if filterStore.includeSelectedInResults}
-						Always showing selected layouts
-					{:else}
-						Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
-							? ''
-							: 's'}
-					{/if}
-				</button>
-				<button
-					type="button"
-					class="compare-fab-clear"
-					aria-label="Clear selection"
-					onclick={() => filterStore.clearCompareLayouts()}
-				>
-					<svg
-						class="size-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2.5"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
-				</button>
-			{:else}
-				<button
-					type="button"
-					class="compare-fab-button compare-fab-button--with-icon"
-					aria-label={`Clear (${compareSelectedCount}) selected layouts`}
-					onclick={() => filterStore.clearCompareLayouts()}
-				>
-					Clear ({compareSelectedCount}) selected layouts
-					<svg
-						class="size-4 shrink-0"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2.5"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
-				</button>
+			{#if compareSelectedCount > 0}
+				{@const canIncludeNonMatching =
+					filterStore.layoutSource === 'all' &&
+					(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
+				<div class="compare-fab" role="presentation">
+					<div class="compare-fab-group">
+						{#if canIncludeNonMatching}
+							<button
+								type="button"
+								class="compare-fab-button"
+								class:compare-fab-button--active={filterStore.includeSelectedInResults}
+								aria-pressed={filterStore.includeSelectedInResults}
+								aria-label={filterStore.includeSelectedInResults
+									? 'Always showing selected'
+									: `Show (${hiddenSelectedCount}) non-matching selected`}
+								onclick={() => filterStore.toggleIncludeSelectedInResults()}
+							>
+								{#if filterStore.includeSelectedInResults}
+									Always showing selected layouts
+								{:else}
+									Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
+										? ''
+										: 's'}
+								{/if}
+							</button>
+							<button
+								type="button"
+								class="compare-fab-clear"
+								aria-label="Clear selection"
+								onclick={() => filterStore.clearCompareLayouts()}
+							>
+								<svg
+									class="size-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="compare-fab-button compare-fab-button--with-icon"
+								aria-label={`Clear (${compareSelectedCount}) selected layouts`}
+								onclick={() => filterStore.clearCompareLayouts()}
+							>
+								Clear ({compareSelectedCount}) selected layouts
+								<svg
+									class="size-4 shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
+							</button>
+						{/if}
+					</div>
+				</div>
 			{/if}
 		</div>
 	</div>
-{/if}
+</div>
 
 <CompareLayoutsModal
 	open={showCompareModal}
@@ -361,6 +360,11 @@
 />
 
 <style>
+	.results-main {
+		position: relative;
+		min-width: 0;
+	}
+
 	.compare-fab {
 		position: fixed;
 		left: 0;
@@ -370,6 +374,13 @@
 		display: flex;
 		justify-content: center;
 		pointer-events: none;
+	}
+
+	@media (min-width: 1024px) {
+		.compare-fab {
+			/* Center within the results column, not the full viewport. */
+			position: absolute;
+		}
 	}
 
 	.compare-fab-group {
@@ -514,6 +525,7 @@
 		}
 
 		.results-main {
+			position: relative;
 			min-height: 0;
 			display: flex;
 			flex-direction: column;
