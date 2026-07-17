@@ -36,7 +36,7 @@ function collectHandKeys(
 }
 
 function formatKeySection(
-	label: string,
+	label: string | null,
 	grid: string[][],
 	leftThumbs: string[],
 	rightThumbs: string[]
@@ -47,10 +47,46 @@ function formatKeySection(
 	const hands: string[] = [];
 	if (left.length > 0) hands.push(`LH - ${left.join(',')}`);
 	if (right.length > 0) hands.push(`RH: ${right.join(',')}`);
-	return `${label}: ${hands.join(', ')}`;
+	const body = hands.join(', ');
+	return label ? `${label}: ${body}` : body;
 }
 
-/** Collapsed key-filter preview (same format as the old accordion). */
+export type KeyFilterKind = 'and' | 'or' | 'exclude';
+
+/** Preview for a single key-filter kind (no section prefix — button already names it). */
+export function getKeyFilterKindSummary(store: FilterStore, kind: KeyFilterKind): string {
+	switch (kind) {
+		case 'and':
+			return (
+				formatKeySection(
+					null,
+					store.includeGrid,
+					store.includeLeftThumbKeys,
+					store.includeRightThumbKeys
+				) ?? ''
+			);
+		case 'or':
+			return (
+				formatKeySection(
+					null,
+					store.includeOrGrid,
+					store.includeOrLeftThumbKeys,
+					store.includeOrRightThumbKeys
+				) ?? ''
+			);
+		case 'exclude':
+			return (
+				formatKeySection(
+					null,
+					store.excludeGrid,
+					store.excludeLeftThumbKeys,
+					store.excludeRightThumbKeys
+				) ?? ''
+			);
+	}
+}
+
+/** Collapsed key-filter preview across all kinds (same format as the old accordion). */
 export function getKeyFiltersSummary(store: FilterStore): string {
 	return [
 		formatKeySection(

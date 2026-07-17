@@ -1,26 +1,79 @@
 <script lang="ts">
-	import KeyPositionFiltersBody from '$lib/components/KeyPositionFiltersBody.svelte';
+	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import type { KeyFilterKind } from '$lib/filterSummaries';
 
 	interface Props {
 		open: boolean;
+		kind: KeyFilterKind | null;
 		onClose: () => void;
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, kind, onClose }: Props = $props();
 
-	const hasActiveFilters = $derived(filterStore.hasActiveKeyFilters);
+	const title = $derived(
+		kind === 'and'
+			? 'Include keys (AND)'
+			: kind === 'or'
+				? 'Include keys (OR)'
+				: kind === 'exclude'
+					? 'Exclude keys'
+					: 'Key filters'
+	);
+
+	const intro = $derived(
+		kind === 'and'
+			? 'Every filled position must match. Multiple keys in a cell match any of them.'
+			: kind === 'or'
+				? 'At least one filled position must match.'
+				: kind === 'exclude'
+					? 'Exclude layouts that match any filled position.'
+					: ''
+	);
+
+	const hasActiveFilters = $derived.by(() => {
+		if (kind === 'and') {
+			return (
+				filterStore.includeGrid.some((row) => row.some((cell) => cell !== '')) ||
+				filterStore.includeLeftThumbKeys.some((key) => key !== '') ||
+				filterStore.includeRightThumbKeys.some((key) => key !== '')
+			);
+		}
+		if (kind === 'or') {
+			return (
+				filterStore.includeOrGrid.some((row) => row.some((cell) => cell !== '')) ||
+				filterStore.includeOrLeftThumbKeys.some((key) => key !== '') ||
+				filterStore.includeOrRightThumbKeys.some((key) => key !== '')
+			);
+		}
+		if (kind === 'exclude') {
+			return (
+				filterStore.excludeGrid.some((row) => row.some((cell) => cell !== '')) ||
+				filterStore.excludeLeftThumbKeys.some((key) => key !== '') ||
+				filterStore.excludeRightThumbKeys.some((key) => key !== '')
+			);
+		}
+		return false;
+	});
+
+	function clearActiveKind() {
+		if (kind === 'and') filterStore.clearInclude();
+		else if (kind === 'or') filterStore.clearIncludeOr();
+		else if (kind === 'exclude') filterStore.clearExclude();
+	}
+
+	const hideThumbKeys = $derived(filterStore.thumbKeyFilter === 'excluded');
 </script>
 
 <ModalShell
 	{open}
 	{onClose}
 	labelledBy="key-filters-modal-title"
-	panelClass="max-h-[min(92vh,900px)] max-w-xl"
+	panelClass="max-h-[min(92vh,900px)] !w-fit max-w-[calc(100vw-2rem)]"
 >
 	<div
-		class="flex items-center justify-between gap-3 border-b px-5 py-4"
+		class="flex items-center justify-between gap-3 border-b px-3 py-3"
 		style="border-color: var(--border);"
 	>
 		<div class="flex min-w-0 items-center gap-2">
@@ -29,16 +82,16 @@
 				class="text-lg font-semibold shrink-0"
 				style="color: var(--text-primary);"
 			>
-				Key filters
+				{title}
 			</h2>
 			{#if hasActiveFilters}
 				<button
 					type="button"
 					class="key-filters-modal-clear"
 					style="color: var(--accent); background-color: var(--bg-secondary);"
-					onclick={() => filterStore.clearKeyFilters()}
+					onclick={clearActiveKind}
 				>
-					Clear all
+					Clear
 				</button>
 			{/if}
 		</div>
@@ -54,13 +107,48 @@
 		</button>
 	</div>
 
-	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<p class="key-filters-modal-intro" style="color: var(--text-secondary);">
-			Filter layouts by keys in specific positions. Include AND requires every filled position to
-			match. Include OR matches if any filled position matches. Exclude removes layouts that place
-			unwanted keys at the given positions.
-		</p>
-		<KeyPositionFiltersBody stacked />
+	<div class="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+		{#if intro}
+			<p class="key-filters-modal-intro" style="color: var(--text-secondary);">{intro}</p>
+		{/if}
+
+		{#if kind === 'and'}
+			<KeyPositionFilter
+				grid={filterStore.includeGrid}
+				leftThumbKeys={filterStore.includeLeftThumbKeys}
+				rightThumbKeys={filterStore.includeRightThumbKeys}
+				{hideThumbKeys}
+				accentColor="#4ade80"
+				nested
+				onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
+				onLeftThumbKeyChange={(index, value) => filterStore.setIncludeLeftThumbKey(index, value)}
+				onRightThumbKeyChange={(index, value) => filterStore.setIncludeRightThumbKey(index, value)}
+			/>
+		{:else if kind === 'or'}
+			<KeyPositionFilter
+				grid={filterStore.includeOrGrid}
+				leftThumbKeys={filterStore.includeOrLeftThumbKeys}
+				rightThumbKeys={filterStore.includeOrRightThumbKeys}
+				{hideThumbKeys}
+				accentColor="#60a5fa"
+				nested
+				onCellChange={(row, col, value) => filterStore.setIncludeOrCell(row, col, value)}
+				onLeftThumbKeyChange={(index, value) => filterStore.setIncludeOrLeftThumbKey(index, value)}
+				onRightThumbKeyChange={(index, value) => filterStore.setIncludeOrRightThumbKey(index, value)}
+			/>
+		{:else if kind === 'exclude'}
+			<KeyPositionFilter
+				grid={filterStore.excludeGrid}
+				leftThumbKeys={filterStore.excludeLeftThumbKeys}
+				rightThumbKeys={filterStore.excludeRightThumbKeys}
+				{hideThumbKeys}
+				accentColor="#f87171"
+				nested
+				onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
+				onLeftThumbKeyChange={(index, value) => filterStore.setExcludeLeftThumbKey(index, value)}
+				onRightThumbKeyChange={(index, value) => filterStore.setExcludeRightThumbKey(index, value)}
+			/>
+		{/if}
 	</div>
 </ModalShell>
 
@@ -75,8 +163,8 @@
 	}
 
 	.key-filters-modal-intro {
-		margin: 0 0 1rem;
-		font-size: 0.875rem;
-		line-height: 1.45;
+		margin: 0 0 0.75rem;
+		font-size: 0.8125rem;
+		line-height: 1.4;
 	}
 </style>

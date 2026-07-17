@@ -1,14 +1,10 @@
 <script lang="ts">
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
-	import KeyFiltersModal from '$lib/components/KeyFiltersModal.svelte';
+	import KeyFilters from '$lib/components/KeyFilters.svelte';
 	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFiltersModal from '$lib/components/StatFiltersModal.svelte';
-	import {
-		getKeyFiltersSummary,
-		getKeyboardFiltersSummary,
-		getStatFiltersSummary
-	} from '$lib/filterSummaries';
+	import { getKeyboardFiltersSummary, getStatFiltersSummary } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		DEFAULT_STATS_ANALYZER,
@@ -27,10 +23,8 @@
 	let { authorList, layouts, children }: Props = $props();
 
 	const analyzerIsDefault = $derived(filterStore.statsAnalyzer === DEFAULT_STATS_ANALYZER);
-	let showKeyFiltersModal = $state(false);
 	let showKeyboardFiltersModal = $state(false);
 	let showStatFiltersModal = $state(false);
-	const keyFiltersSummary = $derived(getKeyFiltersSummary(filterStore));
 	const keyboardFiltersSummary = $derived(getKeyboardFiltersSummary(filterStore));
 	const statFiltersSummary = $derived(getStatFiltersSummary(filterStore));
 </script>
@@ -72,30 +66,14 @@
 	</div>
 
 	<div class="filters-sidebar-actions">
+		<KeyFilters />
 		<button
 			type="button"
 			class="filter-open-button"
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {keyFiltersSummary ? 'var(--accent)' : 'var(--border)'};
-			"
-			onclick={() => (showKeyFiltersModal = true)}
-		>
-			<span class="filter-open-button-title">Key filters</span>
-			{#if keyFiltersSummary}
-				<span class="filter-open-button-summary" style="color: var(--accent);" title={keyFiltersSummary}
-					>{keyFiltersSummary}</span
-				>
-			{/if}
-		</button>
-		<button
-			type="button"
-			class="filter-open-button"
-			style="
-				color: var(--text-primary);
-				background-color: var(--bg-secondary);
-				border: 1px solid {keyboardFiltersSummary ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid var(--border);
 			"
 			onclick={() => (showKeyboardFiltersModal = true)}
 		>
@@ -137,7 +115,7 @@
 			style="
 				color: var(--text-primary);
 				background-color: var(--bg-secondary);
-				border: 1px solid {statFiltersSummary ? 'var(--accent)' : 'var(--border)'};
+				border: 1px solid var(--border);
 			"
 			onclick={() => (showStatFiltersModal = true)}
 		>
@@ -180,7 +158,6 @@
 	open={showKeyboardFiltersModal}
 	onClose={() => (showKeyboardFiltersModal = false)}
 />
-<KeyFiltersModal open={showKeyFiltersModal} onClose={() => (showKeyFiltersModal = false)} />
 <StatFiltersModal open={showStatFiltersModal} onClose={() => (showStatFiltersModal = false)} />
 
 <style>
