@@ -15,7 +15,7 @@ const ANALYZER_FINGERPRINT_FILES = [
 ];
 
 /** Bump when trigram / merge logic changes and all cached stats must be rebuilt. */
-export const STATS_ALGORITHM_VERSION = 1;
+export const STATS_ALGORITHM_VERSION = 2;
 
 /**
  * @typedef {Object} StatsCacheEntry

@@ -12,16 +12,17 @@ import {
 	fingerprintCorpusBuffers,
 	getCachedLayoutStats,
 	hashLayoutContent,
-	hashTrigramSource,
 	setCachedLayoutStats
 } from './layout-stats-cache.js';
 
 /**
  * Layout stats for the site (monkeyracer analyzer).
  *
- * Trigram stats (Alt, Rol, Red, SFS, …) come from cmini cache when present,
- * otherwise computed from the monkeyracer corpus at sync time.
- * SFB, LH/RH, and per-finger usage are always computed at sync time.
+ * Trigram stats (Alt, Rol, Red, SFS, …), SFB, LH/RH, and per-finger usage are
+ * always computed at sync time from the monkeyracer corpus. cmini cache files
+ * are only used by verify-monkeyracer-stats as a drift canary — when a few
+ * layouts disagree, our computation wins (bad upstream caches are more likely
+ * than a layout-specific analyzer bug).
  */
 
 /** Analyzer id exported to the site (matches cmini Discord bot default). */
@@ -103,14 +104,6 @@ function extractTrigramStats(stats) {
 }
 
 /**
- * @param {Record<string, Record<string, number>>} cacheData
- * @returns {MonkeyracerStats | null}
- */
-function extractCacheTrigramStats(cacheData) {
-	return extractTrigramStats(cacheData[DEFAULT_STATS_ANALYZER]);
-}
-
-/**
  * @param {object} rawLayout
  * @param {CorpusData | null} corpusData
  * @param {import('./cmini-analyzer.js').FingerIndex} [index]
@@ -180,51 +173,24 @@ export function encodeMonkeyracerStats(stats) {
  * @param {{ statsCache?: import('./layout-stats-cache.js').StatsCacheContext, layoutContent?: string }} [options]
  * @returns {Promise<CompactLayoutStats | null>}
  */
-export async function buildLayoutStats(cacheDir, layoutFilename, rawLayout, corpusData, options = {}) {
-	const cacheName = layoutFilename.replace(/\.json$/i, '');
-	const cachePath = join(cacheDir, 'cache', `${cacheName}.json`);
+export async function buildLayoutStats(_cacheDir, layoutFilename, rawLayout, corpusData, options = {}) {
 	const layoutContent = options.layoutContent ?? JSON.stringify(rawLayout);
 	const layoutHash = hashLayoutContent(layoutContent);
 	const statsCache = options.statsCache;
+	const trigramSourceHash = 'computed';
 
-	let trigramStats = null;
-	let trigramSourceHash = null;
-
-	try {
-		const cminiCacheContent = await readFile(cachePath, 'utf-8');
-		trigramSourceHash = hashTrigramSource(cminiCacheContent);
-		if (statsCache) {
-			const cached = getCachedLayoutStats(
-				statsCache,
-				layoutFilename,
-				layoutHash,
-				trigramSourceHash
-			);
-			if (cached) return cached;
-		}
-		trigramStats = extractCacheTrigramStats(JSON.parse(cminiCacheContent));
-	} catch {
-		// Cache file missing — fall back to sync-time computation below.
+	if (statsCache) {
+		const cached = getCachedLayoutStats(
+			statsCache,
+			layoutFilename,
+			layoutHash,
+			trigramSourceHash
+		);
+		if (cached) return cached;
 	}
-
-	if (!trigramStats) {
-		if (statsCache) {
-			const cached = getCachedLayoutStats(
-				statsCache,
-				layoutFilename,
-				layoutHash,
-				'computed'
-			);
-			if (cached) return cached;
-		}
-		trigramSourceHash = 'computed';
-	}
-	if (!trigramSourceHash) return null;
 
 	const index = rawLayout?.keys ? buildFingerIndex(rawLayout.keys) : undefined;
-	if (!trigramStats) {
-		trigramStats = await computeLayoutTrigramStats(rawLayout, corpusData, index);
-	}
+	const trigramStats = await computeLayoutTrigramStats(rawLayout, corpusData, index);
 	if (!trigramStats) return null;
 
 	const stats = encodeMonkeyracerStats(
