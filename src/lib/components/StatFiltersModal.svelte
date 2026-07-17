@@ -16,11 +16,6 @@
 	let { open, section, onClose }: Props = $props();
 
 	const title = $derived(section === 'hands' ? 'Hands & fingers' : 'General stats');
-	const intro = $derived(
-		section === 'hands'
-			? 'Filter by left/right hand and finger stats. Leave empty to ignore.'
-			: 'Filter by overall layout stats. Leave empty to ignore.'
-	);
 	const panelClass = $derived(
 		section === 'hands'
 			? 'max-h-[min(92vh,900px)] max-w-lg'
@@ -50,13 +45,8 @@
 				{title}
 			</h2>
 			{#if hasActiveFilters}
-				<button
-					type="button"
-					class="stat-filters-modal-clear"
-					style="color: var(--accent); background-color: var(--bg-secondary);"
-					onclick={clearActiveSection}
-				>
-					Clear
+				<button type="button" class="filter-reset-button" onclick={clearActiveSection}>
+					Reset all
 				</button>
 			{/if}
 		</div>
@@ -73,26 +63,8 @@
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<p class="stat-filters-modal-intro" style="color: var(--text-secondary);">{intro}</p>
 		{#if section}
 			<StatLimitFiltersBody {section} />
 		{/if}
 	</div>
 </ModalShell>
-
-<style>
-	.stat-filters-modal-clear {
-		padding: 0.25rem 0.5rem;
-		border: none;
-		border-radius: 0.25rem;
-		font-size: 0.75rem;
-		line-height: 1rem;
-		cursor: pointer;
-	}
-
-	.stat-filters-modal-intro {
-		margin: 0 0 0.75rem;
-		font-size: 0.8125rem;
-		line-height: 1.4;
-	}
-</style>

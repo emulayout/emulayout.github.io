@@ -24,11 +24,11 @@
 
 	const intro = $derived(
 		kind === 'and'
-			? 'Every filled position must match. Multiple keys in a cell match any of them.'
+			? 'Every filled position must match. Multiple keys in a cell match any of them at that position.'
 			: kind === 'or'
-				? 'At least one filled position must match.'
+				? 'At least one filled position must match. Multiple keys in a cell match any of them at that position.'
 				: kind === 'exclude'
-					? 'Exclude layouts that match any filled position.'
+					? 'Exclude layouts that match any filled position. Multiple keys in a cell exclude any of them at that position.'
 					: ''
 	);
 
@@ -85,13 +85,8 @@
 				{title}
 			</h2>
 			{#if hasActiveFilters}
-				<button
-					type="button"
-					class="key-filters-modal-clear"
-					style="color: var(--accent); background-color: var(--bg-secondary);"
-					onclick={clearActiveKind}
-				>
-					Clear
+				<button type="button" class="filter-reset-button" onclick={clearActiveKind}>
+					Reset all
 				</button>
 			{/if}
 		</div>
@@ -153,15 +148,6 @@
 </ModalShell>
 
 <style>
-	.key-filters-modal-clear {
-		padding: 0.25rem 0.5rem;
-		border: none;
-		border-radius: 0.25rem;
-		font-size: 0.75rem;
-		line-height: 1rem;
-		cursor: pointer;
-	}
-
 	.key-filters-modal-intro {
 		margin: 0 0 0.75rem;
 		font-size: 0.8125rem;

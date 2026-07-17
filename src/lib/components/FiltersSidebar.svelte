@@ -104,11 +104,10 @@
 		<div class="filters-sidebar-reset">
 			<button
 				type="button"
-				class="filters-reset-button"
-				style="color: var(--accent); background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				class="filter-reset-button filters-sidebar-reset-button"
 				onclick={() => filterStore.clearAll()}
 			>
-				Reset filters
+				Reset all
 			</button>
 		</div>
 	{/if}
@@ -139,20 +138,11 @@
 		padding-top: 0.75rem;
 	}
 
-	.filters-reset-button {
+	.filters-sidebar-reset-button {
 		width: 100%;
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.75rem;
 		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition:
-			border-color 0.15s ease,
-			color 0.15s ease;
-	}
-
-	.filters-reset-button:hover {
-		border-color: var(--accent);
 	}
 
 	.filters-field {

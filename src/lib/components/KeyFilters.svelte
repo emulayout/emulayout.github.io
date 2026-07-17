@@ -30,11 +30,10 @@
 		{#if hasActive}
 			<button
 				type="button"
-				class="text-xs px-2 py-1 rounded transition-colors inline-flex shrink-0"
-				style="color: var(--accent); background-color: var(--bg-primary);"
+				class="filter-reset-button shrink-0"
 				onclick={() => filterStore.clearKeyFilters()}
 			>
-				Reset
+				Reset all
 			</button>
 		{/if}
 	</div>

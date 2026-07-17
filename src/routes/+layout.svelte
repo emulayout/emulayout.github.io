@@ -183,7 +183,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -201,7 +201,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -223,7 +223,7 @@
 			>
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent);"
+					style="color: var(--text-primary);"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
@@ -242,7 +242,7 @@
 				<!-- System / auto icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'system'
+					style="color: var(--text-primary); opacity: {themeMode === 'system'
 						? 1
 						: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
 					fill="none"
@@ -257,7 +257,7 @@
 				<!-- Sun icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'light'
+					style="color: var(--text-primary); opacity: {themeMode === 'light'
 						? 1
 						: 0}; transform: rotate({themeMode === 'light'
 						? 0
@@ -276,7 +276,7 @@
 				<!-- Moon icon -->
 				<svg
 					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--accent); opacity: {themeMode === 'dark'
+					style="color: var(--text-primary); opacity: {themeMode === 'dark'
 						? 1
 						: 0}; transform: rotate({themeMode === 'dark'
 						? 0

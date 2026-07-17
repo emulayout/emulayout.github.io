@@ -40,11 +40,10 @@
 			{#if hasActiveFilters}
 				<button
 					type="button"
-					class="keyboard-filters-modal-clear"
-					style="color: var(--accent); background-color: var(--bg-secondary);"
+					class="filter-reset-button"
 					onclick={() => filterStore.clearKeyboardFilters()}
 				>
-					Clear all
+					Reset all
 				</button>
 			{/if}
 		</div>
@@ -201,15 +200,6 @@
 </ModalShell>
 
 <style>
-	.keyboard-filters-modal-clear {
-		padding: 0.25rem 0.5rem;
-		border: none;
-		border-radius: 0.25rem;
-		font-size: 0.75rem;
-		line-height: 1rem;
-		cursor: pointer;
-	}
-
 	.keyboard-filters-modal-intro {
 		margin: 0 0 1rem;
 		font-size: 0.875rem;
