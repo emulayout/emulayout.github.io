@@ -122,10 +122,10 @@
 				{#each filterChips as chip (chip.id)}
 					<li
 						class="results-toolbar-filter-chip results-toolbar-filter-chip--{chip.tone}"
-						title={chip.title ?? chip.label}
+						title={chip.title}
 						role="button"
 						tabindex="0"
-						aria-label="Edit filter: {chip.title ?? chip.label}"
+						aria-label="Edit filter: {chip.label}"
 						onclick={() => openChip(chip)}
 						onkeydown={(event) => handleChipKeyDown(chip, event)}
 					>
@@ -133,7 +133,7 @@
 						<button
 							type="button"
 							class="results-toolbar-filter-chip-clear"
-							aria-label="Clear filter: {chip.title ?? chip.label}"
+							aria-label="Clear filter: {chip.label}"
 							onclick={(event) => clearChip(chip, event)}
 						>
 							<svg
