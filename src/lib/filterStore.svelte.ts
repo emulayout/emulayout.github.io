@@ -61,6 +61,18 @@ export interface StatLimit {
 	value: string;
 }
 
+/** Precomputed active stat limits for one filterLayouts pass. */
+type ActiveAnalyzerStatFilters = {
+	analyzer: StatsAnalyzer;
+	checks: Array<{
+		operator: StatLimitOperator;
+		threshold: number;
+		statKey: ReturnType<typeof getStatFilterStatKey>;
+	}>;
+};
+
+type LikesLimitCheck = { operator: StatLimitOperator; threshold: number };
+
 function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
 	const limits = {} as Record<StatLimitKey, StatLimit>;
 	for (const field of ALL_STAT_FILTER_FIELDS) {
@@ -1667,27 +1679,52 @@ export class FilterStore {
 		return layout.board === this.boardTypeFilter;
 	}
 
+	/**
+	 * Active (non-empty) applied stat limits, grouped by analyzer.
+	 * Built once per filterLayouts pass so the per-layout path only derives/compares.
+	 */
+	#buildActiveAnalyzerStatFilters(
+		limits: Record<StatLimitKey, StatLimit>
+	): ActiveAnalyzerStatFilters[] {
+		const active: ActiveAnalyzerStatFilters[] = [];
+
+		for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
+			const checks: ActiveAnalyzerStatFilters['checks'] = [];
+			for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
+				const limit = limits[field.key];
+				const threshold = parseStatFilterThreshold(field, limit.value);
+				if (threshold === null) continue;
+				checks.push({
+					operator: limit.operator,
+					threshold,
+					statKey: getStatFilterStatKey(field)
+				});
+			}
+			if (checks.length > 0) active.push({ analyzer, checks });
+		}
+
+		return active;
+	}
+
 	#matchesStatLimits(
 		layout: LayoutData,
 		statsMaps: StatsMaps,
 		statsReady: boolean,
-		likesData: LayoutLikesMap = {}
+		likesData: LayoutLikesMap,
+		activeFilters: ActiveAnalyzerStatFilters[],
+		likesCheck: LikesLimitCheck | null
 	): boolean {
-		const analyzersNeeded = this.analyzersNeededForStatLimits;
-		const hasLikesLimit =
-			this.canUseLikes && this.appliedStatLimits.likes.value.trim() !== '';
-		if (analyzersNeeded.length === 0 && !hasLikesLimit) return true;
+		if (activeFilters.length === 0 && !likesCheck) return true;
 		// Wait until every analyzer that has active limits has loaded its map.
 		if (
-			analyzersNeeded.length > 0 &&
+			activeFilters.length > 0 &&
 			(!statsReady ||
-				!analyzersNeeded.every((analyzer) => isAnalyzerStatsReady(statsMaps, analyzer)))
+				!activeFilters.every(({ analyzer }) => isAnalyzerStatsReady(statsMaps, analyzer)))
 		) {
 			return true;
 		}
 
-		for (const analyzer of analyzersNeeded) {
-			const fields = getStatFilterFieldsForAnalyzer(analyzer);
+		for (const { analyzer, checks } of activeFilters) {
 			const analyzerStats = getLayoutAnalyzerStats(
 				statsMaps,
 				layout.name,
@@ -1701,25 +1738,17 @@ export class FilterStore {
 					? deriveCyanophageStats(analyzerStats as CyanophageStats)
 					: deriveBotStats(analyzerStats as MonkeyracerStats);
 
-			for (const field of fields) {
-				const limit = this.appliedStatLimits[field.key];
-				const threshold = parseStatFilterThreshold(field, limit.value);
-				if (threshold === null) continue;
-
-				const statKey = getStatFilterStatKey(field);
+			for (const { operator, threshold, statKey } of checks) {
 				const value = stats[statKey as keyof typeof stats];
-				if (limit.operator === 'lt' && value >= threshold) return false;
-				if (limit.operator === 'gt' && value <= threshold) return false;
+				if (operator === 'lt' && value >= threshold) return false;
+				if (operator === 'gt' && value <= threshold) return false;
 			}
 		}
 
-		if (hasLikesLimit) {
-			const threshold = Number.parseFloat(this.appliedStatLimits.likes.value.trim());
-			if (Number.isFinite(threshold)) {
-				const value = likesData[layout.name] ?? 0;
-				if (this.appliedStatLimits.likes.operator === 'lt' && value >= threshold) return false;
-				if (this.appliedStatLimits.likes.operator === 'gt' && value <= threshold) return false;
-			}
+		if (likesCheck) {
+			const value = likesData[layout.name] ?? 0;
+			if (likesCheck.operator === 'lt' && value >= likesCheck.threshold) return false;
+			if (likesCheck.operator === 'gt' && value <= likesCheck.threshold) return false;
 		}
 
 		return true;
@@ -1732,6 +1761,18 @@ export class FilterStore {
 		statsReady = false,
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
+		const activeFilters = this.#buildActiveAnalyzerStatFilters(this.appliedStatLimits);
+		let likesCheck: LikesLimitCheck | null = null;
+		if (this.canUseLikes) {
+			const threshold = Number.parseFloat(this.appliedStatLimits.likes.value.trim());
+			if (Number.isFinite(threshold)) {
+				likesCheck = {
+					operator: this.appliedStatLimits.likes.operator,
+					threshold
+				};
+			}
+		}
+
 		return layouts.filter((l) => {
 			// Source pool: when "Selected layouts only", other filters apply within selection.
 			if (this.layoutSource === 'selected' && !this.compareSelectedNames.has(l.name)) {
@@ -1756,7 +1797,14 @@ export class FilterStore {
 			if (!this.#matchesExclude(l)) return false;
 			if (!this.#matchesIncludeOr(l)) return false;
 			// Stat derivation last — only for layouts that already passed cheaper filters
-			return this.#matchesStatLimits(l, statsMaps, statsReady, likesData);
+			return this.#matchesStatLimits(
+				l,
+				statsMaps,
+				statsReady,
+				likesData,
+				activeFilters,
+				likesCheck
+			);
 		});
 	}
 

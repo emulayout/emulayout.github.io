@@ -579,20 +579,40 @@ export function getRightHandStatFilterFieldsForAnalyzer(
 		: MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS;
 }
 
+/** Flat hand+finger fields — stable references (no per-call alloc). */
+const MONKEY_HAND_STAT_FILTER_FIELDS: readonly StatFilterField[] = [
+	...MONKEY_LEFT_HAND_STAT_FILTER_FIELDS,
+	...MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS
+];
+
+const CYANOPHAGE_HAND_STAT_FILTER_FIELDS: readonly StatFilterField[] = [
+	...CYANOPHAGE_LEFT_HAND_STAT_FILTER_FIELDS,
+	...CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS
+];
+
+/** Full filter fields per analyzer — stable references for hot filter paths. */
+const MONKEY_STAT_FILTER_FIELDS: readonly StatFilterField[] = [
+	...MONKEY_GENERAL_STAT_FILTER_FIELDS,
+	...MONKEY_HAND_STAT_FILTER_FIELDS
+];
+
+const CYANOPHAGE_STAT_FILTER_FIELDS: readonly StatFilterField[] = [
+	...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
+	...CYANOPHAGE_HAND_STAT_FILTER_FIELDS
+];
+
 export function getHandStatFilterFieldsForAnalyzer(
 	analyzer: StatsAnalyzer
 ): readonly StatFilterField[] {
-	return [
-		...getLeftHandStatFilterFieldsForAnalyzer(analyzer),
-		...getRightHandStatFilterFieldsForAnalyzer(analyzer)
-	];
+	return analyzer === CYANOPHAGE_ANALYZER
+		? CYANOPHAGE_HAND_STAT_FILTER_FIELDS
+		: MONKEY_HAND_STAT_FILTER_FIELDS;
 }
 
 export function getStatFilterFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatFilterField[] {
-	return [
-		...getGeneralStatFilterRowsForAnalyzer(analyzer).flat(),
-		...getHandStatFilterFieldsForAnalyzer(analyzer)
-	];
+	return analyzer === CYANOPHAGE_ANALYZER
+		? CYANOPHAGE_STAT_FILTER_FIELDS
+		: MONKEY_STAT_FILTER_FIELDS;
 }
 
 /** Resolve the derived-stats property for a filter field. */
