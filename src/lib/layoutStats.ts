@@ -964,6 +964,20 @@ export function getActiveFilterStatKeys(
 	return keys;
 }
 
+/** Count applied (debounced) stat-limit filters for one analyzer. */
+export function countActiveStatFiltersForAnalyzer(
+	limits: Record<StatLimitKey, { value: string }>,
+	analyzer: StatsAnalyzer,
+	options?: { includeLikes?: boolean }
+): number {
+	let count = 0;
+	for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
+		if (limits[field.key]?.value.trim()) count += 1;
+	}
+	if (options?.includeLikes && limits.likes?.value.trim()) count += 1;
+	return count;
+}
+
 /**
  * Whether higher values are better for a sortable stat key, or `null` when the
  * metric is not ranked (hand/finger balance, etc.).

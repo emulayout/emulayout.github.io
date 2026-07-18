@@ -1,21 +1,20 @@
 <script lang="ts">
-	import {
-		filterStore,
-		type SortBy,
-		type SortOrder
-	} from '$lib/filterStore.svelte';
+	import { filterStore, type SortBy, type SortOrder } from '$lib/filterStore.svelte';
 	import {
 		clearActiveFilterChip,
 		getActiveFilterChips,
 		type ActiveFilterChip
 	} from '$lib/filterSummaries';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		ALL_STATS_ANALYZERS_MODE,
+		countActiveStatFiltersForAnalyzer,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		getStatSortFieldsForAnalyzer,
 		getStatSortFieldsForMode,
 		STAT_ANALYZER_MODES,
+		type StatsAnalyzer,
 		type StatsAnalyzerMode
 	} from '$lib/layoutStats';
 
@@ -37,6 +36,28 @@
 	const monkeySortFields = $derived(getStatSortFieldsForAnalyzer(DEFAULT_STATS_ANALYZER));
 	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
 	const statSortFields = $derived(getStatSortFieldsForMode(filterStore.statsAnalyzer));
+
+	function analyzerShortLabel(analyzer: StatsAnalyzer): string {
+		return analyzer === CYANOPHAGE_ANALYZER ? 'Cyanophage' : 'cmini';
+	}
+
+	/** Hidden analyzer still narrowing results via applied stat filters. */
+	const hiddenAnalyzerFilterCaution = $derived.by(() => {
+		const mode = filterStore.statsAnalyzer;
+		if (mode === ALL_STATS_ANALYZERS_MODE) return null;
+
+		const hidden: StatsAnalyzer =
+			mode === DEFAULT_STATS_ANALYZER ? CYANOPHAGE_ANALYZER : DEFAULT_STATS_ANALYZER;
+		const count = countActiveStatFiltersForAnalyzer(filterStore.appliedStatLimits, hidden, {
+			includeLikes: hidden === DEFAULT_STATS_ANALYZER && filterStore.canUseLikes
+		});
+		if (count === 0) return null;
+
+		const label = analyzerShortLabel(hidden);
+		return {
+			text: `${label} stats are hidden, but its filters (${count}) still affect which layouts appear.`
+		};
+	});
 
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);
@@ -154,294 +175,293 @@
 	{/if}
 
 	<div class="results-toolbar">
-	<div class="results-toolbar-status">
-		<p class="results-toolbar-count" style="color: var(--text-secondary);">
-			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
-			{#if filterStore.layoutSource === 'selected'}
-				selected layouts
-			{:else}
-				layouts
-			{/if}
-			{#if filterStore.hasSimilarReference}
-				<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
-			{/if}
-			{#if filterStore.similarReferenceName}
-				<span style="color: var(--text-primary); font-weight: 600;"
-					>{filterStore.similarReferenceName}</span
-				>
-			{/if}
-		</p>
-	</div>
-
-	<div class="results-toolbar-controls">
-		<label class="results-toolbar-field select-none">
-			<span class="results-toolbar-label text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-				>Analyzer</span
-			>
-			<select
-				value={filterStore.statsAnalyzer}
-				onchange={(e) =>
-					filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzerMode)}
-				class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
-				style="
-					background-color: var(--input-bg);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-					--tw-ring-color: var(--accent);
-				"
-				aria-label="Analyzer"
-			>
-				{#each STAT_ANALYZER_MODES as analyzer (analyzer.value)}
-					<option value={analyzer.value}>{analyzer.label}</option>
-				{/each}
-			</select>
-		</label>
-
-		<label class="results-toolbar-field select-none">
-			<span class="results-toolbar-label text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-				>Sort by</span
-			>
-			<select
-				value={filterStore.sortBy}
-				onchange={(e) => filterStore.setSortBy(e.currentTarget.value as SortBy)}
-				class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
-				style="
-					background-color: var(--input-bg);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-					--tw-ring-color: var(--accent);
-				"
-			>
-				<optgroup label="Layout">
-					{#if filterStore.hasSimilarReference}
-						<option value="similarity">Similarity</option>
-					{/if}
-					<option value="name">Name</option>
-					<option value="date">Date</option>
-					{#if likesSortAvailable}
-						<option value="likes">Likes</option>
-					{/if}
-				</optgroup>
-				{#if showDualSortGroups}
-					<optgroup label="cmini (monkeyracer)">
-						{#each monkeySortFields as field (field.value)}
-							<option value={field.value}>{field.label}</option>
-						{/each}
-					</optgroup>
-					<optgroup label="Cyanophage">
-						{#each cyanophageSortFields as field (field.value)}
-							<option value={field.value}>{field.label}</option>
-						{/each}
-					</optgroup>
+		<div class="results-toolbar-status">
+			<p class="results-toolbar-count" style="color: var(--text-secondary);">
+				Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
+				{#if filterStore.layoutSource === 'selected'}
+					selected layouts
 				{:else}
-					<optgroup label="Stats">
-						{#each statSortFields as field (field.value)}
-							<option value={field.value}>{field.label}</option>
-						{/each}
-					</optgroup>
+					layouts
 				{/if}
-			</select>
-		</label>
+				{#if filterStore.hasSimilarReference}
+					<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
+				{/if}
+				{#if filterStore.similarReferenceName}
+					<span style="color: var(--text-primary); font-weight: 600;"
+						>{filterStore.similarReferenceName}</span
+					>
+				{/if}
+			</p>
+		</div>
 
-		<label class="results-toolbar-field select-none">
-			<span class="results-toolbar-label text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-				>Order</span
-			>
-			<select
-				value={filterStore.sortOrder}
-				onchange={(e) => filterStore.setSortOrder(e.currentTarget.value as SortOrder)}
-				class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
-				style="
+		<div class="results-toolbar-controls">
+			<label class="results-toolbar-field select-none">
+				<span
+					class="results-toolbar-label text-sm whitespace-nowrap"
+					style="color: var(--text-secondary);"
+				>
+					Analyzer
+					{#if hiddenAnalyzerFilterCaution}
+						<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
+					{/if}
+				</span>
+				<select
+					value={filterStore.statsAnalyzer}
+					onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzerMode)}
+					class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+					style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);
 					border: 1px solid var(--border);
 					--tw-ring-color: var(--accent);
 				"
-			>
-				<option value="asc">Ascending</option>
-				<option value="desc">Descending</option>
-			</select>
-		</label>
+					aria-label="Analyzer"
+				>
+					{#each STAT_ANALYZER_MODES as analyzer (analyzer.value)}
+						<option value={analyzer.value}>{analyzer.label}</option>
+					{/each}
+				</select>
+			</label>
 
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			bind:this={displaySettingsContainer}
-			class="results-toolbar-gear relative"
-			onkeydown={handleDisplaySettingsKeyDown}
-		>
-			<button
-				bind:this={displaySettingsButton}
-				type="button"
-				onclick={() => (displaySettingsOpen = !displaySettingsOpen)}
-				class="flex items-center justify-center size-[34px] rounded-lg transition-all outline-none focus:ring-2 cursor-pointer"
-				style="
+			<label class="results-toolbar-field select-none">
+				<span
+					class="results-toolbar-label text-sm whitespace-nowrap"
+					style="color: var(--text-secondary);">Sort by</span
+				>
+				<select
+					value={filterStore.sortBy}
+					onchange={(e) => filterStore.setSortBy(e.currentTarget.value as SortBy)}
+					class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+					style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+				>
+					<optgroup label="Layout">
+						{#if filterStore.hasSimilarReference}
+							<option value="similarity">Similarity</option>
+						{/if}
+						<option value="name">Name</option>
+						<option value="date">Date</option>
+						{#if likesSortAvailable}
+							<option value="likes">Likes</option>
+						{/if}
+					</optgroup>
+					{#if showDualSortGroups}
+						<optgroup label="cmini (monkeyracer)">
+							{#each monkeySortFields as field (field.value)}
+								<option value={field.value}>{field.label}</option>
+							{/each}
+						</optgroup>
+						<optgroup label="Cyanophage">
+							{#each cyanophageSortFields as field (field.value)}
+								<option value={field.value}>{field.label}</option>
+							{/each}
+						</optgroup>
+					{:else}
+						<optgroup label="Stats">
+							{#each statSortFields as field (field.value)}
+								<option value={field.value}>{field.label}</option>
+							{/each}
+						</optgroup>
+					{/if}
+				</select>
+			</label>
+
+			<label class="results-toolbar-field select-none">
+				<span
+					class="results-toolbar-label text-sm whitespace-nowrap"
+					style="color: var(--text-secondary);">Order</span
+				>
+				<select
+					value={filterStore.sortOrder}
+					onchange={(e) => filterStore.setSortOrder(e.currentTarget.value as SortOrder)}
+					class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+					style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+				>
+					<option value="asc">Ascending</option>
+					<option value="desc">Descending</option>
+				</select>
+			</label>
+
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				bind:this={displaySettingsContainer}
+				class="results-toolbar-gear relative"
+				onkeydown={handleDisplaySettingsKeyDown}
+			>
+				<button
+					bind:this={displaySettingsButton}
+					type="button"
+					onclick={() => (displaySettingsOpen = !displaySettingsOpen)}
+					class="flex items-center justify-center size-[34px] rounded-lg transition-all outline-none focus:ring-2 cursor-pointer"
+					style="
 					background-color: var(--bg-secondary);
 					color: var(--text-primary);
 					border: 1px solid {displaySettingsOpen ? 'var(--accent)' : 'var(--border)'};
 					--tw-ring-color: var(--accent);
 				"
-				aria-label="Display settings"
-				aria-expanded={displaySettingsOpen}
-				aria-haspopup="true"
-			>
-				<svg
-					class="size-4"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
+					aria-label="Display settings"
+					aria-expanded={displaySettingsOpen}
+					aria-haspopup="true"
 				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-					/>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-					/>
-				</svg>
-			</button>
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+						/>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+						/>
+					</svg>
+				</button>
 
-			{#if displaySettingsOpen}
-				<div
-					class="absolute right-0 top-full mt-1 z-20 min-w-44 rounded-xl p-3 flex flex-col gap-3 shadow-lg"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-					role="menu"
-				>
-					<label class="flex items-center gap-2 select-none cursor-pointer">
-						<span class="relative shrink-0">
-							<input
-								type="checkbox"
-								checked={filterStore.hideLayoutTestArea}
-								onchange={(e) => filterStore.setHideLayoutTestArea(e.currentTarget.checked)}
-								class="size-4 rounded appearance-none cursor-pointer relative"
-								style="
-									background-color: {filterStore.hideLayoutTestArea
-									? 'var(--accent)'
-									: 'var(--bg-primary)'};
+				{#if displaySettingsOpen}
+					<div
+						class="absolute right-0 top-full mt-1 z-20 min-w-44 rounded-xl p-3 flex flex-col gap-3 shadow-lg"
+						style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+						role="menu"
+					>
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.hideLayoutTestArea}
+									onchange={(e) => filterStore.setHideLayoutTestArea(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+									background-color: {filterStore.hideLayoutTestArea ? 'var(--accent)' : 'var(--bg-primary)'};
 									border: 1px solid var(--border);
 								"
-							/>
-							{#if filterStore.hideLayoutTestArea}
-								<svg
-									class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-									style="color: white;"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</span>
-						<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-							>Hide test area</span
-						>
-					</label>
+								/>
+								{#if filterStore.hideLayoutTestArea}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Hide test area</span
+							>
+						</label>
 
-					<label class="flex items-center gap-2 select-none cursor-pointer">
-						<span class="relative shrink-0">
-							<input
-								type="checkbox"
-								checked={filterStore.hideLayoutStats}
-								onchange={(e) => filterStore.setHideLayoutStats(e.currentTarget.checked)}
-								class="size-4 rounded appearance-none cursor-pointer relative"
-								style="
-									background-color: {filterStore.hideLayoutStats
-									? 'var(--accent)'
-									: 'var(--bg-primary)'};
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.hideLayoutStats}
+									onchange={(e) => filterStore.setHideLayoutStats(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+									background-color: {filterStore.hideLayoutStats ? 'var(--accent)' : 'var(--bg-primary)'};
 									border: 1px solid var(--border);
 								"
-							/>
-							{#if filterStore.hideLayoutStats}
-								<svg
-									class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-									style="color: white;"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</span>
-						<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-							>Hide stats</span
-						>
-					</label>
+								/>
+								{#if filterStore.hideLayoutStats}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Hide stats</span
+							>
+						</label>
 
-					<label class="flex items-center gap-2 select-none cursor-pointer">
-						<span class="relative shrink-0">
-							<input
-								type="checkbox"
-								checked={filterStore.hideLayoutLikes}
-								onchange={(e) => filterStore.setHideLayoutLikes(e.currentTarget.checked)}
-								class="size-4 rounded appearance-none cursor-pointer relative"
-								style="
-									background-color: {filterStore.hideLayoutLikes
-									? 'var(--accent)'
-									: 'var(--bg-primary)'};
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.hideLayoutLikes}
+									onchange={(e) => filterStore.setHideLayoutLikes(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+									background-color: {filterStore.hideLayoutLikes ? 'var(--accent)' : 'var(--bg-primary)'};
 									border: 1px solid var(--border);
 								"
-							/>
-							{#if filterStore.hideLayoutLikes}
-								<svg
-									class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-									style="color: white;"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</span>
-						<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-							>Hide likes</span
-						>
-					</label>
+								/>
+								{#if filterStore.hideLayoutLikes}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Hide likes</span
+							>
+						</label>
 
-					<label class="flex items-center gap-2 select-none cursor-pointer">
-						<span class="relative shrink-0">
-							<input
-								type="checkbox"
-								checked={filterStore.hideNewLayoutIndicator}
-								onchange={(e) => filterStore.setHideNewLayoutIndicator(e.currentTarget.checked)}
-								class="size-4 rounded appearance-none cursor-pointer relative"
-								style="
-									background-color: {filterStore.hideNewLayoutIndicator
-									? 'var(--accent)'
-									: 'var(--bg-primary)'};
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.hideNewLayoutIndicator}
+									onchange={(e) => filterStore.setHideNewLayoutIndicator(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+									background-color: {filterStore.hideNewLayoutIndicator ? 'var(--accent)' : 'var(--bg-primary)'};
 									border: 1px solid var(--border);
 								"
-							/>
-							{#if filterStore.hideNewLayoutIndicator}
-								<svg
-									class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-									style="color: white;"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</span>
-						<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
-							>Hide new indicator</span
-						>
-					</label>
-				</div>
-			{/if}
+								/>
+								{#if filterStore.hideNewLayoutIndicator}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Hide new indicator</span
+							>
+						</label>
+					</div>
+				{/if}
+			</div>
 		</div>
-	</div>
 	</div>
 </div>
 
@@ -579,6 +599,12 @@
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
+	}
+
+	.results-toolbar-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
 	}
 
 	/* Narrow column (mobile / similarity results pane): denser 2-row layout */

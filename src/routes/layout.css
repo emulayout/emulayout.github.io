@@ -53,6 +53,7 @@ html {
 	--stats-fg-highlight-sort: #9a8f12;
 	/* Orange-dot replacement on filter open buttons */
 	--filter-active-dot: #9a8f12;
+	--warning: #9a8f12;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #c44b3a;
 	--new-layout-dot: #eda095;
@@ -85,6 +86,7 @@ html {
 	--stats-fg-highlight-cyanophage: var(--analyzer-cyanophage);
 	--stats-fg-highlight-sort: #d5dc14;
 	--filter-active-dot: #d5dc14;
+	--warning: #d5dc14;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #e07060;
 	--new-layout-dot: #982818;
