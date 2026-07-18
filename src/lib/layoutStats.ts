@@ -948,7 +948,7 @@ function toHighlightKeySet<T extends string>(
 
 /**
  * Derived-stat keys with an active limit for the given analyzer.
- * Uses live (not debounced) limit values so card highlights match the chips.
+ * Pass applied (debounced) limits so card highlights match the filtered list/chips.
  */
 export function getActiveFilterStatKeys(
 	limits: Record<StatLimitKey, { value: string }>,

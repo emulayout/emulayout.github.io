@@ -153,10 +153,16 @@
 
 	const sortField = $derived(getStatSortField(filterStore.sortBy));
 	const botFilterHighlightKeys = $derived(
-		getActiveFilterStatKeys(filterStore.statLimits, DEFAULT_STATS_ANALYZER) as Set<StatSortKey>
+		getActiveFilterStatKeys(
+			filterStore.appliedStatLimits,
+			DEFAULT_STATS_ANALYZER
+		) as Set<StatSortKey>
 	);
 	const cyanophageFilterHighlightKeys = $derived(
-		getActiveFilterStatKeys(filterStore.statLimits, CYANOPHAGE_ANALYZER) as Set<CyanophageStatSortKey>
+		getActiveFilterStatKeys(
+			filterStore.appliedStatLimits,
+			CYANOPHAGE_ANALYZER
+		) as Set<CyanophageStatSortKey>
 	);
 	const botSortHighlightKey = $derived(
 		sortField?.analyzer === DEFAULT_STATS_ANALYZER

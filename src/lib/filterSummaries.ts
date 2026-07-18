@@ -121,8 +121,13 @@ function operatorSymbol(operator: 'lt' | 'gt'): string {
 	return operator === 'lt' ? '<' : '>';
 }
 
-function formatActiveLimit(store: FilterStore, field: StatFilterField, label: string): string | null {
-	const limit = store.statLimits[field.key];
+function formatActiveLimit(
+	limits: Record<string, { operator: 'lt' | 'gt'; value: string }>,
+	field: StatFilterField,
+	label: string
+): string | null {
+	const limit = limits[field.key];
+	if (!limit) return null;
 	const value = limit.value.trim();
 	if (!value) return null;
 	const unit = field.unit === 'raw' ? '' : '%';
@@ -165,7 +170,7 @@ function appendGeneralAnalyzerSummary(
 	for (const row of getGeneralStatFilterRowsForAnalyzer(analyzer)) {
 		for (const field of row) {
 			if (seenKeys.has(field.key)) continue;
-			const part = formatActiveLimit(store, field, field.label);
+			const part = formatActiveLimit(store.statLimits, field, field.label);
 			if (!part) continue;
 			seenKeys.add(field.key);
 			parts.push(part);
@@ -180,11 +185,19 @@ function appendHandsAnalyzerSummary(
 	analyzerLabel?: string
 ): void {
 	for (const field of getLeftHandStatFilterFieldsForAnalyzer(analyzer)) {
-		const part = formatActiveLimit(store, field, handSummaryLabel('LH', field, analyzerLabel));
+		const part = formatActiveLimit(
+			store.statLimits,
+			field,
+			handSummaryLabel('LH', field, analyzerLabel)
+		);
 		if (part) parts.push(part);
 	}
 	for (const field of getRightHandStatFilterFieldsForAnalyzer(analyzer)) {
-		const part = formatActiveLimit(store, field, handSummaryLabel('RH', field, analyzerLabel));
+		const part = formatActiveLimit(
+			store.statLimits,
+			field,
+			handSummaryLabel('RH', field, analyzerLabel)
+		);
 		if (part) parts.push(part);
 	}
 }
@@ -206,7 +219,11 @@ export function getStatFilterSectionSummary(
 			appendGeneralAnalyzerSummary(store, CYANOPHAGE_ANALYZER, parts, seenKeys);
 		}
 		if (store.canUseLikes) {
-			const part = formatActiveLimit(store, LIKES_STAT_FILTER_FIELD, LIKES_STAT_FILTER_FIELD.label);
+			const part = formatActiveLimit(
+				store.statLimits,
+				LIKES_STAT_FILTER_FIELD,
+				LIKES_STAT_FILTER_FIELD.label
+			);
 			if (part) parts.push(part);
 		}
 	} else if (analyzer) {
@@ -296,7 +313,7 @@ export interface ActiveFilterChip {
 	id: string;
 	label: string;
 	tone: FilterChipTone;
-	/** Hover/accessibility hint (e.g. analyzer name). */
+	/** Native hover tooltip; analyzer chips only (analyzer name). */
 	title?: string;
 	clear: ActiveFilterClearAction;
 	/** Open/focus the control that owns this filter. */
@@ -333,7 +350,7 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 		);
 	}
 
-	const name = store.nameFilterInput.trim() || store.nameFilter.trim();
+	const name = store.nameFilter.trim();
 	if (name) {
 		pushChip(
 			chips,
@@ -403,9 +420,9 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 
 	const andKeys = formatKeySection(
 		'AND',
-		store.includeGrid,
-		store.includeLeftThumbKeys,
-		store.includeRightThumbKeys
+		store.appliedIncludeGrid,
+		store.appliedIncludeLeftThumbKeys,
+		store.appliedIncludeRightThumbKeys
 	);
 	if (andKeys) {
 		pushChip(
@@ -418,9 +435,9 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 	}
 	const orKeys = formatKeySection(
 		'OR',
-		store.includeOrGrid,
-		store.includeOrLeftThumbKeys,
-		store.includeOrRightThumbKeys
+		store.appliedIncludeOrGrid,
+		store.appliedIncludeOrLeftThumbKeys,
+		store.appliedIncludeOrRightThumbKeys
 	);
 	if (orKeys) {
 		pushChip(
@@ -433,9 +450,9 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 	}
 	const excludeKeys = formatKeySection(
 		'Exclude',
-		store.excludeGrid,
-		store.excludeLeftThumbKeys,
-		store.excludeRightThumbKeys
+		store.appliedExcludeGrid,
+		store.appliedExcludeLeftThumbKeys,
+		store.appliedExcludeRightThumbKeys
 	);
 	if (excludeKeys) {
 		pushChip(
@@ -447,6 +464,7 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 		);
 	}
 
+	const appliedLimits = store.appliedStatLimits;
 	for (const entry of STAT_ANALYZERS) {
 		const analyzer = entry.value;
 		const analyzerTitle = analyzerShortLabel(analyzer);
@@ -454,7 +472,7 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 
 		for (const row of getGeneralStatFilterRowsForAnalyzer(analyzer)) {
 			for (const field of row) {
-				const part = formatActiveLimit(store, field, field.label);
+				const part = formatActiveLimit(appliedLimits, field, field.label);
 				if (!part) continue;
 				pushChip(
 					chips,
@@ -468,14 +486,14 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 						key: field.key
 					},
 					tone,
-					`${analyzerTitle}: ${part}`
+					analyzerTitle
 				);
 			}
 		}
 
 		if (analyzer === DEFAULT_STATS_ANALYZER && store.canUseLikes) {
 			const likes = formatActiveLimit(
-				store,
+				appliedLimits,
 				LIKES_STAT_FILTER_FIELD,
 				LIKES_STAT_FILTER_FIELD.label
 			);
@@ -496,7 +514,7 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 		}
 
 		for (const field of getLeftHandStatFilterFieldsForAnalyzer(analyzer)) {
-			const part = formatActiveLimit(store, field, handSummaryLabel('LH', field));
+			const part = formatActiveLimit(appliedLimits, field, handSummaryLabel('LH', field));
 			if (!part) continue;
 			pushChip(
 				chips,
@@ -510,11 +528,11 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 					key: field.key
 				},
 				tone,
-				`${analyzerTitle}: ${part}`
+				analyzerTitle
 			);
 		}
 		for (const field of getRightHandStatFilterFieldsForAnalyzer(analyzer)) {
-			const part = formatActiveLimit(store, field, handSummaryLabel('RH', field));
+			const part = formatActiveLimit(appliedLimits, field, handSummaryLabel('RH', field));
 			if (!part) continue;
 			pushChip(
 				chips,
@@ -528,14 +546,14 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 					key: field.key
 				},
 				tone,
-				`${analyzerTitle}: ${part}`
+				analyzerTitle
 			);
 		}
 	}
 
 	if (store.hasSimilarReference) {
 		const op = store.similarityFilterOperator === 'lt' ? '<' : '>';
-		const value = store.similarityFilterValue.trim() || '0';
+		const value = store.appliedSimilarityFilterValue.trim() || '0';
 		pushChip(
 			chips,
 			'similarity',
@@ -592,6 +610,6 @@ export function clearActiveFilterChip(store: FilterStore, action: ActiveFilterCl
 /** Full active-filter preview joined with bullets (sidebar-style). */
 export function getActiveFiltersSummary(store: FilterStore): string {
 	return getActiveFilterChips(store)
-		.map((chip) => chip.title ?? chip.label)
+		.map((chip) => chip.label)
 		.join(' • ');
 }
