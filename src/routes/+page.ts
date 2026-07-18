@@ -2,9 +2,9 @@ import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { parseStatLimitsParam } from '$lib/filterStore.svelte';
 import {
-	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	analyzersNeededForLoad,
+	getAnalyzerStatsUrl,
 	isStatSortBy,
 	isStatsAnalyzerMode,
 	normalizeSortBy,
@@ -43,9 +43,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		fetch('/all-layouts.json'),
 		fetch('/authors.json'),
 		loadLikes ? fetch('/layout-likes.json') : Promise.resolve(null),
-		...analyzersToPreload.map((analyzer) =>
-			fetch(analyzer === CYANOPHAGE_ANALYZER ? '/layout-stats-cyanophage.json' : '/layout-stats.json')
-		)
+		...analyzersToPreload.map((analyzer) => fetch(getAnalyzerStatsUrl(analyzer)))
 	]);
 
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();

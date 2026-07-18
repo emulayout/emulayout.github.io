@@ -2,15 +2,11 @@ import type { StatsMaps } from '$lib/layout';
 import {
 	DEFAULT_STATS_ANALYZER,
 	STAT_ANALYZERS,
+	getAnalyzerStatsUrl,
 	resolveStatsAnalyzers,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from '$lib/layoutStats';
-
-const ANALYZER_STATS_URL: Record<StatsAnalyzer, string> = {
-	monkeyracer: '/layout-stats.json',
-	cyanophage: '/layout-stats-cyanophage.json'
-};
 
 class LayoutStatsStore {
 	maps: StatsMaps = $state({});
@@ -67,7 +63,9 @@ class LayoutStatsStore {
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: true };
 
 		try {
-			const response = await fetch(ANALYZER_STATS_URL[analyzer], { signal: abortController.signal });
+			const response = await fetch(getAnalyzerStatsUrl(analyzer), {
+				signal: abortController.signal
+			});
 			const map = response.ok ? await response.json() : {};
 			if (this.#abortControllers.get(analyzer) === abortController) {
 				this.maps = { ...this.maps, [analyzer]: map };

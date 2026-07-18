@@ -11,11 +11,22 @@ export const ALL_STATS_ANALYZERS_MODE = 'all';
 
 /** Concrete analyzers that own a stats JSON map. */
 export const STAT_ANALYZERS = [
-	{ value: DEFAULT_STATS_ANALYZER, label: 'cmini (monkeyracer)' },
-	{ value: CYANOPHAGE_ANALYZER, label: 'Cyanophage' }
+	{
+		value: DEFAULT_STATS_ANALYZER,
+		label: 'cmini (monkeyracer)',
+		shortLabel: 'cmini',
+		statsUrl: '/layout-stats.json'
+	},
+	{
+		value: CYANOPHAGE_ANALYZER,
+		label: 'Cyanophage',
+		shortLabel: 'Cyanophage',
+		statsUrl: '/layout-stats-cyanophage.json'
+	}
 ] as const;
 
-export type StatsAnalyzer = (typeof STAT_ANALYZERS)[number]['value'];
+export type StatsAnalyzerDefinition = (typeof STAT_ANALYZERS)[number];
+export type StatsAnalyzer = StatsAnalyzerDefinition['value'];
 
 /** Toolbar / URL display modes (includes stacked “All”). */
 export const STAT_ANALYZER_MODES = [
@@ -25,6 +36,9 @@ export const STAT_ANALYZER_MODES = [
 
 export type StatsAnalyzerMode = (typeof STAT_ANALYZER_MODES)[number]['value'];
 
+const STATS_ANALYZER_BY_VALUE = new Map<StatsAnalyzer, StatsAnalyzerDefinition>(
+	STAT_ANALYZERS.map((analyzer) => [analyzer.value, analyzer])
+);
 const STATS_ANALYZER_VALUES = new Set<string>(STAT_ANALYZERS.map((analyzer) => analyzer.value));
 const STATS_ANALYZER_MODE_VALUES = new Set<string>(
 	STAT_ANALYZER_MODES.map((analyzer) => analyzer.value)
@@ -38,10 +52,26 @@ export function isStatsAnalyzerMode(value: string): value is StatsAnalyzerMode {
 	return STATS_ANALYZER_MODE_VALUES.has(value);
 }
 
+export function getAnalyzerDefinition(analyzer: StatsAnalyzer): StatsAnalyzerDefinition {
+	const definition = STATS_ANALYZER_BY_VALUE.get(analyzer);
+	if (!definition) {
+		throw new Error(`Unknown stats analyzer: ${analyzer}`);
+	}
+	return definition;
+}
+
+export function analyzerShortLabel(analyzer: StatsAnalyzer): string {
+	return getAnalyzerDefinition(analyzer).shortLabel;
+}
+
+export function getAnalyzerStatsUrl(analyzer: StatsAnalyzer): string {
+	return getAnalyzerDefinition(analyzer).statsUrl;
+}
+
 /** Concrete analyzers included in a display mode. */
 export function resolveStatsAnalyzers(mode: StatsAnalyzerMode): StatsAnalyzer[] {
 	return mode === ALL_STATS_ANALYZERS_MODE
-		? [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER]
+		? STAT_ANALYZERS.map((analyzer) => analyzer.value)
 		: [mode];
 }
 
@@ -1046,7 +1076,7 @@ export function getHiddenAnalyzerFilterCaution(
 	});
 	if (count === 0) return null;
 
-	const label = hidden === CYANOPHAGE_ANALYZER ? 'Cyanophage' : 'cmini';
+	const label = analyzerShortLabel(hidden);
 	return {
 		analyzer: hidden,
 		count,

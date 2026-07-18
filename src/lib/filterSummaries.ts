@@ -3,6 +3,7 @@ import type { FilterStore } from '$lib/filterStore.svelte';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
+	analyzerShortLabel,
 	getGeneralStatFilterRowsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
 	getRightHandStatFilterFieldsForAnalyzer,
@@ -146,10 +147,6 @@ function handSummaryLabel(
 		field.key === 'cyano-rh';
 	const base = isHandTotal ? hand : `${hand} ${field.label}`;
 	return analyzerLabel ? `${analyzerLabel} ${base}` : base;
-}
-
-function analyzerShortLabel(analyzer: StatsAnalyzer): string {
-	return analyzer === CYANOPHAGE_ANALYZER ? 'Cyanophage' : 'cmini';
 }
 
 /** Collapsed stat-filter preview (same format as the old accordion). */
