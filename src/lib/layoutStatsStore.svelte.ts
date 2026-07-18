@@ -2,7 +2,9 @@ import type { StatsMaps } from '$lib/layout';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
-	type StatsAnalyzer
+	resolveStatsAnalyzers,
+	type StatsAnalyzer,
+	type StatsAnalyzerMode
 } from '$lib/layoutStats';
 
 const ANALYZER_STATS_URL: Record<StatsAnalyzer, string> = {
@@ -22,6 +24,11 @@ class LayoutStatsStore {
 
 	isLoading(analyzer: StatsAnalyzer): boolean {
 		return this.loadingAnalyzers[analyzer] === true;
+	}
+
+	/** True when any of the concrete analyzers in a display mode are loading. */
+	isLoadingMode(mode: StatsAnalyzerMode): boolean {
+		return resolveStatsAnalyzers(mode).some((analyzer) => this.isLoading(analyzer));
 	}
 
 	get loading(): boolean {
@@ -78,12 +85,14 @@ class LayoutStatsStore {
 
 	async loadWhenVisible(
 		showStats: boolean,
-		statsAnalyzer: StatsAnalyzer,
+		statsAnalyzerMode: StatsAnalyzerMode,
 		needsAnalyzers: Iterable<StatsAnalyzer>
 	): Promise<void> {
 		const analyzers = new Set<StatsAnalyzer>(needsAnalyzers);
 		if (showStats) {
-			analyzers.add(statsAnalyzer);
+			for (const analyzer of resolveStatsAnalyzers(statsAnalyzerMode)) {
+				analyzers.add(analyzer);
+			}
 		}
 
 		if (analyzers.size === 0) {

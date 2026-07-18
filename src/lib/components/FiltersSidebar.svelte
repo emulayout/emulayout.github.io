@@ -4,8 +4,9 @@
 	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
-	import { getKeyboardFiltersSummary } from '$lib/filterSummaries';
+	import { type KeyboardFilterField } from '$lib/filterSummaries';
 	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
+	import { afterPaint, focusFilterControl } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
 	import type { Snippet } from 'svelte';
 
@@ -18,7 +19,43 @@
 	let { authorList, layouts, children }: Props = $props();
 
 	let showKeyboardFiltersModal = $state(false);
-	const keyboardFiltersSummary = $derived(getKeyboardFiltersSummary(filterStore));
+	let keyboardFocusField = $state<KeyboardFilterField | null>(null);
+	let keyboardFocusToken = $state(0);
+	let authorOpenSeq = $state(0);
+	const keyboardFiltersActive = $derived(filterStore.hasActiveKeyboardFilters);
+
+	$effect(() => {
+		const seq = filterStore.filterFocusRequestSeq;
+		const req = filterStore.filterFocusRequest;
+		if (!seq || !req) return;
+
+		if (req.target === 'keyboard') {
+			keyboardFocusField = req.field;
+			keyboardFocusToken = seq;
+			showKeyboardFiltersModal = true;
+			return;
+		}
+
+		if (req.target !== 'sidebar') return;
+
+		afterPaint(() => {
+			if (req.field === 'source') {
+				focusFilterControl(document.getElementById('layout-source-filter'));
+			} else if (req.field === 'name') {
+				focusFilterControl(document.getElementById('name-filter'));
+			} else if (req.field === 'authors') {
+				authorOpenSeq = seq;
+				document
+					.getElementById('author-filter-trigger')
+					?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+			} else if (req.field === 'similarity') {
+				const el =
+					document.getElementById('similarity-match-value') ??
+					document.getElementById('similarity-layout-search');
+				focusFilterControl(el);
+			}
+		});
+	});
 </script>
 
 <div class="filters-sidebar">
@@ -26,6 +63,7 @@
 		<label class="filters-field">
 			<span class="filters-label" style="color: var(--text-secondary);">Source</span>
 			<select
+				id="layout-source-filter"
 				value={filterStore.layoutSource}
 				onchange={(e) =>
 					filterStore.setLayoutSource(e.currentTarget.value as LayoutSource)
@@ -71,6 +109,7 @@
 				selectedIds={filterStore.selectedAuthors}
 				onToggle={(id) => filterStore.toggleAuthor(id)}
 				onClear={() => filterStore.clearAuthors()}
+				openSeq={authorOpenSeq}
 			/>
 		</div>
 	</div>
@@ -81,12 +120,13 @@
 		onclick={() => (showKeyboardFiltersModal = true)}
 	>
 		<span class="filter-open-button-text">
-			<span class="filter-open-button-title">Keyboard filters</span>
-				{#if keyboardFiltersSummary}
-					<span class="filter-open-button-summary" title={keyboardFiltersSummary}
-						>{keyboardFiltersSummary}</span
-					>
+			<span class="filter-open-button-title">
+				Keyboard filters
+				{#if keyboardFiltersActive}
+					<span class="filter-open-button-dot" aria-hidden="true"></span>
+					<span class="sr-only">Active filters</span>
 				{/if}
+			</span>
 		</span>
 		<svg
 			class="filter-open-button-chevron"
@@ -133,7 +173,12 @@
 
 <KeyboardFiltersModal
 	open={showKeyboardFiltersModal}
-	onClose={() => (showKeyboardFiltersModal = false)}
+	focusField={keyboardFocusField}
+	focusToken={keyboardFocusToken}
+	onClose={() => {
+		showKeyboardFiltersModal = false;
+		keyboardFocusField = null;
+	}}
 />
 
 <style>

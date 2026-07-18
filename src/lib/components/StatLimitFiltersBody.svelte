@@ -1,23 +1,28 @@
 <script lang="ts">
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import {
+		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
 		getGeneralStatFilterRowsForAnalyzer,
+		getLeftHandStatFilterFieldsForAnalyzer,
+		getRightHandStatFilterFieldsForAnalyzer,
 		LIKES_STAT_FILTER_FIELD,
-		LEFT_HAND_STAT_FILTER_FIELDS,
-		RIGHT_HAND_STAT_FILTER_FIELDS,
 		type StatFilterField,
-		type StatLimitKey
+		type StatLimitKey,
+		type StatsAnalyzer
 	} from '$lib/layoutStats';
 	import type { StatFilterSection } from '$lib/filterSummaries';
 
 	interface Props {
 		section: StatFilterSection;
+		/** Which analyzer’s general filter fields to show. */
+		analyzer?: StatsAnalyzer;
 		/** Force a single column (e.g. narrow modal). */
 		stacked?: boolean;
 	}
 
-	let { section, stacked = false }: Props = $props();
+	let { section, analyzer = DEFAULT_STATS_ANALYZER, stacked = false }: Props = $props();
 
 	function fieldTitle(field: StatFilterField): string {
 		return field.title ?? field.label;
@@ -48,16 +53,17 @@
 		--tw-ring-color: var(--accent);
 	`;
 
-	const generalStatFilterRows = $derived(
-		getGeneralStatFilterRowsForAnalyzer(filterStore.statsAnalyzer)
-	);
+	const generalStatFilterRows = $derived(getGeneralStatFilterRowsForAnalyzer(analyzer));
+	const leftHandFields = $derived(getLeftHandStatFilterFieldsForAnalyzer(analyzer));
+	const rightHandFields = $derived(getRightHandStatFilterFieldsForAnalyzer(analyzer));
+	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER);
 	const showLikesFilter = $derived(filterStore.canUseLikes);
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
 	{@const limit = filterStore.statLimits[field.key]}
 	{@const title = fieldTitle(field)}
-	<div class="stat-limit-control">
+	<div class="stat-limit-control" data-stat-limit-control={field.key}>
 		<span class="stat-limit-label" style="width: {labelWidth};" title={title}>{field.label}:</span>
 		<select
 			value={limit.operator}
@@ -80,12 +86,16 @@
 			style={fieldStyle}
 			placeholder="—"
 			aria-label="{title} limit"
+			data-stat-limit-key={field.key}
 		/>
 		<span class="stat-limit-unit">{field.unit === 'raw' ? '' : '%'}</span>
 	</div>
 {/snippet}
 
-<div class="stat-limits-body" class:stat-limits-body--stacked={stacked}>
+<div
+	class="stat-limits-body"
+	class:stat-limits-body--stacked={stacked || (section === 'general' && generalStacked)}
+>
 	{#if section === 'general'}
 		<section class="stat-limits-general" aria-label="General stat filters">
 			{#each generalStatFilterRows as row, rowIndex (rowIndex)}
@@ -93,8 +103,8 @@
 					{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
 						{@const field = row[colIndex]}
 						{#if field}
-							{@render statLimitControl(field, '2.5rem')}
-						{:else}
+							{@render statLimitControl(field, generalStacked ? '3.25rem' : '2.5rem')}
+						{:else if !generalStacked}
 							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
 						{/if}
 					{/each}
@@ -103,10 +113,12 @@
 			{#if showLikesFilter}
 				<div class="stat-limit-row">
 					<div>
-						{@render statLimitControl(LIKES_STAT_FILTER_FIELD, '2.5rem')}
+						{@render statLimitControl(LIKES_STAT_FILTER_FIELD, generalStacked ? '3.25rem' : '2.5rem')}
 					</div>
-					<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-					<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+					{#if !generalStacked}
+						<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+						<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+					{/if}
 				</div>
 			{/if}
 		</section>
@@ -116,7 +128,7 @@
 				<div>
 					<div class="stat-limits-hand-heading">Left hand</div>
 					<div class="stat-limits-hand-list">
-						{#each LEFT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+						{#each leftHandFields as field (field.key)}
 							{@render statLimitControl(field, '3.25rem')}
 						{/each}
 					</div>
@@ -124,7 +136,7 @@
 				<div>
 					<div class="stat-limits-hand-heading">Right hand</div>
 					<div class="stat-limits-hand-list">
-						{#each RIGHT_HAND_STAT_FILTER_FIELDS as field (field.key)}
+						{#each rightHandFields as field (field.key)}
 							{@render statLimitControl(field, '3.25rem')}
 						{/each}
 					</div>

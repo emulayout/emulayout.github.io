@@ -29,9 +29,12 @@ html {
 	--text-primary: #14120f;
 	--text-secondary: #504b45;
 	--text-caption: #7a746c;
-	--accent: #bc5e11;
-	--accent-hover: #bc5e11;
-	--filter-action: #3d6a8a;
+	/* Analyzer identity — chips, filtered/sorted stats */
+	--analyzer-cmini: #3d6a8a;
+	--analyzer-cyanophage: #bc5e11;
+	--accent: var(--analyzer-cyanophage);
+	--accent-hover: var(--analyzer-cyanophage);
+	--filter-action: var(--analyzer-cmini);
 	--similar-diff: #7aa825;
 	--similar-active-fg: white;
 	--link: #4a6278;
@@ -44,6 +47,13 @@ html {
 	--app-bar-shadow-color: #bebebe;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
+	--stats-fg-highlight-cmini: var(--analyzer-cmini);
+	--stats-fg-highlight-cyanophage: var(--analyzer-cyanophage);
+	/* Sorted-stat value on layout cards */
+	--stats-fg-highlight-sort: #9a8f12;
+	/* Orange-dot replacement on filter open buttons */
+	--filter-active-dot: #9a8f12;
+	--warning: #9a8f12;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #c44b3a;
 	--new-layout-dot: #eda095;
@@ -55,9 +65,11 @@ html {
 	--text-primary: #faf8f5;
 	--text-secondary: #c9c4bc;
 	--text-caption: #949088;
-	--accent: #dc6e14;
-	--accent-hover: #dc6e14;
-	--filter-action: #7aa3c4;
+	--analyzer-cmini: #7aa3c4;
+	--analyzer-cyanophage: #dc6e14;
+	--accent: var(--analyzer-cyanophage);
+	--accent-hover: var(--analyzer-cyanophage);
+	--filter-action: var(--analyzer-cmini);
 	--similar-diff: #92c92c;
 	--similar-active-fg: #100f0d;
 	--link: #9eb4d4;
@@ -70,6 +82,11 @@ html {
 	--app-bar-shadow-color: #000000;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
+	--stats-fg-highlight-cmini: var(--analyzer-cmini);
+	--stats-fg-highlight-cyanophage: var(--analyzer-cyanophage);
+	--stats-fg-highlight-sort: #d5dc14;
+	--filter-active-dot: #d5dc14;
+	--warning: #d5dc14;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #e07060;
 	--new-layout-dot: #982818;
@@ -147,6 +164,22 @@ select:not([multiple]) {
 
 .layout-display-area {
 	min-height: calc(var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size));
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
+}
+
+.layout-display-area::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.layout-display-area::-webkit-scrollbar-thumb {
+	background: color-mix(in srgb, var(--text-caption) 70%, transparent);
+	border-radius: 999px;
+}
+
+.layout-display-area::-webkit-scrollbar-track {
+	background: transparent;
 }
 
 .layout-meta {
@@ -165,6 +198,18 @@ select:not([multiple]) {
 
 .stats-block-highlight {
 	color: var(--stats-fg-highlight);
+}
+
+.stats-block-highlight--cmini {
+	color: var(--stats-fg-highlight-cmini);
+}
+
+.stats-block-highlight--cyanophage {
+	color: var(--stats-fg-highlight-cyanophage);
+}
+
+.stats-block-highlight--sort {
+	color: var(--stats-fg-highlight-sort);
 }
 
 .stats-diff-better {
@@ -219,7 +264,26 @@ select:not([multiple]) {
 }
 
 .filter-open-button-title {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
 	line-height: 1.25;
+}
+
+.filter-open-button-dot {
+	width: 0.4rem;
+	height: 0.4rem;
+	border-radius: 9999px;
+	background-color: var(--filter-active-dot);
+	flex-shrink: 0;
+}
+
+/* Brief highlight when jumping to a filter control from an active-filter chip. */
+.filter-field-targeted {
+	outline: 2px solid var(--accent) !important;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+	transition: outline-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .filter-open-button-summary {
@@ -269,6 +333,30 @@ select:not([multiple]) {
 .filter-open-button-group > .filter-open-button:focus-visible {
 	position: relative;
 	z-index: 1;
+}
+
+/* Shared header row for sidebar filter containers */
+.filter-section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	min-height: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.filter-section-header-start {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.filter-section-header-label {
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1;
+	color: var(--text-secondary);
 }
 
 /* Compact reset control for filter sections / modals */

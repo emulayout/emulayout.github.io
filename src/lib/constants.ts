@@ -9,11 +9,31 @@ export const LAYOUT_CARD_SECTION_GAP = 8; // px (gap-2 between main sections)
 export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 12; // px (gap-3 between stats and test area)
 /** Matches `.stats-block` min-height in layout.css (14 × 1.35 × 11px). */
 export const LAYOUT_CARD_STATS_HEIGHT = 208;
+/** Caption above each stats block when both analyzers are shown. */
+export const LAYOUT_CARD_STATS_LABEL_HEIGHT = 20;
+/** Gap between stacked analyzer stats blocks. */
+export const LAYOUT_CARD_STATS_STACK_GAP = 12;
+/**
+ * Extra height beyond the single stats block already in {@link LAYOUT_CARD_HEIGHT}
+ * when showing both analyzers (second block + both labels + stack gap).
+ */
+export const LAYOUT_CARD_DUAL_STATS_EXTRA =
+	LAYOUT_CARD_STATS_HEIGHT +
+	LAYOUT_CARD_STATS_LABEL_HEIGHT * 2 +
+	LAYOUT_CARD_STATS_STACK_GAP;
 /** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-2). */
 export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
 
-export function getLayoutCardHeight(showStats = true, showTestArea = true): number {
+export function getLayoutCardHeight(
+	showStats = true,
+	showTestArea = true,
+	dualStats = false
+): number {
 	let height = LAYOUT_CARD_HEIGHT;
+
+	if (showStats && dualStats) {
+		height += LAYOUT_CARD_DUAL_STATS_EXTRA;
+	}
 
 	if (!showStats) {
 		height -= LAYOUT_CARD_STATS_HEIGHT;
@@ -32,8 +52,12 @@ export function getLayoutCardHeight(showStats = true, showTestArea = true): numb
 	return height;
 }
 
-export function getLayoutCardItemSize(showStats = true, showTestArea = true): number {
-	return getLayoutCardHeight(showStats, showTestArea) + LAYOUT_CARD_ROW_GAP;
+export function getLayoutCardItemSize(
+	showStats = true,
+	showTestArea = true,
+	dualStats = false
+): number {
+	return getLayoutCardHeight(showStats, showTestArea, dualStats) + LAYOUT_CARD_ROW_GAP;
 }
 
 /** @deprecated Use getLayoutCardItemSize() when card sections may be hidden. */

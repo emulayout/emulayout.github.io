@@ -111,7 +111,10 @@
 		if (!open) return;
 		session;
 		const mode = seedMode;
-		compareAnalyzer = filterStore.statsAnalyzer;
+		compareAnalyzer =
+			filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
+				? CYANOPHAGE_ANALYZER
+				: DEFAULT_STATS_ANALYZER;
 		leftPreview = null;
 		rightPreview = null;
 

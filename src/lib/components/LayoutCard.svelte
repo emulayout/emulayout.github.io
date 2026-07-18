@@ -1,20 +1,16 @@
 <script lang="ts">
-	import type {
-		CompactCyanophageStats,
-		CompactLayoutStats,
-		CyanophageStats,
-		MonkeyracerStats,
-		LayoutData
-	} from '$lib/layout';
+	import type { CompactCyanophageStats, CompactLayoutStats, LayoutData } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
 	import { getLayoutCardHeight, LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import {
+		ALL_STATS_ANALYZERS_MODE,
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
 		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
 		decodeCyanophageStats,
 		decodeMonkeyracerStats,
 		deriveBotStats,
@@ -23,7 +19,11 @@
 		formatCyanophageStatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
-		getStatSortHighlightKey,
+		getActiveFilterStatKeys,
+		getStatSortField,
+		showsCyanophageStats,
+		showsMonkeyracerStats,
+		STAT_ANALYZERS,
 		type CyanophageStatSortKey,
 		type StatSortKey
 	} from '$lib/layoutStats';
@@ -42,8 +42,10 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		/** Compact stats for the active analyzer only (avoids full statsMaps fan-out). */
-		compactStats?: CompactLayoutStats | CompactCyanophageStats;
+		/** Compact monkeyracer stats when that analyzer is shown. */
+		compactMonkeyStats?: CompactLayoutStats;
+		/** Compact cyanophage stats when that analyzer is shown. */
+		compactCyanophageStats?: CompactCyanophageStats;
 		/** Injected into results despite failing filters (Include selected). */
 		forceIncluded?: boolean;
 		similarMatchPercent?: number;
@@ -57,12 +59,18 @@
 		layout,
 		authorName,
 		likeCount,
-		compactStats,
+		compactMonkeyStats,
+		compactCyanophageStats,
 		forceIncluded = false,
 		similarMatchPercent,
 		similarMirrored = false,
 		similarDiffPositions
 	}: Props = $props();
+
+	const monkeyLabel =
+		STAT_ANALYZERS.find((a) => a.value === DEFAULT_STATS_ANALYZER)?.label ?? 'cmini';
+	const cyanophageLabel =
+		STAT_ANALYZERS.find((a) => a.value === CYANOPHAGE_ANALYZER)?.label ?? 'Cyanophage';
 
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let localAnglemod = $state(false);
@@ -116,67 +124,87 @@
 			isNewSinceLastSync(layout, layoutsCatalog.latestLayoutDayKey)
 	);
 
-	const isCyanophageAnalyzer = $derived(filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER);
+	const showMonkeyStats = $derived(showsMonkeyracerStats(filterStore.statsAnalyzer));
+	const showCyanophageStats = $derived(showsCyanophageStats(filterStore.statsAnalyzer));
+	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
 
-	const analyzerStats = $derived.by(() => {
-		if (!compactStats) return undefined;
-		if (isCyanophageAnalyzer) {
-			if (!layout.cyanophageCompatible) return undefined;
-			return decodeCyanophageStats(compactStats as CompactCyanophageStats);
+	const botStats = $derived.by(() => {
+		if (!showMonkeyStats || !compactMonkeyStats) return null;
+		const decoded = decodeMonkeyracerStats(compactMonkeyStats);
+		return decoded ? deriveBotStats(decoded) : null;
+	});
+	const cyanophageStats = $derived.by(() => {
+		if (!showCyanophageStats || !compactCyanophageStats || !layout.cyanophageCompatible) {
+			return null;
 		}
-		return decodeMonkeyracerStats(compactStats as CompactLayoutStats);
+		const decoded = decodeCyanophageStats(compactCyanophageStats);
+		return decoded ? deriveCyanophageStats(decoded) : null;
 	});
 
-	const botStats = $derived(
-		analyzerStats && !isCyanophageAnalyzer
-			? deriveBotStats(analyzerStats as MonkeyracerStats)
+	const monkeyLoading = $derived(
+		showMonkeyStats && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER)
+	);
+	const cyanophageLoading = $derived(
+		showCyanophageStats && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
+	);
+
+	const sortField = $derived(getStatSortField(filterStore.sortBy));
+	const botFilterHighlightKeys = $derived(
+		getActiveFilterStatKeys(
+			filterStore.appliedStatLimits,
+			DEFAULT_STATS_ANALYZER
+		) as Set<StatSortKey>
+	);
+	const cyanophageFilterHighlightKeys = $derived(
+		getActiveFilterStatKeys(
+			filterStore.appliedStatLimits,
+			CYANOPHAGE_ANALYZER
+		) as Set<CyanophageStatSortKey>
+	);
+	const botSortHighlightKey = $derived(
+		sortField?.analyzer === DEFAULT_STATS_ANALYZER
+			? (sortField.key as StatSortKey)
 			: null
 	);
-	const cyanophageStats = $derived(
-		analyzerStats && isCyanophageAnalyzer
-			? deriveCyanophageStats(analyzerStats as CyanophageStats)
+	const cyanophageSortHighlightKey = $derived(
+		sortField?.analyzer === CYANOPHAGE_ANALYZER
+			? (sortField.key as CyanophageStatSortKey)
 			: null
 	);
-	const statsLoading = $derived(layoutStatsStore.isLoading(filterStore.statsAnalyzer));
-	const highlightStatKey = $derived(
-		getStatSortHighlightKey(filterStore.sortBy, filterStore.statsAnalyzer)
+
+	const monkeyStatsBlockLines = $derived(
+		botStats
+			? buildBotStatsBlockLines(botStats, botFilterHighlightKeys, botSortHighlightKey)
+			: null
 	);
-	const botHighlightKey = $derived(
-		!isCyanophageAnalyzer ? (highlightStatKey as StatSortKey | undefined) : undefined
+	const cyanophageStatsBlockLines = $derived(
+		cyanophageStats
+			? buildCyanophageStatsBlockLines(
+					cyanophageStats,
+					cyanophageFilterHighlightKeys,
+					cyanophageSortHighlightKey
+				)
+			: null
 	);
-	const cyanophageHighlightKey = $derived(
-		isCyanophageAnalyzer ? (highlightStatKey as CyanophageStatSortKey | undefined) : undefined
+
+	const monkeyStatsPlaceholder = $derived(
+		monkeyLoading ? formatStatsLoadingBlock() : !botStats ? formatStatsUnavailableBlock() : null
 	);
-	const statsBlockLines = $derived(
-		isCyanophageAnalyzer
-			? cyanophageStats
-				? buildCyanophageStatsBlockLines(cyanophageStats, cyanophageHighlightKey)
+	const cyanophageStatsPlaceholder = $derived(
+		cyanophageLoading
+			? formatCyanophageStatsLoadingBlock()
+			: !cyanophageStats
+				? formatCyanophageStatsUnavailableBlock(
+						!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
+					)
 				: null
-			: botStats
-				? buildBotStatsBlockLines(botStats, botHighlightKey)
-				: null
-	);
-	const statsBlock = $derived(
-		statsLoading
-			? isCyanophageAnalyzer
-				? formatCyanophageStatsLoadingBlock()
-				: formatStatsLoadingBlock()
-			: isCyanophageAnalyzer
-				? !cyanophageStats
-					? formatCyanophageStatsUnavailableBlock(
-							!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
-						)
-					: null
-				: !botStats
-					? formatStatsUnavailableBlock()
-					: null
 	);
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
+		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea, dualStats)
 	);
 
 	function getKeyMaps(): { keyMap: KeyMap; shiftKeyMap: KeyMap } {
@@ -534,21 +562,70 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
-				{#if statsBlockLines}
-					<div class="stats-block shrink-0">
-						{#each statsBlockLines as line, lineIndex (lineIndex)}
-							<div class="stats-block-line">
-								{#each line as segment, segmentIndex (segmentIndex)}
-									<span class:stats-block-highlight={segment.highlight}>{segment.text}</span>
-								{/each}
-							</div>
-						{/each}
-					</div>
-				{:else}
-					<pre
-						class="stats-block shrink-0"
-						class:stats-block--unavailable={!statsLoading}>{statsBlock}</pre>
-				{/if}
+				<div class="stats-stack" class:stats-stack--dual={dualStats}>
+					{#if showMonkeyStats}
+						<div class="stats-stack-item">
+							{#if dualStats}
+								<div class="stats-analyzer-label">
+									{monkeyLabel}
+								</div>
+							{/if}
+							{#if monkeyStatsBlockLines}
+								<div class="stats-block shrink-0">
+									{#each monkeyStatsBlockLines as line, lineIndex (lineIndex)}
+										<div class="stats-block-line">
+											{#each line as segment, segmentIndex (segmentIndex)}
+												<span
+													class:stats-block-highlight={Boolean(segment.highlight)}
+													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
+													class:stats-block-highlight--cyanophage={segment.highlight ===
+														'cyanophage'}
+													class:stats-block-highlight--sort={segment.highlight === 'sort'}
+													>{segment.text}</span
+												>
+											{/each}
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<pre
+									class="stats-block shrink-0"
+									class:stats-block--unavailable={!monkeyLoading}>{monkeyStatsPlaceholder}</pre>
+							{/if}
+						</div>
+					{/if}
+					{#if showCyanophageStats}
+						<div class="stats-stack-item">
+							{#if dualStats}
+								<div class="stats-analyzer-label">
+									{cyanophageLabel}
+								</div>
+							{/if}
+							{#if cyanophageStatsBlockLines}
+								<div class="stats-block shrink-0">
+									{#each cyanophageStatsBlockLines as line, lineIndex (lineIndex)}
+										<div class="stats-block-line">
+											{#each line as segment, segmentIndex (segmentIndex)}
+												<span
+													class:stats-block-highlight={Boolean(segment.highlight)}
+													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
+													class:stats-block-highlight--cyanophage={segment.highlight ===
+														'cyanophage'}
+													class:stats-block-highlight--sort={segment.highlight === 'sort'}
+													>{segment.text}</span
+												>
+											{/each}
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<pre
+									class="stats-block shrink-0"
+									class:stats-block--unavailable={!cyanophageLoading}>{cyanophageStatsPlaceholder}</pre>
+							{/if}
+						</div>
+					{/if}
+				</div>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
 				<!--
@@ -711,5 +788,27 @@
 		height: 0.6rem;
 		border-radius: 9999px;
 		background-color: var(--new-layout-dot);
+	}
+
+	.stats-stack {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.stats-stack--dual {
+		gap: 0.75rem;
+	}
+
+	.stats-stack-item {
+		min-width: 0;
+	}
+
+	.stats-analyzer-label {
+		margin-bottom: 0.25rem;
+		font-size: 0.6875rem;
+		line-height: 1rem;
+		letter-spacing: 0.01em;
+		color: var(--text-primary);
 	}
 </style>

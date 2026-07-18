@@ -1,31 +1,36 @@
 <script lang="ts">
 	import KeyFiltersModal from '$lib/components/KeyFiltersModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import { getKeyFilterKindSummary, type KeyFilterKind } from '$lib/filterSummaries';
+	import { type KeyFilterKind } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 
 	let openKind = $state<KeyFilterKind | null>(null);
 
-	const andSummary = $derived(getKeyFilterKindSummary(filterStore, 'and'));
-	const orSummary = $derived(getKeyFilterKindSummary(filterStore, 'or'));
-	const excludeSummary = $derived(getKeyFilterKindSummary(filterStore, 'exclude'));
-	const hasActive = $derived(Boolean(andSummary || orSummary || excludeSummary));
+	const andActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('and'));
+	const orActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('or'));
+	const excludeActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('exclude'));
+	const hasActive = $derived(andActive || orActive || excludeActive);
 
 	function open(kind: KeyFilterKind) {
 		openKind = kind;
 	}
+
+	$effect(() => {
+		const seq = filterStore.filterFocusRequestSeq;
+		const req = filterStore.filterFocusRequest;
+		if (!seq || !req || req.target !== 'keys') return;
+		openKind = req.kind;
+	});
 </script>
 
 <div
 	class="key-filters w-full p-3 rounded-xl"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center justify-between gap-2 mb-2">
-		<div class="flex items-center gap-1.5 min-w-0">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">Key filters</span>
-			<Tooltip
-				text="Filter layouts by keys in specific positions. Include AND requires every filled position to match. Include OR matches if any filled position matches. Exclude removes layouts that place unwanted keys at the given positions."
-			/>
+	<div class="filter-section-header">
+		<div class="filter-section-header-start">
+			<span class="filter-section-header-label">Key filters</span>
+			<Tooltip text="Require or exclude keys at specific finger positions." />
 		</div>
 		{#if hasActive}
 			<button
@@ -41,10 +46,13 @@
 	<div class="filter-open-button-group">
 		<button type="button" class="filter-open-button" onclick={() => open('and')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Include keys (AND)</span>
-				{#if andSummary}
-					<span class="filter-open-button-summary" title={andSummary}>{andSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Include keys (AND)
+					{#if andActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -60,10 +68,13 @@
 
 		<button type="button" class="filter-open-button" onclick={() => open('or')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Include keys (OR)</span>
-				{#if orSummary}
-					<span class="filter-open-button-summary" title={orSummary}>{orSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Include keys (OR)
+					{#if orActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -79,10 +90,13 @@
 
 		<button type="button" class="filter-open-button" onclick={() => open('exclude')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Exclude keys</span>
-				{#if excludeSummary}
-					<span class="filter-open-button-summary" title={excludeSummary}>{excludeSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Exclude keys
+					{#if excludeActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -98,9 +112,4 @@
 	</div>
 </div>
 
-<KeyFiltersModal
-	open={openKind !== null}
-	kind={openKind}
-	onClose={() => (openKind = null)}
-/>
-
+<KeyFiltersModal open={openKind !== null} kind={openKind} onClose={() => (openKind = null)} />

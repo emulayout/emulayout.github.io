@@ -3,7 +3,7 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
+	import { showsCyanophageStats, showsMonkeyracerStats } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 
@@ -58,15 +58,6 @@
 	const highlightedAuthorName = $derived(
 		highlightedLayout ? (authorById.get(highlightedLayout.user) ?? 'Unknown') : ''
 	);
-
-	const highlightedCompactStats = $derived.by(() => {
-		if (!highlightedLayout) return undefined;
-		const map =
-			filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
-				? layoutStatsStore.maps.cyanophage
-				: layoutStatsStore.maps.monkeyracer;
-		return map?.[highlightedLayout.name];
-	});
 
 	// Reset highlight when the query changes; clamp if results shrink
 	$effect(() => {
@@ -255,7 +246,12 @@
 						layout={highlightedLayout}
 						authorName={highlightedAuthorName}
 						likeCount={0}
-						compactStats={highlightedCompactStats}
+						compactMonkeyStats={showsMonkeyracerStats(filterStore.statsAnalyzer)
+							? layoutStatsStore.maps.monkeyracer?.[highlightedLayout.name]
+							: undefined}
+						compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
+							? layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]
+							: undefined}
 					/>
 				{/key}
 			{:else}

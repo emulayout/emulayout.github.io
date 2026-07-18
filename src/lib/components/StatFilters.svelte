@@ -3,32 +3,48 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { getStatFilterSectionSummary, type StatFilterSection } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		STAT_ANALYZERS,
-		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	import type { StatLimitKey, StatsAnalyzer } from '$lib/layoutStats';
 
 	let openSection = $state<StatFilterSection | null>(null);
+	let focusAnalyzer = $state<StatsAnalyzer | null>(null);
+	let focusKey = $state<StatLimitKey | null>(null);
+	let focusToken = $state(0);
 
-	const generalSummary = $derived(getStatFilterSectionSummary(filterStore, 'general'));
-	const handsSummary = $derived(getStatFilterSectionSummary(filterStore, 'hands'));
-	const hasActive = $derived(Boolean(generalSummary || handsSummary));
+	const generalActive = $derived(Boolean(getStatFilterSectionSummary(filterStore, 'general')));
+	const handsActive = $derived(Boolean(getStatFilterSectionSummary(filterStore, 'hands')));
+	const hasActive = $derived(generalActive || handsActive);
 
 	function open(section: StatFilterSection) {
+		focusAnalyzer = null;
+		focusKey = null;
 		openSection = section;
 	}
+
+	function close() {
+		openSection = null;
+		focusAnalyzer = null;
+		focusKey = null;
+	}
+
+	$effect(() => {
+		const seq = filterStore.filterFocusRequestSeq;
+		const req = filterStore.filterFocusRequest;
+		if (!seq || !req || req.target !== 'stats') return;
+		focusAnalyzer = req.analyzer;
+		focusKey = req.key;
+		focusToken = seq;
+		openSection = req.section;
+	});
 </script>
 
 <div
 	class="stat-filters w-full p-3 rounded-xl"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center justify-between gap-2 mb-2">
-		<div class="flex items-center gap-1.5 min-w-0">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
-			<Tooltip
-				text="Filter layouts by analyzer stats. General covers overall metrics; Hands & fingers covers per-hand and per-finger usage. Layouts without stats are hidden when any limit is set."
-			/>
+	<div class="filter-section-header">
+		<div class="filter-section-header-start">
+			<span class="filter-section-header-label">Stat filters</span>
+			<Tooltip text="Set precise min/max limits on analyzer stats." />
 		</div>
 		{#if hasActive}
 			<button
@@ -41,33 +57,16 @@
 		{/if}
 	</div>
 
-	<label class="analyzer-field">
-		<span class="text-sm" style="color: var(--text-secondary);">Analyzer</span>
-		<select
-			value={filterStore.statsAnalyzer}
-			onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzer)}
-			class="analyzer-select"
-			style="
-				background-color: var(--input-bg);
-				color: var(--text-primary);
-				border: 1px solid var(--border);
-				--tw-ring-color: var(--accent);
-			"
-			aria-label="Analyzer"
-		>
-			{#each STAT_ANALYZERS as analyzer (analyzer.value)}
-				<option value={analyzer.value}>{analyzer.label}</option>
-			{/each}
-		</select>
-	</label>
-
 	<div class="filter-open-button-group">
 		<button type="button" class="filter-open-button" onclick={() => open('general')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">General stats</span>
-				{#if generalSummary}
-					<span class="filter-open-button-summary" title={generalSummary}>{generalSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					General stats
+					{#if generalActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -83,10 +82,13 @@
 
 		<button type="button" class="filter-open-button" onclick={() => open('hands')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Hands &amp; fingers</span>
-				{#if handsSummary}
-					<span class="filter-open-button-summary" title={handsSummary}>{handsSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Hands &amp; fingers
+					{#if handsActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -105,27 +107,8 @@
 <StatFiltersModal
 	open={openSection !== null}
 	section={openSection}
-	onClose={() => (openSection = null)}
+	preferredAnalyzer={focusAnalyzer}
+	{focusKey}
+	{focusToken}
+	onClose={close}
 />
-
-<style>
-	.analyzer-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.analyzer-select {
-		width: 100%;
-		padding: 0.5rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		outline: none;
-		cursor: pointer;
-	}
-
-	.analyzer-select:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-</style>

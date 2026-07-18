@@ -1,14 +1,18 @@
 <script lang="ts">
 	interface Props {
 		text: string;
+		/** Visual style of the trigger button. */
+		variant?: 'help' | 'caution';
 	}
 
-	let { text }: Props = $props();
+	let { text, variant = 'help' }: Props = $props();
 
 	let showTooltip = $state(false);
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
 	let tooltipEl = $state<HTMLDivElement | undefined>(undefined);
 	let coords = $state({ top: 0, left: 0 });
+
+	const ariaLabel = $derived(variant === 'caution' ? 'Caution' : 'Help');
 
 	function portalToBody(node: HTMLElement) {
 		document.body.appendChild(node);
@@ -71,15 +75,28 @@
 		onfocus={open}
 		onblur={close}
 		class="tooltip-trigger"
-		style="
-			background-color: transparent;
-			border: 1px solid var(--text-secondary);
-			color: var(--text-secondary);
-			--tw-ring-color: var(--accent);
-		"
-		aria-label="Help"
+		class:tooltip-trigger--help={variant === 'help'}
+		class:tooltip-trigger--caution={variant === 'caution'}
+		aria-label={ariaLabel}
 	>
-		<span class="tooltip-trigger-mark">?</span>
+		{#if variant === 'caution'}
+			<svg
+				class="tooltip-trigger-icon"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d="M12 9v4" />
+				<path d="M12 17h.01" />
+				<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+			</svg>
+		{:else}
+			<span class="tooltip-trigger-mark">?</span>
+		{/if}
 	</button>
 </span>
 
@@ -103,31 +120,61 @@
 
 <style>
 	.tooltip-root {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+		line-height: 0;
 		position: relative;
 		vertical-align: middle;
 	}
 
 	.tooltip-trigger {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		padding: 0;
+		margin: 0;
+		background: transparent;
+		outline: none;
+		box-shadow: none;
+		cursor: help;
+		appearance: none;
+		-webkit-appearance: none;
+		transition: color 0.15s ease;
+	}
+
+	.tooltip-trigger--help {
 		width: 1rem;
 		height: 1rem;
+		border: 1px solid var(--text-secondary);
 		border-radius: 9999px;
-		outline: none;
-		cursor: help;
-		transition: color 0.15s ease, border-color 0.15s ease;
+		color: var(--text-secondary);
+		--tw-ring-color: var(--accent);
+	}
+
+	.tooltip-trigger--caution {
+		width: 1rem;
+		height: 1rem;
+		border: 0;
+		border-radius: 0;
+		color: var(--warning);
+		--tw-ring-color: var(--warning);
 	}
 
 	.tooltip-trigger:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
+		box-shadow: 0 0 0 2px var(--tw-ring-color, var(--accent));
 	}
 
 	.tooltip-trigger-mark {
 		font-size: 10px;
 		font-weight: 500;
 		line-height: 1;
+	}
+
+	.tooltip-trigger-icon {
+		display: block;
+		width: 1rem;
+		height: 1rem;
 	}
 
 	.tooltip-popup {

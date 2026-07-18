@@ -5,33 +5,37 @@ import {
 	DEFAULT_STATS_ANALYZER,
 	getStatSortAnalyzer,
 	isStatSortBy,
-	isStatsAnalyzer,
+	isStatsAnalyzerMode,
 	normalizeSortBy,
 	parseLegacySortParam,
+	resolveStatsAnalyzers,
 	type SortBy,
-	type StatsAnalyzer
+	type StatsAnalyzer,
+	type StatsAnalyzerMode
 } from '$lib/layoutStats';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
-function getInitialStatsAnalyzer(url: URL): StatsAnalyzer {
+function getInitialStatsAnalyzerMode(url: URL): StatsAnalyzerMode {
 	const analyzer = url.searchParams.get('analyzer');
-	return analyzer && isStatsAnalyzer(analyzer) ? analyzer : DEFAULT_STATS_ANALYZER;
+	return analyzer && isStatsAnalyzerMode(analyzer) ? analyzer : DEFAULT_STATS_ANALYZER;
 }
 
 function getAnalyzersToPreload(
 	loadStats: boolean,
-	statsAnalyzer: StatsAnalyzer,
+	statsAnalyzerMode: StatsAnalyzerMode,
 	sortBy: SortBy
 ): StatsAnalyzer[] {
 	const analyzers = new Set<StatsAnalyzer>();
 
 	if (loadStats) {
-		analyzers.add(statsAnalyzer);
+		for (const analyzer of resolveStatsAnalyzers(statsAnalyzerMode)) {
+			analyzers.add(analyzer);
+		}
 	}
 
 	if (isStatSortBy(sortBy)) {
-		const sortAnalyzer = getStatSortAnalyzer(sortBy, statsAnalyzer);
+		const sortAnalyzer = getStatSortAnalyzer(sortBy);
 		if (sortAnalyzer) analyzers.add(sortAnalyzer);
 	}
 
@@ -41,16 +45,16 @@ function getAnalyzersToPreload(
 export const load: PageLoad = async ({ fetch, url }) => {
 	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
-	const statsAnalyzer = getInitialStatsAnalyzer(url);
+	const statsAnalyzerMode = getInitialStatsAnalyzerMode(url);
 	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
 	const parsedSortBy: SortBy =
 		legacySort?.sortBy ??
-		(sortParam ? normalizeSortBy(sortParam, statsAnalyzer) : undefined) ??
+		(sortParam ? normalizeSortBy(sortParam, statsAnalyzerMode) : undefined) ??
 		'date';
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
-	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzer, sortBy);
+	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzerMode, sortBy);
 
 	const [layoutsResponse, authorsResponse, likesResponse, ...statsResponses] = await Promise.all([
 		fetch('/all-layouts.json'),
