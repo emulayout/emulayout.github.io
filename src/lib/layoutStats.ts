@@ -154,9 +154,6 @@ export type CyanoStatLimitKey =
 	| 'cyano-RP'
 	| 'cyano-RT';
 
-/** @deprecated Use {@link CyanoStatLimitKey}. */
-export type CyanoHandStatLimitKey = Exclude<CyanoStatLimitKey, 'cyano-sfb' | 'cyano-sfs'>;
-
 /** Keys usable in stat limit filters (union of both analyzers). */
 export type StatLimitKey = StatSortKey | CyanophageStatSortKey | CyanoStatLimitKey | 'likes';
 
@@ -478,17 +475,11 @@ export const CYANOPHAGE_GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterF
 	[{ key: 'scissors', label: 'Sci', title: 'Scissors' }]
 ];
 
-/** @deprecated Use MONKEY_GENERAL_STAT_FILTER_ROWS or getGeneralStatFilterRowsForAnalyzer */
-export const GENERAL_STAT_FILTER_ROWS = MONKEY_GENERAL_STAT_FILTER_ROWS;
-
 /** Flat list of monkey general stat filter fields. */
 export const MONKEY_GENERAL_STAT_FILTER_FIELDS = MONKEY_GENERAL_STAT_FILTER_ROWS.flat();
 
 /** Flat list of cyanophage general stat filter fields. */
 export const CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS = CYANOPHAGE_GENERAL_STAT_FILTER_ROWS.flat();
-
-/** Flat list of general stat filter fields — keep in sync with filterStore. */
-export const GENERAL_STAT_FILTER_FIELDS = MONKEY_GENERAL_STAT_FILTER_FIELDS;
 
 export const MONKEY_LEFT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'lh', label: 'Hand' },
@@ -527,12 +518,6 @@ export const CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'cyano-RT', statKey: 'RT', label: 'Thumb' }
 ] as const satisfies readonly StatFilterField[];
 
-/** @deprecated Use MONKEY_LEFT_HAND_STAT_FILTER_FIELDS or getLeftHandStatFilterFieldsForAnalyzer */
-export const LEFT_HAND_STAT_FILTER_FIELDS = MONKEY_LEFT_HAND_STAT_FILTER_FIELDS;
-
-/** @deprecated Use MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS or getRightHandStatFilterFieldsForAnalyzer */
-export const RIGHT_HAND_STAT_FILTER_FIELDS = MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS;
-
 function uniqueStatFilterFields(fields: readonly StatFilterField[]): StatFilterField[] {
 	const byKey = new Map<string, StatFilterField>();
 	for (const field of fields) {
@@ -551,9 +536,6 @@ export const ALL_STAT_FILTER_FIELDS = uniqueStatFilterFields([
 	...CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS,
 	LIKES_STAT_FILTER_FIELD
 ]);
-
-/** @deprecated Use ALL_STAT_FILTER_FIELDS or getStatFilterFieldsForAnalyzer */
-export const STAT_FILTER_FIELDS = ALL_STAT_FILTER_FIELDS;
 
 export function getGeneralStatFilterRowsForAnalyzer(
 	analyzer: StatsAnalyzer
