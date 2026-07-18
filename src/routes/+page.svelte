@@ -37,6 +37,7 @@
 			isAnalyzerStatsReady(statsMaps, analyzer)
 		)
 	);
+	const resultsPending = $derived(filterStore.statFiltersAwaitingStats(statsMaps, statsReady));
 	const resolvedLikesData = $derived(likesData ?? {});
 	const likesLoaded = $derived(likesData !== null);
 	const likesSortAvailable = $derived(
@@ -161,6 +162,14 @@
 	});
 
 	const filteredResult = $derived.by(() => {
+		if (resultsPending) {
+			return {
+				layouts: [] as typeof layouts,
+				forceIncludedNames: new Set<string>(),
+				hiddenSelectedCount: 0
+			};
+		}
+
 		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
 
 		if (filterStore.similarReferenceName) {
@@ -257,16 +266,18 @@
 				<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
 			</div>
 			<div class="results-list">
-				<LayoutCardList
-					layouts={filteredLayouts}
-					{forceIncludedNames}
-					{getAuthorName}
-					likesData={resolvedLikesData}
-					{statsMaps}
-					{similarityMatches}
-					similarDiffPositions={similarReferenceForCompare?.positionBySlot}
-					similarMirrorDiffPositions={mirroredReferencePositions}
-				/>
+				{#if !resultsPending}
+					<LayoutCardList
+						layouts={filteredLayouts}
+						{forceIncludedNames}
+						{getAuthorName}
+						likesData={resolvedLikesData}
+						{statsMaps}
+						{similarityMatches}
+						similarDiffPositions={similarReferenceForCompare?.positionBySlot}
+						similarMirrorDiffPositions={mirroredReferencePositions}
+					/>
+				{/if}
 			</div>
 			{#if compareSelectedCount > 0}
 				{@const canIncludeNonMatching =

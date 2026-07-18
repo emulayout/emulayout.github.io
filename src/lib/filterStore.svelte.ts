@@ -112,6 +112,11 @@ function deserializeStatLimits(str: string): Record<StatLimitKey, StatLimit> {
 	return limits;
 }
 
+/** Parse a `statLimits` URL param into a limits record (empty values when absent). */
+export function parseStatLimitsParam(str: string | null | undefined): Record<StatLimitKey, StatLimit> {
+	return deserializeStatLimits(str?.trim() ?? '');
+}
+
 const ROWS = 3;
 const COLS = 10;
 const THUMB_KEYS_PER_HAND = 4;
@@ -1703,20 +1708,11 @@ export class FilterStore {
 	#matchesStatLimits(
 		layout: LayoutData,
 		statsMaps: StatsMaps,
-		statsReady: boolean,
 		likesData: LayoutLikesMap,
 		activeFilters: ActiveAnalyzerStatFilters[],
 		likesCheck: LikesLimitCheck | null
 	): boolean {
 		if (activeFilters.length === 0 && !likesCheck) return true;
-		// Wait until every analyzer that has active limits has loaded its map.
-		if (
-			activeFilters.length > 0 &&
-			(!statsReady ||
-				!activeFilters.every(({ analyzer }) => isAnalyzerStatsReady(statsMaps, analyzer)))
-		) {
-			return true;
-		}
 
 		for (const { analyzer, checks } of activeFilters) {
 			const analyzerStats = getLayoutAnalyzerStats(
@@ -1748,6 +1744,15 @@ export class FilterStore {
 		return true;
 	}
 
+	/** True when applied stat limits need analyzer maps that are not ready yet. */
+	statFiltersAwaitingStats(statsMaps: StatsMaps, statsReady: boolean): boolean {
+		const needed = this.analyzersNeededForStatLimits;
+		if (needed.length === 0) return false;
+		return (
+			!statsReady || !needed.every((analyzer) => isAnalyzerStatsReady(statsMaps, analyzer))
+		);
+	}
+
 	// Filter layouts based on all criteria
 	filterLayouts(
 		layouts: LayoutData[],
@@ -1765,6 +1770,15 @@ export class FilterStore {
 					threshold
 				};
 			}
+		}
+
+		// Hold results until needed stats maps are loaded (avoid flashing the full list).
+		if (
+			activeFilters.length > 0 &&
+			(!statsReady ||
+				!activeFilters.every(({ analyzer }) => isAnalyzerStatsReady(statsMaps, analyzer)))
+		) {
+			return [];
 		}
 
 		return layouts.filter((l) => {
@@ -1791,14 +1805,7 @@ export class FilterStore {
 			if (!this.#matchesExclude(l)) return false;
 			if (!this.#matchesIncludeOr(l)) return false;
 			// Stat derivation last — only for layouts that already passed cheaper filters
-			return this.#matchesStatLimits(
-				l,
-				statsMaps,
-				statsReady,
-				likesData,
-				activeFilters,
-				likesCheck
-			);
+			return this.#matchesStatLimits(l, statsMaps, likesData, activeFilters, likesCheck);
 		});
 	}
 

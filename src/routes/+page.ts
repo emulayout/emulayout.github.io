@@ -1,5 +1,6 @@
 import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
+import { parseStatLimitsParam } from '$lib/filterStore.svelte';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
@@ -34,6 +35,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const analyzersToPreload = analyzersNeededForLoad({
 		showStats: loadStats,
 		displayMode: statsAnalyzerMode,
+		limits: parseStatLimitsParam(url.searchParams.get('statLimits')),
 		sortBy
 	});
 
