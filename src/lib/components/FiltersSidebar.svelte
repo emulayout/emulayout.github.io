@@ -196,6 +196,12 @@
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 
+	.filters-input:-webkit-autofill:focus-visible {
+		box-shadow:
+			0 0 0 1000px var(--input-bg) inset,
+			0 0 0 2px var(--accent);
+	}
+
 	.filters-sidebar-extra {
 		min-width: 0;
 	}
