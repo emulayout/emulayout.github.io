@@ -31,6 +31,8 @@
 		tooltipText?: string;
 		/** When true, render the grid only (no panel chrome or header). */
 		nested?: boolean;
+		/** Smaller cells/gaps for narrow side panels. */
+		compact?: boolean;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onLeftThumbKeyChange?: (index: number, value: string) => void;
 		onRightThumbKeyChange?: (index: number, value: string) => void;
@@ -46,6 +48,7 @@
 		hideThumbKeys = false,
 		tooltipText = 'Placeholder tooltip text - please fill in with helpful instructions',
 		nested = false,
+		compact = false,
 		onCellChange,
 		onLeftThumbKeyChange,
 		onRightThumbKeyChange,
@@ -73,14 +76,17 @@
 	/** Rem widths so every cell in a column matches the widest content in that column. */
 	const columnWidthsRem = $derived.by(() => {
 		const colCount = grid[0]?.length ?? 0;
+		const charRem = compact ? 0.52 : 0.6;
+		const padRem = compact ? 0.58 : 0.8;
+		const minLen = compact ? 1.6 : 2;
 		const widths: number[] = [];
 		for (let col = 0; col < colCount; col++) {
-			let maxLen = 2;
+			let maxLen = minLen;
 			for (const row of grid) {
 				const len = row[col]?.length ?? 0;
 				if (len > maxLen) maxLen = len;
 			}
-			widths.push(maxLen * 0.6 + 0.8);
+			widths.push(maxLen * charRem + padRem);
 		}
 		return widths;
 	});
@@ -90,8 +96,9 @@
 	}
 
 	function cellInputStyle(rowIdx: number, colIdx: number): string {
+		const fallback = compact ? 1.4 : 2;
 		return `
-			width: ${columnWidthsRem[colIdx] ?? 2}rem;
+			width: ${columnWidthsRem[colIdx] ?? fallback}rem;
 			background-color: ${keyBackgroundColor(rowIdx, colIdx)};
 			color: var(--text-primary);
 			border: 1px solid var(--border);
@@ -100,8 +107,11 @@
 	}
 
 	function thumbInputStyle(key: string): string {
+		const charRem = compact ? 0.52 : 0.6;
+		const padRem = compact ? 0.58 : 0.8;
+		const minLen = compact ? 1.6 : 2;
 		return `
-			width: ${Math.max(2, key.length) * 0.6 + 0.8}rem;
+			width: ${Math.max(minLen, key.length) * charRem + padRem}rem;
 			background-color: var(--key-bg);
 			color: var(--text-primary);
 			border: 1px solid var(--border);
@@ -113,9 +123,10 @@
 <div
 	class="key-filter flex flex-col items-center"
 	class:key-filter--nested={nested}
+	class:key-filter--compact={compact}
 	style={nested ? undefined : 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
 >
-	<div class="flex flex-col gap-1 font-mono">
+	<div class="key-filter-grid flex flex-col font-mono">
 		{#if !nested}
 			<div class="filter-section-header w-full">
 				<div class="filter-section-header-start">
@@ -134,16 +145,16 @@
 			</div>
 		{/if}
 		{#each grid as row, rowIdx (rowIdx)}
-			<div class="flex gap-1">
+			<div class="key-filter-row flex">
 				{#each row as cell, colIdx (`${rowIdx}-${colIdx}`)}
 					{#if colIdx === SPLIT_COL}
-						<div class="w-3"></div>
+						<div class="key-filter-split shrink-0"></div>
 					{/if}
 					<input
 						type="text"
 						value={cell}
 						oninput={(e) => handleInput(rowIdx, colIdx, e)}
-						class="h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+						class="key-filter-cell text-center rounded transition-all duration-200 outline-none focus:ring-2"
 						style={cellInputStyle(rowIdx, colIdx)}
 						placeholder="·"
 					/>
@@ -152,32 +163,32 @@
 		{/each}
 
 		{#if !hideThumbKeys}
-			<div class="mt-2 pt-2 w-full" style="border-top: 1px solid var(--border);">
-				<p class="text-[10px] mb-2 italic" style="color: var(--text-caption);">
+			<div class="key-filter-thumbs w-full" style="border-top: 1px solid var(--border);">
+				<p class="key-filter-thumbs-note italic" style="color: var(--text-caption);">
 					Thumb keys — filter in order (not by column)
 				</p>
-				<div class="flex gap-1">
-					<div class="flex gap-1 justify-end flex-1 min-w-0">
+				<div class="key-filter-row flex">
+					<div class="flex justify-end flex-1 min-w-0 key-filter-thumb-hand">
 						{#each { length: leftThumbVisibleCount } as _, idx (idx)}
 							<input
 								type="text"
 								value={leftThumbKeys[idx]}
 								oninput={(e) => onLeftThumbKeyChange?.(idx, e.currentTarget.value)}
-								class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+								class="key-filter-cell key-filter-thumb-cell text-center rounded transition-all duration-200 outline-none focus:ring-2"
 								style={thumbInputStyle(leftThumbKeys[idx])}
 								placeholder="·"
 								aria-label={`Left thumb key ${idx + 1}`}
 							/>
 						{/each}
 					</div>
-					<div class="w-3 shrink-0"></div>
-					<div class="flex gap-1 flex-1 min-w-0">
+					<div class="key-filter-split shrink-0"></div>
+					<div class="flex flex-1 min-w-0 key-filter-thumb-hand">
 						{#each { length: rightThumbVisibleCount } as _, idx (idx)}
 							<input
 								type="text"
 								value={rightThumbKeys[idx]}
 								oninput={(e) => onRightThumbKeyChange?.(idx, e.currentTarget.value)}
-								class="w-8 min-w-8 h-8 text-center text-sm rounded transition-all duration-200 outline-none focus:ring-2"
+								class="key-filter-cell key-filter-thumb-cell text-center rounded transition-all duration-200 outline-none focus:ring-2"
 								style={thumbInputStyle(rightThumbKeys[idx])}
 								placeholder="·"
 								aria-label={`Right thumb key ${idx + 1}`}
@@ -185,9 +196,9 @@
 						{/each}
 					</div>
 				</div>
-				<div class="flex gap-1 mt-1 text-[9px]" style="color: var(--text-caption);">
+				<div class="key-filter-thumb-labels flex" style="color: var(--text-caption);">
 					<span class="flex-1 text-right pr-1">Left thumb</span>
-					<div class="w-3 shrink-0"></div>
+					<div class="key-filter-split shrink-0"></div>
 					<span class="flex-1 pl-1">Right thumb</span>
 				</div>
 			</div>
@@ -206,5 +217,86 @@
 		padding: 0;
 		border-radius: 0;
 		height: auto;
+	}
+
+	.key-filter-grid {
+		gap: 0.25rem;
+	}
+
+	.key-filter-row,
+	.key-filter-thumb-hand {
+		gap: 0.25rem;
+	}
+
+	.key-filter-split {
+		width: 0.75rem;
+	}
+
+	.key-filter-cell {
+		height: 2rem;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+	}
+
+	.key-filter-thumb-cell {
+		width: 2rem;
+		min-width: 2rem;
+	}
+
+	.key-filter-thumbs {
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+	}
+
+	.key-filter-thumbs-note {
+		margin: 0 0 0.5rem;
+		font-size: 0.625rem;
+		line-height: 1;
+	}
+
+	.key-filter-thumb-labels {
+		margin-top: 0.25rem;
+		gap: 0.25rem;
+		font-size: 0.5625rem;
+		line-height: 1;
+	}
+
+	.key-filter--compact .key-filter-grid {
+		gap: 0.15rem;
+	}
+
+	.key-filter--compact .key-filter-row,
+	.key-filter--compact .key-filter-thumb-hand {
+		gap: 0.15rem;
+	}
+
+	.key-filter--compact .key-filter-split {
+		width: 0.4375rem;
+	}
+
+	.key-filter--compact .key-filter-cell {
+		height: 1.625rem;
+		font-size: 0.78125rem;
+		line-height: 1.0625rem;
+		border-radius: 0.4rem;
+	}
+
+	.key-filter--compact .key-filter-thumb-cell {
+		width: 1.625rem;
+		min-width: 1.625rem;
+	}
+
+	.key-filter--compact .key-filter-thumbs {
+		margin-top: 0.4rem;
+		padding-top: 0.4rem;
+	}
+
+	.key-filter--compact .key-filter-thumbs-note {
+		margin-bottom: 0.4rem;
+		font-size: 0.5625rem;
+	}
+
+	.key-filter--compact .key-filter-thumb-labels {
+		font-size: 0.5rem;
 	}
 </style>

@@ -335,6 +335,8 @@
 			display: flex;
 			flex-direction: column;
 			overflow: hidden;
+			/* Fill the shell; horizontal inset stays via px-* utilities. */
+			padding-bottom: 0;
 		}
 	}
 </style>

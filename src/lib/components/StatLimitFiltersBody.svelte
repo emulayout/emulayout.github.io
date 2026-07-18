@@ -20,9 +20,16 @@
 		analyzer?: StatsAnalyzer;
 		/** Force a single column (e.g. narrow modal). */
 		stacked?: boolean;
+		/** When set, only render these limit keys (Adjust mode). */
+		onlyKeys?: readonly StatLimitKey[] | null;
 	}
 
-	let { section, analyzer = DEFAULT_STATS_ANALYZER, stacked = false }: Props = $props();
+	let {
+		section,
+		analyzer = DEFAULT_STATS_ANALYZER,
+		stacked = false,
+		onlyKeys = null
+	}: Props = $props();
 
 	function fieldTitle(field: StatFilterField): string {
 		return field.title ?? field.label;
@@ -46,6 +53,10 @@
 		}
 	}
 
+	function includeKey(key: StatLimitKey): boolean {
+		return !onlyKeys || onlyKeys.includes(key);
+	}
+
 	const fieldStyle = `
 		background-color: var(--input-bg);
 		color: var(--text-primary);
@@ -54,10 +65,29 @@
 	`;
 
 	const generalStatFilterRows = $derived(getGeneralStatFilterRowsForAnalyzer(analyzer));
-	const leftHandFields = $derived(getLeftHandStatFilterFieldsForAnalyzer(analyzer));
-	const rightHandFields = $derived(getRightHandStatFilterFieldsForAnalyzer(analyzer));
-	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER);
-	const showLikesFilter = $derived(filterStore.canUseLikes);
+	const leftHandFields = $derived(
+		getLeftHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
+	);
+	const rightHandFields = $derived(
+		getRightHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
+	);
+	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER || Boolean(onlyKeys));
+	const showLikesFilter = $derived(
+		filterStore.canUseLikes && includeKey(LIKES_STAT_FILTER_FIELD.key)
+	);
+	const onlyMode = $derived(Boolean(onlyKeys));
+
+	const onlyGeneralFields = $derived.by(() => {
+		if (!onlyKeys) return [] as StatFilterField[];
+		const fields: StatFilterField[] = [];
+		for (const row of generalStatFilterRows) {
+			for (const field of row) {
+				if (includeKey(field.key)) fields.push(field);
+			}
+		}
+		if (showLikesFilter) fields.push(LIKES_STAT_FILTER_FIELD);
+		return fields;
+	});
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
@@ -98,49 +128,64 @@
 >
 	{#if section === 'general'}
 		<section class="stat-limits-general" aria-label="General stat filters">
-			{#each generalStatFilterRows as row, rowIndex (rowIndex)}
-				<div class="stat-limit-row">
-					{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
-						{@const field = row[colIndex]}
-						{#if field}
-							{@render statLimitControl(field, generalStacked ? '3.25rem' : '2.5rem')}
-						{:else if !generalStacked}
+			{#if onlyMode}
+				{#each onlyGeneralFields as field (field.key)}
+					<div class="stat-limit-row">
+						{@render statLimitControl(field, '3.25rem')}
+					</div>
+				{/each}
+			{:else}
+				{#each generalStatFilterRows as row, rowIndex (rowIndex)}
+					<div class="stat-limit-row">
+						{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+							{@const field = row[colIndex]}
+							{#if field}
+								{@render statLimitControl(field, generalStacked ? '3.25rem' : '2.5rem')}
+							{:else if !generalStacked}
+								<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+							{/if}
+						{/each}
+					</div>
+				{/each}
+				{#if showLikesFilter}
+					<div class="stat-limit-row">
+						<div>
+							{@render statLimitControl(
+								LIKES_STAT_FILTER_FIELD,
+								generalStacked ? '3.25rem' : '2.5rem'
+							)}
+						</div>
+						{#if !generalStacked}
+							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
 							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
 						{/if}
-					{/each}
-				</div>
-			{/each}
-			{#if showLikesFilter}
-				<div class="stat-limit-row">
-					<div>
-						{@render statLimitControl(LIKES_STAT_FILTER_FIELD, generalStacked ? '3.25rem' : '2.5rem')}
 					</div>
-					{#if !generalStacked}
-						<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-						<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-					{/if}
-				</div>
+				{/if}
 			{/if}
 		</section>
-	{:else}
+	{:else if leftHandFields.length > 0 || rightHandFields.length > 0}
 		<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
 			<div class="stat-limits-hand-grid">
-				<div>
-					<div class="stat-limits-hand-heading">Left hand</div>
-					<div class="stat-limits-hand-list">
-						{#each leftHandFields as field (field.key)}
-							{@render statLimitControl(field, '3.25rem')}
-						{/each}
+				{#if leftHandFields.length > 0}
+					<div>
+						<div class="stat-limits-hand-heading">Left hand</div>
+						<div class="stat-limits-hand-list">
+							{#each leftHandFields as field (field.key)}
+								{@render statLimitControl(field, '3.25rem')}
+							{/each}
+						</div>
 					</div>
-				</div>
-				<div>
-					<div class="stat-limits-hand-heading">Right hand</div>
-					<div class="stat-limits-hand-list">
-						{#each rightHandFields as field (field.key)}
-							{@render statLimitControl(field, '3.25rem')}
-						{/each}
+				{/if}
+				{#if rightHandFields.length > 0}
+					<div>
+						<div class="stat-limits-hand-heading">Right hand</div>
+						<div class="stat-limits-hand-list">
+							{#each rightHandFields as field (field.key)}
+								{@render statLimitControl(field, '3.25rem')}
+							{/each}
+						</div>
 					</div>
-				</div>
+				{/if}
 			</div>
 		</section>
 	{/if}
@@ -154,6 +199,7 @@
 		grid-template-columns: 1fr;
 		gap: 1.5rem;
 		min-width: 0;
+		overflow: visible;
 	}
 
 	.stat-limits-general {
@@ -164,7 +210,9 @@
 		gap: 0.5rem;
 		width: 100%;
 		min-width: 0;
-		padding-bottom: 0.125rem;
+		/* Keep focus rings inside the paint box of this section. */
+		padding-block: 0.125rem;
+		overflow: visible;
 	}
 
 	.stat-limit-row {
@@ -237,6 +285,8 @@
 		container-name: stat-limits-hands;
 		width: 100%;
 		min-width: 0;
+		padding-block: 0.125rem;
+		overflow: visible;
 	}
 
 	.stat-limits-hand-grid {

@@ -470,25 +470,21 @@
 		padding: 0.25rem;
 	}
 
-	.results-sidebar,
 	.results-list {
 		scrollbar-width: thin;
 		scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
 	}
 
-	.results-sidebar::-webkit-scrollbar,
 	.results-list::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
 
-	.results-sidebar::-webkit-scrollbar-thumb,
 	.results-list::-webkit-scrollbar-thumb {
 		background: color-mix(in srgb, var(--text-caption) 70%, transparent);
 		border-radius: 999px;
 	}
 
-	.results-sidebar::-webkit-scrollbar-track,
 	.results-list::-webkit-scrollbar-track {
 		background: transparent;
 	}
@@ -511,11 +507,10 @@
 		}
 
 		.results-sidebar {
+			display: flex;
+			flex-direction: column;
 			min-height: 0;
-			overflow-x: hidden;
-			overflow-y: auto;
-			overscroll-behavior: contain;
-			-webkit-overflow-scrolling: touch;
+			overflow: hidden;
 			/* Room for focus rings — overflow-x:hidden otherwise clips the left edge. */
 			padding-left: 0.25rem;
 			padding-right: 0.25rem;
