@@ -204,6 +204,7 @@ export class FilterStore {
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
 	hideLayoutLikes: boolean = $state(false);
+	hideNewLayoutIndicator: boolean = $state(false);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
@@ -229,6 +230,10 @@ export class FilterStore {
 
 	get showLayoutLikes(): boolean {
 		return !this.hideLayoutLikes;
+	}
+
+	get showNewLayoutIndicator(): boolean {
+		return !this.hideNewLayoutIndicator;
 	}
 
 	get canUseLikes(): boolean {
@@ -350,6 +355,7 @@ export class FilterStore {
 		this.hideLayoutStats = false;
 		this.hideLayoutTestArea = false;
 		this.hideLayoutLikes = false;
+		this.hideNewLayoutIndicator = false;
 		this.statLimits = createEmptyStatLimits();
 	}
 
@@ -490,6 +496,10 @@ export class FilterStore {
 
 		if (url.searchParams.get('likes') === '0') {
 			this.hideLayoutLikes = true;
+		}
+
+		if (url.searchParams.get('newIndicator') === '0') {
+			this.hideNewLayoutIndicator = true;
 		}
 
 		const sort = url.searchParams.get('sort');
@@ -693,6 +703,10 @@ export class FilterStore {
 
 		if (this.hideLayoutLikes) {
 			url.searchParams.set('likes', '0');
+		}
+
+		if (this.hideNewLayoutIndicator) {
+			url.searchParams.set('newIndicator', '0');
 		}
 
 		if (this.similarReferenceName) {
@@ -932,6 +946,11 @@ export class FilterStore {
 			this.statLimits.likes = { operator: 'lt', value: '' };
 			this.#applyFiltersNow();
 		}
+		this.#saveToUrl();
+	}
+
+	setHideNewLayoutIndicator(value: boolean) {
+		this.hideNewLayoutIndicator = value;
 		this.#saveToUrl();
 	}
 

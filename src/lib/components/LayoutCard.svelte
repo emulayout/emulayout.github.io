@@ -8,6 +8,8 @@
 	} from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
+	import { isNewSinceLastSync } from '$lib/recentLayouts';
 	import { getLayoutCardHeight, LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import {
 		buildBotStatsBlockLines,
@@ -107,6 +109,11 @@
 			day: 'numeric',
 			year: 'numeric'
 		})
+	);
+
+	const isNewLayout = $derived(
+		filterStore.showNewLayoutIndicator &&
+			isNewSinceLastSync(layout, layoutsCatalog.latestLayoutDayKey)
 	);
 
 	const isCyanophageAnalyzer = $derived(filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER);
@@ -260,10 +267,10 @@
 	style="
 		background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
 		border: 1px solid {forceIncluded
-			? 'transparent'
-			: isSimilarActive
-				? 'var(--similar-diff)'
-				: 'var(--border)'};
+		? 'transparent'
+		: isSimilarActive
+			? 'var(--similar-diff)'
+			: 'var(--border)'};
 		--force-border-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
 		height: {cardHeight}px;
 	"
@@ -308,6 +315,9 @@
 				>
 					{layout.name}
 				</h2>
+				{#if isNewLayout}
+					<span class="new-layout-dot shrink-0" title="New layout" aria-label="New layout"></span>
+				{/if}
 			</label>
 			{#if filterStore.showLayoutLikes}
 				<span
@@ -693,5 +703,13 @@
 
 	.layout-key-diff {
 		color: var(--similar-diff);
+	}
+
+	.new-layout-dot {
+		display: inline-block;
+		width: 0.6rem;
+		height: 0.6rem;
+		border-radius: 9999px;
+		background-color: var(--new-layout-dot);
 	}
 </style>

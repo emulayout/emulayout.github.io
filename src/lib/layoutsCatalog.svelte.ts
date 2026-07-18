@@ -1,4 +1,5 @@
 import type { LayoutData } from '$lib/layout';
+import { getLatestLayoutDayKey } from '$lib/recentLayouts';
 
 /**
  * Shared catalog for shell UI (e.g. recent-layouts modal) that lives outside +page.
@@ -7,6 +8,7 @@ import type { LayoutData } from '$lib/layout';
 class LayoutsCatalog {
 	layouts: LayoutData[] = $state([]);
 	authorsData: Record<string, number> = $state({});
+	latestLayoutDayKey = $derived(getLatestLayoutDayKey(this.layouts));
 
 	hydrate(layouts: LayoutData[], authorsData: Record<string, number>) {
 		this.layouts = layouts;

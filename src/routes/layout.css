@@ -46,6 +46,7 @@ html {
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #c44b3a;
+	--new-layout-dot: #eda095;
 }
 
 .dark {
@@ -71,6 +72,7 @@ html {
 	--stats-fg-highlight: var(--accent);
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #e07060;
+	--new-layout-dot: #982818;
 }
 
 body {
