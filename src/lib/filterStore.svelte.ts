@@ -238,6 +238,8 @@ export class FilterStore {
 	appliedExcludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedExcludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedStatLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
+	/** Bumped when debounced applied filters commit — stable dependency for chips/results UI. */
+	appliedFiltersRevision: number = $state(0);
 
 	get showLayoutStats(): boolean {
 		return !this.hideLayoutStats;
@@ -301,6 +303,7 @@ export class FilterStore {
 		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(this.excludeRightThumbKeys);
 		this.appliedStatLimits = this.#cloneStatLimits(this.statLimits);
 		this.appliedSimilarityFilterValue = this.similarityFilterValue;
+		this.appliedFiltersRevision += 1;
 	}
 
 	#scheduleFilterApply() {

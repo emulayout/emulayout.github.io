@@ -26,10 +26,7 @@
 	const { filteredCount, likesSortAvailable }: Props = $props();
 
 	const filterChips = $derived.by(() => {
-		// Touch key-filter grids so chip list updates when OR/exclude cells change.
-		void filterStore.hasActiveKeyFilterKind('and');
-		void filterStore.hasActiveKeyFilterKind('or');
-		void filterStore.hasActiveKeyFilterKind('exclude');
+		void filterStore.appliedFiltersRevision;
 		return getActiveFilterChips(filterStore);
 	});
 	const showDualSortGroups = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
