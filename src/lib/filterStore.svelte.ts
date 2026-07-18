@@ -1,36 +1,38 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { pushState, replaceState } from '$app/navigation';
 import { page } from '$app/state';
-import {
-	CYANOPHAGE_ANALYZER,
-	DEFAULT_STATS_ANALYZER,
-	deriveBotStats,
-	deriveCyanophageStats,
-	getLayoutAnalyzerStats,
-	getStatFilterFieldsForAnalyzer,
-	getStatFilterStatKey,
-	getStatSortField,
-	getStatSortValue,
-	isSortOrder,
-	isStatSortBy,
-	isStatSortByForAnalyzer,
-	getDefaultSortOrder,
-	isStatsAnalyzer,
-	isStatsAnalyzerMode,
-	isAnalyzerStatsReady,
-	parseLegacySortParam,
-	normalizeSortBy,
-	coerceSortByForAnalyzer,
-	parseStatFilterThreshold,
-	ALL_STAT_FILTER_FIELDS,
-	getGeneralStatFilterRowsForAnalyzer,
-	getHandStatFilterFieldsForAnalyzer,
-	type SortBy,
-	type SortOrder,
-	type StatLimitKey,
-	type StatsAnalyzer,
-	type StatsAnalyzerMode
-} from './layoutStats';
+	import {
+		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
+		analyzersNeededForLimits,
+		deriveBotStats,
+		deriveCyanophageStats,
+		getLayoutAnalyzerStats,
+		getStatFilterFieldsForAnalyzer,
+		getStatFilterStatKey,
+		getStatSortField,
+		getStatSortValue,
+		isSortOrder,
+		isStatSortBy,
+		isStatSortByForAnalyzer,
+		getDefaultSortOrder,
+		isStatsAnalyzer,
+		isStatsAnalyzerMode,
+		isAnalyzerStatsReady,
+		parseLegacySortParam,
+		normalizeSortBy,
+		coerceSortByForAnalyzer,
+		parseStatFilterThreshold,
+		ALL_STAT_FILTER_FIELDS,
+		getGeneralStatFilterRowsForAnalyzer,
+		getHandStatFilterFieldsForAnalyzer,
+		STAT_ANALYZERS,
+		type SortBy,
+		type SortOrder,
+		type StatLimitKey,
+		type StatsAnalyzer,
+		type StatsAnalyzerMode
+	} from './layoutStats';
 import type {
 	CyanophageStats,
 	MonkeyracerStats,
@@ -1358,23 +1360,12 @@ export class FilterStore {
 		return this.similarReferenceName !== null;
 	}
 
-	#hasActiveLimit(limits: Record<StatLimitKey, StatLimit>, key: StatLimitKey): boolean {
-		return limits[key].value.trim() !== '';
-	}
-
 	/**
 	 * Analyzers whose stats must be loaded/checked for the given limits.
 	 * Each analyzer’s limits are fully independent (no shared keys).
 	 */
 	#analyzersNeededForLimits(limits: Record<StatLimitKey, StatLimit>): StatsAnalyzer[] {
-		const needed: StatsAnalyzer[] = [];
-		for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
-			const hasLimits = getStatFilterFieldsForAnalyzer(analyzer).some((field) =>
-				this.#hasActiveLimit(limits, field.key)
-			);
-			if (hasLimits) needed.push(analyzer);
-		}
-		return needed;
+		return analyzersNeededForLimits(limits);
 	}
 
 	get analyzersNeededForStatLimits(): StatsAnalyzer[] {
@@ -1691,7 +1682,7 @@ export class FilterStore {
 	): ActiveAnalyzerStatFilters[] {
 		const active: ActiveAnalyzerStatFilters[] = [];
 
-		for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
+		for (const analyzer of STAT_ANALYZERS.map((entry) => entry.value)) {
 			const checks: ActiveAnalyzerStatFilters['checks'] = [];
 			for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
 				const limit = limits[field.key];

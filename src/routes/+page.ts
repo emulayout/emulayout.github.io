@@ -3,14 +3,12 @@ import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
-	getStatSortAnalyzer,
+	analyzersNeededForLoad,
 	isStatSortBy,
 	isStatsAnalyzerMode,
 	normalizeSortBy,
 	parseLegacySortParam,
-	resolveStatsAnalyzers,
 	type SortBy,
-	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from '$lib/layoutStats';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
@@ -19,27 +17,6 @@ import type { PageLoad } from './$types';
 function getInitialStatsAnalyzerMode(url: URL): StatsAnalyzerMode {
 	const analyzer = url.searchParams.get('analyzer');
 	return analyzer && isStatsAnalyzerMode(analyzer) ? analyzer : DEFAULT_STATS_ANALYZER;
-}
-
-function getAnalyzersToPreload(
-	loadStats: boolean,
-	statsAnalyzerMode: StatsAnalyzerMode,
-	sortBy: SortBy
-): StatsAnalyzer[] {
-	const analyzers = new Set<StatsAnalyzer>();
-
-	if (loadStats) {
-		for (const analyzer of resolveStatsAnalyzers(statsAnalyzerMode)) {
-			analyzers.add(analyzer);
-		}
-	}
-
-	if (isStatSortBy(sortBy)) {
-		const sortAnalyzer = getStatSortAnalyzer(sortBy);
-		if (sortAnalyzer) analyzers.add(sortAnalyzer);
-	}
-
-	return [...analyzers];
 }
 
 export const load: PageLoad = async ({ fetch, url }) => {
@@ -54,7 +31,11 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;
-	const analyzersToPreload = getAnalyzersToPreload(loadStats, statsAnalyzerMode, sortBy);
+	const analyzersToPreload = analyzersNeededForLoad({
+		showStats: loadStats,
+		displayMode: statsAnalyzerMode,
+		sortBy
+	});
 
 	const [layoutsResponse, authorsResponse, likesResponse, ...statsResponses] = await Promise.all([
 		fetch('/all-layouts.json'),

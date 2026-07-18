@@ -7,10 +7,8 @@
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
-		getStatSortAnalyzer,
-		isAnalyzerStatsReady,
-		isStatSortBy,
-		type StatsAnalyzer
+		analyzersNeededForLoad,
+		isAnalyzerStatsReady
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -33,8 +31,6 @@
 	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
 	let compareSession = $state(0);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
-	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
-	const needsStatsForFilter = $derived(filterStore.hasAppliedStatLimits);
 	let likesLoading = $state(false);
 	const statsReady = $derived(
 		filterStore.analyzersNeededForStatLimits.every((analyzer) =>
@@ -51,29 +47,17 @@
 		layoutsCatalog.hydrate(layouts, authorsData);
 	});
 
-	const analyzersToLoad = $derived.by(() => {
-		const analyzers = new Set<StatsAnalyzer>();
-
-		if (needsStatsForFilter) {
-			for (const analyzer of filterStore.analyzersNeededForStatLimits) {
-				analyzers.add(analyzer);
-			}
-		}
-
-		if (needsStatsForSort) {
-			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy);
-			if (sortAnalyzer) analyzers.add(sortAnalyzer);
-		}
-
-		return analyzers;
-	});
+	const analyzersToLoad = $derived(
+		analyzersNeededForLoad({
+			showStats: filterStore.showLayoutStats,
+			displayMode: filterStore.statsAnalyzer,
+			limits: filterStore.appliedStatLimits,
+			sortBy: filterStore.sortBy
+		})
+	);
 
 	$effect(() => {
-		void layoutStatsStore.loadWhenVisible(
-			filterStore.showLayoutStats,
-			filterStore.statsAnalyzer,
-			analyzersToLoad
-		);
+		void layoutStatsStore.loadAnalyzers(analyzersToLoad);
 	});
 
 	// Page load already fetched likes when likes were not hidden (`likes !== 0`).

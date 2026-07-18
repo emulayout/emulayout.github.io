@@ -998,6 +998,80 @@ export function countActiveStatFiltersForAnalyzer(
 	return count;
 }
 
+/** Analyzers that have at least one non-empty limit in `limits`. */
+export function analyzersNeededForLimits(
+	limits: Record<StatLimitKey, { value: string }>
+): StatsAnalyzer[] {
+	const needed: StatsAnalyzer[] = [];
+	for (const { value: analyzer } of STAT_ANALYZERS) {
+		const hasLimits = getStatFilterFieldsForAnalyzer(analyzer).some(
+			(field) => limits[field.key]?.value.trim() !== ''
+		);
+		if (hasLimits) needed.push(analyzer);
+	}
+	return needed;
+}
+
+export type AnalyzersNeededForLoadOptions = {
+	/** When true, include analyzers shown by `displayMode`. */
+	showStats?: boolean;
+	displayMode?: StatsAnalyzerMode;
+	/** Applied (or draft) limits — analyzers with active values are included. */
+	limits?: Record<StatLimitKey, { value: string }>;
+	/** Include the analyzer that owns this sort key, if any. */
+	sortBy?: SortBy;
+};
+
+/**
+ * Concrete analyzers that must be loaded for display, filtering, and/or sort.
+ * Order follows `STAT_ANALYZERS`.
+ */
+export function analyzersNeededForLoad(options: AnalyzersNeededForLoadOptions): StatsAnalyzer[] {
+	const needed = new Set<StatsAnalyzer>();
+
+	if (options.showStats && options.displayMode) {
+		for (const analyzer of resolveStatsAnalyzers(options.displayMode)) {
+			needed.add(analyzer);
+		}
+	}
+
+	if (options.limits) {
+		for (const analyzer of analyzersNeededForLimits(options.limits)) {
+			needed.add(analyzer);
+		}
+	}
+
+	if (options.sortBy) {
+		const sortAnalyzer = getStatSortAnalyzer(options.sortBy);
+		if (sortAnalyzer) needed.add(sortAnalyzer);
+	}
+
+	return STAT_ANALYZERS.map((entry) => entry.value).filter((analyzer) => needed.has(analyzer));
+}
+
+/** Caution when a hidden analyzer still has active applied filters. */
+export function getHiddenAnalyzerFilterCaution(
+	displayMode: StatsAnalyzerMode,
+	limits: Record<StatLimitKey, { value: string }>,
+	options?: { includeLikes?: boolean }
+): { analyzer: StatsAnalyzer; count: number; text: string } | null {
+	if (displayMode === ALL_STATS_ANALYZERS_MODE) return null;
+
+	const hidden: StatsAnalyzer =
+		displayMode === DEFAULT_STATS_ANALYZER ? CYANOPHAGE_ANALYZER : DEFAULT_STATS_ANALYZER;
+	const count = countActiveStatFiltersForAnalyzer(limits, hidden, {
+		includeLikes: Boolean(options?.includeLikes) && hidden === DEFAULT_STATS_ANALYZER
+	});
+	if (count === 0) return null;
+
+	const label = hidden === CYANOPHAGE_ANALYZER ? 'Cyanophage' : 'cmini';
+	return {
+		analyzer: hidden,
+		count,
+		text: `${label} stats are hidden, but its filters (${count}) still affect which layouts appear.`
+	};
+}
+
 /** Shared filter/sort highlight keys for layout cards (compute once per list). */
 export function getStatCardHighlightState(
 	limits: Record<StatLimitKey, { value: string }>,

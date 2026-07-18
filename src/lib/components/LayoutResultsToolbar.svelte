@@ -8,13 +8,12 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		ALL_STATS_ANALYZERS_MODE,
-		countActiveStatFiltersForAnalyzer,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
+		getHiddenAnalyzerFilterCaution,
 		getStatSortFieldsForAnalyzer,
 		getStatSortFieldsForMode,
 		STAT_ANALYZER_MODES,
-		type StatsAnalyzer,
 		type StatsAnalyzerMode
 	} from '$lib/layoutStats';
 
@@ -34,27 +33,12 @@
 	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
 	const statSortFields = $derived(getStatSortFieldsForMode(filterStore.statsAnalyzer));
 
-	function analyzerShortLabel(analyzer: StatsAnalyzer): string {
-		return analyzer === CYANOPHAGE_ANALYZER ? 'Cyanophage' : 'cmini';
-	}
-
 	/** Hidden analyzer still narrowing results via applied stat filters. */
-	const hiddenAnalyzerFilterCaution = $derived.by(() => {
-		const mode = filterStore.statsAnalyzer;
-		if (mode === ALL_STATS_ANALYZERS_MODE) return null;
-
-		const hidden: StatsAnalyzer =
-			mode === DEFAULT_STATS_ANALYZER ? CYANOPHAGE_ANALYZER : DEFAULT_STATS_ANALYZER;
-		const count = countActiveStatFiltersForAnalyzer(filterStore.appliedStatLimits, hidden, {
-			includeLikes: hidden === DEFAULT_STATS_ANALYZER && filterStore.canUseLikes
-		});
-		if (count === 0) return null;
-
-		const label = analyzerShortLabel(hidden);
-		return {
-			text: `${label} stats are hidden, but its filters (${count}) still affect which layouts appear.`
-		};
-	});
+	const hiddenAnalyzerFilterCaution = $derived(
+		getHiddenAnalyzerFilterCaution(filterStore.statsAnalyzer, filterStore.appliedStatLimits, {
+			includeLikes: filterStore.canUseLikes
+		})
+	);
 
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);

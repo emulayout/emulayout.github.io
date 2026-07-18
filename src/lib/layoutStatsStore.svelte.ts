@@ -1,7 +1,7 @@
 import type { StatsMaps } from '$lib/layout';
 import {
-	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
+	STAT_ANALYZERS,
 	resolveStatsAnalyzers,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
@@ -83,28 +83,24 @@ class LayoutStatsStore {
 		}
 	}
 
-	async loadWhenVisible(
-		showStats: boolean,
-		statsAnalyzerMode: StatsAnalyzerMode,
-		needsAnalyzers: Iterable<StatsAnalyzer>
-	): Promise<void> {
-		const analyzers = new Set<StatsAnalyzer>(needsAnalyzers);
-		if (showStats) {
-			for (const analyzer of resolveStatsAnalyzers(statsAnalyzerMode)) {
-				analyzers.add(analyzer);
-			}
+	#abortAllPending(): void {
+		for (const { value: analyzer } of STAT_ANALYZERS) {
+			this.#abortControllers.get(analyzer)?.abort();
+			this.#abortControllers.delete(analyzer);
 		}
+		this.loadingAnalyzers = {};
+	}
 
-		if (analyzers.size === 0) {
-			for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
-				this.#abortControllers.get(analyzer)?.abort();
-				this.#abortControllers.delete(analyzer);
-			}
-			this.loadingAnalyzers = {};
+	/** Load exactly the analyzers in `needed` (from `analyzersNeededForLoad`). */
+	async loadAnalyzers(needed: Iterable<StatsAnalyzer>): Promise<void> {
+		const analyzers = [...new Set(needed)];
+
+		if (analyzers.length === 0) {
+			this.#abortAllPending();
 			return;
 		}
 
-		await Promise.all([...analyzers].map((analyzer) => this.ensureLoaded(analyzer)));
+		await Promise.all(analyzers.map((analyzer) => this.ensureLoaded(analyzer)));
 	}
 }
 
