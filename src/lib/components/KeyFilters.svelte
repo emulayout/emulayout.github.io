@@ -30,9 +30,7 @@
 	<div class="filter-section-header">
 		<div class="filter-section-header-start">
 			<span class="filter-section-header-label">Key filters</span>
-			<Tooltip
-				text="Filter layouts by keys in specific positions. Include AND requires every filled position to match. Include OR matches if any filled position matches. Exclude removes layouts that place unwanted keys at the given positions."
-			/>
+			<Tooltip text="Require or exclude keys at specific finger positions." />
 		</div>
 		{#if hasActive}
 			<button
@@ -114,8 +112,4 @@
 	</div>
 </div>
 
-<KeyFiltersModal
-	open={openKind !== null}
-	kind={openKind}
-	onClose={() => (openKind = null)}
-/>
+<KeyFiltersModal open={openKind !== null} kind={openKind} onClose={() => (openKind = null)} />

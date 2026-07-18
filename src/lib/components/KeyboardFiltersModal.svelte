@@ -93,7 +93,7 @@
 				>
 					Magic key
 					<Tooltip
-						text="A magic key is a key that has custom functionality. For example, it can change its letter based on the preceeding key pressed. Since a magic key's functionality is not standardized, resources outside this explorer are required to understand its functionality."
+						text="A key with custom behavior (for example, changing based on the previous key). Details aren't standardized here."
 					/>
 				</span>
 				<select
@@ -197,7 +197,7 @@
 				>
 					Show unfinished layouts
 					<Tooltip
-						text="Unfinished layouts are English-character-set layouts (without a magic key) that don't have all letters (A-Z) assigned to a key."
+						text="English layouts (no magic key) that are missing some A–Z letters."
 					/>
 				</span>
 			</label>

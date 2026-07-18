@@ -28,9 +28,7 @@
 	<div class="filter-section-header">
 		<div class="filter-section-header-start">
 			<span class="filter-section-header-label">Similarity filter</span>
-			<Tooltip
-				text="Compares letter positions against a selected layout. Match percent is how many shared slots have the same character (optionally weighting home-row keys higher). Mirror matches also try a left/right flipped compare. Diff highlighting shows letters that differ from the reference."
-			/>
+			<Tooltip text="Compare letter positions to a reference layout. Differing keys are highlighted on cards." />
 		</div>
 	</div>
 

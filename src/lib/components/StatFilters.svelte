@@ -44,9 +44,7 @@
 	<div class="filter-section-header">
 		<div class="filter-section-header-start">
 			<span class="filter-section-header-label">Stat filters</span>
-			<Tooltip
-				text="Filter layouts by analyzer stats. General covers overall metrics; Hands & fingers covers per-hand and per-finger usage. Layouts without stats are hidden when any limit is set."
-			/>
+			<Tooltip text="Set precise min/max limits on analyzer stats." />
 		</div>
 		{#if hasActive}
 			<button
