@@ -3,6 +3,7 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { type KeyFilterKind } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { takeFilterFocusRequest } from '$lib/focusFilterControl';
 
 	let openKind = $state<KeyFilterKind | null>(null);
 
@@ -16,9 +17,8 @@
 	}
 
 	$effect(() => {
-		const seq = filterStore.filterFocusRequestSeq;
-		const req = filterStore.filterFocusRequest;
-		if (!seq || !req || req.target !== 'keys') return;
+		const req = takeFilterFocusRequest('keys');
+		if (!req) return;
 		openKind = req.kind;
 	});
 </script>

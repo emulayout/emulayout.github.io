@@ -6,7 +6,7 @@
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { type KeyboardFilterField } from '$lib/filterSummaries';
 	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
-	import { afterPaint, focusFilterControl } from '$lib/focusFilterControl';
+	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
 	import type { Snippet } from 'svelte';
 
@@ -25,30 +25,28 @@
 	const keyboardFiltersActive = $derived(filterStore.hasActiveKeyboardFilters);
 
 	$effect(() => {
-		const seq = filterStore.filterFocusRequestSeq;
-		const req = filterStore.filterFocusRequest;
-		if (!seq || !req) return;
-
-		if (req.target === 'keyboard') {
-			keyboardFocusField = req.field;
-			keyboardFocusToken = seq;
+		const keyboardReq = takeFilterFocusRequest('keyboard');
+		if (keyboardReq) {
+			keyboardFocusField = keyboardReq.field;
+			keyboardFocusToken = keyboardReq.seq;
 			showKeyboardFiltersModal = true;
 			return;
 		}
 
-		if (req.target !== 'sidebar') return;
+		const sidebarReq = takeFilterFocusRequest('sidebar');
+		if (!sidebarReq) return;
 
 		afterPaint(() => {
-			if (req.field === 'source') {
+			if (sidebarReq.field === 'source') {
 				focusFilterControl(document.getElementById('layout-source-filter'));
-			} else if (req.field === 'name') {
+			} else if (sidebarReq.field === 'name') {
 				focusFilterControl(document.getElementById('name-filter'));
-			} else if (req.field === 'authors') {
-				authorOpenSeq = seq;
+			} else if (sidebarReq.field === 'authors') {
+				authorOpenSeq = sidebarReq.seq;
 				document
 					.getElementById('author-filter-trigger')
 					?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			} else if (req.field === 'similarity') {
+			} else if (sidebarReq.field === 'similarity') {
 				const el =
 					document.getElementById('similarity-match-value') ??
 					document.getElementById('similarity-layout-search');

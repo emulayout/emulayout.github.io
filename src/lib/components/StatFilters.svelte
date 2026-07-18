@@ -3,6 +3,7 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { getStatFilterSectionSummary, type StatFilterSection } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { StatLimitKey, StatsAnalyzer } from '$lib/layoutStats';
 
 	let openSection = $state<StatFilterSection | null>(null);
@@ -27,12 +28,11 @@
 	}
 
 	$effect(() => {
-		const seq = filterStore.filterFocusRequestSeq;
-		const req = filterStore.filterFocusRequest;
-		if (!seq || !req || req.target !== 'stats') return;
+		const req = takeFilterFocusRequest('stats');
+		if (!req) return;
 		focusAnalyzer = req.analyzer;
 		focusKey = req.key;
-		focusToken = seq;
+		focusToken = req.seq;
 		openSection = req.section;
 	});
 </script>
