@@ -8,6 +8,7 @@ import {
 	deriveCyanophageStats,
 	getLayoutAnalyzerStats,
 	getStatFilterFieldsForAnalyzer,
+	getStatFilterStatKey,
 	getStatSortField,
 	getStatSortValue,
 	isSortOrder,
@@ -15,19 +16,20 @@ import {
 	isStatSortByForAnalyzer,
 	getDefaultSortOrder,
 	isStatsAnalyzer,
+	isStatsAnalyzerMode,
+	isAnalyzerStatsReady,
 	parseLegacySortParam,
 	normalizeSortBy,
 	coerceSortByForAnalyzer,
 	parseStatFilterThreshold,
 	ALL_STAT_FILTER_FIELDS,
-	LEFT_HAND_STAT_FILTER_FIELDS,
-	RIGHT_HAND_STAT_FILTER_FIELDS,
-	MONKEY_GENERAL_STAT_FILTER_FIELDS,
-	CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
+	getGeneralStatFilterRowsForAnalyzer,
+	getHandStatFilterFieldsForAnalyzer,
 	type SortBy,
 	type SortOrder,
 	type StatLimitKey,
-	type StatsAnalyzer
+	type StatsAnalyzer,
+	type StatsAnalyzerMode
 } from './layoutStats';
 import type {
 	CyanophageStats,
@@ -42,6 +44,7 @@ import {
 	isSimilarityMirrorMode,
 	type SimilarityMirrorMode
 } from './layoutSimilarity';
+import type { FilterFocusRequest } from './filterSummaries';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -170,6 +173,10 @@ export class FilterStore {
 	includeSelectedInResults: boolean = $state(false);
 	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
+	/** Latest request to open/focus a filter control (chips, deep links). */
+	filterFocusRequest: FilterFocusRequest | null = $state(null);
+	/** Monotonic token so identical consecutive requests still trigger. */
+	filterFocusRequestSeq = $state(0);
 	similarReferenceName: string | null = $state(null);
 	/** Anglemod toggle on the similarity reference card (affects match scoring/diffs). */
 	similarReferenceAnglemod = $state(false);
@@ -200,7 +207,7 @@ export class FilterStore {
 		sortOrder: SortOrder;
 		sortOrderManual: boolean;
 	} | null = null;
-	statsAnalyzer: StatsAnalyzer = $state(DEFAULT_STATS_ANALYZER);
+	statsAnalyzer: StatsAnalyzerMode = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
 	hideLayoutLikes: boolean = $state(false);
@@ -507,7 +514,7 @@ export class FilterStore {
 
 		// Analyzer before sort so ambiguous legacy values (e.g. `sfb`) disambiguate correctly.
 		const analyzer = url.searchParams.get('analyzer');
-		if (analyzer && isStatsAnalyzer(analyzer)) {
+		if (analyzer && isStatsAnalyzerMode(analyzer)) {
 			this.statsAnalyzer = analyzer;
 		}
 
@@ -751,48 +758,66 @@ export class FilterStore {
 		}, DEBOUNCE_MS);
 	}
 
+	#setGridCell(grid: string[][], row: number, col: number, value: string): string[][] {
+		return grid.map((r, ri) =>
+			ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r
+		);
+	}
+
+	#setThumbKey(keys: string[], index: number, value: string): string[] {
+		return keys.map((key, i) => (i === index ? value : key));
+	}
+
 	setIncludeCell(row: number, col: number, value: string) {
-		this.includeGrid[row][col] = value;
+		this.includeGrid = this.#setGridCell(this.includeGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeCell(row: number, col: number, value: string) {
-		this.excludeGrid[row][col] = value;
+		this.excludeGrid = this.#setGridCell(this.excludeGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeLeftThumbKey(index: number, value: string) {
-		this.includeLeftThumbKeys[index] = value;
+		this.includeLeftThumbKeys = this.#setThumbKey(this.includeLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeRightThumbKey(index: number, value: string) {
-		this.includeRightThumbKeys[index] = value;
+		this.includeRightThumbKeys = this.#setThumbKey(this.includeRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeLeftThumbKey(index: number, value: string) {
-		this.excludeLeftThumbKeys[index] = value;
+		this.excludeLeftThumbKeys = this.#setThumbKey(this.excludeLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeRightThumbKey(index: number, value: string) {
-		this.excludeRightThumbKeys[index] = value;
+		this.excludeRightThumbKeys = this.#setThumbKey(this.excludeRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrLeftThumbKey(index: number, value: string) {
-		this.includeOrLeftThumbKeys[index] = value;
+		this.includeOrLeftThumbKeys = this.#setThumbKey(
+			this.includeOrLeftThumbKeys,
+			index,
+			value
+		);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrRightThumbKey(index: number, value: string) {
-		this.includeOrRightThumbKeys[index] = value;
+		this.includeOrRightThumbKeys = this.#setThumbKey(
+			this.includeOrRightThumbKeys,
+			index,
+			value
+		);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrCell(row: number, col: number, value: string) {
-		this.includeOrGrid[row][col] = value;
+		this.includeOrGrid = this.#setGridCell(this.includeOrGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
@@ -907,9 +932,14 @@ export class FilterStore {
 		}
 	}
 
-	setStatsAnalyzer(value: StatsAnalyzer) {
+	setStatsAnalyzer(value: StatsAnalyzerMode) {
 		this.statsAnalyzer = value;
-		if (isStatSortBy(this.sortBy) && !isStatSortByForAnalyzer(this.sortBy, value)) {
+		// Switching to "all" keeps any analyzer's sort; leaving "all" may need coerce.
+		if (
+			isStatsAnalyzer(value) &&
+			isStatSortBy(this.sortBy) &&
+			!isStatSortByForAnalyzer(this.sortBy, value)
+		) {
 			const remapped = coerceSortByForAnalyzer(this.sortBy, value);
 			if (remapped && isStatSortByForAnalyzer(remapped, value)) {
 				const previousDefault = getDefaultSortOrder(this.sortBy);
@@ -1084,12 +1114,17 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	clearGeneralStatLimits() {
+	clearStatLimit(key: StatLimitKey) {
 		const next = { ...this.statLimits };
-		for (const field of [
-			...MONKEY_GENERAL_STAT_FILTER_FIELDS,
-			...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS
-		]) {
+		next[key] = { operator: key === 'likes' ? 'gt' : 'lt', value: '' };
+		this.statLimits = next;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearGeneralStatLimits(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
+		const next = { ...this.statLimits };
+		for (const field of getGeneralStatFilterRowsForAnalyzer(analyzer).flat()) {
 			next[field.key] = { operator: 'lt', value: '' };
 		}
 		next.likes = { operator: 'gt', value: '' };
@@ -1098,9 +1133,9 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	clearHandStatLimits() {
+	clearHandStatLimits(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
 		const next = { ...this.statLimits };
-		for (const field of [...LEFT_HAND_STAT_FILTER_FIELDS, ...RIGHT_HAND_STAT_FILTER_FIELDS]) {
+		for (const field of getHandStatFilterFieldsForAnalyzer(analyzer)) {
 			next[field.key] = { operator: 'lt', value: '' };
 		}
 		this.statLimits = next;
@@ -1234,6 +1269,11 @@ export class FilterStore {
 		this.#saveToUrl({ history: 'push' });
 	}
 
+	requestFilterFocus(request: FilterFocusRequest) {
+		this.filterFocusRequest = request;
+		this.filterFocusRequestSeq += 1;
+	}
+
 	focusLayout(name: string) {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
@@ -1303,41 +1343,82 @@ export class FilterStore {
 		return this.similarReferenceName !== null;
 	}
 
+	#hasActiveLimit(limits: Record<StatLimitKey, StatLimit>, key: StatLimitKey): boolean {
+		return limits[key].value.trim() !== '';
+	}
+
+	/**
+	 * Analyzers whose stats must be loaded/checked for the given limits.
+	 * Each analyzer’s limits are fully independent (no shared keys).
+	 */
+	#analyzersNeededForLimits(limits: Record<StatLimitKey, StatLimit>): StatsAnalyzer[] {
+		const needed: StatsAnalyzer[] = [];
+		for (const analyzer of [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER] as const) {
+			const hasLimits = getStatFilterFieldsForAnalyzer(analyzer).some((field) =>
+				this.#hasActiveLimit(limits, field.key)
+			);
+			if (hasLimits) needed.push(analyzer);
+		}
+		return needed;
+	}
+
+	get analyzersNeededForStatLimits(): StatsAnalyzer[] {
+		return this.#analyzersNeededForLimits(this.appliedStatLimits);
+	}
+
 	get hasActiveStatLimits(): boolean {
-		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		const availableFields = this.canUseLikes
-			? [...fields, { key: 'likes' as const }]
-			: fields;
-		return availableFields.some(
-			(field) => this.statLimits[field.key].value.trim() !== ''
+		if (this.#analyzersNeededForLimits(this.statLimits).length > 0) return true;
+		return this.canUseLikes && this.statLimits.likes.value.trim() !== '';
+	}
+
+	#gridOrThumbsActive(
+		grid: string[][],
+		leftThumbs: string[],
+		rightThumbs: string[]
+	): boolean {
+		return (
+			grid.some((row) => row.some((cell) => cell !== '')) ||
+			leftThumbs.some((k) => k !== '') ||
+			rightThumbs.some((k) => k !== '')
 		);
 	}
 
+	/** Whether a specific key-filter kind (AND / OR / Exclude) has any filled cells. */
+	hasActiveKeyFilterKind(kind: 'and' | 'or' | 'exclude'): boolean {
+		switch (kind) {
+			case 'and':
+				return this.#gridOrThumbsActive(
+					this.includeGrid,
+					this.includeLeftThumbKeys,
+					this.includeRightThumbKeys
+				);
+			case 'or':
+				return this.#gridOrThumbsActive(
+					this.includeOrGrid,
+					this.includeOrLeftThumbKeys,
+					this.includeOrRightThumbKeys
+				);
+			case 'exclude':
+				return this.#gridOrThumbsActive(
+					this.excludeGrid,
+					this.excludeLeftThumbKeys,
+					this.excludeRightThumbKeys
+				);
+		}
+	}
+
 	get hasActiveKeyFilters(): boolean {
-		const hasInclude = this.includeGrid.some((row) => row.some((cell) => cell !== ''));
-		const hasExclude = this.excludeGrid.some((row) => row.some((cell) => cell !== ''));
-		const hasIncludeOr =
-			this.includeOrGrid.some((row) => row.some((cell) => cell !== '')) ||
-			this.includeOrLeftThumbKeys.some((k) => k !== '') ||
-			this.includeOrRightThumbKeys.some((k) => k !== '');
-		const hasIncludeThumbs =
-			this.includeLeftThumbKeys.some((k) => k !== '') ||
-			this.includeRightThumbKeys.some((k) => k !== '');
-		const hasExcludeThumbs =
-			this.excludeLeftThumbKeys.some((k) => k !== '') ||
-			this.excludeRightThumbKeys.some((k) => k !== '');
-		return hasInclude || hasExclude || hasIncludeOr || hasIncludeThumbs || hasExcludeThumbs;
+		return (
+			this.hasActiveKeyFilterKind('and') ||
+			this.hasActiveKeyFilterKind('or') ||
+			this.hasActiveKeyFilterKind('exclude')
+		);
 	}
 
 	/** Applied (debounced) stat limits — used by page load / filter pipeline. */
 	get hasAppliedStatLimits(): boolean {
-		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		const availableFields = this.canUseLikes
-			? [...fields, { key: 'likes' as const }]
-			: fields;
-		return availableFields.some(
-			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
-		);
+		if (this.analyzersNeededForStatLimits.length > 0) return true;
+		return this.canUseLikes && this.appliedStatLimits.likes.value.trim() !== '';
 	}
 
 	get hasActiveKeyboardFilters(): boolean {
@@ -1592,36 +1673,44 @@ export class FilterStore {
 		statsReady: boolean,
 		likesData: LayoutLikesMap = {}
 	): boolean {
-		const fields = getStatFilterFieldsForAnalyzer(this.statsAnalyzer);
-		const hasStatsLimits = fields.some(
-			(field) => this.appliedStatLimits[field.key].value.trim() !== ''
-		);
+		const analyzersNeeded = this.analyzersNeededForStatLimits;
 		const hasLikesLimit =
 			this.canUseLikes && this.appliedStatLimits.likes.value.trim() !== '';
-		if (!hasStatsLimits && !hasLikesLimit) return true;
-		if (hasStatsLimits && !statsReady) return true;
+		if (analyzersNeeded.length === 0 && !hasLikesLimit) return true;
+		// Wait until every analyzer that has active limits has loaded its map.
+		if (
+			analyzersNeeded.length > 0 &&
+			(!statsReady ||
+				!analyzersNeeded.every((analyzer) => isAnalyzerStatsReady(statsMaps, analyzer)))
+		) {
+			return true;
+		}
 
-		const analyzerStats = getLayoutAnalyzerStats(
-			statsMaps,
-			layout.name,
-			this.statsAnalyzer,
-			layout.cyanophageCompatible
-		);
-		if (!analyzerStats) return false;
+		for (const analyzer of analyzersNeeded) {
+			const fields = getStatFilterFieldsForAnalyzer(analyzer);
+			const analyzerStats = getLayoutAnalyzerStats(
+				statsMaps,
+				layout.name,
+				analyzer,
+				layout.cyanophageCompatible
+			);
+			if (!analyzerStats) return false;
 
-		const stats =
-			this.statsAnalyzer === CYANOPHAGE_ANALYZER
-				? deriveCyanophageStats(analyzerStats as CyanophageStats)
-				: deriveBotStats(analyzerStats as MonkeyracerStats);
+			const stats =
+				analyzer === CYANOPHAGE_ANALYZER
+					? deriveCyanophageStats(analyzerStats as CyanophageStats)
+					: deriveBotStats(analyzerStats as MonkeyracerStats);
 
-		for (const field of fields) {
-			const limit = this.appliedStatLimits[field.key];
-			const threshold = parseStatFilterThreshold(field, limit.value);
-			if (threshold === null) continue;
+			for (const field of fields) {
+				const limit = this.appliedStatLimits[field.key];
+				const threshold = parseStatFilterThreshold(field, limit.value);
+				if (threshold === null) continue;
 
-			const value = stats[field.key as keyof typeof stats];
-			if (limit.operator === 'lt' && value >= threshold) return false;
-			if (limit.operator === 'gt' && value <= threshold) return false;
+				const statKey = getStatFilterStatKey(field);
+				const value = stats[statKey as keyof typeof stats];
+				if (limit.operator === 'lt' && value >= threshold) return false;
+				if (limit.operator === 'gt' && value <= threshold) return false;
+			}
 		}
 
 		if (hasLikesLimit) {
@@ -1678,14 +1767,15 @@ export class FilterStore {
 	): LayoutData[] {
 		const sorted = [...layouts];
 		const descending = this.sortOrder === 'desc';
+		const sortAnalyzer = isStatsAnalyzer(this.statsAnalyzer) ? this.statsAnalyzer : undefined;
 		const statSort = isStatSortBy(this.sortBy)
-			? getStatSortField(this.sortBy, this.statsAnalyzer)
+			? getStatSortField(this.sortBy, sortAnalyzer)
 			: undefined;
 
 		if (statSort) {
 			return sorted.sort((a, b) => {
-				const aValue = getStatSortValue(statsMaps, a, this.sortBy, this.statsAnalyzer);
-				const bValue = getStatSortValue(statsMaps, b, this.sortBy, this.statsAnalyzer);
+				const aValue = getStatSortValue(statsMaps, a, this.sortBy, sortAnalyzer);
+				const bValue = getStatSortValue(statsMaps, b, this.sortBy, sortAnalyzer);
 
 				if (aValue === null && bValue === null) {
 					return a.name.localeCompare(b.name);

@@ -6,18 +6,56 @@ export const DEFAULT_STATS_ANALYZER = 'monkeyracer';
 /** Cyanophage stats analyzer. */
 export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
-/** Analyzers available for stats display, sorting, and filtering. */
+/** Display both analyzers’ stats on cards. */
+export const ALL_STATS_ANALYZERS_MODE = 'all';
+
+/** Concrete analyzers that own a stats JSON map. */
 export const STAT_ANALYZERS = [
 	{ value: DEFAULT_STATS_ANALYZER, label: 'cmini (monkeyracer)' },
-	{ value: CYANOPHAGE_ANALYZER, label: 'cyanophage' }
+	{ value: CYANOPHAGE_ANALYZER, label: 'Cyanophage' }
 ] as const;
 
 export type StatsAnalyzer = (typeof STAT_ANALYZERS)[number]['value'];
 
+/** Toolbar / URL display modes (includes stacked “All”). */
+export const STAT_ANALYZER_MODES = [
+	{ value: ALL_STATS_ANALYZERS_MODE, label: 'All' },
+	...STAT_ANALYZERS
+] as const;
+
+export type StatsAnalyzerMode = (typeof STAT_ANALYZER_MODES)[number]['value'];
+
 const STATS_ANALYZER_VALUES = new Set<string>(STAT_ANALYZERS.map((analyzer) => analyzer.value));
+const STATS_ANALYZER_MODE_VALUES = new Set<string>(
+	STAT_ANALYZER_MODES.map((analyzer) => analyzer.value)
+);
 
 export function isStatsAnalyzer(value: string): value is StatsAnalyzer {
 	return STATS_ANALYZER_VALUES.has(value);
+}
+
+export function isStatsAnalyzerMode(value: string): value is StatsAnalyzerMode {
+	return STATS_ANALYZER_MODE_VALUES.has(value);
+}
+
+/** Concrete analyzers included in a display mode. */
+export function resolveStatsAnalyzers(mode: StatsAnalyzerMode): StatsAnalyzer[] {
+	return mode === ALL_STATS_ANALYZERS_MODE
+		? [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER]
+		: [mode];
+}
+
+export function showsMonkeyracerStats(mode: StatsAnalyzerMode): boolean {
+	return mode === ALL_STATS_ANALYZERS_MODE || mode === DEFAULT_STATS_ANALYZER;
+}
+
+export function showsCyanophageStats(mode: StatsAnalyzerMode): boolean {
+	return mode === ALL_STATS_ANALYZERS_MODE || mode === CYANOPHAGE_ANALYZER;
+}
+
+/** Disambiguate legacy sort tokens; `all` behaves like the default analyzer. */
+export function concreteAnalyzerForSort(mode: StatsAnalyzerMode): StatsAnalyzer {
+	return mode === ALL_STATS_ANALYZERS_MODE ? DEFAULT_STATS_ANALYZER : mode;
 }
 
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js */
@@ -96,8 +134,31 @@ export type DerivedCyanophageStats = {
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
+/**
+ * Prefixed cyanophage filter keys (storage/URL) so limits never collide with cmini.
+ * Map to derived stats via {@link StatFilterField.statKey}.
+ */
+export type CyanoStatLimitKey =
+	| 'cyano-sfb'
+	| 'cyano-sfs'
+	| 'cyano-lh'
+	| 'cyano-rh'
+	| 'cyano-LI'
+	| 'cyano-LM'
+	| 'cyano-LR'
+	| 'cyano-LP'
+	| 'cyano-LT'
+	| 'cyano-RI'
+	| 'cyano-RM'
+	| 'cyano-RR'
+	| 'cyano-RP'
+	| 'cyano-RT';
+
+/** @deprecated Use {@link CyanoStatLimitKey}. */
+export type CyanoHandStatLimitKey = Exclude<CyanoStatLimitKey, 'cyano-sfb' | 'cyano-sfs'>;
+
 /** Keys usable in stat limit filters (union of both analyzers). */
-export type StatLimitKey = StatSortKey | CyanophageStatSortKey | 'likes';
+export type StatLimitKey = StatSortKey | CyanophageStatSortKey | CyanoStatLimitKey | 'likes';
 
 export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 14;
 
@@ -357,6 +418,11 @@ export interface StatFilterField {
 	title?: string;
 	/** How filter input values are interpreted. Defaults to percent (0–100). */
 	unit?: 'percent' | 'raw';
+	/**
+	 * Property on derived analyzer stats used for comparison.
+	 * Defaults to `key` when the storage key matches the stats property.
+	 */
+	statKey?: StatSortKey | CyanophageStatSortKey;
 }
 
 export const LIKES_STAT_FILTER_FIELD = {
@@ -402,17 +468,13 @@ export const MONKEY_GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField
 	]
 ];
 
-/** Cyanophage general stat filter rows (matches stats card grouping). */
+/** Cyanophage general stat filter rows (one row per stats-card line). */
 export const CYANOPHAGE_GENERAL_STAT_FILTER_ROWS: readonly (readonly StatFilterField[])[] = [
-	[
-		{ key: 'totalWordEffort', label: 'TWE', title: 'Total Word Effort', unit: 'raw' },
-		{ key: 'effort', label: 'Effort', title: 'Effort', unit: 'raw' }
-	],
-	[
-		{ key: 'sfb', label: 'SFB', title: 'Same Finger Bigrams' },
-		{ key: 'sfs', label: 'SFS', title: 'Skip Bigrams' },
-		{ key: 'lsb', label: 'LSB', title: 'Lat Stretch Bigrams' }
-	],
+	[{ key: 'totalWordEffort', label: 'TWE', title: 'Total Word Effort', unit: 'raw' }],
+	[{ key: 'effort', label: 'Effort', title: 'Effort', unit: 'raw' }],
+	[{ key: 'cyano-sfb', statKey: 'sfb', label: 'SFB', title: 'Same Finger Bigrams' }],
+	[{ key: 'cyano-sfs', statKey: 'sfs', label: 'SFS', title: 'Skip Bigrams' }],
+	[{ key: 'lsb', label: 'LSB', title: 'Lat Stretch Bigrams' }],
 	[{ key: 'scissors', label: 'Sci', title: 'Scissors' }]
 ];
 
@@ -428,7 +490,7 @@ export const CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS = CYANOPHAGE_GENERAL_STAT_FIL
 /** Flat list of general stat filter fields — keep in sync with filterStore. */
 export const GENERAL_STAT_FILTER_FIELDS = MONKEY_GENERAL_STAT_FILTER_FIELDS;
 
-export const LEFT_HAND_STAT_FILTER_FIELDS = [
+export const MONKEY_LEFT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'lh', label: 'Hand' },
 	{ key: 'LI', label: 'Index' },
 	{ key: 'LM', label: 'Middle' },
@@ -437,7 +499,7 @@ export const LEFT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'LT', label: 'Thumb' }
 ] as const satisfies readonly StatFilterField[];
 
-export const RIGHT_HAND_STAT_FILTER_FIELDS = [
+export const MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'rh', label: 'Hand' },
 	{ key: 'RI', label: 'Index' },
 	{ key: 'RM', label: 'Middle' },
@@ -445,6 +507,31 @@ export const RIGHT_HAND_STAT_FILTER_FIELDS = [
 	{ key: 'RP', label: 'Pinky' },
 	{ key: 'RT', label: 'Thumb' }
 ] as const satisfies readonly StatFilterField[];
+
+/** Cyanophage hand filters use `cyano-*` keys so limits can differ from cmini. */
+export const CYANOPHAGE_LEFT_HAND_STAT_FILTER_FIELDS = [
+	{ key: 'cyano-lh', statKey: 'lh', label: 'Hand' },
+	{ key: 'cyano-LI', statKey: 'LI', label: 'Index' },
+	{ key: 'cyano-LM', statKey: 'LM', label: 'Middle' },
+	{ key: 'cyano-LR', statKey: 'LR', label: 'Ring' },
+	{ key: 'cyano-LP', statKey: 'LP', label: 'Pinky' },
+	{ key: 'cyano-LT', statKey: 'LT', label: 'Thumb' }
+] as const satisfies readonly StatFilterField[];
+
+export const CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS = [
+	{ key: 'cyano-rh', statKey: 'rh', label: 'Hand' },
+	{ key: 'cyano-RI', statKey: 'RI', label: 'Index' },
+	{ key: 'cyano-RM', statKey: 'RM', label: 'Middle' },
+	{ key: 'cyano-RR', statKey: 'RR', label: 'Ring' },
+	{ key: 'cyano-RP', statKey: 'RP', label: 'Pinky' },
+	{ key: 'cyano-RT', statKey: 'RT', label: 'Thumb' }
+] as const satisfies readonly StatFilterField[];
+
+/** @deprecated Use MONKEY_LEFT_HAND_STAT_FILTER_FIELDS or getLeftHandStatFilterFieldsForAnalyzer */
+export const LEFT_HAND_STAT_FILTER_FIELDS = MONKEY_LEFT_HAND_STAT_FILTER_FIELDS;
+
+/** @deprecated Use MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS or getRightHandStatFilterFieldsForAnalyzer */
+export const RIGHT_HAND_STAT_FILTER_FIELDS = MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS;
 
 function uniqueStatFilterFields(fields: readonly StatFilterField[]): StatFilterField[] {
 	const byKey = new Map<string, StatFilterField>();
@@ -458,8 +545,10 @@ function uniqueStatFilterFields(fields: readonly StatFilterField[]): StatFilterF
 export const ALL_STAT_FILTER_FIELDS = uniqueStatFilterFields([
 	...MONKEY_GENERAL_STAT_FILTER_FIELDS,
 	...CYANOPHAGE_GENERAL_STAT_FILTER_FIELDS,
-	...LEFT_HAND_STAT_FILTER_FIELDS,
-	...RIGHT_HAND_STAT_FILTER_FIELDS,
+	...MONKEY_LEFT_HAND_STAT_FILTER_FIELDS,
+	...MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS,
+	...CYANOPHAGE_LEFT_HAND_STAT_FILTER_FIELDS,
+	...CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS,
 	LIKES_STAT_FILTER_FIELD
 ]);
 
@@ -474,12 +563,44 @@ export function getGeneralStatFilterRowsForAnalyzer(
 		: MONKEY_GENERAL_STAT_FILTER_ROWS;
 }
 
+export function getLeftHandStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return analyzer === CYANOPHAGE_ANALYZER
+		? CYANOPHAGE_LEFT_HAND_STAT_FILTER_FIELDS
+		: MONKEY_LEFT_HAND_STAT_FILTER_FIELDS;
+}
+
+export function getRightHandStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return analyzer === CYANOPHAGE_ANALYZER
+		? CYANOPHAGE_RIGHT_HAND_STAT_FILTER_FIELDS
+		: MONKEY_RIGHT_HAND_STAT_FILTER_FIELDS;
+}
+
+export function getHandStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return [
+		...getLeftHandStatFilterFieldsForAnalyzer(analyzer),
+		...getRightHandStatFilterFieldsForAnalyzer(analyzer)
+	];
+}
+
 export function getStatFilterFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatFilterField[] {
 	return [
 		...getGeneralStatFilterRowsForAnalyzer(analyzer).flat(),
-		...LEFT_HAND_STAT_FILTER_FIELDS,
-		...RIGHT_HAND_STAT_FILTER_FIELDS
+		...getHandStatFilterFieldsForAnalyzer(analyzer)
 	];
+}
+
+/** Resolve the derived-stats property for a filter field. */
+export function getStatFilterStatKey(
+	field: StatFilterField
+): StatSortKey | CyanophageStatSortKey | 'likes' {
+	if (field.key === 'likes') return 'likes';
+	return field.statKey ?? (field.key as StatSortKey | CyanophageStatSortKey);
 }
 
 /** Parse a stat filter input value for comparison against stored stats. */
@@ -604,6 +725,11 @@ export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly 
 	return ALL_STAT_SORT_FIELDS.filter((field) => field.analyzer === analyzer);
 }
 
+export function getStatSortFieldsForMode(mode: StatsAnalyzerMode): readonly StatSortField[] {
+	if (mode === ALL_STATS_ANALYZERS_MODE) return ALL_STAT_SORT_FIELDS;
+	return getStatSortFieldsForAnalyzer(mode);
+}
+
 export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {
 	return getStatSortField(sortBy, analyzer) !== undefined;
 }
@@ -629,13 +755,13 @@ export function coerceSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer)
  */
 export function normalizeSortBy(
 	sort: string,
-	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER
+	analyzer: StatsAnalyzerMode = DEFAULT_STATS_ANALYZER
 ): SortBy | undefined {
 	const legacy = parseLegacySortParam(sort);
 	if (legacy) return legacy.sortBy;
 
 	if (sort === 'sfb') {
-		return analyzer === CYANOPHAGE_ANALYZER ? 'cyano-sfb' : 'sfb';
+		return concreteAnalyzerForSort(analyzer) === CYANOPHAGE_ANALYZER ? 'cyano-sfb' : 'sfb';
 	}
 
 	const aliased = SORT_BY_ALIASES[sort];
@@ -801,11 +927,41 @@ function formatStatLabel(label: string, width?: number): string {
 	return `${label.padStart(width)} `;
 }
 
+/** Card/stat highlight: analyzer filter colors, or yellow for the active sort field. */
+export type StatsHighlightTone = 'cmini' | 'cyanophage' | 'sort';
+
 export interface StatsBlockSegment {
 	text: string;
-	highlight?: boolean;
+	/** When set, the value uses the matching highlight color. */
+	highlight?: StatsHighlightTone;
 	/** Compare-delta tone: improvement for the right layout relative to the left. */
 	tone?: 'better' | 'worse' | 'neutral';
+}
+
+function toHighlightKeySet<T extends string>(
+	keys?: ReadonlySet<T> | T | null
+): ReadonlySet<T> {
+	if (keys == null) return new Set();
+	if (typeof keys === 'string') return new Set([keys]);
+	return keys;
+}
+
+/**
+ * Derived-stat keys with an active limit for the given analyzer.
+ * Uses live (not debounced) limit values so card highlights match the chips.
+ */
+export function getActiveFilterStatKeys(
+	limits: Record<StatLimitKey, { value: string }>,
+	analyzer: StatsAnalyzer
+): Set<StatSortKey | CyanophageStatSortKey> {
+	const keys = new Set<StatSortKey | CyanophageStatSortKey>();
+	for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
+		if (!limits[field.key]?.value.trim()) continue;
+		const statKey = getStatFilterStatKey(field);
+		if (statKey === 'likes') continue;
+		keys.add(statKey);
+	}
+	return keys;
 }
 
 /**
@@ -1032,58 +1188,81 @@ export function formatCyanophageStatValue(value: number): string {
 
 export function buildCyanophageStatsBlockLines(
 	stats: DerivedCyanophageStats,
-	highlightKey?: CyanophageStatSortKey
+	highlightKeys?: ReadonlySet<CyanophageStatSortKey> | CyanophageStatSortKey | null,
+	sortHighlightKey?: CyanophageStatSortKey | null
 ): StatsBlockSegment[][] {
-	const hl = (key: CyanophageStatSortKey): boolean => highlightKey === key;
+	const keys = toHighlightKeySet(highlightKeys);
+	const filterHl = (key: CyanophageStatSortKey): StatsHighlightTone | undefined =>
+		keys.has(key) ? 'cyanophage' : undefined;
+	const sortHl = (...candidates: CyanophageStatSortKey[]): StatsHighlightTone | undefined =>
+		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
 
 	return [
 		[
-			{ text: formatStatLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{
+				text: formatStatLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('totalWordEffort')
+			},
 			{
 				text: formatCyanophageStatValue(stats.totalWordEffort).padStart(6),
-				highlight: hl('totalWordEffort')
+				highlight: filterHl('totalWordEffort')
 			}
 		],
 		[
-			{ text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			{
+				text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('effort')
+			},
 			{
 				text: formatCyanophageStatValue(stats.effort).padStart(6),
-				highlight: hl('effort')
+				highlight: filterHl('effort')
 			}
 		],
 		[{ text: '' }],
 		[
-			{ text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
-			{ text: formatStatField(stats.sfb, 6), highlight: hl('sfb') }
+			{
+				text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('sfb')
+			},
+			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }
 		],
 		[
-			{ text: formatStatLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
-			{ text: formatStatField(stats.sfs, 6), highlight: hl('sfs') }
+			{
+				text: formatStatLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('sfs')
+			},
+			{ text: formatStatField(stats.sfs, 6), highlight: filterHl('sfs') }
 		],
 		[
-			{ text: formatStatLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
-			{ text: formatStatField(stats.lsb, 6), highlight: hl('lsb') }
+			{
+				text: formatStatLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('lsb')
+			},
+			{ text: formatStatField(stats.lsb, 6), highlight: filterHl('lsb') }
 		],
 		[
-			{ text: formatStatLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH) },
-			{ text: formatStatField(stats.scissors, 6), highlight: hl('scissors') }
+			{
+				text: formatStatLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH),
+				highlight: sortHl('scissors')
+			},
+			{ text: formatStatField(stats.scissors, 6), highlight: filterHl('scissors') }
 		],
 		[{ text: '' }],
 		[
-			{ text: formatStatLabel('LH/RH:') },
-			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
+			{ text: formatStatLabel('LH/RH:'), highlight: sortHl('lh', 'rh') },
+			{ text: formatStatField(stats.lh, 6), highlight: filterHl('lh') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
+			{ text: formatStatField(stats.rh, 6), highlight: filterHl('rh') }
 		],
 		[{ text: '' }],
 		...LEFT_HAND_FINGERS.map((left, index) => {
 			const right = RIGHT_HAND_FINGERS[index];
 			return [
-				{ text: `${left}: ` },
-				{ text: formatStatField(stats[left], 6) },
+				{ text: `${left}: `, highlight: sortHl(left) },
+				{ text: formatStatField(stats[left], 6), highlight: filterHl(left) },
 				{ text: '    ' },
-				{ text: `${right}: ` },
-				{ text: formatStatField(stats[right], 6) }
+				{ text: `${right}: `, highlight: sortHl(right) },
+				{ text: formatStatField(stats[right], 6), highlight: filterHl(right) }
 			];
 		})
 	];
@@ -1102,86 +1281,96 @@ export function formatCyanophageStatsLoadingBlock(): string {
 export function formatCyanophageStatsUnavailableBlock(reason?: string): string {
 	return [
 		'STATS UNAVAILABLE',
-		reason ?? 'no cyanophage stats for this layout',
+		reason ?? 'no Cyanophage stats for this layout',
 		...Array(Math.max(0, CYANOPHAGE_STATS_BLOCK_LINE_COUNT - 2)).fill('')
 	].join('\n');
 }
 
-/** Lines of segments for rendering; optional highlight on the active sort stat. */
+/** Lines of segments for rendering; optional highlight on filtered/sorted stats. */
 export function buildBotStatsBlockLines(
 	stats: DerivedBotStats,
-	highlightKey?: StatSortKey
+	highlightKeys?: ReadonlySet<StatSortKey> | StatSortKey | null,
+	sortHighlightKey?: StatSortKey | null
 ): StatsBlockSegment[][] {
-	const hl = (key: StatSortKey): boolean => highlightKey === key;
+	const keys = toHighlightKeySet(highlightKeys);
+	const filterHl = (key: StatSortKey): StatsHighlightTone | undefined =>
+		keys.has(key) ? 'cmini' : undefined;
+	const sortHl = (...candidates: StatSortKey[]): StatsHighlightTone | undefined =>
+		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
 
 	return [
 		[
-			{ text: formatStatLabel('Alt:') },
-			{ text: formatStatField(stats.alternate, 6), highlight: hl('alternate') }
+			{ text: formatStatLabel('Alt:'), highlight: sortHl('alternate') },
+			{ text: formatStatField(stats.alternate, 6), highlight: filterHl('alternate') }
 		],
 		[
-			{ text: formatStatLabel('Rol:') },
-			{ text: formatStatField(stats.roll, 6), highlight: hl('roll') },
+			{ text: formatStatLabel('Rol:'), highlight: sortHl('roll', 'rollIn', 'rollOut') },
+			{ text: formatStatField(stats.roll, 6), highlight: filterHl('roll') },
 			{ text: ' (In/Out: ' },
-			{ text: formatStatField(stats.rollIn, 6), highlight: hl('rollIn') },
+			{ text: formatStatField(stats.rollIn, 6), highlight: filterHl('rollIn') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.rollOut, 6), highlight: hl('rollOut') },
+			{ text: formatStatField(stats.rollOut, 6), highlight: filterHl('rollOut') },
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('One:') },
-			{ text: formatStatField(stats.one, 6), highlight: hl('one') },
+			{ text: formatStatLabel('One:'), highlight: sortHl('one', 'oneIn', 'oneOut') },
+			{ text: formatStatField(stats.one, 6), highlight: filterHl('one') },
 			{ text: ' (In/Out: ' },
-			{ text: formatStatField(stats.oneIn, 6), highlight: hl('oneIn') },
+			{ text: formatStatField(stats.oneIn, 6), highlight: filterHl('oneIn') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.oneOut, 6), highlight: hl('oneOut') },
+			{ text: formatStatField(stats.oneOut, 6), highlight: filterHl('oneOut') },
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('Rtl:') },
-			{ text: formatStatField(stats.rtl, 6), highlight: hl('rtl') },
+			{ text: formatStatLabel('Rtl:'), highlight: sortHl('rtl', 'rtlIn', 'rtlOut') },
+			{ text: formatStatField(stats.rtl, 6), highlight: filterHl('rtl') },
 			{ text: ' (In/Out: ' },
-			{ text: formatStatField(stats.rtlIn, 6), highlight: hl('rtlIn') },
+			{ text: formatStatField(stats.rtlIn, 6), highlight: filterHl('rtlIn') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.rtlOut, 6), highlight: hl('rtlOut') },
+			{ text: formatStatField(stats.rtlOut, 6), highlight: filterHl('rtlOut') },
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('Red:') },
-			{ text: formatStatField(stats.red, 6), highlight: hl('red') },
-			{ text: ' (Bad: ' },
-			{ text: formatStatField(stats.badRedirect, 9), highlight: hl('badRedirect') },
+			{ text: formatStatLabel('Red:'), highlight: sortHl('red') },
+			{ text: formatStatField(stats.red, 6), highlight: filterHl('red') },
+			{ text: ' (' },
+			{ text: 'Bad:', highlight: sortHl('badRedirect') },
+			{ text: ' ' },
+			{ text: formatStatField(stats.badRedirect, 9), highlight: filterHl('badRedirect') },
 			{ text: ')' }
 		],
 		[{ text: '' }],
 		[
-			{ text: formatStatLabel('SFB:') },
-			{ text: formatStatField(stats.sfb, 6), highlight: hl('sfb') }
+			{ text: formatStatLabel('SFB:'), highlight: sortHl('sfb') },
+			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }
 		],
 		[
-			{ text: formatStatLabel('SFS:') },
-			{ text: formatStatField(stats.sfs, 6), highlight: hl('sfs') },
+			{
+				text: formatStatLabel('SFS:'),
+				highlight: sortHl('sfs', 'dsfbRed', 'dsfbAlt')
+			},
+			{ text: formatStatField(stats.sfs, 6), highlight: filterHl('sfs') },
 			{ text: ' (Red/Alt: ' },
-			{ text: formatStatField(stats.dsfbRed, 5), highlight: hl('dsfbRed') },
+			{ text: formatStatField(stats.dsfbRed, 5), highlight: filterHl('dsfbRed') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.dsfbAlt, 5), highlight: hl('dsfbAlt') },
+			{ text: formatStatField(stats.dsfbAlt, 5), highlight: filterHl('dsfbAlt') },
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('LH/RH:') },
-			{ text: formatStatField(stats.lh, 6), highlight: hl('lh') },
+			{ text: formatStatLabel('LH/RH:'), highlight: sortHl('lh', 'rh') },
+			{ text: formatStatField(stats.lh, 6), highlight: filterHl('lh') },
 			{ text: ' | ' },
-			{ text: formatStatField(stats.rh, 6), highlight: hl('rh') }
+			{ text: formatStatField(stats.rh, 6), highlight: filterHl('rh') }
 		],
 		[{ text: '' }],
 		...LEFT_HAND_FINGERS.map((left, index) => {
 			const right = RIGHT_HAND_FINGERS[index];
 			return [
-				{ text: `${left}: ` },
-				{ text: formatStatField(stats[left], 6) },
+				{ text: `${left}: `, highlight: sortHl(left) },
+				{ text: formatStatField(stats[left], 6), highlight: filterHl(left) },
 				{ text: '    ' },
-				{ text: `${right}: ` },
-				{ text: formatStatField(stats[right], 6) }
+				{ text: `${right}: `, highlight: sortHl(right) },
+				{ text: formatStatField(stats[right], 6), highlight: filterHl(right) }
 			];
 		})
 	];

@@ -4,7 +4,20 @@
 		type SortBy,
 		type SortOrder
 	} from '$lib/filterStore.svelte';
-	import { getStatSortFieldsForAnalyzer } from '$lib/layoutStats';
+	import {
+		clearActiveFilterChip,
+		getActiveFilterChips,
+		type ActiveFilterChip
+	} from '$lib/filterSummaries';
+	import {
+		ALL_STATS_ANALYZERS_MODE,
+		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
+		getStatSortFieldsForAnalyzer,
+		getStatSortFieldsForMode,
+		STAT_ANALYZER_MODES,
+		type StatsAnalyzerMode
+	} from '$lib/layoutStats';
 
 	interface Props {
 		filteredCount: number;
@@ -13,7 +26,17 @@
 
 	const { filteredCount, likesSortAvailable }: Props = $props();
 
-	const statSortFields = $derived(getStatSortFieldsForAnalyzer(filterStore.statsAnalyzer));
+	const filterChips = $derived.by(() => {
+		// Touch key-filter grids so chip list updates when OR/exclude cells change.
+		void filterStore.hasActiveKeyFilterKind('and');
+		void filterStore.hasActiveKeyFilterKind('or');
+		void filterStore.hasActiveKeyFilterKind('exclude');
+		return getActiveFilterChips(filterStore);
+	});
+	const showDualSortGroups = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
+	const monkeySortFields = $derived(getStatSortFieldsForAnalyzer(DEFAULT_STATS_ANALYZER));
+	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
+	const statSortFields = $derived(getStatSortFieldsForMode(filterStore.statsAnalyzer));
 
 	let displaySettingsOpen = $state(false);
 	let displaySettingsButton = $state<HTMLButtonElement | undefined>(undefined);
@@ -72,9 +95,65 @@
 			displaySettingsButton?.focus();
 		}
 	}
+
+	function clearChip(chip: ActiveFilterChip, event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		clearActiveFilterChip(filterStore, chip.clear);
+	}
+
+	function openChip(chip: ActiveFilterChip) {
+		filterStore.requestFilterFocus(chip.focus);
+	}
+
+	function handleChipKeyDown(chip: ActiveFilterChip, event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			openChip(chip);
+		}
+	}
 </script>
 
-<div bind:this={resultsStatus} id="results-status" class="results-toolbar mb-2">
+<div bind:this={resultsStatus} id="results-status" class="results-toolbar-shell mb-2">
+	{#if filterChips.length > 0}
+		<div class="results-toolbar-filters" aria-label="Active filters">
+			<span class="results-toolbar-filters-label">Filters</span>
+			<ul class="results-toolbar-filter-chips">
+				{#each filterChips as chip (chip.id)}
+					<li
+						class="results-toolbar-filter-chip results-toolbar-filter-chip--{chip.tone}"
+						title={chip.title ?? chip.label}
+						role="button"
+						tabindex="0"
+						aria-label="Edit filter: {chip.title ?? chip.label}"
+						onclick={() => openChip(chip)}
+						onkeydown={(event) => handleChipKeyDown(chip, event)}
+					>
+						<span class="results-toolbar-filter-chip-label">{chip.label}</span>
+						<button
+							type="button"
+							class="results-toolbar-filter-chip-clear"
+							aria-label="Clear filter: {chip.title ?? chip.label}"
+							onclick={(event) => clearChip(chip, event)}
+						>
+							<svg
+								class="size-3"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2.5"
+								aria-hidden="true"
+							>
+								<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+							</svg>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
+	<div class="results-toolbar">
 	<div class="results-toolbar-status">
 		<p class="results-toolbar-count" style="color: var(--text-secondary);">
 			Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
@@ -95,6 +174,29 @@
 	</div>
 
 	<div class="results-toolbar-controls">
+		<label class="results-toolbar-field select-none">
+			<span class="results-toolbar-label text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+				>Analyzer</span
+			>
+			<select
+				value={filterStore.statsAnalyzer}
+				onchange={(e) =>
+					filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzerMode)}
+				class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+				style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+				aria-label="Analyzer"
+			>
+				{#each STAT_ANALYZER_MODES as analyzer (analyzer.value)}
+					<option value={analyzer.value}>{analyzer.label}</option>
+				{/each}
+			</select>
+		</label>
+
 		<label class="results-toolbar-field select-none">
 			<span class="results-toolbar-label text-sm whitespace-nowrap" style="color: var(--text-secondary);"
 				>Sort by</span
@@ -120,11 +222,24 @@
 						<option value="likes">Likes</option>
 					{/if}
 				</optgroup>
-				<optgroup label="Stats">
-					{#each statSortFields as field (field.value)}
-						<option value={field.value}>{field.label}</option>
-					{/each}
-				</optgroup>
+				{#if showDualSortGroups}
+					<optgroup label="cmini (monkeyracer)">
+						{#each monkeySortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+					<optgroup label="Cyanophage">
+						{#each cyanophageSortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+				{:else}
+					<optgroup label="Stats">
+						{#each statSortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+				{/if}
 			</select>
 		</label>
 
@@ -327,11 +442,109 @@
 			{/if}
 		</div>
 	</div>
+	</div>
 </div>
 
 <style>
-	.results-toolbar {
+	.results-toolbar-shell {
 		container-type: inline-size;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.results-toolbar-filters {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		width: 100%;
+		min-width: 0;
+		font-size: 0.8125rem;
+		line-height: 1.35;
+	}
+
+	.results-toolbar-filters-label {
+		flex-shrink: 0;
+		padding-top: 0.25rem;
+		font-weight: 600;
+		color: var(--text-caption);
+	}
+
+	.results-toolbar-filter-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.results-toolbar-filter-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		max-width: 100%;
+		padding: 0.15rem 0.2rem 0.15rem 0.65rem;
+		border-radius: 9999px;
+		border: 1px solid var(--border);
+		background-color: color-mix(in srgb, var(--text-caption) 10%, var(--bg-primary));
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
+
+	.results-toolbar-filter-chip:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.results-toolbar-filter-chip-label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.results-toolbar-filter-chip-clear {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.15rem;
+		height: 1.15rem;
+		border: none;
+		border-radius: 9999px;
+		background: transparent;
+		color: inherit;
+		opacity: 0.7;
+		cursor: pointer;
+	}
+
+	.results-toolbar-filter-chip-clear:hover {
+		opacity: 1;
+		background-color: color-mix(in srgb, currentColor 14%, transparent);
+	}
+
+	.results-toolbar-filter-chip-clear:focus-visible {
+		outline: none;
+		opacity: 1;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.results-toolbar-filter-chip--monkeyracer {
+		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-cmini) 16%, var(--bg-primary));
+		color: var(--analyzer-cmini);
+	}
+
+	.results-toolbar-filter-chip--cyanophage {
+		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-cyanophage) 16%, var(--bg-primary));
+		color: var(--analyzer-cyanophage);
+	}
+
+	.results-toolbar {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;

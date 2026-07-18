@@ -7,11 +7,10 @@
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
-		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
 		getStatSortAnalyzer,
 		isAnalyzerStatsReady,
-		isStatSortBy
+		isStatSortBy,
+		type StatsAnalyzer
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -37,7 +36,11 @@
 	const needsStatsForSort = $derived(isStatSortBy(filterStore.sortBy));
 	const needsStatsForFilter = $derived(filterStore.hasAppliedStatLimits);
 	let likesLoading = $state(false);
-	const statsReady = $derived(isAnalyzerStatsReady(statsMaps, filterStore.statsAnalyzer));
+	const statsReady = $derived(
+		filterStore.analyzersNeededForStatLimits.every((analyzer) =>
+			isAnalyzerStatsReady(statsMaps, analyzer)
+		)
+	);
 	const resolvedLikesData = $derived(likesData ?? {});
 	const likesLoaded = $derived(likesData !== null);
 	const likesSortAvailable = $derived(
@@ -49,14 +52,16 @@
 	});
 
 	const analyzersToLoad = $derived.by(() => {
-		const analyzers = new Set<typeof DEFAULT_STATS_ANALYZER | typeof CYANOPHAGE_ANALYZER>();
+		const analyzers = new Set<StatsAnalyzer>();
 
 		if (needsStatsForFilter) {
-			analyzers.add(filterStore.statsAnalyzer);
+			for (const analyzer of filterStore.analyzersNeededForStatLimits) {
+				analyzers.add(analyzer);
+			}
 		}
 
 		if (needsStatsForSort) {
-			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy, filterStore.statsAnalyzer);
+			const sortAnalyzer = getStatSortAnalyzer(filterStore.sortBy);
 			if (sortAnalyzer) analyzers.add(sortAnalyzer);
 		}
 
@@ -477,22 +482,19 @@
 	}
 
 	.results-sidebar::-webkit-scrollbar,
-	.results-list::-webkit-scrollbar,
-	.results-list :global(*)::-webkit-scrollbar {
+	.results-list::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
 
 	.results-sidebar::-webkit-scrollbar-thumb,
-	.results-list::-webkit-scrollbar-thumb,
-	.results-list :global(*)::-webkit-scrollbar-thumb {
+	.results-list::-webkit-scrollbar-thumb {
 		background: color-mix(in srgb, var(--text-caption) 70%, transparent);
 		border-radius: 999px;
 	}
 
 	.results-sidebar::-webkit-scrollbar-track,
-	.results-list::-webkit-scrollbar-track,
-	.results-list :global(*)::-webkit-scrollbar-track {
+	.results-list::-webkit-scrollbar-track {
 		background: transparent;
 	}
 
@@ -539,11 +541,6 @@
 			flex: 1 1 0;
 			min-height: 0;
 			overflow: hidden;
-		}
-
-		.results-list :global(*) {
-			scrollbar-width: thin;
-			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
 		}
 	}
 </style>

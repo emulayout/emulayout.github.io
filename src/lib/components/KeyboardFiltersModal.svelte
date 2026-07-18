@@ -8,13 +8,16 @@
 		type MagicKeyFilter,
 		type ThumbKeyFilter
 	} from '$lib/filterStore.svelte';
+	import type { KeyboardFilterField } from '$lib/filterSummaries';
 
 	interface Props {
 		open: boolean;
 		onClose: () => void;
+		focusField?: KeyboardFilterField | null;
+		focusToken?: number;
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, onClose, focusField = null, focusToken = 0 }: Props = $props();
 
 	const hasActiveFilters = $derived(filterStore.hasActiveKeyboardFilters);
 </script>
@@ -24,6 +27,8 @@
 	{onClose}
 	labelledBy="keyboard-filters-modal-title"
 	panelClass="max-h-[min(92vh,900px)] max-w-md"
+	initialFocusSelector={focusField ? `[data-keyboard-field="${focusField}"]` : null}
+	initialFocusToken={focusToken}
 >
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4"
@@ -67,6 +72,7 @@
 					value={filterStore.thumbKeyFilter}
 					onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
 					class="keyboard-filters-select"
+					data-keyboard-field="thumbs"
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
@@ -94,6 +100,7 @@
 					value={filterStore.magicKeyFilter}
 					onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
 					class="keyboard-filters-select"
+					data-keyboard-field="magic"
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
@@ -113,6 +120,7 @@
 					value={filterStore.boardTypeFilter}
 					onchange={(e) => filterStore.setBoardTypeFilter(e.currentTarget.value as BoardTypeFilter)}
 					class="keyboard-filters-select"
+					data-keyboard-field="board"
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
@@ -138,6 +146,7 @@
 					onchange={(e) =>
 						filterStore.setCharacterSetFilter(e.currentTarget.value as CharacterSetFilter)}
 					class="keyboard-filters-select"
+					data-keyboard-field="charset"
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
@@ -162,6 +171,7 @@
 						disabled={filterStore.characterSetFilter === 'international'}
 						onchange={(e) => filterStore.setShowUnfinished(e.currentTarget.checked)}
 						class="size-4 rounded appearance-none cursor-pointer relative"
+						data-keyboard-field="unfinished"
 						style="
 							background-color: {filterStore.showUnfinished ? 'var(--accent)' : 'var(--bg-primary)'};
 							border: 1px solid var(--border);

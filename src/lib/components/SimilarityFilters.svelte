@@ -64,6 +64,7 @@
 						<option value="gt">Greater than</option>
 					</select>
 					<input
+						id="similarity-match-value"
 						type="text"
 						inputmode="decimal"
 						value={filterStore.similarityFilterValue}

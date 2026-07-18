@@ -9,14 +9,22 @@
 		selectedIds: Set<number>;
 		onToggle: (id: number) => void;
 		onClear: () => void;
+		/** Bump to open the author dropdown (e.g. from an active-filter chip). */
+		openSeq?: number;
 	}
 
-	let { authors, selectedIds, onToggle, onClear }: Props = $props();
+	let { authors, selectedIds, onToggle, onClear, openSeq = 0 }: Props = $props();
 
 	let open = $state(false);
 	let search = $state('');
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
 	let triggerButton = $state<HTMLButtonElement | undefined>(undefined);
+
+	$effect(() => {
+		if (openSeq > 0) {
+			open = true;
+		}
+	});
 
 	$effect(() => {
 		if (open) {
@@ -65,6 +73,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="relative" onfocusout={handleFocusOut} onkeydown={handleKeyDown}>
 	<button
+		id="author-filter-trigger"
 		bind:this={triggerButton}
 		onclick={() => (open = !open)}
 		class="w-full px-4 py-2 rounded-xl text-sm text-left flex items-center justify-between transition-all duration-200 outline-none focus:ring-2"

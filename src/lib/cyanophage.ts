@@ -78,7 +78,7 @@ export function formatCyanophageIncompatibilities(
 		if (issue.kind === 'unsupported-chars') {
 			parts.push(`unsupported chars: ${formatUnsupportedCyanophageChars(issue.chars)}`);
 		} else if (issue.kind === 'multiple-thumb-keys') {
-			parts.push(`${issue.count} thumb keys (cyanophage supports one)`);
+			parts.push(`${issue.count} thumb keys (Cyanophage supports one)`);
 		}
 	}
 

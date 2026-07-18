@@ -2,16 +2,14 @@
 	import LayoutCard from './LayoutCard.svelte';
 	import { VList, WindowVirtualizer } from 'virtua/svelte';
 	import { getLayoutCardItemSize, LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import type {
-		CompactCyanophageStats,
-		CompactLayoutStats,
-		LayoutData,
-		LayoutLikesMap,
-		StatsMaps
-	} from '$lib/layout';
+	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { CYANOPHAGE_ANALYZER } from '$lib/layoutStats';
+	import {
+		ALL_STATS_ANALYZERS_MODE,
+		showsCyanophageStats,
+		showsMonkeyracerStats
+	} from '$lib/layoutStats';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 
 	interface Props {
@@ -59,14 +57,13 @@
 		return 1;
 	});
 
+	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const cardItemSize = $derived(
-		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
-	);
-
-	const activeStatsMap = $derived(
-		filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
-			? statsMaps.cyanophage
-			: statsMaps.monkeyracer
+		getLayoutCardItemSize(
+			filterStore.showLayoutStats,
+			filterStore.showLayoutTestArea,
+			dualStats
+		)
 	);
 
 	// Remount when similar mode toggles so virtua doesn't keep the old list height /
@@ -131,10 +128,6 @@
 		});
 	});
 
-	function compactStatsFor(layout: LayoutData): CompactLayoutStats | CompactCyanophageStats | undefined {
-		return activeStatsMap?.[layout.name];
-	}
-
 	// Include the first layout name so sort/filter reorders change keys. Index-only keys
 	// leave virtua's rows mounted with stale cards (highlights update, order does not).
 	function rowKey(startIndex: number): string {
@@ -153,7 +146,12 @@
 				{layout}
 				authorName={getAuthorName(layout.user)}
 				likeCount={likesData[layout.name] ?? 0}
-				compactStats={compactStatsFor(layout)}
+				compactMonkeyStats={showsMonkeyracerStats(filterStore.statsAnalyzer)
+					? statsMaps.monkeyracer?.[layout.name]
+					: undefined}
+				compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
+					? statsMaps.cyanophage?.[layout.name]
+					: undefined}
 				forceIncluded={forceIncludedNames.has(layout.name)}
 				similarMatchPercent={matchInfo?.percent}
 				similarMirrored={matchInfo?.mirrored ?? false}

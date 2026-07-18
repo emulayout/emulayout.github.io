@@ -1,19 +1,26 @@
 <script lang="ts">
 	import KeyFiltersModal from '$lib/components/KeyFiltersModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import { getKeyFilterKindSummary, type KeyFilterKind } from '$lib/filterSummaries';
+	import { type KeyFilterKind } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 
 	let openKind = $state<KeyFilterKind | null>(null);
 
-	const andSummary = $derived(getKeyFilterKindSummary(filterStore, 'and'));
-	const orSummary = $derived(getKeyFilterKindSummary(filterStore, 'or'));
-	const excludeSummary = $derived(getKeyFilterKindSummary(filterStore, 'exclude'));
-	const hasActive = $derived(Boolean(andSummary || orSummary || excludeSummary));
+	const andActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('and'));
+	const orActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('or'));
+	const excludeActive = $derived.by(() => filterStore.hasActiveKeyFilterKind('exclude'));
+	const hasActive = $derived(andActive || orActive || excludeActive);
 
 	function open(kind: KeyFilterKind) {
 		openKind = kind;
 	}
+
+	$effect(() => {
+		const seq = filterStore.filterFocusRequestSeq;
+		const req = filterStore.filterFocusRequest;
+		if (!seq || !req || req.target !== 'keys') return;
+		openKind = req.kind;
+	});
 </script>
 
 <div
@@ -41,10 +48,13 @@
 	<div class="filter-open-button-group">
 		<button type="button" class="filter-open-button" onclick={() => open('and')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Include keys (AND)</span>
-				{#if andSummary}
-					<span class="filter-open-button-summary" title={andSummary}>{andSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Include keys (AND)
+					{#if andActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -60,10 +70,13 @@
 
 		<button type="button" class="filter-open-button" onclick={() => open('or')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Include keys (OR)</span>
-				{#if orSummary}
-					<span class="filter-open-button-summary" title={orSummary}>{orSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Include keys (OR)
+					{#if orActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -79,10 +92,13 @@
 
 		<button type="button" class="filter-open-button" onclick={() => open('exclude')}>
 			<span class="filter-open-button-text">
-				<span class="filter-open-button-title">Exclude keys</span>
-				{#if excludeSummary}
-					<span class="filter-open-button-summary" title={excludeSummary}>{excludeSummary}</span>
-				{/if}
+				<span class="filter-open-button-title">
+					Exclude keys
+					{#if excludeActive}
+						<span class="filter-open-button-dot" aria-hidden="true"></span>
+						<span class="sr-only">Active filters</span>
+					{/if}
+				</span>
 			</span>
 			<svg
 				class="filter-open-button-chevron"
@@ -103,4 +119,3 @@
 	kind={openKind}
 	onClose={() => (openKind = null)}
 />
-

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { afterPaint, focusFilterControl } from '$lib/focusFilterControl';
 	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
 
 	interface Props {
@@ -9,10 +10,25 @@
 		labelledBy: string;
 		/** Extra classes for the dialog panel (width/height constraints). */
 		panelClass?: string;
+		/**
+		 * Optional selector (scoped to the panel) for the control to focus on open.
+		 * When set, that control is focused/highlighted instead of the first form field.
+		 */
+		initialFocusSelector?: string | null;
+		/** Bump to re-run targeted focus while the modal stays open. */
+		initialFocusToken?: number;
 		children: Snippet;
 	}
 
-	let { open, onClose, labelledBy, panelClass = '', children }: Props = $props();
+	let {
+		open,
+		onClose,
+		labelledBy,
+		panelClass = '',
+		initialFocusSelector = null,
+		initialFocusToken = 0,
+		children
+	}: Props = $props();
 
 	let panelEl = $state<HTMLDivElement | undefined>(undefined);
 
@@ -100,19 +116,38 @@
 
 		document.addEventListener('keydown', handleKeyDown);
 
-		// Defer past the activating keyup (e.g. Space on the trigger) so it doesn't type into inputs.
-		const focusTimer = window.setTimeout(() => {
-			if (!panelEl) return;
-			getInitialFocus(panelEl).focus();
-		}, 0);
-
 		return () => {
-			window.clearTimeout(focusTimer);
 			document.removeEventListener('keydown', handleKeyDown);
 			unlock();
 			if (previouslyFocused && document.contains(previouslyFocused)) {
 				previouslyFocused.focus();
 			}
+		};
+	});
+
+	$effect(() => {
+		if (!open) return;
+		const selector = initialFocusSelector;
+		const token = initialFocusToken;
+		void token;
+
+		// Defer past activating keyup; wait a paint so targeted controls exist after tab swaps.
+		const focusTimer = window.setTimeout(() => {
+			afterPaint(() => {
+				if (!panelEl) return;
+				const targeted = selector
+					? panelEl.querySelector<HTMLElement>(selector)
+					: null;
+				if (targeted) {
+					focusFilterControl(targeted);
+				} else {
+					getInitialFocus(panelEl).focus();
+				}
+			});
+		}, 0);
+
+		return () => {
+			window.clearTimeout(focusTimer);
 		};
 	});
 
