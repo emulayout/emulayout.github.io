@@ -19,13 +19,10 @@
 		formatCyanophageStatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
-		getActiveFilterStatKeys,
-		getStatSortField,
+		getStatCardHighlightState,
 		showsCyanophageStats,
 		showsMonkeyracerStats,
-		STAT_ANALYZERS,
-		type CyanophageStatSortKey,
-		type StatSortKey
+		STAT_ANALYZERS
 	} from '$lib/layoutStats';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import { buildKeyMap, buildShiftKeyMap, type KeyMap } from '$lib/cmini/keyboard';
@@ -53,6 +50,8 @@
 		similarMirrored?: boolean;
 		/** When set, keys that differ from this reference layout are highlighted. */
 		similarDiffPositions?: Map<string, string>;
+		/** Shared filter/sort highlights; omit to compute from the filter store. */
+		statHighlights?: ReturnType<typeof getStatCardHighlightState>;
 	}
 
 	const {
@@ -64,7 +63,8 @@
 		forceIncluded = false,
 		similarMatchPercent,
 		similarMirrored = false,
-		similarDiffPositions
+		similarDiffPositions,
+		statHighlights
 	}: Props = $props();
 
 	const monkeyLabel =
@@ -151,29 +151,16 @@
 		showCyanophageStats && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
 	);
 
-	const sortField = $derived(getStatSortField(filterStore.sortBy));
-	const botFilterHighlightKeys = $derived(
-		getActiveFilterStatKeys(
-			filterStore.appliedStatLimits,
-			DEFAULT_STATS_ANALYZER
-		) as Set<StatSortKey>
+	const sortFieldHighlight = $derived(
+		statHighlights ??
+			getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
+	const botFilterHighlightKeys = $derived(sortFieldHighlight.botFilterHighlightKeys);
 	const cyanophageFilterHighlightKeys = $derived(
-		getActiveFilterStatKeys(
-			filterStore.appliedStatLimits,
-			CYANOPHAGE_ANALYZER
-		) as Set<CyanophageStatSortKey>
+		sortFieldHighlight.cyanophageFilterHighlightKeys
 	);
-	const botSortHighlightKey = $derived(
-		sortField?.analyzer === DEFAULT_STATS_ANALYZER
-			? (sortField.key as StatSortKey)
-			: null
-	);
-	const cyanophageSortHighlightKey = $derived(
-		sortField?.analyzer === CYANOPHAGE_ANALYZER
-			? (sortField.key as CyanophageStatSortKey)
-			: null
-	);
+	const botSortHighlightKey = $derived(sortFieldHighlight.botSortHighlightKey);
+	const cyanophageSortHighlightKey = $derived(sortFieldHighlight.cyanophageSortHighlightKey);
 
 	const monkeyStatsBlockLines = $derived(
 		botStats

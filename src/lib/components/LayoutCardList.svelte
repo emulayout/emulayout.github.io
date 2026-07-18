@@ -7,6 +7,7 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		ALL_STATS_ANALYZERS_MODE,
+		getStatCardHighlightState,
 		showsCyanophageStats,
 		showsMonkeyracerStats
 	} from '$lib/layoutStats';
@@ -64,6 +65,9 @@
 			filterStore.showLayoutTestArea,
 			dualStats
 		)
+	);
+	const statHighlights = $derived(
+		getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
 
 	// Remount when similar mode toggles so virtua doesn't keep the old list height /
@@ -158,6 +162,7 @@
 				similarDiffPositions={matchInfo?.mirrored
 					? (similarMirrorDiffPositions ?? similarDiffPositions)
 					: similarDiffPositions}
+				{statHighlights}
 			/>
 		{/each}
 	</div>

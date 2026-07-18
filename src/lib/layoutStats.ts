@@ -998,6 +998,32 @@ export function countActiveStatFiltersForAnalyzer(
 	return count;
 }
 
+/** Shared filter/sort highlight keys for layout cards (compute once per list). */
+export function getStatCardHighlightState(
+	limits: Record<StatLimitKey, { value: string }>,
+	sortBy: SortBy
+): {
+	botFilterHighlightKeys: Set<StatSortKey>;
+	cyanophageFilterHighlightKeys: Set<CyanophageStatSortKey>;
+	botSortHighlightKey: StatSortKey | null;
+	cyanophageSortHighlightKey: CyanophageStatSortKey | null;
+} {
+	const sortField = getStatSortField(sortBy);
+	return {
+		botFilterHighlightKeys: getActiveFilterStatKeys(limits, DEFAULT_STATS_ANALYZER) as Set<StatSortKey>,
+		cyanophageFilterHighlightKeys: getActiveFilterStatKeys(
+			limits,
+			CYANOPHAGE_ANALYZER
+		) as Set<CyanophageStatSortKey>,
+		botSortHighlightKey:
+			sortField?.analyzer === DEFAULT_STATS_ANALYZER ? (sortField.key as StatSortKey) : null,
+		cyanophageSortHighlightKey:
+			sortField?.analyzer === CYANOPHAGE_ANALYZER
+				? (sortField.key as CyanophageStatSortKey)
+				: null
+	};
+}
+
 /**
  * Whether higher values are better for a sortable stat key, or `null` when the
  * metric is not ranked (hand/finger balance, etc.).
