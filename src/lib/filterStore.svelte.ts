@@ -268,8 +268,8 @@ export class FilterStore {
 		return this.showLayoutLikes && this.likesDataAvailable;
 	}
 
-	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-	#filterApplyTimeout: ReturnType<typeof setTimeout> | null = null;
+	#persistTimeout: ReturnType<typeof setTimeout> | null = null;
+	#persistShouldCommit = false;
 
 	constructor() {
 		this.#loadFromUrl();
@@ -313,35 +313,8 @@ export class FilterStore {
 		this.appliedFiltersRevision += 1;
 	}
 
-	#scheduleFilterApply() {
-		if (this.#filterApplyTimeout) {
-			clearTimeout(this.#filterApplyTimeout);
-		}
-		this.#filterApplyTimeout = setTimeout(() => {
-			this.#applyFiltersFromInputs();
-			this.#saveToUrl();
-			this.#filterApplyTimeout = null;
-		}, DEBOUNCE_MS);
-	}
-
-	#cancelFilterApply() {
-		if (this.#filterApplyTimeout) {
-			clearTimeout(this.#filterApplyTimeout);
-			this.#filterApplyTimeout = null;
-		}
-	}
-
-	#applyFiltersNow() {
-		this.#cancelFilterApply();
-		this.#applyFiltersFromInputs();
-	}
-
 	/** Reset URL-backed filter state to empty-URL defaults, then apply current location. */
 	#hydrateFromUrl() {
-		if (this.#debounceTimeout) {
-			clearTimeout(this.#debounceTimeout);
-			this.#debounceTimeout = null;
-		}
 		this.#cancelFilterApply();
 		this.#resetUrlControlledState();
 		this.#loadFromUrl();
@@ -621,12 +594,13 @@ export class FilterStore {
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
-		const includeSerialized = serializeGrid(this.includeGrid);
+		// Filter params use applied (committed) state so the URL matches results/chips.
+		const includeSerialized = serializeGrid(this.appliedIncludeGrid);
 		if (includeSerialized) {
 			url.searchParams.set('include', includeSerialized);
 		}
 
-		const excludeSerialized = serializeGrid(this.excludeGrid);
+		const excludeSerialized = serializeGrid(this.appliedExcludeGrid);
 		if (excludeSerialized) {
 			url.searchParams.set('exclude', excludeSerialized);
 		}
@@ -674,37 +648,41 @@ export class FilterStore {
 
 		const serializeThumbFilters = (filters: string[]) => filters.filter((k) => k !== '').join('|');
 
-		const includeLeftThumbsSerialized = serializeThumbFilters(this.includeLeftThumbKeys);
+		const includeLeftThumbsSerialized = serializeThumbFilters(this.appliedIncludeLeftThumbKeys);
 		if (includeLeftThumbsSerialized) {
 			url.searchParams.set('includeLeftThumbs', includeLeftThumbsSerialized);
 		}
 
-		const includeRightThumbsSerialized = serializeThumbFilters(this.includeRightThumbKeys);
+		const includeRightThumbsSerialized = serializeThumbFilters(this.appliedIncludeRightThumbKeys);
 		if (includeRightThumbsSerialized) {
 			url.searchParams.set('includeRightThumbs', includeRightThumbsSerialized);
 		}
 
-		const excludeLeftThumbsSerialized = serializeThumbFilters(this.excludeLeftThumbKeys);
+		const excludeLeftThumbsSerialized = serializeThumbFilters(this.appliedExcludeLeftThumbKeys);
 		if (excludeLeftThumbsSerialized) {
 			url.searchParams.set('excludeLeftThumbs', excludeLeftThumbsSerialized);
 		}
 
-		const excludeRightThumbsSerialized = serializeThumbFilters(this.excludeRightThumbKeys);
+		const excludeRightThumbsSerialized = serializeThumbFilters(this.appliedExcludeRightThumbKeys);
 		if (excludeRightThumbsSerialized) {
 			url.searchParams.set('excludeRightThumbs', excludeRightThumbsSerialized);
 		}
 
-		const includeOrSerialized = serializeGrid(this.includeOrGrid);
+		const includeOrSerialized = serializeGrid(this.appliedIncludeOrGrid);
 		if (includeOrSerialized) {
 			url.searchParams.set('includeOr', includeOrSerialized);
 		}
 
-		const includeOrLeftThumbsSerialized = serializeThumbFilters(this.includeOrLeftThumbKeys);
+		const includeOrLeftThumbsSerialized = serializeThumbFilters(
+			this.appliedIncludeOrLeftThumbKeys
+		);
 		if (includeOrLeftThumbsSerialized) {
 			url.searchParams.set('includeOrLeftThumbs', includeOrLeftThumbsSerialized);
 		}
 
-		const includeOrRightThumbsSerialized = serializeThumbFilters(this.includeOrRightThumbKeys);
+		const includeOrRightThumbsSerialized = serializeThumbFilters(
+			this.appliedIncludeOrRightThumbKeys
+		);
 		if (includeOrRightThumbsSerialized) {
 			url.searchParams.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
 		}
@@ -751,7 +729,7 @@ export class FilterStore {
 			}
 		}
 
-		const statLimitsSerialized = serializeStatLimits(this.statLimits);
+		const statLimitsSerialized = serializeStatLimits(this.appliedStatLimits);
 		if (statLimitsSerialized) {
 			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
@@ -767,13 +745,44 @@ export class FilterStore {
 		}
 	}
 
-	#debouncedSave() {
-		if (this.#debounceTimeout) {
-			clearTimeout(this.#debounceTimeout);
+	/**
+	 * Single debounce for URL persist. When `commit` is set, also copy draft filters
+	 * into applied state before saving (so URL matches results).
+	 */
+	#schedulePersist(options: { commit?: boolean } = {}) {
+		if (options.commit) this.#persistShouldCommit = true;
+		if (this.#persistTimeout) {
+			clearTimeout(this.#persistTimeout);
 		}
-		this.#debounceTimeout = setTimeout(() => {
+		this.#persistTimeout = setTimeout(() => {
+			if (this.#persistShouldCommit) {
+				this.#applyFiltersFromInputs();
+				this.#persistShouldCommit = false;
+			}
 			this.#saveToUrl();
+			this.#persistTimeout = null;
 		}, DEBOUNCE_MS);
+	}
+
+	#scheduleFilterApply() {
+		this.#schedulePersist({ commit: true });
+	}
+
+	#cancelFilterApply() {
+		if (this.#persistTimeout) {
+			clearTimeout(this.#persistTimeout);
+			this.#persistTimeout = null;
+		}
+		this.#persistShouldCommit = false;
+	}
+
+	#applyFiltersNow() {
+		this.#cancelFilterApply();
+		this.#applyFiltersFromInputs();
+	}
+
+	#debouncedSave() {
+		this.#schedulePersist();
 	}
 
 	#setGridCell(grid: string[][], row: number, col: number, value: string): string[][] {
@@ -1267,10 +1276,7 @@ export class FilterStore {
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
-		if (this.#debounceTimeout) {
-			clearTimeout(this.#debounceTimeout);
-			this.#debounceTimeout = null;
-		}
+		this.#cancelFilterApply();
 		this.#applyFiltersNow();
 		// Push so Back can restore the previous filter URL.
 		this.#saveToUrl({ history: 'push' });
