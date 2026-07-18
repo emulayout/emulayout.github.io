@@ -1821,9 +1821,14 @@ export class FilterStore {
 			: undefined;
 
 		if (statSort) {
+			const values = new Map<string, number | null>();
+			for (const layout of sorted) {
+				values.set(layout.name, getStatSortValue(statsMaps, layout, this.sortBy, sortAnalyzer));
+			}
+
 			return sorted.sort((a, b) => {
-				const aValue = getStatSortValue(statsMaps, a, this.sortBy, sortAnalyzer);
-				const bValue = getStatSortValue(statsMaps, b, this.sortBy, sortAnalyzer);
+				const aValue = values.get(a.name) ?? null;
+				const bValue = values.get(b.name) ?? null;
 
 				if (aValue === null && bValue === null) {
 					return a.name.localeCompare(b.name);
