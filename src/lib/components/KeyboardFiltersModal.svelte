@@ -60,10 +60,6 @@
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<p class="keyboard-filters-modal-intro" style="color: var(--text-secondary);">
-			Filter layouts by keyboard shape and related options.
-		</p>
-
 		<div class="keyboard-filters-fields">
 			<label class="keyboard-filters-field">
 				<span class="keyboard-filters-label" style="color: var(--text-secondary);">Thumb keys</span>
