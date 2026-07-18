@@ -269,7 +269,6 @@ export class FilterStore {
 	}
 
 	#debounceTimeout: ReturnType<typeof setTimeout> | null = null;
-	#nameDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
 	#filterApplyTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {
@@ -310,6 +309,7 @@ export class FilterStore {
 		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(this.excludeRightThumbKeys);
 		this.appliedStatLimits = this.#cloneStatLimits(this.statLimits);
 		this.appliedSimilarityFilterValue = this.similarityFilterValue;
+		this.nameFilter = this.nameFilterInput;
 		this.appliedFiltersRevision += 1;
 	}
 
@@ -341,10 +341,6 @@ export class FilterStore {
 		if (this.#debounceTimeout) {
 			clearTimeout(this.#debounceTimeout);
 			this.#debounceTimeout = null;
-		}
-		if (this.#nameDebounceTimeout) {
-			clearTimeout(this.#nameDebounceTimeout);
-			this.#nameDebounceTimeout = null;
 		}
 		this.#cancelFilterApply();
 		this.#resetUrlControlledState();
@@ -1082,14 +1078,7 @@ export class FilterStore {
 
 	setNameFilter(value: string) {
 		this.nameFilterInput = value;
-		// Debounce the actual filter update
-		if (this.#nameDebounceTimeout) {
-			clearTimeout(this.#nameDebounceTimeout);
-		}
-		this.#nameDebounceTimeout = setTimeout(() => {
-			this.nameFilter = value;
-			this.#saveToUrl(); // Sync URL immediately after filter updates
-		}, DEBOUNCE_MS);
+		this.#scheduleFilterApply();
 	}
 
 	clearInclude() {
@@ -1278,10 +1267,6 @@ export class FilterStore {
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
-		if (this.#nameDebounceTimeout) {
-			clearTimeout(this.#nameDebounceTimeout);
-			this.#nameDebounceTimeout = null;
-		}
 		if (this.#debounceTimeout) {
 			clearTimeout(this.#debounceTimeout);
 			this.#debounceTimeout = null;
@@ -1313,11 +1298,6 @@ export class FilterStore {
 		this.boardTypeFilter = 'all';
 		this.showUnfinished = true;
 		this.nameFilterInput = name;
-		this.nameFilter = name;
-		if (this.#nameDebounceTimeout) {
-			clearTimeout(this.#nameDebounceTimeout);
-			this.#nameDebounceTimeout = null;
-		}
 		this.#applyFiltersNow();
 		this.focusLayoutName = name;
 		this.#saveToUrl();
