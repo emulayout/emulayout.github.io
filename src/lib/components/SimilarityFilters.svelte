@@ -25,11 +25,13 @@
 	class="similarity-filter w-full p-3 rounded-xl"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center gap-1.5 mb-1">
-		<span class="text-sm font-medium" style="color: var(--text-secondary);">Similarity filter</span>
-		<Tooltip
-			text="Compares letter positions against a selected layout. Match percent is how many shared slots have the same character (optionally weighting home-row keys higher). Mirror matches also try a left/right flipped compare. Diff highlighting shows letters that differ from the reference."
-		/>
+	<div class="filter-section-header">
+		<div class="filter-section-header-start">
+			<span class="filter-section-header-label">Similarity filter</span>
+			<Tooltip
+				text="Compares letter positions against a selected layout. Match percent is how many shared slots have the same character (optionally weighting home-row keys higher). Mirror matches also try a left/right flipped compare. Diff highlighting shows letters that differ from the reference."
+			/>
+		</div>
 	</div>
 
 	{#if !hasReference}

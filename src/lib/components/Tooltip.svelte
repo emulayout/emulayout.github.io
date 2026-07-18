@@ -120,7 +120,10 @@
 
 <style>
 	.tooltip-root {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+		line-height: 0;
 		position: relative;
 		vertical-align: middle;
 	}

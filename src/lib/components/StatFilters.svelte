@@ -41,9 +41,9 @@
 	class="stat-filters w-full p-3 rounded-xl"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center justify-between gap-2 mb-2">
-		<div class="flex items-center gap-1.5 min-w-0">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">Stat filters</span>
+	<div class="filter-section-header">
+		<div class="filter-section-header-start">
+			<span class="filter-section-header-label">Stat filters</span>
 			<Tooltip
 				text="Filter layouts by analyzer stats. General covers overall metrics; Hands & fingers covers per-hand and per-finger usage. Layouts without stats are hidden when any limit is set."
 			/>

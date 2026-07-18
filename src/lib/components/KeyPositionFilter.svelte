@@ -117,9 +117,9 @@
 >
 	<div class="flex flex-col gap-1 font-mono">
 		{#if !nested}
-			<div class="flex items-center justify-between mb-2 w-full gap-2">
-				<div class="flex items-center gap-1.5 min-w-0">
-					<span class="text-sm font-medium" style="color: var(--text-secondary);">{label}</span>
+			<div class="filter-section-header w-full">
+				<div class="filter-section-header-start">
+					<span class="filter-section-header-label">{label}</span>
 					<Tooltip text={tooltipText} />
 				</div>
 				{#if hasActiveFilters}

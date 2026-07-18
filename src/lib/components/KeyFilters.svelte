@@ -27,9 +27,9 @@
 	class="key-filters w-full p-3 rounded-xl"
 	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 >
-	<div class="flex items-center justify-between gap-2 mb-2">
-		<div class="flex items-center gap-1.5 min-w-0">
-			<span class="text-sm font-medium" style="color: var(--text-secondary);">Key filters</span>
+	<div class="filter-section-header">
+		<div class="filter-section-header-start">
+			<span class="filter-section-header-label">Key filters</span>
 			<Tooltip
 				text="Filter layouts by keys in specific positions. Include AND requires every filled position to match. Include OR matches if any filled position matches. Exclude removes layouts that place unwanted keys at the given positions."
 			/>
