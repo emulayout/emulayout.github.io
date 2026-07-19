@@ -12,13 +12,25 @@ Filtering is where this gets interesting. You can search by name, author, board 
 
 ## Running locally
 
-Requires [Bun](https://bun.sh).
+Install [mise](https://mise.jdx.dev/), then use the versions pinned in [`mise.toml`](mise.toml) (kept in sync with [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)):
+
+| Tool | Purpose |
+| --- | --- |
+| Bun | App, sync scripts, build |
+| Go | Building [Mana2](https://codeberg.org/Zakkkk/mana2) for layout stats |
 
 ```sh
+mise install                  # Bun + Go from mise.toml
 bun install
-bun run ./bin/cmini-sync.js   # fetch layouts from cmini (first run clones the repo)
+bun run ./bin/cmini-sync.js   # layouts + cmini/cyanophage stats → static/
+bun run ./bin/mana2-sync.js   # Mana2 stats → static/layout-stats-mana2.json
 bun run dev
 ```
+
+Generated `static/*.json` files are gitignored; CI regenerates them on each deploy (including the daily sync).
+
+- **cmini-sync** clones [Apsu/cmini](https://github.com/Apsu/cmini) into `.cache/cmini-repo` and writes layout/stats JSON under `static/`.
+- **mana2-sync** clones Mana2 into `.cache/mana2`, builds the CLI, and writes `static/layout-stats-mana2.json`. Requires the Go version from `mise.toml`. Use `--offline` on later runs to skip git fetches. If Go is missing, the script skips instead of failing (except in CI).
 
 ```sh
 bun run build      # production build

@@ -1,0 +1,4 @@
+# Install: mise install
+
+[tools]
+bun = "1.3.14"
