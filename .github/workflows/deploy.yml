@@ -29,6 +29,12 @@ jobs:
         with:
           bun-version: '1.3.14'
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.4'
+          cache-dependency-path: bin/mana2-go/go.sum
+
       - name: Cache Bun + node_modules
         uses: actions/cache@v4
         with:
@@ -50,6 +56,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cmini-
 
+      - name: Cache mana2 checkout + stats
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/mana2
+            .cache/layout-stats-mana2.json
+          key: ${{ runner.os }}-mana2-v1-${{ hashFiles('bin/mana2-sync.js', 'bin/mana2-layout.js', 'bin/mana2-stats.js', 'bin/mana2-go/**') }}
+          restore-keys: |
+            ${{ runner.os }}-mana2-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -60,6 +76,11 @@ jobs:
 
       - name: Verify monkeyracer stats match cmini cache
         run: bun run verify:monkeyracer-stats
+
+      - name: Run mana2-sync
+        run: bun run ./bin/mana2-sync.js
+        env:
+          CI: true
 
       - name: Build
         run: bun run build

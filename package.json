@@ -14,7 +14,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"verify:monkeyracer-stats": "bun run ./bin/verify-monkeyracer-stats.js"
+		"verify:monkeyracer-stats": "bun run ./bin/verify-monkeyracer-stats.js",
+		"mana2-sync": "bun run ./bin/mana2-sync.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",
