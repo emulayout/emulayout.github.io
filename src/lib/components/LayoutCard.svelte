@@ -109,7 +109,6 @@
 	}
 
 	const baseDisplayRows = $derived(computeDisplayRows(layout));
-	const baseDisplayValue = $derived(displayRowsToString(baseDisplayRows));
 
 	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
 	const transformedDisplayRows = $derived.by((): DisplayCell[][] => {
@@ -273,8 +272,9 @@
 		const url = buildCyanophagePlaygroundUrl(
 			layout.keys,
 			layout.board,
-			baseDisplayValue,
-			layout.cyanophageThumb ?? 'l'
+			transformedDisplayValue,
+			layout.cyanophageThumb ?? 'l',
+			{ preferDisplay: anglemod }
 		);
 		if (!url) return;
 		window.open(url, '_blank', 'noopener,noreferrer');

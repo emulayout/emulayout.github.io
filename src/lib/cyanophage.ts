@@ -277,8 +277,13 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 export function formatLayoutImportString(
 	keys: Record<string, KeyInfo>,
 	board: BoardType,
-	displayValue?: string
+	displayValue?: string,
+	options?: { preferDisplay?: boolean }
 ): string {
+	if (options?.preferDisplay && displayValue) {
+		const fromDisplay = formatLayoutFromDisplayValue(displayValue);
+		if (fromDisplay.length === CYANOPHAGE_IMPORT_SLOT_COUNT) return fromDisplay;
+	}
 	if (!keys || Object.keys(keys).length === 0) {
 		const fallback = displayValue ? formatLayoutFromDisplayValue(displayValue) : '';
 		return fallback.length === CYANOPHAGE_IMPORT_SLOT_COUNT ? fallback : '';
@@ -335,9 +340,10 @@ function formatLayoutFromDisplayValue(displayValue: string): string {
 export function formatLayoutForCyanophage(
 	keys: Record<string, KeyInfo>,
 	board: BoardType,
-	displayValue?: string
+	displayValue?: string,
+	options?: { preferDisplay?: boolean }
 ): string {
-	const layout = formatLayoutImportString(keys, board, displayValue);
+	const layout = formatLayoutImportString(keys, board, displayValue, options);
 	if (!layout) return '';
 
 	// ANSI/ISO exportLayout appends rcdata[35] when it is not "$" (always "back" on those modes).
@@ -388,7 +394,8 @@ export function buildCyanophagePlaygroundUrl(
 	keys: Record<string, KeyInfo>,
 	board: BoardType,
 	displayValue?: string,
-	thumb: 'l' | 'r' = 'l'
+	thumb: 'l' | 'r' = 'l',
+	options?: { preferDisplay?: boolean }
 ): string | null {
 	if (!isCyanophageCompatible(keys)) return null;
 
@@ -396,7 +403,7 @@ export function buildCyanophagePlaygroundUrl(
 	// importLayout() reads the 34-char import string (^ empty slots, thumb letter at [33]).
 	// Use thumb=l|r for side; do not use exportLayout() output (= markers, "space" suffix) —
 	// reloading that format breaks swaps because charAt(33) is "s" from the "space" suffix.
-	const layoutParam = formatLayoutForCyanophage(keys, board, displayValue);
+	const layoutParam = formatLayoutForCyanophage(keys, board, displayValue, options);
 	if (layoutParam.length < CYANOPHAGE_IMPORT_SLOT_COUNT) return null;
 
 	const encodedLayout = encodeCyanophageLayoutParam(layoutParam);
