@@ -57,13 +57,8 @@
 		if (analyzer === DEFAULT_STATS_ANALYZER) {
 			const s = stats as DerivedBotStats;
 			return [
-				{ label: 'Roll in / out', value: pair(s.rollIn, s.rollOut) },
-				{ label: 'One-hand', value: pct(s.one) },
-				{ label: 'One-hand in / out', value: pair(s.oneIn, s.oneOut) },
-				{ label: 'Roll total', value: pct(s.rtl) },
 				{ label: 'Roll total in / out', value: pair(s.rtlIn, s.rtlOut) },
-				{ label: 'Bad redirect', value: pct(s.badRedirect) },
-				{ label: 'SFS redirect / alt', value: pair(s.dsfbRed, s.dsfbAlt) }
+				{ label: 'One-hand', value: pct(s.one) }
 			];
 		}
 
@@ -81,21 +76,9 @@
 			{ label: 'Stretch skip', value: mana2Raw(s.lss) },
 			{ label: 'Scissor skip', value: mana2Raw(s.vss) },
 			{ label: 'Alt (no thumbs)', value: pct(s.altNoThumbs) },
-			{ label: 'Alt & SFS', value: pct(s.altSfs) },
 			{ label: 'Redirect (no thumbs)', value: pct(s.redirectNoThumbs) },
-			{
-				label: 'Redirect SFS / weak / both',
-				value: `${pct(s.redirectSfs)} | ${pct(s.redirectWeak)} | ${pct(s.redirectSfsWeak)}`
-			},
+			{ label: 'Redirect SFS & weak', value: pct(s.redirectSfsWeak) },
 			{ label: 'Roll (no thumbs)', value: pct(s.rollNoThumbs) },
-			{
-				label: 'Roll in2 / out2',
-				value: pair(s.inroll2, s.outroll2)
-			},
-			{
-				label: 'Roll in3 / out3',
-				value: pair(s.inroll3, s.outroll3)
-			},
 			{ label: 'Good roll', value: pct(s.goodroll) },
 			{ label: 'Off-pinky', value: pct(s.offpinky) }
 		];
@@ -132,6 +115,7 @@
 <style>
 	.expand-unique {
 		min-width: 0;
+		height: 100%;
 		padding: 0.75rem;
 		border-radius: 0.75rem;
 		border: 1px solid var(--border);

@@ -302,12 +302,30 @@
 			return format(get(expandMana2Stats));
 		};
 		const mana2Raw = (value: number) => value.toFixed(3);
+		const pair = (a: number, b: number) => `${formatStatPercent(a)} | ${formatStatPercent(b)}`;
+		const monkeyPair = (
+			getA: (stats: NonNullable<typeof expandBotStats>) => number,
+			getB: (stats: NonNullable<typeof expandBotStats>) => number
+		): Cell => {
+			if (expandMonkeyLoading) return loading;
+			if (!expandBotStats) return dash;
+			return pair(getA(expandBotStats), getB(expandBotStats));
+		};
+		const mana2Pair = (
+			getA: (stats: NonNullable<typeof expandMana2Stats>) => number,
+			getB: (stats: NonNullable<typeof expandMana2Stats>) => number
+		): Cell => {
+			if (expandMana2Loading) return loading;
+			if (!expandMana2Stats) return dash;
+			return pair(getA(expandMana2Stats), getB(expandMana2Stats));
+		};
 
-		return { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw };
+		return { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw, monkeyPair, mana2Pair };
 	});
 
 	const expandSharedStatRows = $derived.by(() => {
-		const { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw } = expandSharedCells;
+		const { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw, monkeyPair, mana2Pair } =
+			expandSharedCells;
 
 		return [
 			{
@@ -317,8 +335,9 @@
 				mana2: mana2Cell((s) => s.sfb)
 			},
 			{
+				// Skipgram SFB — cmini’s “SFS” is trigram end-same-finger, not this.
 				label: 'Same-finger skip',
-				monkey: monkeyCell((s) => s.sfs),
+				monkey: dash,
 				cyanophage: cyanoCell((s) => s.sfs),
 				mana2: mana2Cell((s) => s.sfs)
 			},
@@ -329,16 +348,47 @@
 				mana2: mana2Cell((s) => s.alt)
 			},
 			{
-				label: 'Roll',
-				monkey: monkeyCell((s) => s.roll),
+				label: 'Alt & SFS',
+				monkey: monkeyCell((s) => s.dsfbAlt),
+				cyanophage: dash,
+				mana2: mana2Cell((s) => s.altSfs)
+			},
+			{
+				// cmini rtl (= roll + one-hand) matches Mana2 roll total; cmini roll is 2-key only.
+				label: 'Roll total',
+				monkey: monkeyCell((s) => s.rtl),
 				cyanophage: cyanoCell((s) => s.roll),
 				mana2: mana2Cell((s) => s.roll)
+			},
+			{
+				label: 'Roll in / out (2)',
+				monkey: monkeyPair((s) => s.rollIn, (s) => s.rollOut),
+				cyanophage: dash,
+				mana2: mana2Pair((s) => s.inroll2, (s) => s.outroll2)
+			},
+			{
+				label: 'One-hand in / out (3)',
+				monkey: monkeyPair((s) => s.oneIn, (s) => s.oneOut),
+				cyanophage: dash,
+				mana2: mana2Pair((s) => s.inroll3, (s) => s.outroll3)
 			},
 			{
 				label: 'Redirect',
 				monkey: monkeyCell((s) => s.red),
 				cyanophage: cyanoCell((s) => s.redirect),
 				mana2: mana2Cell((s) => s.redirect)
+			},
+			{
+				label: 'Weak / bad redirect',
+				monkey: monkeyCell((s) => s.badRedirect),
+				cyanophage: dash,
+				mana2: mana2Cell((s) => s.redirectWeak)
+			},
+			{
+				label: 'Redirect & SFS',
+				monkey: monkeyCell((s) => s.dsfbRed),
+				cyanophage: dash,
+				mana2: mana2Cell((s) => s.redirectSfs)
 			},
 			{
 				label: 'Lat stretch bigrams',
@@ -1397,6 +1447,7 @@
 	@media (min-width: 720px) {
 		.expand-unique-columns {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
+			align-items: stretch;
 		}
 	}
 
