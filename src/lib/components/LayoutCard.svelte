@@ -36,6 +36,7 @@
 		showsMonkeyracerStats,
 		STAT_ANALYZERS
 	} from '$lib/layoutStats';
+	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import { buildKeyMap, buildShiftKeyMap, type KeyMap } from '$lib/cmini/keyboard';
 	import {
@@ -86,11 +87,17 @@
 		STAT_ANALYZERS.find((a) => a.value === DEFAULT_STATS_ANALYZER)?.label ?? 'cmini';
 	const cyanophageLabel =
 		STAT_ANALYZERS.find((a) => a.value === CYANOPHAGE_ANALYZER)?.label ?? 'Cyanophage';
+	const mana2Label = STAT_ANALYZERS.find((a) => a.value === MANA2_ANALYZER)?.label ?? 'Mana2';
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let localAnglemod = $state(false);
+	let expanded = $state(false);
 	let keyMapCache: KeyMap | null = null;
 	let shiftKeyMapCache: KeyMap | null = null;
 	let keyMapSource = '';
+
+	const expandTitleId = $derived(
+		`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+	);
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 	const isCompareSelected = $derived(filterStore.compareSelectedNames.has(layout.name));
@@ -237,6 +244,109 @@
 				: null
 	);
 
+	// Expand modal always shows all three analyzers; prefer store maps so lazy loads update live.
+	const expandMonkeyCompact = $derived(
+		layoutStatsStore.maps.monkeyracer?.[layout.name] ?? compactMonkeyStats
+	);
+	const expandCyanophageCompact = $derived(
+		layoutStatsStore.maps.cyanophage?.[layout.name] ?? compactCyanophageStats
+	);
+	const expandMana2Compact = $derived(
+		layoutStatsStore.maps.mana2?.[layout.name] ?? compactMana2Stats
+	);
+
+	const expandMonkeyLoading = $derived(layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER));
+	const expandCyanophageLoading = $derived(layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER));
+	const expandMana2Loading = $derived(layoutStatsStore.isLoading(MANA2_ANALYZER));
+
+	const expandBotStats = $derived.by(() => {
+		if (!expandMonkeyCompact) return null;
+		const decoded = decodeMonkeyracerStats(expandMonkeyCompact);
+		return decoded ? deriveBotStats(decoded) : null;
+	});
+	const expandCyanophageStats = $derived.by(() => {
+		if (!expandCyanophageCompact || !layout.cyanophageCompatible) return null;
+		const decoded = decodeCyanophageStats(expandCyanophageCompact);
+		return decoded ? deriveCyanophageStats(decoded) : null;
+	});
+	const expandMana2Stats = $derived.by(() => {
+		if (!expandMana2Compact) return null;
+		const decoded = decodeMana2Stats(expandMana2Compact);
+		return decoded ? deriveMana2Stats(decoded) : null;
+	});
+
+	const expandMonkeyStatsBlockLines = $derived(
+		expandBotStats
+			? buildBotStatsBlockLines(
+					expandBotStats,
+					botFilterHighlightKeys,
+					botSortHighlightKey,
+					sortOrder
+				)
+			: null
+	);
+	const expandCyanophageStatsBlockLines = $derived(
+		expandCyanophageStats
+			? buildCyanophageStatsBlockLines(
+					expandCyanophageStats,
+					cyanophageFilterHighlightKeys,
+					cyanophageSortHighlightKey,
+					sortOrder
+				)
+			: null
+	);
+	const expandMana2StatsBlockLines = $derived(
+		expandMana2Stats
+			? buildMana2StatsBlockLines(
+					expandMana2Stats,
+					mana2FilterHighlightKeys,
+					mana2SortHighlightKey,
+					sortOrder
+				)
+			: null
+	);
+
+	const expandMonkeyStatsPlaceholder = $derived(
+		expandMonkeyLoading
+			? formatStatsLoadingBlock()
+			: !expandBotStats
+				? formatStatsUnavailableBlock()
+				: null
+	);
+	const expandCyanophageStatsPlaceholder = $derived(
+		expandCyanophageLoading
+			? formatCyanophageStatsLoadingBlock()
+			: !expandCyanophageStats
+				? formatCyanophageStatsUnavailableBlock(
+						!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
+					)
+				: null
+	);
+	const expandMana2StatsPlaceholder = $derived(
+		expandMana2Loading
+			? formatMana2StatsLoadingBlock()
+			: !expandMana2Stats
+				? formatMana2StatsUnavailableBlock()
+				: null
+	);
+
+	$effect(() => {
+		if (!expanded) return;
+		void Promise.all([
+			layoutStatsStore.ensureLoaded(DEFAULT_STATS_ANALYZER),
+			layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER),
+			layoutStatsStore.ensureLoaded(MANA2_ANALYZER)
+		]);
+	});
+
+	function openExpanded() {
+		expanded = true;
+	}
+
+	function closeExpanded() {
+		expanded = false;
+	}
+
 	const cardHeight = $derived(
 		getLayoutCardHeight(
 			filterStore.showLayoutStats,
@@ -328,26 +438,7 @@
 	}
 </script>
 
-<div
-	data-layout-name={layout.name}
-	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
-	class:layout-card--force-included={forceIncluded}
-	style="
-		background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
-		border: 1px solid {forceIncluded
-		? 'transparent'
-		: isSimilarActive
-			? 'var(--similar-diff)'
-			: 'var(--border)'};
-		--force-border-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
-		height: {cardHeight}px;
-	"
->
-	{#if forceIncluded}
-		<svg class="layout-card-force-border" aria-hidden="true">
-			<rect pathLength="100" />
-		</svg>
-	{/if}
+{#snippet layoutCardMain(markFirstAction: boolean, showExpand = true)}
 	<div class="shrink-0 flex flex-col gap-1">
 		<div class="flex items-center gap-2 min-w-0">
 			<label class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer">
@@ -495,13 +586,9 @@
 			<button
 				type="button"
 				onclick={handleFindSimilarClick}
-				data-layout-card-first-action
+				data-layout-card-first-action={markFirstAction ? true : undefined}
 				class="card-action-button"
-				style="
-					background-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--bg-primary)'};
-					color: {isSimilarActive ? 'var(--similar-active-fg)' : 'var(--text-primary)'};
-					border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
-				"
+				class:card-action-button--similar={isSimilarActive}
 				title={isSimilarActive
 					? 'Stop showing similar layouts'
 					: filterStore.hasSimilarReference
@@ -533,11 +620,7 @@
 				type="button"
 				onclick={toggleAnglemod}
 				class="card-action-button"
-				style="
-					background-color: {anglemod ? 'var(--accent)' : 'var(--bg-primary)'};
-					color: {anglemod ? 'white' : 'var(--text-primary)'};
-					border: 1px solid {anglemod ? 'var(--accent)' : 'var(--border)'};
-				"
+				class:card-action-button--accent={anglemod}
 				title={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
 				aria-label={isAngleBoard ? 'Remove anglemod' : 'Anglemod'}
 				aria-pressed={anglemod}
@@ -561,11 +644,6 @@
 				type="button"
 				onclick={handleColemakCampClick}
 				class="card-action-button"
-				style="
-					background-color: var(--bg-primary);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-				"
 				title="Practice on Colemak Camp"
 				aria-label="Practice on Colemak Camp"
 			>
@@ -578,12 +656,7 @@
 				type="button"
 				onclick={handlePlaygroundClick}
 				disabled={!layout.cyanophageCompatible}
-				class="card-action-button disabled:opacity-40 disabled:cursor-not-allowed"
-				style="
-					background-color: var(--bg-primary);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-				"
+				class="card-action-button"
 				title={cyanophageLinkTitle}
 				aria-label={cyanophageLinkTitle}
 				aria-disabled={!layout.cyanophageCompatible}
@@ -596,8 +669,90 @@
 					/>
 				</svg>
 			</button>
+			{#if showExpand}
+				<button
+					type="button"
+					onclick={openExpanded}
+					class="card-action-button"
+					title="Expand layout"
+					aria-label="Expand layout"
+				>
+					<svg
+						class="size-4"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M15 3h6v6" />
+						<path d="M9 21H3v-6" />
+						<path d="M21 3l-7 7" />
+						<path d="M3 21l7-7" />
+					</svg>
+				</button>
+			{/if}
 		</div>
 	</div>
+{/snippet}
+
+{#snippet statsColumn(
+	label: string,
+	blockLines: typeof expandMonkeyStatsBlockLines,
+	placeholder: string | null,
+	loading: boolean,
+	mana2 = false
+)}
+	<div class="stats-stack-item expand-stats-col">
+		<div class="stats-analyzer-label">{label}</div>
+		{#if blockLines}
+			<div class="stats-block shrink-0" class:stats-block--mana2={mana2}>
+				{#each blockLines as line, lineIndex (lineIndex)}
+					<div class="stats-block-line">
+						{#each line as segment, segmentIndex (segmentIndex)}
+							<span
+								class:stats-block-highlight={Boolean(segment.highlight)}
+								class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
+								class:stats-block-highlight--cyanophage={segment.highlight === 'cyanophage'}
+								class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
+								class:stats-block-highlight--sort={segment.highlight === 'sort'}
+								>{segment.text}</span
+							>
+						{/each}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<pre
+				class="stats-block shrink-0"
+				class:stats-block--mana2={mana2}
+				class:stats-block--unavailable={!loading}>{placeholder}</pre>
+		{/if}
+	</div>
+{/snippet}
+
+<div
+	data-layout-name={layout.name}
+	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
+	class:layout-card--force-included={forceIncluded}
+	style="
+		background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
+		border: 1px solid {forceIncluded
+		? 'transparent'
+		: isSimilarActive
+			? 'var(--similar-diff)'
+			: 'var(--border)'};
+		--force-border-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
+		height: {cardHeight}px;
+	"
+>
+	{#if forceIncluded}
+		<svg class="layout-card-force-border" aria-hidden="true">
+			<rect pathLength="100" />
+		</svg>
+	{/if}
+	{@render layoutCardMain(true)}
 
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
@@ -723,6 +878,72 @@
 	{/if}
 </div>
 
+<ModalShell
+	open={expanded}
+	onClose={closeExpanded}
+	labelledBy={expandTitleId}
+	panelClass="max-h-[min(92vh,960px)] max-w-[min(1200px,96vw)]"
+>
+	<div
+		class="flex items-center justify-between gap-3 border-b px-5 py-4 shrink-0"
+		style="border-color: var(--border);"
+	>
+		<h2
+			id={expandTitleId}
+			class="text-lg font-semibold truncate min-w-0"
+			style="color: var(--text-primary);"
+			title={layout.name}
+		>
+			{layout.name}
+		</h2>
+		<button
+			type="button"
+			onclick={closeExpanded}
+			class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
+			style="color: var(--text-secondary);"
+			aria-label="Close"
+		>
+			<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path d="M18 6L6 18M6 6l12 12" />
+			</svg>
+		</button>
+	</div>
+
+	<div class="expand-modal-body min-h-0 flex-1 overflow-y-auto px-5 py-4">
+		<div class="expand-grid">
+			<div
+				class="expand-layout-col flex min-w-0 flex-col gap-2 rounded-xl px-3 pt-3 pb-2"
+				class:layout-card--force-included={forceIncluded}
+				style="
+					background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
+					border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
+				"
+			>
+				{@render layoutCardMain(false, false)}
+			</div>
+			{@render statsColumn(
+				monkeyLabel,
+				expandMonkeyStatsBlockLines,
+				expandMonkeyStatsPlaceholder,
+				expandMonkeyLoading
+			)}
+			{@render statsColumn(
+				cyanophageLabel,
+				expandCyanophageStatsBlockLines,
+				expandCyanophageStatsPlaceholder,
+				expandCyanophageLoading
+			)}
+			{@render statsColumn(
+				mana2Label,
+				expandMana2StatsBlockLines,
+				expandMana2StatsPlaceholder,
+				expandMana2Loading,
+				true
+			)}
+		</div>
+	</div>
+</ModalShell>
+
 <style>
 	/*
 	 * iOS Safari + virtua: parent transform + overflow:hidden/border-radius often
@@ -807,7 +1028,77 @@
 		border-radius: 0.5rem;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		transition: all 0.15s ease;
+		cursor: pointer;
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+		box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 8%, transparent);
+		transition:
+			background-color 0.12s ease,
+			border-color 0.12s ease,
+			color 0.12s ease,
+			box-shadow 0.12s ease,
+			transform 0.08s ease;
+	}
+
+	.card-action-button:hover:not(:disabled) {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-primary));
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+	}
+
+	.card-action-button:active:not(:disabled) {
+		transform: translateY(1px);
+		box-shadow: none;
+		background-color: color-mix(in srgb, var(--accent) 26%, var(--bg-primary));
+		border-color: var(--accent);
+	}
+
+	.card-action-button:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+	}
+
+	.card-action-button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+		box-shadow: none;
+	}
+
+	.card-action-button--accent {
+		color: white;
+		background-color: var(--accent);
+		border-color: var(--accent);
+		box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 18%, transparent);
+	}
+
+	.card-action-button--accent:hover:not(:disabled) {
+		color: white;
+		background-color: color-mix(in srgb, var(--accent) 88%, black);
+		border-color: color-mix(in srgb, var(--accent) 88%, black);
+	}
+
+	.card-action-button--accent:active:not(:disabled) {
+		background-color: color-mix(in srgb, var(--accent) 78%, black);
+		border-color: color-mix(in srgb, var(--accent) 78%, black);
+	}
+
+	.card-action-button--similar {
+		color: var(--similar-active-fg);
+		background-color: var(--similar-diff);
+		border-color: var(--similar-diff);
+		box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 18%, transparent);
+	}
+
+	.card-action-button--similar:hover:not(:disabled) {
+		color: var(--similar-active-fg);
+		background-color: color-mix(in srgb, var(--similar-diff) 88%, black);
+		border-color: color-mix(in srgb, var(--similar-diff) 88%, black);
+	}
+
+	.card-action-button--similar:active:not(:disabled) {
+		background-color: color-mix(in srgb, var(--similar-diff) 78%, black);
+		border-color: color-mix(in srgb, var(--similar-diff) 78%, black);
 	}
 
 	.layout-test-area {
@@ -879,5 +1170,36 @@
 		line-height: 1rem;
 		letter-spacing: 0.01em;
 		color: var(--text-primary);
+	}
+
+	.expand-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1rem;
+		align-items: start;
+	}
+
+	.expand-stats-col {
+		min-width: 0;
+		padding: 0.75rem;
+		border-radius: 0.75rem;
+		border: 1px solid var(--border);
+		background-color: var(--bg-secondary);
+	}
+
+	.expand-layout-col .layout-display-area {
+		flex: 0 0 auto;
+	}
+
+	@media (min-width: 768px) {
+		.expand-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (min-width: 1100px) {
+		.expand-grid {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
 	}
 </style>
