@@ -14,6 +14,8 @@
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
+		isStatsAnalyzer,
+		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
@@ -101,7 +103,11 @@
 	const oldLayout = $derived(viewRightName ? (layoutByName.get(viewRightName) ?? null) : null);
 
 	const activeStatsMap = $derived(
-		compareAnalyzer === CYANOPHAGE_ANALYZER ? statsMaps.cyanophage : statsMaps.monkeyracer
+		compareAnalyzer === CYANOPHAGE_ANALYZER
+			? statsMaps.cyanophage
+			: compareAnalyzer === MANA2_ANALYZER
+				? statsMaps.mana2
+				: statsMaps.monkeyracer
 	);
 
 	const statsLoading = $derived(layoutStatsStore.isLoading(compareAnalyzer));
@@ -111,10 +117,9 @@
 		if (!open) return;
 		session;
 		const mode = seedMode;
-		compareAnalyzer =
-			filterStore.statsAnalyzer === CYANOPHAGE_ANALYZER
-				? CYANOPHAGE_ANALYZER
-				: DEFAULT_STATS_ANALYZER;
+		compareAnalyzer = isStatsAnalyzer(filterStore.statsAnalyzer)
+			? filterStore.statsAnalyzer
+			: DEFAULT_STATS_ANALYZER;
 		leftPreview = null;
 		rightPreview = null;
 

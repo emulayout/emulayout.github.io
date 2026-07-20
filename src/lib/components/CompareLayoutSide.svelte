@@ -3,15 +3,21 @@
 	import {
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
+		buildMana2StatsBlockLines,
 		CYANOPHAGE_ANALYZER,
 		decodeCyanophageStats,
+		decodeMana2Stats,
 		decodeMonkeyracerStats,
 		deriveBotStats,
 		deriveCyanophageStats,
+		deriveMana2Stats,
 		formatCyanophageStatsLoadingBlock,
 		formatCyanophageStatsUnavailableBlock,
+		formatMana2StatsLoadingBlock,
+		formatMana2StatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
+		MANA2_ANALYZER,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
@@ -19,6 +25,7 @@
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
+		CompactMana2Stats,
 		LayoutData,
 		MonkeyracerStats
 	} from '$lib/layout';
@@ -27,7 +34,7 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		compactStats?: CompactLayoutStats | CompactCyanophageStats;
+		compactStats?: CompactLayoutStats | CompactCyanophageStats | CompactMana2Stats;
 		analyzer: StatsAnalyzer;
 		/** When set, shows a clear (X) control after likes. */
 		onClear?: () => void;
@@ -45,6 +52,7 @@
 	}: Props = $props();
 
 	const isCyanophage = $derived(analyzer === CYANOPHAGE_ANALYZER);
+	const isMana2 = $derived(analyzer === MANA2_ANALYZER);
 	const displayValue = $derived(displayRowsToString(computeDisplayRows(layout)));
 	const updatedLabel = $derived(
 		new Date(layout.updatedAt).toLocaleDateString(undefined, {
@@ -64,6 +72,11 @@
 			if (!decoded) return null;
 			return buildCyanophageStatsBlockLines(deriveCyanophageStats(decoded));
 		}
+		if (isMana2) {
+			const decoded = decodeMana2Stats(compactStats as CompactMana2Stats);
+			if (!decoded) return null;
+			return buildMana2StatsBlockLines(deriveMana2Stats(decoded));
+		}
 		const decoded = decodeMonkeyracerStats(compactStats as CompactLayoutStats);
 		if (!decoded) return null;
 		return buildBotStatsBlockLines(deriveBotStats(decoded as MonkeyracerStats));
@@ -71,13 +84,16 @@
 
 	const statsFallback = $derived.by(() => {
 		if (statsLoading) {
-			return isCyanophage ? formatCyanophageStatsLoadingBlock() : formatStatsLoadingBlock();
+			if (isCyanophage) return formatCyanophageStatsLoadingBlock();
+			if (isMana2) return formatMana2StatsLoadingBlock();
+			return formatStatsLoadingBlock();
 		}
 		if (isCyanophage) {
 			return formatCyanophageStatsUnavailableBlock(
 				!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
 			);
 		}
+		if (isMana2) return formatMana2StatsUnavailableBlock();
 		return formatStatsUnavailableBlock();
 	});
 </script>
@@ -150,7 +166,7 @@
 	</div>
 
 	{#if statsBlockLines}
-		<div class="stats-block">
+		<div class="stats-block" class:stats-block--mana2={isMana2}>
 			{#each statsBlockLines as line, lineIndex (lineIndex)}
 				<div class="stats-block-line">
 					{#each line as segment, segmentIndex (segmentIndex)}
@@ -160,7 +176,9 @@
 			{/each}
 		</div>
 	{:else}
-		<pre class="stats-block stats-block--unavailable">{statsFallback}</pre>
+		<pre
+			class="stats-block stats-block--unavailable"
+			class:stats-block--mana2={isMana2}>{statsFallback}</pre>
 	{/if}
 </div>
 

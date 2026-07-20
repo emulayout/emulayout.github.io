@@ -21,18 +21,26 @@ export const LAYOUT_CARD_DUAL_STATS_EXTRA =
 	LAYOUT_CARD_STATS_HEIGHT +
 	LAYOUT_CARD_STATS_LABEL_HEIGHT * 2 +
 	LAYOUT_CARD_STATS_STACK_GAP;
+/**
+ * Extra height when showing Mana2’s taller stats block (18 lines vs the default 14).
+ * Keep in sync with MANA2_STATS_BLOCK_LINE_COUNT in layoutStats.ts.
+ */
+export const LAYOUT_CARD_MANA2_STATS_EXTRA = 60;
 /** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-2). */
 export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
 
 export function getLayoutCardHeight(
 	showStats = true,
 	showTestArea = true,
-	dualStats = false
+	dualStats = false,
+	mana2Stats = false
 ): number {
 	let height = LAYOUT_CARD_HEIGHT;
 
 	if (showStats && dualStats) {
 		height += LAYOUT_CARD_DUAL_STATS_EXTRA;
+	} else if (showStats && mana2Stats) {
+		height += LAYOUT_CARD_MANA2_STATS_EXTRA;
 	}
 
 	if (!showStats) {
@@ -55,9 +63,10 @@ export function getLayoutCardHeight(
 export function getLayoutCardItemSize(
 	showStats = true,
 	showTestArea = true,
-	dualStats = false
+	dualStats = false,
+	mana2Stats = false
 ): number {
-	return getLayoutCardHeight(showStats, showTestArea, dualStats) + LAYOUT_CARD_ROW_GAP;
+	return getLayoutCardHeight(showStats, showTestArea, dualStats, mana2Stats) + LAYOUT_CARD_ROW_GAP;
 }
 
 /** @deprecated Use getLayoutCardItemSize() when card sections may be hidden. */

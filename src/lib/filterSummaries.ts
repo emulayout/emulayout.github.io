@@ -3,6 +3,7 @@ import type { FilterStore } from '$lib/filterStore.svelte';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
+	MANA2_ANALYZER,
 	analyzerShortLabel,
 	getGeneralStatFilterRowsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
@@ -212,8 +213,9 @@ export function getStatFilterSectionSummary(
 		if (analyzer) {
 			appendGeneralAnalyzerSummary(store, analyzer, parts, seenKeys);
 		} else {
-			appendGeneralAnalyzerSummary(store, DEFAULT_STATS_ANALYZER, parts, seenKeys);
-			appendGeneralAnalyzerSummary(store, CYANOPHAGE_ANALYZER, parts, seenKeys);
+			for (const entry of STAT_ANALYZERS) {
+				appendGeneralAnalyzerSummary(store, entry.value, parts, seenKeys);
+			}
 		}
 		if (store.canUseLikes) {
 			const part = formatActiveLimit(
@@ -270,7 +272,7 @@ export function getKeyboardFiltersSummary(store: FilterStore): string {
 	return parts.join(' • ');
 }
 
-export type FilterChipTone = 'neutral' | 'monkeyracer' | 'cyanophage';
+export type FilterChipTone = 'neutral' | 'monkeyracer' | 'cyanophage' | 'mana2';
 
 export type ActiveFilterClearAction =
 	| { kind: 'layoutSource' }
@@ -330,7 +332,9 @@ function pushChip(
 }
 
 function toneForAnalyzer(analyzer: StatsAnalyzer): FilterChipTone {
-	return analyzer === CYANOPHAGE_ANALYZER ? 'cyanophage' : 'monkeyracer';
+	if (analyzer === CYANOPHAGE_ANALYZER) return 'cyanophage';
+	if (analyzer === MANA2_ANALYZER) return 'mana2';
+	return 'monkeyracer';
 }
 
 /** Individual active filters for chip UI in the results toolbar. */

@@ -3,7 +3,11 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { showsCyanophageStats, showsMonkeyracerStats } from '$lib/layoutStats';
+	import {
+		showsCyanophageStats,
+		showsMana2Stats,
+		showsMonkeyracerStats
+	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 
@@ -251,6 +255,9 @@
 							: undefined}
 						compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
 							? layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]
+							: undefined}
+						compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
+							? layoutStatsStore.maps.mana2?.[highlightedLayout.name]
 							: undefined}
 					/>
 				{/key}

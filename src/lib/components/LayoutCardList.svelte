@@ -9,6 +9,7 @@
 		ALL_STATS_ANALYZERS_MODE,
 		getStatCardHighlightState,
 		showsCyanophageStats,
+		showsMana2Stats,
 		showsMonkeyracerStats
 	} from '$lib/layoutStats';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
@@ -59,11 +60,13 @@
 	});
 
 	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
+	const mana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const cardItemSize = $derived(
 		getLayoutCardItemSize(
 			filterStore.showLayoutStats,
 			filterStore.showLayoutTestArea,
-			dualStats
+			dualStats,
+			mana2Stats
 		)
 	);
 	const statHighlights = $derived(
@@ -155,6 +158,9 @@
 					: undefined}
 				compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
 					? statsMaps.cyanophage?.[layout.name]
+					: undefined}
+				compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
+					? statsMaps.mana2?.[layout.name]
 					: undefined}
 				forceIncluded={forceIncludedNames.has(layout.name)}
 				similarMatchPercent={matchInfo?.percent}

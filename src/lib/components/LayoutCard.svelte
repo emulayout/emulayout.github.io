@@ -1,5 +1,10 @@
 <script lang="ts">
-	import type { CompactCyanophageStats, CompactLayoutStats, LayoutData } from '$lib/layout';
+	import type {
+		CompactCyanophageStats,
+		CompactLayoutStats,
+		CompactMana2Stats,
+		LayoutData
+	} from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -9,18 +14,25 @@
 		ALL_STATS_ANALYZERS_MODE,
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
+		buildMana2StatsBlockLines,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		decodeCyanophageStats,
+		decodeMana2Stats,
 		decodeMonkeyracerStats,
 		deriveBotStats,
 		deriveCyanophageStats,
+		deriveMana2Stats,
 		formatCyanophageStatsLoadingBlock,
 		formatCyanophageStatsUnavailableBlock,
+		formatMana2StatsLoadingBlock,
+		formatMana2StatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
 		getStatCardHighlightState,
+		MANA2_ANALYZER,
 		showsCyanophageStats,
+		showsMana2Stats,
 		showsMonkeyracerStats,
 		STAT_ANALYZERS
 	} from '$lib/layoutStats';
@@ -43,6 +55,8 @@
 		compactMonkeyStats?: CompactLayoutStats;
 		/** Compact cyanophage stats when that analyzer is shown. */
 		compactCyanophageStats?: CompactCyanophageStats;
+		/** Compact mana2 stats when that analyzer is shown. */
+		compactMana2Stats?: CompactMana2Stats;
 		/** Injected into results despite failing filters (Include selected). */
 		forceIncluded?: boolean;
 		similarMatchPercent?: number;
@@ -60,6 +74,7 @@
 		likeCount,
 		compactMonkeyStats,
 		compactCyanophageStats,
+		compactMana2Stats,
 		forceIncluded = false,
 		similarMatchPercent,
 		similarMirrored = false,
@@ -71,7 +86,6 @@
 		STAT_ANALYZERS.find((a) => a.value === DEFAULT_STATS_ANALYZER)?.label ?? 'cmini';
 	const cyanophageLabel =
 		STAT_ANALYZERS.find((a) => a.value === CYANOPHAGE_ANALYZER)?.label ?? 'Cyanophage';
-
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let localAnglemod = $state(false);
 	let keyMapCache: KeyMap | null = null;
@@ -126,6 +140,7 @@
 
 	const showMonkeyStats = $derived(showsMonkeyracerStats(filterStore.statsAnalyzer));
 	const showCyanophageStats = $derived(showsCyanophageStats(filterStore.statsAnalyzer));
+	const showMana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
@@ -143,6 +158,11 @@
 		const decoded = decodeCyanophageStats(compactCyanophageStats);
 		return decoded ? deriveCyanophageStats(decoded) : null;
 	});
+	const mana2Stats = $derived.by(() => {
+		if (!showMana2Stats || !compactMana2Stats) return null;
+		const decoded = decodeMana2Stats(compactMana2Stats);
+		return decoded ? deriveMana2Stats(decoded) : null;
+	});
 
 	const monkeyLoading = $derived(
 		showMonkeyStats && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER)
@@ -150,6 +170,7 @@
 	const cyanophageLoading = $derived(
 		showCyanophageStats && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
 	);
+	const mana2Loading = $derived(showMana2Stats && layoutStatsStore.isLoading(MANA2_ANALYZER));
 
 	const sortFieldHighlight = $derived(
 		statHighlights ??
@@ -159,8 +180,10 @@
 	const cyanophageFilterHighlightKeys = $derived(
 		sortFieldHighlight.cyanophageFilterHighlightKeys
 	);
+	const mana2FilterHighlightKeys = $derived(sortFieldHighlight.mana2FilterHighlightKeys);
 	const botSortHighlightKey = $derived(sortFieldHighlight.botSortHighlightKey);
 	const cyanophageSortHighlightKey = $derived(sortFieldHighlight.cyanophageSortHighlightKey);
+	const mana2SortHighlightKey = $derived(sortFieldHighlight.mana2SortHighlightKey);
 
 	const monkeyStatsBlockLines = $derived(
 		botStats
@@ -176,6 +199,11 @@
 				)
 			: null
 	);
+	const mana2StatsBlockLines = $derived(
+		mana2Stats
+			? buildMana2StatsBlockLines(mana2Stats, mana2FilterHighlightKeys, mana2SortHighlightKey)
+			: null
+	);
 
 	const monkeyStatsPlaceholder = $derived(
 		monkeyLoading ? formatStatsLoadingBlock() : !botStats ? formatStatsUnavailableBlock() : null
@@ -189,9 +217,21 @@
 					)
 				: null
 	);
+	const mana2StatsPlaceholder = $derived(
+		mana2Loading
+			? formatMana2StatsLoadingBlock()
+			: !mana2Stats
+				? formatMana2StatsUnavailableBlock()
+				: null
+	);
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea, dualStats)
+		getLayoutCardHeight(
+			filterStore.showLayoutStats,
+			filterStore.showLayoutTestArea,
+			dualStats,
+			showMana2Stats
+		)
 	);
 
 	function getKeyMaps(): { keyMap: KeyMap; shiftKeyMap: KeyMap } {
@@ -567,6 +607,7 @@
 													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
 													class:stats-block-highlight--cyanophage={segment.highlight ===
 														'cyanophage'}
+													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
 													class:stats-block-highlight--sort={segment.highlight === 'sort'}
 													>{segment.text}</span
 												>
@@ -598,6 +639,7 @@
 													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
 													class:stats-block-highlight--cyanophage={segment.highlight ===
 														'cyanophage'}
+													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
 													class:stats-block-highlight--sort={segment.highlight === 'sort'}
 													>{segment.text}</span
 												>
@@ -609,6 +651,33 @@
 								<pre
 									class="stats-block shrink-0"
 									class:stats-block--unavailable={!cyanophageLoading}>{cyanophageStatsPlaceholder}</pre>
+							{/if}
+						</div>
+					{/if}
+					{#if showMana2Stats}
+						<div class="stats-stack-item">
+							{#if mana2StatsBlockLines}
+								<div class="stats-block stats-block--mana2 shrink-0">
+									{#each mana2StatsBlockLines as line, lineIndex (lineIndex)}
+										<div class="stats-block-line">
+											{#each line as segment, segmentIndex (segmentIndex)}
+												<span
+													class:stats-block-highlight={Boolean(segment.highlight)}
+													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
+													class:stats-block-highlight--cyanophage={segment.highlight ===
+														'cyanophage'}
+													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
+													class:stats-block-highlight--sort={segment.highlight === 'sort'}
+													>{segment.text}</span
+												>
+											{/each}
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<pre
+									class="stats-block stats-block--mana2 shrink-0"
+									class:stats-block--unavailable={!mana2Loading}>{mana2StatsPlaceholder}</pre>
 							{/if}
 						</div>
 					{/if}

@@ -32,6 +32,7 @@ html {
 	/* Analyzer identity — chips, filtered/sorted stats */
 	--analyzer-cmini: #3d6a8a;
 	--analyzer-cyanophage: #bc5e11;
+	--analyzer-mana2: #6b7c3a;
 	--accent: var(--analyzer-cyanophage);
 	--accent-hover: var(--analyzer-cyanophage);
 	--filter-action: var(--analyzer-cmini);
@@ -49,6 +50,7 @@ html {
 	--stats-fg-highlight: var(--accent);
 	--stats-fg-highlight-cmini: var(--analyzer-cmini);
 	--stats-fg-highlight-cyanophage: var(--analyzer-cyanophage);
+	--stats-fg-highlight-mana2: var(--analyzer-mana2);
 	/* Sorted-stat value on layout cards */
 	--stats-fg-highlight-sort: #9a8f12;
 	/* Orange-dot replacement on filter open buttons */
@@ -67,6 +69,7 @@ html {
 	--text-caption: #949088;
 	--analyzer-cmini: #7aa3c4;
 	--analyzer-cyanophage: #dc6e14;
+	--analyzer-mana2: #a3b86c;
 	--accent: var(--analyzer-cyanophage);
 	--accent-hover: var(--analyzer-cyanophage);
 	--filter-action: var(--analyzer-cmini);
@@ -84,6 +87,7 @@ html {
 	--stats-fg-highlight: var(--accent);
 	--stats-fg-highlight-cmini: var(--analyzer-cmini);
 	--stats-fg-highlight-cyanophage: var(--analyzer-cyanophage);
+	--stats-fg-highlight-mana2: var(--analyzer-mana2);
 	--stats-fg-highlight-sort: #d5dc14;
 	--filter-active-dot: #d5dc14;
 	--warning: #d5dc14;
@@ -152,6 +156,10 @@ select:not([multiple]) {
 	color: var(--stats-fg);
 }
 
+.stats-block--mana2 {
+	--stats-line-count: 18;
+}
+
 .layout-display {
 	--layout-font-size: 14px;
 	--layout-line-height: 1.5;
@@ -206,6 +214,10 @@ select:not([multiple]) {
 
 .stats-block-highlight--cyanophage {
 	color: var(--stats-fg-highlight-cyanophage);
+}
+
+.stats-block-highlight--mana2 {
+	color: var(--stats-fg-highlight-mana2);
 }
 
 .stats-block-highlight--sort {

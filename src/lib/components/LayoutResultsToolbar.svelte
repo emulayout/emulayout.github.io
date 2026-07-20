@@ -545,6 +545,12 @@
 		color: var(--analyzer-cyanophage);
 	}
 
+	.results-toolbar-filter-chip--mana2 {
+		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-mana2) 16%, var(--bg-primary));
+		color: var(--analyzer-mana2);
+	}
+
 	.results-toolbar {
 		display: flex;
 		flex-wrap: wrap;

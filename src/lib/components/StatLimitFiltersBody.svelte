@@ -1,10 +1,11 @@
 <script lang="ts">
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
-		getGeneralStatFilterRowsForAnalyzer,
+		getGeneralStatFilterGroupsForAnalyzer,
 		getLeftHandStatFilterFieldsForAnalyzer,
 		getRightHandStatFilterFieldsForAnalyzer,
 		LIKES_STAT_FILTER_FIELD,
@@ -33,6 +34,13 @@
 
 	function fieldTitle(field: StatFilterField): string {
 		return field.title ?? field.label;
+	}
+
+	/** Full name with abbreviation, e.g. "Same Finger Bigrams (SFB)". */
+	function fieldDisplayLabel(field: StatFilterField): string {
+		const full = fieldTitle(field);
+		if (full.toLowerCase() === field.label.toLowerCase()) return full;
+		return `${full} (${field.label})`;
 	}
 
 	function handleOperatorChange(key: StatLimitKey, operator: StatLimitOperator) {
@@ -64,14 +72,17 @@
 		--tw-ring-color: var(--accent);
 	`;
 
-	const generalStatFilterRows = $derived(getGeneralStatFilterRowsForAnalyzer(analyzer));
+	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const leftHandFields = $derived(
 		getLeftHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
 	);
 	const rightHandFields = $derived(
 		getRightHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
 	);
-	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER || Boolean(onlyKeys));
+	/** Cyanophage uses long single-field rows; mana2/cmini keep related stats on one row. */
+	const generalStacked = $derived(
+		stacked || analyzer === CYANOPHAGE_ANALYZER || Boolean(onlyKeys)
+	);
 	const showLikesFilter = $derived(
 		filterStore.canUseLikes && includeKey(LIKES_STAT_FILTER_FIELD.key)
 	);
@@ -80,9 +91,11 @@
 	const onlyGeneralFields = $derived.by(() => {
 		if (!onlyKeys) return [] as StatFilterField[];
 		const fields: StatFilterField[] = [];
-		for (const row of generalStatFilterRows) {
-			for (const field of row) {
-				if (includeKey(field.key)) fields.push(field);
+		for (const group of generalStatFilterGroups) {
+			for (const row of group.rows) {
+				for (const field of row) {
+					if (includeKey(field.key)) fields.push(field);
+				}
 			}
 		}
 		if (showLikesFilter) fields.push(LIKES_STAT_FILTER_FIELD);
@@ -90,35 +103,47 @@
 	});
 </script>
 
-{#snippet statLimitControl(field: StatFilterField, labelWidth: string)}
+{#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
 	{@const limit = filterStore.statLimits[field.key]}
 	{@const title = fieldTitle(field)}
-	<div class="stat-limit-control" data-stat-limit-control={field.key}>
-		<span class="stat-limit-label" style="width: {labelWidth};" title={title}>{field.label}:</span>
-		<select
-			value={limit.operator}
-			onchange={(e) =>
-				handleOperatorChange(field.key, e.currentTarget.value as StatLimitOperator)}
-			class="stat-limit-operator"
-			style={fieldStyle}
-			aria-label="{title} comparison"
-		>
-			<option value="lt">Less than</option>
-			<option value="gt">Greater than</option>
-		</select>
-		<input
-			type="text"
-			inputmode="decimal"
-			value={limit.value}
-			oninput={(e) => handleValueInput(field.key, e.currentTarget.value)}
-			onkeydown={(e) => handleValueKeyDown(field.key, e)}
-			class="stat-limit-value"
-			style={fieldStyle}
-			placeholder="—"
-			aria-label="{title} limit"
-			data-stat-limit-key={field.key}
-		/>
-		<span class="stat-limit-unit">{field.unit === 'raw' ? '' : '%'}</span>
+	{@const displayLabel = expanded ? fieldDisplayLabel(field) : field.label}
+	<div
+		class="stat-limit-control"
+		class:stat-limit-control--expanded={expanded}
+		data-stat-limit-control={field.key}
+	>
+		<span class="stat-limit-label-row" style={expanded ? undefined : `width: ${labelWidth};`}>
+			<span class="stat-limit-label" title={title}>{displayLabel}:</span>
+			{#if field.hint}
+				<Tooltip text={field.hint} />
+			{/if}
+		</span>
+		<div class="stat-limit-inputs">
+			<select
+				value={limit.operator}
+				onchange={(e) =>
+					handleOperatorChange(field.key, e.currentTarget.value as StatLimitOperator)}
+				class="stat-limit-operator"
+				style={fieldStyle}
+				aria-label="{title} comparison"
+			>
+				<option value="lt">Less than</option>
+				<option value="gt">Greater than</option>
+			</select>
+			<input
+				type="text"
+				inputmode="decimal"
+				value={limit.value}
+				oninput={(e) => handleValueInput(field.key, e.currentTarget.value)}
+				onkeydown={(e) => handleValueKeyDown(field.key, e)}
+				class="stat-limit-value"
+				style={fieldStyle}
+				placeholder="—"
+				aria-label="{title} limit"
+				data-stat-limit-key={field.key}
+			/>
+			<span class="stat-limit-unit">{field.unit === 'raw' ? '' : '%'}</span>
+		</div>
 	</div>
 {/snippet}
 
@@ -131,34 +156,51 @@
 			{#if onlyMode}
 				{#each onlyGeneralFields as field (field.key)}
 					<div class="stat-limit-row">
-						{@render statLimitControl(field, '3.25rem')}
+						{@render statLimitControl(field, '3.25rem', true)}
 					</div>
 				{/each}
 			{:else}
-				{#each generalStatFilterRows as row, rowIndex (rowIndex)}
-					<div class="stat-limit-row">
-						{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
-							{@const field = row[colIndex]}
-							{#if field}
-								{@render statLimitControl(field, generalStacked ? '3.25rem' : '2.5rem')}
-							{:else if !generalStacked}
-								<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-							{/if}
-						{/each}
+				{#each generalStatFilterGroups as group, groupIndex (group.title)}
+					<div class="stat-limits-group">
+						<div class="stat-limits-group-heading">{group.title}</div>
+						<div class="stat-limits-group-rows">
+							{#each group.rows as row, rowIndex (`${groupIndex}-${rowIndex}`)}
+								<div class="stat-limit-row">
+									{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+										{@const field = row[colIndex]}
+										{#if field}
+											{@render statLimitControl(
+												field,
+												generalStacked ? '3.25rem' : '2.5rem',
+												true
+											)}
+										{:else if !generalStacked}
+											<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+										{/if}
+									{/each}
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/each}
 				{#if showLikesFilter}
-					<div class="stat-limit-row">
-						<div>
-							{@render statLimitControl(
-								LIKES_STAT_FILTER_FIELD,
-								generalStacked ? '3.25rem' : '2.5rem'
-							)}
+					<div class="stat-limits-group">
+						<div class="stat-limits-group-heading">Other</div>
+						<div class="stat-limits-group-rows">
+							<div class="stat-limit-row">
+								<div>
+									{@render statLimitControl(
+										LIKES_STAT_FILTER_FIELD,
+										generalStacked ? '3.25rem' : '2.5rem',
+										true
+									)}
+								</div>
+								{#if !generalStacked}
+									<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+									<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+								{/if}
+							</div>
 						</div>
-						{#if !generalStacked}
-							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-							<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-						{/if}
 					</div>
 				{/if}
 			{/if}
@@ -207,12 +249,32 @@
 		container-name: stat-limits-general;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 1rem;
 		width: 100%;
 		min-width: 0;
 		/* Keep focus rings inside the paint box of this section. */
 		padding-block: 0.125rem;
 		overflow: visible;
+	}
+
+	.stat-limits-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		min-width: 0;
+	}
+
+	.stat-limits-group-heading {
+		font-size: 0.75rem;
+		line-height: 1rem;
+		color: var(--text-caption);
+	}
+
+	.stat-limits-group-rows {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
 	}
 
 	.stat-limit-row {
@@ -234,12 +296,43 @@
 		min-width: 0;
 	}
 
-	.stat-limit-label {
+	.stat-limit-control--expanded {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.25rem;
+	}
+
+	.stat-limit-label-row {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
 		flex-shrink: 0;
+		min-width: 0;
+		justify-content: flex-end;
+	}
+
+	.stat-limit-control--expanded .stat-limit-label-row {
+		width: auto;
+		justify-content: flex-start;
+	}
+
+	.stat-limit-label {
 		font-size: 0.75rem;
 		line-height: 1rem;
 		text-align: right;
 		color: var(--text-secondary);
+	}
+
+	.stat-limit-control--expanded .stat-limit-label {
+		text-align: left;
+		line-height: 1.25;
+	}
+
+	.stat-limit-inputs {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		min-width: 0;
 	}
 
 	.stat-limit-operator {

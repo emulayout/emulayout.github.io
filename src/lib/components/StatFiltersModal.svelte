@@ -10,6 +10,7 @@
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		isStatsAnalyzer,
+		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatLimitKey,
 		type StatsAnalyzer
@@ -130,6 +131,7 @@
 				class:analyzer-tab--selected={selected}
 				class:analyzer-tab--cmini={analyzer.value === DEFAULT_STATS_ANALYZER}
 				class:analyzer-tab--cyanophage={analyzer.value === CYANOPHAGE_ANALYZER}
+				class:analyzer-tab--mana2={analyzer.value === MANA2_ANALYZER}
 				onclick={() => (editAnalyzer = analyzer.value)}
 			>
 				<span>{analyzer.label}</span>
@@ -199,6 +201,10 @@
 		border-bottom-color: var(--analyzer-cyanophage);
 	}
 
+	.analyzer-tab--mana2.analyzer-tab--selected {
+		border-bottom-color: var(--analyzer-mana2);
+	}
+
 	.analyzer-tab-dot {
 		width: 0.375rem;
 		height: 0.375rem;
@@ -213,5 +219,9 @@
 
 	.analyzer-tab--cyanophage .analyzer-tab-dot {
 		background-color: var(--analyzer-cyanophage);
+	}
+
+	.analyzer-tab--mana2 .analyzer-tab-dot {
+		background-color: var(--analyzer-mana2);
 	}
 </style>

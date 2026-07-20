@@ -100,8 +100,24 @@ export type CompactCyanophageStats = number[];
 /** Layout stats keyed by layout name. Loaded from /layout-stats-cyanophage.json. */
 export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
 
+/**
+ * Mana2 stats keyed by MANA2_STAT_KEYS in layoutStats.ts.
+ * Percentage metrics are stored as 0–1 fractions after decode; stretch/scissor/weights stay raw.
+ */
+export type Mana2Stats = Record<string, number>;
+
+/**
+ * Compact mana2 stats: fixed-point values (×10_000) in MANA2_STAT_KEYS order.
+ * @see MANA2_STAT_KEYS in layoutStats.ts / bin/mana2-stats.js
+ */
+export type CompactMana2Stats = number[];
+
+/** Layout stats keyed by layout name. Loaded from /layout-stats-mana2.json. */
+export type Mana2StatsMap = Record<string, CompactMana2Stats>;
+
 /** Loaded stat payloads keyed by analyzer id. */
 export type StatsMaps = Partial<{
 	monkeyracer: LayoutStatsMap;
 	cyanophage: CyanophageStatsMap;
+	mana2: Mana2StatsMap;
 }>;

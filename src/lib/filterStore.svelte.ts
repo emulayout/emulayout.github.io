@@ -4,9 +4,11 @@ import { page } from '$app/state';
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
+		MANA2_ANALYZER,
 		analyzersNeededForLimits,
 		deriveBotStats,
 		deriveCyanophageStats,
+		deriveMana2Stats,
 		getLayoutAnalyzerStats,
 		getStatFilterFieldsForAnalyzer,
 		getStatFilterStatKey,
@@ -35,6 +37,7 @@ import { page } from '$app/state';
 	} from './layoutStats';
 import type {
 	CyanophageStats,
+	Mana2Stats,
 	MonkeyracerStats,
 	LayoutData,
 	LayoutLikesMap,
@@ -1712,7 +1715,9 @@ export class FilterStore {
 			const stats =
 				analyzer === CYANOPHAGE_ANALYZER
 					? deriveCyanophageStats(analyzerStats as CyanophageStats)
-					: deriveBotStats(analyzerStats as MonkeyracerStats);
+					: analyzer === MANA2_ANALYZER
+						? deriveMana2Stats(analyzerStats as Mana2Stats)
+						: deriveBotStats(analyzerStats as MonkeyracerStats);
 
 			for (const { operator, threshold, statKey } of checks) {
 				const value = stats[statKey as keyof typeof stats];
