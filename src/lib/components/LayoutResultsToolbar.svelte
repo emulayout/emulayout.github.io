@@ -7,12 +7,11 @@
 	} from '$lib/filterSummaries';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
-		ALL_STATS_ANALYZERS_MODE,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		getHiddenAnalyzerFilterCaution,
 		getStatSortFieldsForAnalyzer,
-		getStatSortFieldsForMode,
+		MANA2_ANALYZER,
 		STAT_ANALYZER_MODES,
 		type StatsAnalyzerMode
 	} from '$lib/layoutStats';
@@ -28,10 +27,9 @@
 		void filterStore.appliedFiltersRevision;
 		return getActiveFilterChips(filterStore);
 	});
-	const showDualSortGroups = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const monkeySortFields = $derived(getStatSortFieldsForAnalyzer(DEFAULT_STATS_ANALYZER));
 	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
-	const statSortFields = $derived(getStatSortFieldsForMode(filterStore.statsAnalyzer));
+	const mana2SortFields = $derived(getStatSortFieldsForAnalyzer(MANA2_ANALYZER));
 
 	/** Hidden analyzer still narrowing results via applied stat filters. */
 	const hiddenAnalyzerFilterCaution = $derived(
@@ -230,24 +228,21 @@
 							<option value="likes">Likes</option>
 						{/if}
 					</optgroup>
-					{#if showDualSortGroups}
-						<optgroup label="cmini (monkeyracer)">
-							{#each monkeySortFields as field (field.value)}
-								<option value={field.value}>{field.label}</option>
-							{/each}
-						</optgroup>
-						<optgroup label="Cyanophage">
-							{#each cyanophageSortFields as field (field.value)}
-								<option value={field.value}>{field.label}</option>
-							{/each}
-						</optgroup>
-					{:else}
-						<optgroup label="Stats">
-							{#each statSortFields as field (field.value)}
-								<option value={field.value}>{field.label}</option>
-							{/each}
-						</optgroup>
-					{/if}
+					<optgroup label="cmini (monkeyracer)">
+						{#each monkeySortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+					<optgroup label="Cyanophage">
+						{#each cyanophageSortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
+					<optgroup label="Mana2">
+						{#each mana2SortFields as field (field.value)}
+							<option value={field.value}>{field.label}</option>
+						{/each}
+					</optgroup>
 				</select>
 			</label>
 

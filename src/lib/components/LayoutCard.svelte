@@ -185,9 +185,16 @@
 	const cyanophageSortHighlightKey = $derived(sortFieldHighlight.cyanophageSortHighlightKey);
 	const mana2SortHighlightKey = $derived(sortFieldHighlight.mana2SortHighlightKey);
 
+	const sortOrder = $derived(filterStore.sortOrder);
+
 	const monkeyStatsBlockLines = $derived(
 		botStats
-			? buildBotStatsBlockLines(botStats, botFilterHighlightKeys, botSortHighlightKey)
+			? buildBotStatsBlockLines(
+					botStats,
+					botFilterHighlightKeys,
+					botSortHighlightKey,
+					sortOrder
+				)
 			: null
 	);
 	const cyanophageStatsBlockLines = $derived(
@@ -195,13 +202,19 @@
 			? buildCyanophageStatsBlockLines(
 					cyanophageStats,
 					cyanophageFilterHighlightKeys,
-					cyanophageSortHighlightKey
+					cyanophageSortHighlightKey,
+					sortOrder
 				)
 			: null
 	);
 	const mana2StatsBlockLines = $derived(
 		mana2Stats
-			? buildMana2StatsBlockLines(mana2Stats, mana2FilterHighlightKeys, mana2SortHighlightKey)
+			? buildMana2StatsBlockLines(
+					mana2Stats,
+					mana2FilterHighlightKeys,
+					mana2SortHighlightKey,
+					sortOrder
+				)
 			: null
 	);
 

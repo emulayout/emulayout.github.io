@@ -1477,12 +1477,9 @@ export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly 
 	return ALL_STAT_SORT_FIELDS.filter((field) => field.analyzer === analyzer);
 }
 
-export function getStatSortFieldsForMode(mode: StatsAnalyzerMode): readonly StatSortField[] {
-	if (mode === ALL_STATS_ANALYZERS_MODE) {
-		const included = new Set(resolveStatsAnalyzers(ALL_STATS_ANALYZERS_MODE));
-		return ALL_STAT_SORT_FIELDS.filter((field) => included.has(field.analyzer));
-	}
-	return getStatSortFieldsForAnalyzer(mode);
+/** All analyzer sort fields (display mode does not restrict sort options). */
+export function getStatSortFieldsForMode(_mode?: StatsAnalyzerMode): readonly StatSortField[] {
+	return ALL_STAT_SORT_FIELDS;
 }
 
 export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {
@@ -1772,6 +1769,32 @@ function formatStatLabel(label: string, width?: number): string {
 		return `${label} `;
 	}
 	return `${label.padStart(width)} `;
+}
+
+/** Asc/desc marker used in place of `:` on the active sort field’s label. */
+function sortOrderSuffix(sorted: boolean, sortOrder?: SortOrder | null): string {
+	if (!sorted || !sortOrder) return ':';
+	return sortOrder === 'asc' ? '▲' : '▼';
+}
+
+/** Like {@link formatStatLabel}, but swaps a trailing `:` for ▲/▼ when sorted. */
+function formatSortStatLabel(
+	labelWithColon: string,
+	sorted: boolean,
+	sortOrder?: SortOrder | null,
+	width?: number
+): string {
+	const suffix = sortOrderSuffix(sorted, sortOrder);
+	const label = sorted ? labelWithColon.replace(/:$/, suffix) : labelWithColon;
+	return formatStatLabel(label, width);
+}
+
+function formatFingerSortLabel(
+	finger: string,
+	sorted: boolean,
+	sortOrder?: SortOrder | null
+): string {
+	return `${finger}${sortOrderSuffix(sorted, sortOrder)} `;
 }
 
 /** Card/stat highlight: analyzer filter colors, or yellow for the active sort field. */
@@ -2278,13 +2301,25 @@ function formatMana2RawValue(value: number): string {
 export function buildMana2StatsBlockLines(
 	stats: DerivedMana2Stats,
 	highlightKeys?: ReadonlySet<Mana2StatSortKey> | Mana2StatSortKey | null,
-	sortHighlightKey?: Mana2StatSortKey | null
+	sortHighlightKey?: Mana2StatSortKey | null,
+	sortOrder?: SortOrder | null
 ): StatsBlockSegment[][] {
 	const keys = toHighlightKeySet(highlightKeys);
 	const filterHl = (key: Mana2StatSortKey): StatsHighlightTone | undefined =>
 		keys.has(key) ? 'mana2' : undefined;
 	const sortHl = (...candidates: Mana2StatSortKey[]): StatsHighlightTone | undefined =>
 		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
+	const sortLabel = (
+		labelWithColon: string,
+		width: number | undefined,
+		...candidates: Mana2StatSortKey[]
+	): StatsBlockSegment => {
+		const highlight = sortHl(...candidates);
+		return {
+			text: formatSortStatLabel(labelWithColon, Boolean(highlight), sortOrder, width),
+			highlight
+		};
+	};
 
 	const pair = (
 		label: string,
@@ -2294,10 +2329,7 @@ export function buildMana2StatsBlockLines(
 		skipVal: number,
 		raw = false
 	): StatsBlockSegment[] => [
-		{
-			text: formatStatLabel(`${label}:`, MANA2_PAIR_LABEL_WIDTH),
-			highlight: sortHl(bigKey, skipKey)
-		},
+		sortLabel(`${label}:`, MANA2_PAIR_LABEL_WIDTH, bigKey, skipKey),
 		{
 			text: (raw ? formatMana2RawValue(bigVal) : formatStatPercent(bigVal)).padStart(7),
 			highlight: filterHl(bigKey)
@@ -2309,11 +2341,6 @@ export function buildMana2StatsBlockLines(
 		}
 	];
 
-	const flow = (label: string, ...sortKeys: Mana2StatSortKey[]): StatsBlockSegment => ({
-		text: formatStatLabel(`${label}:`, MANA2_FLOW_LABEL_WIDTH),
-		highlight: sortHl(...sortKeys)
-	});
-
 	return [
 		pair('Same Finger', 'sfb', stats.sfb, 'sfs', stats.sfs),
 		pair('Same Key', 'skb', stats.skb, 'sks', stats.sks),
@@ -2321,18 +2348,18 @@ export function buildMana2StatsBlockLines(
 		pair('Scissor', 'vsb', stats.vsb, 'vss', stats.vss, true),
 		[{ text: '' }],
 		[
-			flow('Alt', 'alt'),
+			sortLabel('Alt:', MANA2_FLOW_LABEL_WIDTH, 'alt'),
 			{ text: formatStatField(stats.alt, 7), highlight: filterHl('alt') },
 			{ text: ' (noT ' },
 			{ text: formatStatField(stats.altNoThumbs, 7), highlight: filterHl('altNoThumbs') },
 			{ text: ')' }
 		],
 		[
-			flow('Alt&SFS', 'altSfs'),
+			sortLabel('Alt&SFS:', MANA2_FLOW_LABEL_WIDTH, 'altSfs'),
 			{ text: formatStatField(stats.altSfs, 7), highlight: filterHl('altSfs') }
 		],
 		[
-			flow('Redirect', 'redirect'),
+			sortLabel('Redirect:', MANA2_FLOW_LABEL_WIDTH, 'redirect'),
 			{ text: formatStatField(stats.redirect, 7), highlight: filterHl('redirect') },
 			{ text: ' (noT ' },
 			{
@@ -2342,7 +2369,13 @@ export function buildMana2StatsBlockLines(
 			{ text: ')' }
 		],
 		[
-			flow('R&S/Wk', 'redirectSfs', 'redirectWeak', 'redirectSfsWeak'),
+			sortLabel(
+				'R&S/Wk:',
+				MANA2_FLOW_LABEL_WIDTH,
+				'redirectSfs',
+				'redirectWeak',
+				'redirectSfsWeak'
+			),
 			{ text: formatStatField(stats.redirectSfs, 6), highlight: filterHl('redirectSfs') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.redirectWeak, 6), highlight: filterHl('redirectWeak') },
@@ -2353,14 +2386,14 @@ export function buildMana2StatsBlockLines(
 			}
 		],
 		[
-			flow('Roll', 'roll'),
+			sortLabel('Roll:', MANA2_FLOW_LABEL_WIDTH, 'roll'),
 			{ text: formatStatField(stats.roll, 7), highlight: filterHl('roll') },
 			{ text: ' (noT ' },
 			{ text: formatStatField(stats.rollNoThumbs, 7), highlight: filterHl('rollNoThumbs') },
 			{ text: ')' }
 		],
 		[
-			flow('In/Out', 'inroll2', 'outroll2', 'inroll3', 'outroll3'),
+			sortLabel('In/Out:', MANA2_FLOW_LABEL_WIDTH, 'inroll2', 'outroll2', 'inroll3', 'outroll3'),
 			{ text: formatStatField(stats.inroll2, 6), highlight: filterHl('inroll2') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.outroll2, 6), highlight: filterHl('outroll2') },
@@ -2371,31 +2404,40 @@ export function buildMana2StatsBlockLines(
 		],
 		[{ text: '' }],
 		[
-			{
-				text: formatStatLabel('LH/RH:', MANA2_HAND_LABEL_WIDTH),
-				highlight: sortHl('lh', 'rh')
-			},
+			sortLabel('LH/RH:', MANA2_HAND_LABEL_WIDTH, 'lh', 'rh'),
 			{ text: formatStatField(stats.lh, 7), highlight: filterHl('lh') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rh, 7), highlight: filterHl('rh') }
 		],
 		...LEFT_HAND_FINGERS.map((left, index) => {
 			const right = RIGHT_HAND_FINGERS[index];
+			const leftHl = sortHl(left);
+			const rightHl = sortHl(right);
 			return [
-				{ text: `${left}: `, highlight: sortHl(left) },
+				{
+					text: formatFingerSortLabel(left, Boolean(leftHl), sortOrder),
+					highlight: leftHl
+				},
 				{ text: formatStatField(stats[left], 6), highlight: filterHl(left) },
 				{ text: '    ' },
-				{ text: `${right}: `, highlight: sortHl(right) },
+				{
+					text: formatFingerSortLabel(right, Boolean(rightHl), sortOrder),
+					highlight: rightHl
+				},
 				{ text: formatStatField(stats[right], 6), highlight: filterHl(right) }
 			];
 		}),
-		[
-			{ text: 'LT: ', highlight: sortHl('LT') },
-			{ text: formatStatField(stats.LT, 6), highlight: filterHl('LT') },
-			{ text: '    ' },
-			{ text: 'RT: ', highlight: sortHl('RT') },
-			{ text: formatStatField(stats.RT, 6), highlight: filterHl('RT') }
-		]
+		(() => {
+			const ltHl = sortHl('LT');
+			const rtHl = sortHl('RT');
+			return [
+				{ text: formatFingerSortLabel('LT', Boolean(ltHl), sortOrder), highlight: ltHl },
+				{ text: formatStatField(stats.LT, 6), highlight: filterHl('LT') },
+				{ text: '    ' },
+				{ text: formatFingerSortLabel('RT', Boolean(rtHl), sortOrder), highlight: rtHl },
+				{ text: formatStatField(stats.RT, 6), highlight: filterHl('RT') }
+			];
+		})()
 	];
 }
 
@@ -2420,30 +2462,36 @@ export function formatMana2StatsUnavailableBlock(): string {
 export function buildCyanophageStatsBlockLines(
 	stats: DerivedCyanophageStats,
 	highlightKeys?: ReadonlySet<CyanophageStatSortKey> | CyanophageStatSortKey | null,
-	sortHighlightKey?: CyanophageStatSortKey | null
+	sortHighlightKey?: CyanophageStatSortKey | null,
+	sortOrder?: SortOrder | null
 ): StatsBlockSegment[][] {
 	const keys = toHighlightKeySet(highlightKeys);
 	const filterHl = (key: CyanophageStatSortKey): StatsHighlightTone | undefined =>
 		keys.has(key) ? 'cyanophage' : undefined;
 	const sortHl = (...candidates: CyanophageStatSortKey[]): StatsHighlightTone | undefined =>
 		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
+	const sortLabel = (
+		labelWithColon: string,
+		width: number | undefined,
+		...candidates: CyanophageStatSortKey[]
+	): StatsBlockSegment => {
+		const highlight = sortHl(...candidates);
+		return {
+			text: formatSortStatLabel(labelWithColon, Boolean(highlight), sortOrder, width),
+			highlight
+		};
+	};
 
 	return [
 		[
-			{
-				text: formatStatLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('totalWordEffort')
-			},
+			sortLabel('Total Word Effort:', CYANOPHAGE_STAT_LABEL_WIDTH, 'totalWordEffort'),
 			{
 				text: formatCyanophageStatValue(stats.totalWordEffort).padStart(6),
 				highlight: filterHl('totalWordEffort')
 			}
 		],
 		[
-			{
-				text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('effort')
-			},
+			sortLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH, 'effort'),
 			{
 				text: formatCyanophageStatValue(stats.effort).padStart(6),
 				highlight: filterHl('effort')
@@ -2451,36 +2499,24 @@ export function buildCyanophageStatsBlockLines(
 		],
 		[{ text: '' }],
 		[
-			{
-				text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('sfb')
-			},
+			sortLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH, 'sfb'),
 			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }
 		],
 		[
-			{
-				text: formatStatLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('sfs')
-			},
+			sortLabel('Skip Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH, 'sfs'),
 			{ text: formatStatField(stats.sfs, 6), highlight: filterHl('sfs') }
 		],
 		[
-			{
-				text: formatStatLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('lsb')
-			},
+			sortLabel('Lat Stretch Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH, 'lsb'),
 			{ text: formatStatField(stats.lsb, 6), highlight: filterHl('lsb') }
 		],
 		[
-			{
-				text: formatStatLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH),
-				highlight: sortHl('scissors')
-			},
+			sortLabel('Scissors:', CYANOPHAGE_STAT_LABEL_WIDTH, 'scissors'),
 			{ text: formatStatField(stats.scissors, 6), highlight: filterHl('scissors') }
 		],
 		[{ text: '' }],
 		[
-			{ text: formatStatLabel('LH/RH:'), highlight: sortHl('lh', 'rh') },
+			sortLabel('LH/RH:', undefined, 'lh', 'rh'),
 			{ text: formatStatField(stats.lh, 6), highlight: filterHl('lh') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rh, 6), highlight: filterHl('rh') }
@@ -2488,11 +2524,19 @@ export function buildCyanophageStatsBlockLines(
 		[{ text: '' }],
 		...LEFT_HAND_FINGERS.map((left, index) => {
 			const right = RIGHT_HAND_FINGERS[index];
+			const leftHl = sortHl(left);
+			const rightHl = sortHl(right);
 			return [
-				{ text: `${left}: `, highlight: sortHl(left) },
+				{
+					text: formatFingerSortLabel(left, Boolean(leftHl), sortOrder),
+					highlight: leftHl
+				},
 				{ text: formatStatField(stats[left], 6), highlight: filterHl(left) },
 				{ text: '    ' },
-				{ text: `${right}: `, highlight: sortHl(right) },
+				{
+					text: formatFingerSortLabel(right, Boolean(rightHl), sortOrder),
+					highlight: rightHl
+				},
 				{ text: formatStatField(stats[right], 6), highlight: filterHl(right) }
 			];
 		})
@@ -2521,21 +2565,34 @@ export function formatCyanophageStatsUnavailableBlock(reason?: string): string {
 export function buildBotStatsBlockLines(
 	stats: DerivedBotStats,
 	highlightKeys?: ReadonlySet<StatSortKey> | StatSortKey | null,
-	sortHighlightKey?: StatSortKey | null
+	sortHighlightKey?: StatSortKey | null,
+	sortOrder?: SortOrder | null
 ): StatsBlockSegment[][] {
 	const keys = toHighlightKeySet(highlightKeys);
 	const filterHl = (key: StatSortKey): StatsHighlightTone | undefined =>
 		keys.has(key) ? 'cmini' : undefined;
 	const sortHl = (...candidates: StatSortKey[]): StatsHighlightTone | undefined =>
 		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
+	const sortLabel = (
+		labelWithColon: string,
+		...candidates: StatSortKey[]
+	): StatsBlockSegment => {
+		const highlight = sortHl(...candidates);
+		return {
+			text: formatSortStatLabel(labelWithColon, Boolean(highlight), sortOrder),
+			highlight
+		};
+	};
+
+	const badHl = sortHl('badRedirect');
 
 	return [
 		[
-			{ text: formatStatLabel('Alt:'), highlight: sortHl('alternate') },
+			sortLabel('Alt:', 'alternate'),
 			{ text: formatStatField(stats.alternate, 6), highlight: filterHl('alternate') }
 		],
 		[
-			{ text: formatStatLabel('Rol:'), highlight: sortHl('roll', 'rollIn', 'rollOut') },
+			sortLabel('Rol:', 'roll', 'rollIn', 'rollOut'),
 			{ text: formatStatField(stats.roll, 6), highlight: filterHl('roll') },
 			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.rollIn, 6), highlight: filterHl('rollIn') },
@@ -2544,7 +2601,7 @@ export function buildBotStatsBlockLines(
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('One:'), highlight: sortHl('one', 'oneIn', 'oneOut') },
+			sortLabel('One:', 'one', 'oneIn', 'oneOut'),
 			{ text: formatStatField(stats.one, 6), highlight: filterHl('one') },
 			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.oneIn, 6), highlight: filterHl('oneIn') },
@@ -2553,7 +2610,7 @@ export function buildBotStatsBlockLines(
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('Rtl:'), highlight: sortHl('rtl', 'rtlIn', 'rtlOut') },
+			sortLabel('Rtl:', 'rtl', 'rtlIn', 'rtlOut'),
 			{ text: formatStatField(stats.rtl, 6), highlight: filterHl('rtl') },
 			{ text: ' (In/Out: ' },
 			{ text: formatStatField(stats.rtlIn, 6), highlight: filterHl('rtlIn') },
@@ -2562,24 +2619,24 @@ export function buildBotStatsBlockLines(
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('Red:'), highlight: sortHl('red') },
+			sortLabel('Red:', 'red'),
 			{ text: formatStatField(stats.red, 6), highlight: filterHl('red') },
 			{ text: ' (' },
-			{ text: 'Bad:', highlight: sortHl('badRedirect') },
+			{
+				text: `Bad${sortOrderSuffix(Boolean(badHl), sortOrder)}`,
+				highlight: badHl
+			},
 			{ text: ' ' },
 			{ text: formatStatField(stats.badRedirect, 9), highlight: filterHl('badRedirect') },
 			{ text: ')' }
 		],
 		[{ text: '' }],
 		[
-			{ text: formatStatLabel('SFB:'), highlight: sortHl('sfb') },
+			sortLabel('SFB:', 'sfb'),
 			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }
 		],
 		[
-			{
-				text: formatStatLabel('SFS:'),
-				highlight: sortHl('sfs', 'dsfbRed', 'dsfbAlt')
-			},
+			sortLabel('SFS:', 'sfs', 'dsfbRed', 'dsfbAlt'),
 			{ text: formatStatField(stats.sfs, 6), highlight: filterHl('sfs') },
 			{ text: ' (Red/Alt: ' },
 			{ text: formatStatField(stats.dsfbRed, 5), highlight: filterHl('dsfbRed') },
@@ -2588,7 +2645,7 @@ export function buildBotStatsBlockLines(
 			{ text: ')' }
 		],
 		[
-			{ text: formatStatLabel('LH/RH:'), highlight: sortHl('lh', 'rh') },
+			sortLabel('LH/RH:', 'lh', 'rh'),
 			{ text: formatStatField(stats.lh, 6), highlight: filterHl('lh') },
 			{ text: ' | ' },
 			{ text: formatStatField(stats.rh, 6), highlight: filterHl('rh') }
@@ -2596,11 +2653,19 @@ export function buildBotStatsBlockLines(
 		[{ text: '' }],
 		...LEFT_HAND_FINGERS.map((left, index) => {
 			const right = RIGHT_HAND_FINGERS[index];
+			const leftHl = sortHl(left);
+			const rightHl = sortHl(right);
 			return [
-				{ text: `${left}: `, highlight: sortHl(left) },
+				{
+					text: formatFingerSortLabel(left, Boolean(leftHl), sortOrder),
+					highlight: leftHl
+				},
 				{ text: formatStatField(stats[left], 6), highlight: filterHl(left) },
 				{ text: '    ' },
-				{ text: `${right}: `, highlight: sortHl(right) },
+				{
+					text: formatFingerSortLabel(right, Boolean(rightHl), sortOrder),
+					highlight: rightHl
+				},
 				{ text: formatStatField(stats[right], 6), highlight: filterHl(right) }
 			];
 		})

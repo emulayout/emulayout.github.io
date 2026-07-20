@@ -16,14 +16,11 @@ import { page } from '$app/state';
 		getStatSortValue,
 		isSortOrder,
 		isStatSortBy,
-		isStatSortByForAnalyzer,
 		getDefaultSortOrder,
-		isStatsAnalyzer,
 		isStatsAnalyzerMode,
 		isAnalyzerStatsReady,
 		parseLegacySortParam,
 		normalizeSortBy,
-		coerceSortByForAnalyzer,
 		parseStatFilterThreshold,
 		ALL_STAT_FILTER_FIELDS,
 		getGeneralStatFilterRowsForAnalyzer,
@@ -964,26 +961,6 @@ export class FilterStore {
 
 	setStatsAnalyzer(value: StatsAnalyzerMode) {
 		this.statsAnalyzer = value;
-		// Switching to "all" keeps any analyzer's sort; leaving "all" may need coerce.
-		if (
-			isStatsAnalyzer(value) &&
-			isStatSortBy(this.sortBy) &&
-			!isStatSortByForAnalyzer(this.sortBy, value)
-		) {
-			const remapped = coerceSortByForAnalyzer(this.sortBy, value);
-			if (remapped && isStatSortByForAnalyzer(remapped, value)) {
-				const previousDefault = getDefaultSortOrder(this.sortBy);
-				const wasOnDefaultOrder =
-					!this.#sortOrderManual || this.sortOrder === previousDefault;
-				this.sortBy = remapped;
-				if (wasOnDefaultOrder) {
-					this.sortOrder = getDefaultSortOrder(remapped);
-					this.#sortOrderManual = false;
-				}
-			} else {
-				this.#resetSortToDateDefault();
-			}
-		}
 		this.#saveToUrl();
 	}
 
@@ -1807,15 +1784,12 @@ export class FilterStore {
 	): LayoutData[] {
 		const sorted = [...layouts];
 		const descending = this.sortOrder === 'desc';
-		const sortAnalyzer = isStatsAnalyzer(this.statsAnalyzer) ? this.statsAnalyzer : undefined;
-		const statSort = isStatSortBy(this.sortBy)
-			? getStatSortField(this.sortBy, sortAnalyzer)
-			: undefined;
+		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
 
 		if (statSort) {
 			const values = new Map<string, number | null>();
 			for (const layout of sorted) {
-				values.set(layout.name, getStatSortValue(statsMaps, layout, this.sortBy, sortAnalyzer));
+				values.set(layout.name, getStatSortValue(statsMaps, layout, this.sortBy));
 			}
 
 			return sorted.sort((a, b) => {
