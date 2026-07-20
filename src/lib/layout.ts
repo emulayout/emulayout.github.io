@@ -77,6 +77,9 @@ export interface CyanophageStats {
 	sfs: number;
 	scissors: number;
 	lsb: number;
+	alternate: number;
+	roll: number;
+	redirect: number;
 	lh: number;
 	rh: number;
 	LI: number;

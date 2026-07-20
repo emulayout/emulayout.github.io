@@ -173,6 +173,9 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'sfs',
 	'scissors',
 	'lsb',
+	'alternate',
+	'roll',
+	'redirect',
 	'lh',
 	'rh',
 	...CYANOPHAGE_FINGER_STAT_KEYS
@@ -188,6 +191,9 @@ export type DerivedCyanophageStats = {
 	sfs: number;
 	scissors: number;
 	lsb: number;
+	alternate: number;
+	roll: number;
+	redirect: number;
 	lh: number;
 	rh: number;
 } & Record<CyanophageFingerUsageKey, number>;
@@ -1572,6 +1578,9 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 		sfs: stats.sfs,
 		scissors: stats.scissors,
 		lsb: stats.lsb,
+		alternate: stats.alternate,
+		roll: stats.roll,
+		redirect: stats.redirect,
 		lh: stats.lh,
 		rh: stats.rh,
 		...Object.fromEntries(

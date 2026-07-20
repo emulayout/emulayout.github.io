@@ -25,7 +25,7 @@ export const CYANOPHAGE_FINGER_STAT_KEYS = [
 	'RT'
 ];
 
-/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'lh', 'rh', ...typeof CYANOPHAGE_FINGER_STAT_KEYS]} */
+/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'alternate', 'roll', 'redirect', 'lh', 'rh', ...typeof CYANOPHAGE_FINGER_STAT_KEYS]} */
 export const CYANOPHAGE_STAT_KEYS = [
 	'total-word-effort',
 	'effort',
@@ -33,6 +33,9 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'sfs',
 	'scissors',
 	'lsb',
+	'alternate',
+	'roll',
+	'redirect',
 	'lh',
 	'rh',
 	...CYANOPHAGE_FINGER_STAT_KEYS
@@ -98,6 +101,9 @@ const CYANOPHAGE_FINGER_ID_TO_KEY = {
  *   sfs: number,
  *   scissors: number,
  *   lsb: number,
+ *   alternate: number,
+ *   roll: number,
+ *   redirect: number,
  *   lh: number,
  *   rh: number,
  *   LI: number,
@@ -275,6 +281,79 @@ function isLatStretch(prevCol, col) {
 }
 
 /**
+ * Classify a trigram the way cyanophage `measureWords` does (keyboard_svg.js).
+ * @param {number} ppFinger
+ * @param {number} prevFinger
+ * @param {number} finger
+ * @param {string} ppChar
+ * @param {string} char
+ * @returns {string}
+ */
+function classifyTrigram(ppFinger, prevFinger, finger, ppChar, char) {
+	let cat = 'other';
+
+	if (ppFinger <= 5 && prevFinger <= 5 && finger <= 5) {
+		if (ppFinger < prevFinger && prevFinger < finger) {
+			cat = 'roll in';
+		} else if (ppFinger > prevFinger && prevFinger > finger) {
+			cat = 'roll out';
+		} else if (
+			(ppFinger < prevFinger && finger < prevFinger && finger !== ppFinger) ||
+			(ppFinger > prevFinger && finger > prevFinger && finger !== ppFinger)
+		) {
+			cat = 'redirect';
+			if (ppFinger !== 4 && prevFinger !== 4 && finger !== 4) {
+				cat = 'weak redirect';
+			}
+		}
+	}
+
+	if (ppFinger >= 6 && prevFinger >= 6 && finger >= 6) {
+		if (ppFinger > prevFinger && prevFinger > finger) {
+			cat = 'roll in';
+		} else if (ppFinger < prevFinger && prevFinger < finger) {
+			cat = 'roll out';
+		} else if (
+			(ppFinger > prevFinger && finger > prevFinger && finger !== ppFinger) ||
+			(ppFinger < prevFinger && finger < prevFinger && finger !== ppFinger)
+		) {
+			cat = 'redirect';
+			if (ppFinger !== 7 && prevFinger !== 7 && finger !== 7) {
+				cat = 'weak redirect';
+			}
+		}
+	}
+
+	if (
+		(ppFinger <= 5 && prevFinger >= 6 && finger <= 5) ||
+		(ppFinger >= 6 && prevFinger <= 5 && finger >= 6)
+	) {
+		cat = 'alt';
+		if (ppFinger === finger && ppChar !== char) {
+			cat = 'alt sfs';
+		}
+	} else if (ppFinger <= 5 && prevFinger <= 5 && finger >= 6 && ppFinger < prevFinger) {
+		cat = 'bigram roll in';
+	} else if (ppFinger >= 6 && prevFinger <= 5 && finger <= 5 && prevFinger < finger) {
+		cat = 'bigram roll in';
+	} else if (ppFinger <= 5 && prevFinger <= 5 && finger >= 6 && ppFinger > prevFinger) {
+		cat = 'bigram roll out';
+	} else if (ppFinger >= 6 && prevFinger <= 5 && finger <= 5 && prevFinger > finger) {
+		cat = 'bigram roll out';
+	} else if (ppFinger >= 6 && prevFinger >= 6 && finger <= 5 && ppFinger > prevFinger) {
+		cat = 'bigram roll in';
+	} else if (ppFinger <= 5 && prevFinger >= 6 && finger >= 6 && prevFinger > finger) {
+		cat = 'bigram roll in';
+	} else if (ppFinger >= 6 && prevFinger >= 6 && finger <= 5 && ppFinger < prevFinger) {
+		cat = 'bigram roll out';
+	} else if (ppFinger <= 5 && prevFinger >= 6 && finger >= 6 && prevFinger < finger) {
+		cat = 'bigram roll out';
+	}
+
+	return cat;
+}
+
+/**
  * @param {CharPositionMap} charMap
  * @param {WordFrequencyMap} words
  * @param {Record<string, number>} wordEffort
@@ -289,6 +368,9 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	let sfs = 0;
 	let scissors = 0;
 	let lsb = 0;
+	let alternate = 0;
+	let roll = 0;
+	let redirect = 0;
 	let lh = 0;
 	let rh = 0;
 	/** @type {Record<string, number>} */
@@ -360,8 +442,24 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 				}
 			}
 
-			if (i > 1 && prevCol >= 0 && finger === ppFinger && ppChar !== char) {
-				sfs += count;
+			if (i > 1 && prevCol >= 0) {
+				if (finger === ppFinger && ppChar !== char) {
+					sfs += count;
+				}
+
+				const cat = classifyTrigram(ppFinger, prevFinger, finger, ppChar, char);
+				if (cat === 'alt') {
+					alternate += count;
+				} else if (cat === 'redirect' || cat === 'weak redirect') {
+					redirect += count;
+				} else if (
+					cat === 'roll in' ||
+					cat === 'roll out' ||
+					cat === 'bigram roll in' ||
+					cat === 'bigram roll out'
+				) {
+					roll += count;
+				}
 			}
 
 			ppChar = prevChar;
@@ -395,6 +493,9 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 		sfs: sfs * invInputLength,
 		scissors: scissors * invInputLength,
 		lsb: lsb * invInputLength,
+		alternate: alternate * invInputLength,
+		roll: roll * invInputLength,
+		redirect: redirect * invInputLength,
 		lh: handTotal > 0 ? lh / handTotal : 0.5,
 		rh: handTotal > 0 ? rh / handTotal : 0.5,
 		...fingerUsage
