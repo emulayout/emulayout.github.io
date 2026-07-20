@@ -29,6 +29,7 @@
 		formatMana2StatsUnavailableBlock,
 		formatStatsLoadingBlock,
 		formatStatsUnavailableBlock,
+		formatStatPercent,
 		getStatCardHighlightState,
 		MANA2_ANALYZER,
 		showsCyanophageStats,
@@ -37,6 +38,7 @@
 		STAT_ANALYZERS
 	} from '$lib/layoutStats';
 	import ModalShell from '$lib/components/ModalShell.svelte';
+	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import { buildKeyMap, buildShiftKeyMap, type KeyMap } from '$lib/cmini/keyboard';
 	import {
@@ -85,6 +87,8 @@
 
 	const monkeyLabel =
 		STAT_ANALYZERS.find((a) => a.value === DEFAULT_STATS_ANALYZER)?.label ?? 'cmini';
+	/** Short label for shared stats table headers (omit monkeyracer parenthetical). */
+	const cminiTableLabel = 'cmini';
 	const cyanophageLabel =
 		STAT_ANALYZERS.find((a) => a.value === CYANOPHAGE_ANALYZER)?.label ?? 'Cyanophage';
 	const mana2Label = STAT_ANALYZERS.find((a) => a.value === MANA2_ANALYZER)?.label ?? 'Mana2';
@@ -179,13 +183,10 @@
 	const mana2Loading = $derived(showMana2Stats && layoutStatsStore.isLoading(MANA2_ANALYZER));
 
 	const sortFieldHighlight = $derived(
-		statHighlights ??
-			getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
+		statHighlights ?? getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
 	const botFilterHighlightKeys = $derived(sortFieldHighlight.botFilterHighlightKeys);
-	const cyanophageFilterHighlightKeys = $derived(
-		sortFieldHighlight.cyanophageFilterHighlightKeys
-	);
+	const cyanophageFilterHighlightKeys = $derived(sortFieldHighlight.cyanophageFilterHighlightKeys);
 	const mana2FilterHighlightKeys = $derived(sortFieldHighlight.mana2FilterHighlightKeys);
 	const botSortHighlightKey = $derived(sortFieldHighlight.botSortHighlightKey);
 	const cyanophageSortHighlightKey = $derived(sortFieldHighlight.cyanophageSortHighlightKey);
@@ -195,12 +196,7 @@
 
 	const monkeyStatsBlockLines = $derived(
 		botStats
-			? buildBotStatsBlockLines(
-					botStats,
-					botFilterHighlightKeys,
-					botSortHighlightKey,
-					sortOrder
-				)
+			? buildBotStatsBlockLines(botStats, botFilterHighlightKeys, botSortHighlightKey, sortOrder)
 			: null
 	);
 	const cyanophageStatsBlockLines = $derived(
@@ -275,60 +271,141 @@
 		return decoded ? deriveMana2Stats(decoded) : null;
 	});
 
-	const expandMonkeyStatsBlockLines = $derived(
-		expandBotStats
-			? buildBotStatsBlockLines(
-					expandBotStats,
-					botFilterHighlightKeys,
-					botSortHighlightKey,
-					sortOrder
-				)
-			: null
-	);
-	const expandCyanophageStatsBlockLines = $derived(
-		expandCyanophageStats
-			? buildCyanophageStatsBlockLines(
-					expandCyanophageStats,
-					cyanophageFilterHighlightKeys,
-					cyanophageSortHighlightKey,
-					sortOrder
-				)
-			: null
-	);
-	const expandMana2StatsBlockLines = $derived(
-		expandMana2Stats
-			? buildMana2StatsBlockLines(
-					expandMana2Stats,
-					mana2FilterHighlightKeys,
-					mana2SortHighlightKey,
-					sortOrder
-				)
-			: null
-	);
+	/** Stats shared by ≥2 analyzers — expand modal comparison tables. */
+	const expandSharedCells = $derived.by(() => {
+		type Cell = string;
+		const dash = '—';
+		const loading = '…';
 
-	const expandMonkeyStatsPlaceholder = $derived(
-		expandMonkeyLoading
-			? formatStatsLoadingBlock()
-			: !expandBotStats
-				? formatStatsUnavailableBlock()
-				: null
-	);
-	const expandCyanophageStatsPlaceholder = $derived(
-		expandCyanophageLoading
-			? formatCyanophageStatsLoadingBlock()
-			: !expandCyanophageStats
-				? formatCyanophageStatsUnavailableBlock(
-						!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
-					)
-				: null
-	);
-	const expandMana2StatsPlaceholder = $derived(
-		expandMana2Loading
-			? formatMana2StatsLoadingBlock()
-			: !expandMana2Stats
-				? formatMana2StatsUnavailableBlock()
-				: null
-	);
+		const monkeyCell = (
+			get: (stats: NonNullable<typeof expandBotStats>) => number,
+			format: (value: number) => string = formatStatPercent
+		): Cell => {
+			if (expandMonkeyLoading) return loading;
+			if (!expandBotStats) return dash;
+			return format(get(expandBotStats));
+		};
+		const cyanoCell = (
+			get: (stats: NonNullable<typeof expandCyanophageStats>) => number,
+			format: (value: number) => string = formatStatPercent
+		): Cell => {
+			if (expandCyanophageLoading) return loading;
+			if (!expandCyanophageStats) return dash;
+			return format(get(expandCyanophageStats));
+		};
+		const mana2Cell = (
+			get: (stats: NonNullable<typeof expandMana2Stats>) => number,
+			format: (value: number) => string = formatStatPercent
+		): Cell => {
+			if (expandMana2Loading) return loading;
+			if (!expandMana2Stats) return dash;
+			return format(get(expandMana2Stats));
+		};
+		const mana2Raw = (value: number) => value.toFixed(3);
+
+		return { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw };
+	});
+
+	const expandSharedStatRows = $derived.by(() => {
+		const { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw } = expandSharedCells;
+
+		return [
+			{
+				label: 'Same-finger bigrams',
+				monkey: monkeyCell((s) => s.sfb),
+				cyanophage: cyanoCell((s) => s.sfb),
+				mana2: mana2Cell((s) => s.sfb)
+			},
+			{
+				label: 'Same-finger skip',
+				monkey: monkeyCell((s) => s.sfs),
+				cyanophage: cyanoCell((s) => s.sfs),
+				mana2: mana2Cell((s) => s.sfs)
+			},
+			{
+				label: 'Alternation',
+				monkey: monkeyCell((s) => s.alternate),
+				cyanophage: cyanoCell((s) => s.alternate),
+				mana2: mana2Cell((s) => s.alt)
+			},
+			{
+				label: 'Roll',
+				monkey: monkeyCell((s) => s.roll),
+				cyanophage: cyanoCell((s) => s.roll),
+				mana2: mana2Cell((s) => s.roll)
+			},
+			{
+				label: 'Redirect',
+				monkey: monkeyCell((s) => s.red),
+				cyanophage: cyanoCell((s) => s.redirect),
+				mana2: mana2Cell((s) => s.redirect)
+			},
+			{
+				label: 'Lat stretch bigrams',
+				monkey: dash,
+				cyanophage: cyanoCell((s) => s.lsb),
+				mana2: mana2Cell((s) => s.lsb, mana2Raw)
+			},
+			{
+				label: 'Scissors',
+				monkey: dash,
+				cyanophage: cyanoCell((s) => s.scissors),
+				mana2: mana2Cell((s) => s.vsb, mana2Raw)
+			}
+		] as const;
+	});
+
+	const expandSharedLeftHandRows = $derived.by(() => {
+		const { dash, monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
+		const fingers = [
+			{ key: 'LI' as const, label: 'Index' },
+			{ key: 'LM' as const, label: 'Middle' },
+			{ key: 'LR' as const, label: 'Ring' },
+			{ key: 'LP' as const, label: 'Pinky' },
+			{ key: 'LT' as const, label: 'Thumb' }
+		];
+
+		return [
+			{
+				label: 'Hand',
+				monkey: monkeyCell((s) => s.lh),
+				cyanophage: cyanoCell((s) => s.lh),
+				mana2: mana2Cell((s) => s.lh)
+			},
+			...fingers.map(({ key, label }) => ({
+				label,
+				monkey: monkeyCell((s) => s[key]),
+				cyanophage: cyanoCell((s) => s[key]),
+				mana2: mana2Cell((s) => s[key])
+			}))
+		];
+	});
+
+	const expandSharedRightHandRows = $derived.by(() => {
+		const { monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
+		const fingers = [
+			{ key: 'RI' as const, label: 'Index' },
+			{ key: 'RM' as const, label: 'Middle' },
+			{ key: 'RR' as const, label: 'Ring' },
+			{ key: 'RP' as const, label: 'Pinky' },
+			{ key: 'RT' as const, label: 'Thumb' }
+		];
+
+		return [
+			{
+				label: 'Hand',
+				monkey: monkeyCell((s) => s.rh),
+				cyanophage: cyanoCell((s) => s.rh),
+				mana2: mana2Cell((s) => s.rh)
+			},
+			...fingers.map(({ key, label }) => ({
+				label,
+				monkey: monkeyCell((s) => s[key]),
+				cyanophage: cyanoCell((s) => s[key]),
+				mana2: mana2Cell((s) => s[key])
+			}))
+		];
+	});
 
 	$effect(() => {
 		if (!expanded) return;
@@ -697,41 +774,6 @@
 	</div>
 {/snippet}
 
-{#snippet statsColumn(
-	label: string,
-	blockLines: typeof expandMonkeyStatsBlockLines,
-	placeholder: string | null,
-	loading: boolean,
-	mana2 = false
-)}
-	<div class="stats-stack-item expand-stats-col">
-		<div class="stats-analyzer-label">{label}</div>
-		{#if blockLines}
-			<div class="stats-block shrink-0" class:stats-block--mana2={mana2}>
-				{#each blockLines as line, lineIndex (lineIndex)}
-					<div class="stats-block-line">
-						{#each line as segment, segmentIndex (segmentIndex)}
-							<span
-								class:stats-block-highlight={Boolean(segment.highlight)}
-								class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
-								class:stats-block-highlight--cyanophage={segment.highlight === 'cyanophage'}
-								class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
-								class:stats-block-highlight--sort={segment.highlight === 'sort'}
-								>{segment.text}</span
-							>
-						{/each}
-					</div>
-				{/each}
-			</div>
-		{:else}
-			<pre
-				class="stats-block shrink-0"
-				class:stats-block--mana2={mana2}
-				class:stats-block--unavailable={!loading}>{placeholder}</pre>
-		{/if}
-	</div>
-{/snippet}
-
 <div
 	data-layout-name={layout.name}
 	class="layout-card px-3 pt-3 pb-2 rounded-xl min-w-0 flex flex-col gap-2"
@@ -882,7 +924,7 @@
 	open={expanded}
 	onClose={closeExpanded}
 	labelledBy={expandTitleId}
-	panelClass="max-h-[min(92vh,960px)] max-w-[min(1200px,96vw)]"
+	panelClass="max-h-[min(94vh,980px)] max-w-[min(1480px,98vw)]"
 >
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4 shrink-0"
@@ -910,36 +952,190 @@
 	</div>
 
 	<div class="expand-modal-body min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<div class="expand-grid">
-			<div
-				class="expand-layout-col flex min-w-0 flex-col gap-2 rounded-xl px-3 pt-3 pb-2"
-				class:layout-card--force-included={forceIncluded}
-				style="
-					background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
-					border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
-				"
-			>
-				{@render layoutCardMain(false, false)}
+		<div class="expand-modal-columns">
+			<div class="expand-modal-side">
+				<div
+					class="expand-layout-col flex min-w-0 flex-col gap-2 rounded-xl px-3 pt-3 pb-2"
+					class:layout-card--force-included={forceIncluded}
+					style="
+						background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
+						border: 1px solid {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
+					"
+				>
+					{@render layoutCardMain(false, false)}
+				</div>
 			</div>
-			{@render statsColumn(
-				monkeyLabel,
-				expandMonkeyStatsBlockLines,
-				expandMonkeyStatsPlaceholder,
-				expandMonkeyLoading
-			)}
-			{@render statsColumn(
-				cyanophageLabel,
-				expandCyanophageStatsBlockLines,
-				expandCyanophageStatsPlaceholder,
-				expandCyanophageLoading
-			)}
-			{@render statsColumn(
-				mana2Label,
-				expandMana2StatsBlockLines,
-				expandMana2StatsPlaceholder,
-				expandMana2Loading,
-				true
-			)}
+
+			<div class="expand-modal-main">
+				<div class="expand-unique-columns">
+					<LayoutExpandUniqueStats
+						analyzer={DEFAULT_STATS_ANALYZER}
+						label={monkeyLabel}
+						stats={expandBotStats}
+						loading={expandMonkeyLoading}
+					/>
+					<LayoutExpandUniqueStats
+						analyzer={CYANOPHAGE_ANALYZER}
+						label={cyanophageLabel}
+						stats={expandCyanophageStats}
+						loading={expandCyanophageLoading}
+						cyanophageUnsupported={!layout.cyanophageCompatible}
+					/>
+					<LayoutExpandUniqueStats
+						analyzer={MANA2_ANALYZER}
+						label={mana2Label}
+						stats={expandMana2Stats}
+						loading={expandMana2Loading}
+					/>
+				</div>
+
+				<section class="expand-shared-stats" aria-labelledby={`${expandTitleId}-shared`}>
+					<h3
+						id={`${expandTitleId}-shared`}
+						class="expand-shared-stats-title"
+						style="color: var(--text-primary);"
+					>
+						Shared stats
+					</h3>
+					<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+						Metrics present in at least two analyzers. Values use each analyzer’s own definition and
+						units — not always directly comparable.
+					</p>
+				<div class="expand-shared-stats-scroll">
+					<table class="expand-shared-stats-table">
+						<thead>
+							<tr>
+								<th scope="col" class="expand-shared-stats-metric">Stat</th>
+								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
+									>{cminiTableLabel}</th
+								>
+								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+									>{cyanophageLabel}</th
+								>
+								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
+									>{mana2Label}</th
+								>
+							</tr>
+						</thead>
+						<tbody>
+							{#each expandSharedStatRows as row (row.label)}
+								<tr>
+									<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+									<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
+										>{row.monkey}</td
+									>
+									<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+										>{row.cyanophage}</td
+									>
+									<td class="expand-shared-stats-col expand-shared-stats-col--mana2">{row.mana2}</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+
+				<div class="expand-shared-hand-grid">
+					<div>
+						<h3
+							id={`${expandTitleId}-left-hand`}
+							class="expand-shared-stats-title expand-shared-stats-title--secondary"
+							style="color: var(--text-primary);"
+						>
+							Left hand
+						</h3>
+						<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+							Left-hand balance and per-finger load.
+						</p>
+						<div class="expand-shared-stats-scroll">
+							<table class="expand-shared-stats-table">
+								<thead>
+									<tr>
+										<th scope="col" class="expand-shared-stats-metric">Stat</th>
+										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
+											>{cminiTableLabel}</th
+										>
+										<th
+											scope="col"
+											class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+											>{cyanophageLabel}</th
+										>
+										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
+											>{mana2Label}</th
+										>
+									</tr>
+								</thead>
+								<tbody>
+									{#each expandSharedLeftHandRows as row (row.label)}
+										<tr>
+											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+											<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
+												>{row.monkey}</td
+											>
+											<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+												>{row.cyanophage}</td
+											>
+											<td class="expand-shared-stats-col expand-shared-stats-col--mana2"
+												>{row.mana2}</td
+											>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<div>
+						<h3
+							id={`${expandTitleId}-right-hand`}
+							class="expand-shared-stats-title expand-shared-stats-title--secondary"
+							style="color: var(--text-primary);"
+						>
+							Right hand
+						</h3>
+						<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+							Right-hand balance and per-finger load.
+						</p>
+						<div class="expand-shared-stats-scroll">
+							<table class="expand-shared-stats-table">
+								<thead>
+									<tr>
+										<th scope="col" class="expand-shared-stats-metric">Stat</th>
+										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
+											>{cminiTableLabel}</th
+										>
+										<th
+											scope="col"
+											class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+											>{cyanophageLabel}</th
+										>
+										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
+											>{mana2Label}</th
+										>
+									</tr>
+								</thead>
+								<tbody>
+									{#each expandSharedRightHandRows as row (row.label)}
+										<tr>
+											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+											<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
+												>{row.monkey}</td
+											>
+											<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+												>{row.cyanophage}</td
+											>
+											<td class="expand-shared-stats-col expand-shared-stats-col--mana2"
+												>{row.mana2}</td
+											>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</section>
+			</div>
 		</div>
 	</div>
 </ModalShell>
@@ -1172,34 +1368,148 @@
 		color: var(--text-primary);
 	}
 
-	.expand-grid {
+	.expand-modal-columns {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 1rem;
+		gap: 1.25rem;
 		align-items: start;
 	}
 
-	.expand-stats-col {
+	.expand-modal-side {
 		min-width: 0;
-		padding: 0.75rem;
-		border-radius: 0.75rem;
-		border: 1px solid var(--border);
-		background-color: var(--bg-secondary);
+	}
+
+	.expand-modal-main {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 0;
+	}
+
+	.expand-unique-columns {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 0.75rem;
+		min-width: 0;
+		align-items: start;
+	}
+
+	@media (min-width: 720px) {
+		.expand-unique-columns {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
 	}
 
 	.expand-layout-col .layout-display-area {
 		flex: 0 0 auto;
 	}
 
+	@media (min-width: 960px) {
+		.expand-modal-columns {
+			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+			gap: 1.5rem;
+		}
+
+		/* Stick within .expand-modal-body’s overflow; disabled when columns stack. */
+		.expand-modal-side {
+			position: sticky;
+			top: 0;
+			align-self: start;
+			z-index: 1;
+		}
+	}
+
+	.expand-shared-stats {
+		min-width: 0;
+	}
+
+	.expand-shared-stats-title {
+		margin: 0;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+	}
+
+	.expand-shared-stats-title--secondary {
+		margin-top: 0;
+	}
+
+	.expand-shared-hand-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 1rem;
+		margin-top: 1.25rem;
+	}
+
 	@media (min-width: 768px) {
-		.expand-grid {
+		.expand-shared-hand-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 
-	@media (min-width: 1100px) {
-		.expand-grid {
-			grid-template-columns: repeat(4, minmax(0, 1fr));
-		}
+	.expand-shared-stats-note {
+		margin: 0.35rem 0 0.75rem;
+		font-size: 0.75rem;
+		line-height: 1.2rem;
+	}
+
+	.expand-shared-stats-scroll {
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background-color: var(--bg-secondary);
+	}
+
+	.expand-shared-stats-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.8125rem;
+		line-height: 1.25rem;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.expand-shared-stats-table th,
+	.expand-shared-stats-table td {
+		padding: 0.45rem 0.75rem;
+		text-align: right;
+		border-bottom: 1px solid var(--border);
+		color: var(--text-primary);
+		white-space: nowrap;
+	}
+
+	.expand-shared-stats-table tbody tr:last-child th,
+	.expand-shared-stats-table tbody tr:last-child td {
+		border-bottom: 0;
+	}
+
+	.expand-shared-stats-metric {
+		text-align: left !important;
+		font-weight: 500;
+		color: var(--text-secondary) !important;
+	}
+
+	.expand-shared-stats-table thead th {
+		font-weight: 600;
+		background-color: color-mix(in srgb, var(--bg-primary) 55%, var(--bg-secondary));
+	}
+
+	.expand-shared-stats-col--cmini {
+		color: var(--analyzer-cmini);
+	}
+
+	.expand-shared-stats-col--cyanophage {
+		color: var(--analyzer-cyanophage);
+	}
+
+	.expand-shared-stats-col--mana2 {
+		color: var(--analyzer-mana2);
+	}
+
+	.expand-shared-stats-table tbody td.expand-shared-stats-col--cmini,
+	.expand-shared-stats-table tbody td.expand-shared-stats-col--cyanophage,
+	.expand-shared-stats-table tbody td.expand-shared-stats-col--mana2 {
+		color: var(--text-primary);
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
 	}
 </style>
