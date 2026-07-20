@@ -35,7 +35,8 @@
 		showsCyanophageStats,
 		showsMana2Stats,
 		showsMonkeyracerStats,
-		STAT_ANALYZERS
+		STAT_ANALYZERS,
+		type StatsAnalyzer
 	} from '$lib/layoutStats';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
@@ -95,12 +96,20 @@
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let localAnglemod = $state(false);
 	let expanded = $state(false);
+	/** Which analyzers are visible in the expand modal (driven by Show analyzers). */
+	let expandShowMonkey = $state(false);
+	let expandShowCyanophage = $state(false);
+	let expandShowMana2 = $state(false);
 	let keyMapCache: KeyMap | null = null;
 	let shiftKeyMapCache: KeyMap | null = null;
 	let keyMapSource = '';
 
 	const expandTitleId = $derived(
 		`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+	);
+	const expandAnalyzersTitleId = $derived(`${expandTitleId}-analyzers`);
+	const expandAnalyzerCount = $derived(
+		(expandShowMonkey ? 1 : 0) + (expandShowCyanophage ? 1 : 0) + (expandShowMana2 ? 1 : 0)
 	);
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
@@ -251,9 +260,15 @@
 		layoutStatsStore.maps.mana2?.[layout.name] ?? compactMana2Stats
 	);
 
-	const expandMonkeyLoading = $derived(layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER));
-	const expandCyanophageLoading = $derived(layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER));
-	const expandMana2Loading = $derived(layoutStatsStore.isLoading(MANA2_ANALYZER));
+	const expandMonkeyLoading = $derived(
+		expandShowMonkey && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER)
+	);
+	const expandCyanophageLoading = $derived(
+		expandShowCyanophage && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
+	);
+	const expandMana2Loading = $derived(
+		expandShowMana2 && layoutStatsStore.isLoading(MANA2_ANALYZER)
+	);
 
 	const expandBotStats = $derived.by(() => {
 		if (!expandMonkeyCompact) return null;
@@ -457,16 +472,35 @@
 		];
 	});
 
+	function hasExpandAnalyzerData(analyzer: StatsAnalyzer): boolean {
+		if (analyzer === DEFAULT_STATS_ANALYZER) {
+			return Boolean(layoutStatsStore.maps.monkeyracer?.[layout.name] ?? compactMonkeyStats);
+		}
+		if (analyzer === CYANOPHAGE_ANALYZER) {
+			if (!layout.cyanophageCompatible) return false;
+			return Boolean(layoutStatsStore.maps.cyanophage?.[layout.name] ?? compactCyanophageStats);
+		}
+		return Boolean(layoutStatsStore.maps.mana2?.[layout.name] ?? compactMana2Stats);
+	}
+
 	$effect(() => {
 		if (!expanded) return;
-		void Promise.all([
-			layoutStatsStore.ensureLoaded(DEFAULT_STATS_ANALYZER),
-			layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER),
-			layoutStatsStore.ensureLoaded(MANA2_ANALYZER)
-		]);
+		if (expandShowMonkey) void layoutStatsStore.ensureLoaded(DEFAULT_STATS_ANALYZER);
+		if (expandShowCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
+		if (expandShowMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
 	});
 
+	function setExpandAnalyzer(analyzer: StatsAnalyzer, checked: boolean) {
+		if (analyzer === DEFAULT_STATS_ANALYZER) expandShowMonkey = checked;
+		else if (analyzer === CYANOPHAGE_ANALYZER) expandShowCyanophage = checked;
+		else expandShowMana2 = checked;
+		if (checked) void layoutStatsStore.ensureLoaded(analyzer);
+	}
+
 	function openExpanded() {
+		expandShowMonkey = hasExpandAnalyzerData(DEFAULT_STATS_ANALYZER);
+		expandShowCyanophage = hasExpandAnalyzerData(CYANOPHAGE_ANALYZER);
+		expandShowMana2 = hasExpandAnalyzerData(MANA2_ANALYZER);
 		expanded = true;
 	}
 
@@ -970,6 +1004,70 @@
 	{/if}
 </div>
 
+{#snippet expandAnalyzerToggle(
+	analyzer: StatsAnalyzer,
+	label: string,
+	checked: boolean,
+	accent: string
+)}
+	<label class="flex items-center gap-2 min-w-0 cursor-pointer">
+		<span class="relative size-4 shrink-0">
+			<input
+				type="checkbox"
+				{checked}
+				onchange={(event) => setExpandAnalyzer(analyzer, event.currentTarget.checked)}
+				class="size-4 rounded appearance-none cursor-pointer absolute inset-0 m-0"
+				style="
+					background-color: {checked ? accent : 'var(--bg-primary)'};
+					border: 1px solid {checked ? accent : 'var(--border)'};
+				"
+			/>
+			{#if checked}
+				<svg
+					class="absolute inset-0 m-auto size-3 pointer-events-none"
+					style="color: white;"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="3"
+					aria-hidden="true"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+				</svg>
+			{/if}
+		</span>
+		<span class="text-sm font-semibold min-w-0 truncate" style="color: {accent};">{label}</span>
+	</label>
+{/snippet}
+
+{#snippet expandSharedHeaders()}
+	{#if expandShowMonkey}
+		<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
+			>{cminiTableLabel}</th
+		>
+	{/if}
+	{#if expandShowCyanophage}
+		<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
+			>{cyanophageLabel}</th
+		>
+	{/if}
+	{#if expandShowMana2}
+		<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2">{mana2Label}</th>
+	{/if}
+{/snippet}
+
+{#snippet expandSharedCellsRow(row: { monkey: string; cyanophage: string; mana2: string })}
+	{#if expandShowMonkey}
+		<td class="expand-shared-stats-col expand-shared-stats-col--cmini">{row.monkey}</td>
+	{/if}
+	{#if expandShowCyanophage}
+		<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage">{row.cyanophage}</td>
+	{/if}
+	{#if expandShowMana2}
+		<td class="expand-shared-stats-col expand-shared-stats-col--mana2">{row.mana2}</td>
+	{/if}
+{/snippet}
+
 <ModalShell
 	open={expanded}
 	onClose={closeExpanded}
@@ -1014,177 +1112,175 @@
 				>
 					{@render layoutCardMain(false, false)}
 				</div>
+
+				<section
+					class="expand-analyzers flex min-w-0 flex-col gap-2 rounded-xl px-3 py-3"
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-labelledby={expandAnalyzersTitleId}
+				>
+					<h3
+						id={expandAnalyzersTitleId}
+						class="text-sm font-semibold m-0"
+						style="color: var(--text-primary);"
+					>
+						Show analyzers
+					</h3>
+					<div class="flex flex-col gap-2 min-w-0">
+						{@render expandAnalyzerToggle(
+							DEFAULT_STATS_ANALYZER,
+							monkeyLabel,
+							expandShowMonkey,
+							'var(--analyzer-cmini)'
+						)}
+						{@render expandAnalyzerToggle(
+							CYANOPHAGE_ANALYZER,
+							cyanophageLabel,
+							expandShowCyanophage,
+							'var(--analyzer-cyanophage)'
+						)}
+						{@render expandAnalyzerToggle(
+							MANA2_ANALYZER,
+							mana2Label,
+							expandShowMana2,
+							'var(--analyzer-mana2)'
+						)}
+					</div>
+				</section>
 			</div>
 
 			<div class="expand-modal-main">
-				<div class="expand-unique-columns">
-					<LayoutExpandUniqueStats
-						analyzer={DEFAULT_STATS_ANALYZER}
-						label={monkeyLabel}
-						stats={expandBotStats}
-						loading={expandMonkeyLoading}
-					/>
-					<LayoutExpandUniqueStats
-						analyzer={CYANOPHAGE_ANALYZER}
-						label={cyanophageLabel}
-						stats={expandCyanophageStats}
-						loading={expandCyanophageLoading}
-						cyanophageUnsupported={!layout.cyanophageCompatible}
-					/>
-					<LayoutExpandUniqueStats
-						analyzer={MANA2_ANALYZER}
-						label={mana2Label}
-						stats={expandMana2Stats}
-						loading={expandMana2Loading}
-					/>
-				</div>
-
-				<section class="expand-shared-stats" aria-labelledby={`${expandTitleId}-shared`}>
-					<h3
-						id={`${expandTitleId}-shared`}
-						class="expand-shared-stats-title"
-						style="color: var(--text-primary);"
+				{#if expandAnalyzerCount > 0}
+					<div
+						class="expand-unique-columns"
+						style="--expand-unique-cols: {expandAnalyzerCount};"
 					>
-						Shared stats
-					</h3>
-					<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
-						Metrics present in at least two analyzers. Values use each analyzer’s own definition and
-						units — not always directly comparable.
+						{#if expandShowMonkey}
+							<LayoutExpandUniqueStats
+								analyzer={DEFAULT_STATS_ANALYZER}
+								label={monkeyLabel}
+								stats={expandBotStats}
+								loading={expandMonkeyLoading}
+							/>
+						{/if}
+						{#if expandShowCyanophage}
+							<LayoutExpandUniqueStats
+								analyzer={CYANOPHAGE_ANALYZER}
+								label={cyanophageLabel}
+								stats={expandCyanophageStats}
+								loading={expandCyanophageLoading}
+								cyanophageUnsupported={!layout.cyanophageCompatible}
+							/>
+						{/if}
+						{#if expandShowMana2}
+							<LayoutExpandUniqueStats
+								analyzer={MANA2_ANALYZER}
+								label={mana2Label}
+								stats={expandMana2Stats}
+								loading={expandMana2Loading}
+							/>
+						{/if}
+					</div>
+
+					<section class="expand-shared-stats" aria-labelledby={`${expandTitleId}-shared`}>
+						<h3
+							id={`${expandTitleId}-shared`}
+							class="expand-shared-stats-title"
+							style="color: var(--text-primary);"
+						>
+							Shared stats
+						</h3>
+						<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+							Metrics present in at least two analyzers. Values use each analyzer’s own definition
+							and units — not always directly comparable.
+						</p>
+						<div class="expand-shared-stats-scroll">
+							<table class="expand-shared-stats-table">
+								<thead>
+									<tr>
+										<th scope="col" class="expand-shared-stats-metric">Stat</th>
+										{@render expandSharedHeaders()}
+									</tr>
+								</thead>
+								<tbody>
+									{#each expandSharedStatRows as row (row.label)}
+										<tr>
+											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+											{@render expandSharedCellsRow(row)}
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+
+						<div class="expand-shared-hand-grid">
+							<div>
+								<h3
+									id={`${expandTitleId}-left-hand`}
+									class="expand-shared-stats-title expand-shared-stats-title--secondary"
+									style="color: var(--text-primary);"
+								>
+									Left hand
+								</h3>
+								<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+									Left-hand balance and per-finger load.
+								</p>
+								<div class="expand-shared-stats-scroll">
+									<table class="expand-shared-stats-table">
+										<thead>
+											<tr>
+												<th scope="col" class="expand-shared-stats-metric">Stat</th>
+												{@render expandSharedHeaders()}
+											</tr>
+										</thead>
+										<tbody>
+											{#each expandSharedLeftHandRows as row (row.label)}
+												<tr>
+													<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+													{@render expandSharedCellsRow(row)}
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+
+							<div>
+								<h3
+									id={`${expandTitleId}-right-hand`}
+									class="expand-shared-stats-title expand-shared-stats-title--secondary"
+									style="color: var(--text-primary);"
+								>
+									Right hand
+								</h3>
+								<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
+									Right-hand balance and per-finger load.
+								</p>
+								<div class="expand-shared-stats-scroll">
+									<table class="expand-shared-stats-table">
+										<thead>
+											<tr>
+												<th scope="col" class="expand-shared-stats-metric">Stat</th>
+												{@render expandSharedHeaders()}
+											</tr>
+										</thead>
+										<tbody>
+											{#each expandSharedRightHandRows as row (row.label)}
+												<tr>
+													<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
+													{@render expandSharedCellsRow(row)}
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</section>
+				{:else}
+					<p class="m-0 text-sm" style="color: var(--text-secondary);">
+						Select one or more analyzers to show stats.
 					</p>
-				<div class="expand-shared-stats-scroll">
-					<table class="expand-shared-stats-table">
-						<thead>
-							<tr>
-								<th scope="col" class="expand-shared-stats-metric">Stat</th>
-								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
-									>{cminiTableLabel}</th
-								>
-								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-									>{cyanophageLabel}</th
-								>
-								<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
-									>{mana2Label}</th
-								>
-							</tr>
-						</thead>
-						<tbody>
-							{#each expandSharedStatRows as row (row.label)}
-								<tr>
-									<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
-									<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
-										>{row.monkey}</td
-									>
-									<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-										>{row.cyanophage}</td
-									>
-									<td class="expand-shared-stats-col expand-shared-stats-col--mana2">{row.mana2}</td
-									>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				<div class="expand-shared-hand-grid">
-					<div>
-						<h3
-							id={`${expandTitleId}-left-hand`}
-							class="expand-shared-stats-title expand-shared-stats-title--secondary"
-							style="color: var(--text-primary);"
-						>
-							Left hand
-						</h3>
-						<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
-							Left-hand balance and per-finger load.
-						</p>
-						<div class="expand-shared-stats-scroll">
-							<table class="expand-shared-stats-table">
-								<thead>
-									<tr>
-										<th scope="col" class="expand-shared-stats-metric">Stat</th>
-										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
-											>{cminiTableLabel}</th
-										>
-										<th
-											scope="col"
-											class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-											>{cyanophageLabel}</th
-										>
-										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
-											>{mana2Label}</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#each expandSharedLeftHandRows as row (row.label)}
-										<tr>
-											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
-											<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
-												>{row.monkey}</td
-											>
-											<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-												>{row.cyanophage}</td
-											>
-											<td class="expand-shared-stats-col expand-shared-stats-col--mana2"
-												>{row.mana2}</td
-											>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-					</div>
-
-					<div>
-						<h3
-							id={`${expandTitleId}-right-hand`}
-							class="expand-shared-stats-title expand-shared-stats-title--secondary"
-							style="color: var(--text-primary);"
-						>
-							Right hand
-						</h3>
-						<p class="expand-shared-stats-note" style="color: var(--text-secondary);">
-							Right-hand balance and per-finger load.
-						</p>
-						<div class="expand-shared-stats-scroll">
-							<table class="expand-shared-stats-table">
-								<thead>
-									<tr>
-										<th scope="col" class="expand-shared-stats-metric">Stat</th>
-										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--cmini"
-											>{cminiTableLabel}</th
-										>
-										<th
-											scope="col"
-											class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-											>{cyanophageLabel}</th
-										>
-										<th scope="col" class="expand-shared-stats-col expand-shared-stats-col--mana2"
-											>{mana2Label}</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#each expandSharedRightHandRows as row (row.label)}
-										<tr>
-											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
-											<td class="expand-shared-stats-col expand-shared-stats-col--cmini"
-												>{row.monkey}</td
-											>
-											<td class="expand-shared-stats-col expand-shared-stats-col--cyanophage"
-												>{row.cyanophage}</td
-											>
-											<td class="expand-shared-stats-col expand-shared-stats-col--mana2"
-												>{row.mana2}</td
-											>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</div>
-			</section>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -1426,6 +1522,9 @@
 	}
 
 	.expand-modal-side {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 		min-width: 0;
 	}
 
@@ -1442,11 +1541,12 @@
 		gap: 0.75rem;
 		min-width: 0;
 		align-items: start;
+		--expand-unique-cols: 1;
 	}
 
 	@media (min-width: 720px) {
 		.expand-unique-columns {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: repeat(var(--expand-unique-cols), minmax(0, 1fr));
 			align-items: stretch;
 		}
 	}
