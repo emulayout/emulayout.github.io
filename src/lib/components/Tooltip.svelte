@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
+
 	interface Props {
 		text: string;
 		/** Visual style of the trigger button. */
@@ -13,6 +15,8 @@
 	let coords = $state({ top: 0, left: 0 });
 
 	const ariaLabel = $derived(variant === 'caution' ? 'Caution' : 'Help');
+	/** Help tips follow the app-bar toggle; caution warnings always stay visible. */
+	const hintsVisible = $derived(variant === 'caution' || uiPrefs.hintsEnabled);
 
 	function portalToBody(node: HTMLElement) {
 		document.body.appendChild(node);
@@ -43,12 +47,17 @@
 	}
 
 	function open() {
+		if (!hintsVisible) return;
 		showTooltip = true;
 	}
 
 	function close() {
 		showTooltip = false;
 	}
+
+	$effect(() => {
+		if (!hintsVisible) showTooltip = false;
+	});
 
 	$effect(() => {
 		if (!showTooltip) return;
@@ -66,56 +75,60 @@
 	});
 </script>
 
-<span class="tooltip-root">
-	<button
-		bind:this={triggerEl}
-		type="button"
-		onmouseenter={open}
-		onmouseleave={close}
-		onfocus={open}
-		onblur={close}
-		class="tooltip-trigger"
-		class:tooltip-trigger--help={variant === 'help'}
-		class:tooltip-trigger--caution={variant === 'caution'}
-		aria-label={ariaLabel}
-	>
-		{#if variant === 'caution'}
-			<svg
-				class="tooltip-trigger-icon"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M12 9v4" />
-				<path d="M12 17h.01" />
-				<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-			</svg>
-		{:else}
-			<span class="tooltip-trigger-mark">?</span>
-		{/if}
-	</button>
-</span>
+{#if hintsVisible}
+	<span class="tooltip-root">
+		<button
+			bind:this={triggerEl}
+			type="button"
+			onmouseenter={open}
+			onmouseleave={close}
+			onfocus={open}
+			onblur={close}
+			class="tooltip-trigger"
+			class:tooltip-trigger--help={variant === 'help'}
+			class:tooltip-trigger--caution={variant === 'caution'}
+			aria-label={ariaLabel}
+		>
+			{#if variant === 'caution'}
+				<svg
+					class="tooltip-trigger-icon"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M12 9v4" />
+					<path d="M12 17h.01" />
+					<path
+						d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+					/>
+				</svg>
+			{:else}
+				<span class="tooltip-trigger-mark">?</span>
+			{/if}
+		</button>
+	</span>
 
-{#if showTooltip}
-	<div
-		bind:this={tooltipEl}
-		use:portalToBody
-		class="tooltip-popup"
-		style="
-			top: {coords.top}px;
-			left: {coords.left}px;
-			background-color: var(--bg-primary);
-			border: 1px solid var(--border);
-			color: var(--text-primary);
-		"
-		role="tooltip"
-	>
-		{text}
-	</div>
+	{#if showTooltip}
+		<div
+			bind:this={tooltipEl}
+			use:portalToBody
+			class="tooltip-popup"
+			style="
+				top: {coords.top}px;
+				left: {coords.left}px;
+				background-color: var(--bg-primary);
+				border: 1px solid var(--border);
+				color: var(--text-primary);
+			"
+			role="tooltip"
+		>
+			{text}
+		</div>
+	{/if}
 {/if}
 
 <style>

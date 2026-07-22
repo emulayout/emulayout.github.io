@@ -4,6 +4,7 @@
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { hasOpenModal } from '$lib/modalScrollLock';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children } = $props();
@@ -50,6 +51,7 @@
 	// Initialize theme mode and follow OS changes while in system mode.
 	$effect(() => {
 		debugEnabled = localStorage.getItem('debug') === 'true';
+		uiPrefs.hydrate();
 
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
@@ -138,6 +140,10 @@
 				? 'Theme: light. Switch to dark mode'
 				: 'Theme: dark. Switch to system mode'
 	);
+
+	const hintsButtonLabel = $derived(
+		uiPrefs.hintsEnabled ? 'Hide help hints' : 'Show help hints'
+	);
 </script>
 
 <svelte:head>
@@ -175,6 +181,32 @@
 			{/if}
 		</div>
 		<div class="flex shrink-0 justify-end gap-2">
+			<button
+				type="button"
+				onclick={() => uiPrefs.toggleHints()}
+				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+				class:app-header-toggle--on={uiPrefs.hintsEnabled}
+				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+				aria-label={hintsButtonLabel}
+				aria-pressed={uiPrefs.hintsEnabled}
+				title={hintsButtonLabel}
+			>
+				<svg
+					class="absolute inset-0 m-auto size-5 transition-all duration-300"
+					style="color: var(--text-primary);"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+					<path d="M12 17h.01" />
+				</svg>
+			</button>
 			<button
 				onclick={openRecentLayouts}
 				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
@@ -313,6 +345,11 @@
 		background-color: var(--bg-primary);
 		box-shadow: var(--app-bar-shadow-color) 0px -4px 20px 7px;
 		margin-bottom: 1.5rem;
+	}
+
+	.app-header-toggle--on {
+		border-color: var(--accent) !important;
+		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
 	}
 
 	/* Desktop split view: lock the shell to the viewport so columns scroll independently. */
