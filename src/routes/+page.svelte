@@ -376,7 +376,7 @@
 		pointer-events: none;
 	}
 
-	@media (min-width: 1024px) {
+	@media (min-width: 768px) {
 		.compare-fab {
 			/* Center within the results column, not the full viewport. */
 			position: absolute;
@@ -489,7 +489,7 @@
 		background: transparent;
 	}
 
-	@media (min-width: 1024px) {
+	@media (min-width: 768px) {
 		.page-root {
 			flex: 1 1 0;
 			min-height: 0;

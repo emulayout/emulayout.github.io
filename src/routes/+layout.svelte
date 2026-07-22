@@ -39,7 +39,7 @@
 	const debugLayoutMode = $derived(
 		!debugEnabled
 			? ''
-			: lgUp.current
+			: mdUp.current
 				? `split (≥${LAYOUT_SPLIT_MIN_WIDTH})`
 				: `stack (<${LAYOUT_SPLIT_MIN_WIDTH})`
 	);
@@ -352,8 +352,8 @@
 		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
 	}
 
-	/* Desktop split view: lock the shell to the viewport so columns scroll independently. */
-	@media (min-width: 1024px) {
+	/* Split view (md+): lock the shell to the viewport so columns scroll independently. */
+	@media (min-width: 768px) {
 		.app-shell {
 			height: 100dvh;
 			max-height: 100dvh;

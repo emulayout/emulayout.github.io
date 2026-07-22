@@ -82,5 +82,5 @@ export const TAILWIND_BREAKPOINTS = {
 	'3xl': 1920
 } as const;
 
-/** Side-by-side filter rail + results; below this the sidebar stacks (mobile/medium). */
-export const LAYOUT_SPLIT_MIN_WIDTH = TAILWIND_BREAKPOINTS.lg;
+/** Side-by-side filter rail + results; below this the sidebar stacks (mobile). */
+export const LAYOUT_SPLIT_MIN_WIDTH = TAILWIND_BREAKPOINTS.md;

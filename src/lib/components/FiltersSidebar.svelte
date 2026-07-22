@@ -244,10 +244,8 @@
 		gap: 0;
 		padding-top: var(--filters-chrome-edge);
 		padding-bottom: var(--filters-reset-pad);
-		flex: 1 1 auto;
-		min-height: 0;
-		height: 100%;
 		box-sizing: border-box;
+		min-width: 0;
 	}
 
 	.filters-sidebar-tabs {
@@ -311,32 +309,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-		flex: 1 1 0;
 		min-width: 0;
-		min-height: 0;
-		overflow-x: hidden;
-		overflow-y: auto;
-		overscroll-behavior: contain;
-		-webkit-overflow-scrolling: touch;
-		/* Room for focus rings clipped by overflow. */
-		padding: 0.125rem;
-		margin: -0.125rem;
-		scrollbar-width: thin;
-		scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
-	}
-
-	.filters-sidebar-panel::-webkit-scrollbar {
-		width: 8px;
-		height: 8px;
-	}
-
-	.filters-sidebar-panel::-webkit-scrollbar-thumb {
-		background: color-mix(in srgb, var(--text-caption) 70%, transparent);
-		border-radius: 999px;
-	}
-
-	.filters-sidebar-panel::-webkit-scrollbar-track {
-		background: transparent;
 	}
 
 	.filters-sidebar-search,
@@ -402,5 +375,42 @@
 
 	.filters-sidebar-extra {
 		min-width: 0;
+	}
+
+	/* Split view: fill the rail and scroll the filter body independently. */
+	@media (min-width: 768px) {
+		.filters-sidebar {
+			flex: 1 1 auto;
+			min-height: 0;
+			height: 100%;
+		}
+
+		.filters-sidebar-panel {
+			flex: 1 1 0;
+			min-height: 0;
+			overflow-x: hidden;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			-webkit-overflow-scrolling: touch;
+			/* Room for focus rings clipped by overflow. */
+			padding: 0.125rem;
+			margin: -0.125rem;
+			scrollbar-width: thin;
+			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
+		}
+
+		.filters-sidebar-panel::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+		}
+
+		.filters-sidebar-panel::-webkit-scrollbar-thumb {
+			background: color-mix(in srgb, var(--text-caption) 70%, transparent);
+			border-radius: 999px;
+		}
+
+		.filters-sidebar-panel::-webkit-scrollbar-track {
+			background: transparent;
+		}
 	}
 </style>

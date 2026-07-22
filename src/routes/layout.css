@@ -11,8 +11,8 @@ html {
 	scrollbar-gutter: stable;
 }
 
-@media (min-width: 1024px) {
-	/* Desktop uses pane scrollers inside a locked shell — don't reserve a page gutter. */
+@media (min-width: 768px) {
+	/* Split view uses pane scrollers inside a locked shell — don't reserve a page gutter. */
 	html {
 		scrollbar-gutter: auto;
 		overflow: hidden;
