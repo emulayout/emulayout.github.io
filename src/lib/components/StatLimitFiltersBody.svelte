@@ -80,26 +80,21 @@
 		getRightHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
 	);
 	/** Cyanophage uses long single-field rows; mana2/cmini keep related stats on one row. */
-	const generalStacked = $derived(
-		stacked || analyzer === CYANOPHAGE_ANALYZER || Boolean(onlyKeys)
-	);
+	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER);
 	const showLikesFilter = $derived(
 		filterStore.canUseLikes && includeKey(LIKES_STAT_FILTER_FIELD.key)
 	);
-	const onlyMode = $derived(Boolean(onlyKeys));
 
-	const onlyGeneralFields = $derived.by(() => {
-		if (!onlyKeys) return [] as StatFilterField[];
-		const fields: StatFilterField[] = [];
-		for (const group of generalStatFilterGroups) {
-			for (const row of group.rows) {
-				for (const field of row) {
-					if (includeKey(field.key)) fields.push(field);
-				}
-			}
-		}
-		if (showLikesFilter) fields.push(LIKES_STAT_FILTER_FIELD);
-		return fields;
+	/** Keep titled groups when `onlyKeys` is set; drop empty rows/groups. */
+	const visibleGeneralGroups = $derived.by(() => {
+		return generalStatFilterGroups
+			.map((group) => ({
+				title: group.title,
+				rows: group.rows
+					.map((row) => row.filter((field) => includeKey(field.key)))
+					.filter((row) => row.length > 0)
+			}))
+			.filter((group) => group.rows.length > 0);
 	});
 </script>
 
@@ -153,56 +148,52 @@
 >
 	{#if section === 'general'}
 		<section class="stat-limits-general" aria-label="General stat filters">
-			{#if onlyMode}
-				{#each onlyGeneralFields as field (field.key)}
-					<div class="stat-limit-row">
-						{@render statLimitControl(field, '3.25rem', true)}
-					</div>
-				{/each}
-			{:else}
-				{#each generalStatFilterGroups as group, groupIndex (group.title)}
-					<div class="stat-limits-group">
+			{#each visibleGeneralGroups as group, groupIndex (group.title)}
+				<div class="stat-limits-group">
+					{#if visibleGeneralGroups.length > 1}
 						<div class="stat-limits-group-heading">{group.title}</div>
-						<div class="stat-limits-group-rows">
-							{#each group.rows as row, rowIndex (`${groupIndex}-${rowIndex}`)}
-								<div class="stat-limit-row">
-									{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
-										{@const field = row[colIndex]}
-										{#if field}
-											{@render statLimitControl(
-												field,
-												generalStacked ? '3.25rem' : '2.5rem',
-												true
-											)}
-										{:else if !generalStacked}
-											<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-										{/if}
-									{/each}
-								</div>
-							{/each}
-						</div>
-					</div>
-				{/each}
-				{#if showLikesFilter}
-					<div class="stat-limits-group">
-						<div class="stat-limits-group-heading">Other</div>
-						<div class="stat-limits-group-rows">
+					{/if}
+					<div class="stat-limits-group-rows">
+						{#each group.rows as row, rowIndex (`${groupIndex}-${rowIndex}`)}
 							<div class="stat-limit-row">
-								<div>
-									{@render statLimitControl(
-										LIKES_STAT_FILTER_FIELD,
-										generalStacked ? '3.25rem' : '2.5rem',
-										true
-									)}
-								</div>
-								{#if !generalStacked}
-									<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-									<div class="stat-limit-cell-empty" aria-hidden="true"></div>
-								{/if}
+								{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+									{@const field = row[colIndex]}
+									{#if field}
+										{@render statLimitControl(
+											field,
+											generalStacked ? '3.25rem' : '2.5rem',
+											true
+										)}
+									{:else if !generalStacked}
+										<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+									{/if}
+								{/each}
 							</div>
+						{/each}
+					</div>
+				</div>
+			{/each}
+			{#if showLikesFilter}
+				<div class="stat-limits-group">
+					{#if visibleGeneralGroups.length > 0}
+						<div class="stat-limits-group-heading">Community</div>
+					{/if}
+					<div class="stat-limits-group-rows">
+						<div class="stat-limit-row">
+							<div>
+								{@render statLimitControl(
+									LIKES_STAT_FILTER_FIELD,
+									generalStacked ? '3.25rem' : '2.5rem',
+									true
+								)}
+							</div>
+							{#if !generalStacked}
+								<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+								<div class="stat-limit-cell-empty" aria-hidden="true"></div>
+							{/if}
 						</div>
 					</div>
-				{/if}
+				</div>
 			{/if}
 		</section>
 	{:else if leftHandFields.length > 0 || rightHandFields.length > 0}
@@ -332,13 +323,18 @@
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
+		flex: 1;
 		min-width: 0;
+	}
+
+	.stat-limit-control--expanded .stat-limit-inputs {
+		width: 100%;
+		flex: 1 1 auto;
 	}
 
 	.stat-limit-operator {
 		flex: 1 1 0;
 		min-width: 0;
-		max-width: 5.5rem;
 		padding: 0.25rem 0.375rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;

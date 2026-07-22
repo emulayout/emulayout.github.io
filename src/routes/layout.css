@@ -316,6 +316,150 @@ select:not([multiple]) {
 	opacity: 0.7;
 }
 
+/* Collapsible filter sections (accordion) — card shell, not action-button chrome */
+.filter-accordion {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	padding: 0.5rem 0.625rem;
+	border-radius: 0.75rem;
+}
+
+.filter-accordion-header {
+	position: relative;
+	display: flex;
+	align-items: center;
+	min-height: 1.5rem;
+	/* Extend to card edges so the heading hit target includes padding. */
+	margin: -0.5rem -0.625rem;
+	padding: 0.5rem 0.625rem;
+}
+
+/* Full-header hit target; face content sits above with selective pointer-events. */
+.filter-accordion-trigger {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+	border-radius: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.filter-accordion-trigger:focus-visible {
+	outline: none;
+	box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.filter-accordion-header-face {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	width: 100%;
+	min-width: 0;
+	pointer-events: none;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	font-weight: 500;
+	line-height: 1;
+}
+
+.filter-accordion-header:hover .filter-accordion-header-face {
+	color: var(--text-primary);
+}
+
+.filter-accordion-header-hint,
+.filter-accordion-header-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	flex-shrink: 0;
+	pointer-events: auto;
+}
+
+.filter-accordion-header-spacer {
+	flex: 1 1 auto;
+	min-width: 0;
+	pointer-events: none;
+}
+
+.filter-accordion-trigger-main {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.filter-accordion-trigger-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	min-width: 0;
+}
+
+.filter-accordion-caret {
+	flex-shrink: 0;
+	width: 0.875rem;
+	height: 0.875rem;
+	opacity: 0.7;
+	transition: transform 0.15s ease;
+}
+
+.filter-accordion-caret--expanded {
+	transform: rotate(90deg);
+}
+
+.filter-accordion--open > .filter-accordion-header {
+	margin-bottom: 0;
+}
+
+.filter-accordion--open {
+	gap: 0.5rem;
+}
+
+.filter-accordion-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+/* Stacked accordions — shared edges, rounding only on outer corners */
+.filter-accordion-group {
+	display: flex;
+	flex-direction: column;
+}
+
+.filter-accordion-group > .filter-accordion + .filter-accordion {
+	margin-top: -1px;
+}
+
+.filter-accordion-group > .filter-accordion:first-child {
+	border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.filter-accordion-group > .filter-accordion:not(:first-child):not(:last-child) {
+	border-radius: 0;
+}
+
+.filter-accordion-group > .filter-accordion:last-child:not(:first-child) {
+	border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.filter-accordion-group > .filter-accordion:only-child {
+	border-radius: 0.75rem;
+}
+
+.filter-accordion-group > .filter-accordion:hover,
+.filter-accordion-group > .filter-accordion:focus-within {
+	position: relative;
+	z-index: 1;
+}
+
 .filter-open-button-group {
 	display: flex;
 	flex-direction: column;

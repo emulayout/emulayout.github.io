@@ -171,17 +171,17 @@
 	.keyboard-filters-fields {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.5rem;
 	}
 
 	.keyboard-filters-field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
+		gap: 0.25rem;
 	}
 
 	.keyboard-filters-label {
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
 	}
 
 	.keyboard-filters-label--with-tip {
@@ -192,9 +192,9 @@
 
 	.keyboard-filters-select {
 		width: 100%;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
+		padding: 0.375rem 0.625rem;
+		border-radius: 0.5rem;
+		font-size: 0.8125rem;
 		outline: none;
 		cursor: pointer;
 	}
@@ -208,6 +208,5 @@
 		align-items: center;
 		gap: 0.5rem;
 		user-select: none;
-		margin-top: 0.25rem;
 	}
 </style>

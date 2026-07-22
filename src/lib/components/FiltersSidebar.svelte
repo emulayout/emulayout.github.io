@@ -2,11 +2,11 @@
 	import ActiveFiltersAdjust from '$lib/components/ActiveFiltersAdjust.svelte';
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import KeyFilters from '$lib/components/KeyFilters.svelte';
-	import KeyboardFiltersModal from '$lib/components/KeyboardFiltersModal.svelte';
+	import KeyboardFilters from '$lib/components/KeyboardFilters.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
-	import { getActiveFilterChips, type KeyboardFilterField } from '$lib/filterSummaries';
+	import { getActiveFilterChips } from '$lib/filterSummaries';
 	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
@@ -20,13 +20,9 @@
 
 	let { authorList, layouts, children }: Props = $props();
 
-	let showKeyboardFiltersModal = $state(false);
-	let keyboardFocusField = $state<KeyboardFilterField | null>(null);
-	let keyboardFocusToken = $state(0);
 	let authorOpenSeq = $state(0);
 	let adjustActive = $state(false);
 	let adjustSnapshot = $state<ActiveFiltersSnapshot | null>(null);
-	const keyboardFiltersActive = $derived(filterStore.hasActiveKeyboardFilters);
 	const canShowActive = $derived(filterStore.hasActiveFilters);
 	const activeFilterCount = $derived.by(() => {
 		void filterStore.appliedFiltersRevision;
@@ -58,15 +54,6 @@
 	});
 
 	$effect(() => {
-		const keyboardReq = takeFilterFocusRequest('keyboard');
-		if (keyboardReq) {
-			exitAdjustMode();
-			keyboardFocusField = keyboardReq.field;
-			keyboardFocusToken = keyboardReq.seq;
-			showKeyboardFiltersModal = true;
-			return;
-		}
-
 		const sidebarReq = takeFilterFocusRequest('sidebar');
 		if (!sidebarReq) return;
 
@@ -90,8 +77,13 @@
 		});
 	});
 
-	// Chip focus for keys/stats opens those section components; exit adjust so modals can show.
+	// Chip focus opens section components; exit adjust so controls can show.
 	$effect(() => {
+		const keyboardReq = takeFilterFocusRequest('keyboard');
+		if (keyboardReq) {
+			exitAdjustMode();
+			return;
+		}
 		const keysReq = takeFilterFocusRequest('keys');
 		if (keysReq) {
 			exitAdjustMode();
@@ -204,31 +196,9 @@
 				</div>
 			</div>
 
-			<button
-				type="button"
-				class="filter-open-button"
-				onclick={() => (showKeyboardFiltersModal = true)}
-			>
-				<span class="filter-open-button-text">
-					<span class="filter-open-button-title">
-						Keyboard filters
-						{#if keyboardFiltersActive}
-							<span class="filter-open-button-dot" aria-hidden="true"></span>
-							<span class="sr-only">Active filters</span>
-						{/if}
-					</span>
-				</span>
-				<svg
-					class="filter-open-button-chevron"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-				</svg>
-			</button>
+			<div class="filters-sidebar-actions">
+				<KeyboardFilters />
+			</div>
 
 			<div class="filters-sidebar-actions">
 				<KeyFilters />
@@ -262,16 +232,6 @@
 		</div>
 	{/if}
 </div>
-
-<KeyboardFiltersModal
-	open={showKeyboardFiltersModal}
-	focusField={keyboardFocusField}
-	focusToken={keyboardFocusToken}
-	onClose={() => {
-		showKeyboardFiltersModal = false;
-		keyboardFocusField = null;
-	}}
-/>
 
 <style>
 	.filters-sidebar {
