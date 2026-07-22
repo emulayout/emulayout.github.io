@@ -231,6 +231,8 @@ export class FilterStore {
 	hideLayoutTestArea: boolean = $state(false);
 	hideLayoutLikes: boolean = $state(false);
 	hideNewLayoutIndicator: boolean = $state(false);
+	/** lg+: pin similarity reference in its own column while scrolling matches. */
+	stickySimilarityCard: boolean = $state(true);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
@@ -354,6 +356,7 @@ export class FilterStore {
 		this.hideLayoutTestArea = false;
 		this.hideLayoutLikes = false;
 		this.hideNewLayoutIndicator = false;
+		this.stickySimilarityCard = true;
 		this.statLimits = createEmptyStatLimits();
 	}
 
@@ -543,6 +546,10 @@ export class FilterStore {
 			this.hideLayoutTestArea = true;
 		}
 
+		if (url.searchParams.get('stickySimilar') === '0') {
+			this.stickySimilarityCard = false;
+		}
+
 		const similar = url.searchParams.get('similar');
 		if (similar) {
 			this.similarReferenceName = similar;
@@ -710,6 +717,10 @@ export class FilterStore {
 
 		if (this.hideNewLayoutIndicator) {
 			url.searchParams.set('newIndicator', '0');
+		}
+
+		if (!this.stickySimilarityCard) {
+			url.searchParams.set('stickySimilar', '0');
 		}
 
 		if (this.similarReferenceName) {
@@ -988,6 +999,11 @@ export class FilterStore {
 
 	setHideNewLayoutIndicator(value: boolean) {
 		this.hideNewLayoutIndicator = value;
+		this.#saveToUrl();
+	}
+
+	setStickySimilarityCard(value: boolean) {
+		this.stickySimilarityCard = value;
 		this.#saveToUrl();
 	}
 

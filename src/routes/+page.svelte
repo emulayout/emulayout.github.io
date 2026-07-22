@@ -216,33 +216,24 @@
 				? sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder)
 				: filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
 
-		// Always pin the similarity reference as the first result (green border on card).
+		// Keep the similarity reference out of the match list — it's shown pinned
+		// (sticky column at lg+, or first card below that).
 		const referenceName = filterStore.similarReferenceName;
-		if (referenceName) {
-			const reference =
-				layouts.find((layout) => layout.name === referenceName) ?? null;
-			if (reference) {
-				const rest = sorted.filter((layout) => layout.name !== reference.name);
-				return {
-					layouts: [reference, ...rest],
-					forceIncludedNames: forceIncluded,
-					hiddenSelectedCount
-				};
-			}
-		}
+		const layoutsForList = referenceName
+			? sorted.filter((layout) => layout.name !== referenceName)
+			: sorted;
 
-		return { layouts: sorted, forceIncludedNames: forceIncluded, hiddenSelectedCount };
+		return {
+			layouts: layoutsForList,
+			forceIncludedNames: forceIncluded,
+			hiddenSelectedCount
+		};
 	});
 
 	const filteredLayouts = $derived(filteredResult.layouts);
 	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
 	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
-	// Reference is pinned into the list but shouldn't inflate the "Showing N" match count.
-	const filteredCount = $derived(
-		filterStore.similarReferenceName
-			? Math.max(0, filteredLayouts.length - 1)
-			: filteredLayouts.length
-	);
+	const filteredCount = $derived(filteredLayouts.length);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 
 	$effect(() => {
@@ -279,6 +270,7 @@
 				{#if !resultsPending}
 					<LayoutCardList
 						layouts={filteredLayouts}
+						similarReference={similarReferenceLayout}
 						{forceIncludedNames}
 						{getAuthorName}
 						likesData={resolvedLikesData}

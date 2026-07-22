@@ -434,6 +434,36 @@
 								>Hide new indicator</span
 							>
 						</label>
+
+						<label class="flex items-center gap-2 select-none cursor-pointer">
+							<span class="relative shrink-0">
+								<input
+									type="checkbox"
+									checked={filterStore.stickySimilarityCard}
+									onchange={(e) => filterStore.setStickySimilarityCard(e.currentTarget.checked)}
+									class="size-4 rounded appearance-none cursor-pointer relative"
+									style="
+									background-color: {filterStore.stickySimilarityCard ? 'var(--accent)' : 'var(--bg-primary)'};
+									border: 1px solid var(--border);
+								"
+								/>
+								{#if filterStore.stickySimilarityCard}
+									<svg
+										class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+										style="color: white;"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="3"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+									</svg>
+								{/if}
+							</span>
+							<span class="text-sm whitespace-nowrap" style="color: var(--text-secondary);"
+								>Sticky similarity card</span
+							>
+						</label>
 					</div>
 				{/if}
 			</div>
