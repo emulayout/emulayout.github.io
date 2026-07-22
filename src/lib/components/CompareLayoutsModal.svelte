@@ -5,11 +5,7 @@
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import {
-		clearCompareView,
-		loadCompareView,
-		saveCompareView
-	} from '$lib/compareViewStorage';
+	import { clearCompareView, loadCompareView, saveCompareView } from '$lib/compareViewStorage';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		CYANOPHAGE_ANALYZER,
@@ -59,9 +55,7 @@
 	let leftClearButton = $state<HTMLButtonElement | undefined>(undefined);
 	let rightClearButton = $state<HTMLButtonElement | undefined>(undefined);
 
-	const layoutByName = $derived(
-		new Map(layouts.map((layout) => [layout.name, layout] as const))
-	);
+	const layoutByName = $derived(new Map(layouts.map((layout) => [layout.name, layout] as const)));
 
 	/** First two checked layouts — only used to seed the local view pair. */
 	const selectedPairNames = $derived.by((): [string | null, string | null] => {
@@ -112,38 +106,41 @@
 
 	const statsLoading = $derived(layoutStatsStore.isLoading(compareAnalyzer));
 
-	// Seed analyzer + view pair each time the modal is opened / reopened.
+	// Seed analyzer + view pair only when the modal is opened / reopened.
+	// Keep other reads untracked so cycling layouts can't reset compareAnalyzer.
 	$effect(() => {
 		if (!open) return;
-		session;
+		void session;
 		const mode = seedMode;
-		compareAnalyzer = isStatsAnalyzer(filterStore.statsAnalyzer)
-			? filterStore.statsAnalyzer
-			: DEFAULT_STATS_ANALYZER;
-		leftPreview = null;
-		rightPreview = null;
 
-		if (mode === 'reset') {
-			leftName = null;
-			rightName = null;
-			clearCompareView();
-		} else if (mode === 'selection') {
-			const pair = untrack(() => selectedPairNames);
-			leftName = pair[0];
-			rightName = pair[1];
-			saveCompareView(leftName, rightName);
-		} else {
-			const stored = loadCompareView();
-			const byName = untrack(() => layoutByName);
-			leftName = stored.left && byName.has(stored.left) ? stored.left : null;
-			rightName = stored.right && byName.has(stored.right) ? stored.right : null;
-			if (leftName && leftName === rightName) rightName = null;
-			saveCompareView(leftName, rightName);
-		}
+		untrack(() => {
+			compareAnalyzer = isStatsAnalyzer(filterStore.statsAnalyzer)
+				? filterStore.statsAnalyzer
+				: DEFAULT_STATS_ANALYZER;
+			leftPreview = null;
+			rightPreview = null;
 
-		void tick().then(() => {
-			if (leftName) leftClearButton?.focus();
-			else leftSearch?.focus();
+			if (mode === 'reset') {
+				leftName = null;
+				rightName = null;
+				clearCompareView();
+			} else if (mode === 'selection') {
+				const pair = selectedPairNames;
+				leftName = pair[0];
+				rightName = pair[1];
+				saveCompareView(leftName, rightName);
+			} else {
+				const stored = loadCompareView();
+				leftName = stored.left && layoutByName.has(stored.left) ? stored.left : null;
+				rightName = stored.right && layoutByName.has(stored.right) ? stored.right : null;
+				if (leftName && leftName === rightName) rightName = null;
+				saveCompareView(leftName, rightName);
+			}
+
+			void tick().then(() => {
+				if (leftName) leftClearButton?.focus();
+				else leftSearch?.focus();
+			});
 		});
 	});
 
@@ -202,13 +199,52 @@
 		saveCompareView(leftName, rightName);
 		void tick().then(() => rightSearch?.focus());
 	}
+
+	const canCycleSelected = $derived(selectedQuickNames.length >= 2);
+
+	function cycleViewSide(side: 'left' | 'right', delta: -1 | 1) {
+		const names = selectedQuickNames;
+		if (names.length < 2) return;
+
+		const current = side === 'left' ? leftName : rightName;
+		const other = side === 'left' ? rightName : leftName;
+		if (!current) return;
+
+		let idx = names.indexOf(current);
+		if (idx === -1) idx = delta === 1 ? -1 : 0;
+
+		for (let step = 0; step < names.length; step++) {
+			idx = (idx + delta + names.length) % names.length;
+			const candidate = names[idx];
+			if (candidate === current) continue;
+			if (candidate === other) {
+				if (names.length === 2) {
+					leftPreview = null;
+					rightPreview = null;
+					if (side === 'left') {
+						leftName = candidate;
+						rightName = current;
+					} else {
+						rightName = candidate;
+						leftName = current;
+					}
+					saveCompareView(leftName, rightName);
+					return;
+				}
+				continue;
+			}
+			if (side === 'left') commitLeft(candidate);
+			else commitRight(candidate);
+			return;
+		}
+	}
 </script>
 
 <ModalShell
 	{open}
 	{onClose}
 	labelledBy="compare-layouts-title"
-	panelClass="max-h-[min(92vh,960px)] max-w-[900px]"
+	panelClass="max-h-[min(92vh,960px)] max-w-[1000px]"
 >
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4"
@@ -278,6 +314,9 @@
 						analyzer={compareAnalyzer}
 						onClear={leftName ? clearLeft : undefined}
 						bind:clearButton={leftClearButton}
+						showCycleControls={Boolean(leftName) && canCycleSelected}
+						onCyclePrev={() => cycleViewSide('left', -1)}
+						onCycleNext={() => cycleViewSide('left', 1)}
 					/>
 				{:else}
 					<div
@@ -370,7 +409,12 @@
 					</button>
 				</div>
 				{#if newLayout && oldLayout}
-					<div class="compare-diff-stats">
+					<div
+						class="compare-diff-stats"
+						class:compare-diff-stats--cycle-pad={Boolean(leftName) &&
+							Boolean(rightName) &&
+							canCycleSelected}
+					>
 						<div class="compare-stats-heading compare-stats-heading--diff">
 							<span
 								class="compare-diff-caption"
@@ -422,6 +466,9 @@
 						analyzer={compareAnalyzer}
 						onClear={rightName ? clearRight : undefined}
 						bind:clearButton={rightClearButton}
+						showCycleControls={Boolean(rightName) && canCycleSelected}
+						onCyclePrev={() => cycleViewSide('right', -1)}
+						onCycleNext={() => cycleViewSide('right', 1)}
 					/>
 				{:else}
 					<div
@@ -487,6 +534,11 @@
 		gap: 0.5rem;
 		min-width: 0;
 		margin-top: auto;
+	}
+
+	/* Reserve the same space as side-column cycle controls so stats rows line up. */
+	.compare-diff-stats--cycle-pad {
+		padding-bottom: calc(0.75rem + 0.25rem + 2rem);
 	}
 
 	.compare-empty {
@@ -576,7 +628,9 @@
 		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
-		transition: color 0.15s ease, border-color 0.15s ease;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease;
 	}
 
 	.compare-mid-button:hover {

@@ -39,6 +39,10 @@
 		/** When set, shows a clear (X) control after likes. */
 		onClear?: () => void;
 		clearButton?: HTMLButtonElement | undefined;
+		/** Cycle through selected compare layouts. */
+		onCyclePrev?: () => void;
+		onCycleNext?: () => void;
+		showCycleControls?: boolean;
 	}
 
 	let {
@@ -48,7 +52,10 @@
 		compactStats,
 		analyzer,
 		onClear,
-		clearButton = $bindable()
+		clearButton = $bindable(),
+		onCyclePrev,
+		onCycleNext,
+		showCycleControls = false
 	}: Props = $props();
 
 	const isCyanophage = $derived(analyzer === CYANOPHAGE_ANALYZER);
@@ -180,6 +187,61 @@
 			class="stats-block stats-block--unavailable"
 			class:stats-block--mana2={isMana2}>{statsFallback}</pre>
 	{/if}
+
+	{#if showCycleControls && onCyclePrev && onCycleNext}
+		<div class="compare-side-cycle">
+			<button
+				type="button"
+				class="compare-side-cycle-button"
+				style="
+					color: var(--text-secondary);
+					background-color: var(--bg-secondary);
+					border: 1px solid var(--border);
+				"
+				aria-label="Previous selected layout"
+				title="Previous selected layout"
+				onclick={onCyclePrev}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M15 18l-6-6 6-6" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				class="compare-side-cycle-button"
+				style="
+					color: var(--text-secondary);
+					background-color: var(--bg-secondary);
+					border: 1px solid var(--border);
+				"
+				aria-label="Next selected layout"
+				title="Next selected layout"
+				onclick={onCycleNext}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M9 18l6-6-6-6" />
+				</svg>
+			</button>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -256,8 +318,49 @@
 	}
 
 	.compare-side-keys {
+		/* Lock to exactly 4 rows so thumb-key layouts align with standard ones. */
+		--layout-font-size: 14px;
+		--layout-line-height: 1.5;
+		--layout-max-rows: 4;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
+		height: calc(var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size));
+		min-height: calc(var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size));
+		max-height: calc(var(--layout-max-rows) * var(--layout-line-height) * var(--layout-font-size));
+		overflow: hidden;
+	}
+
+	.compare-side-cycle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		margin-top: 0.25rem;
+	}
+
+	.compare-side-cycle-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+		border-radius: 0.5rem;
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease;
+	}
+
+	.compare-side-cycle-button:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.compare-side-cycle-button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
 	}
 </style>
