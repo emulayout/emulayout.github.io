@@ -555,6 +555,24 @@
 		filterStore.toggleSimilarReference(layout.name, anglemod);
 	}
 
+	function insertTestAreaChar(mappedChar: string) {
+		if (!textareaElement || !mappedChar) return;
+		const start = textareaElement.selectionStart;
+		const end = textareaElement.selectionEnd;
+		const value = textareaElement.value;
+		textareaElement.value = value.slice(0, start) + mappedChar + value.slice(end);
+		const nextCursor = start + mappedChar.length;
+		textareaElement.setSelectionRange(nextCursor, nextCursor);
+	}
+
+	/** Primary thumb char for a hand (innermost when multiple). */
+	function primaryThumbChar(hand: 'l' | 'r'): string | undefined {
+		const entries = layout.thumbKeysByHand[hand];
+		if (entries.length === 0) return undefined;
+		const entry = hand === 'l' ? entries[entries.length - 1] : entries[0];
+		return entry.key;
+	}
+
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -564,19 +582,33 @@
 			return;
 		}
 
-		// Don't remap if meta, ctrl, or alt are pressed
-		if (event.metaKey || event.ctrlKey || event.altKey) {
+		const useMetaAsThumb = layout.hasThumbKeys;
+
+		// Left/Right CMD → left/right thumb keys; always capture to avoid OS shortcuts
+		// when typing quickly after a thumb press.
+		if (useMetaAsThumb && (event.code === 'MetaLeft' || event.code === 'MetaRight')) {
+			event.preventDefault();
+			const hand = event.code === 'MetaLeft' ? 'l' : 'r';
+			let mappedChar = primaryThumbChar(hand);
+			if (!mappedChar) return;
+			if (event.shiftKey && /^[a-z]$/i.test(mappedChar)) {
+				mappedChar = mappedChar.toUpperCase();
+			}
+			insertTestAreaChar(mappedChar);
 			return;
 		}
 
+		// Don't remap with ctrl/alt. When thumbs use Meta, still remap letter keys
+		// while Meta is held so fast thumb→letter sequences aren't dropped.
+		if (event.ctrlKey || event.altKey) return;
+		if (!useMetaAsThumb && event.metaKey) return;
+
 		const { keyMap, shiftKeyMap } = getKeyMaps();
 
-		// Check if this is a remappable key
 		if (event.code in keyMap) {
 			event.preventDefault();
 			let mappedChar: string | undefined;
 
-			// Use shift map if shift is pressed
 			if (event.shiftKey) {
 				if (event.code in shiftKeyMap) {
 					mappedChar = shiftKeyMap[event.code];
@@ -585,16 +617,14 @@
 				mappedChar = keyMap[event.code];
 			}
 
-			if (textareaElement && mappedChar) {
-				const start = textareaElement.selectionStart;
-				const end = textareaElement.selectionEnd;
-				const value = textareaElement.value;
-				const newValue = value.slice(0, start) + mappedChar + value.slice(end);
+			if (mappedChar) insertTestAreaChar(mappedChar);
+		}
+	}
 
-				textareaElement.value = newValue;
-				const nextCursor = start + mappedChar.length;
-				textareaElement.setSelectionRange(nextCursor, nextCursor);
-			}
+	function handleKeyUp(event: KeyboardEvent) {
+		if (!layout.hasThumbKeys) return;
+		if (event.code === 'MetaLeft' || event.code === 'MetaRight') {
+			event.preventDefault();
 		}
 	}
 </script>
@@ -997,7 +1027,9 @@
 						style="color: var(--text-primary);"
 						rows="2"
 						placeholder="Layout test area"
-						onkeydown={handleKeyDown}></textarea>
+						onkeydown={handleKeyDown}
+						onkeyup={handleKeyUp}
+					></textarea>
 				</div>
 			{/if}
 		</div>
