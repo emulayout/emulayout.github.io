@@ -3,7 +3,6 @@
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
-	import SimilarReferencePanel from '$lib/components/SimilarReferencePanel.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
@@ -217,13 +216,33 @@
 				? sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder)
 				: filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
 
+		// Always pin the similarity reference as the first result (green border on card).
+		const referenceName = filterStore.similarReferenceName;
+		if (referenceName) {
+			const reference =
+				layouts.find((layout) => layout.name === referenceName) ?? null;
+			if (reference) {
+				const rest = sorted.filter((layout) => layout.name !== reference.name);
+				return {
+					layouts: [reference, ...rest],
+					forceIncludedNames: forceIncluded,
+					hiddenSelectedCount
+				};
+			}
+		}
+
 		return { layouts: sorted, forceIncludedNames: forceIncluded, hiddenSelectedCount };
 	});
 
 	const filteredLayouts = $derived(filteredResult.layouts);
 	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
 	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
-	const filteredCount = $derived(filteredLayouts.length);
+	// Reference is pinned into the list but shouldn't inflate the "Showing N" match count.
+	const filteredCount = $derived(
+		filterStore.similarReferenceName
+			? Math.max(0, filteredLayouts.length - 1)
+			: filteredLayouts.length
+	);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 
 	$effect(() => {
@@ -250,16 +269,7 @@
 <div class="page-root">
 	<div class="results-layout">
 		<aside class="results-sidebar">
-			<FiltersSidebar {authorList} {layouts}>
-				{#if similarReferenceLayout}
-					<SimilarReferencePanel
-						layout={similarReferenceLayout}
-						authorName={getAuthorName(similarReferenceLayout.user)}
-						likesData={resolvedLikesData}
-						{statsMaps}
-					/>
-				{/if}
-			</FiltersSidebar>
+			<FiltersSidebar {authorList} {layouts} />
 		</aside>
 		<div class="results-main min-w-0">
 			<div class="results-toolbar">

@@ -10,15 +10,13 @@
 	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
-	import type { Snippet } from 'svelte';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
 		layouts: LayoutData[];
-		children?: Snippet;
 	}
 
-	let { authorList, layouts, children }: Props = $props();
+	let { authorList, layouts }: Props = $props();
 
 	let authorOpenSeq = $state(0);
 	let adjustActive = $state(false);
@@ -211,12 +209,6 @@
 			<div class="filters-sidebar-actions">
 				<SimilarityFilters {layouts} />
 			</div>
-
-			{#if children}
-				<div class="filters-sidebar-extra">
-					{@render children()}
-				</div>
-			{/if}
 		{/if}
 	</div>
 
@@ -371,10 +363,6 @@
 		box-shadow:
 			0 0 0 1000px var(--input-bg) inset,
 			0 0 0 2px var(--accent);
-	}
-
-	.filters-sidebar-extra {
-		min-width: 0;
 	}
 
 	/* Split view: fill the rail and scroll the filter body independently. */

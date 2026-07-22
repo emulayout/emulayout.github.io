@@ -43,6 +43,45 @@
 	{:else}
 		<div class="flex flex-col gap-2">
 			<div>
+				<div class="block text-sm mb-1" style="color: var(--text-secondary);">Layout</div>
+				<div
+					class="similarity-layout-field"
+					style="
+						background-color: var(--input-bg);
+						color: var(--text-secondary);
+						border: 1px solid var(--border);
+					"
+					aria-disabled="true"
+				>
+					<span
+						class="similarity-layout-name"
+						title={filterStore.similarReferenceName ?? undefined}
+					>
+						{filterStore.similarReferenceName}
+					</span>
+					<button
+						type="button"
+						class="similarity-layout-clear"
+						style="color: var(--text-secondary);"
+						aria-label="Clear similarity layout"
+						title="Clear layout"
+						onclick={() => filterStore.clearSimilarReference()}
+					>
+						<svg
+							class="size-3.5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2.5"
+							stroke-linecap="round"
+							aria-hidden="true"
+						>
+							<path d="M6 6l12 12M18 6L6 18" />
+						</svg>
+					</button>
+				</div>
+			</div>
+			<div>
 				<div class="block text-sm mb-1" style="color: var(--text-secondary);">Match percent</div>
 				<div class="flex items-center gap-1.5 min-w-0">
 					<select
@@ -147,3 +186,55 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.similarity-layout-field {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 0;
+		width: 100%;
+		padding: 0.125rem 0.25rem 0.125rem 0.375rem;
+		border-radius: 0.5rem;
+		box-sizing: border-box;
+		opacity: 0.85;
+		cursor: default;
+	}
+
+	.similarity-layout-name {
+		min-width: 0;
+		flex: 1 1 auto;
+		font-size: 0.75rem;
+		font-weight: 500;
+		line-height: 1.25;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		user-select: text;
+	}
+
+	.similarity-layout-clear {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.5rem;
+		height: 1.5rem;
+		margin: 0;
+		padding: 0;
+		border: none;
+		border-radius: 0.375rem;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.similarity-layout-clear:hover {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+	}
+
+	.similarity-layout-clear:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+</style>
