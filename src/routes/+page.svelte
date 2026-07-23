@@ -8,10 +8,7 @@
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		analyzersNeededForLoad,
-		isAnalyzerStatsReady
-	} from '$lib/layoutStats';
+	import { analyzersNeededForLoad, isAnalyzerStatsReady } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import {
@@ -317,10 +314,7 @@
 			</button>
 			{#each filterStore.savedFilters as saved (saved.id)}
 				{@const savedSelected = filterStore.activeSavedFilterId === saved.id}
-				<div
-					class="layout-source-saved"
-					class:layout-source-saved--selected={savedSelected}
-				>
+				<div class="layout-source-saved" class:layout-source-saved--selected={savedSelected}>
 					<button
 						type="button"
 						role="tab"
@@ -372,8 +366,8 @@
 								No layouts selected
 							</p>
 							<p>
-								Switch to All layouts and use the checkbox on a layout card to add layouts
-								here. Filters on this page only apply to your selection.
+								Switch to All layouts and use the checkbox on a layout card to add layouts here.
+								Filters on this page only apply to your selection.
 							</p>
 						</div>
 					{:else if !resultsPending}
@@ -390,9 +384,7 @@
 						/>
 					{/if}
 				</div>
-				{#if filterStore.layoutSource === 'all' &&
-					compareSelectedCount > 0 &&
-					(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
+				{#if filterStore.layoutSource === 'all' && compareSelectedCount > 0 && (filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
 					<div class="compare-fab" role="presentation">
 						<div class="compare-fab-group">
 							<button
@@ -408,7 +400,8 @@
 								{#if filterStore.includeSelectedInResults}
 									Always showing selected layouts
 								{:else}
-									Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
+									Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount ===
+									1
 										? ''
 										: 's'}
 								{/if}
@@ -747,7 +740,7 @@
 			overflow: hidden;
 			align-items: stretch;
 			/* Fixed filter rail + flexible results (not 1fr+Nfr — that made the rail huge). */
-			grid-template-columns: 19rem minmax(0, 1fr);
+			grid-template-columns: 20.25rem minmax(0, 1fr);
 			gap: 0 1rem;
 		}
 
