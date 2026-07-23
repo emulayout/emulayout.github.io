@@ -241,7 +241,7 @@
 					class="filter-reset-button filters-sidebar-footer-button"
 					onclick={openSaveModal}
 				>
-					Save as view
+					{filterStore.activeSavedFilterId ? 'Duplicate view' : 'Save as view'}
 				</button>
 			{/if}
 
