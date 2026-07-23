@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
+	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
@@ -258,36 +259,75 @@
 </script>
 
 <div class="page-root">
-	<div class="results-layout">
-		<aside class="results-sidebar">
-			<FiltersSidebar {authorList} {layouts} />
-		</aside>
-		<div class="results-main min-w-0">
-			<div class="results-toolbar">
-				<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
-			</div>
-			<div class="results-list">
-				{#if !resultsPending}
-					<LayoutCardList
-						layouts={filteredLayouts}
-						similarReference={similarReferenceLayout}
-						{forceIncludedNames}
-						{getAuthorName}
-						likesData={resolvedLikesData}
-						{statsMaps}
-						{similarityMatches}
-						similarDiffPositions={similarReferenceForCompare?.positionBySlot}
-						similarMirrorDiffPositions={mirroredReferencePositions}
-					/>
-				{/if}
-			</div>
-			{#if compareSelectedCount > 0}
-				{@const canIncludeNonMatching =
-					filterStore.layoutSource === 'all' &&
+	<div class="layout-source-bar">
+		<div class="layout-source-tabs" role="tablist" aria-label="Layout source">
+			<button
+				type="button"
+				role="tab"
+				id="layout-source-tab-all"
+				aria-selected={filterStore.layoutSource === 'all'}
+				tabindex={filterStore.layoutSource === 'all' ? 0 : -1}
+				class="layout-source-tab"
+				class:layout-source-tab--selected={filterStore.layoutSource === 'all'}
+				onclick={() => filterStore.setLayoutSource('all')}
+			>
+				All layouts
+			</button>
+			<button
+				type="button"
+				role="tab"
+				id="layout-source-tab-selected"
+				aria-selected={filterStore.layoutSource === 'selected'}
+				tabindex={filterStore.layoutSource === 'selected' ? 0 : -1}
+				class="layout-source-tab"
+				class:layout-source-tab--selected={filterStore.layoutSource === 'selected'}
+				onclick={() => filterStore.setLayoutSource('selected')}
+			>
+				Selected layouts ({compareSelectedCount})
+			</button>
+		</div>
+		<DisplaySettingsMenu />
+	</div>
+
+	{#key filterStore.layoutSource}
+		<div class="results-layout">
+			<aside class="results-sidebar">
+				<FiltersSidebar {authorList} {layouts} />
+			</aside>
+			<div class="results-main min-w-0">
+				<div class="results-toolbar">
+					<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
+				</div>
+				<div class="results-list">
+					{#if filterStore.layoutSource === 'selected' && compareSelectedCount === 0}
+						<div class="results-empty" style="color: var(--text-secondary);">
+							<p class="results-empty-title" style="color: var(--text-primary);">
+								No layouts selected
+							</p>
+							<p>
+								Switch to All layouts and use the checkbox on a layout card to add layouts
+								here. Filters on this page only apply to your selection.
+							</p>
+						</div>
+					{:else if !resultsPending}
+						<LayoutCardList
+							layouts={filteredLayouts}
+							similarReference={similarReferenceLayout}
+							{forceIncludedNames}
+							{getAuthorName}
+							likesData={resolvedLikesData}
+							{statsMaps}
+							{similarityMatches}
+							similarDiffPositions={similarReferenceForCompare?.positionBySlot}
+							similarMirrorDiffPositions={mirroredReferencePositions}
+						/>
+					{/if}
+				</div>
+				{#if filterStore.layoutSource === 'all' &&
+					compareSelectedCount > 0 &&
 					(filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
-				<div class="compare-fab" role="presentation">
-					<div class="compare-fab-group">
-						{#if canIncludeNonMatching}
+					<div class="compare-fab" role="presentation">
+						<div class="compare-fab-group">
 							<button
 								type="button"
 								class="compare-fab-button"
@@ -306,31 +346,18 @@
 										: 's'}
 								{/if}
 							</button>
-							<button
-								type="button"
-								class="compare-fab-clear"
-								aria-label="Clear selection"
-								onclick={() => filterStore.clearCompareLayouts()}
-							>
-								<svg
-									class="size-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2.5"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-								</svg>
-							</button>
-						{:else}
+						</div>
+					</div>
+				{:else if filterStore.layoutSource === 'selected' && compareSelectedCount > 0}
+					<div class="compare-fab" role="presentation">
+						<div class="compare-fab-group">
 							<button
 								type="button"
 								class="compare-fab-button compare-fab-button--with-icon"
-								aria-label={`Clear (${compareSelectedCount}) selected layouts`}
+								aria-label="Clear selected layouts"
 								onclick={() => filterStore.clearCompareLayouts()}
 							>
-								Clear ({compareSelectedCount}) selected layouts
+								Clear selected layouts
 								<svg
 									class="size-4 shrink-0"
 									fill="none"
@@ -342,12 +369,12 @@
 									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
 								</svg>
 							</button>
-						{/if}
+						</div>
 					</div>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
-	</div>
+	{/key}
 </div>
 
 <CompareLayoutsModal
@@ -365,6 +392,85 @@
 	.results-main {
 		position: relative;
 		min-width: 0;
+	}
+
+	.layout-source-bar {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-shrink: 0;
+		width: 100%;
+		margin-bottom: 0.75rem;
+		border-bottom: 1px solid var(--border);
+		/* Room for the settings button focus ring / open border (page-root clips overflow). */
+		padding: 0.125rem 0.25rem 0;
+		box-sizing: border-box;
+	}
+
+	.layout-source-tabs {
+		display: inline-flex;
+		align-items: stretch;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.layout-source-tab {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 0.75rem;
+		margin-bottom: -1px;
+		border: none;
+		border-bottom: 2px solid transparent;
+		border-radius: 0;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.25;
+		white-space: nowrap;
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.layout-source-tab:hover {
+		color: var(--text-primary);
+	}
+
+	.layout-source-tab:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+		border-radius: 0.25rem;
+	}
+
+	.layout-source-tab--selected {
+		color: var(--text-primary);
+		font-weight: 600;
+		border-bottom-color: var(--accent);
+	}
+
+	.layout-source-bar :global(.display-settings-menu) {
+		align-self: center;
+		margin-bottom: 0.25rem;
+	}
+
+	.results-empty {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1.5rem 0.75rem;
+		font-size: 0.875rem;
+		line-height: 1.45;
+		max-width: 28rem;
+	}
+
+	.results-empty-title {
+		font-size: 1rem;
+		font-weight: 600;
+		line-height: 1.3;
 	}
 
 	.compare-fab {
@@ -429,29 +535,6 @@
 		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
 	}
 
-	.compare-fab-clear {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		border-radius: 9999px;
-		cursor: pointer;
-		color: var(--text-primary);
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border);
-		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--text-primary) 18%, transparent);
-		transition:
-			border-color 0.15s ease,
-			color 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-
-	.compare-fab-clear:hover {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-
 	.page-root {
 		display: flex;
 		flex-direction: column;
@@ -464,6 +547,8 @@
 		grid-template-columns: 1fr;
 		gap: 0.75rem;
 		align-items: start;
+		min-width: 0;
+		min-height: 0;
 	}
 
 	.results-toolbar {

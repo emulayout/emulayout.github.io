@@ -275,7 +275,6 @@ export function getKeyboardFiltersSummary(store: FilterStore): string {
 export type FilterChipTone = 'neutral' | 'monkeyracer' | 'cyanophage' | 'mana2';
 
 export type ActiveFilterClearAction =
-	| { kind: 'layoutSource' }
 	| { kind: 'name' }
 	| { kind: 'authors' }
 	| { kind: 'thumbKey' }
@@ -294,7 +293,7 @@ export type KeyboardFilterField =
 	| 'charset'
 	| 'unfinished';
 
-export type SidebarFilterField = 'source' | 'name' | 'authors' | 'similarity';
+export type SidebarFilterField = 'name' | 'authors' | 'similarity';
 
 /** Request to open a filter UI and focus a specific control. */
 export type FilterFocusRequest =
@@ -340,16 +339,6 @@ function toneForAnalyzer(analyzer: StatsAnalyzer): FilterChipTone {
 /** Individual active filters for chip UI in the results toolbar. */
 export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 	const chips: ActiveFilterChip[] = [];
-
-	if (store.layoutSource === 'selected') {
-		pushChip(
-			chips,
-			'source-selected',
-			'Selected only',
-			{ kind: 'layoutSource' },
-			{ target: 'sidebar', field: 'source' }
-		);
-	}
 
 	const name = store.nameFilter.trim();
 	if (name) {
@@ -570,9 +559,6 @@ export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
 /** Clear the filter represented by a results-toolbar chip. */
 export function clearActiveFilterChip(store: FilterStore, action: ActiveFilterClearAction): void {
 	switch (action.kind) {
-		case 'layoutSource':
-			store.setLayoutSource('all');
-			break;
 		case 'name':
 			store.setNameFilter('');
 			break;

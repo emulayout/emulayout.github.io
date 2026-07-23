@@ -1,7 +1,6 @@
 <script lang="ts">
 	import './layout.css';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
-	import SelectedLayoutsModal from '$lib/components/SelectedLayoutsModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { hasOpenModal } from '$lib/modalScrollLock';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
@@ -13,7 +12,6 @@
 
 	let themeMode: ThemeMode = $state('system');
 	let systemPrefersDark = $state(false);
-	let showSelectedLayouts = $state(false);
 	let showQuickFind = $state(false);
 	let mediaQuery: MediaQueryList | null = null;
 	let debugEnabled = $state(false);
@@ -94,7 +92,6 @@
 				return;
 			}
 			if (hasOpenModal()) return;
-			showSelectedLayouts = false;
 			showQuickFind = true;
 		}
 
@@ -102,18 +99,11 @@
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	});
 
-	function openSelectedLayouts() {
-		showQuickFind = false;
-		showSelectedLayouts = true;
-	}
-
 	function openQuickFind() {
-		showSelectedLayouts = false;
 		showQuickFind = true;
 	}
 
 	function openCompare() {
-		showSelectedLayouts = false;
 		showQuickFind = false;
 		window.dispatchEvent(
 			new CustomEvent('emulayout:open-compare', { detail: { mode: 'restore' } })
@@ -121,7 +111,6 @@
 	}
 
 	function openCompareHotkey() {
-		showSelectedLayouts = false;
 		showQuickFind = false;
 		window.dispatchEvent(
 			new CustomEvent('emulayout:open-compare', { detail: { mode: 'hotkey' } })
@@ -230,28 +219,6 @@
 				</svg>
 			</button>
 			<button
-				onclick={openSelectedLayouts}
-				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label="Selected layouts"
-				title="Selected layouts"
-			>
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary);"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M9 11l3 3L22 4" />
-					<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-				</svg>
-			</button>
-			<button
 				onclick={openQuickFind}
 				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
 				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
@@ -336,10 +303,6 @@
 	</main>
 </div>
 
-<SelectedLayoutsModal
-	open={showSelectedLayouts}
-	onClose={() => (showSelectedLayouts = false)}
-/>
 <QuickFindModal open={showQuickFind} onClose={() => (showQuickFind = false)} />
 
 <style>

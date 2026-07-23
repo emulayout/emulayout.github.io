@@ -163,6 +163,57 @@ function deserializeGrid(str: string): string[][] {
 	return grid;
 }
 
+type SortSnapshot = {
+	sortBy: SortBy;
+	sortOrder: SortOrder;
+	sortOrderManual: boolean;
+};
+
+/** Per-view filter fields — All and Selected keep isolated snapshots (never synced). */
+type ViewFilterSnapshot = {
+	includeGrid: string[][];
+	excludeGrid: string[][];
+	includeOrGrid: string[][];
+	includeOrLeftThumbKeys: string[];
+	includeOrRightThumbKeys: string[];
+	includeLeftThumbKeys: string[];
+	includeRightThumbKeys: string[];
+	excludeLeftThumbKeys: string[];
+	excludeRightThumbKeys: string[];
+	showUnfinished: boolean;
+	thumbKeyFilter: ThumbKeyFilter;
+	magicKeyFilter: MagicKeyFilter;
+	characterSetFilter: CharacterSetFilter;
+	boardTypeFilter: BoardTypeFilter;
+	nameFilterInput: string;
+	nameFilter: string;
+	selectedAuthors: number[];
+	includeSelectedInResults: boolean;
+	similarReferenceName: string | null;
+	similarReferenceAnglemod: boolean;
+	similarityFilterOperator: StatLimitOperator;
+	similarityFilterValue: string;
+	appliedSimilarityFilterValue: string;
+	similarityWeightHomeKeys: boolean;
+	similarityMirrorMode: SimilarityMirrorMode;
+	sortBy: SortBy;
+	sortOrder: SortOrder;
+	sortOrderManual: boolean;
+	sortBeforeSimilar: SortSnapshot | null;
+	exitSortRestore: SortSnapshot | null;
+	statLimits: Record<StatLimitKey, StatLimit>;
+	appliedIncludeGrid: string[][];
+	appliedExcludeGrid: string[][];
+	appliedIncludeOrGrid: string[][];
+	appliedIncludeOrLeftThumbKeys: string[];
+	appliedIncludeOrRightThumbKeys: string[];
+	appliedIncludeLeftThumbKeys: string[];
+	appliedIncludeRightThumbKeys: string[];
+	appliedExcludeLeftThumbKeys: string[];
+	appliedExcludeRightThumbKeys: string[];
+	appliedStatLimits: Record<StatLimitKey, StatLimit>;
+};
+
 export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyGrid());
 	excludeGrid: string[][] = $state(createEmptyGrid());
@@ -215,17 +266,14 @@ export class FilterStore {
 	 * Sort state from just before entering similarity mode (restored if user stays on
 	 * "similarity" sort until exit).
 	 */
-	#sortBeforeSimilar: {
-		sortBy: SortBy;
-		sortOrder: SortOrder;
-		sortOrderManual: boolean;
-	} | null = null;
+	#sortBeforeSimilar: SortSnapshot | null = null;
 	/** Sort to restore when leaving similarity mode (may diverge if user picks another sort). */
-	#exitSortRestore: {
-		sortBy: SortBy;
-		sortOrder: SortOrder;
-		sortOrderManual: boolean;
-	} | null = null;
+	#exitSortRestore: SortSnapshot | null = null;
+	/**
+	 * Isolated filter snapshots per layout-source view. Switching restores that view's
+	 * snapshot only — never copies or syncs filters between All and Selected.
+	 */
+	#viewFilterSnapshots = new Map<LayoutSource, ViewFilterSnapshot>();
 	statsAnalyzer: StatsAnalyzerMode = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
@@ -318,6 +366,7 @@ export class FilterStore {
 	/** Reset URL-backed filter state to empty-URL defaults, then apply current location. */
 	#hydrateFromUrl() {
 		this.#cancelFilterApply();
+		this.#viewFilterSnapshots.clear();
 		this.#resetUrlControlledState();
 		this.#loadFromUrl();
 		this.#applyFiltersNow();
@@ -437,7 +486,7 @@ export class FilterStore {
 			}
 		}
 
-		if (url.searchParams.get('source') === 'selected' && this.compareSelectedNames.size > 0) {
+		if (url.searchParams.get('source') === 'selected') {
 			this.layoutSource = 'selected';
 		} else if (
 			url.searchParams.get('showSelected') === '1' &&
@@ -647,7 +696,7 @@ export class FilterStore {
 			);
 		}
 
-		if (this.layoutSource === 'selected' && this.compareSelectedNames.size > 0) {
+		if (this.layoutSource === 'selected') {
 			url.searchParams.set('source', 'selected');
 		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
@@ -796,6 +845,142 @@ export class FilterStore {
 		this.#schedulePersist();
 	}
 
+	#cloneSortSnapshot(snapshot: SortSnapshot | null): SortSnapshot | null {
+		if (!snapshot) return null;
+		return {
+			sortBy: snapshot.sortBy,
+			sortOrder: snapshot.sortOrder,
+			sortOrderManual: snapshot.sortOrderManual
+		};
+	}
+
+	#captureViewFilters(): ViewFilterSnapshot {
+		return {
+			includeGrid: this.#cloneGrid(this.includeGrid),
+			excludeGrid: this.#cloneGrid(this.excludeGrid),
+			includeOrGrid: this.#cloneGrid(this.includeOrGrid),
+			includeOrLeftThumbKeys: this.#cloneThumbKeys(this.includeOrLeftThumbKeys),
+			includeOrRightThumbKeys: this.#cloneThumbKeys(this.includeOrRightThumbKeys),
+			includeLeftThumbKeys: this.#cloneThumbKeys(this.includeLeftThumbKeys),
+			includeRightThumbKeys: this.#cloneThumbKeys(this.includeRightThumbKeys),
+			excludeLeftThumbKeys: this.#cloneThumbKeys(this.excludeLeftThumbKeys),
+			excludeRightThumbKeys: this.#cloneThumbKeys(this.excludeRightThumbKeys),
+			showUnfinished: this.showUnfinished,
+			thumbKeyFilter: this.thumbKeyFilter,
+			magicKeyFilter: this.magicKeyFilter,
+			characterSetFilter: this.characterSetFilter,
+			boardTypeFilter: this.boardTypeFilter,
+			nameFilterInput: this.nameFilterInput,
+			nameFilter: this.nameFilter,
+			selectedAuthors: Array.from(this.selectedAuthors),
+			includeSelectedInResults: this.includeSelectedInResults,
+			similarReferenceName: this.similarReferenceName,
+			similarReferenceAnglemod: this.similarReferenceAnglemod,
+			similarityFilterOperator: this.similarityFilterOperator,
+			similarityFilterValue: this.similarityFilterValue,
+			appliedSimilarityFilterValue: this.appliedSimilarityFilterValue,
+			similarityWeightHomeKeys: this.similarityWeightHomeKeys,
+			similarityMirrorMode: this.similarityMirrorMode,
+			sortBy: this.sortBy,
+			sortOrder: this.sortOrder,
+			sortOrderManual: this.#sortOrderManual,
+			sortBeforeSimilar: this.#cloneSortSnapshot(this.#sortBeforeSimilar),
+			exitSortRestore: this.#cloneSortSnapshot(this.#exitSortRestore),
+			statLimits: this.#cloneStatLimits(this.statLimits),
+			appliedIncludeGrid: this.#cloneGrid(this.appliedIncludeGrid),
+			appliedExcludeGrid: this.#cloneGrid(this.appliedExcludeGrid),
+			appliedIncludeOrGrid: this.#cloneGrid(this.appliedIncludeOrGrid),
+			appliedIncludeOrLeftThumbKeys: this.#cloneThumbKeys(this.appliedIncludeOrLeftThumbKeys),
+			appliedIncludeOrRightThumbKeys: this.#cloneThumbKeys(this.appliedIncludeOrRightThumbKeys),
+			appliedIncludeLeftThumbKeys: this.#cloneThumbKeys(this.appliedIncludeLeftThumbKeys),
+			appliedIncludeRightThumbKeys: this.#cloneThumbKeys(this.appliedIncludeRightThumbKeys),
+			appliedExcludeLeftThumbKeys: this.#cloneThumbKeys(this.appliedExcludeLeftThumbKeys),
+			appliedExcludeRightThumbKeys: this.#cloneThumbKeys(this.appliedExcludeRightThumbKeys),
+			appliedStatLimits: this.#cloneStatLimits(this.appliedStatLimits)
+		};
+	}
+
+	#restoreViewFilters(snapshot: ViewFilterSnapshot) {
+		this.includeGrid = this.#cloneGrid(snapshot.includeGrid);
+		this.excludeGrid = this.#cloneGrid(snapshot.excludeGrid);
+		this.includeOrGrid = this.#cloneGrid(snapshot.includeOrGrid);
+		this.includeOrLeftThumbKeys = this.#cloneThumbKeys(snapshot.includeOrLeftThumbKeys);
+		this.includeOrRightThumbKeys = this.#cloneThumbKeys(snapshot.includeOrRightThumbKeys);
+		this.includeLeftThumbKeys = this.#cloneThumbKeys(snapshot.includeLeftThumbKeys);
+		this.includeRightThumbKeys = this.#cloneThumbKeys(snapshot.includeRightThumbKeys);
+		this.excludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.excludeLeftThumbKeys);
+		this.excludeRightThumbKeys = this.#cloneThumbKeys(snapshot.excludeRightThumbKeys);
+		this.showUnfinished = snapshot.showUnfinished;
+		this.thumbKeyFilter = snapshot.thumbKeyFilter;
+		this.magicKeyFilter = snapshot.magicKeyFilter;
+		this.characterSetFilter = snapshot.characterSetFilter;
+		this.boardTypeFilter = snapshot.boardTypeFilter;
+		this.nameFilterInput = snapshot.nameFilterInput;
+		this.nameFilter = snapshot.nameFilter;
+		this.selectedAuthors.clear();
+		for (const id of snapshot.selectedAuthors) {
+			this.selectedAuthors.add(id);
+		}
+		this.includeSelectedInResults = snapshot.includeSelectedInResults;
+		this.similarReferenceName = snapshot.similarReferenceName;
+		this.similarReferenceAnglemod = snapshot.similarReferenceAnglemod;
+		this.similarityFilterOperator = snapshot.similarityFilterOperator;
+		this.similarityFilterValue = snapshot.similarityFilterValue;
+		this.appliedSimilarityFilterValue = snapshot.appliedSimilarityFilterValue;
+		this.similarityWeightHomeKeys = snapshot.similarityWeightHomeKeys;
+		this.similarityMirrorMode = snapshot.similarityMirrorMode;
+		this.sortBy = snapshot.sortBy;
+		this.sortOrder = snapshot.sortOrder;
+		this.#sortOrderManual = snapshot.sortOrderManual;
+		this.#sortBeforeSimilar = this.#cloneSortSnapshot(snapshot.sortBeforeSimilar);
+		this.#exitSortRestore = this.#cloneSortSnapshot(snapshot.exitSortRestore);
+		this.statLimits = this.#cloneStatLimits(snapshot.statLimits);
+		this.appliedIncludeGrid = this.#cloneGrid(snapshot.appliedIncludeGrid);
+		this.appliedExcludeGrid = this.#cloneGrid(snapshot.appliedExcludeGrid);
+		this.appliedIncludeOrGrid = this.#cloneGrid(snapshot.appliedIncludeOrGrid);
+		this.appliedIncludeOrLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeOrLeftThumbKeys);
+		this.appliedIncludeOrRightThumbKeys = this.#cloneThumbKeys(
+			snapshot.appliedIncludeOrRightThumbKeys
+		);
+		this.appliedIncludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeLeftThumbKeys);
+		this.appliedIncludeRightThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeRightThumbKeys);
+		this.appliedExcludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedExcludeLeftThumbKeys);
+		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(snapshot.appliedExcludeRightThumbKeys);
+		this.appliedStatLimits = this.#cloneStatLimits(snapshot.appliedStatLimits);
+		this.appliedFiltersRevision += 1;
+	}
+
+	/** Defaults for a view that has never been visited (no snapshot yet). */
+	#resetViewFiltersToDefaults() {
+		this.includeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyGrid();
+		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
+		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
+		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
+		this.showUnfinished = false;
+		this.thumbKeyFilter = 'optional';
+		this.magicKeyFilter = 'optional';
+		this.characterSetFilter = 'english';
+		this.boardTypeFilter = 'all';
+		this.nameFilterInput = '';
+		this.nameFilter = '';
+		this.selectedAuthors.clear();
+		this.includeSelectedInResults = false;
+		this.similarReferenceName = null;
+		this.#sortBeforeSimilar = null;
+		this.#exitSortRestore = null;
+		this.#resetSimilarityFilter();
+		this.sortBy = 'date';
+		this.sortOrder = 'desc';
+		this.#sortOrderManual = false;
+		this.statLimits = createEmptyStatLimits();
+		this.#applyFiltersFromInputs();
+	}
+
 	#setGridCell(grid: string[][], row: number, col: number, value: string): string[][] {
 		return grid.map((r, ri) =>
 			ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r
@@ -926,11 +1111,7 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
-	#snapshotSort(): {
-		sortBy: SortBy;
-		sortOrder: SortOrder;
-		sortOrderManual: boolean;
-	} {
+	#snapshotSort(): SortSnapshot {
 		return {
 			sortBy: this.sortBy === 'similarity' ? 'date' : this.sortBy,
 			sortOrder: this.sortOrder,
@@ -1177,7 +1358,6 @@ export class FilterStore {
 		if (this.compareSelectedNames.has(name)) {
 			this.compareSelectedNames.delete(name);
 			if (this.compareSelectedNames.size === 0) {
-				this.layoutSource = 'all';
 				this.includeSelectedInResults = false;
 			}
 		} else {
@@ -1188,22 +1368,32 @@ export class FilterStore {
 
 	clearCompareLayouts() {
 		this.compareSelectedNames.clear();
-		this.layoutSource = 'all';
 		this.includeSelectedInResults = false;
 		// Push so Back can restore the previous selection.
 		this.#saveToUrl({ history: 'push' });
 	}
 
 	setLayoutSource(source: LayoutSource) {
-		if (source === 'selected' && this.compareSelectedNames.size === 0) {
-			this.layoutSource = 'all';
-			this.#saveToUrl();
-			return;
-		}
+		if (source === this.layoutSource) return;
+
+		// Flush drafts into applied state before snapshotting the outgoing view.
+		this.#applyFiltersNow();
+		this.#viewFilterSnapshots.set(this.layoutSource, this.#captureViewFilters());
+
 		this.layoutSource = source;
+
+		const incoming = this.#viewFilterSnapshots.get(source);
+		if (incoming) {
+			this.#restoreViewFilters(incoming);
+		} else {
+			this.#resetViewFiltersToDefaults();
+		}
+
+		// Inject-non-matching only applies on the All page.
 		if (source === 'selected') {
 			this.includeSelectedInResults = false;
 		}
+
 		this.#saveToUrl();
 	}
 
@@ -1239,12 +1429,9 @@ export class FilterStore {
 				removed = true;
 			}
 		}
-		if (this.compareSelectedNames.size === 0) {
-			if (this.layoutSource === 'selected' || this.includeSelectedInResults) {
-				this.layoutSource = 'all';
-				this.includeSelectedInResults = false;
-				removed = true;
-			}
+		if (this.compareSelectedNames.size === 0 && this.includeSelectedInResults) {
+			this.includeSelectedInResults = false;
+			removed = true;
 		}
 		if (removed) this.#saveToUrl();
 	}

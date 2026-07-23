@@ -6,7 +6,7 @@
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
-	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
+	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
 
@@ -53,9 +53,7 @@
 
 		exitAdjustMode();
 		afterPaint(() => {
-			if (sidebarReq.field === 'source') {
-				focusFilterControl(document.getElementById('layout-source-filter'));
-			} else if (sidebarReq.field === 'name') {
+			if (sidebarReq.field === 'name') {
 				focusFilterControl(document.getElementById('name-filter'));
 			} else if (sidebarReq.field === 'authors') {
 				authorOpenSeq = sidebarReq.seq;
@@ -96,28 +94,6 @@
 			</div>
 		{:else}
 			<div class="filters-sidebar-search">
-				<label class="filters-field">
-					<span class="filters-label" style="color: var(--text-secondary);">Source</span>
-					<select
-						id="layout-source-filter"
-						value={filterStore.layoutSource}
-						onchange={(e) => filterStore.setLayoutSource(e.currentTarget.value as LayoutSource)}
-						class="filters-select"
-						style="
-							background-color: var(--input-bg);
-							color: var(--text-primary);
-							border: 1px solid var(--border);
-							--tw-ring-color: var(--accent);
-						"
-						aria-label="Layout source"
-					>
-						<option value="all">All layouts</option>
-						<option value="selected" disabled={filterStore.compareSelectedNames.size === 0}>
-							Selected layouts only
-						</option>
-					</select>
-				</label>
-
 				<label class="filters-field">
 					<span class="filters-label" style="color: var(--text-secondary);">Layout name</span>
 					<input
@@ -250,16 +226,7 @@
 		outline: none;
 	}
 
-	.filters-select {
-		width: 100%;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		outline: none;
-	}
-
-	.filters-input:focus-visible,
-	.filters-select:focus-visible {
+	.filters-input:focus-visible {
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 

@@ -9,7 +9,7 @@
 		snapshotHasKeyboard,
 		type ActiveFiltersSnapshot
 	} from '$lib/activeFiltersAdjust';
-	import { filterStore, type LayoutSource } from '$lib/filterStore.svelte';
+	import { filterStore } from '$lib/filterStore.svelte';
 	import type { KeyFilterKind } from '$lib/filterSummaries';
 	import type { LayoutData } from '$lib/layout';
 	import {
@@ -61,7 +61,7 @@
 </script>
 
 <div class="active-filters-adjust">
-	{#if snapshot.source || snapshot.name || snapshot.authors}
+	{#if snapshot.name || snapshot.authors}
 		<div
 			class="adjust-section"
 			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
@@ -70,31 +70,6 @@
 				<span class="filter-section-header-label">Search</span>
 			</div>
 			<div class="adjust-section-body">
-				{#if snapshot.source}
-					<label class="filters-field">
-						<span class="filters-label" style="color: var(--text-secondary);">Source</span>
-						<select
-							id="layout-source-filter"
-							value={filterStore.layoutSource}
-							onchange={(e) =>
-								filterStore.setLayoutSource(e.currentTarget.value as LayoutSource)}
-							class="filters-select"
-							style="
-								background-color: var(--input-bg);
-								color: var(--text-primary);
-								border: 1px solid var(--border);
-								--tw-ring-color: var(--accent);
-							"
-							aria-label="Layout source"
-						>
-							<option value="all">All layouts</option>
-							<option value="selected" disabled={filterStore.compareSelectedNames.size === 0}>
-								Selected layouts only
-							</option>
-						</select>
-					</label>
-				{/if}
-
 				{#if snapshot.name}
 					<label class="filters-field">
 						<span class="filters-label" style="color: var(--text-secondary);">Layout name</span>
@@ -282,8 +257,7 @@
 		line-height: 1.25;
 	}
 
-	.filters-input,
-	.filters-select {
+	.filters-input {
 		width: 100%;
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.75rem;
@@ -291,8 +265,7 @@
 		outline: none;
 	}
 
-	.filters-input:focus-visible,
-	.filters-select:focus-visible {
+	.filters-input:focus-visible {
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 </style>

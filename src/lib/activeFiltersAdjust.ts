@@ -33,7 +33,6 @@ export type ActiveStatSnapshotEntry = {
 
 /** Frozen set of filters that were active when Adjust mode was entered. */
 export type ActiveFiltersSnapshot = {
-	source: boolean;
 	name: boolean;
 	authors: boolean;
 	keyboard: ActiveKeyboardSnapshot;
@@ -92,7 +91,6 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 	}
 
 	return {
-		source: store.layoutSource === 'selected',
 		name: store.nameFilterInput.trim() !== '',
 		authors: store.selectedAuthors.size > 0,
 		keyboard: {
