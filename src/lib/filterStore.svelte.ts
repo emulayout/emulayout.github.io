@@ -1773,6 +1773,30 @@ export class FilterStore {
 		return JSON.stringify(this.#captureViewFilters()) !== JSON.stringify(saved.snapshot);
 	}
 
+	/**
+	 * Reset control: on a dirty saved view, restore that view's saved snapshot;
+	 * otherwise clear all filters.
+	 */
+	resetFilters() {
+		if (this.activeSavedFilterId && this.isActiveSavedViewDirty) {
+			this.revertActiveSavedView();
+			return;
+		}
+		this.clearAll();
+	}
+
+	/** Re-apply the active saved view's stored snapshot (discard unsaved edits). */
+	revertActiveSavedView() {
+		const id = this.activeSavedFilterId;
+		if (!id) return;
+		const saved = this.savedFilters.find((entry) => entry.id === id);
+		if (!saved) return;
+
+		this.#cancelFilterApply();
+		this.#restoreViewFilters(saved.snapshot);
+		this.#saveToUrl();
+	}
+
 	/** Overwrite the active saved view with the current filter configuration. */
 	updateActiveSavedView() {
 		const id = this.activeSavedFilterId;

@@ -423,13 +423,18 @@
 				</button>
 			{/if}
 
-			{#if filterStore.hasActiveFilters}
+			{#if filterStore.hasActiveFilters ||
+				(filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty)}
 				<button
 					type="button"
 					class="filter-reset-button filters-sidebar-footer-icon"
-					aria-label="Reset all"
-					title="Reset all"
-					onclick={() => filterStore.clearAll()}
+					aria-label={filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty
+						? 'Reset view'
+						: 'Reset all'}
+					title={filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty
+						? 'Reset view'
+						: 'Reset all'}
+					onclick={() => filterStore.resetFilters()}
 				>
 					<svg
 						class="filters-sidebar-footer-icon-svg"
