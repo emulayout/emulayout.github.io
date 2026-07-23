@@ -573,6 +573,38 @@
 		return entry.key;
 	}
 
+	/**
+	 * Keys closest to the spacebar: ⌘ on Apple, Alt elsewhere.
+	 * (Customizable thumb mapping can replace this later.)
+	 */
+	function usesMetaThumbKeys(): boolean {
+		return /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+	}
+
+	function thumbHandFromCode(code: string): 'l' | 'r' | undefined {
+		if (code === 'MetaLeft' || code === 'AltLeft') return 'l';
+		if (code === 'MetaRight' || code === 'AltRight') return 'r';
+		return undefined;
+	}
+
+	function isThumbKeyCode(code: string, metaThumbs: boolean): boolean {
+		return metaThumbs
+			? code === 'MetaLeft' || code === 'MetaRight'
+			: code === 'AltLeft' || code === 'AltRight';
+	}
+
+	/** True while the platform thumb modifier is held (for fast thumb→letter sequences). */
+	function isThumbModifierHeld(event: KeyboardEvent, metaThumbs: boolean): boolean {
+		return metaThumbs ? event.metaKey : event.altKey;
+	}
+
+	/** Modifiers that should skip layout remapping (not the thumb key). */
+	function hasBlockingModifier(event: KeyboardEvent, metaThumbs: boolean): boolean {
+		if (metaThumbs) return event.ctrlKey || event.altKey;
+		// Alt is thumb; allow AltGr (ctrl+alt). Block Meta and plain Ctrl.
+		return event.metaKey || (event.ctrlKey && !event.altKey);
+	}
+
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -582,13 +614,16 @@
 			return;
 		}
 
-		const useMetaAsThumb = layout.hasThumbKeys;
+		const useThumbKeys = layout.hasThumbKeys;
+		const metaThumbs = usesMetaThumbKeys();
 
-		// Left/Right CMD → left/right thumb keys; always capture to avoid OS shortcuts
+		// Physical thumb keys → insert primary thumb char; capture to avoid OS shortcuts
 		// when typing quickly after a thumb press.
-		if (useMetaAsThumb && (event.code === 'MetaLeft' || event.code === 'MetaRight')) {
+		if (useThumbKeys && isThumbKeyCode(event.code, metaThumbs)) {
 			event.preventDefault();
-			const hand = event.code === 'MetaLeft' ? 'l' : 'r';
+			event.stopPropagation();
+			const hand = thumbHandFromCode(event.code);
+			if (!hand) return;
 			let mappedChar = primaryThumbChar(hand);
 			if (!mappedChar) return;
 			if (event.shiftKey && /^[a-z]$/i.test(mappedChar)) {
@@ -598,10 +633,18 @@
 			return;
 		}
 
-		// Don't remap with ctrl/alt. When thumbs use Meta, still remap letter keys
-		// while Meta is held so fast thumb→letter sequences aren't dropped.
-		if (event.ctrlKey || event.altKey) return;
-		if (!useMetaAsThumb && event.metaKey) return;
+		if (useThumbKeys) {
+			if (hasBlockingModifier(event, metaThumbs)) return;
+		} else if (event.ctrlKey || event.altKey || event.metaKey) {
+			return;
+		}
+
+		// Swallow thumb-modifier combos so they don't reach app shortcuts or browser
+		// defaults. OS-reserved combos (Cmd+Q, Alt+Tab, etc.) still cannot be blocked.
+		if (useThumbKeys && isThumbModifierHeld(event, metaThumbs)) {
+			event.preventDefault();
+			event.stopPropagation();
+		}
 
 		const { keyMap, shiftKeyMap } = getKeyMaps();
 
@@ -623,9 +666,9 @@
 
 	function handleKeyUp(event: KeyboardEvent) {
 		if (!layout.hasThumbKeys) return;
-		if (event.code === 'MetaLeft' || event.code === 'MetaRight') {
-			event.preventDefault();
-		}
+		if (!isThumbKeyCode(event.code, usesMetaThumbKeys())) return;
+		event.preventDefault();
+		event.stopPropagation();
 	}
 </script>
 

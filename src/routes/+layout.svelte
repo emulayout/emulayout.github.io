@@ -80,6 +80,14 @@
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key.toLowerCase() !== 'k') return;
 			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+			// Layout test area remaps keys (incl. thumb modifiers) — don't steal presses.
+			const target = event.target;
+			if (
+				target instanceof HTMLTextAreaElement &&
+				target.classList.contains('layout-test-area-input')
+			) {
+				return;
+			}
 			event.preventDefault();
 
 			if (event.shiftKey) {
