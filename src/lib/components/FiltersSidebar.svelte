@@ -3,6 +3,7 @@
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import KeyFilters from '$lib/components/KeyFilters.svelte';
 	import KeyboardFilters from '$lib/components/KeyboardFilters.svelte';
+	import RenameViewModal from '$lib/components/RenameViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
@@ -23,6 +24,7 @@
 	let adjustActive = $state(false);
 	let adjustSnapshot = $state<ActiveFiltersSnapshot | null>(null);
 	let showSaveModal = $state(false);
+	let showRenameModal = $state(false);
 	let saveMenuOpen = $state(false);
 	let splitRootEl = $state<HTMLDivElement | undefined>(undefined);
 	let shareCopied = $state(false);
@@ -31,10 +33,16 @@
 	const showUpdateSplit = $derived(
 		Boolean(filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty)
 	);
-	const showShareButton = $derived(Boolean(filterStore.activeSavedFilterId));
-	const showFooter = $derived(
-		filterStore.hasActiveFilters || showUpdateSplit || showShareButton
+	const showDuplicateSplit = $derived(
+		Boolean(
+			filterStore.activeSavedFilterId &&
+			!filterStore.isActiveSavedViewDirty &&
+			filterStore.hasActiveFilters
+		)
 	);
+	const showViewSplit = $derived(showUpdateSplit || showDuplicateSplit);
+	const showShareButton = $derived(Boolean(filterStore.activeSavedFilterId));
+	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit || showShareButton);
 
 	function exitAdjustMode() {
 		adjustActive = false;
@@ -61,6 +69,11 @@
 		showSaveModal = true;
 	}
 
+	function openRenameModal() {
+		saveMenuOpen = false;
+		showRenameModal = true;
+	}
+
 	function toggleSaveMenu() {
 		saveMenuOpen = !saveMenuOpen;
 	}
@@ -85,7 +98,7 @@
 	});
 
 	$effect(() => {
-		if (!showUpdateSplit) saveMenuOpen = false;
+		if (!showViewSplit) saveMenuOpen = false;
 	});
 
 	$effect(() => {
@@ -250,7 +263,9 @@
 							stroke-linejoin="round"
 							aria-hidden="true"
 						>
-							<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94" />
+							<path
+								d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94"
+							/>
 							<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19" />
 							<path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
 							<path d="M1 1l22 22" />
@@ -343,6 +358,57 @@
 								>
 									Save as new view
 								</button>
+								<button
+									type="button"
+									role="menuitem"
+									class="filters-split-menu-item"
+									onclick={openRenameModal}
+								>
+									Rename view
+								</button>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{:else if showDuplicateSplit}
+				<div class="filters-sidebar-footer-primary">
+					<div class="filters-split-button" bind:this={splitRootEl}>
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-main"
+							onclick={openSaveModal}
+						>
+							Duplicate view
+						</button>
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-toggle"
+							aria-label="More view options"
+							aria-haspopup="menu"
+							aria-expanded={saveMenuOpen}
+							onclick={toggleSaveMenu}
+						>
+							<svg
+								class="filters-split-button-caret"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2.5"
+								aria-hidden="true"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+						{#if saveMenuOpen}
+							<div class="filters-split-menu" role="menu">
+								<button
+									type="button"
+									role="menuitem"
+									class="filters-split-menu-item"
+									onclick={openRenameModal}
+								>
+									Rename view
+								</button>
 							</div>
 						{/if}
 					</div>
@@ -353,7 +419,7 @@
 					class="filter-reset-button filters-sidebar-footer-button filters-sidebar-footer-primary"
 					onclick={openSaveModal}
 				>
-					{filterStore.activeSavedFilterId ? 'Duplicate view' : 'Save as view'}
+					Save as view
 				</button>
 			{/if}
 
@@ -385,6 +451,7 @@
 </div>
 
 <SaveFilterModal open={showSaveModal} onClose={() => (showSaveModal = false)} />
+<RenameViewModal open={showRenameModal} onClose={() => (showRenameModal = false)} />
 
 <style>
 	.filters-sidebar {

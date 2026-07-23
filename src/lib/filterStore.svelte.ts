@@ -1790,6 +1790,32 @@ export class FilterStore {
 		this.#persistSavedFilters();
 	}
 
+	/** Rename the active saved view. Returns false if the name is empty or taken. */
+	renameActiveSavedView(name: string): boolean {
+		const id = this.activeSavedFilterId;
+		if (!id) return false;
+
+		const trimmed = name.trim();
+		if (!trimmed) return false;
+
+		const conflict = this.savedFilters.some(
+			(entry) => entry.id !== id && entry.name.toLowerCase() === trimmed.toLowerCase()
+		);
+		if (conflict) return false;
+
+		const index = this.savedFilters.findIndex((entry) => entry.id === id);
+		if (index < 0) return false;
+
+		const existing = this.savedFilters[index];
+		if (existing.name === trimmed) return true;
+
+		const next = [...this.savedFilters];
+		next[index] = { ...existing, name: trimmed };
+		this.savedFilters = next;
+		this.#persistSavedFilters();
+		return true;
+	}
+
 	/** Activate a saved view (All layouts pool). */
 	applySavedFilter(id: string) {
 		const saved = this.savedFilters.find((entry) => entry.id === id);
