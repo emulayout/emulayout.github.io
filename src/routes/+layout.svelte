@@ -323,7 +323,7 @@
 		z-index: 20;
 		background-color: var(--bg-primary);
 		box-shadow: var(--app-bar-shadow-color) 0px -4px 20px 7px;
-		margin-bottom: 1.5rem;
+		margin-bottom: 0.5rem;
 	}
 
 	.app-header-toggle--on {

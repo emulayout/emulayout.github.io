@@ -47,6 +47,12 @@ import {
 	type SimilarityMirrorMode
 } from './layoutSimilarity';
 import type { FilterFocusRequest } from './filterSummaries';
+import {
+	createSavedFilterId,
+	loadSavedFilters,
+	persistSavedFilters,
+	type SavedFilter
+} from './savedFiltersStorage';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -57,6 +63,7 @@ export type StatLimitOperator = 'lt' | 'gt';
 export type LayoutSource = 'all' | 'selected';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
+export type { SavedFilter };
 
 export interface StatLimit {
 	operator: StatLimitOperator;
@@ -170,7 +177,7 @@ type SortSnapshot = {
 };
 
 /** Per-view filter fields — All and Selected keep isolated snapshots (never synced). */
-type ViewFilterSnapshot = {
+export type ViewFilterSnapshot = {
 	includeGrid: string[][];
 	excludeGrid: string[][];
 	includeOrGrid: string[][];
@@ -236,6 +243,10 @@ export class FilterStore {
 	compareSelectedNames: SvelteSet<string> = new SvelteSet();
 	/** When `selected`, other filters run only over compare-checked layouts. */
 	layoutSource: LayoutSource = $state('all');
+	/** Named filter presets persisted in localStorage (not URL). */
+	savedFilters: SavedFilter[] = $state([]);
+	/** When set, a saved-filter tab is active (pool stays `all`). */
+	activeSavedFilterId: string | null = $state(null);
 	/**
 	 * When true (and source is `all`), inject compare-selected layouts into the result
 	 * list even if they fail other filters.
@@ -325,6 +336,7 @@ export class FilterStore {
 		this.#loadFromUrl();
 		this.#applyFiltersFromInputs();
 		if (typeof window !== 'undefined') {
+			this.savedFilters = loadSavedFilters();
 			window.addEventListener('popstate', () => {
 				this.#hydrateFromUrl();
 			});
@@ -372,6 +384,10 @@ export class FilterStore {
 		this.#applyFiltersNow();
 	}
 
+	#persistSavedFilters() {
+		persistSavedFilters(this.savedFilters);
+	}
+
 	#resetUrlControlledState() {
 		this.includeGrid = createEmptyGrid();
 		this.excludeGrid = createEmptyGrid();
@@ -392,6 +408,7 @@ export class FilterStore {
 		this.selectedAuthors.clear();
 		this.compareSelectedNames.clear();
 		this.layoutSource = 'all';
+		this.activeSavedFilterId = null;
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#sortBeforeSimilar = null;
@@ -1374,6 +1391,27 @@ export class FilterStore {
 	}
 
 	setLayoutSource(source: LayoutSource) {
+		// Leaving a saved-filter tab: restore All/Selected without writing edits into snapshots.
+		if (this.activeSavedFilterId) {
+			this.#applyFiltersNow();
+			this.activeSavedFilterId = null;
+			this.layoutSource = source;
+
+			const incoming = this.#viewFilterSnapshots.get(source);
+			if (incoming) {
+				this.#restoreViewFilters(incoming);
+			} else {
+				this.#resetViewFiltersToDefaults();
+			}
+
+			if (source === 'selected') {
+				this.includeSelectedInResults = false;
+			}
+
+			this.#saveToUrl();
+			return;
+		}
+
 		if (source === this.layoutSource) return;
 
 		// Flush drafts into applied state before snapshotting the outgoing view.
@@ -1394,6 +1432,114 @@ export class FilterStore {
 			this.includeSelectedInResults = false;
 		}
 
+		this.#saveToUrl();
+	}
+
+	/**
+	 * Persist the current filter configuration under `name` (case-insensitive upsert).
+	 * Activates the saved view tab against the All layouts pool.
+	 */
+	saveCurrentFilters(name: string): string | null {
+		const trimmed = name.trim();
+		if (!trimmed) return null;
+
+		this.#applyFiltersNow();
+		const snapshot = this.#captureViewFilters();
+
+		const existingIndex = this.savedFilters.findIndex(
+			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
+		);
+
+		let id: string;
+		if (existingIndex >= 0) {
+			const existing = this.savedFilters[existingIndex];
+			id = existing.id;
+			const next = [...this.savedFilters];
+			next[existingIndex] = { ...existing, name: trimmed, snapshot };
+			this.savedFilters = next;
+		} else {
+			id = createSavedFilterId();
+			this.savedFilters = [
+				...this.savedFilters,
+				{ id, name: trimmed, snapshot, createdAt: Date.now() }
+			];
+		}
+
+		this.#persistSavedFilters();
+
+		if (!this.activeSavedFilterId) {
+			this.#viewFilterSnapshots.set(this.layoutSource, snapshot);
+		}
+
+		this.layoutSource = 'all';
+		this.activeSavedFilterId = id;
+		this.includeSelectedInResults = false;
+		this.#saveToUrl();
+		return id;
+	}
+
+	/** True when the active saved view's filters differ from what was last stored. */
+	get isActiveSavedViewDirty(): boolean {
+		const id = this.activeSavedFilterId;
+		if (!id) return false;
+		const saved = this.savedFilters.find((entry) => entry.id === id);
+		if (!saved) return false;
+		return JSON.stringify(this.#captureViewFilters()) !== JSON.stringify(saved.snapshot);
+	}
+
+	/** Overwrite the active saved view with the current filter configuration. */
+	updateActiveSavedView() {
+		const id = this.activeSavedFilterId;
+		if (!id) return;
+
+		this.#applyFiltersNow();
+		const snapshot = this.#captureViewFilters();
+		const index = this.savedFilters.findIndex((entry) => entry.id === id);
+		if (index < 0) return;
+
+		const existing = this.savedFilters[index];
+		const next = [...this.savedFilters];
+		next[index] = { ...existing, snapshot };
+		this.savedFilters = next;
+		this.#persistSavedFilters();
+	}
+
+	/** Activate a saved view (All layouts pool). */
+	applySavedFilter(id: string) {
+		const saved = this.savedFilters.find((entry) => entry.id === id);
+		if (!saved) return;
+		if (this.activeSavedFilterId === id) return;
+
+		this.#applyFiltersNow();
+
+		if (!this.activeSavedFilterId) {
+			this.#viewFilterSnapshots.set(this.layoutSource, this.#captureViewFilters());
+		}
+
+		this.layoutSource = 'all';
+		this.activeSavedFilterId = id;
+		this.includeSelectedInResults = false;
+		this.#restoreViewFilters(saved.snapshot);
+		this.#saveToUrl();
+	}
+
+	deleteSavedFilter(id: string) {
+		const next = this.savedFilters.filter((entry) => entry.id !== id);
+		if (next.length === this.savedFilters.length) return;
+
+		this.savedFilters = next;
+		this.#persistSavedFilters();
+
+		if (this.activeSavedFilterId !== id) return;
+
+		this.activeSavedFilterId = null;
+		this.layoutSource = 'all';
+		const incoming = this.#viewFilterSnapshots.get('all');
+		if (incoming) {
+			this.#restoreViewFilters(incoming);
+		} else {
+			this.#resetViewFiltersToDefaults();
+		}
 		this.#saveToUrl();
 	}
 
