@@ -5,6 +5,7 @@
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
+	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
@@ -33,6 +34,7 @@
 	let compareSession = $state(0);
 	let deleteSavedFilterId = $state<string | null>(null);
 	let deleteSavedFilterName = $state('');
+	let showSharedViewModal = $state(false);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	let likesLoading = $state(false);
 	const statsReady = $derived(
@@ -260,6 +262,12 @@
 	}
 
 	$effect(() => {
+		if (filterStore.pendingSharedView) {
+			showSharedViewModal = true;
+		}
+	});
+
+	$effect(() => {
 		function handleOpenCompare(event: Event) {
 			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
 			const mode = detail?.mode ?? 'restore';
@@ -452,6 +460,14 @@
 	filterId={deleteSavedFilterId}
 	filterName={deleteSavedFilterName}
 	onClose={closeDeleteSavedFilterModal}
+/>
+
+<SharedViewModal
+	open={showSharedViewModal}
+	onClose={() => {
+		showSharedViewModal = false;
+		filterStore.clearPendingSharedView();
+	}}
 />
 
 <style>

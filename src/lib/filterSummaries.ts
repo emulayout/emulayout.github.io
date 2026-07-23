@@ -1,5 +1,14 @@
 import { SPLIT_COL } from '$lib/cmini/keyboard';
-import type { FilterStore } from '$lib/filterStore.svelte';
+import type {
+	BoardTypeFilter,
+	CharacterSetFilter,
+	FilterStore,
+	MagicKeyFilter,
+	StatLimit,
+	StatLimitOperator,
+	ThumbKeyFilter,
+	ViewFilterSnapshot
+} from '$lib/filterStore.svelte';
 import {
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
@@ -14,6 +23,60 @@ import {
 	type StatLimitKey,
 	type StatsAnalyzer
 } from '$lib/layoutStats';
+
+/** Minimal fields needed to render active-filter chips (live store or shared snapshot). */
+export type FilterChipSource = {
+	nameFilter: string;
+	selectedAuthors: { size: number };
+	thumbKeyFilter: ThumbKeyFilter;
+	magicKeyFilter: MagicKeyFilter;
+	boardTypeFilter: BoardTypeFilter;
+	characterSetFilter: CharacterSetFilter;
+	showUnfinished: boolean;
+	appliedIncludeGrid: string[][];
+	appliedIncludeLeftThumbKeys: string[];
+	appliedIncludeRightThumbKeys: string[];
+	appliedIncludeOrGrid: string[][];
+	appliedIncludeOrLeftThumbKeys: string[];
+	appliedIncludeOrRightThumbKeys: string[];
+	appliedExcludeGrid: string[][];
+	appliedExcludeLeftThumbKeys: string[];
+	appliedExcludeRightThumbKeys: string[];
+	appliedStatLimits: Record<StatLimitKey, StatLimit>;
+	canUseLikes: boolean;
+	hasSimilarReference: boolean;
+	similarityFilterOperator: StatLimitOperator;
+	appliedSimilarityFilterValue: string;
+};
+
+export function chipSourceFromViewSnapshot(
+	snapshot: ViewFilterSnapshot,
+	options?: { canUseLikes?: boolean }
+): FilterChipSource {
+	return {
+		nameFilter: snapshot.nameFilter,
+		selectedAuthors: { size: snapshot.selectedAuthors.length },
+		thumbKeyFilter: snapshot.thumbKeyFilter,
+		magicKeyFilter: snapshot.magicKeyFilter,
+		boardTypeFilter: snapshot.boardTypeFilter,
+		characterSetFilter: snapshot.characterSetFilter,
+		showUnfinished: snapshot.showUnfinished,
+		appliedIncludeGrid: snapshot.appliedIncludeGrid,
+		appliedIncludeLeftThumbKeys: snapshot.appliedIncludeLeftThumbKeys,
+		appliedIncludeRightThumbKeys: snapshot.appliedIncludeRightThumbKeys,
+		appliedIncludeOrGrid: snapshot.appliedIncludeOrGrid,
+		appliedIncludeOrLeftThumbKeys: snapshot.appliedIncludeOrLeftThumbKeys,
+		appliedIncludeOrRightThumbKeys: snapshot.appliedIncludeOrRightThumbKeys,
+		appliedExcludeGrid: snapshot.appliedExcludeGrid,
+		appliedExcludeLeftThumbKeys: snapshot.appliedExcludeLeftThumbKeys,
+		appliedExcludeRightThumbKeys: snapshot.appliedExcludeRightThumbKeys,
+		appliedStatLimits: snapshot.appliedStatLimits,
+		canUseLikes: options?.canUseLikes ?? true,
+		hasSimilarReference: snapshot.similarReferenceName !== null,
+		similarityFilterOperator: snapshot.similarityFilterOperator,
+		appliedSimilarityFilterValue: snapshot.appliedSimilarityFilterValue
+	};
+}
 
 function collectHandKeys(
 	grid: string[][],
@@ -337,7 +400,7 @@ function toneForAnalyzer(analyzer: StatsAnalyzer): FilterChipTone {
 }
 
 /** Individual active filters for chip UI in the results toolbar. */
-export function getActiveFilterChips(store: FilterStore): ActiveFilterChip[] {
+export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[] {
 	const chips: ActiveFilterChip[] = [];
 
 	const name = store.nameFilter.trim();

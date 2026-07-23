@@ -10,6 +10,7 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
+	import { copyTextToClipboard } from '$lib/viewFilterShare';
 
 	interface Props {
 		authorList: Array<{ id: number; name: string }>;
@@ -24,11 +25,16 @@
 	let showSaveModal = $state(false);
 	let saveMenuOpen = $state(false);
 	let splitRootEl = $state<HTMLDivElement | undefined>(undefined);
+	let shareCopied = $state(false);
+	let shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const showUpdateSplit = $derived(
 		Boolean(filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty)
 	);
-	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit);
+	const showShareButton = $derived(Boolean(filterStore.activeSavedFilterId));
+	const showFooter = $derived(
+		filterStore.hasActiveFilters || showUpdateSplit || showShareButton
+	);
 
 	function exitAdjustMode() {
 		adjustActive = false;
@@ -58,6 +64,25 @@
 	function toggleSaveMenu() {
 		saveMenuOpen = !saveMenuOpen;
 	}
+
+	async function shareActiveView() {
+		const url = filterStore.buildActiveShareViewUrl();
+		if (!url) return;
+		const ok = await copyTextToClipboard(url);
+		if (!ok) return;
+		shareCopied = true;
+		if (shareCopiedTimer) clearTimeout(shareCopiedTimer);
+		shareCopiedTimer = setTimeout(() => {
+			shareCopied = false;
+			shareCopiedTimer = null;
+		}, 1600);
+	}
+
+	$effect(() => {
+		return () => {
+			if (shareCopiedTimer) clearTimeout(shareCopiedTimer);
+		};
+	});
 
 	$effect(() => {
 		if (!showUpdateSplit) saveMenuOpen = false;
@@ -229,6 +254,48 @@
 							<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19" />
 							<path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
 							<path d="M1 1l22 22" />
+						</svg>
+					{/if}
+				</button>
+			{/if}
+
+			{#if showShareButton}
+				<button
+					type="button"
+					class="filter-reset-button filters-sidebar-footer-icon"
+					class:filters-sidebar-footer-icon--active={shareCopied}
+					aria-label={shareCopied ? 'Link copied' : 'Share view'}
+					title={shareCopied ? 'Link copied' : 'Share view'}
+					onclick={shareActiveView}
+				>
+					{#if shareCopied}
+						<svg
+							class="filters-sidebar-footer-icon-svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M20 6L9 17l-5-5" />
+						</svg>
+					{:else}
+						<svg
+							class="filters-sidebar-footer-icon-svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<circle cx="18" cy="5" r="3" />
+							<circle cx="6" cy="12" r="3" />
+							<circle cx="18" cy="19" r="3" />
+							<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
 						</svg>
 					{/if}
 				</button>

@@ -53,6 +53,11 @@ import {
 	persistSavedFilters,
 	type SavedFilter
 } from './savedFiltersStorage';
+import {
+	buildShareViewUrl,
+	readShareViewFromUrl,
+	stripShareViewParamsFromUrl
+} from './viewFilterShare';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -135,6 +140,282 @@ function createEmptyThumbKeyFilters(): string[] {
 
 function createEmptyGrid(): string[][] {
 	return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
+}
+
+function serializeThumbFilters(filters: string[]): string {
+	return filters.filter((k) => k !== '').join('|');
+}
+
+function deserializeThumbFilters(value: string | null | undefined): string[] {
+	return value
+		? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, THUMB_KEYS_PER_HAND)
+		: createEmptyThumbKeyFilters();
+}
+
+function createDefaultViewSnapshot(): ViewFilterSnapshot {
+	return {
+		includeGrid: createEmptyGrid(),
+		excludeGrid: createEmptyGrid(),
+		includeOrGrid: createEmptyGrid(),
+		includeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
+		includeOrRightThumbKeys: createEmptyThumbKeyFilters(),
+		includeLeftThumbKeys: createEmptyThumbKeyFilters(),
+		includeRightThumbKeys: createEmptyThumbKeyFilters(),
+		excludeLeftThumbKeys: createEmptyThumbKeyFilters(),
+		excludeRightThumbKeys: createEmptyThumbKeyFilters(),
+		showUnfinished: false,
+		thumbKeyFilter: 'optional',
+		magicKeyFilter: 'optional',
+		characterSetFilter: 'english',
+		boardTypeFilter: 'all',
+		nameFilterInput: '',
+		nameFilter: '',
+		selectedAuthors: [],
+		includeSelectedInResults: false,
+		similarReferenceName: null,
+		similarReferenceAnglemod: false,
+		similarityFilterOperator: 'gt',
+		similarityFilterValue: '50',
+		appliedSimilarityFilterValue: '50',
+		similarityWeightHomeKeys: false,
+		similarityMirrorMode: 'excluded',
+		sortBy: 'date',
+		sortOrder: 'desc',
+		sortOrderManual: false,
+		sortBeforeSimilar: null,
+		exitSortRestore: null,
+		statLimits: createEmptyStatLimits(),
+		appliedIncludeGrid: createEmptyGrid(),
+		appliedExcludeGrid: createEmptyGrid(),
+		appliedIncludeOrGrid: createEmptyGrid(),
+		appliedIncludeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
+		appliedIncludeOrRightThumbKeys: createEmptyThumbKeyFilters(),
+		appliedIncludeLeftThumbKeys: createEmptyThumbKeyFilters(),
+		appliedIncludeRightThumbKeys: createEmptyThumbKeyFilters(),
+		appliedExcludeLeftThumbKeys: createEmptyThumbKeyFilters(),
+		appliedExcludeRightThumbKeys: createEmptyThumbKeyFilters(),
+		appliedStatLimits: createEmptyStatLimits()
+	};
+}
+
+/** Compact query-string encoding of a view snapshot (shareable; not live URL filters). */
+export function encodeViewFilterSnapshot(snapshot: ViewFilterSnapshot): string {
+	const params = new URLSearchParams();
+
+	const includeSerialized = serializeGrid(snapshot.appliedIncludeGrid);
+	if (includeSerialized) params.set('include', includeSerialized);
+
+	const excludeSerialized = serializeGrid(snapshot.appliedExcludeGrid);
+	if (excludeSerialized) params.set('exclude', excludeSerialized);
+
+	if (snapshot.showUnfinished) params.set('showUnfinished', '1');
+	if (snapshot.thumbKeyFilter !== 'optional') params.set('thumbKeys', snapshot.thumbKeyFilter);
+	if (snapshot.magicKeyFilter !== 'optional') params.set('magicKey', snapshot.magicKeyFilter);
+	if (snapshot.characterSetFilter !== 'english') {
+		params.set('characterSet', snapshot.characterSetFilter);
+	}
+	if (snapshot.boardTypeFilter !== 'all') params.set('boardType', snapshot.boardTypeFilter);
+	if (snapshot.nameFilter) params.set('name', snapshot.nameFilter);
+	if (snapshot.selectedAuthors.length > 0) {
+		params.set('authors', snapshot.selectedAuthors.join(','));
+	}
+
+	const includeLeftThumbsSerialized = serializeThumbFilters(snapshot.appliedIncludeLeftThumbKeys);
+	if (includeLeftThumbsSerialized) params.set('includeLeftThumbs', includeLeftThumbsSerialized);
+
+	const includeRightThumbsSerialized = serializeThumbFilters(snapshot.appliedIncludeRightThumbKeys);
+	if (includeRightThumbsSerialized) params.set('includeRightThumbs', includeRightThumbsSerialized);
+
+	const excludeLeftThumbsSerialized = serializeThumbFilters(snapshot.appliedExcludeLeftThumbKeys);
+	if (excludeLeftThumbsSerialized) params.set('excludeLeftThumbs', excludeLeftThumbsSerialized);
+
+	const excludeRightThumbsSerialized = serializeThumbFilters(snapshot.appliedExcludeRightThumbKeys);
+	if (excludeRightThumbsSerialized) params.set('excludeRightThumbs', excludeRightThumbsSerialized);
+
+	const includeOrSerialized = serializeGrid(snapshot.appliedIncludeOrGrid);
+	if (includeOrSerialized) params.set('includeOr', includeOrSerialized);
+
+	const includeOrLeftThumbsSerialized = serializeThumbFilters(
+		snapshot.appliedIncludeOrLeftThumbKeys
+	);
+	if (includeOrLeftThumbsSerialized) {
+		params.set('includeOrLeftThumbs', includeOrLeftThumbsSerialized);
+	}
+
+	const includeOrRightThumbsSerialized = serializeThumbFilters(
+		snapshot.appliedIncludeOrRightThumbKeys
+	);
+	if (includeOrRightThumbsSerialized) {
+		params.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
+	}
+
+	if (snapshot.sortBy !== 'date' || snapshot.sortOrder !== 'desc') {
+		params.set('sort', snapshot.sortBy);
+		params.set('order', snapshot.sortOrder);
+	}
+
+	if (snapshot.similarReferenceName) {
+		params.set('similar', snapshot.similarReferenceName);
+		params.set(
+			'similarFilter',
+			`${snapshot.similarityFilterOperator}:${snapshot.appliedSimilarityFilterValue.trim()}`
+		);
+		if (snapshot.similarityWeightHomeKeys) params.set('similarHome', '1');
+		if (snapshot.similarReferenceAnglemod) params.set('similarAnglemod', '1');
+		if (snapshot.similarityMirrorMode !== 'excluded') {
+			params.set('similarMirror', snapshot.similarityMirrorMode);
+		}
+	}
+
+	const statLimitsSerialized = serializeStatLimits(snapshot.appliedStatLimits);
+	if (statLimitsSerialized) params.set('statLimits', statLimitsSerialized);
+
+	return params.toString();
+}
+
+/** Decode a share `viewFilters` payload into a full view snapshot. */
+export function decodeViewFilterSnapshot(encoded: string): ViewFilterSnapshot {
+	const snapshot = createDefaultViewSnapshot();
+	if (!encoded.trim()) return snapshot;
+
+	const params = new URLSearchParams(encoded);
+
+	const include = params.get('include');
+	if (include) {
+		snapshot.includeGrid = deserializeGrid(include);
+		snapshot.appliedIncludeGrid = deserializeGrid(include);
+	}
+
+	const exclude = params.get('exclude');
+	if (exclude) {
+		snapshot.excludeGrid = deserializeGrid(exclude);
+		snapshot.appliedExcludeGrid = deserializeGrid(exclude);
+	}
+
+	if (params.get('showUnfinished') === '1') snapshot.showUnfinished = true;
+
+	const thumbKeys = params.get('thumbKeys');
+	if (thumbKeys === 'excluded' || thumbKeys === 'required' || thumbKeys === 'optional') {
+		snapshot.thumbKeyFilter = thumbKeys;
+	}
+
+	const magicKey = params.get('magicKey');
+	if (magicKey === 'excluded' || magicKey === 'required' || magicKey === 'optional') {
+		snapshot.magicKeyFilter = magicKey;
+	}
+
+	const characterSet = params.get('characterSet');
+	if (characterSet === 'all' || characterSet === 'english' || characterSet === 'international') {
+		snapshot.characterSetFilter = characterSet;
+	}
+
+	const boardType = params.get('boardType');
+	if (
+		boardType === 'all' ||
+		boardType === 'angle' ||
+		boardType === 'stagger' ||
+		boardType === 'angle-stagger' ||
+		boardType === 'ortho' ||
+		boardType === 'mini'
+	) {
+		snapshot.boardTypeFilter = boardType;
+	}
+
+	const name = params.get('name');
+	if (name) {
+		snapshot.nameFilterInput = name;
+		snapshot.nameFilter = name;
+	}
+
+	const authors = params.get('authors');
+	if (authors) {
+		snapshot.selectedAuthors = authors
+			.split(',')
+			.map(Number)
+			.filter((id) => Number.isFinite(id));
+	}
+
+	const includeLeftThumbs = params.get('includeLeftThumbs');
+	if (includeLeftThumbs) {
+		snapshot.includeLeftThumbKeys = deserializeThumbFilters(includeLeftThumbs);
+		snapshot.appliedIncludeLeftThumbKeys = deserializeThumbFilters(includeLeftThumbs);
+	}
+
+	const includeRightThumbs = params.get('includeRightThumbs');
+	if (includeRightThumbs) {
+		snapshot.includeRightThumbKeys = deserializeThumbFilters(includeRightThumbs);
+		snapshot.appliedIncludeRightThumbKeys = deserializeThumbFilters(includeRightThumbs);
+	}
+
+	const excludeLeftThumbs = params.get('excludeLeftThumbs');
+	if (excludeLeftThumbs) {
+		snapshot.excludeLeftThumbKeys = deserializeThumbFilters(excludeLeftThumbs);
+		snapshot.appliedExcludeLeftThumbKeys = deserializeThumbFilters(excludeLeftThumbs);
+	}
+
+	const excludeRightThumbs = params.get('excludeRightThumbs');
+	if (excludeRightThumbs) {
+		snapshot.excludeRightThumbKeys = deserializeThumbFilters(excludeRightThumbs);
+		snapshot.appliedExcludeRightThumbKeys = deserializeThumbFilters(excludeRightThumbs);
+	}
+
+	const includeOr = params.get('includeOr');
+	if (includeOr) {
+		snapshot.includeOrGrid = deserializeGrid(includeOr);
+		snapshot.appliedIncludeOrGrid = deserializeGrid(includeOr);
+	}
+
+	const includeOrLeftThumbs = params.get('includeOrLeftThumbs');
+	if (includeOrLeftThumbs) {
+		snapshot.includeOrLeftThumbKeys = deserializeThumbFilters(includeOrLeftThumbs);
+		snapshot.appliedIncludeOrLeftThumbKeys = deserializeThumbFilters(includeOrLeftThumbs);
+	}
+
+	const includeOrRightThumbs = params.get('includeOrRightThumbs');
+	if (includeOrRightThumbs) {
+		snapshot.includeOrRightThumbKeys = deserializeThumbFilters(includeOrRightThumbs);
+		snapshot.appliedIncludeOrRightThumbKeys = deserializeThumbFilters(includeOrRightThumbs);
+	}
+
+	const sort = params.get('sort');
+	const order = params.get('order');
+	if (sort) {
+		const normalized = normalizeSortBy(sort);
+		if (normalized) snapshot.sortBy = normalized;
+	}
+	if (order === 'asc' || order === 'desc') {
+		snapshot.sortOrder = order;
+		snapshot.sortOrderManual = true;
+	}
+
+	const similar = params.get('similar');
+	if (similar) {
+		snapshot.similarReferenceName = similar;
+		const similarFilter = params.get('similarFilter');
+		if (similarFilter) {
+			const [operator, ...valueParts] = similarFilter.split(':');
+			if (operator === 'lt' || operator === 'gt') {
+				snapshot.similarityFilterOperator = operator;
+				const value = valueParts.join(':');
+				snapshot.similarityFilterValue = value;
+				snapshot.appliedSimilarityFilterValue = value;
+			}
+		}
+		if (params.get('similarHome') === '1') snapshot.similarityWeightHomeKeys = true;
+		if (params.get('similarAnglemod') === '1') snapshot.similarReferenceAnglemod = true;
+		const similarMirror = params.get('similarMirror');
+		if (similarMirror && isSimilarityMirrorMode(similarMirror)) {
+			snapshot.similarityMirrorMode = similarMirror;
+		}
+	}
+
+	const statLimits = params.get('statLimits');
+	if (statLimits) {
+		snapshot.statLimits = deserializeStatLimits(statLimits);
+		snapshot.appliedStatLimits = deserializeStatLimits(statLimits);
+	}
+
+	return snapshot;
 }
 
 // Serialize grid to compact string: "r0c0,r0c1,r1c2" for non-empty cells
@@ -247,6 +528,8 @@ export class FilterStore {
 	savedFilters: SavedFilter[] = $state([]);
 	/** When set, a saved-filter tab is active (pool stays `all`). */
 	activeSavedFilterId: string | null = $state(null);
+	/** Shared-view offer from URL params (does not mutate live filters until Apply/Save). */
+	pendingSharedView: { name: string; snapshot: ViewFilterSnapshot } | null = $state(null);
 	/**
 	 * When true (and source is `all`), inject compare-selected layouts into the result
 	 * list even if they fail other filters.
@@ -337,6 +620,7 @@ export class FilterStore {
 		this.#applyFiltersFromInputs();
 		if (typeof window !== 'undefined') {
 			this.savedFilters = loadSavedFilters();
+			this.consumeSharedViewFromUrl();
 			window.addEventListener('popstate', () => {
 				this.#hydrateFromUrl();
 			});
@@ -382,6 +666,7 @@ export class FilterStore {
 		this.#resetUrlControlledState();
 		this.#loadFromUrl();
 		this.#applyFiltersNow();
+		this.consumeSharedViewFromUrl();
 	}
 
 	#persistSavedFilters() {
@@ -409,6 +694,7 @@ export class FilterStore {
 		this.compareSelectedNames.clear();
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = null;
+		this.pendingSharedView = null;
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#sortBeforeSimilar = null;
@@ -1541,6 +1827,98 @@ export class FilterStore {
 			this.#resetViewFiltersToDefaults();
 		}
 		this.#saveToUrl();
+	}
+
+	/**
+	 * Read shareable-view params into `pendingSharedView` and strip them from the URL.
+	 * Does not change live filters.
+	 */
+	consumeSharedViewFromUrl() {
+		if (typeof window === 'undefined') return;
+		const offer = readShareViewFromUrl();
+		if (!offer) return;
+
+		this.pendingSharedView = {
+			name: offer.name,
+			snapshot: decodeViewFilterSnapshot(offer.filtersEncoded)
+		};
+		stripShareViewParamsFromUrl();
+	}
+
+	clearPendingSharedView() {
+		this.pendingSharedView = null;
+	}
+
+	/** Clipboard URL for the active saved view (name + current filters). */
+	buildActiveShareViewUrl(): string | null {
+		const id = this.activeSavedFilterId;
+		if (!id) return null;
+		const saved = this.savedFilters.find((entry) => entry.id === id);
+		if (!saved) return null;
+
+		this.#applyFiltersNow();
+		const encoded = encodeViewFilterSnapshot(this.#captureViewFilters());
+		return buildShareViewUrl(saved.name, encoded);
+	}
+
+	/** Apply a shared snapshot to the All layouts view (replaces current All filters). */
+	applySharedViewToAll(snapshot: ViewFilterSnapshot) {
+		this.#applyFiltersNow();
+
+		if (this.activeSavedFilterId) {
+			this.activeSavedFilterId = null;
+		} else if (this.layoutSource !== 'all') {
+			this.#viewFilterSnapshots.set(this.layoutSource, this.#captureViewFilters());
+		} else {
+			// Leaving whatever was on All — shared filters replace it.
+		}
+
+		this.layoutSource = 'all';
+		this.includeSelectedInResults = false;
+		this.#restoreViewFilters(snapshot);
+		this.#viewFilterSnapshots.set('all', this.#captureViewFilters());
+		this.pendingSharedView = null;
+		this.#saveToUrl();
+	}
+
+	/** Persist a shared snapshot as a new/updated named view and activate it. */
+	saveSharedViewAsView(name: string, snapshot: ViewFilterSnapshot): string | null {
+		const trimmed = name.trim();
+		if (!trimmed) return null;
+
+		const existingIndex = this.savedFilters.findIndex(
+			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
+		);
+
+		let id: string;
+		if (existingIndex >= 0) {
+			const existing = this.savedFilters[existingIndex];
+			id = existing.id;
+			const next = [...this.savedFilters];
+			next[existingIndex] = { ...existing, name: trimmed, snapshot };
+			this.savedFilters = next;
+		} else {
+			id = createSavedFilterId();
+			this.savedFilters = [
+				...this.savedFilters,
+				{ id, name: trimmed, snapshot, createdAt: Date.now() }
+			];
+		}
+
+		this.#persistSavedFilters();
+
+		this.#applyFiltersNow();
+		if (!this.activeSavedFilterId) {
+			this.#viewFilterSnapshots.set(this.layoutSource, this.#captureViewFilters());
+		}
+
+		this.layoutSource = 'all';
+		this.activeSavedFilterId = id;
+		this.includeSelectedInResults = false;
+		this.#restoreViewFilters(snapshot);
+		this.pendingSharedView = null;
+		this.#saveToUrl();
+		return id;
 	}
 
 	toggleIncludeSelectedInResults() {
