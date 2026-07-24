@@ -15,59 +15,53 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 /** Mana2 stats analyzer. */
 export const MANA2_ANALYZER = 'mana2';
 
-/** Display stacked analyzers that opt into All (not Mana2). */
-export const ALL_STATS_ANALYZERS_MODE = 'all';
-
 /** Concrete analyzers that own a stats JSON map. */
 export const STAT_ANALYZERS = [
 	{
 		value: DEFAULT_STATS_ANALYZER,
 		label: 'cmini (monkeyracer)',
 		shortLabel: 'cmini',
-		statsUrl: '/layout-stats.json',
-		includeInAll: true
+		statsUrl: '/layout-stats.json'
 	},
 	{
 		value: CYANOPHAGE_ANALYZER,
 		label: 'Cyanophage',
 		shortLabel: 'Cyanophage',
-		statsUrl: '/layout-stats-cyanophage.json',
-		includeInAll: true
+		statsUrl: '/layout-stats-cyanophage.json'
 	},
 	{
 		value: MANA2_ANALYZER,
 		label: 'Mana2',
 		shortLabel: 'Mana2',
-		statsUrl: '/layout-stats-mana2.json',
-		includeInAll: false
+		statsUrl: '/layout-stats-mana2.json'
 	}
 ] as const;
 
 export type StatsAnalyzerDefinition = (typeof STAT_ANALYZERS)[number];
 export type StatsAnalyzer = StatsAnalyzerDefinition['value'];
 
-/** Toolbar / URL display modes (includes stacked “All”). */
-export const STAT_ANALYZER_MODES = [
-	{ value: ALL_STATS_ANALYZERS_MODE, label: 'All' },
-	...STAT_ANALYZERS
-] as const;
+/** Toolbar / URL display modes (one concrete analyzer at a time). */
+export const STAT_ANALYZER_MODES = STAT_ANALYZERS;
 
-export type StatsAnalyzerMode = (typeof STAT_ANALYZER_MODES)[number]['value'];
+export type StatsAnalyzerMode = StatsAnalyzer;
 
 const STATS_ANALYZER_BY_VALUE = new Map<StatsAnalyzer, StatsAnalyzerDefinition>(
 	STAT_ANALYZERS.map((analyzer) => [analyzer.value, analyzer])
 );
 const STATS_ANALYZER_VALUES = new Set<string>(STAT_ANALYZERS.map((analyzer) => analyzer.value));
-const STATS_ANALYZER_MODE_VALUES = new Set<string>(
-	STAT_ANALYZER_MODES.map((analyzer) => analyzer.value)
-);
 
 export function isStatsAnalyzer(value: string): value is StatsAnalyzer {
 	return STATS_ANALYZER_VALUES.has(value);
 }
 
 export function isStatsAnalyzerMode(value: string): value is StatsAnalyzerMode {
-	return STATS_ANALYZER_MODE_VALUES.has(value);
+	return isStatsAnalyzer(value);
+}
+
+/** Parse toolbar/URL analyzer; legacy `all` maps to the default analyzer. */
+export function parseStatsAnalyzerMode(value: string | null | undefined): StatsAnalyzerMode {
+	if (!value || value === 'all') return DEFAULT_STATS_ANALYZER;
+	return isStatsAnalyzer(value) ? value : DEFAULT_STATS_ANALYZER;
 }
 
 export function getAnalyzerDefinition(analyzer: StatsAnalyzer): StatsAnalyzerDefinition {
@@ -88,17 +82,12 @@ export function getAnalyzerStatsUrl(analyzer: StatsAnalyzer): string {
 
 /** Concrete analyzers included in a display mode. */
 export function resolveStatsAnalyzers(mode: StatsAnalyzerMode): StatsAnalyzer[] {
-	if (mode === ALL_STATS_ANALYZERS_MODE) {
-		return STAT_ANALYZERS.filter((analyzer) => analyzer.includeInAll).map(
-			(analyzer) => analyzer.value
-		);
-	}
 	return [mode];
 }
 
 /** Whether a concrete analyzer’s stats should render for the current display mode. */
 export function showsAnalyzerStats(mode: StatsAnalyzerMode, analyzer: StatsAnalyzer): boolean {
-	return resolveStatsAnalyzers(mode).includes(analyzer);
+	return mode === analyzer;
 }
 
 export function showsMonkeyracerStats(mode: StatsAnalyzerMode): boolean {
@@ -113,9 +102,9 @@ export function showsMana2Stats(mode: StatsAnalyzerMode): boolean {
 	return showsAnalyzerStats(mode, MANA2_ANALYZER);
 }
 
-/** Disambiguate legacy sort tokens; `all` behaves like the default analyzer. */
+/** Concrete analyzer used when disambiguating sort fields for a display mode. */
 export function concreteAnalyzerForSort(mode: StatsAnalyzerMode): StatsAnalyzer {
-	return mode === ALL_STATS_ANALYZERS_MODE ? DEFAULT_STATS_ANALYZER : mode;
+	return mode;
 }
 
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js */

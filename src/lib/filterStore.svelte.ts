@@ -17,10 +17,10 @@ import { page } from '$app/state';
 		isSortOrder,
 		isStatSortBy,
 		getDefaultSortOrder,
-		isStatsAnalyzerMode,
 		isAnalyzerStatsReady,
 		parseLegacySortParam,
 		normalizeSortBy,
+		parseStatsAnalyzerMode,
 		parseStatFilterThreshold,
 		ALL_STAT_FILTER_FIELDS,
 		getGeneralStatFilterRowsForAnalyzer,
@@ -860,8 +860,8 @@ export class FilterStore {
 
 		// Analyzer before sort so ambiguous legacy values (e.g. `sfb`) disambiguate correctly.
 		const analyzer = url.searchParams.get('analyzer');
-		if (analyzer && isStatsAnalyzerMode(analyzer)) {
-			this.statsAnalyzer = analyzer;
+		if (analyzer) {
+			this.statsAnalyzer = parseStatsAnalyzerMode(analyzer);
 		}
 
 		if (sort) {
@@ -1455,7 +1455,7 @@ export class FilterStore {
 	}
 
 	setStatsAnalyzer(value: StatsAnalyzerMode) {
-		this.statsAnalyzer = value;
+		this.statsAnalyzer = parseStatsAnalyzerMode(value);
 		this.#saveToUrl();
 	}
 

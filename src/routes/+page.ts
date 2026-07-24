@@ -6,9 +6,9 @@ import {
 	analyzersNeededForLoad,
 	getAnalyzerStatsUrl,
 	isStatSortBy,
-	isStatsAnalyzerMode,
 	normalizeSortBy,
 	parseLegacySortParam,
+	parseStatsAnalyzerMode,
 	type SortBy,
 	type StatsAnalyzerMode
 } from '$lib/layoutStats';
@@ -16,8 +16,7 @@ import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
 function getInitialStatsAnalyzerMode(url: URL): StatsAnalyzerMode {
-	const analyzer = url.searchParams.get('analyzer');
-	return analyzer && isStatsAnalyzerMode(analyzer) ? analyzer : DEFAULT_STATS_ANALYZER;
+	return parseStatsAnalyzerMode(url.searchParams.get('analyzer'));
 }
 
 export const load: PageLoad = async ({ fetch, url }) => {

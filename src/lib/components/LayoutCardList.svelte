@@ -6,7 +6,6 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
-		ALL_STATS_ANALYZERS_MODE,
 		getStatCardHighlightState,
 		showsCyanophageStats,
 		showsMana2Stats,
@@ -80,13 +79,11 @@
 		return [similarReference, ...layouts];
 	});
 
-	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const mana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const cardItemSize = $derived(
 		getLayoutCardItemSize(
 			filterStore.showLayoutStats,
 			filterStore.showLayoutTestArea,
-			dualStats,
 			mana2Stats
 		)
 	);

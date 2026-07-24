@@ -11,7 +11,6 @@
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
 	import { getLayoutCardHeight, LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import {
-		ALL_STATS_ANALYZERS_MODE,
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
 		buildMana2StatsBlockLines,
@@ -160,7 +159,6 @@
 	const showMonkeyStats = $derived(showsMonkeyracerStats(filterStore.statsAnalyzer));
 	const showCyanophageStats = $derived(showsCyanophageStats(filterStore.statsAnalyzer));
 	const showMana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
-	const dualStats = $derived(filterStore.statsAnalyzer === ALL_STATS_ANALYZERS_MODE);
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
@@ -512,7 +510,6 @@
 		getLayoutCardHeight(
 			filterStore.showLayoutStats,
 			filterStore.showLayoutTestArea,
-			dualStats,
 			showMana2Stats
 		)
 	);
@@ -956,14 +953,9 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
-				<div class="stats-stack" class:stats-stack--dual={dualStats}>
+				<div class="stats-stack">
 					{#if showMonkeyStats}
 						<div class="stats-stack-item">
-							{#if dualStats}
-								<div class="stats-analyzer-label">
-									{monkeyLabel}
-								</div>
-							{/if}
 							{#if monkeyStatsBlockLines}
 								<div class="stats-block shrink-0">
 									{#each monkeyStatsBlockLines as line, lineIndex (lineIndex)}
@@ -991,11 +983,6 @@
 					{/if}
 					{#if showCyanophageStats}
 						<div class="stats-stack-item">
-							{#if dualStats}
-								<div class="stats-analyzer-label">
-									{cyanophageLabel}
-								</div>
-							{/if}
 							{#if cyanophageStatsBlockLines}
 								<div class="stats-block shrink-0">
 									{#each cyanophageStatsBlockLines as line, lineIndex (lineIndex)}
@@ -1573,20 +1560,8 @@
 		min-width: 0;
 	}
 
-	.stats-stack--dual {
-		gap: 0.75rem;
-	}
-
 	.stats-stack-item {
 		min-width: 0;
-	}
-
-	.stats-analyzer-label {
-		margin-bottom: 0.25rem;
-		font-size: 0.6875rem;
-		line-height: 1rem;
-		letter-spacing: 0.01em;
-		color: var(--text-primary);
 	}
 
 	.expand-modal-columns {
