@@ -12,7 +12,7 @@
 		getHiddenAnalyzerFilterCaution,
 		getStatSortFieldsForAnalyzer,
 		MANA2_ANALYZER,
-		STAT_ANALYZER_MODES,
+		STAT_ANALYZERS,
 		type StatsAnalyzerMode
 	} from '$lib/layoutStats';
 
@@ -79,43 +79,78 @@
 </script>
 
 <div bind:this={resultsStatus} id="results-status" class="results-toolbar-shell mb-2">
-	{#if filterChips.length > 0}
+	<div class="results-toolbar-filters-row">
 		<div class="results-toolbar-filters" aria-label="Active filters">
-			<span class="results-toolbar-filters-label">Filters</span>
-			<ul class="results-toolbar-filter-chips">
-				{#each filterChips as chip (chip.id)}
-					<li
-						class="results-toolbar-filter-chip results-toolbar-filter-chip--{chip.tone}"
-						title={chip.title}
-						role="button"
-						tabindex="0"
-						aria-label="Edit filter: {chip.label}"
-						onclick={() => openChip(chip)}
-						onkeydown={(event) => handleChipKeyDown(chip, event)}
-					>
-						<span class="results-toolbar-filter-chip-label">{chip.label}</span>
-						<button
-							type="button"
-							class="results-toolbar-filter-chip-clear"
-							aria-label="Clear filter: {chip.label}"
-							onclick={(event) => clearChip(chip, event)}
+			{#if filterChips.length > 0}
+				<span class="results-toolbar-filters-label">Filters</span>
+				<ul class="results-toolbar-filter-chips">
+					{#each filterChips as chip (chip.id)}
+						<li
+							class="results-toolbar-filter-chip results-toolbar-filter-chip--{chip.tone}"
+							title={chip.title}
+							role="button"
+							tabindex="0"
+							aria-label="Edit filter: {chip.label}"
+							onclick={() => openChip(chip)}
+							onkeydown={(event) => handleChipKeyDown(chip, event)}
 						>
-							<svg
-								class="size-3"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2.5"
-								aria-hidden="true"
+							<span class="results-toolbar-filter-chip-label">{chip.label}</span>
+							<button
+								type="button"
+								class="results-toolbar-filter-chip-clear"
+								aria-label="Clear filter: {chip.label}"
+								onclick={(event) => clearChip(chip, event)}
 							>
-								<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-							</svg>
-						</button>
-					</li>
-				{/each}
-			</ul>
+								<svg
+									class="size-3"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		</div>
-	{/if}
+
+		<div class="results-toolbar-analyzer">
+			<span class="results-toolbar-analyzer-label" style="color: var(--text-secondary);">
+				Analyzer
+				{#if hiddenAnalyzerFilterCaution}
+					<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
+				{/if}
+			</span>
+			<div
+				class="results-analyzer-tabs"
+				style="background-color: var(--bg-primary); border: 1px solid var(--border);"
+				role="tablist"
+				aria-label="Analyzer"
+			>
+				{#each STAT_ANALYZERS as analyzerDef (analyzerDef.value)}
+					{@const selected = filterStore.statsAnalyzer === analyzerDef.value}
+					<button
+						type="button"
+						role="tab"
+						aria-selected={selected}
+						tabindex={selected ? 0 : -1}
+						class="results-analyzer-tab"
+						class:results-analyzer-tab--selected={selected}
+						class:results-analyzer-tab--cmini={analyzerDef.value === DEFAULT_STATS_ANALYZER}
+						class:results-analyzer-tab--cyanophage={analyzerDef.value === CYANOPHAGE_ANALYZER}
+						class:results-analyzer-tab--mana2={analyzerDef.value === MANA2_ANALYZER}
+						onclick={() => filterStore.setStatsAnalyzer(analyzerDef.value as StatsAnalyzerMode)}
+					>
+						{analyzerDef.shortLabel}
+					</button>
+				{/each}
+			</div>
+		</div>
+	</div>
 
 	<div class="results-toolbar">
 		<div class="results-toolbar-status">
@@ -138,34 +173,6 @@
 		</div>
 
 		<div class="results-toolbar-controls">
-			<label class="results-toolbar-field select-none">
-				<span
-					class="results-toolbar-label text-sm whitespace-nowrap"
-					style="color: var(--text-secondary);"
-				>
-					Analyzer
-					{#if hiddenAnalyzerFilterCaution}
-						<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
-					{/if}
-				</span>
-				<select
-					value={filterStore.statsAnalyzer}
-					onchange={(e) => filterStore.setStatsAnalyzer(e.currentTarget.value as StatsAnalyzerMode)}
-					class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
-					style="
-					background-color: var(--input-bg);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-					--tw-ring-color: var(--accent);
-				"
-					aria-label="Analyzer"
-				>
-					{#each STAT_ANALYZER_MODES as analyzer (analyzer.value)}
-						<option value={analyzer.value}>{analyzer.label}</option>
-					{/each}
-				</select>
-			</label>
-
 			<label class="results-toolbar-field select-none">
 				<span
 					class="results-toolbar-label text-sm whitespace-nowrap"
@@ -242,39 +249,56 @@
 		gap: 0.5rem;
 	}
 
-	.results-toolbar-filters {
+	.results-toolbar-filters-row {
 		display: flex;
-		align-items: flex-start;
-		gap: 0.5rem;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem 1rem;
 		width: 100%;
 		min-width: 0;
+	}
+
+	.results-toolbar-filters {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+		flex: 1 1 auto;
 		font-size: 0.8125rem;
 		line-height: 1.35;
 	}
 
 	.results-toolbar-filters-label {
 		flex-shrink: 0;
-		padding-top: 0.25rem;
 		font-weight: 600;
 		color: var(--text-caption);
 	}
 
 	.results-toolbar-filter-chips {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		gap: 0.375rem;
 		margin: 0;
-		padding: 0;
+		padding: 0.125rem 0;
 		list-style: none;
 		min-width: 0;
 		flex: 1 1 auto;
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+	}
+
+	.results-toolbar-filter-chips::-webkit-scrollbar {
+		display: none;
 	}
 
 	.results-toolbar-filter-chip {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-		max-width: 100%;
+		flex-shrink: 0;
+		max-width: 16rem;
 		padding: 0.15rem 0.2rem 0.15rem 0.65rem;
 		border-radius: 9999px;
 		border: 1px solid var(--border);
@@ -339,6 +363,85 @@
 		color: var(--analyzer-mana2);
 	}
 
+	.results-toolbar-analyzer {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		flex-shrink: 0;
+		margin-left: auto;
+	}
+
+	.results-toolbar-analyzer-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.75rem;
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+
+	.results-analyzer-tabs {
+		display: inline-grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.125rem;
+		padding: 0.125rem;
+		border-radius: 0.375rem;
+	}
+
+	.results-analyzer-tab {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 3.5rem;
+		padding: 0.125rem 0.4rem;
+		border: 1px solid transparent;
+		border-radius: 0.25rem;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		font-weight: 500;
+		line-height: 1.2;
+		cursor: pointer;
+		transition:
+			background-color 0.15s ease,
+			border-color 0.15s ease,
+			color 0.15s ease;
+	}
+
+	.results-analyzer-tab:hover {
+		color: var(--text-primary);
+	}
+
+	.results-analyzer-tab:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.results-analyzer-tab--selected {
+		font-weight: 600;
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
+		border-color: var(--border);
+	}
+
+	.results-analyzer-tab--cmini.results-analyzer-tab--selected {
+		color: var(--analyzer-cmini);
+		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-cmini) 14%, var(--bg-primary));
+	}
+
+	.results-analyzer-tab--cyanophage.results-analyzer-tab--selected {
+		color: var(--analyzer-cyanophage);
+		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-cyanophage) 14%, var(--bg-primary));
+	}
+
+	.results-analyzer-tab--mana2.results-analyzer-tab--selected {
+		color: var(--analyzer-mana2);
+		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
+		background-color: color-mix(in srgb, var(--analyzer-mana2) 14%, var(--bg-primary));
+	}
+
 	.results-toolbar {
 		display: flex;
 		flex-wrap: wrap;
@@ -382,8 +485,29 @@
 		gap: 0.3rem;
 	}
 
-	/* Narrow column (mobile / similarity results pane): denser 2-row layout */
+	/* Narrow column (mobile / similarity results pane): denser layout */
 	@container (max-width: 36rem) {
+		.results-toolbar-filters-row {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.results-toolbar-analyzer {
+			margin-left: 0;
+			justify-content: space-between;
+			width: 100%;
+		}
+
+		.results-analyzer-tabs {
+			display: grid;
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.results-analyzer-tab {
+			min-width: 0;
+		}
+
 		.results-toolbar {
 			flex-direction: column;
 			align-items: stretch;
@@ -397,7 +521,7 @@
 
 		.results-toolbar-controls {
 			display: grid;
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			align-items: end;
 			gap: 0.5rem;
 			width: 100%;
