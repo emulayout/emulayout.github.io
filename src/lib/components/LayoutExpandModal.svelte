@@ -9,14 +9,14 @@
 	import {
 		decodeCyanophageStats,
 		decodeMana2Stats,
-		decodeMonkeyracerStats,
+		decodeCminiStats,
 		deriveBotStats,
 		deriveCyanophageStats,
 		deriveMana2Stats
 	} from '$lib/statsDerivation';
 	import {
 		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
+		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
@@ -28,7 +28,7 @@
 
 	interface Props {
 		layout: LayoutData;
-		compactMonkeyStats?: CompactLayoutStats;
+		compactCminiStats?: CompactLayoutStats;
 		compactCyanophageStats?: CompactCyanophageStats;
 		compactMana2Stats?: CompactMana2Stats;
 		forceIncluded?: boolean;
@@ -38,7 +38,7 @@
 
 	const {
 		layout,
-		compactMonkeyStats,
+		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
 		forceIncluded = false,
@@ -46,8 +46,8 @@
 		layoutCard
 	}: Props = $props();
 
-	const monkeyLabel =
-		STAT_ANALYZERS.find((analyzer) => analyzer.value === DEFAULT_STATS_ANALYZER)?.label ?? 'cmini';
+	const cminiLabel =
+		STAT_ANALYZERS.find((analyzer) => analyzer.value === CMINI_ANALYZER)?.label ?? 'cmini';
 	const cminiTableLabel = 'cmini';
 	const cyanophageLabel =
 		STAT_ANALYZERS.find((analyzer) => analyzer.value === CYANOPHAGE_ANALYZER)?.label ??
@@ -56,33 +56,31 @@
 		STAT_ANALYZERS.find((analyzer) => analyzer.value === MANA2_ANALYZER)?.label ?? 'Mana2';
 
 	let expanded = $state(false);
-	let showMonkey = $state(false);
+	let showCmini = $state(false);
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
 
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const analyzersTitleId = $derived(`${titleId}-analyzers`);
 	const analyzerCount = $derived(
-		(showMonkey ? 1 : 0) + (showCyanophage ? 1 : 0) + (showMana2 ? 1 : 0)
+		(showCmini ? 1 : 0) + (showCyanophage ? 1 : 0) + (showMana2 ? 1 : 0)
 	);
 
-	const monkeyCompact = $derived(
-		layoutStatsStore.maps.monkeyracer?.[layout.name] ?? compactMonkeyStats
-	);
+	const cminiCompact = $derived(layoutStatsStore.maps.cmini?.[layout.name] ?? compactCminiStats);
 	const cyanophageCompact = $derived(
 		layoutStatsStore.maps.cyanophage?.[layout.name] ?? compactCyanophageStats
 	);
 	const mana2Compact = $derived(layoutStatsStore.maps.mana2?.[layout.name] ?? compactMana2Stats);
 
-	const monkeyLoading = $derived(showMonkey && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER));
+	const cminiLoading = $derived(showCmini && layoutStatsStore.isLoading(CMINI_ANALYZER));
 	const cyanophageLoading = $derived(
 		showCyanophage && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
 	);
 	const mana2Loading = $derived(showMana2 && layoutStatsStore.isLoading(MANA2_ANALYZER));
 
 	const botStats = $derived.by(() => {
-		if (!monkeyCompact) return null;
-		const decoded = decodeMonkeyracerStats(monkeyCompact);
+		if (!cminiCompact) return null;
+		const decoded = decodeCminiStats(cminiCompact);
 		return decoded ? deriveBotStats(decoded) : null;
 	});
 	const cyanophageStats = $derived.by(() => {
@@ -98,17 +96,17 @@
 
 	const statsTables = $derived(
 		buildExpandedStatsTables({
-			monkeyStats: botStats,
+			cminiStats: botStats,
 			cyanophageStats,
 			mana2Stats,
-			monkeyLoading,
+			cminiLoading,
 			cyanophageLoading,
 			mana2Loading
 		})
 	);
 
 	function hasAnalyzerData(analyzer: StatsAnalyzer): boolean {
-		if (analyzer === DEFAULT_STATS_ANALYZER) return Boolean(monkeyCompact);
+		if (analyzer === CMINI_ANALYZER) return Boolean(cminiCompact);
 		if (analyzer === CYANOPHAGE_ANALYZER) {
 			return layout.cyanophageCompatible && Boolean(cyanophageCompact);
 		}
@@ -117,20 +115,20 @@
 
 	$effect(() => {
 		if (!expanded) return;
-		if (showMonkey) void layoutStatsStore.ensureLoaded(DEFAULT_STATS_ANALYZER);
+		if (showCmini) void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
 		if (showCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
 		if (showMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
 	});
 
 	function setAnalyzer(analyzer: StatsAnalyzer, checked: boolean) {
-		if (analyzer === DEFAULT_STATS_ANALYZER) showMonkey = checked;
+		if (analyzer === CMINI_ANALYZER) showCmini = checked;
 		else if (analyzer === CYANOPHAGE_ANALYZER) showCyanophage = checked;
 		else showMana2 = checked;
 		if (checked) void layoutStatsStore.ensureLoaded(analyzer);
 	}
 
 	export function open() {
-		showMonkey = hasAnalyzerData(DEFAULT_STATS_ANALYZER);
+		showCmini = hasAnalyzerData(CMINI_ANALYZER);
 		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER);
 		showMana2 = hasAnalyzerData(MANA2_ANALYZER);
 		expanded = true;
@@ -173,7 +171,7 @@
 {/snippet}
 
 {#snippet sharedHeaders()}
-	{#if showMonkey}
+	{#if showCmini}
 		<th scope="col" class="shared-stats-col shared-stats-col--cmini">{cminiTableLabel}</th>
 	{/if}
 	{#if showCyanophage}
@@ -185,8 +183,8 @@
 {/snippet}
 
 {#snippet sharedCellsRow(row: ExpandedStatsRow)}
-	{#if showMonkey}
-		<td class="shared-stats-col shared-stats-col--cmini">{row.monkey}</td>
+	{#if showCmini}
+		<td class="shared-stats-col shared-stats-col--cmini">{row.cmini}</td>
 	{/if}
 	{#if showCyanophage}
 		<td class="shared-stats-col shared-stats-col--cyanophage">{row.cyanophage}</td>
@@ -260,12 +258,7 @@
 						Show analyzers
 					</h3>
 					<div class="flex flex-col gap-2 min-w-0">
-						{@render analyzerToggle(
-							DEFAULT_STATS_ANALYZER,
-							monkeyLabel,
-							showMonkey,
-							'var(--analyzer-cmini)'
-						)}
+						{@render analyzerToggle(CMINI_ANALYZER, cminiLabel, showCmini, 'var(--analyzer-cmini)')}
 						{@render analyzerToggle(
 							CYANOPHAGE_ANALYZER,
 							cyanophageLabel,
@@ -280,12 +273,12 @@
 			<div class="modal-main">
 				{#if analyzerCount > 0}
 					<div class="unique-columns" style="--unique-cols: {analyzerCount};">
-						{#if showMonkey}
+						{#if showCmini}
 							<LayoutExpandUniqueStats
-								analyzer={DEFAULT_STATS_ANALYZER}
-								label={monkeyLabel}
+								analyzer={CMINI_ANALYZER}
+								label={cminiLabel}
 								stats={botStats}
-								loading={monkeyLoading}
+								loading={cminiLoading}
 							/>
 						{/if}
 						{#if showCyanophage}

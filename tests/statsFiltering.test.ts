@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { CYANOPHAGE_ANALYZER, DEFAULT_STATS_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+import { CMINI_STAT_FILTER_CATALOG } from '$lib/statFilters/cmini';
+import { CYANOPHAGE_STAT_FILTER_CATALOG } from '$lib/statFilters/cyanophage';
+import { MANA2_STAT_FILTER_CATALOG } from '$lib/statFilters/mana2';
 import {
 	ALL_STAT_FILTER_FIELDS,
 	GENERAL_STAT_FILTER_COLUMN_COUNT,
@@ -8,6 +11,7 @@ import {
 	getHandStatFilterFieldsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
 	getRightHandStatFilterFieldsForAnalyzer,
+	getStatFilterCatalogForAnalyzer,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
 	parseStatFilterThreshold
@@ -29,7 +33,13 @@ describe('stats filtering catalog', () => {
 	});
 
 	test('provides stable analyzer-specific general and hand catalogs', () => {
-		const analyzers = [DEFAULT_STATS_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER] as const;
+		expect(getStatFilterCatalogForAnalyzer(CMINI_ANALYZER)).toBe(CMINI_STAT_FILTER_CATALOG);
+		expect(getStatFilterCatalogForAnalyzer(CYANOPHAGE_ANALYZER)).toBe(
+			CYANOPHAGE_STAT_FILTER_CATALOG
+		);
+		expect(getStatFilterCatalogForAnalyzer(MANA2_ANALYZER)).toBe(MANA2_STAT_FILTER_CATALOG);
+
+		const analyzers = [CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER] as const;
 		for (const analyzer of analyzers) {
 			const groups = getGeneralStatFilterGroupsForAnalyzer(analyzer);
 			expect(groups.length).toBeGreaterThan(0);

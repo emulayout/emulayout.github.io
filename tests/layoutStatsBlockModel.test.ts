@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-import { CYANOPHAGE_ANALYZER, DEFAULT_STATS_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 import {
 	COMPACT_STAT_FIELD_COUNT,
 	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,
@@ -13,7 +13,7 @@ import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 describe('layout stats block model', () => {
 	test('represents loading and unavailable analyzer states', () => {
-		const loading = buildLayoutStatsBlockModel(DEFAULT_STATS_ANALYZER, undefined, {
+		const loading = buildLayoutStatsBlockModel(CMINI_ANALYZER, undefined, {
 			loading: true
 		});
 		expect(loading.lines).toBeNull();
@@ -21,7 +21,7 @@ describe('layout stats block model', () => {
 		expect(loading.loading).toBe(true);
 		expect(loading.mana2).toBe(false);
 
-		const unavailable = buildLayoutStatsBlockModel(DEFAULT_STATS_ANALYZER, []);
+		const unavailable = buildLayoutStatsBlockModel(CMINI_ANALYZER, []);
 		expect(unavailable.lines).toBeNull();
 		expect(unavailable.fallback).toContain('STATS UNAVAILABLE');
 	});
@@ -39,7 +39,7 @@ describe('layout stats block model', () => {
 
 	test('builds analyzer lines with card filter and sort highlights', () => {
 		const model = buildLayoutStatsBlockModel(
-			DEFAULT_STATS_ANALYZER,
+			CMINI_ANALYZER,
 			Array(COMPACT_STAT_FIELD_COUNT).fill(10_000),
 			{
 				highlights: {

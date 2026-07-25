@@ -2,7 +2,7 @@
 	import {
 		decodeCyanophageStats,
 		decodeMana2Stats,
-		decodeMonkeyracerStats,
+		decodeCminiStats,
 		deriveBotStats,
 		deriveCyanophageStats,
 		deriveMana2Stats
@@ -16,11 +16,7 @@
 		type StatsAnalyzer,
 		type StatsBlockSegment
 	} from '$lib/layoutStats';
-	import type {
-		CompactCyanophageStats,
-		CompactLayoutStats,
-		CompactMana2Stats
-	} from '$lib/layout';
+	import type { CompactCyanophageStats, CompactLayoutStats, CompactMana2Stats } from '$lib/layout';
 
 	interface Props {
 		newCompact?: CompactLayoutStats | CompactCyanophageStats | CompactMana2Stats;
@@ -51,8 +47,8 @@
 			return buildMana2StatsDiffBlockLines(deriveMana2Stats(newer), deriveMana2Stats(older));
 		}
 
-		const newer = decodeMonkeyracerStats(newCompact as CompactLayoutStats);
-		const older = decodeMonkeyracerStats(oldCompact as CompactLayoutStats);
+		const newer = decodeCminiStats(newCompact as CompactLayoutStats);
+		const older = decodeCminiStats(oldCompact as CompactLayoutStats);
 		if (!newer || !older) return null;
 		return buildBotStatsDiffBlockLines(deriveBotStats(newer), deriveBotStats(older));
 	});
@@ -67,8 +63,7 @@
 				{#each line as segment, segmentIndex (segmentIndex)}
 					<span
 						class:stats-diff-better={segment.tone === 'better'}
-						class:stats-diff-worse={segment.tone === 'worse'}
-					>{segment.text}</span
+						class:stats-diff-worse={segment.tone === 'worse'}>{segment.text}</span
 					>
 				{/each}
 			</div>
@@ -77,6 +72,7 @@
 {:else}
 	<pre
 		class="stats-block stats-block--unavailable"
-		class:stats-block--mana2={mana2Stats}
-	>{statsLoading ? 'LOADING STATS\n…' : 'STATS UNAVAILABLE\ncannot compare this pair'}</pre>
+		class:stats-block--mana2={mana2Stats}>{statsLoading
+			? 'LOADING STATS\n…'
+			: 'STATS UNAVAILABLE\ncannot compare this pair'}</pre>
 {/if}

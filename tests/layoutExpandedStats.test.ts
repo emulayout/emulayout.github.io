@@ -5,7 +5,7 @@ import {
 	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,
 	decodeCyanophageStats,
 	decodeMana2Stats,
-	decodeMonkeyracerStats,
+	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
 	deriveMana2Stats,
@@ -13,12 +13,12 @@ import {
 } from '$lib/statsDerivation';
 
 function makeStats() {
-	const monkey = decodeMonkeyracerStats(Array(COMPACT_STAT_FIELD_COUNT).fill(10_000));
+	const cmini = decodeCminiStats(Array(COMPACT_STAT_FIELD_COUNT).fill(10_000));
 	const cyanophage = decodeCyanophageStats(Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(10_000));
 	const mana2 = decodeMana2Stats(Array(MANA2_COMPACT_STAT_FIELD_COUNT).fill(10_000));
-	if (!monkey || !cyanophage || !mana2) throw new Error('Expected valid compact test stats');
+	if (!cmini || !cyanophage || !mana2) throw new Error('Expected valid compact test stats');
 	return {
-		monkeyStats: deriveBotStats(monkey),
+		cminiStats: deriveBotStats(cmini),
 		cyanophageStats: deriveCyanophageStats(cyanophage),
 		mana2Stats: deriveMana2Stats(mana2)
 	};
@@ -28,7 +28,7 @@ describe('expanded layout stats tables', () => {
 	test('maps shared, paired, raw, and hand metrics across analyzers', () => {
 		const tables = buildExpandedStatsTables({
 			...makeStats(),
-			monkeyLoading: false,
+			cminiLoading: false,
 			cyanophageLoading: false,
 			mana2Loading: false
 		});
@@ -52,27 +52,27 @@ describe('expanded layout stats tables', () => {
 		]);
 
 		const rollPair = tables.sharedRows.find((row) => row.label === 'Roll in / out (2)');
-		expect(rollPair?.monkey).toContain(' | ');
+		expect(rollPair?.cmini).toContain(' | ');
 		expect(rollPair?.mana2).toContain(' | ');
 
 		const lateralStretch = tables.sharedRows.find((row) => row.label === 'Lat stretch bigrams');
-		expect(lateralStretch?.monkey).toBe('—');
+		expect(lateralStretch?.cmini).toBe('—');
 		expect(lateralStretch?.mana2).toBe('1.000');
 	});
 
 	test('uses loading and unavailable markers per analyzer', () => {
-		const { monkeyStats } = makeStats();
+		const { cminiStats } = makeStats();
 		const tables = buildExpandedStatsTables({
-			monkeyStats,
+			cminiStats,
 			cyanophageStats: null,
 			mana2Stats: null,
-			monkeyLoading: true,
+			cminiLoading: true,
 			cyanophageLoading: false,
 			mana2Loading: true
 		});
 
 		const first = tables.sharedRows[0];
-		expect(first.monkey).toBe('…');
+		expect(first.cmini).toBe('…');
 		expect(first.cyanophage).toBe('—');
 		expect(first.mana2).toBe('…');
 	});

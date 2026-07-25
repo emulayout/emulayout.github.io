@@ -1,5 +1,6 @@
 import {
 	CYANOPHAGE_ANALYZER,
+	CMINI_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	MANA2_ANALYZER,
 	concreteAnalyzerForSort,
@@ -184,13 +185,13 @@ export const MANA2_STAT_SORT_FIELDS = [
 	}
 ] as const satisfies readonly StatSortField[];
 
-/** Sortable cmini/monkeyracer stats. */
+/** Sortable cmini stats. */
 export const STAT_SORT_FIELDS = [
 	{
 		value: 'alternate',
 		label: 'Alternate',
 		key: 'alternate',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -198,7 +199,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll',
 		label: 'Roll',
 		key: 'roll',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -206,7 +207,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll-in',
 		label: 'Roll in',
 		key: 'rollIn',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -214,7 +215,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll-out',
 		label: 'Roll out',
 		key: 'rollOut',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -222,7 +223,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'one',
 		label: 'One-hand',
 		key: 'one',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -230,7 +231,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'one-in',
 		label: 'One-hand in',
 		key: 'oneIn',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -238,7 +239,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'one-out',
 		label: 'One-hand out',
 		key: 'oneOut',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -246,7 +247,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll-total',
 		label: 'Roll total',
 		key: 'rtl',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -254,7 +255,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll-total-in',
 		label: 'Roll total in',
 		key: 'rtlIn',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -262,7 +263,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'roll-total-out',
 		label: 'Roll total out',
 		key: 'rtlOut',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true
 	},
@@ -270,7 +271,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'redirect',
 		label: 'Redirect',
 		key: 'red',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	},
@@ -278,7 +279,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'bad-redirect',
 		label: 'Bad redirect',
 		key: 'badRedirect',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	},
@@ -286,7 +287,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'sfb',
 		label: 'Same-finger bigrams',
 		key: 'sfb',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	},
@@ -294,7 +295,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'same-finger-skip',
 		label: 'Same-finger skip',
 		key: 'sfs',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	},
@@ -302,7 +303,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'same-finger-skip-redirect',
 		label: 'Same-finger skip redirect',
 		key: 'dsfbRed',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	},
@@ -310,7 +311,7 @@ export const STAT_SORT_FIELDS = [
 		value: 'same-finger-skip-alternate',
 		label: 'Same-finger skip alternate',
 		key: 'dsfbAlt',
-		analyzer: DEFAULT_STATS_ANALYZER,
+		analyzer: CMINI_ANALYZER,
 		defaultOrder: 'asc',
 		higherIsBetter: false
 	}

@@ -12,12 +12,12 @@
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
+		CMINI_ANALYZER,
 		getStatCardHighlightState,
 		MANA2_ANALYZER,
 		showsCyanophageStats,
 		showsMana2Stats,
-		showsMonkeyracerStats
+		showsCminiStats
 	} from '$lib/layoutStats';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
@@ -40,8 +40,8 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		/** Compact monkeyracer stats when that analyzer is shown. */
-		compactMonkeyStats?: CompactLayoutStats;
+		/** Compact cmini stats when that analyzer is shown. */
+		compactCminiStats?: CompactLayoutStats;
 		/** Compact cyanophage stats when that analyzer is shown. */
 		compactCyanophageStats?: CompactCyanophageStats;
 		/** Compact mana2 stats when that analyzer is shown. */
@@ -61,7 +61,7 @@
 		layout,
 		authorName,
 		likeCount,
-		compactMonkeyStats,
+		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
 		forceIncluded = false,
@@ -112,16 +112,14 @@
 			isNewSinceLastSync(layout, layoutsCatalog.latestLayoutDayKey)
 	);
 
-	const showMonkeyStats = $derived(showsMonkeyracerStats(filterStore.statsAnalyzer));
+	const showCminiStats = $derived(showsCminiStats(filterStore.statsAnalyzer));
 	const showCyanophageStats = $derived(showsCyanophageStats(filterStore.statsAnalyzer));
 	const showMana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
 
-	const monkeyLoading = $derived(
-		showMonkeyStats && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER)
-	);
+	const cminiLoading = $derived(showCminiStats && layoutStatsStore.isLoading(CMINI_ANALYZER));
 	const cyanophageLoading = $derived(
 		showCyanophageStats && layoutStatsStore.isLoading(CYANOPHAGE_ANALYZER)
 	);
@@ -130,10 +128,10 @@
 	const sortFieldHighlight = $derived(
 		statHighlights ?? getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
-	const monkeyStatsModel = $derived(
-		showMonkeyStats
-			? buildLayoutStatsBlockModel(DEFAULT_STATS_ANALYZER, compactMonkeyStats, {
-					loading: monkeyLoading,
+	const cminiStatsModel = $derived(
+		showCminiStats
+			? buildLayoutStatsBlockModel(CMINI_ANALYZER, compactCminiStats, {
+					loading: cminiLoading,
 					highlights: sortFieldHighlight,
 					sortOrder: filterStore.sortOrder
 				})
@@ -164,11 +162,7 @@
 	}
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(
-			filterStore.showLayoutStats,
-			filterStore.showLayoutTestArea,
-			showMana2Stats
-		)
+		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea, showMana2Stats)
 	);
 
 	async function handleColemakCampClick() {
@@ -273,7 +267,7 @@
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
 				<LayoutCardStatsPanel
-					monkey={monkeyStatsModel}
+					cmini={cminiStatsModel}
 					cyanophage={cyanophageStatsModel}
 					mana2={mana2StatsModel}
 				/>
@@ -288,7 +282,7 @@
 <LayoutExpandModal
 	bind:this={expandModal}
 	{layout}
-	{compactMonkeyStats}
+	{compactCminiStats}
 	{compactCyanophageStats}
 	{compactMana2Stats}
 	{forceIncluded}
@@ -342,5 +336,4 @@
 		rx: 11.5px;
 		ry: 11.5px;
 	}
-
 </style>

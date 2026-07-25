@@ -5,6 +5,7 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import {
+		CMINI_ANALYZER,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		isStatsAnalyzer,
@@ -12,10 +13,7 @@
 		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
-	import {
-		getHandStatFilterFieldsForAnalyzer,
-		type StatLimitKey
-	} from '$lib/statsFiltering';
+	import { getHandStatFilterFieldsForAnalyzer, type StatLimitKey } from '$lib/statsFiltering';
 
 	type StatCategory = 'bigram' | 'trigram' | 'other';
 
@@ -35,7 +33,7 @@
 
 	/** Category → subgroup accordions per analyzer. */
 	const ACCORDIONS: Record<StatsAnalyzer, Record<StatCategory, readonly StatAccordionDef[]>> = {
-		[DEFAULT_STATS_ANALYZER]: {
+		[CMINI_ANALYZER]: {
 			bigram: [{ id: 'same-finger', label: 'Same finger', keys: ['sfb'] }],
 			trigram: [
 				{ id: 'alternation', label: 'Alternation', keys: ['alternate'] },
@@ -145,10 +143,7 @@
 		return keys.filter((key) => key !== 'likes' || filterStore.canUseLikes);
 	}
 
-	function categoryAccordions(
-		analyzer: StatsAnalyzer,
-		category: StatCategory
-	): StatAccordionDef[] {
+	function categoryAccordions(analyzer: StatsAnalyzer, category: StatCategory): StatAccordionDef[] {
 		return ACCORDIONS[analyzer][category].filter((entry) => visibleKeys(entry.keys).length > 0);
 	}
 
@@ -245,11 +240,7 @@
 	});
 </script>
 
-{#snippet generalAccordion(
-	analyzer: StatsAnalyzer,
-	analyzerLabel: string,
-	entry: StatAccordionDef
-)}
+{#snippet generalAccordion(analyzer: StatsAnalyzer, analyzerLabel: string, entry: StatAccordionDef)}
 	{@const open = isOpen(analyzer, entry.id)}
 	{@const keys = visibleKeys(entry.keys)}
 	{@const active = accordionIsActive(analyzer, keys)}

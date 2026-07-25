@@ -82,7 +82,7 @@ describe('global filter URL state', () => {
 		});
 
 		writeGlobalFilterUrlState(params, {
-			statsAnalyzer: 'monkeyracer',
+			statsAnalyzer: 'cmini',
 			hideLayoutStats: false,
 			hideLayoutTestArea: false,
 			hideLayoutLikes: false,

@@ -1,10 +1,6 @@
 import type { FilterStore } from '$lib/filterStore.svelte';
 import type { KeyFilterKind, StatFilterSection } from '$lib/filterSummaries';
-import {
-	DEFAULT_STATS_ANALYZER,
-	STAT_ANALYZERS,
-	type StatsAnalyzer
-} from '$lib/statsAnalyzers';
+import { CMINI_ANALYZER, STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
 import {
 	LIKES_STAT_FILTER_FIELD,
 	getGeneralStatFilterRowsForAnalyzer,
@@ -72,10 +68,10 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 			}
 		}
 
-		if (analyzer === DEFAULT_STATS_ANALYZER && store.canUseLikes) {
+		if (analyzer === CMINI_ANALYZER && store.canUseLikes) {
 			if (limitActive(store, LIKES_STAT_FILTER_FIELD.key)) {
 				stats.push({
-					analyzer: DEFAULT_STATS_ANALYZER,
+					analyzer: CMINI_ANALYZER,
 					key: 'likes',
 					section: 'general'
 				});
@@ -126,11 +122,7 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 
 export function snapshotHasKeyboard(keyboard: ActiveKeyboardSnapshot): boolean {
 	return (
-		keyboard.thumbs ||
-		keyboard.magic ||
-		keyboard.board ||
-		keyboard.charset ||
-		keyboard.unfinished
+		keyboard.thumbs || keyboard.magic || keyboard.board || keyboard.charset || keyboard.unfinished
 	);
 }
 

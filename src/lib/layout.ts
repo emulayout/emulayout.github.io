@@ -32,8 +32,8 @@ export interface LayoutData {
 	updatedAt: string;
 }
 
-/** Monkeyracer bot-display stat fields. */
-export interface MonkeyracerStats {
+/** Cmini bot-display stat fields. */
+export interface CminiStats {
 	alternate: number;
 	'roll-in': number;
 	'roll-out': number;
@@ -120,7 +120,7 @@ export type Mana2StatsMap = Record<string, CompactMana2Stats>;
 
 /** Loaded stat payloads keyed by analyzer id. */
 export type StatsMaps = Partial<{
-	monkeyracer: LayoutStatsMap;
+	cmini: LayoutStatsMap;
 	cyanophage: CyanophageStatsMap;
 	mana2: Mana2StatsMap;
 }>;

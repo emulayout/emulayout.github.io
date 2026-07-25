@@ -1,11 +1,6 @@
-import type {
-	CyanophageStats,
-	Mana2Stats,
-	MonkeyracerStats,
-	LayoutData,
-	StatsMaps
-} from '$lib/layout';
+import type { CyanophageStats, Mana2Stats, CminiStats, LayoutData, StatsMaps } from '$lib/layout';
 import {
+	CMINI_ANALYZER,
 	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	MANA2_ANALYZER,
@@ -20,7 +15,7 @@ import {
 	RIGHT_HAND_FINGERS,
 	decodeCyanophageStats,
 	decodeMana2Stats,
-	decodeMonkeyracerStats,
+	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
 	deriveMana2Stats,
@@ -85,7 +80,7 @@ export function getLayoutAnalyzerStats(
 	layoutName: string,
 	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER,
 	cyanophageCompatible = true
-): MonkeyracerStats | CyanophageStats | Mana2Stats | undefined {
+): CminiStats | CyanophageStats | Mana2Stats | undefined {
 	if (analyzer === CYANOPHAGE_ANALYZER) {
 		if (!cyanophageCompatible) return undefined;
 		return getLayoutCyanophageStats(statsMaps, layoutName);
@@ -94,9 +89,9 @@ export function getLayoutAnalyzerStats(
 		return getLayoutMana2Stats(statsMaps, layoutName);
 	}
 
-	const encoded = statsMaps.monkeyracer?.[layoutName];
+	const encoded = statsMaps.cmini?.[layoutName];
 	if (encoded === undefined) return undefined;
-	return decodeMonkeyracerStats(encoded);
+	return decodeCminiStats(encoded);
 }
 
 export function isAnalyzerStatsReady(statsMaps: StatsMaps, analyzer: StatsAnalyzer): boolean {
@@ -129,7 +124,7 @@ export function getStatSortValue(
 		return deriveMana2Stats(analyzerStats as Mana2Stats)[field.key as Mana2StatSortKey];
 	}
 
-	return deriveBotStats(analyzerStats as MonkeyracerStats)[field.key as StatSortKey];
+	return deriveBotStats(analyzerStats as CminiStats)[field.key as StatSortKey];
 }
 
 /** Line count of `formatBotStatsBlock` output — keep in sync with `.stats-block` in layout.css. */
@@ -187,9 +182,7 @@ export interface StatsBlockSegment {
 	tone?: 'better' | 'worse' | 'neutral';
 }
 
-function toHighlightKeySet<T extends string>(
-	keys?: ReadonlySet<T> | T | null
-): ReadonlySet<T> {
+function toHighlightKeySet<T extends string>(keys?: ReadonlySet<T> | T | null): ReadonlySet<T> {
 	if (keys == null) return new Set();
 	if (typeof keys === 'string') return new Set([keys]);
 	return keys;
@@ -288,7 +281,7 @@ export function getHiddenAnalyzerFilterCaution(
 	for (const { value: analyzer } of STAT_ANALYZERS) {
 		if (visible.has(analyzer)) continue;
 		const count = countActiveStatFiltersForAnalyzer(limits, analyzer, {
-			includeLikes: Boolean(options?.includeLikes) && analyzer === DEFAULT_STATS_ANALYZER
+			includeLikes: Boolean(options?.includeLikes) && analyzer === CMINI_ANALYZER
 		});
 		if (count === 0) continue;
 		const label = analyzerShortLabel(analyzer);
@@ -315,7 +308,7 @@ export function getStatCardHighlightState(
 } {
 	const sortField = getStatSortField(sortBy);
 	return {
-		botFilterHighlightKeys: getActiveFilterStatKeys(limits, DEFAULT_STATS_ANALYZER) as Set<StatSortKey>,
+		botFilterHighlightKeys: getActiveFilterStatKeys(limits, CMINI_ANALYZER) as Set<StatSortKey>,
 		cyanophageFilterHighlightKeys: getActiveFilterStatKeys(
 			limits,
 			CYANOPHAGE_ANALYZER
@@ -325,11 +318,9 @@ export function getStatCardHighlightState(
 			MANA2_ANALYZER
 		) as Set<Mana2StatSortKey>,
 		botSortHighlightKey:
-			sortField?.analyzer === DEFAULT_STATS_ANALYZER ? (sortField.key as StatSortKey) : null,
+			sortField?.analyzer === CMINI_ANALYZER ? (sortField.key as StatSortKey) : null,
 		cyanophageSortHighlightKey:
-			sortField?.analyzer === CYANOPHAGE_ANALYZER
-				? (sortField.key as CyanophageStatSortKey)
-				: null,
+			sortField?.analyzer === CYANOPHAGE_ANALYZER ? (sortField.key as CyanophageStatSortKey) : null,
 		mana2SortHighlightKey:
 			sortField?.analyzer === MANA2_ANALYZER ? (sortField.key as Mana2StatSortKey) : null
 	};
@@ -370,7 +361,9 @@ function diffSegment(
 	format: 'percent' | 'raw'
 ): StatsBlockSegment {
 	const text =
-		format === 'raw' ? formatCyanophageStatDiffField(delta, width) : formatStatDiffField(delta, width);
+		format === 'raw'
+			? formatCyanophageStatDiffField(delta, width)
+			: formatStatDiffField(delta, width);
 	return {
 		text,
 		tone: toneForStatDelta(delta, higherIsBetter, text)
@@ -386,7 +379,7 @@ function botDiff(
 	return diffSegment(
 		newStats[key] - oldStats[key],
 		width,
-		isHigherBetterStatKey(key, DEFAULT_STATS_ANALYZER),
+		isHigherBetterStatKey(key, CMINI_ANALYZER),
 		'percent'
 	);
 }
@@ -938,10 +931,7 @@ export function buildBotStatsBlockLines(
 		keys.has(key) ? 'cmini' : undefined;
 	const sortHl = (...candidates: StatSortKey[]): StatsHighlightTone | undefined =>
 		sortHighlightKey && candidates.includes(sortHighlightKey) ? 'sort' : undefined;
-	const sortLabel = (
-		labelWithColon: string,
-		...candidates: StatSortKey[]
-	): StatsBlockSegment => {
+	const sortLabel = (labelWithColon: string, ...candidates: StatSortKey[]): StatsBlockSegment => {
 		const highlight = sortHl(...candidates);
 		return {
 			text: formatSortStatLabel(labelWithColon, Boolean(highlight), sortOrder),
@@ -996,10 +986,7 @@ export function buildBotStatsBlockLines(
 			{ text: ')' }
 		],
 		[{ text: '' }],
-		[
-			sortLabel('SFB:', 'sfb'),
-			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }
-		],
+		[sortLabel('SFB:', 'sfb'), { text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }],
 		[
 			sortLabel('SFS:', 'sfs', 'dsfbRed', 'dsfbAlt'),
 			{ text: formatStatField(stats.sfs, 6), highlight: filterHl('sfs') },
@@ -1046,11 +1033,9 @@ export function formatBotStatsBlock(stats: DerivedBotStats): string {
 
 /** Placeholder with the same line count as a full stats block. */
 export function formatStatsLoadingBlock(): string {
-	return [
-		'LOADING STATS',
-		'…',
-		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
-	].join('\n');
+	return ['LOADING STATS', '…', ...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')].join(
+		'\n'
+	);
 }
 
 /** Placeholder with the same line count as a full stats block. */

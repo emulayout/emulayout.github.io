@@ -3,7 +3,7 @@ import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 
 describe('loadAnalyzerStats', () => {
 	test('returns a parsed analyzer map on success', async () => {
-		const result = await loadAnalyzerStats('monkeyracer', {
+		const result = await loadAnalyzerStats('cmini', {
 			fetch: async () =>
 				new Response(JSON.stringify({ Canary: [1, 2, 3] }), {
 					status: 200,
@@ -49,7 +49,7 @@ describe('loadAnalyzerStats', () => {
 	});
 
 	test('represents malformed JSON as a parse failure', async () => {
-		const result = await loadAnalyzerStats('monkeyracer', {
+		const result = await loadAnalyzerStats('cmini', {
 			fetch: async () =>
 				new Response('{not json', {
 					status: 200,
@@ -64,7 +64,7 @@ describe('loadAnalyzerStats', () => {
 
 	test('treats an aborted request as an expected outcome', async () => {
 		const abortController = new AbortController();
-		const pending = loadAnalyzerStats('monkeyracer', {
+		const pending = loadAnalyzerStats('cmini', {
 			signal: abortController.signal,
 			fetch: async (_input, init) =>
 				new Promise<Response>((_resolve, reject) => {

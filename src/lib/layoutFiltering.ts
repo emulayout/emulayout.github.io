@@ -3,18 +3,13 @@ import type {
 	LayoutData,
 	LayoutLikesMap,
 	Mana2Stats,
-	MonkeyracerStats,
+	CminiStats,
 	StatsMaps,
 	ThumbKeyEntry
 } from './layout';
 import { positionSlotKey } from './layoutCodec';
 import { deriveBotStats, deriveCyanophageStats, deriveMana2Stats } from './statsDerivation';
-import {
-	getStatSortField,
-	isStatSortBy,
-	type SortBy,
-	type SortOrder
-} from './statsSorting';
+import { getStatSortField, isStatSortBy, type SortBy, type SortOrder } from './statsSorting';
 import {
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
@@ -310,7 +305,7 @@ function matchesStatLimits(
 				? deriveCyanophageStats(analyzerStats as CyanophageStats)
 				: analyzer === MANA2_ANALYZER
 					? deriveMana2Stats(analyzerStats as Mana2Stats)
-					: deriveBotStats(analyzerStats as MonkeyracerStats);
+					: deriveBotStats(analyzerStats as CminiStats);
 
 		for (const { operator, threshold, statKey } of checks) {
 			const value = stats[statKey as keyof typeof stats];

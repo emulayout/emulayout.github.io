@@ -1,4 +1,4 @@
-import type { CyanophageStats, Mana2Stats, MonkeyracerStats } from '$lib/layout';
+import type { CyanophageStats, Mana2Stats, CminiStats } from '$lib/layout';
 
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js. */
 export const FINGER_USAGE_KEYS = [
@@ -42,7 +42,7 @@ export const BOT_STAT_KEYS = [
 	'lh',
 	'rh',
 	...FINGER_USAGE_KEYS
-] as const satisfies readonly (keyof MonkeyracerStats)[];
+] as const satisfies readonly (keyof CminiStats)[];
 
 export const STAT_VALUE_SCALE = 10_000;
 export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
@@ -196,23 +196,23 @@ export type DerivedBotStats = {
 export type StatSortKey = keyof DerivedBotStats;
 
 /** Cache trigram stats are valid when alternate is non-zero (always true for analyzed layouts). */
-export function isValidMonkeyracerStats(stats: MonkeyracerStats): boolean {
+export function isValidCminiStats(stats: CminiStats): boolean {
 	return stats.alternate > 0;
 }
 
-export function decodeMonkeyracerStats(values: number[]): MonkeyracerStats | undefined {
+export function decodeCminiStats(values: number[]): CminiStats | undefined {
 	if (values.length !== COMPACT_STAT_FIELD_COUNT) {
 		return undefined;
 	}
 
-	const stats = {} as MonkeyracerStats;
+	const stats = {} as CminiStats;
 	for (let i = 0; i < BOT_STAT_KEYS.length; i++) {
 		stats[BOT_STAT_KEYS[i]] = values[i] / STAT_VALUE_SCALE;
 	}
-	return isValidMonkeyracerStats(stats) ? stats : undefined;
+	return isValidCminiStats(stats) ? stats : undefined;
 }
 
-export function deriveBotStats(stats: MonkeyracerStats): DerivedBotStats {
+export function deriveBotStats(stats: CminiStats): DerivedBotStats {
 	const rollIn = stats['roll-in'];
 	const rollOut = stats['roll-out'];
 	const oneIn = stats['oneh-in'];

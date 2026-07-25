@@ -7,7 +7,7 @@ import type {
 
 export interface ExpandedStatsRow {
 	label: string;
-	monkey: string;
+	cmini: string;
 	cyanophage: string;
 	mana2: string;
 }
@@ -19,10 +19,10 @@ export interface ExpandedStatsTables {
 }
 
 interface ExpandedStatsTablesInput {
-	monkeyStats: DerivedBotStats | null;
+	cminiStats: DerivedBotStats | null;
 	cyanophageStats: DerivedCyanophageStats | null;
 	mana2Stats: DerivedMana2Stats | null;
-	monkeyLoading: boolean;
+	cminiLoading: boolean;
 	cyanophageLoading: boolean;
 	mana2Loading: boolean;
 }
@@ -53,17 +53,15 @@ function formatPair<T>(
 }
 
 export function buildExpandedStatsTables({
-	monkeyStats,
+	cminiStats,
 	cyanophageStats,
 	mana2Stats,
-	monkeyLoading,
+	cminiLoading,
 	cyanophageLoading,
 	mana2Loading
 }: ExpandedStatsTablesInput): ExpandedStatsTables {
-	const monkeyCell = (
-		get: (stats: DerivedBotStats) => number,
-		format?: (value: number) => string
-	) => formatCell(monkeyStats, monkeyLoading, get, format);
+	const cminiCell = (get: (stats: DerivedBotStats) => number, format?: (value: number) => string) =>
+		formatCell(cminiStats, cminiLoading, get, format);
 	const cyanophageCell = (
 		get: (stats: DerivedCyanophageStats) => number,
 		format?: (value: number) => string
@@ -72,10 +70,10 @@ export function buildExpandedStatsTables({
 		get: (stats: DerivedMana2Stats) => number,
 		format?: (value: number) => string
 	) => formatCell(mana2Stats, mana2Loading, get, format);
-	const monkeyPair = (
+	const cminiPair = (
 		getA: (stats: DerivedBotStats) => number,
 		getB: (stats: DerivedBotStats) => number
-	) => formatPair(monkeyStats, monkeyLoading, getA, getB);
+	) => formatPair(cminiStats, cminiLoading, getA, getB);
 	const mana2Pair = (
 		getA: (stats: DerivedMana2Stats) => number,
 		getB: (stats: DerivedMana2Stats) => number
@@ -85,39 +83,39 @@ export function buildExpandedStatsTables({
 	const sharedRows: ExpandedStatsRow[] = [
 		{
 			label: 'Same-finger bigrams',
-			monkey: monkeyCell((stats) => stats.sfb),
+			cmini: cminiCell((stats) => stats.sfb),
 			cyanophage: cyanophageCell((stats) => stats.sfb),
 			mana2: mana2Cell((stats) => stats.sfb)
 		},
 		{
 			// Skipgram SFB — cmini’s “SFS” is trigram end-same-finger, not this.
 			label: 'Same-finger skip',
-			monkey: DASH,
+			cmini: DASH,
 			cyanophage: cyanophageCell((stats) => stats.sfs),
 			mana2: mana2Cell((stats) => stats.sfs)
 		},
 		{
 			label: 'Alternation',
-			monkey: monkeyCell((stats) => stats.alternate),
+			cmini: cminiCell((stats) => stats.alternate),
 			cyanophage: cyanophageCell((stats) => stats.alternate),
 			mana2: mana2Cell((stats) => stats.alt)
 		},
 		{
 			label: 'Alt & SFS',
-			monkey: monkeyCell((stats) => stats.dsfbAlt),
+			cmini: cminiCell((stats) => stats.dsfbAlt),
 			cyanophage: DASH,
 			mana2: mana2Cell((stats) => stats.altSfs)
 		},
 		{
 			// cmini rtl (= roll + one-hand) matches Mana2 roll total; cmini roll is 2-key only.
 			label: 'Roll total',
-			monkey: monkeyCell((stats) => stats.rtl),
+			cmini: cminiCell((stats) => stats.rtl),
 			cyanophage: cyanophageCell((stats) => stats.roll),
 			mana2: mana2Cell((stats) => stats.roll)
 		},
 		{
 			label: 'Roll in / out (2)',
-			monkey: monkeyPair(
+			cmini: cminiPair(
 				(stats) => stats.rollIn,
 				(stats) => stats.rollOut
 			),
@@ -129,7 +127,7 @@ export function buildExpandedStatsTables({
 		},
 		{
 			label: 'One-hand in / out (3)',
-			monkey: monkeyPair(
+			cmini: cminiPair(
 				(stats) => stats.oneIn,
 				(stats) => stats.oneOut
 			),
@@ -141,31 +139,31 @@ export function buildExpandedStatsTables({
 		},
 		{
 			label: 'Redirect',
-			monkey: monkeyCell((stats) => stats.red),
+			cmini: cminiCell((stats) => stats.red),
 			cyanophage: cyanophageCell((stats) => stats.redirect),
 			mana2: mana2Cell((stats) => stats.redirect)
 		},
 		{
 			label: 'Weak / bad redirect',
-			monkey: monkeyCell((stats) => stats.badRedirect),
+			cmini: cminiCell((stats) => stats.badRedirect),
 			cyanophage: DASH,
 			mana2: mana2Cell((stats) => stats.redirectWeak)
 		},
 		{
 			label: 'Redirect & SFS',
-			monkey: monkeyCell((stats) => stats.dsfbRed),
+			cmini: cminiCell((stats) => stats.dsfbRed),
 			cyanophage: DASH,
 			mana2: mana2Cell((stats) => stats.redirectSfs)
 		},
 		{
 			label: 'Lat stretch bigrams',
-			monkey: DASH,
+			cmini: DASH,
 			cyanophage: cyanophageCell((stats) => stats.lsb),
 			mana2: mana2Cell((stats) => stats.lsb, mana2Raw)
 		},
 		{
 			label: 'Scissors',
-			monkey: DASH,
+			cmini: DASH,
 			cyanophage: cyanophageCell((stats) => stats.scissors),
 			mana2: mana2Cell((stats) => stats.vsb, mana2Raw)
 		}
@@ -180,13 +178,13 @@ export function buildExpandedStatsTables({
 	): ExpandedStatsRow[] => [
 		{
 			label: 'Hand',
-			monkey: monkeyCell((stats) => stats[hand === 'left' ? 'lh' : 'rh']),
+			cmini: cminiCell((stats) => stats[hand === 'left' ? 'lh' : 'rh']),
 			cyanophage: cyanophageCell((stats) => stats[hand === 'left' ? 'lh' : 'rh']),
 			mana2: mana2Cell((stats) => stats[hand === 'left' ? 'lh' : 'rh'])
 		},
 		...fingers.map(({ key, label }) => ({
 			label,
-			monkey: monkeyCell((stats) => stats[key]),
+			cmini: cminiCell((stats) => stats[key]),
 			cyanophage: cyanophageCell((stats) => stats[key]),
 			mana2: mana2Cell((stats) => stats[key])
 		}))

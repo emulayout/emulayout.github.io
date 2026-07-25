@@ -1,10 +1,7 @@
 <script lang="ts">
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		chipSourceFromViewSnapshot,
-		getActiveFilterChips
-	} from '$lib/filterSummaries';
+	import { chipSourceFromViewSnapshot, getActiveFilterChips } from '$lib/filterSummaries';
 
 	interface Props {
 		open: boolean;
@@ -70,12 +67,7 @@
 	}
 </script>
 
-<ModalShell
-	{open}
-	onClose={handleCancel}
-	labelledBy="shared-view-title"
-	panelClass="max-w-lg"
->
+<ModalShell {open} onClose={handleCancel} labelledBy="shared-view-title" panelClass="max-w-lg">
 	<div
 		class="flex items-center justify-between border-b px-5 py-4"
 		style="border-color: var(--border);"
@@ -121,10 +113,7 @@
 			{:else}
 				<ul class="shared-view-chips" aria-label="Shared filters">
 					{#each chips as chip (chip.id)}
-						<li
-							class="shared-view-chip shared-view-chip--{chip.tone}"
-							title={chip.title}
-						>
+						<li class="shared-view-chip shared-view-chip--{chip.tone}" title={chip.title}>
 							{chip.label}
 						</li>
 					{/each}
@@ -182,7 +171,7 @@
 		white-space: nowrap;
 	}
 
-	.shared-view-chip--monkeyracer {
+	.shared-view-chip--cmini {
 		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
 		background-color: color-mix(in srgb, var(--analyzer-cmini) 16%, var(--bg-primary));
 		color: var(--analyzer-cmini);

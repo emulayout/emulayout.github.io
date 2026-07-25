@@ -7,7 +7,7 @@
 	} from '$lib/statsDerivation';
 	import {
 		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
+		CMINI_ANALYZER,
 		formatCyanophageStatValue,
 		formatStatPercent,
 		MANA2_ANALYZER,
@@ -56,7 +56,7 @@
 	const rows = $derived.by((): Row[] => {
 		if (!stats) return [];
 
-		if (analyzer === DEFAULT_STATS_ANALYZER) {
+		if (analyzer === CMINI_ANALYZER) {
 			const s = stats as DerivedBotStats;
 			return [
 				{ label: 'Roll total in / out', value: pair(s.rtlIn, s.rtlOut) },

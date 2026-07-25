@@ -8,7 +8,7 @@ import {
 	MANA2_STAT_KEYS,
 	decodeCyanophageStats,
 	decodeMana2Stats,
-	decodeMonkeyracerStats,
+	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
 	deriveMana2Stats
@@ -27,8 +27,8 @@ function setCompactValue(
 
 describe('frontend stats decoding and derivation', () => {
 	test('rejects malformed or empty compact analyzer arrays', () => {
-		expect(decodeMonkeyracerStats([])).toBeUndefined();
-		expect(decodeMonkeyracerStats(Array(COMPACT_STAT_FIELD_COUNT).fill(0))).toBeUndefined();
+		expect(decodeCminiStats([])).toBeUndefined();
+		expect(decodeCminiStats(Array(COMPACT_STAT_FIELD_COUNT).fill(0))).toBeUndefined();
 		expect(decodeCyanophageStats([])).toBeUndefined();
 		expect(
 			decodeCyanophageStats(Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(0))
@@ -50,7 +50,7 @@ describe('frontend stats decoding and derivation', () => {
 		setCompactValue(compact, BOT_STAT_KEYS, 'dsfb-alt', 900);
 		setCompactValue(compact, BOT_STAT_KEYS, 'LI', 1_100);
 
-		const decoded = decodeMonkeyracerStats(compact);
+		const decoded = decodeCminiStats(compact);
 		expect(decoded).toBeDefined();
 		const derived = deriveBotStats(decoded!);
 		expect(derived.alternate).toBeCloseTo(0.1);

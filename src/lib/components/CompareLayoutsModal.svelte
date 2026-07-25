@@ -100,7 +100,7 @@
 			? statsMaps.cyanophage
 			: compareAnalyzer === MANA2_ANALYZER
 				? statsMaps.mana2
-				: statsMaps.monkeyracer
+				: statsMaps.cmini
 	);
 
 	const statsLoading = $derived(layoutStatsStore.isLoading(compareAnalyzer));

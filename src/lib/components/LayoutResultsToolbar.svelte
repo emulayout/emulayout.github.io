@@ -10,7 +10,7 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
+		CMINI_ANALYZER,
 		getHiddenAnalyzerFilterCaution,
 		MANA2_ANALYZER
 	} from '$lib/layoutStats';
@@ -29,7 +29,7 @@
 		void filterStore.sourceLayoutCount;
 		return getActiveFilterChips(filterStore);
 	});
-	const monkeySortFields = $derived(getStatSortFieldsForAnalyzer(DEFAULT_STATS_ANALYZER));
+	const cminiSortFields = $derived(getStatSortFieldsForAnalyzer(CMINI_ANALYZER));
 	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
 	const mana2SortFields = $derived(getStatSortFieldsForAnalyzer(MANA2_ANALYZER));
 
@@ -182,8 +182,8 @@
 							<option value="likes">Likes</option>
 						{/if}
 					</optgroup>
-					<optgroup label="cmini (monkeyracer)">
-						{#each monkeySortFields as field (field.value)}
+					<optgroup label="cmini">
+						{#each cminiSortFields as field (field.value)}
 							<option value={field.value}>{field.label}</option>
 						{/each}
 					</optgroup>
@@ -342,7 +342,7 @@
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 
-	.results-toolbar-filter-chip--monkeyracer {
+	.results-toolbar-filter-chip--cmini {
 		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
 		background-color: color-mix(in srgb, var(--analyzer-cmini) 16%, var(--bg-primary));
 		color: var(--analyzer-cmini);

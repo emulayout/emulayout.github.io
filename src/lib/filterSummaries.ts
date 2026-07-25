@@ -11,7 +11,7 @@ import type {
 } from '$lib/filterStore.svelte';
 import {
 	CYANOPHAGE_ANALYZER,
-	DEFAULT_STATS_ANALYZER,
+	CMINI_ANALYZER,
 	MANA2_ANALYZER,
 	analyzerShortLabel,
 	STAT_ANALYZERS,
@@ -222,7 +222,10 @@ function handSummaryLabel(
 
 /** Collapsed stat-filter preview (same format as the old accordion). */
 export function getStatFiltersSummary(store: FilterStore): string {
-	return [getStatFilterSectionSummary(store, 'general'), getStatFilterSectionSummary(store, 'hands')]
+	return [
+		getStatFilterSectionSummary(store, 'general'),
+		getStatFilterSectionSummary(store, 'hands')
+	]
 		.filter(Boolean)
 		.join(' • ');
 }
@@ -342,7 +345,7 @@ export function getKeyboardFiltersSummary(store: FilterStore): string {
 	return parts.join(' • ');
 }
 
-export type FilterChipTone = 'neutral' | 'monkeyracer' | 'cyanophage' | 'mana2';
+export type FilterChipTone = 'neutral' | 'cmini' | 'cyanophage' | 'mana2';
 
 export type ActiveFilterClearAction =
 	| { kind: 'source' }
@@ -357,12 +360,7 @@ export type ActiveFilterClearAction =
 	| { kind: 'statLimit'; key: StatLimitKey }
 	| { kind: 'similarity' };
 
-export type KeyboardFilterField =
-	| 'thumbs'
-	| 'magic'
-	| 'board'
-	| 'charset'
-	| 'unfinished';
+export type KeyboardFilterField = 'thumbs' | 'magic' | 'board' | 'charset' | 'unfinished';
 
 export type SidebarFilterField = 'name' | 'authors' | 'similarity';
 
@@ -405,7 +403,7 @@ function pushChip(
 function toneForAnalyzer(analyzer: StatsAnalyzer): FilterChipTone {
 	if (analyzer === CYANOPHAGE_ANALYZER) return 'cyanophage';
 	if (analyzer === MANA2_ANALYZER) return 'mana2';
-	return 'monkeyracer';
+	return 'cmini';
 }
 
 /** Individual active filters for chip UI in the results toolbar. */
@@ -566,7 +564,7 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 			}
 		}
 
-		if (analyzer === DEFAULT_STATS_ANALYZER && store.canUseLikes) {
+		if (analyzer === CMINI_ANALYZER && store.canUseLikes) {
 			const likes = formatActiveLimit(
 				appliedLimits,
 				LIKES_STAT_FILTER_FIELD,
@@ -581,7 +579,7 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 					{
 						target: 'stats',
 						section: 'general',
-						analyzer: DEFAULT_STATS_ANALYZER,
+						analyzer: CMINI_ANALYZER,
 						key: 'likes'
 					}
 				);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
+		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
@@ -45,7 +45,7 @@
 
 	function handleKeydown(event: KeyboardEvent, index: number) {
 		const count = STAT_ANALYZERS.length;
-		let nextIndex = index;
+		let nextIndex: number;
 
 		switch (event.key) {
 			case 'ArrowRight':
@@ -91,7 +91,7 @@
 			tabindex="0"
 			class="analyzer-tab"
 			class:analyzer-tab--selected={selected}
-			class:analyzer-tab--cmini={analyzerDef.value === DEFAULT_STATS_ANALYZER}
+			class:analyzer-tab--cmini={analyzerDef.value === CMINI_ANALYZER}
 			class:analyzer-tab--cyanophage={analyzerDef.value === CYANOPHAGE_ANALYZER}
 			class:analyzer-tab--mana2={analyzerDef.value === MANA2_ANALYZER}
 			onclick={() => onChange(analyzerDef.value)}

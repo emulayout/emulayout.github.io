@@ -3,7 +3,7 @@ import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 import {
 	decodeCyanophageStats,
 	decodeMana2Stats,
-	decodeMonkeyracerStats,
+	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
 	deriveMana2Stats
@@ -94,9 +94,7 @@ export function buildLayoutStatsBlockModel(
 		};
 	}
 
-	const decoded = compactStats
-		? decodeMonkeyracerStats(compactStats as CompactLayoutStats)
-		: undefined;
+	const decoded = compactStats ? decodeCminiStats(compactStats as CompactLayoutStats) : undefined;
 	return {
 		lines: decoded
 			? buildBotStatsBlockLines(

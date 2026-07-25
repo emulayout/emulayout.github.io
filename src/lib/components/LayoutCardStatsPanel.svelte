@@ -3,12 +3,12 @@
 	import type { LayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 	interface Props {
-		monkey?: LayoutStatsBlockModel | null;
+		cmini?: LayoutStatsBlockModel | null;
 		cyanophage?: LayoutStatsBlockModel | null;
 		mana2?: LayoutStatsBlockModel | null;
 	}
 
-	const { monkey = null, cyanophage = null, mana2 = null }: Props = $props();
+	const { cmini = null, cyanophage = null, mana2 = null }: Props = $props();
 </script>
 
 {#snippet statsItem(model: LayoutStatsBlockModel)}
@@ -24,8 +24,8 @@
 {/snippet}
 
 <div class="stats-stack">
-	{#if monkey}
-		{@render statsItem(monkey)}
+	{#if cmini}
+		{@render statsItem(cmini)}
 	{/if}
 	{#if cyanophage}
 		{@render statsItem(cyanophage)}

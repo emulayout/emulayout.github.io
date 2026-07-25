@@ -1,6 +1,6 @@
 import type { StatsMaps } from '$lib/layout';
 import {
-	DEFAULT_STATS_ANALYZER,
+	CMINI_ANALYZER,
 	STAT_ANALYZERS,
 	resolveStatsAnalyzers,
 	type StatsAnalyzer,
@@ -37,11 +37,11 @@ class LayoutStatsStore {
 	}
 
 	get loaded(): boolean {
-		return this.isLoaded(DEFAULT_STATS_ANALYZER);
+		return this.isLoaded(CMINI_ANALYZER);
 	}
 
-	get map(): StatsMaps[typeof DEFAULT_STATS_ANALYZER] {
-		return this.maps[DEFAULT_STATS_ANALYZER] ?? {};
+	get map(): StatsMaps[typeof CMINI_ANALYZER] {
+		return this.maps[CMINI_ANALYZER] ?? {};
 	}
 
 	hydrate(analyzer: StatsAnalyzer, map: NonNullable<StatsMaps[StatsAnalyzer]>): void {

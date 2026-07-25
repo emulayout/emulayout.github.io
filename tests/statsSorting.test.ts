@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CYANOPHAGE_ANALYZER, DEFAULT_STATS_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 import {
 	coerceSortByForAnalyzer,
 	getDefaultSortOrder,
@@ -16,10 +16,10 @@ import {
 
 describe('stats sorting catalog and normalization', () => {
 	test('resolves analyzer-owned fields and layout/stat sort types', () => {
-		expect(getStatSortAnalyzer('alternate')).toBe(DEFAULT_STATS_ANALYZER);
+		expect(getStatSortAnalyzer('alternate')).toBe(CMINI_ANALYZER);
 		expect(getStatSortAnalyzer('cyano-effort')).toBe(CYANOPHAGE_ANALYZER);
 		expect(getStatSortAnalyzer('mana-roll')).toBe(MANA2_ANALYZER);
-		expect(getStatSortField('cyano-effort', DEFAULT_STATS_ANALYZER)).toBeUndefined();
+		expect(getStatSortField('cyano-effort', CMINI_ANALYZER)).toBeUndefined();
 		expect(
 			getStatSortFieldsForAnalyzer(MANA2_ANALYZER).every(
 				(field) => field.analyzer === MANA2_ANALYZER
@@ -43,7 +43,7 @@ describe('stats sorting catalog and normalization', () => {
 	});
 
 	test('normalizes aliases and analyzer-disambiguated SFB fields', () => {
-		expect(normalizeSortBy('sfb', DEFAULT_STATS_ANALYZER)).toBe('sfb');
+		expect(normalizeSortBy('sfb', CMINI_ANALYZER)).toBe('sfb');
 		expect(normalizeSortBy('sfb', CYANOPHAGE_ANALYZER)).toBe('cyano-sfb');
 		expect(normalizeSortBy('sfb', MANA2_ANALYZER)).toBe('mana-sfb');
 		expect(normalizeSortBy('total-word-effort')).toBe('cyano-total-word-effort');
@@ -67,10 +67,10 @@ describe('stats sorting catalog and normalization', () => {
 	test('coerces equivalent analyzer fields and exposes comparison direction', () => {
 		expect(coerceSortByForAnalyzer('sfb', CYANOPHAGE_ANALYZER)).toBe('cyano-sfb');
 		expect(coerceSortByForAnalyzer('cyano-sfb', MANA2_ANALYZER)).toBe('mana-sfb');
-		expect(coerceSortByForAnalyzer('cyano-effort', DEFAULT_STATS_ANALYZER)).toBeNull();
+		expect(coerceSortByForAnalyzer('cyano-effort', CMINI_ANALYZER)).toBeNull();
 		expect(coerceSortByForAnalyzer('date', MANA2_ANALYZER)).toBe('date');
-		expect(isHigherBetterStatKey('roll', DEFAULT_STATS_ANALYZER)).toBe(true);
-		expect(isHigherBetterStatKey('sfb', DEFAULT_STATS_ANALYZER)).toBe(false);
+		expect(isHigherBetterStatKey('roll', CMINI_ANALYZER)).toBe(true);
+		expect(isHigherBetterStatKey('sfb', CMINI_ANALYZER)).toBe(false);
 		expect(isHigherBetterStatKey('lh', MANA2_ANALYZER)).toBeNull();
 	});
 });

@@ -2,20 +2,20 @@
 	import LayoutCard from './LayoutCard.svelte';
 	import MissingLayoutCard from './MissingLayoutCard.svelte';
 	import { VList, WindowVirtualizer } from 'virtua/svelte';
-	import { getLayoutCardItemSize, LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 	import {
-		layoutListItemKey,
-		layoutListItemName,
-		type LayoutListItem
-	} from '$lib/layoutList';
+		getLayoutCardItemSize,
+		LAYOUT_SPLIT_MIN_WIDTH,
+		TAILWIND_BREAKPOINTS
+	} from '$lib/constants';
+	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
+	import { layoutListItemKey, layoutListItemName, type LayoutListItem } from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		getStatCardHighlightState,
 		showsCyanophageStats,
 		showsMana2Stats,
-		showsMonkeyracerStats
+		showsCminiStats
 	} from '$lib/layoutStats';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 
@@ -89,11 +89,7 @@
 
 	const mana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const cardItemSize = $derived(
-		getLayoutCardItemSize(
-			filterStore.showLayoutStats,
-			filterStore.showLayoutTestArea,
-			mana2Stats
-		)
+		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea, mana2Stats)
 	);
 	const statHighlights = $derived(
 		getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
@@ -182,8 +178,8 @@
 		{layout}
 		authorName={getAuthorName(layout.user)}
 		likeCount={likesData[layout.name] ?? 0}
-		compactMonkeyStats={showsMonkeyracerStats(filterStore.statsAnalyzer)
-			? statsMaps.monkeyracer?.[layout.name]
+		compactCminiStats={showsCminiStats(filterStore.statsAnalyzer)
+			? statsMaps.cmini?.[layout.name]
 			: undefined}
 		compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
 			? statsMaps.cyanophage?.[layout.name]
@@ -205,7 +201,10 @@
 	{@const end = Math.min(startIndex + columns, listItems.length)}
 	{@const rowItems = listItems.slice(startIndex, end)}
 
-	<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
+	<div
+		class="layout-card-row grid gap-3 mb-3"
+		style="grid-template-columns: repeat({columns}, 1fr);"
+	>
 		{#each rowItems as item (layoutListItemKey(item))}
 			{#if item.kind === 'layout'}
 				{@render layoutCard(item.layout)}
