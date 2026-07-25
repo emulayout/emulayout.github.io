@@ -16,16 +16,18 @@ import {
 	type SortOrder
 } from './statsSorting';
 import {
+	getStatFilterFieldsForAnalyzer,
+	getStatFilterStatKey,
+	parseStatFilterThreshold,
+	type StatLimitKey
+} from './statsFiltering';
+import {
 	CYANOPHAGE_ANALYZER,
 	MANA2_ANALYZER,
 	STAT_ANALYZERS,
 	getLayoutAnalyzerStats,
-	getStatFilterFieldsForAnalyzer,
-	getStatFilterStatKey,
 	getStatSortValue,
 	isAnalyzerStatsReady,
-	parseStatFilterThreshold,
-	type StatLimitKey,
 	type StatsAnalyzer
 } from './layoutStats';
 import {

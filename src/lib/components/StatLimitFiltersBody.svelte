@@ -4,15 +4,17 @@
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
+		type StatsAnalyzer
+	} from '$lib/statsAnalyzers';
+	import {
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
 		getGeneralStatFilterGroupsForAnalyzer,
 		getLeftHandStatFilterFieldsForAnalyzer,
 		getRightHandStatFilterFieldsForAnalyzer,
 		LIKES_STAT_FILTER_FIELD,
 		type StatFilterField,
-		type StatLimitKey,
-		type StatsAnalyzer
-	} from '$lib/layoutStats';
+		type StatLimitKey
+	} from '$lib/statsFiltering';
 	import type { StatFilterSection } from '$lib/filterSummaries';
 
 	interface Props {
@@ -71,6 +73,9 @@
 		border: 1px solid var(--border);
 		--tw-ring-color: var(--accent);
 	`;
+	const generalStatFilterColumnIndices = [
+		...Array(GENERAL_STAT_FILTER_COLUMN_COUNT).keys()
+	];
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const leftHandFields = $derived(
@@ -172,7 +177,7 @@
 					<div class="stat-limits-group-rows">
 						{#each group.rows as row, rowIndex (`${groupIndex}-${rowIndex}`)}
 							<div class="stat-limit-row">
-								{#each Array(GENERAL_STAT_FILTER_COLUMN_COUNT) as _, colIndex (colIndex)}
+								{#each generalStatFilterColumnIndices as colIndex (colIndex)}
 									{@const field = row[colIndex]}
 									{#if field}
 										{@render statLimitControl(

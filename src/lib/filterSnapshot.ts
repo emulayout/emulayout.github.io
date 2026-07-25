@@ -1,7 +1,7 @@
 import {
 	ALL_STAT_FILTER_FIELDS,
 	type StatLimitKey
-} from '$lib/layoutStats';
+} from '$lib/statsFiltering';
 import {
 	isSortOrder,
 	normalizeSortBy,

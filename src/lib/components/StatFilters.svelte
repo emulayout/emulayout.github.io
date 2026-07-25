@@ -7,13 +7,15 @@
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
-		getHandStatFilterFieldsForAnalyzer,
 		isStatsAnalyzer,
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
-		type StatLimitKey,
 		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
+	import {
+		getHandStatFilterFieldsForAnalyzer,
+		type StatLimitKey
+	} from '$lib/statsFiltering';
 
 	type StatCategory = 'bigram' | 'trigram' | 'other';
 

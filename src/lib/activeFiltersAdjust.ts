@@ -2,14 +2,16 @@ import type { FilterStore } from '$lib/filterStore.svelte';
 import type { KeyFilterKind, StatFilterSection } from '$lib/filterSummaries';
 import {
 	DEFAULT_STATS_ANALYZER,
-	LIKES_STAT_FILTER_FIELD,
 	STAT_ANALYZERS,
+	type StatsAnalyzer
+} from '$lib/statsAnalyzers';
+import {
+	LIKES_STAT_FILTER_FIELD,
 	getGeneralStatFilterRowsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
 	getRightHandStatFilterFieldsForAnalyzer,
-	type StatLimitKey,
-	type StatsAnalyzer
-} from '$lib/layoutStats';
+	type StatLimitKey
+} from '$lib/statsFiltering';
 
 export type ActiveKeyboardSnapshot = {
 	thumbs: boolean;

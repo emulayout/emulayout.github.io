@@ -12,13 +12,15 @@ import {
 	type SortOrder
 } from './statsSorting';
 import {
+	getGeneralStatFilterRowsForAnalyzer,
+	getHandStatFilterFieldsForAnalyzer,
+	type StatLimitKey
+} from './statsFiltering';
+import {
 	DEFAULT_STATS_ANALYZER,
 	analyzersNeededForLimits,
 	isAnalyzerStatsReady,
 	parseStatsAnalyzerMode,
-	getGeneralStatFilterRowsForAnalyzer,
-	getHandStatFilterFieldsForAnalyzer,
-	type StatLimitKey,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from './layoutStats';

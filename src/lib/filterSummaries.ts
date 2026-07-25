@@ -14,15 +14,17 @@ import {
 	DEFAULT_STATS_ANALYZER,
 	MANA2_ANALYZER,
 	analyzerShortLabel,
+	STAT_ANALYZERS,
+	type StatsAnalyzer
+} from '$lib/statsAnalyzers';
+import {
 	getGeneralStatFilterRowsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
 	getRightHandStatFilterFieldsForAnalyzer,
 	LIKES_STAT_FILTER_FIELD,
-	STAT_ANALYZERS,
 	type StatFilterField,
-	type StatLimitKey,
-	type StatsAnalyzer
-} from '$lib/layoutStats';
+	type StatLimitKey
+} from '$lib/statsFiltering';
 
 /** Minimal fields needed to render active-filter chips (live store or shared snapshot). */
 export type FilterChipSource = {

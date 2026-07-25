@@ -15,9 +15,9 @@
 	import {
 		analyzerShortLabel,
 		STAT_ANALYZERS,
-		type StatLimitKey,
 		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
+	import type { StatLimitKey } from '$lib/statsFiltering';
 
 	interface Props {
 		snapshot: ActiveFiltersSnapshot;
