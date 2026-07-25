@@ -96,6 +96,17 @@
 			}))
 			.filter((group) => group.rows.length > 0);
 	});
+
+	function groupFieldCount(group: { rows: readonly (readonly unknown[])[] }): number {
+		return group.rows.reduce((count, row) => count + row.length, 0);
+	}
+
+	/** Section titles only when multiple groups exist and this group has >1 field. */
+	function groupIsLabeled(group: { rows: readonly (readonly unknown[])[] }): boolean {
+		return visibleGeneralGroups.length > 1 && groupFieldCount(group) > 1;
+	}
+
+	const hasLabeledGeneralGroups = $derived(visibleGeneralGroups.some(groupIsLabeled));
 </script>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
@@ -147,10 +158,15 @@
 	class:stat-limits-body--stacked={stacked || (section === 'general' && generalStacked)}
 >
 	{#if section === 'general'}
-		<section class="stat-limits-general" aria-label="General stat filters">
+		<section
+			class="stat-limits-general"
+			class:stat-limits-general--sectioned={hasLabeledGeneralGroups}
+			aria-label="General stat filters"
+		>
 			{#each visibleGeneralGroups as group, groupIndex (group.title)}
-				<div class="stat-limits-group">
-					{#if visibleGeneralGroups.length > 1}
+				{@const labeled = groupIsLabeled(group)}
+				<div class="stat-limits-group" class:stat-limits-group--labeled={labeled}>
+					{#if labeled}
 						<div class="stat-limits-group-heading">{group.title}</div>
 					{/if}
 					<div class="stat-limits-group-rows">
@@ -174,8 +190,9 @@
 				</div>
 			{/each}
 			{#if showLikesFilter}
-				<div class="stat-limits-group">
-					{#if visibleGeneralGroups.length > 0}
+				{@const likesLabeled = visibleGeneralGroups.length > 0}
+				<div class="stat-limits-group" class:stat-limits-group--labeled={likesLabeled}>
+					{#if likesLabeled}
 						<div class="stat-limits-group-heading">Community</div>
 					{/if}
 					<div class="stat-limits-group-rows">
@@ -200,7 +217,7 @@
 		<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
 			<div class="stat-limits-hand-grid">
 				{#if leftHandFields.length > 0}
-					<div>
+					<div class="stat-limits-group--labeled">
 						<div class="stat-limits-hand-heading">Left hand</div>
 						<div class="stat-limits-hand-list">
 							{#each leftHandFields as field (field.key)}
@@ -210,7 +227,7 @@
 					</div>
 				{/if}
 				{#if rightHandFields.length > 0}
-					<div>
+					<div class="stat-limits-group--labeled">
 						<div class="stat-limits-hand-heading">Right hand</div>
 						<div class="stat-limits-hand-list">
 							{#each rightHandFields as field (field.key)}
@@ -240,7 +257,7 @@
 		container-name: stat-limits-general;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.5rem;
 		width: 100%;
 		min-width: 0;
 		/* Keep focus rings inside the paint box of this section. */
@@ -248,11 +265,21 @@
 		overflow: visible;
 	}
 
+	.stat-limits-general--sectioned {
+		gap: 1rem;
+	}
+
 	.stat-limits-group {
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
 		min-width: 0;
+	}
+
+	/* Nest controls under section labels (e.g. Roll / Roll total, Left/Right hand). */
+	.stat-limits-group--labeled .stat-limits-group-rows,
+	.stat-limits-group--labeled .stat-limits-hand-list {
+		padding-inline-start: 1rem;
 	}
 
 	.stat-limits-group-heading {
