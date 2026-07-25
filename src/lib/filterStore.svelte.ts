@@ -1,6 +1,8 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { pushState, replaceState } from '$app/navigation';
+import { resolve } from '$app/paths';
 import { page } from '$app/state';
+import type { PathnameWithSearchOrHash } from '$app/types';
 import {
 	DEFAULT_STATS_ANALYZER,
 	analyzersNeededForLimits,
@@ -55,6 +57,12 @@ import {
 	filterLayouts as filterLayoutCatalog,
 	sortLayouts as sortLayoutCatalog
 } from './layoutFiltering';
+import {
+	createHistoryTarget,
+	isRouterNotReadyError,
+	shouldWriteHistory,
+	type FilterHistoryMode
+} from './filterNavigation';
 import {
 	ViewFilterSnapshotCache,
 	createLayoutNameSet,
@@ -564,31 +572,25 @@ export class FilterStore {
 		}
 	}
 
-	#isRouterNotReadyError(error: unknown): boolean {
-		return (
-			error instanceof Error && error.message.includes('before router is initialized')
-		);
-	}
-
 	/**
 	 * Write filter URL via SvelteKit history helpers. First-paint `$effect`s can run
 	 * before the client router sets `started`; retry once on the next macrotask and
 	 * rebuild from current store state so a coalesced retry can't stale-overwrite.
 	 */
-	#writeHistory(url: SvelteURL, historyMode: 'replace' | 'push') {
-		const next = `${url.pathname}${url.search}${url.hash}`;
-		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+	#writeHistory(url: SvelteURL, historyMode: FilterHistoryMode) {
+		const next = createHistoryTarget(url);
+		const current = createHistoryTarget(window.location);
 
 		try {
+			if (!shouldWriteHistory(historyMode, next, current)) return;
+			const resolved = resolve(next as PathnameWithSearchOrHash);
 			if (historyMode === 'push') {
-				if (next !== current) {
-					pushState(url, page.state);
-				}
+				pushState(resolved, page.state);
 			} else {
-				replaceState(url, page.state);
+				replaceState(resolved, page.state);
 			}
 		} catch (error) {
-			if (!this.#isRouterNotReadyError(error)) throw error;
+			if (!isRouterNotReadyError(error)) throw error;
 			if (this.#pendingHistoryRetry) return;
 			this.#pendingHistoryRetry = true;
 			setTimeout(() => {
