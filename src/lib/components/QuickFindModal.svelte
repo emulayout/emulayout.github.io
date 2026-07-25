@@ -3,11 +3,7 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import {
-		showsCyanophageStats,
-		showsMana2Stats,
-		showsMonkeyracerStats
-	} from '$lib/layoutStats';
+	import { showsCyanophageStats, showsMana2Stats, showsMonkeyracerStats } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 
@@ -65,7 +61,7 @@
 
 	// Reset highlight when the query changes; clamp if results shrink
 	$effect(() => {
-		query;
+		void query;
 		activeIndex = 0;
 	});
 
@@ -249,7 +245,7 @@
 					<LayoutCard
 						layout={highlightedLayout}
 						authorName={highlightedAuthorName}
-						likeCount={0}
+						likeCount={layoutsCatalog.likesData[highlightedLayout.name] ?? 0}
 						compactMonkeyStats={showsMonkeyracerStats(filterStore.statsAnalyzer)
 							? layoutStatsStore.maps.monkeyracer?.[highlightedLayout.name]
 							: undefined}
