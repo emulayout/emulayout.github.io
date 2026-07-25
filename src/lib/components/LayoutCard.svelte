@@ -19,7 +19,6 @@
 		deriveBotStats,
 		deriveCyanophageStats,
 		deriveMana2Stats,
-		formatStatPercent,
 		getStatCardHighlightState,
 		MANA2_ANALYZER,
 		showsCyanophageStats,
@@ -44,6 +43,7 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { buildExpandedStatsTables } from '$lib/layoutExpandedStats';
 	import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 	interface Props {
@@ -225,191 +225,16 @@
 		return decoded ? deriveMana2Stats(decoded) : null;
 	});
 
-	/** Stats shared by ≥2 analyzers — expand modal comparison tables. */
-	const expandSharedCells = $derived.by(() => {
-		type Cell = string;
-		const dash = '—';
-		const loading = '…';
-
-		const monkeyCell = (
-			get: (stats: NonNullable<typeof expandBotStats>) => number,
-			format: (value: number) => string = formatStatPercent
-		): Cell => {
-			if (expandMonkeyLoading) return loading;
-			if (!expandBotStats) return dash;
-			return format(get(expandBotStats));
-		};
-		const cyanoCell = (
-			get: (stats: NonNullable<typeof expandCyanophageStats>) => number,
-			format: (value: number) => string = formatStatPercent
-		): Cell => {
-			if (expandCyanophageLoading) return loading;
-			if (!expandCyanophageStats) return dash;
-			return format(get(expandCyanophageStats));
-		};
-		const mana2Cell = (
-			get: (stats: NonNullable<typeof expandMana2Stats>) => number,
-			format: (value: number) => string = formatStatPercent
-		): Cell => {
-			if (expandMana2Loading) return loading;
-			if (!expandMana2Stats) return dash;
-			return format(get(expandMana2Stats));
-		};
-		const mana2Raw = (value: number) => value.toFixed(3);
-		const pair = (a: number, b: number) => `${formatStatPercent(a)} | ${formatStatPercent(b)}`;
-		const monkeyPair = (
-			getA: (stats: NonNullable<typeof expandBotStats>) => number,
-			getB: (stats: NonNullable<typeof expandBotStats>) => number
-		): Cell => {
-			if (expandMonkeyLoading) return loading;
-			if (!expandBotStats) return dash;
-			return pair(getA(expandBotStats), getB(expandBotStats));
-		};
-		const mana2Pair = (
-			getA: (stats: NonNullable<typeof expandMana2Stats>) => number,
-			getB: (stats: NonNullable<typeof expandMana2Stats>) => number
-		): Cell => {
-			if (expandMana2Loading) return loading;
-			if (!expandMana2Stats) return dash;
-			return pair(getA(expandMana2Stats), getB(expandMana2Stats));
-		};
-
-		return { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw, monkeyPair, mana2Pair };
-	});
-
-	const expandSharedStatRows = $derived.by(() => {
-		const { dash, monkeyCell, cyanoCell, mana2Cell, mana2Raw, monkeyPair, mana2Pair } =
-			expandSharedCells;
-
-		return [
-			{
-				label: 'Same-finger bigrams',
-				monkey: monkeyCell((s) => s.sfb),
-				cyanophage: cyanoCell((s) => s.sfb),
-				mana2: mana2Cell((s) => s.sfb)
-			},
-			{
-				// Skipgram SFB — cmini’s “SFS” is trigram end-same-finger, not this.
-				label: 'Same-finger skip',
-				monkey: dash,
-				cyanophage: cyanoCell((s) => s.sfs),
-				mana2: mana2Cell((s) => s.sfs)
-			},
-			{
-				label: 'Alternation',
-				monkey: monkeyCell((s) => s.alternate),
-				cyanophage: cyanoCell((s) => s.alternate),
-				mana2: mana2Cell((s) => s.alt)
-			},
-			{
-				label: 'Alt & SFS',
-				monkey: monkeyCell((s) => s.dsfbAlt),
-				cyanophage: dash,
-				mana2: mana2Cell((s) => s.altSfs)
-			},
-			{
-				// cmini rtl (= roll + one-hand) matches Mana2 roll total; cmini roll is 2-key only.
-				label: 'Roll total',
-				monkey: monkeyCell((s) => s.rtl),
-				cyanophage: cyanoCell((s) => s.roll),
-				mana2: mana2Cell((s) => s.roll)
-			},
-			{
-				label: 'Roll in / out (2)',
-				monkey: monkeyPair((s) => s.rollIn, (s) => s.rollOut),
-				cyanophage: dash,
-				mana2: mana2Pair((s) => s.inroll2, (s) => s.outroll2)
-			},
-			{
-				label: 'One-hand in / out (3)',
-				monkey: monkeyPair((s) => s.oneIn, (s) => s.oneOut),
-				cyanophage: dash,
-				mana2: mana2Pair((s) => s.inroll3, (s) => s.outroll3)
-			},
-			{
-				label: 'Redirect',
-				monkey: monkeyCell((s) => s.red),
-				cyanophage: cyanoCell((s) => s.redirect),
-				mana2: mana2Cell((s) => s.redirect)
-			},
-			{
-				label: 'Weak / bad redirect',
-				monkey: monkeyCell((s) => s.badRedirect),
-				cyanophage: dash,
-				mana2: mana2Cell((s) => s.redirectWeak)
-			},
-			{
-				label: 'Redirect & SFS',
-				monkey: monkeyCell((s) => s.dsfbRed),
-				cyanophage: dash,
-				mana2: mana2Cell((s) => s.redirectSfs)
-			},
-			{
-				label: 'Lat stretch bigrams',
-				monkey: dash,
-				cyanophage: cyanoCell((s) => s.lsb),
-				mana2: mana2Cell((s) => s.lsb, mana2Raw)
-			},
-			{
-				label: 'Scissors',
-				monkey: dash,
-				cyanophage: cyanoCell((s) => s.scissors),
-				mana2: mana2Cell((s) => s.vsb, mana2Raw)
-			}
-		] as const;
-	});
-
-	const expandSharedLeftHandRows = $derived.by(() => {
-		const { monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
-		const fingers = [
-			{ key: 'LI' as const, label: 'Index' },
-			{ key: 'LM' as const, label: 'Middle' },
-			{ key: 'LR' as const, label: 'Ring' },
-			{ key: 'LP' as const, label: 'Pinky' },
-			{ key: 'LT' as const, label: 'Thumb' }
-		];
-
-		return [
-			{
-				label: 'Hand',
-				monkey: monkeyCell((s) => s.lh),
-				cyanophage: cyanoCell((s) => s.lh),
-				mana2: mana2Cell((s) => s.lh)
-			},
-			...fingers.map(({ key, label }) => ({
-				label,
-				monkey: monkeyCell((s) => s[key]),
-				cyanophage: cyanoCell((s) => s[key]),
-				mana2: mana2Cell((s) => s[key])
-			}))
-		];
-	});
-
-	const expandSharedRightHandRows = $derived.by(() => {
-		const { monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
-		const fingers = [
-			{ key: 'RI' as const, label: 'Index' },
-			{ key: 'RM' as const, label: 'Middle' },
-			{ key: 'RR' as const, label: 'Ring' },
-			{ key: 'RP' as const, label: 'Pinky' },
-			{ key: 'RT' as const, label: 'Thumb' }
-		];
-
-		return [
-			{
-				label: 'Hand',
-				monkey: monkeyCell((s) => s.rh),
-				cyanophage: cyanoCell((s) => s.rh),
-				mana2: mana2Cell((s) => s.rh)
-			},
-			...fingers.map(({ key, label }) => ({
-				label,
-				monkey: monkeyCell((s) => s[key]),
-				cyanophage: cyanoCell((s) => s[key]),
-				mana2: mana2Cell((s) => s[key])
-			}))
-		];
-	});
+	const expandStatsTables = $derived(
+		buildExpandedStatsTables({
+			monkeyStats: expandBotStats,
+			cyanophageStats: expandCyanophageStats,
+			mana2Stats: expandMana2Stats,
+			monkeyLoading: expandMonkeyLoading,
+			cyanophageLoading: expandCyanophageLoading,
+			mana2Loading: expandMana2Loading
+		})
+	);
 
 	function hasExpandAnalyzerData(analyzer: StatsAnalyzer): boolean {
 		if (analyzer === DEFAULT_STATS_ANALYZER) {
@@ -767,7 +592,7 @@
 									</tr>
 								</thead>
 								<tbody>
-									{#each expandSharedStatRows as row (row.label)}
+									{#each expandStatsTables.sharedRows as row (row.label)}
 										<tr>
 											<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
 											{@render expandSharedCellsRow(row)}
@@ -798,7 +623,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											{#each expandSharedLeftHandRows as row (row.label)}
+											{#each expandStatsTables.leftHandRows as row (row.label)}
 												<tr>
 													<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
 													{@render expandSharedCellsRow(row)}
@@ -829,7 +654,7 @@
 											</tr>
 										</thead>
 										<tbody>
-											{#each expandSharedRightHandRows as row (row.label)}
+											{#each expandStatsTables.rightHandRows as row (row.label)}
 												<tr>
 													<th scope="row" class="expand-shared-stats-metric">{row.label}</th>
 													{@render expandSharedCellsRow(row)}
