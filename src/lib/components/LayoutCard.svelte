@@ -112,7 +112,7 @@
 	);
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
-	const isCompareSelected = $derived(filterStore.compareSelectedNames.has(layout.name));
+	const isSelected = $derived(filterStore.selectedLayoutNames.has(layout.name));
 
 	const isAngleBoard = $derived(layout.board === 'angle');
 
@@ -531,8 +531,8 @@
 		filterStore.toggleSimilarReference(layout.name, anglemod);
 	}
 
-	function handleToggleCompare() {
-		filterStore.toggleCompareLayout(layout.name);
+	function handleToggleSelection() {
+		filterStore.toggleSelectedLayout(layout.name);
 	}
 
 	function handleSelectAuthor() {
@@ -547,13 +547,13 @@
 		{layout}
 		{authorName}
 		{likeCount}
-		compareSelected={isCompareSelected}
+		selected={isSelected}
 		showLikes={filterStore.showLayoutLikes}
 		showNewIndicator={isNewLayout}
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
 		{similarMatchPercent}
 		{similarMirrored}
-		onToggleCompare={handleToggleCompare}
+		onToggleSelection={handleToggleSelection}
 		onSelectAuthor={handleSelectAuthor}
 	/>
 

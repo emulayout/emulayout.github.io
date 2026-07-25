@@ -43,7 +43,7 @@ import {
 
 export interface LayoutFilterCriteria {
 	layoutSource: 'all' | 'selected';
-	compareSelectedNames: ReadonlySet<string>;
+	selectedLayoutNames: ReadonlySet<string>;
 	sourceLayoutNames: ReadonlySet<string> | null;
 	showUnfinished: boolean;
 	thumbKeyFilter: ThumbKeyFilter;
@@ -355,7 +355,7 @@ export function filterLayouts(
 
 	const nameTerms = parseNameTerms(criteria.nameFilter);
 	return layouts.filter((layout) => {
-		if (criteria.layoutSource === 'selected' && !criteria.compareSelectedNames.has(layout.name)) {
+		if (criteria.layoutSource === 'selected' && !criteria.selectedLayoutNames.has(layout.name)) {
 			return false;
 		}
 		if (criteria.sourceLayoutNames && !criteria.sourceLayoutNames.has(layout.name)) return false;

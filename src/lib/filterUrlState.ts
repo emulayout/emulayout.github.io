@@ -6,7 +6,7 @@ import {
 
 /**
  * Filter/sort params that mean a saved view's live state differs from its
- * localStorage snapshot. Global display and compare params intentionally do
+ * localStorage snapshot. Global display and selection params intentionally do
  * not appear here.
  */
 const SAVED_VIEW_FILTER_URL_PARAMS = [
@@ -63,11 +63,11 @@ export type GlobalFilterUrlState = {
 	hideLayoutLikes: boolean;
 	hideNewLayoutIndicator: boolean;
 	stickySimilarityCard: boolean;
-	compareSelectedNames: Iterable<string>;
+	selectedLayoutNames: Iterable<string>;
 };
 
 export function readGlobalFilterUrlState(searchParams: URLSearchParams): GlobalFilterUrlState {
-	const compareSelectedNames = (searchParams.get('compare') ?? '')
+	const selectedLayoutNames = (searchParams.get('selected') ?? '')
 		.split(',')
 		.map((name) => name.trim())
 		.filter(Boolean);
@@ -79,7 +79,7 @@ export function readGlobalFilterUrlState(searchParams: URLSearchParams): GlobalF
 		hideLayoutLikes: searchParams.get('likes') === '0',
 		hideNewLayoutIndicator: searchParams.get('newIndicator') === '0',
 		stickySimilarityCard: searchParams.get('stickySimilar') !== '0',
-		compareSelectedNames
+		selectedLayoutNames
 	};
 }
 
@@ -88,6 +88,8 @@ export function writeGlobalFilterUrlState(
 	state: GlobalFilterUrlState
 ): void {
 	for (const key of [
+		'selected',
+		// Remove the obsolete pre-selection-vocabulary parameter when rewriting the URL.
 		'compare',
 		'analyzer',
 		'stats',
@@ -99,11 +101,11 @@ export function writeGlobalFilterUrlState(
 		searchParams.delete(key);
 	}
 
-	const compareSelectedNames = Array.from(state.compareSelectedNames)
+	const selectedLayoutNames = Array.from(state.selectedLayoutNames)
 		.map((name) => name.trim())
 		.filter(Boolean);
-	if (compareSelectedNames.length > 0) {
-		searchParams.set('compare', compareSelectedNames.join(','));
+	if (selectedLayoutNames.length > 0) {
+		searchParams.set('selected', selectedLayoutNames.join(','));
 	}
 	if (state.statsAnalyzer !== DEFAULT_STATS_ANALYZER) {
 		searchParams.set('analyzer', state.statsAnalyzer);

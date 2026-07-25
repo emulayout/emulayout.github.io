@@ -53,7 +53,7 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 	const snapshot = createDefaultViewSnapshot();
 	return {
 		layoutSource: 'all',
-		compareSelectedNames: new Set(),
+		selectedLayoutNames: new Set(),
 		sourceLayoutNames: null,
 		showUnfinished: snapshot.showUnfinished,
 		thumbKeyFilter: snapshot.thumbKeyFilter,
@@ -82,7 +82,7 @@ describe('filterLayouts', () => {
 		const layouts = [makeLayout('Alpha'), makeLayout('Beta'), makeLayout('Gamma')];
 		const criteria = makeCriteria({
 			layoutSource: 'selected',
-			compareSelectedNames: new Set(['Alpha', 'Beta']),
+			selectedLayoutNames: new Set(['Alpha', 'Beta']),
 			sourceLayoutNames: new Set(['Beta', 'Gamma'])
 		});
 

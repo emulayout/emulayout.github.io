@@ -40,7 +40,7 @@
 		/** When set, shows a clear (X) control after likes. */
 		onClear?: () => void;
 		clearButton?: HTMLButtonElement | undefined;
-		/** Cycle through selected compare layouts. */
+		/** Cycle through selected layouts. */
 		onCyclePrev?: () => void;
 		onCycleNext?: () => void;
 		showCycleControls?: boolean;

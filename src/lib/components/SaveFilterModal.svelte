@@ -5,7 +5,7 @@
 	interface Props {
 		open: boolean;
 		onClose: () => void;
-		/** `current` saves active filters; `selected` saves compare-selected layouts as the view source. */
+		/** `current` saves active filters; `selected` saves selected layouts as the view source. */
 		mode?: 'current' | 'selected';
 	}
 
@@ -88,8 +88,8 @@
 		</label>
 		{#if mode === 'selected'}
 			<p class="mt-2 text-sm" style="color: var(--text-secondary);">
-				Saves a view whose source is the {filterStore.compareSelectedNames.size} selected layout{filterStore
-					.compareSelectedNames.size === 1
+				Saves a view whose source is the {filterStore.selectedLayoutNames.size} selected layout{filterStore
+					.selectedLayoutNames.size === 1
 					? ''
 					: 's'}.
 			</p>

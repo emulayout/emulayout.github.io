@@ -133,7 +133,7 @@
 		}
 	});
 
-	// Drop stale ?similar= / ?compare= when those layouts no longer exist
+	// Drop stale ?similar= / ?selected= entries when those layouts no longer exist.
 	$effect(() => {
 		const name = filterStore.similarReferenceName;
 		if (!name || layouts.length === 0) return;
@@ -143,8 +143,8 @@
 	});
 
 	$effect(() => {
-		if (layouts.length === 0 || filterStore.compareSelectedNames.size === 0) return;
-		filterStore.pruneCompareLayouts(new Set(layouts.map((layout) => layout.name)));
+		if (layouts.length === 0 || filterStore.selectedLayoutNames.size === 0) return;
+		filterStore.pruneSelectedLayouts(new Set(layouts.map((layout) => layout.name)));
 	});
 
 	const authorById = $derived(
@@ -221,11 +221,11 @@
 		let hiddenSelectedCount = 0;
 
 		// Count (and optionally inject) selected layouts that fail current filters.
-		if (filterStore.layoutSource === 'all' && filterStore.compareSelectedNames.size > 0) {
+		if (filterStore.layoutSource === 'all' && filterStore.selectedLayoutNames.size > 0) {
 			const present = new Set(result.map((layout) => layout.name));
 			for (const layout of layouts) {
 				if (
-					!filterStore.compareSelectedNames.has(layout.name) ||
+					!filterStore.selectedLayoutNames.has(layout.name) ||
 					layout.name === filterStore.similarReferenceName ||
 					present.has(layout.name)
 				) {
@@ -282,7 +282,7 @@
 	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
 	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
 	const filteredCount = $derived(filteredItems.length);
-	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
+	const selectedLayoutCount = $derived(filterStore.selectedLayoutNames.size);
 	const allTabSelected = $derived(
 		filterStore.layoutSource === 'all' && !filterStore.activeSavedFilterId
 	);
@@ -355,7 +355,7 @@
 				class:layout-source-tab--selected={selectedTabSelected}
 				onclick={() => filterStore.setLayoutSource('selected')}
 			>
-				Selected layouts ({compareSelectedCount})
+				Selected layouts ({selectedLayoutCount})
 			</button>
 			{#each filterStore.savedFilters as saved (saved.id)}
 				{@const savedSelected = filterStore.activeSavedFilterId === saved.id}
@@ -422,7 +422,7 @@
 							</button>
 						</div>
 					{/if}
-					{#if filterStore.layoutSource === 'selected' && compareSelectedCount === 0}
+					{#if filterStore.layoutSource === 'selected' && selectedLayoutCount === 0}
 						<div class="results-empty" style="color: var(--text-secondary);">
 							<p class="results-empty-title" style="color: var(--text-primary);">
 								No layouts selected
@@ -458,14 +458,14 @@
 						/>
 					{/if}
 				</div>
-				{#if filterStore.layoutSource !== 'selected' && compareSelectedCount > 0}
-					<div class="compare-fab" role="presentation">
-						<div class="compare-fab-group">
+				{#if filterStore.layoutSource !== 'selected' && selectedLayoutCount > 0}
+					<div class="selected-layouts-fab" role="presentation">
+						<div class="selected-layouts-fab-group">
 							{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
 								<button
 									type="button"
-									class="compare-fab-button"
-									class:compare-fab-button--active={filterStore.includeSelectedInResults}
+									class="selected-layouts-fab-button"
+									class:selected-layouts-fab-button--active={filterStore.includeSelectedInResults}
 									aria-pressed={filterStore.includeSelectedInResults}
 									aria-label={filterStore.includeSelectedInResults
 										? 'Always showing selected'
@@ -484,7 +484,7 @@
 							{/if}
 							<button
 								type="button"
-								class="compare-fab-button"
+								class="selected-layouts-fab-button"
 								aria-label="Save selected as view"
 								onclick={() => (showSaveSelectedViewModal = true)}
 							>
@@ -492,10 +492,10 @@
 							</button>
 							<button
 								type="button"
-								class="compare-fab-icon-button"
+								class="selected-layouts-fab-icon-button"
 								aria-label="Clear selected layouts"
 								title="Clear selected layouts"
-								onclick={() => filterStore.clearCompareLayouts()}
+								onclick={() => filterStore.clearSelectedLayouts()}
 							>
 								<svg
 									class="size-4"
@@ -510,14 +510,14 @@
 							</button>
 						</div>
 					</div>
-				{:else if filterStore.layoutSource === 'selected' && compareSelectedCount > 0}
-					<div class="compare-fab" role="presentation">
-						<div class="compare-fab-group">
+				{:else if filterStore.layoutSource === 'selected' && selectedLayoutCount > 0}
+					<div class="selected-layouts-fab" role="presentation">
+						<div class="selected-layouts-fab-group">
 							<button
 								type="button"
-								class="compare-fab-button compare-fab-button--with-icon"
+								class="selected-layouts-fab-button selected-layouts-fab-button--with-icon"
 								aria-label="Clear selected layouts"
-								onclick={() => filterStore.clearCompareLayouts()}
+								onclick={() => filterStore.clearSelectedLayouts()}
 							>
 								Clear selected layouts
 								<svg
@@ -769,7 +769,7 @@
 		outline: none;
 	}
 
-	.compare-fab {
+	.selected-layouts-fab {
 		position: fixed;
 		left: 0;
 		right: 0;
@@ -781,20 +781,20 @@
 	}
 
 	@media (min-width: 768px) {
-		.compare-fab {
+		.selected-layouts-fab {
 			/* Center within the results column, not the full viewport. */
 			position: absolute;
 		}
 	}
 
-	.compare-fab-group {
+	.selected-layouts-fab-group {
 		pointer-events: auto;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.375rem;
 	}
 
-	.compare-fab-button {
+	.selected-layouts-fab-button {
 		display: inline-flex;
 		align-items: center;
 		padding: 0.5rem 0.875rem;
@@ -814,12 +814,12 @@
 			box-shadow 0.15s ease;
 	}
 
-	.compare-fab-button--with-icon {
+	.selected-layouts-fab-button--with-icon {
 		gap: 0.375rem;
 		padding-right: 0.625rem;
 	}
 
-	.compare-fab-icon-button {
+	.selected-layouts-fab-icon-button {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -840,21 +840,21 @@
 			box-shadow 0.15s ease;
 	}
 
-	.compare-fab-button:hover,
-	.compare-fab-icon-button:hover {
+	.selected-layouts-fab-button:hover,
+	.selected-layouts-fab-icon-button:hover {
 		border-color: var(--accent);
 		color: var(--accent);
 	}
 
-	.compare-fab-button--active {
+	.selected-layouts-fab-button--active {
 		color: var(--accent);
 		border-color: var(--accent);
 		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
 		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
 	}
 
-	.compare-fab-button:focus-visible,
-	.compare-fab-icon-button:focus-visible {
+	.selected-layouts-fab-button:focus-visible,
+	.selected-layouts-fab-icon-button:focus-visible {
 		outline: none;
 		box-shadow:
 			0 0 0 2px var(--accent),

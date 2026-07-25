@@ -5,13 +5,13 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		compareSelected: boolean;
+		selected: boolean;
 		showLikes: boolean;
 		showNewIndicator: boolean;
 		showSimilarityMatch: boolean;
 		similarMatchPercent?: number;
 		similarMirrored?: boolean;
-		onToggleCompare: () => void;
+		onToggleSelection: () => void;
 		onSelectAuthor: () => void;
 	}
 
@@ -19,13 +19,13 @@
 		layout,
 		authorName,
 		likeCount,
-		compareSelected,
+		selected,
 		showLikes,
 		showNewIndicator,
 		showSimilarityMatch,
 		similarMatchPercent,
 		similarMirrored = false,
-		onToggleCompare,
+		onToggleSelection,
 		onSelectAuthor
 	}: Props = $props();
 
@@ -44,16 +44,16 @@
 			<span class="relative shrink-0 flex items-center">
 				<input
 					type="checkbox"
-					checked={compareSelected}
-					onchange={onToggleCompare}
+					checked={selected}
+					onchange={onToggleSelection}
 					class="size-4 rounded appearance-none cursor-pointer relative"
 					style="
-						background-color: {compareSelected ? 'var(--accent)' : 'var(--bg-primary)'};
+						background-color: {selected ? 'var(--accent)' : 'var(--bg-primary)'};
 						border: 1px solid var(--border);
 					"
-					aria-label={`Select ${layout.name} for comparison`}
+					aria-label={`Select ${layout.name}`}
 				/>
-				{#if compareSelected}
+				{#if selected}
 					<svg
 						class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
 						style="color: white;"

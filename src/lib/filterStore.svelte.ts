@@ -135,9 +135,9 @@ export class FilterStore {
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
 	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
-	/** Layouts checked for compare / "selected" source filtering. */
-	compareSelectedNames: SvelteSet<string> = new SvelteSet();
-	/** When `selected`, other filters run only over compare-checked layouts. */
+	/** Layouts checked for selected-source filtering, comparison, and view creation. */
+	selectedLayoutNames: SvelteSet<string> = new SvelteSet();
+	/** When `selected`, other filters run only over selected layouts. */
 	layoutSource: LayoutSource = $state('all');
 	/** Named filter presets persisted in localStorage (not URL). */
 	savedFilters: SavedFilter[] = $state([]);
@@ -163,7 +163,7 @@ export class FilterStore {
 	/** Open the source-selection details modal from the filter chip. */
 	showSourceSelectionModal = $state(false);
 	/**
-	 * When true (and source is `all`), inject compare-selected layouts into the result
+	 * When true (and source is `all`), inject selected layouts into the result
 	 * list even if they fail other filters.
 	 */
 	includeSelectedInResults: boolean = $state(false);
@@ -311,7 +311,7 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
-		this.compareSelectedNames.clear();
+		this.selectedLayoutNames.clear();
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = null;
 		this.pendingSharedView = null;
@@ -360,8 +360,8 @@ export class FilterStore {
 		this.hideLayoutLikes = globalUrlState.hideLayoutLikes;
 		this.hideNewLayoutIndicator = globalUrlState.hideNewLayoutIndicator;
 		this.stickySimilarityCard = globalUrlState.stickySimilarityCard;
-		for (const name of globalUrlState.compareSelectedNames) {
-			this.compareSelectedNames.add(name);
+		for (const name of globalUrlState.selectedLayoutNames) {
+			this.selectedLayoutNames.add(name);
 		}
 
 		const include = url.searchParams.get('include');
@@ -433,7 +433,7 @@ export class FilterStore {
 		} else if (
 			!this.activeSavedFilterId &&
 			url.searchParams.get('showSelected') === '1' &&
-			this.compareSelectedNames.size > 0
+			this.selectedLayoutNames.size > 0
 		) {
 			this.includeSelectedInResults = true;
 		}
@@ -608,7 +608,7 @@ export class FilterStore {
 			hideLayoutLikes: this.hideLayoutLikes,
 			hideNewLayoutIndicator: this.hideNewLayoutIndicator,
 			stickySimilarityCard: this.stickySimilarityCard,
-			compareSelectedNames: this.compareSelectedNames
+			selectedLayoutNames: this.selectedLayoutNames
 		});
 	}
 
@@ -618,7 +618,7 @@ export class FilterStore {
 		url.search = '';
 
 		// Clean saved view: filters live in localStorage, while global settings and
-		// compare selections remain URL-backed.
+		// Layout selections remain URL-backed.
 		if (this.activeSavedFilterId && !this.isActiveSavedViewDirty) {
 			writeSavedViewUrlState(url.searchParams, this.activeSavedFilterId, undefined);
 			this.#writeGlobalUrlState(url.searchParams);
@@ -674,7 +674,7 @@ export class FilterStore {
 			);
 		} else if (this.layoutSource === 'selected') {
 			url.searchParams.set('source', 'selected');
-		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
+		} else if (this.includeSelectedInResults && this.selectedLayoutNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
 		}
 
@@ -1261,20 +1261,20 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	toggleCompareLayout(name: string) {
-		if (this.compareSelectedNames.has(name)) {
-			this.compareSelectedNames.delete(name);
-			if (this.compareSelectedNames.size === 0) {
+	toggleSelectedLayout(name: string) {
+		if (this.selectedLayoutNames.has(name)) {
+			this.selectedLayoutNames.delete(name);
+			if (this.selectedLayoutNames.size === 0) {
 				this.includeSelectedInResults = false;
 			}
 		} else {
-			this.compareSelectedNames.add(name);
+			this.selectedLayoutNames.add(name);
 		}
 		this.#saveToUrl();
 	}
 
-	clearCompareLayouts() {
-		this.compareSelectedNames.clear();
+	clearSelectedLayouts() {
+		this.selectedLayoutNames.clear();
 		this.includeSelectedInResults = false;
 		// Push so Back can restore the previous selection.
 		this.#saveToUrl({ history: 'push' });
@@ -1630,11 +1630,11 @@ export class FilterStore {
 	}
 
 	/**
-	 * Save the compare-selected layouts as a named view whose source is those names.
+	 * Save the selected layouts as a named view whose source is those names.
 	 * Activates the new view against the All layouts pool.
 	 */
 	saveSelectedLayoutsAsView(name: string): string | null {
-		const selected = [...this.compareSelectedNames];
+		const selected = [...this.selectedLayoutNames];
 		if (selected.length === 0) return null;
 
 		const snapshot = createDefaultViewSnapshot();
@@ -1649,7 +1649,7 @@ export class FilterStore {
 	}
 
 	toggleIncludeSelectedInResults() {
-		if (this.compareSelectedNames.size === 0 || this.layoutSource === 'selected') {
+		if (this.selectedLayoutNames.size === 0 || this.layoutSource === 'selected') {
 			this.includeSelectedInResults = false;
 			this.#saveToUrl();
 			return;
@@ -1658,29 +1658,29 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
-	/** Swap the first two compare selections (new ↔ old). */
-	swapCompareLayouts() {
-		const names = [...this.compareSelectedNames];
+	/** Swap the first two selected layouts (new ↔ old). */
+	swapSelectedLayouts() {
+		const names = [...this.selectedLayoutNames];
 		if (names.length < 2) return;
 		const [first, second, ...rest] = names;
-		this.compareSelectedNames.clear();
+		this.selectedLayoutNames.clear();
 		for (const name of [second, first, ...rest]) {
-			this.compareSelectedNames.add(name);
+			this.selectedLayoutNames.add(name);
 		}
 		this.#saveToUrl();
 	}
 
-	/** Drop compare selections whose layouts are no longer in the catalog. */
-	pruneCompareLayouts(existingNames: ReadonlySet<string>) {
-		if (this.compareSelectedNames.size === 0) return;
+	/** Drop selected layouts that are no longer in the catalog. */
+	pruneSelectedLayouts(existingNames: ReadonlySet<string>) {
+		if (this.selectedLayoutNames.size === 0) return;
 		let removed = false;
-		for (const name of [...this.compareSelectedNames]) {
+		for (const name of [...this.selectedLayoutNames]) {
 			if (!existingNames.has(name)) {
-				this.compareSelectedNames.delete(name);
+				this.selectedLayoutNames.delete(name);
 				removed = true;
 			}
 		}
-		if (this.compareSelectedNames.size === 0 && this.includeSelectedInResults) {
+		if (this.selectedLayoutNames.size === 0 && this.includeSelectedInResults) {
 			this.includeSelectedInResults = false;
 			removed = true;
 		}
@@ -1897,7 +1897,7 @@ export class FilterStore {
 			layouts,
 			{
 				layoutSource: this.layoutSource,
-				compareSelectedNames: this.compareSelectedNames,
+				selectedLayoutNames: this.selectedLayoutNames,
 				sourceLayoutNames: this.activeSourceLayoutNameSet,
 				showUnfinished: this.showUnfinished,
 				thumbKeyFilter: this.thumbKeyFilter,

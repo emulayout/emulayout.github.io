@@ -43,7 +43,7 @@
 
 	/** Modal-local analyzer; does not write back to page filters. */
 	let compareAnalyzer = $state<StatsAnalyzer>(DEFAULT_STATS_ANALYZER);
-	/** Modal-local view pair; autocomplete commits these without touching compare selection. */
+	/** Modal-local view pair; autocomplete commits these without touching layout selection. */
 	let leftName = $state<string | null>(null);
 	let rightName = $state<string | null>(null);
 	/** Ephemeral highlight while browsing autocomplete; Escape/blur reverts to committed. */
@@ -59,7 +59,7 @@
 	/** First two checked layouts — only used to seed the local view pair. */
 	const selectedPairNames = $derived.by((): [string | null, string | null] => {
 		const names: string[] = [];
-		for (const name of filterStore.compareSelectedNames) {
+		for (const name of filterStore.selectedLayoutNames) {
 			if (layoutByName.has(name)) names.push(name);
 			if (names.length >= 2) break;
 		}
@@ -69,7 +69,7 @@
 	/** All checked layouts available as empty-slot quick picks. */
 	const selectedQuickNames = $derived.by((): string[] => {
 		const names: string[] = [];
-		for (const name of filterStore.compareSelectedNames) {
+		for (const name of filterStore.selectedLayoutNames) {
 			if (layoutByName.has(name)) names.push(name);
 		}
 		return names;

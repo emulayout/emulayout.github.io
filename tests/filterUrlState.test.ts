@@ -10,7 +10,7 @@ describe('saved-view URL ownership', () => {
 	test('does not treat global URL state as a saved-view filter override', () => {
 		const params = new URLSearchParams({
 			view: 'my-view',
-			compare: 'Colemak,Canary',
+			selected: 'Colemak,Canary',
 			analyzer: 'cyanophage',
 			stats: '0',
 			testArea: '0',
@@ -51,10 +51,11 @@ describe('global filter URL state', () => {
 			hideLayoutLikes: true,
 			hideNewLayoutIndicator: true,
 			stickySimilarityCard: false,
-			compareSelectedNames: ['Colemak', 'Canary']
+			selectedLayoutNames: ['Colemak', 'Canary']
 		});
 
 		expect(params.get('view')).toBe('my-view');
+		expect(params.get('selected')).toBe('Colemak,Canary');
 		expect(readGlobalFilterUrlState(params)).toEqual({
 			statsAnalyzer: 'cyanophage',
 			hideLayoutStats: true,
@@ -62,14 +63,21 @@ describe('global filter URL state', () => {
 			hideLayoutLikes: true,
 			hideNewLayoutIndicator: true,
 			stickySimilarityCard: false,
-			compareSelectedNames: ['Colemak', 'Canary']
+			selectedLayoutNames: ['Colemak', 'Canary']
 		});
+	});
+
+	test('does not restore the obsolete compare parameter', () => {
+		expect(
+			readGlobalFilterUrlState(new URLSearchParams({ compare: 'Colemak' })).selectedLayoutNames
+		).toEqual([]);
 	});
 
 	test('omits default global settings', () => {
 		const params = new URLSearchParams({
 			analyzer: 'mana2',
 			stats: '0',
+			selected: 'Canary',
 			compare: 'Colemak'
 		});
 
@@ -80,7 +88,7 @@ describe('global filter URL state', () => {
 			hideLayoutLikes: false,
 			hideNewLayoutIndicator: false,
 			stickySimilarityCard: true,
-			compareSelectedNames: []
+			selectedLayoutNames: []
 		});
 
 		expect(params.toString()).toBe('');
