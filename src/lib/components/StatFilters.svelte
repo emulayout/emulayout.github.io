@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
 	import { getStatFilterSectionSummary } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -441,41 +442,19 @@
 	<div class="filter-section-header">
 		<span class="filter-section-header-label">Analyzer filters</span>
 	</div>
-	<div
-		class="stat-analyzer-tabs"
-		style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-		role="tablist"
-		aria-label="Analyzer filters"
-	>
-		{#each STAT_ANALYZERS as analyzerDef (analyzerDef.value)}
-			{@const selected = selectedAnalyzer === analyzerDef.value}
-			{@const hasFilters = analyzerIsActive(analyzerDef.value)}
-			<button
-				type="button"
-				role="tab"
-				id="stat-filters-tab-{analyzerDef.value}"
-				aria-selected={selected}
-				aria-controls="stat-filters-tabpanel"
-				tabindex={selected ? 0 : -1}
-				class="stat-analyzer-tab"
-				class:stat-analyzer-tab--selected={selected}
-				class:stat-analyzer-tab--cmini={analyzerDef.value === DEFAULT_STATS_ANALYZER}
-				class:stat-analyzer-tab--cyanophage={analyzerDef.value === CYANOPHAGE_ANALYZER}
-				class:stat-analyzer-tab--mana2={analyzerDef.value === MANA2_ANALYZER}
-				onclick={() => (selectedAnalyzer = analyzerDef.value)}
-			>
-				<span>{analyzerDef.shortLabel}</span>
-				{#if hasFilters}
-					<span class="stat-analyzer-tab-dot" aria-hidden="true"></span>
-					<span class="sr-only">Has active filters</span>
-				{/if}
-			</button>
-		{/each}
-	</div>
+	<AnalyzerTabs
+		variant="filters"
+		ariaLabel="Analyzer filters"
+		value={selectedAnalyzer}
+		onChange={(next) => (selectedAnalyzer = next)}
+		isActive={analyzerIsActive}
+		idPrefix="stat-filters-tab"
+		controls="stat-filters-tabpanel"
+	/>
 
 	<div
 		id="stat-filters-tabpanel"
-		role="tabpanel"
+		role="region"
 		aria-labelledby="stat-filters-tab-{selectedAnalyzer}"
 	>
 		{@render analyzerPanel(selectedAnalyzer, selectedAnalyzerDef.shortLabel)}
@@ -496,87 +475,6 @@
 
 	.stat-filters > :global(.filter-section-header) {
 		margin-bottom: 0;
-	}
-
-	.stat-analyzer-tabs {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.25rem;
-		padding: 0.25rem;
-		border-radius: 0.5rem;
-		flex-shrink: 0;
-	}
-
-	.stat-analyzer-tab {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.375rem;
-		min-width: 0;
-		padding: 0.4375rem 0.375rem;
-		border: 1px solid transparent;
-		border-radius: 0.5rem;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 500;
-		line-height: 1.25;
-		cursor: pointer;
-		transition:
-			background-color 0.15s ease,
-			border-color 0.15s ease,
-			color 0.15s ease;
-	}
-
-	.stat-analyzer-tab:hover {
-		color: var(--text-primary);
-	}
-
-	.stat-analyzer-tab:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-
-	.stat-analyzer-tab--selected {
-		background-color: var(--bg-secondary);
-		border-color: var(--border);
-		color: var(--text-primary);
-		font-weight: 600;
-	}
-
-	.stat-analyzer-tab--cmini.stat-analyzer-tab--selected {
-		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
-		box-shadow: inset 0 -2px 0 var(--analyzer-cmini);
-	}
-
-	.stat-analyzer-tab--cyanophage.stat-analyzer-tab--selected {
-		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
-		box-shadow: inset 0 -2px 0 var(--analyzer-cyanophage);
-	}
-
-	.stat-analyzer-tab--mana2.stat-analyzer-tab--selected {
-		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
-		box-shadow: inset 0 -2px 0 var(--analyzer-mana2);
-	}
-
-	.stat-analyzer-tab-dot {
-		width: 0.375rem;
-		height: 0.375rem;
-		border-radius: 9999px;
-		background-color: var(--filter-active-dot);
-		flex-shrink: 0;
-	}
-
-	.stat-analyzer-tab--cmini .stat-analyzer-tab-dot {
-		background-color: var(--analyzer-cmini);
-	}
-
-	.stat-analyzer-tab--cyanophage .stat-analyzer-tab-dot {
-		background-color: var(--analyzer-cyanophage);
-	}
-
-	.stat-analyzer-tab--mana2 .stat-analyzer-tab-dot {
-		background-color: var(--analyzer-mana2);
 	}
 
 	.stat-analyzer-panel {

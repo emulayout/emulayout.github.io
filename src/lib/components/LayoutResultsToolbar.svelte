@@ -5,6 +5,7 @@
 		getActiveFilterChips,
 		type ActiveFilterChip
 	} from '$lib/filterSummaries';
+	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
@@ -12,9 +13,7 @@
 		DEFAULT_STATS_ANALYZER,
 		getHiddenAnalyzerFilterCaution,
 		getStatSortFieldsForAnalyzer,
-		MANA2_ANALYZER,
-		STAT_ANALYZERS,
-		type StatsAnalyzerMode
+		MANA2_ANALYZER
 	} from '$lib/layoutStats';
 
 	interface Props {
@@ -132,30 +131,12 @@
 					<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
 				{/if}
 			</span>
-			<div
-				class="results-analyzer-tabs"
-				style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-				role="tablist"
-				aria-label="Analyzer"
-			>
-				{#each STAT_ANALYZERS as analyzerDef (analyzerDef.value)}
-					{@const selected = filterStore.statsAnalyzer === analyzerDef.value}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={selected}
-						tabindex={selected ? 0 : -1}
-						class="results-analyzer-tab"
-						class:results-analyzer-tab--selected={selected}
-						class:results-analyzer-tab--cmini={analyzerDef.value === DEFAULT_STATS_ANALYZER}
-						class:results-analyzer-tab--cyanophage={analyzerDef.value === CYANOPHAGE_ANALYZER}
-						class:results-analyzer-tab--mana2={analyzerDef.value === MANA2_ANALYZER}
-						onclick={() => filterStore.setStatsAnalyzer(analyzerDef.value as StatsAnalyzerMode)}
-					>
-						{analyzerDef.shortLabel}
-					</button>
-				{/each}
-			</div>
+			<AnalyzerTabs
+				variant="toolbar"
+				ariaLabel="Analyzer"
+				value={filterStore.statsAnalyzer}
+				onChange={(next) => filterStore.setStatsAnalyzer(next)}
+			/>
 		</div>
 	</div>
 
@@ -389,68 +370,6 @@
 		white-space: nowrap;
 	}
 
-	.results-analyzer-tabs {
-		display: inline-grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.125rem;
-		padding: 0.125rem;
-		border-radius: 0.375rem;
-	}
-
-	.results-analyzer-tab {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 3.5rem;
-		padding: 0.125rem 0.4rem;
-		border: 1px solid transparent;
-		border-radius: 0.25rem;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 500;
-		line-height: 1.2;
-		cursor: pointer;
-		transition:
-			background-color 0.15s ease,
-			border-color 0.15s ease,
-			color 0.15s ease;
-	}
-
-	.results-analyzer-tab:hover {
-		color: var(--text-primary);
-	}
-
-	.results-analyzer-tab:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-
-	.results-analyzer-tab--selected {
-		font-weight: 600;
-		color: var(--text-primary);
-		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
-		border-color: var(--border);
-	}
-
-	.results-analyzer-tab--cmini.results-analyzer-tab--selected {
-		color: var(--analyzer-cmini);
-		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
-		background-color: color-mix(in srgb, var(--analyzer-cmini) 14%, var(--bg-primary));
-	}
-
-	.results-analyzer-tab--cyanophage.results-analyzer-tab--selected {
-		color: var(--analyzer-cyanophage);
-		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
-		background-color: color-mix(in srgb, var(--analyzer-cyanophage) 14%, var(--bg-primary));
-	}
-
-	.results-analyzer-tab--mana2.results-analyzer-tab--selected {
-		color: var(--analyzer-mana2);
-		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
-		background-color: color-mix(in srgb, var(--analyzer-mana2) 14%, var(--bg-primary));
-	}
-
 	.results-toolbar {
 		display: flex;
 		flex-wrap: wrap;
@@ -507,13 +426,8 @@
 			width: 100%;
 		}
 
-		.results-analyzer-tabs {
-			display: grid;
+		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar) {
 			flex: 1 1 auto;
-			min-width: 0;
-		}
-
-		.results-analyzer-tab {
 			min-width: 0;
 		}
 
