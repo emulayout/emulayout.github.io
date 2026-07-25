@@ -6,6 +6,7 @@
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
+	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { analyzersNeededForLoad, isAnalyzerStatsReady } from '$lib/layoutStats';
@@ -19,6 +20,7 @@
 		sortLayoutsBySimilarity,
 		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
+	import type { LayoutListItem } from '$lib/layoutList';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -32,6 +34,7 @@
 	let deleteSavedFilterId = $state<string | null>(null);
 	let deleteSavedFilterName = $state('');
 	let showSharedViewModal = $state(false);
+	let showSaveSelectedViewModal = $state(false);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	let likesLoading = $state(false);
 	const statsReady = $derived(
@@ -166,7 +169,7 @@
 	const filteredResult = $derived.by(() => {
 		if (resultsPending) {
 			return {
-				layouts: [] as typeof layouts,
+				items: [] as LayoutListItem[],
 				forceIncludedNames: new Set<string>(),
 				hiddenSelectedCount: 0
 			};
@@ -226,17 +229,36 @@
 			? sorted.filter((layout) => layout.name !== referenceName)
 			: sorted;
 
+		const sourceNames = filterStore.activeSourceLayoutNames;
+		let items: LayoutListItem[];
+		if (sourceNames !== null) {
+			const byName = new Map(layoutsForList.map((layout) => [layout.name, layout]));
+			const catalogNames = new Set(layouts.map((layout) => layout.name));
+			items = [];
+			for (const name of sourceNames) {
+				if (name === referenceName) continue;
+				const hit = byName.get(name);
+				if (hit) {
+					items.push({ kind: 'layout', layout: hit });
+				} else if (!catalogNames.has(name)) {
+					items.push({ kind: 'missing', name });
+				}
+			}
+		} else {
+			items = layoutsForList.map((layout) => ({ kind: 'layout' as const, layout }));
+		}
+
 		return {
-			layouts: layoutsForList,
+			items,
 			forceIncludedNames: forceIncluded,
 			hiddenSelectedCount
 		};
 	});
 
-	const filteredLayouts = $derived(filteredResult.layouts);
+	const filteredItems = $derived(filteredResult.items);
 	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
 	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
-	const filteredCount = $derived(filteredLayouts.length);
+	const filteredCount = $derived(filteredItems.length);
 	const compareSelectedCount = $derived(filterStore.compareSelectedNames.size);
 	const allTabSelected = $derived(
 		filterStore.layoutSource === 'all' && !filterStore.activeSavedFilterId
@@ -372,7 +394,7 @@
 						</div>
 					{:else if !resultsPending}
 						<LayoutCardList
-							layouts={filteredLayouts}
+							items={filteredItems}
 							similarReference={similarReferenceLayout}
 							{forceIncludedNames}
 							{getAuthorName}
@@ -381,30 +403,60 @@
 							{similarityMatches}
 							similarDiffPositions={similarReferenceForCompare?.positionBySlot}
 							similarMirrorDiffPositions={mirroredReferencePositions}
+							onRemoveMissingLayout={(name) =>
+								filterStore.removeLayoutFromActiveSavedView(name)}
 						/>
 					{/if}
 				</div>
-				{#if filterStore.layoutSource === 'all' && compareSelectedCount > 0 && (filterStore.includeSelectedInResults || hiddenSelectedCount > 0)}
+				{#if filterStore.layoutSource !== 'selected' && compareSelectedCount > 0}
 					<div class="compare-fab" role="presentation">
 						<div class="compare-fab-group">
+							{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
+								<button
+									type="button"
+									class="compare-fab-button"
+									class:compare-fab-button--active={filterStore.includeSelectedInResults}
+									aria-pressed={filterStore.includeSelectedInResults}
+									aria-label={filterStore.includeSelectedInResults
+										? 'Always showing selected'
+										: `Show (${hiddenSelectedCount}) non-matching selected`}
+									onclick={() => filterStore.toggleIncludeSelectedInResults()}
+								>
+									{#if filterStore.includeSelectedInResults}
+										Always showing selected layouts
+									{:else}
+										Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount ===
+										1
+											? ''
+											: 's'}
+									{/if}
+								</button>
+							{/if}
 							<button
 								type="button"
 								class="compare-fab-button"
-								class:compare-fab-button--active={filterStore.includeSelectedInResults}
-								aria-pressed={filterStore.includeSelectedInResults}
-								aria-label={filterStore.includeSelectedInResults
-									? 'Always showing selected'
-									: `Show (${hiddenSelectedCount}) non-matching selected`}
-								onclick={() => filterStore.toggleIncludeSelectedInResults()}
+								aria-label="Save selected as view"
+								onclick={() => (showSaveSelectedViewModal = true)}
 							>
-								{#if filterStore.includeSelectedInResults}
-									Always showing selected layouts
-								{:else}
-									Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount ===
-									1
-										? ''
-										: 's'}
-								{/if}
+								Save selected as view
+							</button>
+							<button
+								type="button"
+								class="compare-fab-icon-button"
+								aria-label="Clear selected layouts"
+								title="Clear selected layouts"
+								onclick={() => filterStore.clearCompareLayouts()}
+							>
+								<svg
+									class="size-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+								</svg>
 							</button>
 						</div>
 					</div>
@@ -461,6 +513,12 @@
 		showSharedViewModal = false;
 		filterStore.clearPendingSharedView();
 	}}
+/>
+
+<SaveFilterModal
+	open={showSaveSelectedViewModal}
+	mode="selected"
+	onClose={() => (showSaveSelectedViewModal = false)}
 />
 
 <style>
@@ -674,7 +732,29 @@
 		padding-right: 0.625rem;
 	}
 
-	.compare-fab-button:hover {
+	.compare-fab-icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		padding: 0;
+		border-radius: 9999px;
+		font-size: 0.8125rem;
+		cursor: pointer;
+		color: var(--text-primary);
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border);
+		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease,
+			box-shadow 0.15s ease;
+	}
+
+	.compare-fab-button:hover,
+	.compare-fab-icon-button:hover {
 		border-color: var(--accent);
 		color: var(--accent);
 	}
@@ -684,6 +764,14 @@
 		border-color: var(--accent);
 		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
 		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
+	}
+
+	.compare-fab-button:focus-visible,
+	.compare-fab-icon-button:focus-visible {
+		outline: none;
+		box-shadow:
+			0 0 0 2px var(--accent),
+			0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
 	}
 
 	.page-root {

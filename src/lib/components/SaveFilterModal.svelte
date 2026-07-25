@@ -5,14 +5,17 @@
 	interface Props {
 		open: boolean;
 		onClose: () => void;
+		/** `current` saves active filters; `selected` saves compare-selected layouts as the view source. */
+		mode?: 'current' | 'selected';
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, onClose, mode = 'current' }: Props = $props();
 
 	let name = $state('');
 	let nameInput = $state<HTMLInputElement | undefined>(undefined);
 
 	const canSave = $derived(name.trim().length > 0);
+	const title = $derived(mode === 'selected' ? 'Save selected as view' : 'Save as view');
 
 	$effect(() => {
 		if (!open) {
@@ -28,7 +31,11 @@
 	function submit() {
 		const trimmed = name.trim();
 		if (!trimmed) return;
-		filterStore.saveCurrentFilters(trimmed);
+		if (mode === 'selected') {
+			filterStore.saveSelectedLayoutsAsView(trimmed);
+		} else {
+			filterStore.saveCurrentFilters(trimmed);
+		}
 		onClose();
 	}
 
@@ -46,7 +53,7 @@
 		style="border-color: var(--border);"
 	>
 		<h2 id="save-filter-title" class="text-lg font-semibold" style="color: var(--text-primary);">
-			Save as view
+			{title}
 		</h2>
 		<button
 			type="button"
@@ -79,6 +86,14 @@
 				"
 			/>
 		</label>
+		{#if mode === 'selected'}
+			<p class="mt-2 text-sm" style="color: var(--text-secondary);">
+				Saves a view whose source is the {filterStore.compareSelectedNames.size} selected layout{filterStore
+					.compareSelectedNames.size === 1
+					? ''
+					: 's'}.
+			</p>
+		{/if}
 	</div>
 
 	<div

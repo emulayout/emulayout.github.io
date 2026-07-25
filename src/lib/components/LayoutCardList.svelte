@@ -1,8 +1,14 @@
 <script lang="ts">
 	import LayoutCard from './LayoutCard.svelte';
+	import MissingLayoutCard from './MissingLayoutCard.svelte';
 	import { VList, WindowVirtualizer } from 'virtua/svelte';
 	import { getLayoutCardItemSize, LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
+	import {
+		layoutListItemKey,
+		layoutListItemName,
+		type LayoutListItem
+	} from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
@@ -14,7 +20,7 @@
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 
 	interface Props {
-		layouts: LayoutData[];
+		items: LayoutListItem[];
 		/** Similarity reference — sticky column at lg+, else first card in the list. */
 		similarReference?: LayoutData | null;
 		/** Layouts injected into results despite failing filters. */
@@ -27,10 +33,11 @@
 		similarDiffPositions?: Map<string, string>;
 		/** Mirrored reference slots when a result's best match is mirrored. */
 		similarMirrorDiffPositions?: Map<string, string> | null;
+		onRemoveMissingLayout?: (name: string) => void;
 	}
 
 	const {
-		layouts,
+		items,
 		similarReference = null,
 		forceIncludedNames = new Set(),
 		getAuthorName,
@@ -38,7 +45,8 @@
 		statsMaps,
 		similarityMatches = new Map(),
 		similarDiffPositions,
-		similarMirrorDiffPositions = null
+		similarMirrorDiffPositions = null,
+		onRemoveMissingLayout
 	}: Props = $props();
 
 	let virtualizer = $state<{
@@ -73,10 +81,10 @@
 		return count;
 	});
 
-	const listLayouts = $derived.by(() => {
-		if (!similarReference) return layouts;
-		if (stickyReference) return layouts;
-		return [similarReference, ...layouts];
+	const listItems = $derived.by(() => {
+		if (!similarReference) return items;
+		if (stickyReference) return items;
+		return [{ kind: 'layout' as const, layout: similarReference }, ...items];
 	});
 
 	const mana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
@@ -101,7 +109,7 @@
 	// Store row start indices as integers to avoid object allocation
 	const rows = $derived.by(() => {
 		const result: number[] = [];
-		for (let i = 0; i < listLayouts.length; i += columns) {
+		for (let i = 0; i < listItems.length; i += columns) {
 			result.push(i);
 		}
 		return result;
@@ -140,7 +148,7 @@
 		const name = filterStore.focusLayoutName;
 		if (!name) return;
 
-		const layoutIndex = listLayouts.findIndex((layout) => layout.name === name);
+		const layoutIndex = listItems.findIndex((item) => layoutListItemName(item) === name);
 		if (layoutIndex === -1) {
 			filterStore.clearFocusLayout();
 			return;
@@ -159,7 +167,12 @@
 	// Include the first layout name so sort/filter reorders change keys. Index-only keys
 	// leave virtua's rows mounted with stale cards (highlights update, order does not).
 	function rowKey(startIndex: number): string {
-		return `${columns}:${cardItemSize}:${startIndex}:${listLayouts[startIndex]?.name ?? ''}`;
+		const first = listItems[startIndex];
+		return `${columns}:${cardItemSize}:${startIndex}:${first ? layoutListItemKey(first) : ''}`;
+	}
+
+	function handleRemoveMissing(name: string) {
+		onRemoveMissingLayout?.(name);
 	}
 </script>
 
@@ -189,12 +202,16 @@
 {/snippet}
 
 {#snippet row(startIndex: number)}
-	{@const end = Math.min(startIndex + columns, listLayouts.length)}
-	{@const rowItems = listLayouts.slice(startIndex, end)}
+	{@const end = Math.min(startIndex + columns, listItems.length)}
+	{@const rowItems = listItems.slice(startIndex, end)}
 
 	<div class="layout-card-row grid gap-3 mb-3" style="grid-template-columns: repeat({columns}, 1fr);">
-		{#each rowItems as layout (layout.name)}
-			{@render layoutCard(layout)}
+		{#each rowItems as item (layoutListItemKey(item))}
+			{#if item.kind === 'layout'}
+				{@render layoutCard(item.layout)}
+			{:else}
+				<MissingLayoutCard name={item.name} onRemove={handleRemoveMissing} />
+			{/if}
 		{/each}
 	</div>
 {/snippet}

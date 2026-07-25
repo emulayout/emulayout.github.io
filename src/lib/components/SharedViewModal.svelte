@@ -18,12 +18,18 @@
 
 	const pending = $derived(filterStore.pendingSharedView);
 	const canSave = $derived(viewName.trim().length > 0);
+	const isSelectionView = $derived(
+		Boolean(pending?.sourceLayoutNames && pending.sourceLayoutNames.length > 0)
+	);
 
 	const chips = $derived.by(() => {
 		if (!pending) return [];
 		return getActiveFilterChips(
 			chipSourceFromViewSnapshot(pending.snapshot, {
-				canUseLikes: filterStore.canUseLikes
+				canUseLikes: filterStore.canUseLikes,
+				...(pending.sourceLayoutNames !== undefined
+					? { sourceLayoutNames: pending.sourceLayoutNames }
+					: {})
 			})
 		);
 	});
@@ -44,7 +50,7 @@
 
 	function handleApply() {
 		if (!pending) return;
-		filterStore.applySharedViewToAll(pending.snapshot);
+		filterStore.applySharedViewToAll(pending.snapshot, pending.sourceLayoutNames);
 		onClose();
 	}
 
@@ -52,7 +58,7 @@
 		if (!pending) return;
 		const trimmed = viewName.trim();
 		if (!trimmed) return;
-		filterStore.saveSharedViewAsView(trimmed, pending.snapshot);
+		filterStore.saveSharedViewAsView(trimmed, pending.snapshot, pending.sourceLayoutNames);
 		onClose();
 	}
 
@@ -128,9 +134,11 @@
 	</div>
 
 	<div class="shared-view-actions border-t px-5 py-4" style="border-color: var(--border);">
-		<button type="button" class="filter-reset-button shared-view-button" onclick={handleApply}>
-			Apply filters
-		</button>
+		{#if !isSelectionView}
+			<button type="button" class="filter-reset-button shared-view-button" onclick={handleApply}>
+				Apply filters
+			</button>
+		{/if}
 		<div class="shared-view-actions-end">
 			<button type="button" class="filter-reset-button shared-view-button" onclick={handleCancel}>
 				Cancel

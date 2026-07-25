@@ -5,6 +5,7 @@
 		getActiveFilterChips,
 		type ActiveFilterChip
 	} from '$lib/filterSummaries';
+	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		CYANOPHAGE_ANALYZER,
@@ -25,6 +26,8 @@
 
 	const filterChips = $derived.by(() => {
 		void filterStore.appliedFiltersRevision;
+		void filterStore.hasCustomSourceSelection;
+		void filterStore.sourceLayoutCount;
 		return getActiveFilterChips(filterStore);
 	});
 	const monkeySortFields = $derived(getStatSortFieldsForAnalyzer(DEFAULT_STATS_ANALYZER));
@@ -67,6 +70,10 @@
 	}
 
 	function openChip(chip: ActiveFilterChip) {
+		if (chip.focus.target === 'source') {
+			filterStore.openSourceSelectionModal();
+			return;
+		}
 		filterStore.requestFilterFocus(chip.focus);
 	}
 
@@ -240,6 +247,8 @@
 		</div>
 	</div>
 </div>
+
+<SourceSelectionModal />
 
 <style>
 	.results-toolbar-shell {

@@ -6,11 +6,23 @@ export interface SavedFilter {
 	id: string;
 	name: string;
 	snapshot: ViewFilterSnapshot;
+	/** Explicit layout membership for this view (sorted). When set, the catalog is filtered to these names. */
+	sourceLayoutNames?: string[];
 	createdAt: number;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseSourceLayoutNames(value: unknown): string[] | undefined {
+	if (!Array.isArray(value)) return undefined;
+	return sortLayoutSourceNames(
+		value
+			.filter((entry): entry is string => typeof entry === 'string')
+			.map((entry) => entry.trim())
+			.filter((entry) => entry.length > 0)
+	);
 }
 
 /** Light shape check — drop entries that clearly cannot restore. */
@@ -37,12 +49,18 @@ export function loadSavedFilters(): SavedFilter[] {
 		if (!raw) return [];
 		const parsed = JSON.parse(raw) as unknown;
 		if (!Array.isArray(parsed)) return [];
-		return parsed.filter(isSavedFilter).map((entry) => ({
-			id: entry.id,
-			name: entry.name.trim(),
-			snapshot: entry.snapshot,
-			createdAt: entry.createdAt
-		}));
+		return parsed.filter(isSavedFilter).map((entry) => {
+			const sourceLayoutNames = Array.isArray(entry.sourceLayoutNames)
+				? (parseSourceLayoutNames(entry.sourceLayoutNames) ?? [])
+				: undefined;
+			return {
+				id: entry.id,
+				name: entry.name.trim(),
+				snapshot: entry.snapshot,
+				...(sourceLayoutNames !== undefined ? { sourceLayoutNames } : {}),
+				createdAt: entry.createdAt
+			};
+		});
 	} catch {
 		return [];
 	}
@@ -65,4 +83,9 @@ export function createSavedFilterId(): string {
 		return crypto.randomUUID();
 	}
 	return `saved-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Stable alphabetical sort for view source membership. */
+export function sortLayoutSourceNames(names: Iterable<string>): string[] {
+	return [...names].map((name) => name.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b));
 }

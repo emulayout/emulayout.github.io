@@ -47,12 +47,15 @@ export type FilterChipSource = {
 	hasSimilarReference: boolean;
 	similarityFilterOperator: StatLimitOperator;
 	appliedSimilarityFilterValue: string;
+	hasCustomSourceSelection: boolean;
+	sourceLayoutCount: number;
 };
 
 export function chipSourceFromViewSnapshot(
 	snapshot: ViewFilterSnapshot,
-	options?: { canUseLikes?: boolean }
+	options?: { canUseLikes?: boolean; sourceLayoutNames?: string[] }
 ): FilterChipSource {
+	const sourceLayoutNames = options?.sourceLayoutNames;
 	return {
 		nameFilter: snapshot.nameFilter,
 		selectedAuthors: { size: snapshot.selectedAuthors.length },
@@ -74,7 +77,9 @@ export function chipSourceFromViewSnapshot(
 		canUseLikes: options?.canUseLikes ?? true,
 		hasSimilarReference: snapshot.similarReferenceName !== null,
 		similarityFilterOperator: snapshot.similarityFilterOperator,
-		appliedSimilarityFilterValue: snapshot.appliedSimilarityFilterValue
+		appliedSimilarityFilterValue: snapshot.appliedSimilarityFilterValue,
+		hasCustomSourceSelection: sourceLayoutNames !== undefined,
+		sourceLayoutCount: sourceLayoutNames?.length ?? 0
 	};
 }
 
@@ -338,6 +343,7 @@ export function getKeyboardFiltersSummary(store: FilterStore): string {
 export type FilterChipTone = 'neutral' | 'monkeyracer' | 'cyanophage' | 'mana2';
 
 export type ActiveFilterClearAction =
+	| { kind: 'source' }
 	| { kind: 'name' }
 	| { kind: 'authors' }
 	| { kind: 'thumbKey' }
@@ -360,6 +366,7 @@ export type SidebarFilterField = 'name' | 'authors' | 'similarity';
 
 /** Request to open a filter UI and focus a specific control. */
 export type FilterFocusRequest =
+	| { target: 'source' }
 	| { target: 'sidebar'; field: SidebarFilterField }
 	| { target: 'keyboard'; field: KeyboardFilterField }
 	| { target: 'keys'; kind: KeyFilterKind }
@@ -402,6 +409,19 @@ function toneForAnalyzer(analyzer: StatsAnalyzer): FilterChipTone {
 /** Individual active filters for chip UI in the results toolbar. */
 export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[] {
 	const chips: ActiveFilterChip[] = [];
+
+	if (store.hasCustomSourceSelection) {
+		const count = store.sourceLayoutCount;
+		pushChip(
+			chips,
+			'source',
+			'Source: custom selection',
+			{ kind: 'source' },
+			{ target: 'source' },
+			'neutral',
+			count === 1 ? '1 layout' : `${count} layouts`
+		);
+	}
 
 	const name = store.nameFilter.trim();
 	if (name) {
@@ -622,6 +642,9 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 /** Clear the filter represented by a results-toolbar chip. */
 export function clearActiveFilterChip(store: FilterStore, action: ActiveFilterClearAction): void {
 	switch (action.kind) {
+		case 'source':
+			store.clearSourceSelection();
+			break;
 		case 'name':
 			store.setNameFilter('');
 			break;

@@ -37,11 +37,18 @@
 		Boolean(
 			filterStore.activeSavedFilterId &&
 			!filterStore.isActiveSavedViewDirty &&
-			filterStore.hasActiveFilters
+			(filterStore.hasActiveFilters || filterStore.hasCustomSourceSelection)
 		)
 	);
 	const showViewSplit = $derived(showUpdateSplit || showDuplicateSplit);
 	const showShareButton = $derived(Boolean(filterStore.activeSavedFilterId));
+	/** Selection-only saved views: share is the sole footer action. */
+	const shareOnlyFooter = $derived(
+		showShareButton &&
+			!filterStore.hasActiveFilters &&
+			!showUpdateSplit &&
+			!showDuplicateSplit
+	);
 	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit || showShareButton);
 
 	function exitAdjustMode() {
@@ -275,45 +282,87 @@
 			{/if}
 
 			{#if showShareButton}
-				<button
-					type="button"
-					class="filter-reset-button filters-sidebar-footer-icon"
-					class:filters-sidebar-footer-icon--active={shareCopied}
-					aria-label={shareCopied ? 'Link copied' : 'Share view'}
-					title={shareCopied ? 'Link copied' : 'Share view'}
-					onclick={shareActiveView}
-				>
-					{#if shareCopied}
-						<svg
-							class="filters-sidebar-footer-icon-svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M20 6L9 17l-5-5" />
-						</svg>
-					{:else}
-						<svg
-							class="filters-sidebar-footer-icon-svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<circle cx="18" cy="5" r="3" />
-							<circle cx="6" cy="12" r="3" />
-							<circle cx="18" cy="19" r="3" />
-							<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-						</svg>
-					{/if}
-				</button>
+				{#if shareOnlyFooter}
+					<button
+						type="button"
+						class="filter-reset-button filters-sidebar-footer-button filters-sidebar-footer-primary filters-sidebar-footer-share-label"
+						class:filters-sidebar-footer-icon--active={shareCopied}
+						onclick={shareActiveView}
+					>
+						{#if shareCopied}
+							<svg
+								class="filters-sidebar-footer-icon-svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M20 6L9 17l-5-5" />
+							</svg>
+							Link copied
+						{:else}
+							<svg
+								class="filters-sidebar-footer-icon-svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<circle cx="18" cy="5" r="3" />
+								<circle cx="6" cy="12" r="3" />
+								<circle cx="18" cy="19" r="3" />
+								<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+							</svg>
+							Share view
+						{/if}
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="filter-reset-button filters-sidebar-footer-icon"
+						class:filters-sidebar-footer-icon--active={shareCopied}
+						aria-label={shareCopied ? 'Link copied' : 'Share view'}
+						title={shareCopied ? 'Link copied' : 'Share view'}
+						onclick={shareActiveView}
+					>
+						{#if shareCopied}
+							<svg
+								class="filters-sidebar-footer-icon-svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M20 6L9 17l-5-5" />
+							</svg>
+						{:else}
+							<svg
+								class="filters-sidebar-footer-icon-svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<circle cx="18" cy="5" r="3" />
+								<circle cx="6" cy="12" r="3" />
+								<circle cx="18" cy="19" r="3" />
+								<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+							</svg>
+						{/if}
+					</button>
+				{/if}
 			{/if}
 
 			{#if showUpdateSplit}
@@ -502,14 +551,26 @@
 	}
 
 	.filters-sidebar-footer-button {
+		min-height: 2.5rem;
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.75rem;
 		font-size: 0.875rem;
 	}
 
+	.filters-sidebar-footer-share-label {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+	}
+
 	.filters-sidebar-footer-icon {
 		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		width: 2.5rem;
+		min-height: 2.5rem;
 		padding: 0;
 		border-radius: 0.75rem;
 	}
@@ -535,6 +596,7 @@
 
 	.filters-split-button-main,
 	.filters-split-button-toggle {
+		min-height: 2.5rem;
 		padding: 0.5rem 0.75rem;
 		font-size: 0.875rem;
 	}

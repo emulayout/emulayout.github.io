@@ -51,6 +51,7 @@ import {
 	createSavedFilterId,
 	loadSavedFilters,
 	persistSavedFilters,
+	sortLayoutSourceNames,
 	type SavedFilter
 } from './savedFiltersStorage';
 import {
@@ -134,6 +135,46 @@ const COLS = 10;
 const THUMB_KEYS_PER_HAND = 4;
 const DEBOUNCE_MS = 300;
 
+/**
+ * Filter/sort params that mean a saved view's live state differs from localStorage.
+ * Presence of any of these with `view=` → hydrate filters from the URL (dirty).
+ * `view=` alone → restore the saved snapshot from localStorage (clean).
+ */
+const SAVED_VIEW_FILTER_URL_PARAMS = [
+	'include',
+	'exclude',
+	'includeOr',
+	'showUnfinished',
+	'thumbKeys',
+	'magicKey',
+	'characterSet',
+	'boardType',
+	'name',
+	'authors',
+	'includeLeftThumbs',
+	'includeRightThumbs',
+	'excludeLeftThumbs',
+	'excludeRightThumbs',
+	'includeThumbs',
+	'excludeThumbs',
+	'includeOrLeftThumbs',
+	'includeOrRightThumbs',
+	'sort',
+	'order',
+	'similar',
+	'similarFilter',
+	'similarHome',
+	'similarAnglemod',
+	'similarMirror',
+	'statLimits',
+	'layouts',
+	'showSelected'
+] as const;
+
+function urlHasSavedViewFilterOverrides(url: { searchParams: URLSearchParams }): boolean {
+	return SAVED_VIEW_FILTER_URL_PARAMS.some((key) => url.searchParams.has(key));
+}
+
 function createEmptyThumbKeyFilters(): string[] {
 	return Array.from({ length: THUMB_KEYS_PER_HAND }, () => '');
 }
@@ -199,7 +240,10 @@ function createDefaultViewSnapshot(): ViewFilterSnapshot {
 }
 
 /** Compact query-string encoding of a view snapshot (shareable; not live URL filters). */
-export function encodeViewFilterSnapshot(snapshot: ViewFilterSnapshot): string {
+export function encodeViewFilterSnapshot(
+	snapshot: ViewFilterSnapshot,
+	options?: { sourceLayoutNames?: string[] }
+): string {
 	const params = new URLSearchParams();
 
 	const includeSerialized = serializeGrid(snapshot.appliedIncludeGrid);
@@ -270,13 +314,22 @@ export function encodeViewFilterSnapshot(snapshot: ViewFilterSnapshot): string {
 	const statLimitsSerialized = serializeStatLimits(snapshot.appliedStatLimits);
 	if (statLimitsSerialized) params.set('statLimits', statLimitsSerialized);
 
+	if (options?.sourceLayoutNames && options.sourceLayoutNames.length > 0) {
+		params.set('layouts', sortLayoutSourceNames(options.sourceLayoutNames).join(','));
+	}
+
 	return params.toString();
 }
 
-/** Decode a share `viewFilters` payload into a full view snapshot. */
-export function decodeViewFilterSnapshot(encoded: string): ViewFilterSnapshot {
+export type DecodedViewFilters = {
+	snapshot: ViewFilterSnapshot;
+	sourceLayoutNames?: string[];
+};
+
+/** Decode a share `viewFilters` payload into a full view snapshot (+ optional layout source). */
+export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
 	const snapshot = createDefaultViewSnapshot();
-	if (!encoded.trim()) return snapshot;
+	if (!encoded.trim()) return { snapshot };
 
 	const params = new URLSearchParams(encoded);
 
@@ -415,7 +468,20 @@ export function decodeViewFilterSnapshot(encoded: string): ViewFilterSnapshot {
 		snapshot.appliedStatLimits = deserializeStatLimits(statLimits);
 	}
 
-	return snapshot;
+	const layoutsParam = params.get('layouts');
+	const sourceLayoutNames = layoutsParam
+		? sortLayoutSourceNames(
+				layoutsParam
+					.split(',')
+					.map((name) => name.trim())
+					.filter((name) => name.length > 0)
+			)
+		: undefined;
+
+	return {
+		snapshot,
+		...(sourceLayoutNames && sourceLayoutNames.length > 0 ? { sourceLayoutNames } : {})
+	};
 }
 
 // Serialize grid to compact string: "r0c0,r0c1,r1c2" for non-empty cells
@@ -529,7 +595,24 @@ export class FilterStore {
 	/** When set, a saved-filter tab is active (pool stays `all`). */
 	activeSavedFilterId: string | null = $state(null);
 	/** Shared-view offer from URL params (does not mutate live filters until Apply/Save). */
-	pendingSharedView: { name: string; snapshot: ViewFilterSnapshot } | null = $state(null);
+	pendingSharedView: {
+		name: string;
+		snapshot: ViewFilterSnapshot;
+		sourceLayoutNames?: string[];
+	} | null = $state(null);
+	/**
+	 * Session-only layout membership (e.g. Apply shared view without saving).
+	 * Cleared when activating a saved view or leaving All.
+	 */
+	ephemeralSourceLayoutNames: string[] | null = $state(null);
+	/**
+	 * Session override of layout source membership.
+	 * `undefined` = follow saved/ephemeral; `null` = no source; `string[]` = applied source.
+	 * Persists to localStorage only when the active saved view is updated.
+	 */
+	draftSourceLayoutNames: string[] | null | undefined = $state(undefined);
+	/** Open the source-selection details modal from the filter chip. */
+	showSourceSelectionModal = $state(false);
 	/**
 	 * When true (and source is `all`), inject compare-selected layouts into the result
 	 * list even if they fail other filters.
@@ -616,10 +699,12 @@ export class FilterStore {
 	#persistShouldCommit = false;
 
 	constructor() {
+		if (typeof window !== 'undefined') {
+			this.savedFilters = loadSavedFilters();
+		}
 		this.#loadFromUrl();
 		this.#applyFiltersFromInputs();
 		if (typeof window !== 'undefined') {
-			this.savedFilters = loadSavedFilters();
 			this.consumeSharedViewFromUrl();
 			window.addEventListener('popstate', () => {
 				this.#hydrateFromUrl();
@@ -715,6 +800,24 @@ export class FilterStore {
 	#loadFromUrl() {
 		const url = new SvelteURL(window.location.href);
 
+		const viewId = url.searchParams.get('view')?.trim();
+		if (viewId) {
+			const saved = this.savedFilters.find((entry) => entry.id === viewId);
+			if (saved) {
+				this.layoutSource = 'all';
+				this.activeSavedFilterId = saved.id;
+				this.includeSelectedInResults = false;
+				this.ephemeralSourceLayoutNames = null;
+				this.draftSourceLayoutNames = undefined;
+
+				// Clean saved-view URL: only `view=<id>` — filters come from localStorage.
+				if (!urlHasSavedViewFilterOverrides(url)) {
+					this.#restoreViewFilters(saved.snapshot);
+					return;
+				}
+			}
+		}
+
 		const include = url.searchParams.get('include');
 		if (include) {
 			this.includeGrid = deserializeGrid(include);
@@ -789,13 +892,27 @@ export class FilterStore {
 			}
 		}
 
-		if (url.searchParams.get('source') === 'selected') {
+		if (!this.activeSavedFilterId && url.searchParams.get('source') === 'selected') {
 			this.layoutSource = 'selected';
 		} else if (
+			!this.activeSavedFilterId &&
 			url.searchParams.get('showSelected') === '1' &&
 			this.compareSelectedNames.size > 0
 		) {
 			this.includeSelectedInResults = true;
+		}
+
+		if (this.activeSavedFilterId && url.searchParams.has('layouts')) {
+			const layoutsParam = url.searchParams.get('layouts') ?? '';
+			this.draftSourceLayoutNames =
+				layoutsParam.trim() === ''
+					? null
+					: sortLayoutSourceNames(
+							layoutsParam
+								.split(',')
+								.map((name) => name.trim())
+								.filter(Boolean)
+						);
 		}
 
 		const parseThumbFilters = (value: string | null): string[] =>
@@ -953,6 +1070,21 @@ export class FilterStore {
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
+		// Clean saved view: keep the URL to just the view id (filters live in localStorage).
+		if (this.activeSavedFilterId && !this.isActiveSavedViewDirty) {
+			url.searchParams.set('view', this.activeSavedFilterId);
+			const nextClean = `${url.pathname}${url.search}${url.hash}`;
+			const currentClean = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+			if (historyMode === 'push') {
+				if (nextClean !== currentClean) {
+					pushState(url, page.state);
+				}
+			} else {
+				replaceState(url, page.state);
+			}
+			return;
+		}
+
 		// Filter params use applied (committed) state so the URL matches results/chips.
 		const includeSerialized = serializeGrid(this.appliedIncludeGrid);
 		if (includeSerialized) {
@@ -999,7 +1131,18 @@ export class FilterStore {
 			);
 		}
 
-		if (this.layoutSource === 'selected') {
+		if (this.activeSavedFilterId) {
+			url.searchParams.set('view', this.activeSavedFilterId);
+			// Persist session source overrides (not in the filter snapshot).
+			if (this.draftSourceLayoutNames !== undefined) {
+				url.searchParams.set(
+					'layouts',
+					this.draftSourceLayoutNames === null
+						? ''
+						: this.draftSourceLayoutNames.join(',')
+				);
+			}
+		} else if (this.layoutSource === 'selected') {
 			url.searchParams.set('source', 'selected');
 		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
@@ -1681,6 +1824,8 @@ export class FilterStore {
 		if (this.activeSavedFilterId) {
 			this.#applyFiltersNow();
 			this.activeSavedFilterId = null;
+			this.ephemeralSourceLayoutNames = null;
+			this.draftSourceLayoutNames = undefined;
 			this.layoutSource = source;
 
 			const incoming = this.#viewFilterSnapshots.get(source);
@@ -1703,6 +1848,8 @@ export class FilterStore {
 		// Flush drafts into applied state before snapshotting the outgoing view.
 		this.#applyFiltersNow();
 		this.#viewFilterSnapshots.set(this.layoutSource, this.#captureViewFilters());
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
 
 		this.layoutSource = source;
 
@@ -1731,6 +1878,7 @@ export class FilterStore {
 
 		this.#applyFiltersNow();
 		const snapshot = this.#captureViewFilters();
+		const sourceLayoutNames = this.activeSourceLayoutNames;
 
 		const existingIndex = this.savedFilters.findIndex(
 			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
@@ -1741,13 +1889,28 @@ export class FilterStore {
 			const existing = this.savedFilters[existingIndex];
 			id = existing.id;
 			const next = [...this.savedFilters];
-			next[existingIndex] = { ...existing, name: trimmed, snapshot };
+			next[existingIndex] = {
+				...existing,
+				name: trimmed,
+				snapshot,
+				...(sourceLayoutNames !== null
+					? { sourceLayoutNames: [...sourceLayoutNames] }
+					: { sourceLayoutNames: undefined })
+			};
 			this.savedFilters = next;
 		} else {
 			id = createSavedFilterId();
 			this.savedFilters = [
 				...this.savedFilters,
-				{ id, name: trimmed, snapshot, createdAt: Date.now() }
+				{
+					id,
+					name: trimmed,
+					snapshot,
+					...(sourceLayoutNames !== null
+						? { sourceLayoutNames: [...sourceLayoutNames] }
+						: {}),
+					createdAt: Date.now()
+				}
 			];
 		}
 
@@ -1759,9 +1922,74 @@ export class FilterStore {
 
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = id;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
 		this.includeSelectedInResults = false;
 		this.#saveToUrl();
 		return id;
+	}
+
+	/**
+	 * Sorted layout names that define membership for the active view, or null when
+	 * the catalog is not membership-gated.
+	 */
+	get activeSourceLayoutNames(): string[] | null {
+		if (this.draftSourceLayoutNames !== undefined) {
+			return this.draftSourceLayoutNames;
+		}
+		if (this.activeSavedFilterId) {
+			const saved = this.savedFilters.find((entry) => entry.id === this.activeSavedFilterId);
+			if (!saved || saved.sourceLayoutNames === undefined) return null;
+			return saved.sourceLayoutNames;
+		}
+		return this.ephemeralSourceLayoutNames;
+	}
+
+	get activeSourceLayoutNameSet(): Set<string> | null {
+		const names = this.activeSourceLayoutNames;
+		return names === null ? null : new Set(names);
+	}
+
+	/** True when results are gated by a custom layout source selection. */
+	get hasCustomSourceSelection(): boolean {
+		return this.activeSourceLayoutNames !== null;
+	}
+
+	get sourceLayoutCount(): number {
+		return this.activeSourceLayoutNames?.length ?? 0;
+	}
+
+	/** Drop custom source membership for this session (persist via Update on a saved view). */
+	clearSourceSelection() {
+		this.draftSourceLayoutNames = null;
+		if (!this.activeSavedFilterId) {
+			this.ephemeralSourceLayoutNames = null;
+		}
+		this.showSourceSelectionModal = false;
+	}
+
+	/**
+	 * Apply a source list to the live filter session.
+	 * Saved views stay dirty until Update; localStorage is not written here.
+	 */
+	applySourceSelection(names: Iterable<string>) {
+		const next = sortLayoutSourceNames(names);
+		if (this.activeSavedFilterId) {
+			this.draftSourceLayoutNames = next.length > 0 ? next : null;
+		} else {
+			this.ephemeralSourceLayoutNames = next.length > 0 ? next : null;
+			this.draftSourceLayoutNames = undefined;
+		}
+		this.showSourceSelectionModal = false;
+	}
+
+	openSourceSelectionModal() {
+		if (!this.hasCustomSourceSelection) return;
+		this.showSourceSelectionModal = true;
+	}
+
+	closeSourceSelectionModal() {
+		this.showSourceSelectionModal = false;
 	}
 
 	/** True when the active saved view's filters differ from what was last stored. */
@@ -1770,7 +1998,11 @@ export class FilterStore {
 		if (!id) return false;
 		const saved = this.savedFilters.find((entry) => entry.id === id);
 		if (!saved) return false;
-		return JSON.stringify(this.#captureViewFilters()) !== JSON.stringify(saved.snapshot);
+		if (JSON.stringify(this.#captureViewFilters()) !== JSON.stringify(saved.snapshot)) {
+			return true;
+		}
+		const savedSource = saved.sourceLayoutNames !== undefined ? saved.sourceLayoutNames : null;
+		return JSON.stringify(this.activeSourceLayoutNames) !== JSON.stringify(savedSource);
 	}
 
 	/**
@@ -1793,6 +2025,7 @@ export class FilterStore {
 		if (!saved) return;
 
 		this.#cancelFilterApply();
+		this.draftSourceLayoutNames = undefined;
 		this.#restoreViewFilters(saved.snapshot);
 		this.#saveToUrl();
 	}
@@ -1809,9 +2042,18 @@ export class FilterStore {
 
 		const existing = this.savedFilters[index];
 		const next = [...this.savedFilters];
-		next[index] = { ...existing, snapshot };
+		const sourceNames = this.activeSourceLayoutNames;
+		next[index] = {
+			id: existing.id,
+			name: existing.name,
+			snapshot,
+			createdAt: existing.createdAt,
+			...(sourceNames !== null ? { sourceLayoutNames: [...sourceNames] } : {})
+		};
 		this.savedFilters = next;
+		this.draftSourceLayoutNames = undefined;
 		this.#persistSavedFilters();
+		this.#saveToUrl();
 	}
 
 	/** Rename the active saved view. Returns false if the name is empty or taken. */
@@ -1854,6 +2096,8 @@ export class FilterStore {
 
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = id;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
 		this.includeSelectedInResults = false;
 		this.#restoreViewFilters(saved.snapshot);
 		this.#saveToUrl();
@@ -1869,6 +2113,8 @@ export class FilterStore {
 		if (this.activeSavedFilterId !== id) return;
 
 		this.activeSavedFilterId = null;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
 		this.layoutSource = 'all';
 		const incoming = this.#viewFilterSnapshots.get('all');
 		if (incoming) {
@@ -1888,9 +2134,11 @@ export class FilterStore {
 		const offer = readShareViewFromUrl();
 		if (!offer) return;
 
+		const decoded = decodeViewFilterSnapshot(offer.filtersEncoded);
 		this.pendingSharedView = {
 			name: offer.name,
-			snapshot: decodeViewFilterSnapshot(offer.filtersEncoded)
+			snapshot: decoded.snapshot,
+			...(decoded.sourceLayoutNames ? { sourceLayoutNames: decoded.sourceLayoutNames } : {})
 		};
 		stripShareViewParamsFromUrl();
 	}
@@ -1907,12 +2155,15 @@ export class FilterStore {
 		if (!saved) return null;
 
 		this.#applyFiltersNow();
-		const encoded = encodeViewFilterSnapshot(this.#captureViewFilters());
+		const sourceLayoutNames = this.activeSourceLayoutNames ?? undefined;
+		const encoded = encodeViewFilterSnapshot(this.#captureViewFilters(), {
+			sourceLayoutNames
+		});
 		return buildShareViewUrl(saved.name, encoded);
 	}
 
 	/** Apply a shared snapshot to the All layouts view (replaces current All filters). */
-	applySharedViewToAll(snapshot: ViewFilterSnapshot) {
+	applySharedViewToAll(snapshot: ViewFilterSnapshot, sourceLayoutNames?: string[]) {
 		this.#applyFiltersNow();
 
 		if (this.activeSavedFilterId) {
@@ -1925,6 +2176,11 @@ export class FilterStore {
 
 		this.layoutSource = 'all';
 		this.includeSelectedInResults = false;
+		this.draftSourceLayoutNames = undefined;
+		this.ephemeralSourceLayoutNames =
+			sourceLayoutNames && sourceLayoutNames.length > 0
+				? sortLayoutSourceNames(sourceLayoutNames)
+				: null;
 		this.#restoreViewFilters(snapshot);
 		this.#viewFilterSnapshots.set('all', this.#captureViewFilters());
 		this.pendingSharedView = null;
@@ -1932,9 +2188,16 @@ export class FilterStore {
 	}
 
 	/** Persist a shared snapshot as a new/updated named view and activate it. */
-	saveSharedViewAsView(name: string, snapshot: ViewFilterSnapshot): string | null {
+	saveSharedViewAsView(
+		name: string,
+		snapshot: ViewFilterSnapshot,
+		sourceLayoutNames?: string[]
+	): string | null {
 		const trimmed = name.trim();
 		if (!trimmed) return null;
+
+		const membership =
+			sourceLayoutNames !== undefined ? sortLayoutSourceNames(sourceLayoutNames) : undefined;
 
 		const existingIndex = this.savedFilters.findIndex(
 			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
@@ -1945,13 +2208,25 @@ export class FilterStore {
 			const existing = this.savedFilters[existingIndex];
 			id = existing.id;
 			const next = [...this.savedFilters];
-			next[existingIndex] = { ...existing, name: trimmed, snapshot };
+			next[existingIndex] = {
+				id: existing.id,
+				name: trimmed,
+				snapshot,
+				createdAt: existing.createdAt,
+				...(membership !== undefined ? { sourceLayoutNames: membership } : {})
+			};
 			this.savedFilters = next;
 		} else {
 			id = createSavedFilterId();
 			this.savedFilters = [
 				...this.savedFilters,
-				{ id, name: trimmed, snapshot, createdAt: Date.now() }
+				{
+					id,
+					name: trimmed,
+					snapshot,
+					...(membership !== undefined ? { sourceLayoutNames: membership } : {}),
+					createdAt: Date.now()
+				}
 			];
 		}
 
@@ -1964,11 +2239,32 @@ export class FilterStore {
 
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = id;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
 		this.includeSelectedInResults = false;
 		this.#restoreViewFilters(snapshot);
 		this.pendingSharedView = null;
 		this.#saveToUrl();
 		return id;
+	}
+
+	/**
+	 * Save the compare-selected layouts as a named view whose source is those names.
+	 * Activates the new view against the All layouts pool.
+	 */
+	saveSelectedLayoutsAsView(name: string): string | null {
+		const selected = [...this.compareSelectedNames];
+		if (selected.length === 0) return null;
+
+		const snapshot = createDefaultViewSnapshot();
+		return this.saveSharedViewAsView(name, snapshot, selected);
+	}
+
+	/** Remove a layout name from the active view's source (session; persist via Update). */
+	removeLayoutFromActiveSavedView(name: string) {
+		const active = this.activeSourceLayoutNames;
+		if (active === null) return;
+		this.applySourceSelection(active.filter((entry) => entry !== name));
 	}
 
 	toggleIncludeSelectedInResults() {
@@ -2030,6 +2326,11 @@ export class FilterStore {
 		this.selectedAuthors.clear();
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
+		// Reset on a non-saved All view also drops ephemeral shared membership.
+		if (!this.activeSavedFilterId) {
+			this.ephemeralSourceLayoutNames = null;
+			this.draftSourceLayoutNames = undefined;
+		}
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
@@ -2526,9 +2827,16 @@ export class FilterStore {
 			return [];
 		}
 
+		const sourceNameSet = this.activeSourceLayoutNameSet;
+
 		return layouts.filter((l) => {
 			// Source pool: when "Selected layouts only", other filters apply within selection.
 			if (this.layoutSource === 'selected' && !this.compareSelectedNames.has(l.name)) {
+				return false;
+			}
+
+			// Named-view membership: only layouts in the saved/shared source set.
+			if (sourceNameSet && !sourceNameSet.has(l.name)) {
 				return false;
 			}
 
