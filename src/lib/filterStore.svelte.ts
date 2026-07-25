@@ -697,6 +697,8 @@ export class FilterStore {
 
 	#persistTimeout: ReturnType<typeof setTimeout> | null = null;
 	#persistShouldCommit = false;
+	/** Coalesce retries when `$effect` URL writes race SvelteKit router startup. */
+	#pendingHistoryRetry = false;
 
 	constructor() {
 		if (typeof window !== 'undefined') {
@@ -1065,6 +1067,40 @@ export class FilterStore {
 		}
 	}
 
+	#isRouterNotReadyError(error: unknown): boolean {
+		return (
+			error instanceof Error && error.message.includes('before router is initialized')
+		);
+	}
+
+	/**
+	 * Write filter URL via SvelteKit history helpers. First-paint `$effect`s can run
+	 * before the client router sets `started`; retry once on the next macrotask and
+	 * rebuild from current store state so a coalesced retry can't stale-overwrite.
+	 */
+	#writeHistory(url: SvelteURL, historyMode: 'replace' | 'push') {
+		const next = `${url.pathname}${url.search}${url.hash}`;
+		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+		try {
+			if (historyMode === 'push') {
+				if (next !== current) {
+					pushState(url, page.state);
+				}
+			} else {
+				replaceState(url, page.state);
+			}
+		} catch (error) {
+			if (!this.#isRouterNotReadyError(error)) throw error;
+			if (this.#pendingHistoryRetry) return;
+			this.#pendingHistoryRetry = true;
+			setTimeout(() => {
+				this.#pendingHistoryRetry = false;
+				this.#saveToUrl({ history: historyMode });
+			}, 0);
+		}
+	}
+
 	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
 		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
@@ -1073,15 +1109,7 @@ export class FilterStore {
 		// Clean saved view: keep the URL to just the view id (filters live in localStorage).
 		if (this.activeSavedFilterId && !this.isActiveSavedViewDirty) {
 			url.searchParams.set('view', this.activeSavedFilterId);
-			const nextClean = `${url.pathname}${url.search}${url.hash}`;
-			const currentClean = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-			if (historyMode === 'push') {
-				if (nextClean !== currentClean) {
-					pushState(url, page.state);
-				}
-			} else {
-				replaceState(url, page.state);
-			}
+			this.#writeHistory(url, historyMode);
 			return;
 		}
 
@@ -1240,15 +1268,7 @@ export class FilterStore {
 			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
-		const next = `${url.pathname}${url.search}${url.hash}`;
-		const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-		if (historyMode === 'push') {
-			if (next !== current) {
-				pushState(url, page.state);
-			}
-		} else {
-			replaceState(url, page.state);
-		}
+		this.#writeHistory(url, historyMode);
 	}
 
 	/**
