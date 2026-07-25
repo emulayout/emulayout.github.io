@@ -104,6 +104,7 @@
 	);
 
 	const statsLoading = $derived(layoutStatsStore.isLoading(compareAnalyzer));
+	const statsError = $derived(layoutStatsStore.getLoadError(compareAnalyzer));
 
 	// Seed analyzer + view pair only when the modal is opened / reopened.
 	// Keep other reads untracked so cycling layouts can't reset compareAnalyzer.
@@ -145,6 +146,10 @@
 		if (!open) return;
 		void layoutStatsStore.ensureLoaded(compareAnalyzer);
 	});
+
+	function retryStats() {
+		void layoutStatsStore.retry(compareAnalyzer);
+	}
 
 	function swapViewLayouts() {
 		leftPreview = null;
@@ -280,6 +285,23 @@
 			</button>
 		</div>
 	</div>
+	{#if statsError}
+		<div
+			class="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm"
+			style="color: var(--text-secondary); border-color: var(--border);"
+			role="alert"
+		>
+			<span>{statsError.message}</span>
+			<button
+				type="button"
+				class="rounded-md border px-2 py-1 font-medium"
+				style="color: var(--text-primary); border-color: var(--border);"
+				onclick={retryStats}
+			>
+				Retry stats
+			</button>
+		</div>
+	{/if}
 
 	<div class="overflow-y-auto px-5 py-4">
 		<div class="compare-grid">

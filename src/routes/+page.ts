@@ -2,9 +2,7 @@ import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { parseStatLimitsParam } from '$lib/filterStore.svelte';
 import {
-	DEFAULT_STATS_ANALYZER,
 	analyzersNeededForLoad,
-	getAnalyzerStatsUrl,
 	isStatSortBy,
 	normalizeSortBy,
 	parseLegacySortParam,
@@ -12,6 +10,7 @@ import {
 	type SortBy,
 	type StatsAnalyzerMode
 } from '$lib/layoutStats';
+import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
 
@@ -38,11 +37,11 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		sortBy
 	});
 
-	const [layoutsResponse, authorsResponse, likesResponse, ...statsResponses] = await Promise.all([
+	const [layoutsResponse, authorsResponse, likesResponse, statsResults] = await Promise.all([
 		fetch('/all-layouts.json'),
 		fetch('/authors.json'),
 		loadLikes ? fetch('/layout-likes.json') : Promise.resolve(null),
-		...analyzersToPreload.map((analyzer) => fetch(getAnalyzerStatsUrl(analyzer)))
+		Promise.all(analyzersToPreload.map((analyzer) => loadAnalyzerStats(analyzer, { fetch })))
 	]);
 
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
@@ -56,10 +55,13 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const statsMaps: StatsMaps = {};
 	for (let i = 0; i < analyzersToPreload.length; i++) {
 		const analyzer = analyzersToPreload[i];
-		const response = statsResponses[i];
-		const map = response.ok ? await response.json() : {};
-		statsMaps[analyzer] = map;
-		layoutStatsStore.hydrate(analyzer, map);
+		const result = statsResults[i];
+		if (result.status === 'loaded') {
+			statsMaps[analyzer] = result.map;
+			layoutStatsStore.hydrate(analyzer, result.map);
+		} else if (result.status === 'error') {
+			layoutStatsStore.setLoadError(analyzer, result.error);
+		}
 	}
 
 	return {

@@ -2,15 +2,16 @@ import type { StatsMaps } from '$lib/layout';
 import {
 	DEFAULT_STATS_ANALYZER,
 	STAT_ANALYZERS,
-	getAnalyzerStatsUrl,
 	resolveStatsAnalyzers,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from '$lib/layoutStats';
+import { loadAnalyzerStats, type AnalyzerStatsLoadError } from '$lib/layoutStatsLoader';
 
 class LayoutStatsStore {
 	maps: StatsMaps = $state({});
 	loadingAnalyzers: Partial<Record<StatsAnalyzer, boolean>> = $state({});
+	loadErrors: Partial<Record<StatsAnalyzer, AnalyzerStatsLoadError>> = $state({});
 
 	#abortControllers = new Map<StatsAnalyzer, AbortController>();
 
@@ -20,6 +21,10 @@ class LayoutStatsStore {
 
 	isLoading(analyzer: StatsAnalyzer): boolean {
 		return this.loadingAnalyzers[analyzer] === true;
+	}
+
+	getLoadError(analyzer: StatsAnalyzer): AnalyzerStatsLoadError | undefined {
+		return this.loadErrors[analyzer];
 	}
 
 	/** True when any of the concrete analyzers in a display mode are loading. */
@@ -44,6 +49,17 @@ class LayoutStatsStore {
 		this.#abortControllers.delete(analyzer);
 		this.maps = { ...this.maps, [analyzer]: map };
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
+		this.#clearLoadError(analyzer);
+	}
+
+	setLoadError(analyzer: StatsAnalyzer, error: AnalyzerStatsLoadError): void {
+		this.#abortControllers.get(analyzer)?.abort();
+		this.#abortControllers.delete(analyzer);
+		const maps = { ...this.maps };
+		delete maps[analyzer];
+		this.maps = maps;
+		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
+		this.loadErrors = { ...this.loadErrors, [analyzer]: error };
 	}
 
 	reset(): void {
@@ -53,32 +69,50 @@ class LayoutStatsStore {
 		this.#abortControllers.clear();
 		this.maps = {};
 		this.loadingAnalyzers = {};
+		this.loadErrors = {};
 	}
 
 	async ensureLoaded(analyzer: StatsAnalyzer): Promise<void> {
-		if (this.isLoaded(analyzer) || this.isLoading(analyzer)) return;
+		if (this.isLoaded(analyzer) || this.isLoading(analyzer) || this.getLoadError(analyzer)) return;
 
 		const abortController = new AbortController();
 		this.#abortControllers.set(analyzer, abortController);
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: true };
 
 		try {
-			const response = await fetch(getAnalyzerStatsUrl(analyzer), {
+			const result = await loadAnalyzerStats(analyzer, {
 				signal: abortController.signal
 			});
-			const map = response.ok ? await response.json() : {};
-			if (this.#abortControllers.get(analyzer) === abortController) {
-				this.maps = { ...this.maps, [analyzer]: map };
+			if (this.#abortControllers.get(analyzer) !== abortController) return;
+			if (result.status === 'loaded') {
+				this.maps = { ...this.maps, [analyzer]: result.map };
+				this.#clearLoadError(analyzer);
+			} else if (result.status === 'error') {
+				this.loadErrors = { ...this.loadErrors, [analyzer]: result.error };
 			}
-		} catch (err) {
-			if (err instanceof DOMException && err.name === 'AbortError') return;
-			throw err;
 		} finally {
 			if (this.#abortControllers.get(analyzer) === abortController) {
 				this.#abortControllers.delete(analyzer);
 				this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
 			}
 		}
+	}
+
+	async retry(analyzer: StatsAnalyzer): Promise<void> {
+		if (this.isLoading(analyzer)) return;
+		this.#clearLoadError(analyzer);
+		await this.ensureLoaded(analyzer);
+	}
+
+	async retryAnalyzers(analyzers: Iterable<StatsAnalyzer>): Promise<void> {
+		await Promise.all([...new Set(analyzers)].map((analyzer) => this.retry(analyzer)));
+	}
+
+	#clearLoadError(analyzer: StatsAnalyzer): void {
+		if (!this.loadErrors[analyzer]) return;
+		const loadErrors = { ...this.loadErrors };
+		delete loadErrors[analyzer];
+		this.loadErrors = loadErrors;
 	}
 
 	#abortAllPending(): void {

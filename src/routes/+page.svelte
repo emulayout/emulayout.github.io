@@ -9,7 +9,12 @@
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { analyzersNeededForLoad, isAnalyzerStatsReady } from '$lib/layoutStats';
+	import {
+		analyzerShortLabel,
+		analyzersNeededForLoad,
+		isAnalyzerStatsReady,
+		type StatsAnalyzer
+	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import {
@@ -42,7 +47,6 @@
 			isAnalyzerStatsReady(statsMaps, analyzer)
 		)
 	);
-	const resultsPending = $derived(filterStore.statFiltersAwaitingStats(statsMaps, statsReady));
 	const resolvedLikesData = $derived(likesData ?? {});
 	const likesLoaded = $derived(likesData !== null);
 	const likesSortAvailable = $derived(
@@ -61,10 +65,29 @@
 			sortBy: filterStore.sortBy
 		})
 	);
+	const statsLoadErrors = $derived.by(() =>
+		analyzersToLoad.flatMap((analyzer) => {
+			const error = layoutStatsStore.getLoadError(analyzer);
+			return error ? [{ analyzer, error }] : [];
+		})
+	);
+	const failedStatFilterAnalyzers = $derived(
+		filterStore.analyzersNeededForStatLimits.filter((analyzer) =>
+			Boolean(layoutStatsStore.getLoadError(analyzer))
+		)
+	);
+	const resultsBlockedByStatsError = $derived(failedStatFilterAnalyzers.length > 0);
+	const resultsPending = $derived(
+		!resultsBlockedByStatsError && filterStore.statFiltersAwaitingStats(statsMaps, statsReady)
+	);
 
 	$effect(() => {
 		void layoutStatsStore.loadAnalyzers(analyzersToLoad);
 	});
+
+	function retryStatsLoads(analyzers: Iterable<StatsAnalyzer>) {
+		void layoutStatsStore.retryAnalyzers(analyzers);
+	}
 
 	// Page load already fetched likes when likes were not hidden (`likes !== 0`).
 	$effect(() => {
@@ -382,6 +405,23 @@
 					<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
 				</div>
 				<div class="results-list">
+					{#if statsLoadErrors.length > 0}
+						<div class="stats-load-error" role="alert">
+							<div>
+								<p class="stats-load-error-title">Some analyzer stats could not be loaded.</p>
+								{#each statsLoadErrors as { analyzer, error } (analyzer)}
+									<p>{analyzerShortLabel(analyzer)}: {error.message}</p>
+								{/each}
+							</div>
+							<button
+								type="button"
+								class="stats-load-error-retry"
+								onclick={() => retryStatsLoads(statsLoadErrors.map(({ analyzer }) => analyzer))}
+							>
+								Retry
+							</button>
+						</div>
+					{/if}
 					{#if filterStore.layoutSource === 'selected' && compareSelectedCount === 0}
 						<div class="results-empty" style="color: var(--text-secondary);">
 							<p class="results-empty-title" style="color: var(--text-primary);">
@@ -392,7 +432,18 @@
 								Filters on this page only apply to your selection.
 							</p>
 						</div>
-					{:else if !resultsPending}
+					{:else if resultsBlockedByStatsError}
+						<div class="results-empty" role="status" style="color: var(--text-secondary);">
+							<p class="results-empty-title" style="color: var(--text-primary);">
+								Analyzer stats unavailable
+							</p>
+							<p>Retry the failed request to apply the active stat filters.</p>
+						</div>
+					{:else if resultsPending}
+						<div class="results-empty" role="status" style="color: var(--text-secondary);">
+							<p>Loading analyzer stats…</p>
+						</div>
+					{:else}
 						<LayoutCardList
 							items={filteredItems}
 							similarReference={similarReferenceLayout}
@@ -403,8 +454,7 @@
 							{similarityMatches}
 							similarDiffPositions={similarReferenceForCompare?.positionBySlot}
 							similarMirrorDiffPositions={mirroredReferencePositions}
-							onRemoveMissingLayout={(name) =>
-								filterStore.removeLayoutFromActiveSavedView(name)}
+							onRemoveMissingLayout={(name) => filterStore.removeLayoutFromActiveSavedView(name)}
 						/>
 					{/if}
 				</div>
@@ -680,6 +730,43 @@
 		font-size: 1rem;
 		font-weight: 600;
 		line-height: 1.3;
+	}
+
+	.stats-load-error {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		margin: 0.25rem;
+		padding: 0.75rem;
+		border: 1px solid color-mix(in srgb, var(--danger, #dc2626) 55%, var(--border));
+		border-radius: 0.5rem;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--danger, #dc2626) 8%, var(--bg-secondary));
+		font-size: 0.8125rem;
+		line-height: 1.4;
+	}
+
+	.stats-load-error-title {
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+
+	.stats-load-error-retry {
+		flex-shrink: 0;
+		padding: 0.375rem 0.625rem;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		color: var(--text-primary);
+		background: var(--bg-primary);
+		cursor: pointer;
+	}
+
+	.stats-load-error-retry:hover,
+	.stats-load-error-retry:focus-visible {
+		border-color: var(--accent);
+		color: var(--accent);
+		outline: none;
 	}
 
 	.compare-fab {
