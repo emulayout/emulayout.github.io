@@ -65,6 +65,7 @@ import {
 	writeGlobalFilterUrlState,
 	writeSavedViewUrlState
 } from './filterUrlState';
+import { createDefaultViewSnapshot } from './filterSnapshot';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -157,52 +158,6 @@ function deserializeThumbFilters(value: string | null | undefined): string[] {
 	return value
 		? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, THUMB_KEYS_PER_HAND)
 		: createEmptyThumbKeyFilters();
-}
-
-function createDefaultViewSnapshot(): ViewFilterSnapshot {
-	return {
-		includeGrid: createEmptyGrid(),
-		excludeGrid: createEmptyGrid(),
-		includeOrGrid: createEmptyGrid(),
-		includeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
-		includeOrRightThumbKeys: createEmptyThumbKeyFilters(),
-		includeLeftThumbKeys: createEmptyThumbKeyFilters(),
-		includeRightThumbKeys: createEmptyThumbKeyFilters(),
-		excludeLeftThumbKeys: createEmptyThumbKeyFilters(),
-		excludeRightThumbKeys: createEmptyThumbKeyFilters(),
-		showUnfinished: false,
-		thumbKeyFilter: 'optional',
-		magicKeyFilter: 'optional',
-		characterSetFilter: 'english',
-		boardTypeFilter: 'all',
-		nameFilterInput: '',
-		nameFilter: '',
-		selectedAuthors: [],
-		includeSelectedInResults: false,
-		similarReferenceName: null,
-		similarReferenceAnglemod: false,
-		similarityFilterOperator: 'gt',
-		similarityFilterValue: '50',
-		appliedSimilarityFilterValue: '50',
-		similarityWeightHomeKeys: false,
-		similarityMirrorMode: 'excluded',
-		sortBy: 'date',
-		sortOrder: 'desc',
-		sortOrderManual: false,
-		sortBeforeSimilar: null,
-		exitSortRestore: null,
-		statLimits: createEmptyStatLimits(),
-		appliedIncludeGrid: createEmptyGrid(),
-		appliedExcludeGrid: createEmptyGrid(),
-		appliedIncludeOrGrid: createEmptyGrid(),
-		appliedIncludeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
-		appliedIncludeOrRightThumbKeys: createEmptyThumbKeyFilters(),
-		appliedIncludeLeftThumbKeys: createEmptyThumbKeyFilters(),
-		appliedIncludeRightThumbKeys: createEmptyThumbKeyFilters(),
-		appliedExcludeLeftThumbKeys: createEmptyThumbKeyFilters(),
-		appliedExcludeRightThumbKeys: createEmptyThumbKeyFilters(),
-		appliedStatLimits: createEmptyStatLimits()
-	};
 }
 
 /** Compact query-string encoding of a view snapshot (shareable; not live URL filters). */
