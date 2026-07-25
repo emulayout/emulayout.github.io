@@ -39,13 +39,13 @@
 	} from '$lib/layoutStats';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
+	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
 		displayRowsToString,
-		isSimilarDiffSlot,
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
@@ -658,29 +658,13 @@
 		</p>
 	</div>
 
-	<div class="layout-display-area flex-1 min-w-0 overflow-x-auto flex flex-col justify-center px-2">
-		{#if showSimilarDiffs}
-			<div
-				class="layout-display layout-display--diff font-mono whitespace-pre m-0"
-				style="color: var(--text-primary);"
-				aria-label="Layout keys; green marks differences from the selected layout"
-			>
-				{#each transformedDisplayRows as row, rowIndex (rowIndex)}
-					<div class="layout-display-row">
-						{#each row as cell, cellIndex (`${rowIndex}:${cellIndex}`)}
-							{#if isSimilarDiffSlot(cell.slot, cell.char, similarDiffPositions)}
-								<span class="layout-key-diff">{cell.char}</span>
-							{:else}{cell.char}{/if}
-						{/each}
-					</div>
-				{/each}
-			</div>
-		{:else}
-			<pre
-				class="layout-display font-mono whitespace-pre m-0"
-				style="color: var(--text-primary);">{transformedDisplayValue}</pre>
-		{/if}
-	</div>
+	<LayoutKeyDisplay
+		rows={transformedDisplayRows}
+		value={transformedDisplayValue}
+		highlightDifferences={showSimilarDiffs}
+		referencePositions={similarDiffPositions}
+		fillAvailableSpace={showExpand}
+	/>
 
 	<div class="card-action-divider shrink-0" aria-label="Layout actions">
 		<div class="card-action-toolbar">
@@ -1353,18 +1337,6 @@
 		border-color: color-mix(in srgb, var(--similar-diff) 78%, black);
 	}
 
-	.layout-display--diff {
-		line-height: 1.25;
-	}
-
-	.layout-display-row {
-		white-space: pre;
-	}
-
-	.layout-key-diff {
-		color: var(--similar-diff);
-	}
-
 	.new-layout-dot {
 		display: inline-block;
 		width: 0.6rem;
@@ -1418,10 +1390,6 @@
 			grid-template-columns: repeat(var(--expand-unique-cols), minmax(0, 1fr));
 			align-items: stretch;
 		}
-	}
-
-	.expand-layout-col .layout-display-area {
-		flex: 0 0 auto;
 	}
 
 	@media (min-width: 960px) {
