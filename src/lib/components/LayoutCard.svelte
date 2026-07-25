@@ -40,7 +40,6 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-	import { buildKeyMap, buildShiftKeyMap, type KeyMap } from '$lib/cmini/keyboard';
 	import {
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
@@ -49,6 +48,13 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
+	import {
+		createLayoutTestKeyMaps,
+		insertTextAtSelection,
+		resolveLayoutTestKeyDown,
+		shouldCaptureLayoutTestKeyUp,
+		usesMetaThumbKeys
+	} from '$lib/layoutTestEmulator';
 
 	interface Props {
 		layout: LayoutData;
@@ -99,9 +105,6 @@
 	let expandShowMonkey = $state(false);
 	let expandShowCyanophage = $state(false);
 	let expandShowMana2 = $state(false);
-	let keyMapCache: KeyMap | null = null;
-	let shiftKeyMapCache: KeyMap | null = null;
-	let keyMapSource = '';
 
 	const expandTitleId = $derived(
 		`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`
@@ -138,6 +141,7 @@
 	});
 
 	const transformedDisplayValue = $derived(displayRowsToString(transformedDisplayRows));
+	const layoutTestKeyMaps = $derived(createLayoutTestKeyMaps(transformedDisplayValue));
 
 	const showSimilarDiffs = $derived(
 		Boolean(similarDiffPositions && similarDiffPositions.size > 0 && !isSimilarActive)
@@ -419,7 +423,7 @@
 	});
 
 	const expandSharedLeftHandRows = $derived.by(() => {
-		const { dash, monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
+		const { monkeyCell, cyanoCell, mana2Cell } = expandSharedCells;
 		const fingers = [
 			{ key: 'LI' as const, label: 'Index' },
 			{ key: 'LM' as const, label: 'Middle' },
@@ -514,22 +518,10 @@
 		)
 	);
 
-	function getKeyMaps(): { keyMap: KeyMap; shiftKeyMap: KeyMap } {
-		const source = transformedDisplayValue;
-		if (keyMapCache && shiftKeyMapCache && keyMapSource === source) {
-			return { keyMap: keyMapCache, shiftKeyMap: shiftKeyMapCache };
-		}
-		keyMapSource = source;
-		keyMapCache = buildKeyMap(source);
-		shiftKeyMapCache = buildShiftKeyMap(keyMapCache);
-		return { keyMap: keyMapCache, shiftKeyMap: shiftKeyMapCache };
-	}
-
 	async function handleColemakCampClick(event: MouseEvent) {
 		event.preventDefault();
-		const { keyMap } = getKeyMaps();
 		const { createColemakCampURLFromKeyMap } = await import('$lib/colemakCamp');
-		const url = createColemakCampURLFromKeyMap(keyMap, layout.board);
+		const url = createColemakCampURLFromKeyMap(layoutTestKeyMaps.keyMap, layout.board);
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}
 
@@ -554,116 +546,43 @@
 
 	function insertTestAreaChar(mappedChar: string) {
 		if (!textareaElement || !mappedChar) return;
-		const start = textareaElement.selectionStart;
-		const end = textareaElement.selectionEnd;
-		const value = textareaElement.value;
-		textareaElement.value = value.slice(0, start) + mappedChar + value.slice(end);
-		const nextCursor = start + mappedChar.length;
-		textareaElement.setSelectionRange(nextCursor, nextCursor);
-	}
-
-	/** Primary thumb char for a hand (innermost when multiple). */
-	function primaryThumbChar(hand: 'l' | 'r'): string | undefined {
-		const entries = layout.thumbKeysByHand[hand];
-		if (entries.length === 0) return undefined;
-		const entry = hand === 'l' ? entries[entries.length - 1] : entries[0];
-		return entry.key;
-	}
-
-	/**
-	 * Keys closest to the spacebar: ⌘ on Apple, Alt elsewhere.
-	 * (Customizable thumb mapping can replace this later.)
-	 */
-	function usesMetaThumbKeys(): boolean {
-		return /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
-	}
-
-	function thumbHandFromCode(code: string): 'l' | 'r' | undefined {
-		if (code === 'MetaLeft' || code === 'AltLeft') return 'l';
-		if (code === 'MetaRight' || code === 'AltRight') return 'r';
-		return undefined;
-	}
-
-	function isThumbKeyCode(code: string, metaThumbs: boolean): boolean {
-		return metaThumbs
-			? code === 'MetaLeft' || code === 'MetaRight'
-			: code === 'AltLeft' || code === 'AltRight';
-	}
-
-	/** True while the platform thumb modifier is held (for fast thumb→letter sequences). */
-	function isThumbModifierHeld(event: KeyboardEvent, metaThumbs: boolean): boolean {
-		return metaThumbs ? event.metaKey : event.altKey;
-	}
-
-	/** Modifiers that should skip layout remapping (not the thumb key). */
-	function hasBlockingModifier(event: KeyboardEvent, metaThumbs: boolean): boolean {
-		if (metaThumbs) return event.ctrlKey || event.altKey;
-		// Alt is thumb; allow AltGr (ctrl+alt). Block Meta and plain Ctrl.
-		return event.metaKey || (event.ctrlKey && !event.altKey);
+		const edit = insertTextAtSelection(
+			textareaElement.value,
+			textareaElement.selectionStart,
+			textareaElement.selectionEnd,
+			mappedChar
+		);
+		textareaElement.value = edit.value;
+		textareaElement.setSelectionRange(edit.cursor, edit.cursor);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			if (textareaElement) {
-				textareaElement.value = '';
-			}
-			return;
-		}
+		const decision = resolveLayoutTestKeyDown(event, {
+			hasThumbKeys: layout.hasThumbKeys,
+			thumbKeysByHand: layout.thumbKeysByHand,
+			keyMaps: layoutTestKeyMaps,
+			metaThumbKeys: usesMetaThumbKeys(navigator.platform, navigator.userAgent)
+		});
 
-		const useThumbKeys = layout.hasThumbKeys;
-		const metaThumbs = usesMetaThumbKeys();
-
-		// Physical thumb keys → insert primary thumb char; capture to avoid OS shortcuts
-		// when typing quickly after a thumb press.
-		if (useThumbKeys && isThumbKeyCode(event.code, metaThumbs)) {
-			event.preventDefault();
-			event.stopPropagation();
-			const hand = thumbHandFromCode(event.code);
-			if (!hand) return;
-			let mappedChar = primaryThumbChar(hand);
-			if (!mappedChar) return;
-			if (event.shiftKey && /^[a-z]$/i.test(mappedChar)) {
-				mappedChar = mappedChar.toUpperCase();
-			}
-			insertTestAreaChar(mappedChar);
-			return;
-		}
-
-		if (useThumbKeys) {
-			if (hasBlockingModifier(event, metaThumbs)) return;
-		} else if (event.ctrlKey || event.altKey || event.metaKey) {
-			return;
-		}
-
-		// Swallow thumb-modifier combos so they don't reach app shortcuts or browser
-		// defaults. OS-reserved combos (Cmd+Q, Alt+Tab, etc.) still cannot be blocked.
-		if (useThumbKeys && isThumbModifierHeld(event, metaThumbs)) {
-			event.preventDefault();
-			event.stopPropagation();
-		}
-
-		const { keyMap, shiftKeyMap } = getKeyMaps();
-
-		if (event.code in keyMap) {
-			event.preventDefault();
-			let mappedChar: string | undefined;
-
-			if (event.shiftKey) {
-				if (event.code in shiftKeyMap) {
-					mappedChar = shiftKeyMap[event.code];
-				}
-			} else {
-				mappedChar = keyMap[event.code];
-			}
-
-			if (mappedChar) insertTestAreaChar(mappedChar);
+		if (decision.preventDefault) event.preventDefault();
+		if (decision.stopPropagation) event.stopPropagation();
+		if (decision.edit?.type === 'clear') {
+			if (textareaElement) textareaElement.value = '';
+		} else if (decision.edit?.type === 'insert') {
+			insertTestAreaChar(decision.edit.text);
 		}
 	}
 
 	function handleKeyUp(event: KeyboardEvent) {
-		if (!layout.hasThumbKeys) return;
-		if (!isThumbKeyCode(event.code, usesMetaThumbKeys())) return;
+		if (
+			!shouldCaptureLayoutTestKeyUp(
+				event.code,
+				layout.hasThumbKeys,
+				usesMetaThumbKeys(navigator.platform, navigator.userAgent)
+			)
+		) {
+			return;
+		}
 		event.preventDefault();
 		event.stopPropagation();
 	}
