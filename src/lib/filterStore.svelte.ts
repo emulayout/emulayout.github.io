@@ -4,18 +4,20 @@ import { resolve } from '$app/paths';
 import { page } from '$app/state';
 import type { PathnameWithSearchOrHash } from '$app/types';
 import {
+	getDefaultSortOrder,
+	isSortOrder,
+	normalizeSortBy,
+	parseLegacySortParam,
+	type SortBy,
+	type SortOrder
+} from './statsSorting';
+import {
 	DEFAULT_STATS_ANALYZER,
 	analyzersNeededForLimits,
-	isSortOrder,
-	getDefaultSortOrder,
 	isAnalyzerStatsReady,
-	parseLegacySortParam,
-	normalizeSortBy,
 	parseStatsAnalyzerMode,
 	getGeneralStatFilterRowsForAnalyzer,
 	getHandStatFilterFieldsForAnalyzer,
-	type SortBy,
-	type SortOrder,
 	type StatLimitKey,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode

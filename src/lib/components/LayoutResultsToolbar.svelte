@@ -12,9 +12,9 @@
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		getHiddenAnalyzerFilterCaution,
-		getStatSortFieldsForAnalyzer,
 		MANA2_ANALYZER
 	} from '$lib/layoutStats';
+	import { getStatSortFieldsForAnalyzer } from '$lib/statsSorting';
 
 	interface Props {
 		filteredCount: number;

@@ -1,4 +1,5 @@
-import { ALL_STAT_FILTER_FIELDS, normalizeSortBy, type StatLimitKey } from './layoutStats';
+import { ALL_STAT_FILTER_FIELDS, type StatLimitKey } from './layoutStats';
+import { normalizeSortBy } from './statsSorting';
 import { isSimilarityMirrorMode } from './layoutSimilarity';
 import { sortLayoutSourceNames } from './savedFiltersStorage';
 import {

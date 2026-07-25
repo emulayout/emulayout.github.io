@@ -3,13 +3,15 @@ import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { parseStatLimitsParam } from '$lib/filterUrlCodec';
 import {
 	analyzersNeededForLoad,
+	parseStatsAnalyzerMode,
+	type StatsAnalyzerMode
+} from '$lib/layoutStats';
+import {
 	isStatSortBy,
 	normalizeSortBy,
 	parseLegacySortParam,
-	parseStatsAnalyzerMode,
-	type SortBy,
-	type StatsAnalyzerMode
-} from '$lib/layoutStats';
+	type SortBy
+} from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';

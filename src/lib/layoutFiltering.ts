@@ -10,19 +10,21 @@ import type {
 import { positionSlotKey } from './layoutCodec';
 import { deriveBotStats, deriveCyanophageStats, deriveMana2Stats } from './statsDerivation';
 import {
+	getStatSortField,
+	isStatSortBy,
+	type SortBy,
+	type SortOrder
+} from './statsSorting';
+import {
 	CYANOPHAGE_ANALYZER,
 	MANA2_ANALYZER,
 	STAT_ANALYZERS,
 	getLayoutAnalyzerStats,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
-	getStatSortField,
 	getStatSortValue,
 	isAnalyzerStatsReady,
-	isStatSortBy,
 	parseStatFilterThreshold,
-	type SortBy,
-	type SortOrder,
 	type StatLimitKey,
 	type StatsAnalyzer
 } from './layoutStats';

@@ -1,11 +1,13 @@
 import {
 	ALL_STAT_FILTER_FIELDS,
+	type StatLimitKey
+} from '$lib/layoutStats';
+import {
 	isSortOrder,
 	normalizeSortBy,
 	type SortBy,
-	type SortOrder,
-	type StatLimitKey
-} from '$lib/layoutStats';
+	type SortOrder
+} from '$lib/statsSorting';
 import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSimilarity';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';

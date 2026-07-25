@@ -21,10 +21,10 @@ import {
 	formatStatsUnavailableBlock,
 	MANA2_ANALYZER,
 	type getStatCardHighlightState,
-	type SortOrder,
 	type StatsAnalyzer,
 	type StatsBlockSegment
 } from '$lib/layoutStats';
+import type { SortOrder } from '$lib/statsSorting';
 
 export type CompactAnalyzerStats = CompactLayoutStats | CompactCyanophageStats | CompactMana2Stats;
 
