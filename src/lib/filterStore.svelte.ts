@@ -59,6 +59,12 @@ import {
 	readShareViewFromUrl,
 	stripShareViewParamsFromUrl
 } from './viewFilterShare';
+import {
+	hasSavedViewFilterUrlOverrides,
+	readGlobalFilterUrlState,
+	writeGlobalFilterUrlState,
+	writeSavedViewUrlState
+} from './filterUrlState';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
@@ -134,46 +140,6 @@ const ROWS = 3;
 const COLS = 10;
 const THUMB_KEYS_PER_HAND = 4;
 const DEBOUNCE_MS = 300;
-
-/**
- * Filter/sort params that mean a saved view's live state differs from localStorage.
- * Presence of any of these with `view=` → hydrate filters from the URL (dirty).
- * `view=` alone → restore the saved snapshot from localStorage (clean).
- */
-const SAVED_VIEW_FILTER_URL_PARAMS = [
-	'include',
-	'exclude',
-	'includeOr',
-	'showUnfinished',
-	'thumbKeys',
-	'magicKey',
-	'characterSet',
-	'boardType',
-	'name',
-	'authors',
-	'includeLeftThumbs',
-	'includeRightThumbs',
-	'excludeLeftThumbs',
-	'excludeRightThumbs',
-	'includeThumbs',
-	'excludeThumbs',
-	'includeOrLeftThumbs',
-	'includeOrRightThumbs',
-	'sort',
-	'order',
-	'similar',
-	'similarFilter',
-	'similarHome',
-	'similarAnglemod',
-	'similarMirror',
-	'statLimits',
-	'layouts',
-	'showSelected'
-] as const;
-
-function urlHasSavedViewFilterOverrides(url: { searchParams: URLSearchParams }): boolean {
-	return SAVED_VIEW_FILTER_URL_PARAMS.some((key) => url.searchParams.has(key));
-}
 
 function createEmptyThumbKeyFilters(): string[] {
 	return Array.from({ length: THUMB_KEYS_PER_HAND }, () => '');
@@ -812,12 +778,23 @@ export class FilterStore {
 				this.ephemeralSourceLayoutNames = null;
 				this.draftSourceLayoutNames = undefined;
 
-				// Clean saved-view URL: only `view=<id>` — filters come from localStorage.
-				if (!urlHasSavedViewFilterOverrides(url)) {
+				// With no view-owned overrides, filters come from localStorage.
+				// Global URL state is hydrated below in either case.
+				if (!hasSavedViewFilterUrlOverrides(url.searchParams)) {
 					this.#restoreViewFilters(saved.snapshot);
-					return;
 				}
 			}
+		}
+
+		const globalUrlState = readGlobalFilterUrlState(url.searchParams);
+		this.statsAnalyzer = globalUrlState.statsAnalyzer;
+		this.hideLayoutStats = globalUrlState.hideLayoutStats;
+		this.hideLayoutTestArea = globalUrlState.hideLayoutTestArea;
+		this.hideLayoutLikes = globalUrlState.hideLayoutLikes;
+		this.hideNewLayoutIndicator = globalUrlState.hideNewLayoutIndicator;
+		this.stickySimilarityCard = globalUrlState.stickySimilarityCard;
+		for (const name of globalUrlState.compareSelectedNames) {
+			this.compareSelectedNames.add(name);
 		}
 
 		const include = url.searchParams.get('include');
@@ -881,16 +858,6 @@ export class FilterStore {
 		if (authors) {
 			for (const id of authors.split(',').map(Number)) {
 				if (Number.isFinite(id)) this.selectedAuthors.add(id);
-			}
-		}
-
-		const compare = url.searchParams.get('compare');
-		if (compare) {
-			for (const name of compare
-				.split(',')
-				.map((n) => n.trim())
-				.filter(Boolean)) {
-				this.compareSelectedNames.add(name);
 			}
 		}
 
@@ -966,22 +933,8 @@ export class FilterStore {
 			this.includeOrRightThumbKeys = parseThumbFilters(includeOrRightThumbs);
 		}
 
-		if (url.searchParams.get('likes') === '0') {
-			this.hideLayoutLikes = true;
-		}
-
-		if (url.searchParams.get('newIndicator') === '0') {
-			this.hideNewLayoutIndicator = true;
-		}
-
 		const sort = url.searchParams.get('sort');
 		const order = url.searchParams.get('order');
-
-		// Analyzer before sort so ambiguous legacy values (e.g. `sfb`) disambiguate correctly.
-		const analyzer = url.searchParams.get('analyzer');
-		if (analyzer) {
-			this.statsAnalyzer = parseStatsAnalyzerMode(analyzer);
-		}
 
 		if (sort) {
 			const legacy = parseLegacySortParam(sort);
@@ -1007,18 +960,6 @@ export class FilterStore {
 			// Otherwise sticky Desc from e.g. date/rolls would stick on lower-is-better
 			// Cyanophage fields (SFB, scissors, effort, …) after reload.
 			this.#sortOrderManual = order !== getDefaultSortOrder(this.sortBy);
-		}
-
-		if (url.searchParams.get('stats') === '0') {
-			this.hideLayoutStats = true;
-		}
-
-		if (url.searchParams.get('testArea') === '0') {
-			this.hideLayoutTestArea = true;
-		}
-
-		if (url.searchParams.get('stickySimilar') === '0') {
-			this.stickySimilarityCard = false;
 		}
 
 		const similar = url.searchParams.get('similar');
@@ -1101,14 +1042,28 @@ export class FilterStore {
 		}
 	}
 
+	#writeGlobalUrlState(searchParams: URLSearchParams) {
+		writeGlobalFilterUrlState(searchParams, {
+			statsAnalyzer: this.statsAnalyzer,
+			hideLayoutStats: this.hideLayoutStats,
+			hideLayoutTestArea: this.hideLayoutTestArea,
+			hideLayoutLikes: this.hideLayoutLikes,
+			hideNewLayoutIndicator: this.hideNewLayoutIndicator,
+			stickySimilarityCard: this.stickySimilarityCard,
+			compareSelectedNames: this.compareSelectedNames
+		});
+	}
+
 	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
 		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
 
-		// Clean saved view: keep the URL to just the view id (filters live in localStorage).
+		// Clean saved view: filters live in localStorage, while global settings and
+		// compare selections remain URL-backed.
 		if (this.activeSavedFilterId && !this.isActiveSavedViewDirty) {
-			url.searchParams.set('view', this.activeSavedFilterId);
+			writeSavedViewUrlState(url.searchParams, this.activeSavedFilterId, undefined);
+			this.#writeGlobalUrlState(url.searchParams);
 			this.#writeHistory(url, historyMode);
 			return;
 		}
@@ -1152,24 +1107,13 @@ export class FilterStore {
 			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
 		}
 
-		if (this.compareSelectedNames.size > 0) {
-			url.searchParams.set(
-				'compare',
-				Array.from(this.compareSelectedNames).join(',')
-			);
-		}
-
 		if (this.activeSavedFilterId) {
-			url.searchParams.set('view', this.activeSavedFilterId);
 			// Persist session source overrides (not in the filter snapshot).
-			if (this.draftSourceLayoutNames !== undefined) {
-				url.searchParams.set(
-					'layouts',
-					this.draftSourceLayoutNames === null
-						? ''
-						: this.draftSourceLayoutNames.join(',')
-				);
-			}
+			writeSavedViewUrlState(
+				url.searchParams,
+				this.activeSavedFilterId,
+				this.draftSourceLayoutNames
+			);
 		} else if (this.layoutSource === 'selected') {
 			url.searchParams.set('source', 'selected');
 		} else if (this.includeSelectedInResults && this.compareSelectedNames.size > 0) {
@@ -1222,30 +1166,6 @@ export class FilterStore {
 			url.searchParams.set('order', this.sortOrder);
 		}
 
-		if (this.statsAnalyzer !== DEFAULT_STATS_ANALYZER) {
-			url.searchParams.set('analyzer', this.statsAnalyzer);
-		}
-
-		if (this.hideLayoutStats) {
-			url.searchParams.set('stats', '0');
-		}
-
-		if (this.hideLayoutTestArea) {
-			url.searchParams.set('testArea', '0');
-		}
-
-		if (this.hideLayoutLikes) {
-			url.searchParams.set('likes', '0');
-		}
-
-		if (this.hideNewLayoutIndicator) {
-			url.searchParams.set('newIndicator', '0');
-		}
-
-		if (!this.stickySimilarityCard) {
-			url.searchParams.set('stickySimilar', '0');
-		}
-
 		if (this.similarReferenceName) {
 			url.searchParams.set('similar', this.similarReferenceName);
 			url.searchParams.set(
@@ -1268,6 +1188,7 @@ export class FilterStore {
 			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
+		this.#writeGlobalUrlState(url.searchParams);
 		this.#writeHistory(url, historyMode);
 	}
 
@@ -1986,6 +1907,7 @@ export class FilterStore {
 			this.ephemeralSourceLayoutNames = null;
 		}
 		this.showSourceSelectionModal = false;
+		this.#saveToUrl();
 	}
 
 	/**
@@ -2001,6 +1923,7 @@ export class FilterStore {
 			this.draftSourceLayoutNames = undefined;
 		}
 		this.showSourceSelectionModal = false;
+		this.#saveToUrl();
 	}
 
 	openSourceSelectionModal() {
