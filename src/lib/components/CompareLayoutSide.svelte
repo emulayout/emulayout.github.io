@@ -1,41 +1,19 @@
 <script lang="ts">
-	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-	import {
-		buildBotStatsBlockLines,
-		buildCyanophageStatsBlockLines,
-		buildMana2StatsBlockLines,
-		CYANOPHAGE_ANALYZER,
-		decodeCyanophageStats,
-		decodeMana2Stats,
-		decodeMonkeyracerStats,
-		deriveBotStats,
-		deriveCyanophageStats,
-		deriveMana2Stats,
-		formatCyanophageStatsLoadingBlock,
-		formatCyanophageStatsUnavailableBlock,
-		formatMana2StatsLoadingBlock,
-		formatMana2StatsUnavailableBlock,
-		formatStatsLoadingBlock,
-		formatStatsUnavailableBlock,
-		MANA2_ANALYZER,
-		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	import type { StatsAnalyzer } from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
-	import type {
-		CompactCyanophageStats,
-		CompactLayoutStats,
-		CompactMana2Stats,
-		LayoutData,
-		MonkeyracerStats
-	} from '$lib/layout';
+	import type { LayoutData } from '$lib/layout';
+	import {
+		buildLayoutStatsBlockModel,
+		type CompactAnalyzerStats
+	} from '$lib/layoutStatsBlockModel';
 
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		compactStats?: CompactLayoutStats | CompactCyanophageStats | CompactMana2Stats;
+		compactStats?: CompactAnalyzerStats;
 		analyzer: StatsAnalyzer;
 		/** When set, shows a clear (X) control after likes. */
 		onClear?: () => void;
@@ -59,8 +37,6 @@
 		showCycleControls = false
 	}: Props = $props();
 
-	const isCyanophage = $derived(analyzer === CYANOPHAGE_ANALYZER);
-	const isMana2 = $derived(analyzer === MANA2_ANALYZER);
 	const displayValue = $derived(displayRowsToString(computeDisplayRows(layout)));
 	const updatedLabel = $derived(
 		new Date(layout.updatedAt).toLocaleDateString(undefined, {
@@ -71,39 +47,12 @@
 	);
 
 	const statsLoading = $derived(layoutStatsStore.isLoading(analyzer));
-
-	const statsBlockLines = $derived.by(() => {
-		if (!compactStats) return null;
-		if (isCyanophage) {
-			if (!layout.cyanophageCompatible) return null;
-			const decoded = decodeCyanophageStats(compactStats as CompactCyanophageStats);
-			if (!decoded) return null;
-			return buildCyanophageStatsBlockLines(deriveCyanophageStats(decoded));
-		}
-		if (isMana2) {
-			const decoded = decodeMana2Stats(compactStats as CompactMana2Stats);
-			if (!decoded) return null;
-			return buildMana2StatsBlockLines(deriveMana2Stats(decoded));
-		}
-		const decoded = decodeMonkeyracerStats(compactStats as CompactLayoutStats);
-		if (!decoded) return null;
-		return buildBotStatsBlockLines(deriveBotStats(decoded as MonkeyracerStats));
-	});
-
-	const statsFallback = $derived.by(() => {
-		if (statsLoading) {
-			if (isCyanophage) return formatCyanophageStatsLoadingBlock();
-			if (isMana2) return formatMana2StatsLoadingBlock();
-			return formatStatsLoadingBlock();
-		}
-		if (isCyanophage) {
-			return formatCyanophageStatsUnavailableBlock(
-				!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
-			);
-		}
-		if (isMana2) return formatMana2StatsUnavailableBlock();
-		return formatStatsUnavailableBlock();
-	});
+	const statsModel = $derived(
+		buildLayoutStatsBlockModel(analyzer, compactStats, {
+			loading: statsLoading,
+			cyanophageCompatible: layout.cyanophageCompatible
+		})
+	);
 </script>
 
 <div class="compare-side">
@@ -174,9 +123,9 @@
 	</div>
 
 	<LayoutStatsBlock
-		lines={statsBlockLines}
-		fallback={statsFallback}
-		mana2={isMana2}
+		lines={statsModel.lines}
+		fallback={statsModel.fallback}
+		mana2={statsModel.mana2}
 		unavailable
 	/>
 

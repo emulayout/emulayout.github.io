@@ -11,9 +11,6 @@
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
-		buildBotStatsBlockLines,
-		buildCyanophageStatsBlockLines,
-		buildMana2StatsBlockLines,
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		decodeCyanophageStats,
@@ -22,12 +19,6 @@
 		deriveBotStats,
 		deriveCyanophageStats,
 		deriveMana2Stats,
-		formatCyanophageStatsLoadingBlock,
-		formatCyanophageStatsUnavailableBlock,
-		formatMana2StatsLoadingBlock,
-		formatMana2StatsUnavailableBlock,
-		formatStatsLoadingBlock,
-		formatStatsUnavailableBlock,
 		formatStatPercent,
 		getStatCardHighlightState,
 		MANA2_ANALYZER,
@@ -53,6 +44,7 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 	interface Props {
 		layout: LayoutData;
@@ -156,24 +148,6 @@
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
 
-	const botStats = $derived.by(() => {
-		if (!showMonkeyStats || !compactMonkeyStats) return null;
-		const decoded = decodeMonkeyracerStats(compactMonkeyStats);
-		return decoded ? deriveBotStats(decoded) : null;
-	});
-	const cyanophageStats = $derived.by(() => {
-		if (!showCyanophageStats || !compactCyanophageStats || !layout.cyanophageCompatible) {
-			return null;
-		}
-		const decoded = decodeCyanophageStats(compactCyanophageStats);
-		return decoded ? deriveCyanophageStats(decoded) : null;
-	});
-	const mana2Stats = $derived.by(() => {
-		if (!showMana2Stats || !compactMana2Stats) return null;
-		const decoded = decodeMana2Stats(compactMana2Stats);
-		return decoded ? deriveMana2Stats(decoded) : null;
-	});
-
 	const monkeyLoading = $derived(
 		showMonkeyStats && layoutStatsStore.isLoading(DEFAULT_STATS_ANALYZER)
 	);
@@ -185,59 +159,33 @@
 	const sortFieldHighlight = $derived(
 		statHighlights ?? getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
-	const botFilterHighlightKeys = $derived(sortFieldHighlight.botFilterHighlightKeys);
-	const cyanophageFilterHighlightKeys = $derived(sortFieldHighlight.cyanophageFilterHighlightKeys);
-	const mana2FilterHighlightKeys = $derived(sortFieldHighlight.mana2FilterHighlightKeys);
-	const botSortHighlightKey = $derived(sortFieldHighlight.botSortHighlightKey);
-	const cyanophageSortHighlightKey = $derived(sortFieldHighlight.cyanophageSortHighlightKey);
-	const mana2SortHighlightKey = $derived(sortFieldHighlight.mana2SortHighlightKey);
-
-	const sortOrder = $derived(filterStore.sortOrder);
-
-	const monkeyStatsBlockLines = $derived(
-		botStats
-			? buildBotStatsBlockLines(botStats, botFilterHighlightKeys, botSortHighlightKey, sortOrder)
+	const monkeyStatsModel = $derived(
+		showMonkeyStats
+			? buildLayoutStatsBlockModel(DEFAULT_STATS_ANALYZER, compactMonkeyStats, {
+					loading: monkeyLoading,
+					highlights: sortFieldHighlight,
+					sortOrder: filterStore.sortOrder
+				})
 			: null
 	);
-	const cyanophageStatsBlockLines = $derived(
-		cyanophageStats
-			? buildCyanophageStatsBlockLines(
-					cyanophageStats,
-					cyanophageFilterHighlightKeys,
-					cyanophageSortHighlightKey,
-					sortOrder
-				)
+	const cyanophageStatsModel = $derived(
+		showCyanophageStats
+			? buildLayoutStatsBlockModel(CYANOPHAGE_ANALYZER, compactCyanophageStats, {
+					loading: cyanophageLoading,
+					cyanophageCompatible: layout.cyanophageCompatible,
+					highlights: sortFieldHighlight,
+					sortOrder: filterStore.sortOrder
+				})
 			: null
 	);
-	const mana2StatsBlockLines = $derived(
-		mana2Stats
-			? buildMana2StatsBlockLines(
-					mana2Stats,
-					mana2FilterHighlightKeys,
-					mana2SortHighlightKey,
-					sortOrder
-				)
+	const mana2StatsModel = $derived(
+		showMana2Stats
+			? buildLayoutStatsBlockModel(MANA2_ANALYZER, compactMana2Stats, {
+					loading: mana2Loading,
+					highlights: sortFieldHighlight,
+					sortOrder: filterStore.sortOrder
+				})
 			: null
-	);
-
-	const monkeyStatsPlaceholder = $derived(
-		monkeyLoading ? formatStatsLoadingBlock() : !botStats ? formatStatsUnavailableBlock() : null
-	);
-	const cyanophageStatsPlaceholder = $derived(
-		cyanophageLoading
-			? formatCyanophageStatsLoadingBlock()
-			: !cyanophageStats
-				? formatCyanophageStatsUnavailableBlock(
-						!layout.cyanophageCompatible ? CYANOPHAGE_UNSUPPORTED_LABEL : undefined
-					)
-				: null
-	);
-	const mana2StatsPlaceholder = $derived(
-		mana2Loading
-			? formatMana2StatsLoadingBlock()
-			: !mana2Stats
-				? formatMana2StatsUnavailableBlock()
-				: null
 	);
 
 	// Expand modal always shows all three analyzers; prefer store maps so lazy loads update live.
@@ -609,27 +557,9 @@
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
 				<LayoutCardStatsPanel
-					monkey={showMonkeyStats
-						? {
-								lines: monkeyStatsBlockLines,
-								fallback: monkeyStatsPlaceholder,
-								loading: monkeyLoading
-							}
-						: null}
-					cyanophage={showCyanophageStats
-						? {
-								lines: cyanophageStatsBlockLines,
-								fallback: cyanophageStatsPlaceholder,
-								loading: cyanophageLoading
-							}
-						: null}
-					mana2={showMana2Stats
-						? {
-								lines: mana2StatsBlockLines,
-								fallback: mana2StatsPlaceholder,
-								loading: mana2Loading
-							}
-						: null}
+					monkey={monkeyStatsModel}
+					cyanophage={cyanophageStatsModel}
+					mana2={mana2StatsModel}
 				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}

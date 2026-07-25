@@ -1,29 +1,23 @@
 <script lang="ts">
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
-	import type { StatsBlockSegment } from '$lib/layoutStats';
-
-	type CompactStatsBlock = {
-		lines: StatsBlockSegment[][] | null;
-		fallback: string | null;
-		loading: boolean;
-	};
+	import type { LayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 	interface Props {
-		monkey?: CompactStatsBlock | null;
-		cyanophage?: CompactStatsBlock | null;
-		mana2?: CompactStatsBlock | null;
+		monkey?: LayoutStatsBlockModel | null;
+		cyanophage?: LayoutStatsBlockModel | null;
+		mana2?: LayoutStatsBlockModel | null;
 	}
 
 	const { monkey = null, cyanophage = null, mana2 = null }: Props = $props();
 </script>
 
-{#snippet statsItem(model: CompactStatsBlock, isMana2 = false)}
+{#snippet statsItem(model: LayoutStatsBlockModel)}
 	<div class="stats-stack-item">
 		<LayoutStatsBlock
 			lines={model.lines}
 			fallback={model.fallback}
 			unavailable={!model.loading}
-			mana2={isMana2}
+			mana2={model.mana2}
 			shrink
 		/>
 	</div>
@@ -37,7 +31,7 @@
 		{@render statsItem(cyanophage)}
 	{/if}
 	{#if mana2}
-		{@render statsItem(mana2, true)}
+		{@render statsItem(mana2)}
 	{/if}
 </div>
 
