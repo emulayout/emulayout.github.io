@@ -3,7 +3,11 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { showsCyanophageStats, showsMana2Stats, showsMonkeyracerStats } from '$lib/layoutStats';
+	import {
+		showsCyanophageStats,
+		showsMana2Stats,
+		showsMonkeyracerStats
+	} from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 

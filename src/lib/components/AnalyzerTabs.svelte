@@ -5,7 +5,7 @@
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
 
 	interface Props {
 		value: StatsAnalyzer;

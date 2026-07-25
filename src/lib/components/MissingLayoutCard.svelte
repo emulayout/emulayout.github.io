@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getLayoutCardHeight } from '$lib/constants';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { showsMana2Stats } from '$lib/layoutStats';
+	import { showsMana2Stats } from '$lib/statsAnalyzers';
 
 	interface Props {
 		name: string;

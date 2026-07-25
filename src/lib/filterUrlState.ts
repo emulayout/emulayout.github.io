@@ -2,7 +2,7 @@ import {
 	DEFAULT_STATS_ANALYZER,
 	parseStatsAnalyzerMode,
 	type StatsAnalyzerMode
-} from './layoutStats';
+} from './statsAnalyzers';
 
 /**
  * Filter/sort params that mean a saved view's live state differs from its

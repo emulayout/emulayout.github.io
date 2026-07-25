@@ -1,5 +1,5 @@
 import type { StatsMaps } from '$lib/layout';
-import { getAnalyzerStatsUrl, type StatsAnalyzer } from '$lib/layoutStats';
+import { getAnalyzerStatsUrl, type StatsAnalyzer } from '$lib/statsAnalyzers';
 
 export type AnalyzerStatsMap = NonNullable<StatsMaps[StatsAnalyzer]>;
 

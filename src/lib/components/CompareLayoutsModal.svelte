@@ -13,7 +13,7 @@
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 

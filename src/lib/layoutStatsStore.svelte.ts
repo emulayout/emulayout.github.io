@@ -5,7 +5,7 @@ import {
 	resolveStatsAnalyzers,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
-} from '$lib/layoutStats';
+} from '$lib/statsAnalyzers';
 import { loadAnalyzerStats, type AnalyzerStatsLoadError } from '$lib/layoutStatsLoader';
 
 class LayoutStatsStore {

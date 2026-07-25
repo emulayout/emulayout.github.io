@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { StatsAnalyzer } from '$lib/layoutStats';
+	import type { StatsAnalyzer } from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
