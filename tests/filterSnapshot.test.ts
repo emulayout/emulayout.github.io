@@ -1,5 +1,57 @@
 import { describe, expect, test } from 'bun:test';
-import { createDefaultViewSnapshot, normalizeViewFilterSnapshot } from '$lib/filterSnapshot';
+import {
+	cloneViewFilterSnapshot,
+	createDefaultViewSnapshot,
+	normalizeViewFilterSnapshot
+} from '$lib/filterSnapshot';
+
+describe('view filter snapshot construction', () => {
+	test('creates independent nested defaults', () => {
+		const first = createDefaultViewSnapshot();
+		const second = createDefaultViewSnapshot();
+
+		first.includeGrid[0][0] = 'a';
+		first.includeLeftThumbKeys[0] = 'e';
+		first.statLimits.likes.value = '10';
+
+		expect(first.appliedIncludeGrid[0][0]).toBe('');
+		expect(first.appliedIncludeLeftThumbKeys[0]).toBe('');
+		expect(first.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '' });
+		expect(second.includeGrid[0][0]).toBe('');
+		expect(second.includeLeftThumbKeys[0]).toBe('');
+		expect(second.statLimits.likes).toEqual({ operator: 'gt', value: '' });
+		expect(second.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '' });
+	});
+
+	test('deep-clones every mutable snapshot field', () => {
+		const original = createDefaultViewSnapshot();
+		original.includeGrid[0][0] = 'a';
+		original.includeLeftThumbKeys[0] = 'e';
+		original.selectedAuthors.push(12);
+		original.sortBeforeSimilar = {
+			sortBy: 'name',
+			sortOrder: 'asc',
+			sortOrderManual: true
+		};
+		original.statLimits.likes.value = '10';
+		original.appliedStatLimits.likes.value = '20';
+
+		const clone = cloneViewFilterSnapshot(original);
+		clone.includeGrid[0][0] = 'b';
+		clone.includeLeftThumbKeys[0] = 't';
+		clone.selectedAuthors.push(34);
+		clone.sortBeforeSimilar!.sortOrder = 'desc';
+		clone.statLimits.likes.value = '30';
+		clone.appliedStatLimits.likes.value = '40';
+
+		expect(original.includeGrid[0][0]).toBe('a');
+		expect(original.includeLeftThumbKeys[0]).toBe('e');
+		expect(original.selectedAuthors).toEqual([12]);
+		expect(original.sortBeforeSimilar.sortOrder).toBe('asc');
+		expect(original.statLimits.likes.value).toBe('10');
+		expect(original.appliedStatLimits.likes.value).toBe('20');
+	});
+});
 
 describe('normalizeViewFilterSnapshot', () => {
 	test('fills a partial snapshot with current defaults', () => {

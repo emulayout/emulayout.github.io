@@ -1,12 +1,3 @@
-import type {
-	BoardTypeFilter,
-	CharacterSetFilter,
-	MagicKeyFilter,
-	StatLimit,
-	StatLimitOperator,
-	ThumbKeyFilter,
-	ViewFilterSnapshot
-} from '$lib/filterStore.svelte';
 import {
 	ALL_STAT_FILTER_FIELDS,
 	isSortOrder,
@@ -17,25 +8,87 @@ import {
 } from '$lib/layoutStats';
 import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSimilarity';
 
-export type { ViewFilterSnapshot } from '$lib/filterStore.svelte';
+export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
+export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
+export type CharacterSetFilter = 'all' | 'english' | 'international';
+export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
+export type StatLimitOperator = 'lt' | 'gt';
 
-const ROWS = 3;
-const COLS = 10;
-const THUMB_KEYS_PER_HAND = 4;
+export interface StatLimit {
+	operator: StatLimitOperator;
+	value: string;
+}
+
+export type SortSnapshot = {
+	sortBy: SortBy;
+	sortOrder: SortOrder;
+	sortOrderManual: boolean;
+};
+
+/** Per-view filter fields — All and Selected keep isolated snapshots (never synced). */
+export type ViewFilterSnapshot = {
+	includeGrid: string[][];
+	excludeGrid: string[][];
+	includeOrGrid: string[][];
+	includeOrLeftThumbKeys: string[];
+	includeOrRightThumbKeys: string[];
+	includeLeftThumbKeys: string[];
+	includeRightThumbKeys: string[];
+	excludeLeftThumbKeys: string[];
+	excludeRightThumbKeys: string[];
+	showUnfinished: boolean;
+	thumbKeyFilter: ThumbKeyFilter;
+	magicKeyFilter: MagicKeyFilter;
+	characterSetFilter: CharacterSetFilter;
+	boardTypeFilter: BoardTypeFilter;
+	nameFilterInput: string;
+	nameFilter: string;
+	selectedAuthors: number[];
+	includeSelectedInResults: boolean;
+	similarReferenceName: string | null;
+	similarReferenceAnglemod: boolean;
+	similarityFilterOperator: StatLimitOperator;
+	similarityFilterValue: string;
+	appliedSimilarityFilterValue: string;
+	similarityWeightHomeKeys: boolean;
+	similarityMirrorMode: SimilarityMirrorMode;
+	sortBy: SortBy;
+	sortOrder: SortOrder;
+	sortOrderManual: boolean;
+	sortBeforeSimilar: SortSnapshot | null;
+	exitSortRestore: SortSnapshot | null;
+	statLimits: Record<StatLimitKey, StatLimit>;
+	appliedIncludeGrid: string[][];
+	appliedExcludeGrid: string[][];
+	appliedIncludeOrGrid: string[][];
+	appliedIncludeOrLeftThumbKeys: string[];
+	appliedIncludeOrRightThumbKeys: string[];
+	appliedIncludeLeftThumbKeys: string[];
+	appliedIncludeRightThumbKeys: string[];
+	appliedExcludeLeftThumbKeys: string[];
+	appliedExcludeRightThumbKeys: string[];
+	appliedStatLimits: Record<StatLimitKey, StatLimit>;
+};
+
+export const FILTER_GRID_ROWS = 3;
+export const FILTER_GRID_COLUMNS = 10;
+export const FILTER_THUMB_KEYS_PER_HAND = 4;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function createEmptyGrid(): string[][] {
-	return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
+export function createEmptyFilterGrid(): string[][] {
+	return Array.from({ length: FILTER_GRID_ROWS }, () =>
+		Array.from({ length: FILTER_GRID_COLUMNS }, () => '')
+	);
 }
 
-function createEmptyThumbKeyFilters(): string[] {
-	return Array.from({ length: THUMB_KEYS_PER_HAND }, () => '');
+export function createEmptyThumbKeyFilters(): string[] {
+	return Array.from({ length: FILTER_THUMB_KEYS_PER_HAND }, () => '');
 }
 
-function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
+export function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
 	const limits = {} as Record<StatLimitKey, StatLimit>;
 	for (const field of ALL_STAT_FILTER_FIELDS) {
 		limits[field.key] = { operator: 'lt', value: '' };
@@ -44,11 +97,17 @@ function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
 	return limits;
 }
 
-function cloneGrid(grid: string[][]): string[][] {
+export function cloneFilterGrid(grid: string[][]): string[][] {
 	return grid.map((row) => [...row]);
 }
 
-function cloneStatLimits(limits: Record<StatLimitKey, StatLimit>): Record<StatLimitKey, StatLimit> {
+export function cloneThumbKeyFilters(keys: string[]): string[] {
+	return [...keys];
+}
+
+export function cloneStatLimits(
+	limits: Record<StatLimitKey, StatLimit>
+): Record<StatLimitKey, StatLimit> {
 	const clone = createEmptyStatLimits();
 	for (const key of Object.keys(clone) as StatLimitKey[]) {
 		clone[key] = { ...limits[key] };
@@ -56,11 +115,44 @@ function cloneStatLimits(limits: Record<StatLimitKey, StatLimit>): Record<StatLi
 	return clone;
 }
 
+export function cloneSortSnapshot(snapshot: SortSnapshot | null): SortSnapshot | null {
+	return snapshot ? { ...snapshot } : null;
+}
+
+export function cloneViewFilterSnapshot(snapshot: ViewFilterSnapshot): ViewFilterSnapshot {
+	return {
+		...snapshot,
+		includeGrid: cloneFilterGrid(snapshot.includeGrid),
+		excludeGrid: cloneFilterGrid(snapshot.excludeGrid),
+		includeOrGrid: cloneFilterGrid(snapshot.includeOrGrid),
+		includeOrLeftThumbKeys: cloneThumbKeyFilters(snapshot.includeOrLeftThumbKeys),
+		includeOrRightThumbKeys: cloneThumbKeyFilters(snapshot.includeOrRightThumbKeys),
+		includeLeftThumbKeys: cloneThumbKeyFilters(snapshot.includeLeftThumbKeys),
+		includeRightThumbKeys: cloneThumbKeyFilters(snapshot.includeRightThumbKeys),
+		excludeLeftThumbKeys: cloneThumbKeyFilters(snapshot.excludeLeftThumbKeys),
+		excludeRightThumbKeys: cloneThumbKeyFilters(snapshot.excludeRightThumbKeys),
+		selectedAuthors: [...snapshot.selectedAuthors],
+		sortBeforeSimilar: cloneSortSnapshot(snapshot.sortBeforeSimilar),
+		exitSortRestore: cloneSortSnapshot(snapshot.exitSortRestore),
+		statLimits: cloneStatLimits(snapshot.statLimits),
+		appliedIncludeGrid: cloneFilterGrid(snapshot.appliedIncludeGrid),
+		appliedExcludeGrid: cloneFilterGrid(snapshot.appliedExcludeGrid),
+		appliedIncludeOrGrid: cloneFilterGrid(snapshot.appliedIncludeOrGrid),
+		appliedIncludeOrLeftThumbKeys: cloneThumbKeyFilters(snapshot.appliedIncludeOrLeftThumbKeys),
+		appliedIncludeOrRightThumbKeys: cloneThumbKeyFilters(snapshot.appliedIncludeOrRightThumbKeys),
+		appliedIncludeLeftThumbKeys: cloneThumbKeyFilters(snapshot.appliedIncludeLeftThumbKeys),
+		appliedIncludeRightThumbKeys: cloneThumbKeyFilters(snapshot.appliedIncludeRightThumbKeys),
+		appliedExcludeLeftThumbKeys: cloneThumbKeyFilters(snapshot.appliedExcludeLeftThumbKeys),
+		appliedExcludeRightThumbKeys: cloneThumbKeyFilters(snapshot.appliedExcludeRightThumbKeys),
+		appliedStatLimits: cloneStatLimits(snapshot.appliedStatLimits)
+	};
+}
+
 export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 	return {
-		includeGrid: createEmptyGrid(),
-		excludeGrid: createEmptyGrid(),
-		includeOrGrid: createEmptyGrid(),
+		includeGrid: createEmptyFilterGrid(),
+		excludeGrid: createEmptyFilterGrid(),
+		includeOrGrid: createEmptyFilterGrid(),
 		includeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
 		includeOrRightThumbKeys: createEmptyThumbKeyFilters(),
 		includeLeftThumbKeys: createEmptyThumbKeyFilters(),
@@ -89,9 +181,9 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		sortBeforeSimilar: null,
 		exitSortRestore: null,
 		statLimits: createEmptyStatLimits(),
-		appliedIncludeGrid: createEmptyGrid(),
-		appliedExcludeGrid: createEmptyGrid(),
-		appliedIncludeOrGrid: createEmptyGrid(),
+		appliedIncludeGrid: createEmptyFilterGrid(),
+		appliedExcludeGrid: createEmptyFilterGrid(),
+		appliedIncludeOrGrid: createEmptyFilterGrid(),
 		appliedIncludeOrLeftThumbKeys: createEmptyThumbKeyFilters(),
 		appliedIncludeOrRightThumbKeys: createEmptyThumbKeyFilters(),
 		appliedIncludeLeftThumbKeys: createEmptyThumbKeyFilters(),
@@ -103,10 +195,10 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 }
 
 function normalizeGrid(value: unknown, fallback: string[][]): string[][] {
-	if (!Array.isArray(value)) return cloneGrid(fallback);
-	return Array.from({ length: ROWS }, (_, rowIndex) => {
+	if (!Array.isArray(value)) return cloneFilterGrid(fallback);
+	return Array.from({ length: FILTER_GRID_ROWS }, (_, rowIndex) => {
 		const row = value[rowIndex];
-		return Array.from({ length: COLS }, (_, columnIndex) => {
+		return Array.from({ length: FILTER_GRID_COLUMNS }, (_, columnIndex) => {
 			const cell = Array.isArray(row) ? row[columnIndex] : undefined;
 			return typeof cell === 'string' ? cell : '';
 		});
@@ -115,7 +207,7 @@ function normalizeGrid(value: unknown, fallback: string[][]): string[][] {
 
 function normalizeThumbKeys(value: unknown, fallback: string[]): string[] {
 	if (!Array.isArray(value)) return [...fallback];
-	return Array.from({ length: THUMB_KEYS_PER_HAND }, (_, index) =>
+	return Array.from({ length: FILTER_THUMB_KEYS_PER_HAND }, (_, index) =>
 		typeof value[index] === 'string' ? value[index] : ''
 	);
 }
@@ -142,11 +234,7 @@ function normalizeStatLimits(
 	return normalized;
 }
 
-function normalizeSortSnapshot(value: unknown): {
-	sortBy: SortBy;
-	sortOrder: SortOrder;
-	sortOrderManual: boolean;
-} | null {
+function normalizeSortSnapshot(value: unknown): SortSnapshot | null {
 	if (!isPlainObject(value) || typeof value.sortBy !== 'string') return null;
 	const sortBy = normalizeSortBy(value.sortBy);
 	if (!sortBy || typeof value.sortOrder !== 'string' || !isSortOrder(value.sortOrder)) {

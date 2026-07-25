@@ -1,37 +1,37 @@
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { pushState, replaceState } from '$app/navigation';
 import { page } from '$app/state';
-	import {
-		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
-		MANA2_ANALYZER,
-		analyzersNeededForLimits,
-		deriveBotStats,
-		deriveCyanophageStats,
-		deriveMana2Stats,
-		getLayoutAnalyzerStats,
-		getStatFilterFieldsForAnalyzer,
-		getStatFilterStatKey,
-		getStatSortField,
-		getStatSortValue,
-		isSortOrder,
-		isStatSortBy,
-		getDefaultSortOrder,
-		isAnalyzerStatsReady,
-		parseLegacySortParam,
-		normalizeSortBy,
-		parseStatsAnalyzerMode,
-		parseStatFilterThreshold,
-		ALL_STAT_FILTER_FIELDS,
-		getGeneralStatFilterRowsForAnalyzer,
-		getHandStatFilterFieldsForAnalyzer,
-		STAT_ANALYZERS,
-		type SortBy,
-		type SortOrder,
-		type StatLimitKey,
-		type StatsAnalyzer,
-		type StatsAnalyzerMode
-	} from './layoutStats';
+import {
+	CYANOPHAGE_ANALYZER,
+	DEFAULT_STATS_ANALYZER,
+	MANA2_ANALYZER,
+	analyzersNeededForLimits,
+	deriveBotStats,
+	deriveCyanophageStats,
+	deriveMana2Stats,
+	getLayoutAnalyzerStats,
+	getStatFilterFieldsForAnalyzer,
+	getStatFilterStatKey,
+	getStatSortField,
+	getStatSortValue,
+	isSortOrder,
+	isStatSortBy,
+	getDefaultSortOrder,
+	isAnalyzerStatsReady,
+	parseLegacySortParam,
+	normalizeSortBy,
+	parseStatsAnalyzerMode,
+	parseStatFilterThreshold,
+	ALL_STAT_FILTER_FIELDS,
+	getGeneralStatFilterRowsForAnalyzer,
+	getHandStatFilterFieldsForAnalyzer,
+	STAT_ANALYZERS,
+	type SortBy,
+	type SortOrder,
+	type StatLimitKey,
+	type StatsAnalyzer,
+	type StatsAnalyzerMode
+} from './layoutStats';
 import type {
 	CyanophageStats,
 	Mana2Stats,
@@ -65,23 +65,42 @@ import {
 	writeGlobalFilterUrlState,
 	writeSavedViewUrlState
 } from './filterUrlState';
-import { createDefaultViewSnapshot } from './filterSnapshot';
+import {
+	FILTER_GRID_COLUMNS as COLS,
+	FILTER_GRID_ROWS as ROWS,
+	FILTER_THUMB_KEYS_PER_HAND as THUMB_KEYS_PER_HAND,
+	cloneFilterGrid,
+	cloneStatLimits,
+	cloneThumbKeyFilters,
+	cloneViewFilterSnapshot,
+	createDefaultViewSnapshot,
+	createEmptyFilterGrid,
+	createEmptyStatLimits,
+	createEmptyThumbKeyFilters,
+	type BoardTypeFilter,
+	type CharacterSetFilter,
+	type MagicKeyFilter,
+	type SortSnapshot,
+	type StatLimit,
+	type StatLimitOperator,
+	type ThumbKeyFilter,
+	type ViewFilterSnapshot
+} from './filterSnapshot';
 
-export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
-export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
-export type CharacterSetFilter = 'all' | 'english' | 'international';
-export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
-export type StatLimitOperator = 'lt' | 'gt';
+export type {
+	BoardTypeFilter,
+	CharacterSetFilter,
+	MagicKeyFilter,
+	StatLimit,
+	StatLimitOperator,
+	ThumbKeyFilter,
+	ViewFilterSnapshot
+} from './filterSnapshot';
 /** Pool of layouts that other filters operate on. */
 export type LayoutSource = 'all' | 'selected';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
 export type { SavedFilter };
-
-export interface StatLimit {
-	operator: StatLimitOperator;
-	value: string;
-}
 
 /** Precomputed active stat limits for one filterLayouts pass. */
 type ActiveAnalyzerStatFilters = {
@@ -94,15 +113,6 @@ type ActiveAnalyzerStatFilters = {
 };
 
 type LikesLimitCheck = { operator: StatLimitOperator; threshold: number };
-
-function createEmptyStatLimits(): Record<StatLimitKey, StatLimit> {
-	const limits = {} as Record<StatLimitKey, StatLimit>;
-	for (const field of ALL_STAT_FILTER_FIELDS) {
-		limits[field.key] = { operator: 'lt', value: '' };
-	}
-	limits.likes = { operator: 'gt', value: '' };
-	return limits;
-}
 
 function serializeStatLimits(limits: Record<StatLimitKey, StatLimit>): string {
 	const parts: string[] = [];
@@ -137,18 +147,7 @@ export function parseStatLimitsParam(str: string | null | undefined): Record<Sta
 	return deserializeStatLimits(str?.trim() ?? '');
 }
 
-const ROWS = 3;
-const COLS = 10;
-const THUMB_KEYS_PER_HAND = 4;
 const DEBOUNCE_MS = 300;
-
-function createEmptyThumbKeyFilters(): string[] {
-	return Array.from({ length: THUMB_KEYS_PER_HAND }, () => '');
-}
-
-function createEmptyGrid(): string[][] {
-	return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => ''));
-}
 
 function serializeThumbFilters(filters: string[]): string {
 	return filters.filter((k) => k !== '').join('|');
@@ -421,7 +420,7 @@ function serializeGrid(grid: string[][]): string {
 
 // Deserialize compact string back to grid
 function deserializeGrid(str: string): string[][] {
-	const grid = createEmptyGrid();
+	const grid = createEmptyFilterGrid();
 	if (!str) return grid;
 
 	const parts = str.split(',');
@@ -438,61 +437,10 @@ function deserializeGrid(str: string): string[][] {
 	return grid;
 }
 
-type SortSnapshot = {
-	sortBy: SortBy;
-	sortOrder: SortOrder;
-	sortOrderManual: boolean;
-};
-
-/** Per-view filter fields — All and Selected keep isolated snapshots (never synced). */
-export type ViewFilterSnapshot = {
-	includeGrid: string[][];
-	excludeGrid: string[][];
-	includeOrGrid: string[][];
-	includeOrLeftThumbKeys: string[];
-	includeOrRightThumbKeys: string[];
-	includeLeftThumbKeys: string[];
-	includeRightThumbKeys: string[];
-	excludeLeftThumbKeys: string[];
-	excludeRightThumbKeys: string[];
-	showUnfinished: boolean;
-	thumbKeyFilter: ThumbKeyFilter;
-	magicKeyFilter: MagicKeyFilter;
-	characterSetFilter: CharacterSetFilter;
-	boardTypeFilter: BoardTypeFilter;
-	nameFilterInput: string;
-	nameFilter: string;
-	selectedAuthors: number[];
-	includeSelectedInResults: boolean;
-	similarReferenceName: string | null;
-	similarReferenceAnglemod: boolean;
-	similarityFilterOperator: StatLimitOperator;
-	similarityFilterValue: string;
-	appliedSimilarityFilterValue: string;
-	similarityWeightHomeKeys: boolean;
-	similarityMirrorMode: SimilarityMirrorMode;
-	sortBy: SortBy;
-	sortOrder: SortOrder;
-	sortOrderManual: boolean;
-	sortBeforeSimilar: SortSnapshot | null;
-	exitSortRestore: SortSnapshot | null;
-	statLimits: Record<StatLimitKey, StatLimit>;
-	appliedIncludeGrid: string[][];
-	appliedExcludeGrid: string[][];
-	appliedIncludeOrGrid: string[][];
-	appliedIncludeOrLeftThumbKeys: string[];
-	appliedIncludeOrRightThumbKeys: string[];
-	appliedIncludeLeftThumbKeys: string[];
-	appliedIncludeRightThumbKeys: string[];
-	appliedExcludeLeftThumbKeys: string[];
-	appliedExcludeRightThumbKeys: string[];
-	appliedStatLimits: Record<StatLimitKey, StatLimit>;
-};
-
 export class FilterStore {
-	includeGrid: string[][] = $state(createEmptyGrid());
-	excludeGrid: string[][] = $state(createEmptyGrid());
-	includeOrGrid: string[][] = $state(createEmptyGrid());
+	includeGrid: string[][] = $state(createEmptyFilterGrid());
+	excludeGrid: string[][] = $state(createEmptyFilterGrid());
+	includeOrGrid: string[][] = $state(createEmptyFilterGrid());
 	includeOrLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	includeOrRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	includeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
@@ -583,9 +531,9 @@ export class FilterStore {
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
 
 	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
-	appliedIncludeGrid: string[][] = $state(createEmptyGrid());
-	appliedExcludeGrid: string[][] = $state(createEmptyGrid());
-	appliedIncludeOrGrid: string[][] = $state(createEmptyGrid());
+	appliedIncludeGrid: string[][] = $state(createEmptyFilterGrid());
+	appliedExcludeGrid: string[][] = $state(createEmptyFilterGrid());
+	appliedIncludeOrGrid: string[][] = $state(createEmptyFilterGrid());
 	appliedIncludeOrLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedIncludeOrRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedIncludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
@@ -635,33 +583,17 @@ export class FilterStore {
 		}
 	}
 
-	#cloneGrid(grid: string[][]): string[][] {
-		return grid.map((row) => [...row]);
-	}
-
-	#cloneThumbKeys(keys: string[]): string[] {
-		return [...keys];
-	}
-
-	#cloneStatLimits(limits: Record<StatLimitKey, StatLimit>): Record<StatLimitKey, StatLimit> {
-		const next = createEmptyStatLimits();
-		for (const key of Object.keys(limits) as StatLimitKey[]) {
-			next[key] = { operator: limits[key].operator, value: limits[key].value };
-		}
-		return next;
-	}
-
 	#applyFiltersFromInputs() {
-		this.appliedIncludeGrid = this.#cloneGrid(this.includeGrid);
-		this.appliedExcludeGrid = this.#cloneGrid(this.excludeGrid);
-		this.appliedIncludeOrGrid = this.#cloneGrid(this.includeOrGrid);
-		this.appliedIncludeOrLeftThumbKeys = this.#cloneThumbKeys(this.includeOrLeftThumbKeys);
-		this.appliedIncludeOrRightThumbKeys = this.#cloneThumbKeys(this.includeOrRightThumbKeys);
-		this.appliedIncludeLeftThumbKeys = this.#cloneThumbKeys(this.includeLeftThumbKeys);
-		this.appliedIncludeRightThumbKeys = this.#cloneThumbKeys(this.includeRightThumbKeys);
-		this.appliedExcludeLeftThumbKeys = this.#cloneThumbKeys(this.excludeLeftThumbKeys);
-		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(this.excludeRightThumbKeys);
-		this.appliedStatLimits = this.#cloneStatLimits(this.statLimits);
+		this.appliedIncludeGrid = cloneFilterGrid(this.includeGrid);
+		this.appliedExcludeGrid = cloneFilterGrid(this.excludeGrid);
+		this.appliedIncludeOrGrid = cloneFilterGrid(this.includeOrGrid);
+		this.appliedIncludeOrLeftThumbKeys = cloneThumbKeyFilters(this.includeOrLeftThumbKeys);
+		this.appliedIncludeOrRightThumbKeys = cloneThumbKeyFilters(this.includeOrRightThumbKeys);
+		this.appliedIncludeLeftThumbKeys = cloneThumbKeyFilters(this.includeLeftThumbKeys);
+		this.appliedIncludeRightThumbKeys = cloneThumbKeyFilters(this.includeRightThumbKeys);
+		this.appliedExcludeLeftThumbKeys = cloneThumbKeyFilters(this.excludeLeftThumbKeys);
+		this.appliedExcludeRightThumbKeys = cloneThumbKeyFilters(this.excludeRightThumbKeys);
+		this.appliedStatLimits = cloneStatLimits(this.statLimits);
 		this.appliedSimilarityFilterValue = this.similarityFilterValue;
 		this.nameFilter = this.nameFilterInput;
 		this.appliedFiltersRevision += 1;
@@ -682,9 +614,9 @@ export class FilterStore {
 	}
 
 	#resetUrlControlledState() {
-		this.includeGrid = createEmptyGrid();
-		this.excludeGrid = createEmptyGrid();
-		this.includeOrGrid = createEmptyGrid();
+		this.includeGrid = createEmptyFilterGrid();
+		this.excludeGrid = createEmptyFilterGrid();
+		this.includeOrGrid = createEmptyFilterGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
@@ -1187,26 +1119,17 @@ export class FilterStore {
 		this.#schedulePersist();
 	}
 
-	#cloneSortSnapshot(snapshot: SortSnapshot | null): SortSnapshot | null {
-		if (!snapshot) return null;
-		return {
-			sortBy: snapshot.sortBy,
-			sortOrder: snapshot.sortOrder,
-			sortOrderManual: snapshot.sortOrderManual
-		};
-	}
-
 	#captureViewFilters(): ViewFilterSnapshot {
-		return {
-			includeGrid: this.#cloneGrid(this.includeGrid),
-			excludeGrid: this.#cloneGrid(this.excludeGrid),
-			includeOrGrid: this.#cloneGrid(this.includeOrGrid),
-			includeOrLeftThumbKeys: this.#cloneThumbKeys(this.includeOrLeftThumbKeys),
-			includeOrRightThumbKeys: this.#cloneThumbKeys(this.includeOrRightThumbKeys),
-			includeLeftThumbKeys: this.#cloneThumbKeys(this.includeLeftThumbKeys),
-			includeRightThumbKeys: this.#cloneThumbKeys(this.includeRightThumbKeys),
-			excludeLeftThumbKeys: this.#cloneThumbKeys(this.excludeLeftThumbKeys),
-			excludeRightThumbKeys: this.#cloneThumbKeys(this.excludeRightThumbKeys),
+		return cloneViewFilterSnapshot({
+			includeGrid: this.includeGrid,
+			excludeGrid: this.excludeGrid,
+			includeOrGrid: this.includeOrGrid,
+			includeOrLeftThumbKeys: this.includeOrLeftThumbKeys,
+			includeOrRightThumbKeys: this.includeOrRightThumbKeys,
+			includeLeftThumbKeys: this.includeLeftThumbKeys,
+			includeRightThumbKeys: this.includeRightThumbKeys,
+			excludeLeftThumbKeys: this.excludeLeftThumbKeys,
+			excludeRightThumbKeys: this.excludeRightThumbKeys,
 			showUnfinished: this.showUnfinished,
 			thumbKeyFilter: this.thumbKeyFilter,
 			magicKeyFilter: this.magicKeyFilter,
@@ -1226,101 +1149,74 @@ export class FilterStore {
 			sortBy: this.sortBy,
 			sortOrder: this.sortOrder,
 			sortOrderManual: this.#sortOrderManual,
-			sortBeforeSimilar: this.#cloneSortSnapshot(this.#sortBeforeSimilar),
-			exitSortRestore: this.#cloneSortSnapshot(this.#exitSortRestore),
-			statLimits: this.#cloneStatLimits(this.statLimits),
-			appliedIncludeGrid: this.#cloneGrid(this.appliedIncludeGrid),
-			appliedExcludeGrid: this.#cloneGrid(this.appliedExcludeGrid),
-			appliedIncludeOrGrid: this.#cloneGrid(this.appliedIncludeOrGrid),
-			appliedIncludeOrLeftThumbKeys: this.#cloneThumbKeys(this.appliedIncludeOrLeftThumbKeys),
-			appliedIncludeOrRightThumbKeys: this.#cloneThumbKeys(this.appliedIncludeOrRightThumbKeys),
-			appliedIncludeLeftThumbKeys: this.#cloneThumbKeys(this.appliedIncludeLeftThumbKeys),
-			appliedIncludeRightThumbKeys: this.#cloneThumbKeys(this.appliedIncludeRightThumbKeys),
-			appliedExcludeLeftThumbKeys: this.#cloneThumbKeys(this.appliedExcludeLeftThumbKeys),
-			appliedExcludeRightThumbKeys: this.#cloneThumbKeys(this.appliedExcludeRightThumbKeys),
-			appliedStatLimits: this.#cloneStatLimits(this.appliedStatLimits)
-		};
+			sortBeforeSimilar: this.#sortBeforeSimilar,
+			exitSortRestore: this.#exitSortRestore,
+			statLimits: this.statLimits,
+			appliedIncludeGrid: this.appliedIncludeGrid,
+			appliedExcludeGrid: this.appliedExcludeGrid,
+			appliedIncludeOrGrid: this.appliedIncludeOrGrid,
+			appliedIncludeOrLeftThumbKeys: this.appliedIncludeOrLeftThumbKeys,
+			appliedIncludeOrRightThumbKeys: this.appliedIncludeOrRightThumbKeys,
+			appliedIncludeLeftThumbKeys: this.appliedIncludeLeftThumbKeys,
+			appliedIncludeRightThumbKeys: this.appliedIncludeRightThumbKeys,
+			appliedExcludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
+			appliedExcludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
+			appliedStatLimits: this.appliedStatLimits
+		});
 	}
 
 	#restoreViewFilters(snapshot: ViewFilterSnapshot) {
-		this.includeGrid = this.#cloneGrid(snapshot.includeGrid);
-		this.excludeGrid = this.#cloneGrid(snapshot.excludeGrid);
-		this.includeOrGrid = this.#cloneGrid(snapshot.includeOrGrid);
-		this.includeOrLeftThumbKeys = this.#cloneThumbKeys(snapshot.includeOrLeftThumbKeys);
-		this.includeOrRightThumbKeys = this.#cloneThumbKeys(snapshot.includeOrRightThumbKeys);
-		this.includeLeftThumbKeys = this.#cloneThumbKeys(snapshot.includeLeftThumbKeys);
-		this.includeRightThumbKeys = this.#cloneThumbKeys(snapshot.includeRightThumbKeys);
-		this.excludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.excludeLeftThumbKeys);
-		this.excludeRightThumbKeys = this.#cloneThumbKeys(snapshot.excludeRightThumbKeys);
-		this.showUnfinished = snapshot.showUnfinished;
-		this.thumbKeyFilter = snapshot.thumbKeyFilter;
-		this.magicKeyFilter = snapshot.magicKeyFilter;
-		this.characterSetFilter = snapshot.characterSetFilter;
-		this.boardTypeFilter = snapshot.boardTypeFilter;
-		this.nameFilterInput = snapshot.nameFilterInput;
-		this.nameFilter = snapshot.nameFilter;
+		const restored = cloneViewFilterSnapshot(snapshot);
+		this.includeGrid = restored.includeGrid;
+		this.excludeGrid = restored.excludeGrid;
+		this.includeOrGrid = restored.includeOrGrid;
+		this.includeOrLeftThumbKeys = restored.includeOrLeftThumbKeys;
+		this.includeOrRightThumbKeys = restored.includeOrRightThumbKeys;
+		this.includeLeftThumbKeys = restored.includeLeftThumbKeys;
+		this.includeRightThumbKeys = restored.includeRightThumbKeys;
+		this.excludeLeftThumbKeys = restored.excludeLeftThumbKeys;
+		this.excludeRightThumbKeys = restored.excludeRightThumbKeys;
+		this.showUnfinished = restored.showUnfinished;
+		this.thumbKeyFilter = restored.thumbKeyFilter;
+		this.magicKeyFilter = restored.magicKeyFilter;
+		this.characterSetFilter = restored.characterSetFilter;
+		this.boardTypeFilter = restored.boardTypeFilter;
+		this.nameFilterInput = restored.nameFilterInput;
+		this.nameFilter = restored.nameFilter;
 		this.selectedAuthors.clear();
-		for (const id of snapshot.selectedAuthors) {
+		for (const id of restored.selectedAuthors) {
 			this.selectedAuthors.add(id);
 		}
-		this.includeSelectedInResults = snapshot.includeSelectedInResults;
-		this.similarReferenceName = snapshot.similarReferenceName;
-		this.similarReferenceAnglemod = snapshot.similarReferenceAnglemod;
-		this.similarityFilterOperator = snapshot.similarityFilterOperator;
-		this.similarityFilterValue = snapshot.similarityFilterValue;
-		this.appliedSimilarityFilterValue = snapshot.appliedSimilarityFilterValue;
-		this.similarityWeightHomeKeys = snapshot.similarityWeightHomeKeys;
-		this.similarityMirrorMode = snapshot.similarityMirrorMode;
-		this.sortBy = snapshot.sortBy;
-		this.sortOrder = snapshot.sortOrder;
-		this.#sortOrderManual = snapshot.sortOrderManual;
-		this.#sortBeforeSimilar = this.#cloneSortSnapshot(snapshot.sortBeforeSimilar);
-		this.#exitSortRestore = this.#cloneSortSnapshot(snapshot.exitSortRestore);
-		this.statLimits = this.#cloneStatLimits(snapshot.statLimits);
-		this.appliedIncludeGrid = this.#cloneGrid(snapshot.appliedIncludeGrid);
-		this.appliedExcludeGrid = this.#cloneGrid(snapshot.appliedExcludeGrid);
-		this.appliedIncludeOrGrid = this.#cloneGrid(snapshot.appliedIncludeOrGrid);
-		this.appliedIncludeOrLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeOrLeftThumbKeys);
-		this.appliedIncludeOrRightThumbKeys = this.#cloneThumbKeys(
-			snapshot.appliedIncludeOrRightThumbKeys
-		);
-		this.appliedIncludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeLeftThumbKeys);
-		this.appliedIncludeRightThumbKeys = this.#cloneThumbKeys(snapshot.appliedIncludeRightThumbKeys);
-		this.appliedExcludeLeftThumbKeys = this.#cloneThumbKeys(snapshot.appliedExcludeLeftThumbKeys);
-		this.appliedExcludeRightThumbKeys = this.#cloneThumbKeys(snapshot.appliedExcludeRightThumbKeys);
-		this.appliedStatLimits = this.#cloneStatLimits(snapshot.appliedStatLimits);
+		this.includeSelectedInResults = restored.includeSelectedInResults;
+		this.similarReferenceName = restored.similarReferenceName;
+		this.similarReferenceAnglemod = restored.similarReferenceAnglemod;
+		this.similarityFilterOperator = restored.similarityFilterOperator;
+		this.similarityFilterValue = restored.similarityFilterValue;
+		this.appliedSimilarityFilterValue = restored.appliedSimilarityFilterValue;
+		this.similarityWeightHomeKeys = restored.similarityWeightHomeKeys;
+		this.similarityMirrorMode = restored.similarityMirrorMode;
+		this.sortBy = restored.sortBy;
+		this.sortOrder = restored.sortOrder;
+		this.#sortOrderManual = restored.sortOrderManual;
+		this.#sortBeforeSimilar = restored.sortBeforeSimilar;
+		this.#exitSortRestore = restored.exitSortRestore;
+		this.statLimits = restored.statLimits;
+		this.appliedIncludeGrid = restored.appliedIncludeGrid;
+		this.appliedExcludeGrid = restored.appliedExcludeGrid;
+		this.appliedIncludeOrGrid = restored.appliedIncludeOrGrid;
+		this.appliedIncludeOrLeftThumbKeys = restored.appliedIncludeOrLeftThumbKeys;
+		this.appliedIncludeOrRightThumbKeys = restored.appliedIncludeOrRightThumbKeys;
+		this.appliedIncludeLeftThumbKeys = restored.appliedIncludeLeftThumbKeys;
+		this.appliedIncludeRightThumbKeys = restored.appliedIncludeRightThumbKeys;
+		this.appliedExcludeLeftThumbKeys = restored.appliedExcludeLeftThumbKeys;
+		this.appliedExcludeRightThumbKeys = restored.appliedExcludeRightThumbKeys;
+		this.appliedStatLimits = restored.appliedStatLimits;
 		this.appliedFiltersRevision += 1;
 	}
 
 	/** Defaults for a view that has never been visited (no snapshot yet). */
 	#resetViewFiltersToDefaults() {
-		this.includeGrid = createEmptyGrid();
-		this.excludeGrid = createEmptyGrid();
-		this.includeOrGrid = createEmptyGrid();
-		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
-		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
-		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
-		this.showUnfinished = false;
-		this.thumbKeyFilter = 'optional';
-		this.magicKeyFilter = 'optional';
-		this.characterSetFilter = 'english';
-		this.boardTypeFilter = 'all';
-		this.nameFilterInput = '';
-		this.nameFilter = '';
-		this.selectedAuthors.clear();
-		this.includeSelectedInResults = false;
-		this.similarReferenceName = null;
-		this.#sortBeforeSimilar = null;
-		this.#exitSortRestore = null;
-		this.#resetSimilarityFilter();
-		this.sortBy = 'date';
-		this.sortOrder = 'desc';
-		this.#sortOrderManual = false;
-		this.statLimits = createEmptyStatLimits();
-		this.#applyFiltersFromInputs();
+		this.#restoreViewFilters(createDefaultViewSnapshot());
 	}
 
 	#setGridCell(grid: string[][], row: number, col: number, value: string): string[][] {
@@ -1610,7 +1506,7 @@ export class FilterStore {
 	}
 
 	clearInclude() {
-		this.includeGrid = createEmptyGrid();
+		this.includeGrid = createEmptyFilterGrid();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#applyFiltersNow();
@@ -1618,7 +1514,7 @@ export class FilterStore {
 	}
 
 	clearIncludeOr() {
-		this.includeOrGrid = createEmptyGrid();
+		this.includeOrGrid = createEmptyFilterGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#applyFiltersNow();
@@ -1626,7 +1522,7 @@ export class FilterStore {
 	}
 
 	clearExclude() {
-		this.excludeGrid = createEmptyGrid();
+		this.excludeGrid = createEmptyFilterGrid();
 		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.#applyFiltersNow();
@@ -1634,9 +1530,9 @@ export class FilterStore {
 	}
 
 	clearKeyFilters() {
-		this.includeGrid = createEmptyGrid();
-		this.excludeGrid = createEmptyGrid();
-		this.includeOrGrid = createEmptyGrid();
+		this.includeGrid = createEmptyFilterGrid();
+		this.excludeGrid = createEmptyFilterGrid();
+		this.includeOrGrid = createEmptyFilterGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
@@ -2205,9 +2101,9 @@ export class FilterStore {
 	}
 
 	clearAll() {
-		this.includeGrid = createEmptyGrid();
-		this.excludeGrid = createEmptyGrid();
-		this.includeOrGrid = createEmptyGrid();
+		this.includeGrid = createEmptyFilterGrid();
+		this.excludeGrid = createEmptyFilterGrid();
+		this.includeOrGrid = createEmptyFilterGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
@@ -2244,9 +2140,9 @@ export class FilterStore {
 	}
 
 	focusLayout(name: string) {
-		this.includeGrid = createEmptyGrid();
-		this.excludeGrid = createEmptyGrid();
-		this.includeOrGrid = createEmptyGrid();
+		this.includeGrid = createEmptyFilterGrid();
+		this.excludeGrid = createEmptyFilterGrid();
+		this.includeOrGrid = createEmptyFilterGrid();
 		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
 		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
 		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
