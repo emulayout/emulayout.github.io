@@ -22,6 +22,7 @@
 	} from '$lib/layoutStats';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
+	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -172,21 +173,12 @@
 			style="color: var(--text-primary);">{displayValue}</pre>
 	</div>
 
-	{#if statsBlockLines}
-		<div class="stats-block" class:stats-block--mana2={isMana2}>
-			{#each statsBlockLines as line, lineIndex (lineIndex)}
-				<div class="stats-block-line">
-					{#each line as segment, segmentIndex (segmentIndex)}
-						<span>{segment.text}</span>
-					{/each}
-				</div>
-			{/each}
-		</div>
-	{:else}
-		<pre
-			class="stats-block stats-block--unavailable"
-			class:stats-block--mana2={isMana2}>{statsFallback}</pre>
-	{/if}
+	<LayoutStatsBlock
+		lines={statsBlockLines}
+		fallback={statsFallback}
+		mana2={isMana2}
+		unavailable
+	/>
 
 	{#if showCycleControls && onCyclePrev && onCycleNext}
 		<div class="compare-side-cycle">

@@ -42,6 +42,7 @@
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
+	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
@@ -610,83 +611,33 @@
 				<div class="stats-stack">
 					{#if showMonkeyStats}
 						<div class="stats-stack-item">
-							{#if monkeyStatsBlockLines}
-								<div class="stats-block shrink-0">
-									{#each monkeyStatsBlockLines as line, lineIndex (lineIndex)}
-										<div class="stats-block-line">
-											{#each line as segment, segmentIndex (segmentIndex)}
-												<span
-													class:stats-block-highlight={Boolean(segment.highlight)}
-													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
-													class:stats-block-highlight--cyanophage={segment.highlight ===
-														'cyanophage'}
-													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
-													class:stats-block-highlight--sort={segment.highlight === 'sort'}
-													>{segment.text}</span
-												>
-											{/each}
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<pre
-									class="stats-block shrink-0"
-									class:stats-block--unavailable={!monkeyLoading}>{monkeyStatsPlaceholder}</pre>
-							{/if}
+							<LayoutStatsBlock
+								lines={monkeyStatsBlockLines}
+								fallback={monkeyStatsPlaceholder}
+								unavailable={!monkeyLoading}
+								shrink
+							/>
 						</div>
 					{/if}
 					{#if showCyanophageStats}
 						<div class="stats-stack-item">
-							{#if cyanophageStatsBlockLines}
-								<div class="stats-block shrink-0">
-									{#each cyanophageStatsBlockLines as line, lineIndex (lineIndex)}
-										<div class="stats-block-line">
-											{#each line as segment, segmentIndex (segmentIndex)}
-												<span
-													class:stats-block-highlight={Boolean(segment.highlight)}
-													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
-													class:stats-block-highlight--cyanophage={segment.highlight ===
-														'cyanophage'}
-													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
-													class:stats-block-highlight--sort={segment.highlight === 'sort'}
-													>{segment.text}</span
-												>
-											{/each}
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<pre
-									class="stats-block shrink-0"
-									class:stats-block--unavailable={!cyanophageLoading}>{cyanophageStatsPlaceholder}</pre>
-							{/if}
+							<LayoutStatsBlock
+								lines={cyanophageStatsBlockLines}
+								fallback={cyanophageStatsPlaceholder}
+								unavailable={!cyanophageLoading}
+								shrink
+							/>
 						</div>
 					{/if}
 					{#if showMana2Stats}
 						<div class="stats-stack-item">
-							{#if mana2StatsBlockLines}
-								<div class="stats-block stats-block--mana2 shrink-0">
-									{#each mana2StatsBlockLines as line, lineIndex (lineIndex)}
-										<div class="stats-block-line">
-											{#each line as segment, segmentIndex (segmentIndex)}
-												<span
-													class:stats-block-highlight={Boolean(segment.highlight)}
-													class:stats-block-highlight--cmini={segment.highlight === 'cmini'}
-													class:stats-block-highlight--cyanophage={segment.highlight ===
-														'cyanophage'}
-													class:stats-block-highlight--mana2={segment.highlight === 'mana2'}
-													class:stats-block-highlight--sort={segment.highlight === 'sort'}
-													>{segment.text}</span
-												>
-											{/each}
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<pre
-									class="stats-block stats-block--mana2 shrink-0"
-									class:stats-block--unavailable={!mana2Loading}>{mana2StatsPlaceholder}</pre>
-							{/if}
+							<LayoutStatsBlock
+								lines={mana2StatsBlockLines}
+								fallback={mana2StatsPlaceholder}
+								unavailable={!mana2Loading}
+								mana2
+								shrink
+							/>
 						</div>
 					{/if}
 				</div>
