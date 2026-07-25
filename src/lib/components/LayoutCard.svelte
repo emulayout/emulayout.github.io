@@ -9,7 +9,7 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
-	import { getLayoutCardHeight, LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
+	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		buildBotStatsBlockLines,
 		buildCyanophageStatsBlockLines,
@@ -39,6 +39,7 @@
 	} from '$lib/layoutStats';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
+	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayRows,
@@ -48,13 +49,7 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
-	import {
-		createLayoutTestKeyMaps,
-		insertTextAtSelection,
-		resolveLayoutTestKeyDown,
-		shouldCaptureLayoutTestKeyUp,
-		usesMetaThumbKeys
-	} from '$lib/layoutTestEmulator';
+	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 
 	interface Props {
 		layout: LayoutData;
@@ -98,7 +93,6 @@
 	const cyanophageLabel =
 		STAT_ANALYZERS.find((a) => a.value === CYANOPHAGE_ANALYZER)?.label ?? 'Cyanophage';
 	const mana2Label = STAT_ANALYZERS.find((a) => a.value === MANA2_ANALYZER)?.label ?? 'Mana2';
-	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let localAnglemod = $state(false);
 	let expanded = $state(false);
 	/** Which analyzers are visible in the expand modal (driven by Show analyzers). */
@@ -543,49 +537,6 @@
 	function handleFindSimilarClick() {
 		filterStore.toggleSimilarReference(layout.name, anglemod);
 	}
-
-	function insertTestAreaChar(mappedChar: string) {
-		if (!textareaElement || !mappedChar) return;
-		const edit = insertTextAtSelection(
-			textareaElement.value,
-			textareaElement.selectionStart,
-			textareaElement.selectionEnd,
-			mappedChar
-		);
-		textareaElement.value = edit.value;
-		textareaElement.setSelectionRange(edit.cursor, edit.cursor);
-	}
-
-	function handleKeyDown(event: KeyboardEvent) {
-		const decision = resolveLayoutTestKeyDown(event, {
-			hasThumbKeys: layout.hasThumbKeys,
-			thumbKeysByHand: layout.thumbKeysByHand,
-			keyMaps: layoutTestKeyMaps,
-			metaThumbKeys: usesMetaThumbKeys(navigator.platform, navigator.userAgent)
-		});
-
-		if (decision.preventDefault) event.preventDefault();
-		if (decision.stopPropagation) event.stopPropagation();
-		if (decision.edit?.type === 'clear') {
-			if (textareaElement) textareaElement.value = '';
-		} else if (decision.edit?.type === 'insert') {
-			insertTestAreaChar(decision.edit.text);
-		}
-	}
-
-	function handleKeyUp(event: KeyboardEvent) {
-		if (
-			!shouldCaptureLayoutTestKeyUp(
-				event.code,
-				layout.hasThumbKeys,
-				usesMetaThumbKeys(navigator.platform, navigator.userAgent)
-			)
-		) {
-			return;
-		}
-		event.preventDefault();
-		event.stopPropagation();
-	}
 </script>
 
 {#snippet layoutCardMain(markFirstAction: boolean, showExpand = true)}
@@ -957,29 +908,7 @@
 				</div>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
-				<!--
-					Wrapper paints the background: iOS Safari often under-paints
-					<textarea> backgrounds inside virtua-transformed rows until focus.
-				-->
-				<div
-					class="layout-test-area"
-					style="
-						height: {LAYOUT_CARD_TEST_AREA_HEIGHT}px;
-						background-color: var(--input-bg);
-						border: 1px solid var(--border);
-						--tw-ring-color: var(--accent);
-					"
-				>
-					<textarea
-						bind:this={textareaElement}
-						class="layout-test-area-input"
-						style="color: var(--text-primary);"
-						rows="2"
-						placeholder="Layout test area"
-						onkeydown={handleKeyDown}
-						onkeyup={handleKeyUp}
-					></textarea>
-				</div>
+				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} />
 			{/if}
 		</div>
 	{/if}
@@ -1422,35 +1351,6 @@
 	.card-action-button--similar:active:not(:disabled) {
 		background-color: color-mix(in srgb, var(--similar-diff) 78%, black);
 		border-color: color-mix(in srgb, var(--similar-diff) 78%, black);
-	}
-
-	.layout-test-area {
-		width: 100%;
-		border-radius: 0.5rem;
-		overflow: hidden;
-		transform: translateZ(0);
-		-webkit-backface-visibility: hidden;
-		backface-visibility: hidden;
-	}
-
-	.layout-test-area:focus-within {
-		outline: 2px solid var(--tw-ring-color, var(--accent));
-		outline-offset: 0;
-	}
-
-	.layout-test-area-input {
-		display: block;
-		width: 100%;
-		height: 100%;
-		padding: 0.4rem;
-		margin: 0;
-		border: 0;
-		border-radius: 0;
-		resize: none;
-		outline: none;
-		background: transparent;
-		font-size: 0.875rem;
-		line-height: 1.25rem;
 	}
 
 	.layout-display--diff {
