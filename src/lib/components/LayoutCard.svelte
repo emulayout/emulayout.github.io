@@ -40,9 +40,9 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
+	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
-	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
@@ -608,39 +608,29 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
-				<div class="stats-stack">
-					{#if showMonkeyStats}
-						<div class="stats-stack-item">
-							<LayoutStatsBlock
-								lines={monkeyStatsBlockLines}
-								fallback={monkeyStatsPlaceholder}
-								unavailable={!monkeyLoading}
-								shrink
-							/>
-						</div>
-					{/if}
-					{#if showCyanophageStats}
-						<div class="stats-stack-item">
-							<LayoutStatsBlock
-								lines={cyanophageStatsBlockLines}
-								fallback={cyanophageStatsPlaceholder}
-								unavailable={!cyanophageLoading}
-								shrink
-							/>
-						</div>
-					{/if}
-					{#if showMana2Stats}
-						<div class="stats-stack-item">
-							<LayoutStatsBlock
-								lines={mana2StatsBlockLines}
-								fallback={mana2StatsPlaceholder}
-								unavailable={!mana2Loading}
-								mana2
-								shrink
-							/>
-						</div>
-					{/if}
-				</div>
+				<LayoutCardStatsPanel
+					monkey={showMonkeyStats
+						? {
+								lines: monkeyStatsBlockLines,
+								fallback: monkeyStatsPlaceholder,
+								loading: monkeyLoading
+							}
+						: null}
+					cyanophage={showCyanophageStats
+						? {
+								lines: cyanophageStatsBlockLines,
+								fallback: cyanophageStatsPlaceholder,
+								loading: cyanophageLoading
+							}
+						: null}
+					mana2={showMana2Stats
+						? {
+								lines: mana2StatsBlockLines,
+								fallback: mana2StatsPlaceholder,
+								loading: mana2Loading
+							}
+						: null}
+				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
 				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} />
@@ -973,16 +963,6 @@
 		/* Match Tailwind rounded-xl (12px), inset by half the layout border */
 		rx: 11.5px;
 		ry: 11.5px;
-	}
-
-	.stats-stack {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-
-	.stats-stack-item {
-		min-width: 0;
 	}
 
 	.expand-modal-columns {
