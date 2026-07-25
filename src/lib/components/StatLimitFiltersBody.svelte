@@ -244,11 +244,13 @@
 <style>
 	.stat-limits-body {
 		--stat-cell-gap: 0.75rem;
+		--stat-field-gap: 1.25rem;
 
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1.5rem;
 		min-width: 0;
+		padding-inline: 0.75rem;
 		overflow: visible;
 	}
 
@@ -257,7 +259,7 @@
 		container-name: stat-limits-general;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--stat-field-gap);
 		width: 100%;
 		min-width: 0;
 		/* Keep focus rings inside the paint box of this section. */
@@ -266,13 +268,13 @@
 	}
 
 	.stat-limits-general--sectioned {
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
 	.stat-limits-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
+		gap: 0.5rem;
 		min-width: 0;
 	}
 
@@ -291,7 +293,7 @@
 	.stat-limits-group-rows {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--stat-field-gap);
 		min-width: 0;
 	}
 
@@ -421,11 +423,12 @@
 	.stat-limits-hand-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--stat-field-gap);
 	}
 
 	.stat-limits-body--stacked .stat-limit-row {
 		grid-template-columns: 1fr;
+		gap: var(--stat-field-gap);
 	}
 
 	.stat-limits-body--stacked .stat-limit-cell-empty {
@@ -440,6 +443,7 @@
 	@media (max-width: 767px) {
 		.stat-limit-row {
 			grid-template-columns: 1fr;
+			gap: var(--stat-field-gap);
 		}
 
 		.stat-limit-cell-empty {
@@ -455,6 +459,7 @@
 	@container stat-limits-general (max-width: 26rem) {
 		.stat-limit-row {
 			grid-template-columns: 1fr;
+			gap: var(--stat-field-gap);
 		}
 
 		.stat-limit-cell-empty {
