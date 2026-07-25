@@ -75,13 +75,6 @@
 		}
 		filterStore.requestFilterFocus(chip.focus);
 	}
-
-	function handleChipKeyDown(chip: ActiveFilterChip, event: KeyboardEvent) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			openChip(chip);
-		}
-	}
 </script>
 
 <div bind:this={resultsStatus} id="results-status" class="results-toolbar-shell mb-2">
@@ -94,13 +87,15 @@
 						<li
 							class="results-toolbar-filter-chip results-toolbar-filter-chip--{chip.tone}"
 							title={chip.title}
-							role="button"
-							tabindex="0"
-							aria-label="Edit filter: {chip.label}"
-							onclick={() => openChip(chip)}
-							onkeydown={(event) => handleChipKeyDown(chip, event)}
 						>
-							<span class="results-toolbar-filter-chip-label">{chip.label}</span>
+							<button
+								type="button"
+								class="results-toolbar-filter-chip-edit"
+								aria-label="Edit filter: {chip.label}"
+								onclick={() => openChip(chip)}
+							>
+								<span class="results-toolbar-filter-chip-label">{chip.label}</span>
+							</button>
 							<button
 								type="button"
 								class="results-toolbar-filter-chip-clear"
@@ -294,10 +289,22 @@
 		border: 1px solid var(--border);
 		background-color: color-mix(in srgb, var(--text-caption) 10%, var(--bg-primary));
 		color: var(--text-secondary);
-		cursor: pointer;
 	}
 
-	.results-toolbar-filter-chip:focus-visible {
+	.results-toolbar-filter-chip-edit {
+		display: inline-flex;
+		min-width: 0;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+		border-radius: 0.25rem;
+	}
+
+	.results-toolbar-filter-chip-edit:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
 	}
