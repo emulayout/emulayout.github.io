@@ -175,11 +175,9 @@ export function compareLayoutPositionsWithMirror(
 		return mirrored ? { match: mirrored, mirrored: true } : null;
 	}
 
-	const direct = comparePositionMaps(
-		reference.positionBySlot,
-		candidate.positionBySlot,
-		{ weightHomeKeys }
-	);
+	const direct = comparePositionMaps(reference.positionBySlot, candidate.positionBySlot, {
+		weightHomeKeys
+	});
 
 	if (mirrorMode === 'excluded') {
 		return direct ? { match: direct, mirrored: false } : null;
@@ -308,7 +306,7 @@ export function isSimilarLayoutMatch(
 	return similarityMatches.has(layoutName);
 }
 
-/** `gt` means at least threshold; `lt` means strictly below. Empty value = no filter. */
+/** `gt` and `lt` are strict comparisons. Empty or invalid values disable the filter. */
 export function matchesSimilarityPercentFilter(
 	percent: number,
 	operator: 'lt' | 'gt',
@@ -319,7 +317,7 @@ export function matchesSimilarityPercentFilter(
 	const threshold = Number.parseFloat(trimmed);
 	if (!Number.isFinite(threshold)) return true;
 	if (operator === 'lt') return percent < threshold;
-	return percent >= threshold;
+	return percent > threshold;
 }
 
 export function sortLayoutsBySimilarity(
