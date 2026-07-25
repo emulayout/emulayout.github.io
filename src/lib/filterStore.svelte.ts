@@ -2,45 +2,23 @@ import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { pushState, replaceState } from '$app/navigation';
 import { page } from '$app/state';
 import {
-	CYANOPHAGE_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
-	MANA2_ANALYZER,
 	analyzersNeededForLimits,
-	deriveBotStats,
-	deriveCyanophageStats,
-	deriveMana2Stats,
-	getLayoutAnalyzerStats,
-	getStatFilterFieldsForAnalyzer,
-	getStatFilterStatKey,
-	getStatSortField,
-	getStatSortValue,
 	isSortOrder,
-	isStatSortBy,
 	getDefaultSortOrder,
 	isAnalyzerStatsReady,
 	parseLegacySortParam,
 	normalizeSortBy,
 	parseStatsAnalyzerMode,
-	parseStatFilterThreshold,
 	getGeneralStatFilterRowsForAnalyzer,
 	getHandStatFilterFieldsForAnalyzer,
-	STAT_ANALYZERS,
 	type SortBy,
 	type SortOrder,
 	type StatLimitKey,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from './layoutStats';
-import type {
-	CyanophageStats,
-	Mana2Stats,
-	MonkeyracerStats,
-	LayoutData,
-	LayoutLikesMap,
-	StatsMaps,
-	ThumbKeyEntry
-} from './layout';
-import { positionSlotKey } from './layoutCodec';
+import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import {
 	isSimilarityMirrorMode,
 	type SimilarityMirrorMode
@@ -75,9 +53,10 @@ import {
 	serializeThumbFilters
 } from './filterUrlCodec';
 import {
-	FILTER_GRID_COLUMNS as COLS,
-	FILTER_GRID_ROWS as ROWS,
-	FILTER_THUMB_KEYS_PER_HAND as THUMB_KEYS_PER_HAND,
+	filterLayouts as filterLayoutCatalog,
+	sortLayouts as sortLayoutCatalog
+} from './layoutFiltering';
+import {
 	cloneFilterGrid,
 	cloneStatLimits,
 	cloneThumbKeyFilters,
@@ -116,18 +95,6 @@ export type LayoutSource = 'all' | 'selected';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
 export type { SavedFilter };
-
-/** Precomputed active stat limits for one filterLayouts pass. */
-type ActiveAnalyzerStatFilters = {
-	analyzer: StatsAnalyzer;
-	checks: Array<{
-		operator: StatLimitOperator;
-		threshold: number;
-		statKey: ReturnType<typeof getStatFilterStatKey>;
-	}>;
-};
-
-type LikesLimitCheck = { operator: StatLimitOperator; threshold: number };
 
 const DEBOUNCE_MS = 300;
 
@@ -1980,299 +1947,6 @@ export class FilterStore {
 		);
 	}
 
-	#getKeyAt(layout: LayoutData, row: number, col: number): string | undefined {
-		return layout.positionBySlot.get(positionSlotKey(row, col));
-	}
-
-	#getThumbKeysForHand(layout: LayoutData, hand: 'l' | 'r'): ThumbKeyEntry[] {
-		return layout.thumbKeysByHand[hand];
-	}
-
-	// Check if thumb keys match positional filter (keys must exist in order)
-	#matchesThumbKeyPosition(
-		thumbKeys: Array<{ key: string; col: number }>,
-		filter: string[]
-	): boolean {
-		const nonEmptyFilters = filter
-			.map((f, idx) => ({ chars: f.toLowerCase(), position: idx }))
-			.filter((f) => f.chars !== '');
-
-		if (nonEmptyFilters.length === 0) return true;
-
-		// For each filter position, find matching keys
-		const matches: Array<{ key: string; col: number; filterPos: number }> = [];
-		for (const filter of nonEmptyFilters) {
-			for (const thumbKey of thumbKeys) {
-				if (filter.chars.includes(thumbKey.key)) {
-					matches.push({ ...thumbKey, filterPos: filter.position });
-				}
-			}
-		}
-
-		// Check if we have all required keys
-		if (matches.length < nonEmptyFilters.length) return false;
-
-		// Check if keys are in the correct order (col values must increase with filter position)
-		// Group matches by filter position and get the leftmost (min col) for each
-		const byFilterPos: Record<number, number[]> = {};
-		for (const match of matches) {
-			if (!byFilterPos[match.filterPos]) byFilterPos[match.filterPos] = [];
-			byFilterPos[match.filterPos].push(match.col);
-		}
-
-		// For each filter position, we need at least one key
-		for (const filter of nonEmptyFilters) {
-			if (!byFilterPos[filter.position] || byFilterPos[filter.position].length === 0) {
-				return false;
-			}
-		}
-
-		// Check ordering: for each pair of consecutive filters, need at least one key from earlier position
-		// with col < at least one key from later position
-		for (let i = 0; i < nonEmptyFilters.length - 1; i++) {
-			const currPos = nonEmptyFilters[i].position;
-			const nextPos = nonEmptyFilters[i + 1].position;
-			const currCols = byFilterPos[currPos];
-			const nextCols = byFilterPos[nextPos];
-			// Need at least one curr col < at least one next col
-			const currMinCol = Math.min(...currCols);
-			const nextMaxCol = Math.max(...nextCols);
-			if (currMinCol >= nextMaxCol) return false;
-		}
-
-		return true;
-	}
-
-	// Check if layout matches include filter (key must be one of the specified chars)
-	#matchesInclude(layout: LayoutData): boolean {
-		// Check rows 0-2 (position-specific)
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.appliedIncludeGrid[row][col].toLowerCase();
-				if (filterChars) {
-					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
-					// Key must match one of the filter characters
-					if (!keyAtPos || !filterChars.includes(keyAtPos)) return false;
-				}
-			}
-		}
-		// Check thumb keys per hand (row 3) — order within each hand, not column
-		if (this.appliedIncludeLeftThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
-			if (!this.#matchesThumbKeyPosition(thumbKeys, this.appliedIncludeLeftThumbKeys)) return false;
-		}
-		if (this.appliedIncludeRightThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
-			if (!this.#matchesThumbKeyPosition(thumbKeys, this.appliedIncludeRightThumbKeys)) return false;
-		}
-		return true;
-	}
-
-	// One thumb filter slot: does this hand's Nth thumb key (left-to-right) match chars?
-	#matchesThumbKeyAtSlot(
-		thumbKeys: ThumbKeyEntry[],
-		slotIndex: number,
-		chars: string
-	): boolean {
-		const filter = createEmptyThumbKeyFilters();
-		filter[slotIndex] = chars;
-		return this.#matchesThumbKeyPosition(thumbKeys, filter);
-	}
-
-	// Check if layout matches include OR filter (OR logic - at least one position must match)
-	#matchesIncludeOr(layout: LayoutData): boolean {
-		const matches: boolean[] = [];
-
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.appliedIncludeOrGrid[row][col].toLowerCase();
-				if (!filterChars) continue;
-				const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
-				matches.push(Boolean(keyAtPos && filterChars.includes(keyAtPos)));
-			}
-		}
-
-		const leftThumbKeys = this.#getThumbKeysForHand(layout, 'l');
-		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
-			const filterChars = this.appliedIncludeOrLeftThumbKeys[index].toLowerCase();
-			if (!filterChars) continue;
-			matches.push(this.#matchesThumbKeyAtSlot(leftThumbKeys, index, filterChars));
-		}
-
-		const rightThumbKeys = this.#getThumbKeysForHand(layout, 'r');
-		for (let index = 0; index < THUMB_KEYS_PER_HAND; index++) {
-			const filterChars = this.appliedIncludeOrRightThumbKeys[index].toLowerCase();
-			if (!filterChars) continue;
-			matches.push(this.#matchesThumbKeyAtSlot(rightThumbKeys, index, filterChars));
-		}
-
-		if (matches.length === 0) return true;
-		return matches.some(Boolean);
-	}
-
-	// Check if layout matches exclude filter (key must NOT be any of the specified chars)
-	#matchesExclude(layout: LayoutData): boolean {
-		// Check rows 0-2 (position-specific)
-		for (let row = 0; row < ROWS; row++) {
-			for (let col = 0; col < COLS; col++) {
-				const filterChars = this.appliedExcludeGrid[row][col].toLowerCase();
-				if (filterChars) {
-					const keyAtPos = this.#getKeyAt(layout, row, col)?.toLowerCase();
-					// If key matches any of the filter characters, exclude it
-					if (keyAtPos && filterChars.includes(keyAtPos)) return false;
-				}
-			}
-		}
-		// Check thumb keys per hand — if matches positional filter, exclude
-		if (this.appliedExcludeLeftThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysForHand(layout, 'l');
-			if (this.#matchesThumbKeyPosition(thumbKeys, this.appliedExcludeLeftThumbKeys)) return false;
-		}
-		if (this.appliedExcludeRightThumbKeys.some((k) => k !== '')) {
-			const thumbKeys = this.#getThumbKeysForHand(layout, 'r');
-			if (this.#matchesThumbKeyPosition(thumbKeys, this.appliedExcludeRightThumbKeys)) return false;
-		}
-		return true;
-	}
-
-	// Check if layout name matches filter
-	#matchesName(layout: LayoutData): boolean {
-		if (!this.nameFilter) return true;
-		const terms = this.nameFilter
-			.split(',')
-			.map((term) => term.trim().toLowerCase())
-			.filter((term) => term !== '');
-		if (terms.length === 0) return true;
-		const name = layout.name.toLowerCase();
-		return terms.some((term) => name.includes(term));
-	}
-
-	/** Lower rank = better match when a name filter is active. */
-	#getNameSearchRank(layout: LayoutData): number {
-		if (!this.nameFilter) return 0;
-		const terms = this.nameFilter
-			.split(',')
-			.map((term) => term.trim().toLowerCase())
-			.filter((term) => term !== '');
-		if (terms.length === 0) return 0;
-
-		const name = layout.name.toLowerCase();
-		let best = 2;
-		for (const term of terms) {
-			if (!name.includes(term)) continue;
-			if (name === term) return 0;
-			if (name.startsWith(term)) best = Math.min(best, 1);
-		}
-		return best;
-	}
-
-	#compareNameSearchRank(a: LayoutData, b: LayoutData): number {
-		if (!this.nameFilter) return 0;
-		return this.#getNameSearchRank(a) - this.#getNameSearchRank(b);
-	}
-
-	// Check if layout author matches filter
-	#matchesAuthor(layout: LayoutData): boolean {
-		if (this.selectedAuthors.size === 0) return true;
-		return this.selectedAuthors.has(layout.user);
-	}
-
-	// Check if layout matches thumb key filter
-	#matchesMagicKeyFilter(layout: LayoutData): boolean {
-		if (this.magicKeyFilter === 'optional') return true;
-		if (this.magicKeyFilter === 'excluded') return !layout.hasMagicKey;
-		if (this.magicKeyFilter === 'required') return layout.hasMagicKey;
-		return true;
-	}
-
-	#matchesThumbKeyFilter(layout: LayoutData): boolean {
-		if (this.thumbKeyFilter === 'optional') return true;
-		return this.thumbKeyFilter === 'required' ? layout.hasThumbKeys : !layout.hasThumbKeys;
-	}
-
-	// Check if layout matches character set filter
-	#matchesCharacterSet(layout: LayoutData): boolean {
-		if (this.characterSetFilter === 'all') return true;
-		return layout.characterSet === this.characterSetFilter;
-	}
-
-	// Check if layout matches board type filter
-	#matchesBoardType(layout: LayoutData): boolean {
-		if (this.boardTypeFilter === 'all') return true;
-		if (this.boardTypeFilter === 'angle-stagger') {
-			return layout.board === 'angle' || layout.board === 'stagger';
-		}
-		return layout.board === this.boardTypeFilter;
-	}
-
-	/**
-	 * Active (non-empty) applied stat limits, grouped by analyzer.
-	 * Built once per filterLayouts pass so the per-layout path only derives/compares.
-	 */
-	#buildActiveAnalyzerStatFilters(
-		limits: Record<StatLimitKey, StatLimit>
-	): ActiveAnalyzerStatFilters[] {
-		const active: ActiveAnalyzerStatFilters[] = [];
-
-		for (const analyzer of STAT_ANALYZERS.map((entry) => entry.value)) {
-			const checks: ActiveAnalyzerStatFilters['checks'] = [];
-			for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
-				const limit = limits[field.key];
-				const threshold = parseStatFilterThreshold(field, limit.value);
-				if (threshold === null) continue;
-				checks.push({
-					operator: limit.operator,
-					threshold,
-					statKey: getStatFilterStatKey(field)
-				});
-			}
-			if (checks.length > 0) active.push({ analyzer, checks });
-		}
-
-		return active;
-	}
-
-	#matchesStatLimits(
-		layout: LayoutData,
-		statsMaps: StatsMaps,
-		likesData: LayoutLikesMap,
-		activeFilters: ActiveAnalyzerStatFilters[],
-		likesCheck: LikesLimitCheck | null
-	): boolean {
-		if (activeFilters.length === 0 && !likesCheck) return true;
-
-		for (const { analyzer, checks } of activeFilters) {
-			const analyzerStats = getLayoutAnalyzerStats(
-				statsMaps,
-				layout.name,
-				analyzer,
-				layout.cyanophageCompatible
-			);
-			if (!analyzerStats) return false;
-
-			const stats =
-				analyzer === CYANOPHAGE_ANALYZER
-					? deriveCyanophageStats(analyzerStats as CyanophageStats)
-					: analyzer === MANA2_ANALYZER
-						? deriveMana2Stats(analyzerStats as Mana2Stats)
-						: deriveBotStats(analyzerStats as MonkeyracerStats);
-
-			for (const { operator, threshold, statKey } of checks) {
-				const value = stats[statKey as keyof typeof stats];
-				if (operator === 'lt' && value >= threshold) return false;
-				if (operator === 'gt' && value <= threshold) return false;
-			}
-		}
-
-		if (likesCheck) {
-			const value = likesData[layout.name] ?? 0;
-			if (likesCheck.operator === 'lt' && value >= likesCheck.threshold) return false;
-			if (likesCheck.operator === 'gt' && value <= likesCheck.threshold) return false;
-		}
-
-		return true;
-	}
-
 	/** True when applied stat limits need analyzer maps that are not ready yet. */
 	statFiltersAwaitingStats(statsMaps: StatsMaps, statsReady: boolean): boolean {
 		const needed = this.analyzersNeededForStatLimits;
@@ -2282,67 +1956,41 @@ export class FilterStore {
 		);
 	}
 
-	// Filter layouts based on all criteria
 	filterLayouts(
 		layouts: LayoutData[],
 		statsMaps: StatsMaps = {},
 		statsReady = false,
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
-		const activeFilters = this.#buildActiveAnalyzerStatFilters(this.appliedStatLimits);
-		let likesCheck: LikesLimitCheck | null = null;
-		if (this.canUseLikes) {
-			const threshold = Number.parseFloat(this.appliedStatLimits.likes.value.trim());
-			if (Number.isFinite(threshold)) {
-				likesCheck = {
-					operator: this.appliedStatLimits.likes.operator,
-					threshold
-				};
-			}
-		}
-
-		// Hold results until needed stats maps are loaded (avoid flashing the full list).
-		if (
-			activeFilters.length > 0 &&
-			(!statsReady ||
-				!activeFilters.every(({ analyzer }) => isAnalyzerStatsReady(statsMaps, analyzer)))
-		) {
-			return [];
-		}
-
-		const sourceNameSet = this.activeSourceLayoutNameSet;
-
-		return layouts.filter((l) => {
-			// Source pool: when "Selected layouts only", other filters apply within selection.
-			if (this.layoutSource === 'selected' && !this.compareSelectedNames.has(l.name)) {
-				return false;
-			}
-
-			// Named-view membership: only layouts in the saved/shared source set.
-			if (sourceNameSet && !sourceNameSet.has(l.name)) {
-				return false;
-			}
-
-			// Cheap boolean / enum filters first
-			if (
-				!this.showUnfinished &&
-				this.characterSetFilter !== 'international' &&
-				!l.hasAllLetters &&
-				!l.hasMagicKey
-			)
-				return false;
-			if (!this.#matchesThumbKeyFilter(l)) return false;
-			if (!this.#matchesMagicKeyFilter(l)) return false;
-			if (!this.#matchesCharacterSet(l)) return false;
-			if (!this.#matchesBoardType(l)) return false;
-			if (!this.#matchesName(l)) return false;
-			if (!this.#matchesAuthor(l)) return false;
-			if (!this.#matchesInclude(l)) return false;
-			if (!this.#matchesExclude(l)) return false;
-			if (!this.#matchesIncludeOr(l)) return false;
-			// Stat derivation last — only for layouts that already passed cheaper filters
-			return this.#matchesStatLimits(l, statsMaps, likesData, activeFilters, likesCheck);
-		});
+		return filterLayoutCatalog(
+			layouts,
+			{
+				layoutSource: this.layoutSource,
+				compareSelectedNames: this.compareSelectedNames,
+				sourceLayoutNames: this.activeSourceLayoutNameSet,
+				showUnfinished: this.showUnfinished,
+				thumbKeyFilter: this.thumbKeyFilter,
+				magicKeyFilter: this.magicKeyFilter,
+				characterSetFilter: this.characterSetFilter,
+				boardTypeFilter: this.boardTypeFilter,
+				nameFilter: this.nameFilter,
+				selectedAuthors: this.selectedAuthors,
+				includeGrid: this.appliedIncludeGrid,
+				excludeGrid: this.appliedExcludeGrid,
+				includeOrGrid: this.appliedIncludeOrGrid,
+				includeOrLeftThumbKeys: this.appliedIncludeOrLeftThumbKeys,
+				includeOrRightThumbKeys: this.appliedIncludeOrRightThumbKeys,
+				includeLeftThumbKeys: this.appliedIncludeLeftThumbKeys,
+				includeRightThumbKeys: this.appliedIncludeRightThumbKeys,
+				excludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
+				excludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
+				statLimits: this.appliedStatLimits,
+				canUseLikes: this.canUseLikes
+			},
+			statsMaps,
+			statsReady,
+			likesData
+		);
 	}
 
 	sortLayouts(
@@ -2350,61 +1998,16 @@ export class FilterStore {
 		statsMaps: StatsMaps = {},
 		likesData: LayoutLikesMap = {}
 	): LayoutData[] {
-		const sorted = [...layouts];
-		const descending = this.sortOrder === 'desc';
-		const statSort = isStatSortBy(this.sortBy) ? getStatSortField(this.sortBy) : undefined;
-
-		if (statSort) {
-			const values = new Map<string, number | null>();
-			for (const layout of sorted) {
-				values.set(layout.name, getStatSortValue(statsMaps, layout, this.sortBy));
-			}
-
-			return sorted.sort((a, b) => {
-				const aValue = values.get(a.name) ?? null;
-				const bValue = values.get(b.name) ?? null;
-
-				if (aValue === null && bValue === null) {
-					return a.name.localeCompare(b.name);
-				}
-				if (aValue === null) return 1;
-				if (bValue === null) return -1;
-
-				const diff = descending ? bValue - aValue : aValue - bValue;
-				return diff !== 0 ? diff : a.name.localeCompare(b.name);
-			});
-		}
-
-		if (this.sortBy === 'date') {
-			return sorted.sort((a, b) => {
-				const byRank = this.#compareNameSearchRank(a, b);
-				if (byRank !== 0) return byRank;
-
-				const byDate = a.updatedAt.localeCompare(b.updatedAt);
-				const diff = descending ? -byDate : byDate;
-				return diff !== 0 ? diff : a.name.localeCompare(b.name);
-			});
-		}
-
-		if (this.sortBy === 'likes') {
-			return sorted.sort((a, b) => {
-				const byRank = this.#compareNameSearchRank(a, b);
-				if (byRank !== 0) return byRank;
-
-				const aLikes = likesData[a.name] ?? 0;
-				const bLikes = likesData[b.name] ?? 0;
-				const diff = descending ? bLikes - aLikes : aLikes - bLikes;
-				return diff !== 0 ? diff : a.name.localeCompare(b.name);
-			});
-		}
-
-		return sorted.sort((a, b) => {
-			const byRank = this.#compareNameSearchRank(a, b);
-			if (byRank !== 0) return byRank;
-
-			const byName = a.name.localeCompare(b.name);
-			return descending ? -byName : byName;
-		});
+		return sortLayoutCatalog(
+			layouts,
+			{
+				sortBy: this.sortBy,
+				sortOrder: this.sortOrder,
+				nameFilter: this.nameFilter
+			},
+			statsMaps,
+			likesData
+		);
 	}
 }
 
