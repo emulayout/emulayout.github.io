@@ -8,13 +8,11 @@ import type {
 	ThumbKeyEntry
 } from './layout';
 import { positionSlotKey } from './layoutCodec';
+import { deriveBotStats, deriveCyanophageStats, deriveMana2Stats } from './statsDerivation';
 import {
 	CYANOPHAGE_ANALYZER,
 	MANA2_ANALYZER,
 	STAT_ANALYZERS,
-	deriveBotStats,
-	deriveCyanophageStats,
-	deriveMana2Stats,
 	getLayoutAnalyzerStats,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,

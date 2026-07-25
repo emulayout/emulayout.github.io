@@ -61,7 +61,7 @@ export interface MonkeyracerStats {
 
 /**
  * Compact stats: fixed-point values (×10_000) in bot stat key order.
- * @see BOT_STAT_KEYS in layoutStats.ts
+ * @see BOT_STAT_KEYS in statsDerivation.ts
  */
 export type CompactLayoutStats = number[];
 
@@ -69,7 +69,7 @@ export type CompactLayoutStats = number[];
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
 export type LayoutLikesMap = Record<string, number>;
 
-/** Cyanophage stats keyed by CYANOPHAGE_STAT_KEYS in layoutStats.ts. */
+/** Cyanophage stats keyed by CYANOPHAGE_STAT_KEYS in statsDerivation.ts. */
 export interface CyanophageStats {
 	'total-word-effort': number;
 	effort: number;
@@ -96,7 +96,7 @@ export interface CyanophageStats {
 
 /**
  * Compact cyanophage stats: fixed-point values (×10_000) in CYANOPHAGE_STAT_KEYS order.
- * @see CYANOPHAGE_STAT_KEYS in layoutStats.ts
+ * @see CYANOPHAGE_STAT_KEYS in statsDerivation.ts
  */
 export type CompactCyanophageStats = number[];
 
@@ -104,14 +104,14 @@ export type CompactCyanophageStats = number[];
 export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
 
 /**
- * Mana2 stats keyed by MANA2_STAT_KEYS in layoutStats.ts.
+ * Mana2 stats keyed by MANA2_STAT_KEYS in statsDerivation.ts.
  * Percentage metrics are stored as 0–1 fractions after decode; stretch/scissor/weights stay raw.
  */
 export type Mana2Stats = Record<string, number>;
 
 /**
  * Compact mana2 stats: fixed-point values (×10_000) in MANA2_STAT_KEYS order.
- * @see MANA2_STAT_KEYS in layoutStats.ts / bin/mana2-stats.js
+ * @see MANA2_STAT_KEYS in statsDerivation.ts / bin/mana2-stats.js
  */
 export type CompactMana2Stats = number[];
 

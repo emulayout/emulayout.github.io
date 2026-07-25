@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
+	import type {
+		DerivedBotStats,
+		DerivedCyanophageStats,
+		DerivedMana2Stats
+	} from '$lib/statsDerivation';
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
 		formatCyanophageStatValue,
 		formatStatPercent,
 		MANA2_ANALYZER,
-		type DerivedBotStats,
-		type DerivedCyanophageStats,
-		type DerivedMana2Stats,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
 

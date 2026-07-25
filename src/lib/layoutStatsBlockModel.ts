@@ -1,16 +1,18 @@
 import type { CompactCyanophageStats, CompactLayoutStats, CompactMana2Stats } from '$lib/layout';
 import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 import {
-	buildBotStatsBlockLines,
-	buildCyanophageStatsBlockLines,
-	buildMana2StatsBlockLines,
-	CYANOPHAGE_ANALYZER,
 	decodeCyanophageStats,
 	decodeMana2Stats,
 	decodeMonkeyracerStats,
 	deriveBotStats,
 	deriveCyanophageStats,
-	deriveMana2Stats,
+	deriveMana2Stats
+} from '$lib/statsDerivation';
+import {
+	buildBotStatsBlockLines,
+	buildCyanophageStatsBlockLines,
+	buildMana2StatsBlockLines,
+	CYANOPHAGE_ANALYZER,
 	formatCyanophageStatsLoadingBlock,
 	formatCyanophageStatsUnavailableBlock,
 	formatMana2StatsLoadingBlock,

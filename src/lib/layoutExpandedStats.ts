@@ -1,9 +1,9 @@
-import {
-	formatStatPercent,
-	type DerivedBotStats,
-	type DerivedCyanophageStats,
-	type DerivedMana2Stats
-} from '$lib/layoutStats';
+import { formatStatPercent } from '$lib/layoutStats';
+import type {
+	DerivedBotStats,
+	DerivedCyanophageStats,
+	DerivedMana2Stats
+} from '$lib/statsDerivation';
 
 export interface ExpandedStatsRow {
 	label: string;

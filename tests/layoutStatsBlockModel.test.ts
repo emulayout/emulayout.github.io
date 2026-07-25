@@ -1,16 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
+import { CYANOPHAGE_ANALYZER, DEFAULT_STATS_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 import {
 	COMPACT_STAT_FIELD_COUNT,
-	CYANOPHAGE_ANALYZER,
 	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,
-	DEFAULT_STATS_ANALYZER,
-	MANA2_ANALYZER,
 	MANA2_COMPACT_STAT_FIELD_COUNT,
 	type CyanophageStatSortKey,
 	type Mana2StatSortKey,
 	type StatSortKey
-} from '$lib/layoutStats';
+} from '$lib/statsDerivation';
 import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
 
 describe('layout stats block model', () => {

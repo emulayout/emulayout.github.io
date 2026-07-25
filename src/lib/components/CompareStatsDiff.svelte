@@ -1,15 +1,17 @@
 <script lang="ts">
 	import {
-		buildBotStatsDiffBlockLines,
-		buildCyanophageStatsDiffBlockLines,
-		buildMana2StatsDiffBlockLines,
-		CYANOPHAGE_ANALYZER,
 		decodeCyanophageStats,
 		decodeMana2Stats,
 		decodeMonkeyracerStats,
 		deriveBotStats,
 		deriveCyanophageStats,
-		deriveMana2Stats,
+		deriveMana2Stats
+	} from '$lib/statsDerivation';
+	import {
+		buildBotStatsDiffBlockLines,
+		buildCyanophageStatsDiffBlockLines,
+		buildMana2StatsDiffBlockLines,
+		CYANOPHAGE_ANALYZER,
 		MANA2_ANALYZER,
 		type StatsAnalyzer,
 		type StatsBlockSegment

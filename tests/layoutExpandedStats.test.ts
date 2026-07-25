@@ -10,7 +10,7 @@ import {
 	deriveCyanophageStats,
 	deriveMana2Stats,
 	MANA2_COMPACT_STAT_FIELD_COUNT
-} from '$lib/layoutStats';
+} from '$lib/statsDerivation';
 
 function makeStats() {
 	const monkey = decodeMonkeyracerStats(Array(COMPACT_STAT_FIELD_COUNT).fill(10_000));

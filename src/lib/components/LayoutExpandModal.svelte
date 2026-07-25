@@ -7,14 +7,16 @@
 		LayoutData
 	} from '$lib/layout';
 	import {
-		CYANOPHAGE_ANALYZER,
-		DEFAULT_STATS_ANALYZER,
 		decodeCyanophageStats,
 		decodeMana2Stats,
 		decodeMonkeyracerStats,
 		deriveBotStats,
 		deriveCyanophageStats,
-		deriveMana2Stats,
+		deriveMana2Stats
+	} from '$lib/statsDerivation';
+	import {
+		CYANOPHAGE_ANALYZER,
+		DEFAULT_STATS_ANALYZER,
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
