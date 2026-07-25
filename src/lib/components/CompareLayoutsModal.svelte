@@ -5,7 +5,6 @@
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import { clearCompareView, loadCompareView, saveCompareView } from '$lib/compareViewStorage';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import {
 		CYANOPHAGE_ANALYZER,
@@ -123,18 +122,15 @@
 			if (mode === 'reset') {
 				leftName = null;
 				rightName = null;
-				clearCompareView();
 			} else if (mode === 'selection') {
 				const pair = selectedPairNames;
 				leftName = pair[0];
 				rightName = pair[1];
-				saveCompareView(leftName, rightName);
 			} else {
-				const stored = loadCompareView();
-				leftName = stored.left && layoutByName.has(stored.left) ? stored.left : null;
-				rightName = stored.right && layoutByName.has(stored.right) ? stored.right : null;
+				// Keep in-memory pair; drop names that left the catalog.
+				if (leftName && !layoutByName.has(leftName)) leftName = null;
+				if (rightName && !layoutByName.has(rightName)) rightName = null;
 				if (leftName && leftName === rightName) rightName = null;
-				saveCompareView(leftName, rightName);
 			}
 
 			void tick().then(() => {
@@ -156,7 +152,6 @@
 		const previousLeft = leftName;
 		leftName = rightName;
 		rightName = previousLeft;
-		saveCompareView(leftName, rightName);
 	}
 
 	function resetAllView() {
@@ -164,14 +159,12 @@
 		rightName = null;
 		leftPreview = null;
 		rightPreview = null;
-		clearCompareView();
 		void tick().then(() => leftSearch?.focus());
 	}
 
 	function commitLeft(name: string, meta?: { via: 'enter' | 'click' }) {
 		leftName = name;
 		leftPreview = null;
-		saveCompareView(leftName, rightName);
 		if (meta?.via === 'enter') {
 			void tick().then(() => leftClearButton?.focus());
 		}
@@ -180,7 +173,6 @@
 	function commitRight(name: string, meta?: { via: 'enter' | 'click' }) {
 		rightName = name;
 		rightPreview = null;
-		saveCompareView(leftName, rightName);
 		if (meta?.via === 'enter') {
 			void tick().then(() => rightClearButton?.focus());
 		}
@@ -189,14 +181,12 @@
 	function clearLeft() {
 		leftName = null;
 		leftPreview = null;
-		saveCompareView(leftName, rightName);
 		void tick().then(() => leftSearch?.focus());
 	}
 
 	function clearRight() {
 		rightName = null;
 		rightPreview = null;
-		saveCompareView(leftName, rightName);
 		void tick().then(() => rightSearch?.focus());
 	}
 
@@ -228,7 +218,6 @@
 						rightName = candidate;
 						leftName = current;
 					}
-					saveCompareView(leftName, rightName);
 					return;
 				}
 				continue;
