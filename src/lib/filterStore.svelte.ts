@@ -25,7 +25,6 @@ import {
 } from './layoutSimilarity';
 import type { FilterFocusRequest } from './filterSummaries';
 import {
-	createSavedFilterId,
 	loadSavedFilters,
 	persistSavedFilters,
 	sortLayoutSourceNames,
@@ -56,6 +55,18 @@ import {
 	filterLayouts as filterLayoutCatalog,
 	sortLayouts as sortLayoutCatalog
 } from './layoutFiltering';
+import {
+	ViewFilterSnapshotCache,
+	createLayoutNameSet,
+	findSavedView,
+	isSavedViewDirty,
+	removeSavedView,
+	renameSavedView,
+	resolveActiveSourceLayoutNames,
+	updateSavedView,
+	upsertSavedView,
+	type LayoutSource
+} from './savedViews';
 import {
 	cloneFilterGrid,
 	cloneStatLimits,
@@ -91,7 +102,7 @@ export {
 } from './filterUrlCodec';
 export type { DecodedViewFilters } from './filterUrlCodec';
 /** Pool of layouts that other filters operate on. */
-export type LayoutSource = 'all' | 'selected';
+export type { LayoutSource } from './savedViews';
 export type { SortBy, SortOrder };
 export type { SimilarityMirrorMode };
 export type { SavedFilter };
@@ -180,7 +191,7 @@ export class FilterStore {
 	 * Isolated filter snapshots per layout-source view. Switching restores that view's
 	 * snapshot only — never copies or syncs filters between All and Selected.
 	 */
-	#viewFilterSnapshots = new Map<LayoutSource, ViewFilterSnapshot>();
+	#viewFilterSnapshots = new ViewFilterSnapshotCache();
 	statsAnalyzer: StatsAnalyzerMode = $state(DEFAULT_STATS_ANALYZER);
 	hideLayoutStats: boolean = $state(false);
 	hideLayoutTestArea: boolean = $state(false);
@@ -318,7 +329,7 @@ export class FilterStore {
 
 		const viewId = url.searchParams.get('view')?.trim();
 		if (viewId) {
-			const saved = this.savedFilters.find((entry) => entry.id === viewId);
+			const saved = findSavedView(this.savedFilters, viewId);
 			if (saved) {
 				this.layoutSource = 'all';
 				this.activeSavedFilterId = saved.id;
@@ -1321,47 +1332,19 @@ export class FilterStore {
 	 * Activates the saved view tab against the All layouts pool.
 	 */
 	saveCurrentFilters(name: string): string | null {
-		const trimmed = name.trim();
-		if (!trimmed) return null;
+		if (!name.trim()) return null;
 
 		this.#applyFiltersNow();
 		const snapshot = this.#captureViewFilters();
 		const sourceLayoutNames = this.activeSourceLayoutNames;
+		const result = upsertSavedView(this.savedFilters, {
+			name,
+			snapshot,
+			sourceLayoutNames
+		});
+		if (!result) return null;
 
-		const existingIndex = this.savedFilters.findIndex(
-			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
-		);
-
-		let id: string;
-		if (existingIndex >= 0) {
-			const existing = this.savedFilters[existingIndex];
-			id = existing.id;
-			const next = [...this.savedFilters];
-			next[existingIndex] = {
-				...existing,
-				name: trimmed,
-				snapshot,
-				...(sourceLayoutNames !== null
-					? { sourceLayoutNames: [...sourceLayoutNames] }
-					: { sourceLayoutNames: undefined })
-			};
-			this.savedFilters = next;
-		} else {
-			id = createSavedFilterId();
-			this.savedFilters = [
-				...this.savedFilters,
-				{
-					id,
-					name: trimmed,
-					snapshot,
-					...(sourceLayoutNames !== null
-						? { sourceLayoutNames: [...sourceLayoutNames] }
-						: {}),
-					createdAt: Date.now()
-				}
-			];
-		}
-
+		this.savedFilters = result.filters;
 		this.#persistSavedFilters();
 
 		if (!this.activeSavedFilterId) {
@@ -1369,12 +1352,12 @@ export class FilterStore {
 		}
 
 		this.layoutSource = 'all';
-		this.activeSavedFilterId = id;
+		this.activeSavedFilterId = result.id;
 		this.ephemeralSourceLayoutNames = null;
 		this.draftSourceLayoutNames = undefined;
 		this.includeSelectedInResults = false;
 		this.#saveToUrl();
-		return id;
+		return result.id;
 	}
 
 	/**
@@ -1382,20 +1365,16 @@ export class FilterStore {
 	 * the catalog is not membership-gated.
 	 */
 	get activeSourceLayoutNames(): string[] | null {
-		if (this.draftSourceLayoutNames !== undefined) {
-			return this.draftSourceLayoutNames;
-		}
-		if (this.activeSavedFilterId) {
-			const saved = this.savedFilters.find((entry) => entry.id === this.activeSavedFilterId);
-			if (!saved || saved.sourceLayoutNames === undefined) return null;
-			return saved.sourceLayoutNames;
-		}
-		return this.ephemeralSourceLayoutNames;
+		return resolveActiveSourceLayoutNames({
+			filters: this.savedFilters,
+			activeSavedViewId: this.activeSavedFilterId,
+			draftSourceLayoutNames: this.draftSourceLayoutNames,
+			ephemeralSourceLayoutNames: this.ephemeralSourceLayoutNames
+		});
 	}
 
 	get activeSourceLayoutNameSet(): Set<string> | null {
-		const names = this.activeSourceLayoutNames;
-		return names === null ? null : new Set(names);
+		return createLayoutNameSet(this.activeSourceLayoutNames);
 	}
 
 	/** True when results are gated by a custom layout source selection. */
@@ -1446,13 +1425,13 @@ export class FilterStore {
 	get isActiveSavedViewDirty(): boolean {
 		const id = this.activeSavedFilterId;
 		if (!id) return false;
-		const saved = this.savedFilters.find((entry) => entry.id === id);
+		const saved = findSavedView(this.savedFilters, id);
 		if (!saved) return false;
-		if (JSON.stringify(this.#captureViewFilters()) !== JSON.stringify(saved.snapshot)) {
-			return true;
-		}
-		const savedSource = saved.sourceLayoutNames !== undefined ? saved.sourceLayoutNames : null;
-		return JSON.stringify(this.activeSourceLayoutNames) !== JSON.stringify(savedSource);
+		return isSavedViewDirty(
+			saved,
+			this.#captureViewFilters(),
+			this.activeSourceLayoutNames
+		);
 	}
 
 	/**
@@ -1471,7 +1450,7 @@ export class FilterStore {
 	revertActiveSavedView() {
 		const id = this.activeSavedFilterId;
 		if (!id) return;
-		const saved = this.savedFilters.find((entry) => entry.id === id);
+		const saved = findSavedView(this.savedFilters, id);
 		if (!saved) return;
 
 		this.#cancelFilterApply();
@@ -1487,19 +1466,10 @@ export class FilterStore {
 
 		this.#applyFiltersNow();
 		const snapshot = this.#captureViewFilters();
-		const index = this.savedFilters.findIndex((entry) => entry.id === id);
-		if (index < 0) return;
-
-		const existing = this.savedFilters[index];
-		const next = [...this.savedFilters];
 		const sourceNames = this.activeSourceLayoutNames;
-		next[index] = {
-			id: existing.id,
-			name: existing.name,
-			snapshot,
-			createdAt: existing.createdAt,
-			...(sourceNames !== null ? { sourceLayoutNames: [...sourceNames] } : {})
-		};
+		const next = updateSavedView(this.savedFilters, id, snapshot, sourceNames);
+		if (!next) return;
+
 		this.savedFilters = next;
 		this.draftSourceLayoutNames = undefined;
 		this.#persistSavedFilters();
@@ -1511,30 +1481,18 @@ export class FilterStore {
 		const id = this.activeSavedFilterId;
 		if (!id) return false;
 
-		const trimmed = name.trim();
-		if (!trimmed) return false;
+		const result = renameSavedView(this.savedFilters, id, name);
+		if (!result.success) return false;
+		if (!result.changed) return true;
 
-		const conflict = this.savedFilters.some(
-			(entry) => entry.id !== id && entry.name.toLowerCase() === trimmed.toLowerCase()
-		);
-		if (conflict) return false;
-
-		const index = this.savedFilters.findIndex((entry) => entry.id === id);
-		if (index < 0) return false;
-
-		const existing = this.savedFilters[index];
-		if (existing.name === trimmed) return true;
-
-		const next = [...this.savedFilters];
-		next[index] = { ...existing, name: trimmed };
-		this.savedFilters = next;
+		this.savedFilters = result.filters;
 		this.#persistSavedFilters();
 		return true;
 	}
 
 	/** Activate a saved view (All layouts pool). */
 	applySavedFilter(id: string) {
-		const saved = this.savedFilters.find((entry) => entry.id === id);
+		const saved = findSavedView(this.savedFilters, id);
 		if (!saved) return;
 		if (this.activeSavedFilterId === id) return;
 
@@ -1554,10 +1512,10 @@ export class FilterStore {
 	}
 
 	deleteSavedFilter(id: string) {
-		const next = this.savedFilters.filter((entry) => entry.id !== id);
-		if (next.length === this.savedFilters.length) return;
+		const result = removeSavedView(this.savedFilters, id);
+		if (!result.removed) return;
 
-		this.savedFilters = next;
+		this.savedFilters = result.filters;
 		this.#persistSavedFilters();
 
 		if (this.activeSavedFilterId !== id) return;
@@ -1601,7 +1559,7 @@ export class FilterStore {
 	buildActiveShareViewUrl(): string | null {
 		const id = this.activeSavedFilterId;
 		if (!id) return null;
-		const saved = this.savedFilters.find((entry) => entry.id === id);
+		const saved = findSavedView(this.savedFilters, id);
 		if (!saved) return null;
 
 		this.#applyFiltersNow();
@@ -1643,43 +1601,14 @@ export class FilterStore {
 		snapshot: ViewFilterSnapshot,
 		sourceLayoutNames?: string[]
 	): string | null {
-		const trimmed = name.trim();
-		if (!trimmed) return null;
+		const result = upsertSavedView(this.savedFilters, {
+			name,
+			snapshot,
+			sourceLayoutNames
+		});
+		if (!result) return null;
 
-		const membership =
-			sourceLayoutNames !== undefined ? sortLayoutSourceNames(sourceLayoutNames) : undefined;
-
-		const existingIndex = this.savedFilters.findIndex(
-			(entry) => entry.name.toLowerCase() === trimmed.toLowerCase()
-		);
-
-		let id: string;
-		if (existingIndex >= 0) {
-			const existing = this.savedFilters[existingIndex];
-			id = existing.id;
-			const next = [...this.savedFilters];
-			next[existingIndex] = {
-				id: existing.id,
-				name: trimmed,
-				snapshot,
-				createdAt: existing.createdAt,
-				...(membership !== undefined ? { sourceLayoutNames: membership } : {})
-			};
-			this.savedFilters = next;
-		} else {
-			id = createSavedFilterId();
-			this.savedFilters = [
-				...this.savedFilters,
-				{
-					id,
-					name: trimmed,
-					snapshot,
-					...(membership !== undefined ? { sourceLayoutNames: membership } : {}),
-					createdAt: Date.now()
-				}
-			];
-		}
-
+		this.savedFilters = result.filters;
 		this.#persistSavedFilters();
 
 		this.#applyFiltersNow();
@@ -1688,14 +1617,14 @@ export class FilterStore {
 		}
 
 		this.layoutSource = 'all';
-		this.activeSavedFilterId = id;
+		this.activeSavedFilterId = result.id;
 		this.ephemeralSourceLayoutNames = null;
 		this.draftSourceLayoutNames = undefined;
 		this.includeSelectedInResults = false;
 		this.#restoreViewFilters(snapshot);
 		this.pendingSharedView = null;
 		this.#saveToUrl();
-		return id;
+		return result.id;
 	}
 
 	/**
