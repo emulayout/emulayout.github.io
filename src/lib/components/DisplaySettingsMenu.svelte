@@ -208,7 +208,10 @@
 				{/if}
 			</span>
 			<span class="display-settings-copy">
-				<span class="display-settings-label">Show new indicator</span>
+				<span class="display-settings-label">Show new layout indicator</span>
+				<span class="display-settings-desc">
+					Shows a red dot next to the layout name for newly synced layouts.
+				</span>
 			</span>
 		</label>
 
