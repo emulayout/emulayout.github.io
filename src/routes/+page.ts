@@ -1,6 +1,6 @@
 import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { parseStatLimitsParam } from '$lib/filterStore.svelte';
+import { parseStatLimitsParam } from '$lib/filterUrlCodec';
 import {
 	analyzersNeededForLoad,
 	isStatSortBy,
