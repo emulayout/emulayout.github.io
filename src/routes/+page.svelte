@@ -106,12 +106,6 @@
 			});
 	});
 
-	$effect(() => {
-		if (!filterStore.hasSimilarReference && filterStore.sortBy === 'similarity') {
-			filterStore.setSortBy('date');
-		}
-	});
-
 	// Drop stale ?similar= / ?selected= entries when those layouts no longer exist.
 	$effect(() => {
 		const name = filterStore.similarReferenceName;

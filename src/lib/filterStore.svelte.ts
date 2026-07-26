@@ -74,6 +74,7 @@ import {
 	createEmptyFilterGrid,
 	createEmptyStatLimits,
 	createEmptyThumbKeyFilters,
+	normalizeViewSortBy,
 	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
@@ -570,7 +571,7 @@ export class FilterStore {
 		this.appliedSimilarityFilterValue = restored.appliedSimilarityFilterValue;
 		this.similarityWeightHomeKeys = restored.similarityWeightHomeKeys;
 		this.similarityMirrorMode = restored.similarityMirrorMode;
-		this.sortBy = restored.sortBy;
+		this.sortBy = normalizeViewSortBy(restored.sortBy, restored.similarReferenceName);
 		this.sortOrder = restored.sortOrder;
 		this.#sortOrderManual = restored.sortOrderManual;
 		this.#sortBeforeSimilar = restored.sortBeforeSimilar;
@@ -693,15 +694,16 @@ export class FilterStore {
 	}
 
 	setSortBy(value: SortBy) {
+		const nextSortBy = normalizeViewSortBy(value, this.similarReferenceName);
 		const previousDefault = getDefaultSortOrder(this.sortBy);
 		const wasOnDefaultOrder = !this.#sortOrderManual || this.sortOrder === previousDefault;
-		this.sortBy = value;
+		this.sortBy = nextSortBy;
 		if (wasOnDefaultOrder) {
 			// Adopt this field's default (Asc for lower-is-better Cyanophage stats, etc.).
-			this.sortOrder = getDefaultSortOrder(value);
+			this.sortOrder = getDefaultSortOrder(nextSortBy);
 			this.#sortOrderManual = false;
 		}
-		this.#syncSimilarExitSortRestore(value);
+		this.#syncSimilarExitSortRestore(nextSortBy);
 		this.#saveToUrl();
 	}
 

@@ -10,6 +10,7 @@ import {
 	createEmptyFilterGrid,
 	createEmptyStatLimits,
 	createEmptyThumbKeyFilters,
+	normalizeViewSortBy,
 	type StatLimit,
 	type ViewFilterSnapshot
 } from './filterSnapshot';
@@ -143,12 +144,9 @@ export function writeViewFilterUrlState(
 		params.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
 	}
 
-	if (
-		snapshot.sortBy !== 'date' ||
-		snapshot.sortOrder !== 'desc' ||
-		snapshot.similarReferenceName
-	) {
-		params.set('sort', snapshot.sortBy);
+	const sortBy = normalizeViewSortBy(snapshot.sortBy, snapshot.similarReferenceName);
+	if (sortBy !== 'date' || snapshot.sortOrder !== 'desc' || snapshot.similarReferenceName) {
+		params.set('sort', sortBy);
 		params.set('order', snapshot.sortOrder);
 	}
 
@@ -328,6 +326,7 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 			snapshot.similarityMirrorMode = similarMirror;
 		}
 	}
+	snapshot.sortBy = normalizeViewSortBy(snapshot.sortBy, snapshot.similarReferenceName);
 
 	const statLimits = params.get('statLimits');
 	if (statLimits) {

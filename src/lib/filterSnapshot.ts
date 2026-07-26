@@ -113,6 +113,11 @@ export function cloneSortSnapshot(snapshot: SortSnapshot | null): SortSnapshot |
 	return snapshot ? { ...snapshot } : null;
 }
 
+/** Similarity is only a valid sort while a reference layout exists. */
+export function normalizeViewSortBy(sortBy: SortBy, similarReferenceName: string | null): SortBy {
+	return sortBy === 'similarity' && !similarReferenceName ? 'date' : sortBy;
+}
+
 export function cloneViewFilterSnapshot(snapshot: ViewFilterSnapshot): ViewFilterSnapshot {
 	return {
 		...snapshot,
@@ -293,6 +298,16 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		typeof value.similarityFilterValue === 'string'
 			? value.similarityFilterValue
 			: defaults.similarityFilterValue;
+	const similarReferenceName =
+		typeof value.similarReferenceName === 'string'
+			? value.similarReferenceName
+			: defaults.similarReferenceName;
+	const sortBy = normalizeViewSortBy(
+		typeof value.sortBy === 'string'
+			? (normalizeSortBy(value.sortBy) ?? defaults.sortBy)
+			: defaults.sortBy,
+		similarReferenceName
+	);
 	const statLimits = normalizeStatLimits(value.statLimits, defaults.statLimits);
 
 	return {
@@ -339,10 +354,7 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			typeof value.includeSelectedInResults === 'boolean'
 				? value.includeSelectedInResults
 				: defaults.includeSelectedInResults,
-		similarReferenceName:
-			typeof value.similarReferenceName === 'string'
-				? value.similarReferenceName
-				: defaults.similarReferenceName,
+		similarReferenceName,
 		similarReferenceAnglemod:
 			typeof value.similarReferenceAnglemod === 'boolean'
 				? value.similarReferenceAnglemod
@@ -366,10 +378,7 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			isSimilarityMirrorMode(value.similarityMirrorMode)
 				? (value.similarityMirrorMode as SimilarityMirrorMode)
 				: defaults.similarityMirrorMode,
-		sortBy:
-			typeof value.sortBy === 'string'
-				? (normalizeSortBy(value.sortBy) ?? defaults.sortBy)
-				: defaults.sortBy,
+		sortBy,
 		sortOrder:
 			typeof value.sortOrder === 'string' && isSortOrder(value.sortOrder)
 				? value.sortOrder

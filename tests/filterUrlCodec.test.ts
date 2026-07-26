@@ -111,6 +111,22 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.sortOrder).toBe('desc');
 	});
 
+	test('drops similarity sorting when no reference layout exists', () => {
+		const decoded = decodeViewFilterSnapshot('sort=similarity&order=asc');
+
+		expect(decoded.snapshot.similarReferenceName).toBeNull();
+		expect(decoded.snapshot.sortBy).toBe('date');
+		expect(decoded.snapshot.sortOrder).toBe('asc');
+		expect(encodeViewFilterSnapshot(decoded.snapshot)).toBe('sort=date&order=asc');
+	});
+
+	test('does not encode similarity sorting without a reference layout', () => {
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.sortBy = 'similarity';
+
+		expect(encodeViewFilterSnapshot(snapshot)).toBe('');
+	});
+
 	test('uses the selected field default when canonical sort order is omitted', () => {
 		const { snapshot } = readViewFilterUrlState(new URLSearchParams({ sort: 'cyano-effort' }));
 

@@ -108,4 +108,26 @@ describe('normalizeViewFilterSnapshot', () => {
 		expect(snapshot.sortBeforeSimilar).toBeNull();
 		expect(snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '' });
 	});
+
+	test('replaces similarity sorting when no reference layout exists', () => {
+		const snapshot = normalizeViewFilterSnapshot({
+			sortBy: 'similarity',
+			sortOrder: 'asc',
+			sortOrderManual: true
+		});
+
+		expect(snapshot.similarReferenceName).toBeNull();
+		expect(snapshot.sortBy).toBe('date');
+		expect(snapshot.sortOrder).toBe('asc');
+		expect(snapshot.sortOrderManual).toBe(true);
+	});
+
+	test('preserves similarity sorting when a reference layout exists', () => {
+		const snapshot = normalizeViewFilterSnapshot({
+			similarReferenceName: 'Canary',
+			sortBy: 'similarity'
+		});
+
+		expect(snapshot.sortBy).toBe('similarity');
+	});
 });
