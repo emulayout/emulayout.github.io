@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { chipSourceFromViewSnapshot, getActiveFilterChips } from '$lib/filterSummaries';
+	import { chipSourceFromViewSnapshot, getActiveFilterChips } from '$lib/activeFilterChips';
 
 	interface Props {
 		open: boolean;

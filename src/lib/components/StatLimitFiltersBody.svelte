@@ -15,7 +15,7 @@
 		type StatFilterField,
 		type StatLimitKey
 	} from '$lib/statsFiltering';
-	import type { StatFilterSection } from '$lib/filterSummaries';
+	import type { StatFilterSection } from '$lib/statsFiltering';
 
 	interface Props {
 		section: StatFilterSection;

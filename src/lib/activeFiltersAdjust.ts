@@ -1,5 +1,6 @@
 import type { FilterStore } from '$lib/filterStore.svelte';
-import type { KeyFilterKind, StatFilterSection } from '$lib/filterSummaries';
+import type { KeyFilterKind } from '$lib/filterFocus';
+import type { StatFilterSection } from '$lib/statsFiltering';
 import { CMINI_ANALYZER, STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
 import {
 	LIKES_STAT_FILTER_FIELD,

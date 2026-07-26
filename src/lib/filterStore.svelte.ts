@@ -19,7 +19,7 @@ import { isAnalyzerStatsReady } from './layoutStatsAccess';
 import { analyzersNeededForLimits } from './statsUsage';
 import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import type { SimilarityMirrorMode } from './layoutSimilarity';
-import type { FilterFocusRequest } from './filterSummaries';
+import type { FilterFocusRequest } from './filterFocus';
 import {
 	loadSavedFilters,
 	persistSavedFilters,

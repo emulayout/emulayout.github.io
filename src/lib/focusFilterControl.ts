@@ -1,5 +1,5 @@
 import { filterStore } from '$lib/filterStore.svelte';
-import type { FilterFocusRequest } from '$lib/filterSummaries';
+import type { FilterFocusRequest } from '$lib/filterFocus';
 
 const TARGET_CLASS = 'filter-field-targeted';
 const TARGET_MS = 1600;

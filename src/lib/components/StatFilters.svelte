@@ -1,7 +1,6 @@
 <script lang="ts">
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
-	import { getStatFilterSectionSummary } from '$lib/filterSummaries';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import {
@@ -13,7 +12,11 @@
 		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
-	import { getHandStatFilterFieldsForAnalyzer, type StatLimitKey } from '$lib/statsFiltering';
+	import {
+		getHandStatFilterFieldsForAnalyzer,
+		hasActiveStatFilterSection,
+		type StatLimitKey
+	} from '$lib/statsFiltering';
 
 	type StatCategory = 'bigram' | 'trigram' | 'other';
 
@@ -149,8 +152,9 @@
 
 	function analyzerIsActive(analyzer: StatsAnalyzer): boolean {
 		return (
-			Boolean(getStatFilterSectionSummary(filterStore, 'general', analyzer)) ||
-			Boolean(getStatFilterSectionSummary(filterStore, 'hands', analyzer))
+			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'general', {
+				includeLikes: filterStore.canUseLikes
+			}) || hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hands')
 		);
 	}
 
@@ -159,7 +163,7 @@
 	}
 
 	function handsIsActive(analyzer: StatsAnalyzer): boolean {
-		return Boolean(getStatFilterSectionSummary(filterStore, 'hands', analyzer));
+		return hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hands');
 	}
 
 	function accordionIdForKey(

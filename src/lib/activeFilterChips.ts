@@ -2,13 +2,13 @@ import { SPLIT_COL } from '$lib/cmini/keyboard';
 import type {
 	BoardTypeFilter,
 	CharacterSetFilter,
-	FilterStore,
 	MagicKeyFilter,
 	StatLimit,
 	StatLimitOperator,
 	ThumbKeyFilter,
 	ViewFilterSnapshot
-} from '$lib/filterStore.svelte';
+} from '$lib/filterSnapshot';
+import type { FilterFocusRequest, KeyFilterKind } from '$lib/filterFocus';
 import {
 	CYANOPHAGE_ANALYZER,
 	CMINI_ANALYZER,
@@ -113,7 +113,7 @@ function collectHandKeys(
 }
 
 function formatKeySection(
-	label: string | null,
+	label: string,
 	grid: string[][],
 	leftThumbs: string[],
 	rightThumbs: string[]
@@ -125,68 +125,7 @@ function formatKeySection(
 	if (left.length > 0) hands.push(`LH - ${left.join(',')}`);
 	if (right.length > 0) hands.push(`RH: ${right.join(',')}`);
 	const body = hands.join(', ');
-	return label ? `${label}: ${body}` : body;
-}
-
-export type KeyFilterKind = 'and' | 'or' | 'exclude';
-
-/** Preview for a single key-filter kind (no section prefix — button already names it). */
-export function getKeyFilterKindSummary(store: FilterStore, kind: KeyFilterKind): string {
-	switch (kind) {
-		case 'and':
-			return (
-				formatKeySection(
-					null,
-					store.includeGrid,
-					store.includeLeftThumbKeys,
-					store.includeRightThumbKeys
-				) ?? ''
-			);
-		case 'or':
-			return (
-				formatKeySection(
-					null,
-					store.includeOrGrid,
-					store.includeOrLeftThumbKeys,
-					store.includeOrRightThumbKeys
-				) ?? ''
-			);
-		case 'exclude':
-			return (
-				formatKeySection(
-					null,
-					store.excludeGrid,
-					store.excludeLeftThumbKeys,
-					store.excludeRightThumbKeys
-				) ?? ''
-			);
-	}
-}
-
-/** Collapsed key-filter preview across all kinds (same format as the old accordion). */
-export function getKeyFiltersSummary(store: FilterStore): string {
-	return [
-		formatKeySection(
-			'AND',
-			store.includeGrid,
-			store.includeLeftThumbKeys,
-			store.includeRightThumbKeys
-		),
-		formatKeySection(
-			'OR',
-			store.includeOrGrid,
-			store.includeOrLeftThumbKeys,
-			store.includeOrRightThumbKeys
-		),
-		formatKeySection(
-			'Exclude',
-			store.excludeGrid,
-			store.excludeLeftThumbKeys,
-			store.excludeRightThumbKeys
-		)
-	]
-		.filter((part): part is string => part !== null)
-		.join(' • ');
+	return `${label}: ${body}`;
 }
 
 function operatorSymbol(operator: 'lt' | 'gt'): string {
@@ -206,107 +145,13 @@ function formatActiveLimit(
 	return `${label} ${operatorSymbol(limit.operator)} ${value}${unit}`;
 }
 
-function handSummaryLabel(
-	hand: 'LH' | 'RH',
-	field: StatFilterField,
-	analyzerLabel?: string
-): string {
+function handSummaryLabel(hand: 'LH' | 'RH', field: StatFilterField): string {
 	const isHandTotal =
 		field.key === 'lh' ||
 		field.key === 'rh' ||
 		field.key === 'cyano-lh' ||
 		field.key === 'cyano-rh';
-	const base = isHandTotal ? hand : `${hand} ${field.label}`;
-	return analyzerLabel ? `${analyzerLabel} ${base}` : base;
-}
-
-/** Collapsed stat-filter preview (same format as the old accordion). */
-export function getStatFiltersSummary(store: FilterStore): string {
-	return [
-		getStatFilterSectionSummary(store, 'general'),
-		getStatFilterSectionSummary(store, 'hands')
-	]
-		.filter(Boolean)
-		.join(' • ');
-}
-
-export type StatFilterSection = 'general' | 'hands';
-
-function appendGeneralAnalyzerSummary(
-	store: FilterStore,
-	analyzer: StatsAnalyzer,
-	parts: string[],
-	seenKeys: Set<string>
-): void {
-	for (const row of getGeneralStatFilterRowsForAnalyzer(analyzer)) {
-		for (const field of row) {
-			if (seenKeys.has(field.key)) continue;
-			const part = formatActiveLimit(store.statLimits, field, field.label);
-			if (!part) continue;
-			seenKeys.add(field.key);
-			parts.push(part);
-		}
-	}
-}
-
-function appendHandsAnalyzerSummary(
-	store: FilterStore,
-	analyzer: StatsAnalyzer,
-	parts: string[],
-	analyzerLabel?: string
-): void {
-	for (const field of getLeftHandStatFilterFieldsForAnalyzer(analyzer)) {
-		const part = formatActiveLimit(
-			store.statLimits,
-			field,
-			handSummaryLabel('LH', field, analyzerLabel)
-		);
-		if (part) parts.push(part);
-	}
-	for (const field of getRightHandStatFilterFieldsForAnalyzer(analyzer)) {
-		const part = formatActiveLimit(
-			store.statLimits,
-			field,
-			handSummaryLabel('RH', field, analyzerLabel)
-		);
-		if (part) parts.push(part);
-	}
-}
-
-export function getStatFilterSectionSummary(
-	store: FilterStore,
-	section: StatFilterSection,
-	/** When omitted, includes active filters from both analyzers. */
-	analyzer?: StatsAnalyzer
-): string {
-	const parts: string[] = [];
-
-	if (section === 'general') {
-		const seenKeys = new Set<string>();
-		if (analyzer) {
-			appendGeneralAnalyzerSummary(store, analyzer, parts, seenKeys);
-		} else {
-			for (const entry of STAT_ANALYZERS) {
-				appendGeneralAnalyzerSummary(store, entry.value, parts, seenKeys);
-			}
-		}
-		if (store.canUseLikes) {
-			const part = formatActiveLimit(
-				store.statLimits,
-				LIKES_STAT_FILTER_FIELD,
-				LIKES_STAT_FILTER_FIELD.label
-			);
-			if (part) parts.push(part);
-		}
-	} else if (analyzer) {
-		appendHandsAnalyzerSummary(store, analyzer, parts);
-	} else {
-		for (const entry of STAT_ANALYZERS) {
-			appendHandsAnalyzerSummary(store, entry.value, parts, analyzerShortLabel(entry.value));
-		}
-	}
-
-	return parts.join(' • ');
+	return isHandTotal ? hand : `${hand} ${field.label}`;
 }
 
 const BOARD_TYPE_LABELS: Record<string, string> = {
@@ -322,29 +167,6 @@ const CHARSET_LABELS: Record<string, string> = {
 	international: 'Intl'
 };
 
-/** Collapsed keyboard-filter preview. */
-export function getKeyboardFiltersSummary(store: FilterStore): string {
-	const parts: string[] = [];
-
-	if (store.thumbKeyFilter !== 'optional') {
-		parts.push(`Thumbs ${store.thumbKeyFilter}`);
-	}
-	if (store.magicKeyFilter !== 'optional') {
-		parts.push(`Magic ${store.magicKeyFilter}`);
-	}
-	if (store.boardTypeFilter !== 'all') {
-		parts.push(BOARD_TYPE_LABELS[store.boardTypeFilter] ?? store.boardTypeFilter);
-	}
-	if (store.characterSetFilter !== 'english') {
-		parts.push(CHARSET_LABELS[store.characterSetFilter] ?? store.characterSetFilter);
-	}
-	if (store.showUnfinished) {
-		parts.push('Unfinished');
-	}
-
-	return parts.join(' • ');
-}
-
 export type FilterChipTone = 'neutral' | 'cmini' | 'cyanophage' | 'mana2';
 
 export type ActiveFilterClearAction =
@@ -359,23 +181,6 @@ export type ActiveFilterClearAction =
 	| { kind: 'keyFilter'; filter: KeyFilterKind }
 	| { kind: 'statLimit'; key: StatLimitKey }
 	| { kind: 'similarity' };
-
-export type KeyboardFilterField = 'thumbs' | 'magic' | 'board' | 'charset' | 'unfinished';
-
-export type SidebarFilterField = 'name' | 'authors' | 'similarity';
-
-/** Request to open a filter UI and focus a specific control. */
-export type FilterFocusRequest =
-	| { target: 'source' }
-	| { target: 'sidebar'; field: SidebarFilterField }
-	| { target: 'keyboard'; field: KeyboardFilterField }
-	| { target: 'keys'; kind: KeyFilterKind }
-	| {
-			target: 'stats';
-			section: StatFilterSection;
-			analyzer: StatsAnalyzer;
-			key: StatLimitKey;
-	  };
 
 export interface ActiveFilterChip {
 	id: string;
@@ -639,8 +444,27 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 	return chips;
 }
 
+export interface ActiveFilterClearTarget {
+	clearSourceSelection(): void;
+	setNameFilter(value: string): void;
+	clearAuthors(): void;
+	setThumbKeyFilter(value: ThumbKeyFilter): void;
+	setMagicKeyFilter(value: MagicKeyFilter): void;
+	setBoardTypeFilter(value: BoardTypeFilter): void;
+	setCharacterSetFilter(value: CharacterSetFilter): void;
+	setShowUnfinished(value: boolean): void;
+	clearInclude(): void;
+	clearIncludeOr(): void;
+	clearExclude(): void;
+	clearStatLimit(key: StatLimitKey): void;
+	clearSimilarReference(): void;
+}
+
 /** Clear the filter represented by a results-toolbar chip. */
-export function clearActiveFilterChip(store: FilterStore, action: ActiveFilterClearAction): void {
+export function clearActiveFilterChip(
+	store: ActiveFilterClearTarget,
+	action: ActiveFilterClearAction
+): void {
 	switch (action.kind) {
 		case 'source':
 			store.clearSourceSelection();
@@ -678,11 +502,4 @@ export function clearActiveFilterChip(store: FilterStore, action: ActiveFilterCl
 			store.clearSimilarReference();
 			break;
 	}
-}
-
-/** Full active-filter preview joined with bullets (sidebar-style). */
-export function getActiveFiltersSummary(store: FilterStore): string {
-	return getActiveFilterChips(store)
-		.map((chip) => chip.label)
-		.join(' • ');
 }

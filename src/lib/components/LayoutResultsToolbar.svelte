@@ -4,7 +4,7 @@
 		clearActiveFilterChip,
 		getActiveFilterChips,
 		type ActiveFilterChip
-	} from '$lib/filterSummaries';
+	} from '$lib/activeFilterChips';
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';

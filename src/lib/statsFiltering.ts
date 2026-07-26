@@ -14,13 +14,16 @@ import {
 	LIKES_STAT_FILTER_FIELD,
 	type AnalyzerStatFilterCatalog,
 	type GeneralStatFilterGroup,
-	type StatFilterField
+	type StatFilterField,
+	type StatLimitKey
 } from '$lib/statFilters/shared';
 
 export * from '$lib/statFilters/cmini';
 export * from '$lib/statFilters/cyanophage';
 export * from '$lib/statFilters/mana2';
 export * from '$lib/statFilters/shared';
+
+export type StatFilterSection = 'general' | 'hands';
 
 const STAT_FILTER_CATALOG_BY_ANALYZER = {
 	[CMINI_ANALYZER]: CMINI_STAT_FILTER_CATALOG,
@@ -85,4 +88,31 @@ export function getStatFilterFieldsForAnalyzer(
 	analyzer: StatsAnalyzer
 ): readonly StatFilterField[] {
 	return getStatFilterCatalogForAnalyzer(analyzer).fields;
+}
+
+type StatLimitValues = Partial<Record<StatLimitKey, { value: string }>>;
+
+function hasActiveStatLimit(limits: StatLimitValues, fields: readonly StatFilterField[]): boolean {
+	return fields.some((field) => limits[field.key]?.value.trim() !== '');
+}
+
+export function hasActiveStatFilterSection(
+	limits: StatLimitValues,
+	analyzer: StatsAnalyzer,
+	section: StatFilterSection,
+	options: { includeLikes?: boolean } = {}
+): boolean {
+	if (section === 'hands') {
+		return hasActiveStatLimit(limits, getHandStatFilterFieldsForAnalyzer(analyzer));
+	}
+
+	if (hasActiveStatLimit(limits, getGeneralStatFilterRowsForAnalyzer(analyzer).flat())) {
+		return true;
+	}
+
+	return (
+		analyzer === CMINI_ANALYZER &&
+		options.includeLikes === true &&
+		limits.likes?.value.trim() !== ''
+	);
 }

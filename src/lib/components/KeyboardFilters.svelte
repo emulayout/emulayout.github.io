@@ -1,6 +1,6 @@
 <script lang="ts">
 	import KeyboardFiltersBody from '$lib/components/KeyboardFiltersBody.svelte';
-	import type { KeyboardFilterField } from '$lib/filterSummaries';
+	import type { KeyboardFilterField } from '$lib/filterFocus';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 

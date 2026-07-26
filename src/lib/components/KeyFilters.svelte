@@ -1,7 +1,7 @@
 <script lang="ts">
 	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import { type KeyFilterKind } from '$lib/filterSummaries';
+	import type { KeyFilterKind } from '$lib/filterFocus';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, takeFilterFocusRequest } from '$lib/focusFilterControl';
 

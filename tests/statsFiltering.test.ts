@@ -3,6 +3,7 @@ import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsA
 import { CMINI_STAT_FILTER_CATALOG } from '$lib/statFilters/cmini';
 import { CYANOPHAGE_STAT_FILTER_CATALOG } from '$lib/statFilters/cyanophage';
 import { MANA2_STAT_FILTER_CATALOG } from '$lib/statFilters/mana2';
+import { createEmptyStatLimits } from '$lib/filterSnapshot';
 import {
 	ALL_STAT_FILTER_FIELDS,
 	GENERAL_STAT_FILTER_COLUMN_COUNT,
@@ -14,6 +15,7 @@ import {
 	getStatFilterCatalogForAnalyzer,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
+	hasActiveStatFilterSection,
 	parseStatFilterThreshold
 } from '$lib/statsFiltering';
 
@@ -74,5 +76,30 @@ describe('stats filtering catalog', () => {
 		expect(parseStatFilterThreshold(LIKES_STAT_FILTER_FIELD, '100')).toBe(100);
 		expect(parseStatFilterThreshold(field('sfb'), ' ')).toBeNull();
 		expect(parseStatFilterThreshold(field('sfb'), 'not-a-number')).toBeNull();
+	});
+
+	test('detects active analyzer sections without constructing summaries', () => {
+		const limits = createEmptyStatLimits();
+		limits['cyano-sfb'].value = '1.25';
+
+		expect(hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'general')).toBe(true);
+		expect(hasActiveStatFilterSection(limits, CMINI_ANALYZER, 'general')).toBe(false);
+
+		limits['mana-LI'].value = '10';
+		expect(hasActiveStatFilterSection(limits, MANA2_ANALYZER, 'hands')).toBe(true);
+		expect(hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'hands')).toBe(false);
+	});
+
+	test('attributes the optional likes filter only to cmini', () => {
+		const limits = createEmptyStatLimits();
+		limits.likes.value = '10';
+
+		expect(
+			hasActiveStatFilterSection(limits, CMINI_ANALYZER, 'general', { includeLikes: true })
+		).toBe(true);
+		expect(
+			hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'general', { includeLikes: true })
+		).toBe(false);
+		expect(hasActiveStatFilterSection(limits, CMINI_ANALYZER, 'general')).toBe(false);
 	});
 });
