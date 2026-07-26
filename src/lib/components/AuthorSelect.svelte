@@ -38,6 +38,7 @@
 	);
 
 	const selectedCount = $derived(selectedIds.size);
+	const showClear = $derived(selectedCount > 0);
 
 	const selectedNames = $derived(
 		authors
@@ -48,6 +49,13 @@
 
 	function handleToggle(id: number) {
 		onToggle(id);
+	}
+
+	function handleClear(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		onClear();
+		triggerButton?.focus();
 	}
 
 	function closeDropdown(restoreTriggerFocus = false) {
@@ -81,21 +89,25 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="relative" onfocusout={handleFocusOut} onkeydown={handleKeyDown}>
+<div class="author-select relative" onfocusout={handleFocusOut} onkeydown={handleKeyDown}>
 	<button
 		id="author-filter-trigger"
 		bind:this={triggerButton}
+		type="button"
 		onclick={toggleDropdown}
-		class="w-full px-4 py-2 rounded-xl text-sm text-left flex items-center justify-between transition-all duration-200 outline-none focus:ring-2"
+		class="author-select-trigger w-full px-4 py-2 rounded-xl text-sm text-left transition-all duration-200 outline-none focus:ring-2"
+		class:author-select-trigger--clearable={showClear}
 		style="
 			background-color: var(--input-bg);
 			color: var(--text-primary);
 			border: 1px solid var(--border);
 			--tw-ring-color: var(--accent);
 		"
+		aria-expanded={open}
+		aria-haspopup="listbox"
 	>
 		<span
-			class="truncate flex-1"
+			class="truncate block"
 			style="color: {selectedCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)'};"
 		>
 			{#if selectedCount === 0}
@@ -104,17 +116,44 @@
 				{selectedNames}
 			{/if}
 		</span>
+	</button>
+
+	<div class="author-select-trailing">
+		{#if showClear}
+			<button
+				type="button"
+				class="author-select-clear"
+				style="color: var(--text-secondary);"
+				aria-label="Clear author selection"
+				title="Clear"
+				onclick={handleClear}
+			>
+				<svg
+					class="size-3.5"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					aria-hidden="true"
+				>
+					<path d="M6 6l12 12M18 6L6 18" />
+				</svg>
+			</button>
+		{/if}
 		<svg
-			class="size-4 transition-transform duration-200"
-			style="color: var(--text-secondary); transform: rotate({open ? 180 : 0}deg);"
+			class="author-select-caret size-4 shrink-0"
+			class:author-select-caret--open={open}
+			style="color: var(--text-secondary);"
 			fill="none"
 			viewBox="0 0 24 24"
 			stroke="currentColor"
 			stroke-width="2"
+			aria-hidden="true"
 		>
 			<path d="M19 9l-7 7-7-7" />
 		</svg>
-	</button>
+	</div>
 
 	{#if open}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -136,24 +175,11 @@
 				/>
 			</div>
 
-			<!-- Clear button -->
-			{#if selectedCount > 0}
-				<button
-					onclick={() => {
-						onClear();
-						searchInput?.focus();
-					}}
-					class="w-full px-4 py-2 text-sm text-left border-b transition-colors shrink-0"
-					style="color: var(--accent); border-color: var(--border);"
-				>
-					Clear selection
-				</button>
-			{/if}
-
 			<!-- Author list -->
 			<div class="overflow-y-auto flex-1 min-h-0">
 				{#each filteredAuthors as author (author.id)}
 					<button
+						type="button"
 						onclick={() => handleToggle(author.id)}
 						class="w-full px-4 py-2 text-sm text-left flex items-center gap-2 transition-colors hover:brightness-95"
 						style="background-color: {selectedIds.has(author.id)
@@ -180,3 +206,58 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.author-select-trigger {
+		padding-right: 2.25rem;
+	}
+
+	.author-select-trigger--clearable {
+		padding-right: 3.75rem;
+	}
+
+	.author-select-trailing {
+		position: absolute;
+		top: 50%;
+		right: 0.75rem;
+		z-index: 1;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.125rem;
+		transform: translateY(-50%);
+		pointer-events: none;
+	}
+
+	.author-select-clear {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		margin: 0;
+		padding: 0;
+		border: none;
+		border-radius: 0.375rem;
+		background: transparent;
+		pointer-events: auto;
+		cursor: pointer;
+	}
+
+	.author-select-clear:hover {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+	}
+
+	.author-select-clear:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.author-select-caret {
+		transition: transform 0.2s ease;
+	}
+
+	.author-select-caret--open {
+		transform: rotate(180deg);
+	}
+</style>
