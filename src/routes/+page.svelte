@@ -20,6 +20,7 @@
 		buildSimilarityMatchMap,
 		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
+	import { onMount } from 'svelte';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -193,7 +194,7 @@
 		`${filterStore.layoutSource}:${filterStore.activeSavedFilterId ?? ''}`
 	);
 
-	$effect(() => {
+	onMount(() => {
 		function handleOpenCompare(event: Event) {
 			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
 			const mode = detail?.mode ?? 'restore';

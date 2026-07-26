@@ -5,6 +5,7 @@
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { hasOpenModal } from '$lib/modalScrollLock';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import { onMount } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children } = $props();
@@ -14,7 +15,6 @@
 	let themeMode: ThemeMode = $state('system');
 	let systemPrefersDark = $state(false);
 	let showQuickFind = $state(false);
-	let mediaQuery: MediaQueryList | null = null;
 	let debugEnabled = $state(false);
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
@@ -48,14 +48,14 @@
 	});
 
 	// Initialize theme mode and follow OS changes while in system mode.
-	$effect(() => {
+	onMount(() => {
 		debugEnabled = localStorage.getItem('debug') === 'true';
 		uiPrefs.hydrate();
 
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 
-		mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 		systemPrefersDark = mediaQuery.matches;
 
 		const handleChange = (event: MediaQueryListEvent) => {
@@ -63,7 +63,7 @@
 		};
 
 		mediaQuery.addEventListener('change', handleChange);
-		return () => mediaQuery?.removeEventListener('change', handleChange);
+		return () => mediaQuery.removeEventListener('change', handleChange);
 	});
 
 	// Apply theme class to document
@@ -77,7 +77,7 @@
 	});
 
 	// Cmd+K → quick find; Cmd+Shift+K → compare (Ctrl on Windows/Linux)
-	$effect(() => {
+	onMount(() => {
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key.toLowerCase() !== 'k') return;
 			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
