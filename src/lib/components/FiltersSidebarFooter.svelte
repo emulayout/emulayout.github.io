@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import RenameViewModal from '$lib/components/RenameViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -63,10 +64,8 @@
 		}, 1600);
 	}
 
-	$effect(() => {
-		return () => {
-			if (shareCopiedTimer) clearTimeout(shareCopiedTimer);
-		};
+	onDestroy(() => {
+		if (shareCopiedTimer) clearTimeout(shareCopiedTimer);
 	});
 
 	$effect(() => {

@@ -25,12 +25,14 @@
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
-	let likesData: LayoutLikesMap | null = $state(null);
+	let lazyLikesData: LayoutLikesMap | null = $state(null);
+	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);
+	const likesData = $derived(lazyLikesData ?? pageLikesData);
 	let showCompareModal = $state(false);
 	/** How to seed the compare modal on the next open/session bump. */
 	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
 	let compareSession = $state(0);
-	let showSharedViewModal = $state(false);
+	const showSharedViewModal = $derived(Boolean(filterStore.pendingSharedView));
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	let likesLoading = $state(false);
 	const statsReady = $derived(
@@ -80,14 +82,6 @@
 		void layoutStatsStore.retryAnalyzers(analyzers);
 	}
 
-	// Page load already fetched likes when likes were not hidden (`likes !== 0`).
-	$effect(() => {
-		if (likesData !== null) return;
-		if (data.likesAttempted) {
-			likesData = data.likesData ?? {};
-		}
-	});
-
 	$effect(() => {
 		filterStore.setLikesDataAvailable(likesLoaded && Object.keys(resolvedLikesData).length > 0);
 	});
@@ -102,20 +96,14 @@
 		void fetch('/layout-likes.json')
 			.then((response) => (response.ok ? response.json() : {}))
 			.then((fetched: LayoutLikesMap) => {
-				likesData = fetched ?? {};
+				lazyLikesData = fetched ?? {};
 			})
 			.catch(() => {
-				likesData = {};
+				lazyLikesData = {};
 			})
 			.finally(() => {
 				likesLoading = false;
 			});
-	});
-
-	$effect(() => {
-		if (!likesSortAvailable && filterStore.sortBy === 'likes') {
-			filterStore.setSortBy('date');
-		}
 	});
 
 	$effect(() => {
@@ -210,12 +198,6 @@
 	const resultsViewKey = $derived(
 		`${filterStore.layoutSource}:${filterStore.activeSavedFilterId ?? ''}`
 	);
-
-	$effect(() => {
-		if (filterStore.pendingSharedView) {
-			showSharedViewModal = true;
-		}
-	});
 
 	$effect(() => {
 		function handleOpenCompare(event: Event) {
@@ -324,13 +306,7 @@
 	{statsMaps}
 />
 
-<SharedViewModal
-	open={showSharedViewModal}
-	onClose={() => {
-		showSharedViewModal = false;
-		filterStore.clearPendingSharedView();
-	}}
-/>
+<SharedViewModal open={showSharedViewModal} onClose={() => filterStore.clearPendingSharedView()} />
 
 <style>
 	.results-main {
