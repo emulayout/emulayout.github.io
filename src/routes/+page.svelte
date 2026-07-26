@@ -8,13 +8,11 @@
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		analyzerShortLabel,
-		analyzersNeededForLoad,
-		isAnalyzerStatsReady,
-		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	import { analyzerShortLabel, type StatsAnalyzer } from '$lib/statsAnalyzers';
+	import { isAnalyzerStatsReady } from '$lib/layoutStatsAccess';
+	import { analyzersNeededForLoad } from '$lib/statsUsage';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import {
@@ -217,12 +215,12 @@
 			});
 		}
 
-		const forceIncluded = new Set<string>();
+		const forceIncluded = new SvelteSet<string>();
 		let hiddenSelectedCount = 0;
 
 		// Count (and optionally inject) selected layouts that fail current filters.
 		if (filterStore.layoutSource === 'all' && filterStore.selectedLayoutNames.size > 0) {
-			const present = new Set(result.map((layout) => layout.name));
+			const present = new SvelteSet(result.map((layout) => layout.name));
 			for (const layout of layouts) {
 				if (
 					!filterStore.selectedLayoutNames.has(layout.name) ||

@@ -13,12 +13,12 @@
 	import {
 		CYANOPHAGE_ANALYZER,
 		CMINI_ANALYZER,
-		getStatCardHighlightState,
 		MANA2_ANALYZER,
 		showsCyanophageStats,
 		showsMana2Stats,
 		showsCminiStats
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
+	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';

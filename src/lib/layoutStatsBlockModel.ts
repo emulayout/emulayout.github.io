@@ -20,7 +20,7 @@ import {
 	formatStatsUnavailableBlock
 } from '$lib/statsCardFormatting';
 import { CYANOPHAGE_ANALYZER, MANA2_ANALYZER, type StatsAnalyzer } from '$lib/statsAnalyzers';
-import type { getStatCardHighlightState } from '$lib/layoutStats';
+import type { getStatCardHighlightState } from '$lib/statsUsage';
 import type { StatsBlockSegment } from '$lib/statsBlockFormatting';
 import type { SortOrder } from '$lib/statsSorting';
 

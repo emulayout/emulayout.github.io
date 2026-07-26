@@ -11,12 +11,8 @@
 	import { layoutListItemKey, layoutListItemName, type LayoutListItem } from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import {
-		getStatCardHighlightState,
-		showsCyanophageStats,
-		showsMana2Stats,
-		showsCminiStats
-	} from '$lib/layoutStats';
+	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
+	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 
 	interface Props {

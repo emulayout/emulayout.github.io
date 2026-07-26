@@ -20,11 +20,13 @@ import {
 	CYANOPHAGE_ANALYZER,
 	MANA2_ANALYZER,
 	STAT_ANALYZERS,
+	type StatsAnalyzer
+} from './statsAnalyzers';
+import {
 	getLayoutAnalyzerStats,
 	getStatSortValue,
-	isAnalyzerStatsReady,
-	type StatsAnalyzer
-} from './layoutStats';
+	isAnalyzerStatsReady
+} from './layoutStatsAccess';
 import {
 	FILTER_GRID_COLUMNS,
 	FILTER_GRID_ROWS,

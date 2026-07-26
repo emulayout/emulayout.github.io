@@ -20,7 +20,7 @@
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
 		type StatsAnalyzer
-	} from '$lib/layoutStats';
+	} from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';

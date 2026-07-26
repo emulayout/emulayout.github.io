@@ -18,12 +18,12 @@ import {
 } from './statsFiltering';
 import {
 	DEFAULT_STATS_ANALYZER,
-	analyzersNeededForLimits,
-	isAnalyzerStatsReady,
 	parseStatsAnalyzerMode,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
-} from './layoutStats';
+} from './statsAnalyzers';
+import { isAnalyzerStatsReady } from './layoutStatsAccess';
+import { analyzersNeededForLimits } from './statsUsage';
 import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import {
 	isSimilarityMirrorMode,

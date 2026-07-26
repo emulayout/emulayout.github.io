@@ -1,11 +1,8 @@
 import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { parseStatLimitsParam } from '$lib/filterUrlCodec';
-import {
-	analyzersNeededForLoad,
-	parseStatsAnalyzerMode,
-	type StatsAnalyzerMode
-} from '$lib/layoutStats';
+import { parseStatsAnalyzerMode, type StatsAnalyzerMode } from '$lib/statsAnalyzers';
+import { analyzersNeededForLoad } from '$lib/statsUsage';
 import {
 	isStatSortBy,
 	normalizeSortBy,

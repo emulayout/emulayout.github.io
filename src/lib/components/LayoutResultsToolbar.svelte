@@ -8,12 +8,8 @@
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import {
-		CYANOPHAGE_ANALYZER,
-		CMINI_ANALYZER,
-		getHiddenAnalyzerFilterCaution,
-		MANA2_ANALYZER
-	} from '$lib/layoutStats';
+	import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+	import { getHiddenAnalyzerFilterCaution } from '$lib/statsUsage';
 	import { getStatSortFieldsForAnalyzer } from '$lib/statsSorting';
 
 	interface Props {
