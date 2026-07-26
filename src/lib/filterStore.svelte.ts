@@ -862,6 +862,23 @@ export class FilterStore {
 		this.similarReferenceAnglemod = false;
 	}
 
+	/** Reset match % / scoring / mirror options (and reference anglemod) to defaults. */
+	resetSimilarityFilter() {
+		this.#resetSimilarityFilter();
+		this.#applyFiltersNow();
+		this.#saveToUrl();
+	}
+
+	/** True when sidebar similarity options differ from defaults. */
+	get hasModifiedSimilarityFilter(): boolean {
+		return (
+			this.similarityFilterOperator !== 'gt' ||
+			this.similarityFilterValue.trim() !== '50' ||
+			this.similarityWeightHomeKeys ||
+			this.similarityMirrorMode !== 'excluded'
+		);
+	}
+
 	setSimilarReferenceAnglemod(value: boolean) {
 		this.similarReferenceAnglemod = value;
 		this.#saveToUrl();
@@ -1450,13 +1467,11 @@ export class FilterStore {
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;
 			this.#restoreSortAfterSimilar();
-			this.#resetSimilarityFilter();
 		} else {
 			const switchingReference = this.similarReferenceName !== null;
 			if (!switchingReference) {
 				this.#sortBeforeSimilar = this.#snapshotSort();
 				this.#exitSortRestore = this.#sortBeforeSimilar;
-				this.#resetSimilarityFilter();
 			}
 			this.similarReferenceName = name;
 			this.similarReferenceAnglemod = anglemod;
@@ -1476,7 +1491,6 @@ export class FilterStore {
 	clearSimilarReference() {
 		this.similarReferenceName = null;
 		this.#restoreSortAfterSimilar();
-		this.#resetSimilarityFilter();
 		this.#saveToUrl();
 	}
 

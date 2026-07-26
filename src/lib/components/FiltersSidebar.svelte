@@ -53,6 +53,8 @@
 		if (!sidebarReq) return;
 
 		exitAdjustMode();
+		if (sidebarReq.field === 'similarity') return;
+
 		afterPaint(() => {
 			if (sidebarReq.field === 'name') {
 				focusFilterControl(document.getElementById('name-filter'));
@@ -61,11 +63,6 @@
 				document
 					.getElementById('author-filter-trigger')
 					?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			} else if (sidebarReq.field === 'similarity') {
-				const el =
-					document.getElementById('similarity-match-value') ??
-					document.getElementById('similarity-layout-search');
-				focusFilterControl(el);
 			}
 		});
 	});
@@ -134,11 +131,11 @@
 			</div>
 
 			<div class="filters-sidebar-actions">
-				<StatFilters />
+				<SimilarityFilters {layouts} />
 			</div>
 
 			<div class="filters-sidebar-actions">
-				<SimilarityFilters {layouts} />
+				<StatFilters />
 			</div>
 		{/if}
 	</div>

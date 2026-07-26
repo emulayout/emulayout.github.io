@@ -2,7 +2,7 @@
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import KeyboardFiltersBody from '$lib/components/KeyboardFiltersBody.svelte';
-	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
+	import SimilarityFiltersBody from '$lib/components/SimilarityFiltersBody.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
 	import {
 		activeKeyKinds,
@@ -175,6 +175,20 @@
 		</div>
 	{/each}
 
+	{#if snapshot.similarity}
+		<div
+			class="adjust-section"
+			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+		>
+			<div class="filter-section-header">
+				<span class="filter-section-header-label">Similarity filter</span>
+			</div>
+			<div class="adjust-section-body">
+				<SimilarityFiltersBody {layouts} />
+			</div>
+		</div>
+	{/if}
+
 	{#each statsByAnalyzer as group (group.analyzer)}
 		<div
 			class="adjust-section"
@@ -203,10 +217,6 @@
 			</div>
 		</div>
 	{/each}
-
-	{#if snapshot.similarity}
-		<SimilarityFilters {layouts} />
-	{/if}
 </div>
 
 <style>
