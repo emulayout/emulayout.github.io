@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
-	import CompareLayoutSide from '$lib/components/CompareLayoutSide.svelte';
+	import CompareLayoutPicker from '$lib/components/CompareLayoutPicker.svelte';
 	import CompareStatsDiff from '$lib/components/CompareStatsDiff.svelte';
-	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -49,10 +48,7 @@
 	/** Ephemeral highlight while browsing autocomplete; Escape/blur reverts to committed. */
 	let leftPreview = $state<string | null>(null);
 	let rightPreview = $state<string | null>(null);
-	let leftSearch = $state<{ focus: () => void } | undefined>(undefined);
-	let rightSearch = $state<{ focus: () => void } | undefined>(undefined);
-	let leftClearButton = $state<HTMLButtonElement | undefined>(undefined);
-	let rightClearButton = $state<HTMLButtonElement | undefined>(undefined);
+	let leftPicker = $state<{ focus: () => void } | undefined>(undefined);
 
 	const layoutByName = $derived(new Map(layouts.map((layout) => [layout.name, layout] as const)));
 
@@ -135,8 +131,7 @@
 			}
 
 			void tick().then(() => {
-				if (leftName) leftClearButton?.focus();
-				else leftSearch?.focus();
+				leftPicker?.focus();
 			});
 		});
 	});
@@ -164,35 +159,27 @@
 		rightName = null;
 		leftPreview = null;
 		rightPreview = null;
-		void tick().then(() => leftSearch?.focus());
+		void tick().then(() => leftPicker?.focus());
 	}
 
-	function commitLeft(name: string, meta?: { via: 'enter' | 'click' }) {
+	function commitLeft(name: string) {
 		leftName = name;
 		leftPreview = null;
-		if (meta?.via === 'enter') {
-			void tick().then(() => leftClearButton?.focus());
-		}
 	}
 
-	function commitRight(name: string, meta?: { via: 'enter' | 'click' }) {
+	function commitRight(name: string) {
 		rightName = name;
 		rightPreview = null;
-		if (meta?.via === 'enter') {
-			void tick().then(() => rightClearButton?.focus());
-		}
 	}
 
 	function clearLeft() {
 		leftName = null;
 		leftPreview = null;
-		void tick().then(() => leftSearch?.focus());
 	}
 
 	function clearRight() {
 		rightName = null;
 		rightPreview = null;
-		void tick().then(() => rightSearch?.focus());
 	}
 
 	const canCycleSelected = $derived(selectedQuickNames.length >= 2);
@@ -305,58 +292,24 @@
 
 	<div class="overflow-y-auto px-5 py-4">
 		<div class="compare-grid">
-			<div class="compare-col">
-				{#if !leftName}
-					<LayoutAutocomplete
-						bind:this={leftSearch}
-						layouts={leftLayouts}
-						id="compare-layout-search-left"
-						label="Find left layout"
-						onHighlight={(name) => (leftPreview = name)}
-						onSelect={commitLeft}
-					/>
-				{/if}
-				{#if newLayout}
-					<CompareLayoutSide
-						layout={newLayout}
-						authorName={getAuthorName(newLayout.user)}
-						likeCount={likesData[newLayout.name] ?? 0}
-						compactStats={activeStatsMap?.[newLayout.name]}
-						analyzer={compareAnalyzer}
-						onClear={leftName ? clearLeft : undefined}
-						bind:clearButton={leftClearButton}
-						showCycleControls={Boolean(leftName) && canCycleSelected}
-						onCyclePrev={() => cycleViewSide('left', -1)}
-						onCycleNext={() => cycleViewSide('left', 1)}
-					/>
-				{:else}
-					<div
-						class="compare-empty"
-						class:compare-empty--options={leftQuickNames.length > 0}
-						style="color: var(--text-secondary); border-color: var(--border); background-color: var(--bg-secondary);"
-					>
-						{#if leftQuickNames.length > 0}
-							<p class="compare-empty-label">Selected layouts</p>
-							<ul class="compare-quick-list">
-								{#each leftQuickNames as name (name)}
-									<li>
-										<button
-											type="button"
-											class="compare-quick-option"
-											style="color: var(--text-primary);"
-											onclick={() => commitLeft(name)}
-										>
-											{name}
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{:else}
-							Search to choose a layout.
-						{/if}
-					</div>
-				{/if}
-			</div>
+			<CompareLayoutPicker
+				bind:this={leftPicker}
+				side="left"
+				committedName={leftName}
+				layout={newLayout}
+				availableLayouts={leftLayouts}
+				quickNames={leftQuickNames}
+				authorName={newLayout ? getAuthorName(newLayout.user) : undefined}
+				likeCount={newLayout ? (likesData[newLayout.name] ?? 0) : undefined}
+				compactStats={newLayout ? activeStatsMap?.[newLayout.name] : undefined}
+				analyzer={compareAnalyzer}
+				{canCycleSelected}
+				onHighlight={(name) => (leftPreview = name)}
+				onCommit={commitLeft}
+				onClear={clearLeft}
+				onCyclePrev={() => cycleViewSide('left', -1)}
+				onCycleNext={() => cycleViewSide('left', 1)}
+			/>
 
 			<div class="compare-vdiv" aria-hidden="true"></div>
 
@@ -447,7 +400,7 @@
 					</div>
 				{:else}
 					<div
-						class="compare-empty compare-empty--diff"
+						class="compare-diff-empty"
 						style="color: var(--text-secondary); border-color: var(--border); background-color: var(--bg-secondary);"
 					>
 						Pick two layouts to see the diff.
@@ -457,58 +410,23 @@
 
 			<div class="compare-vdiv" aria-hidden="true"></div>
 
-			<div class="compare-col">
-				{#if !rightName}
-					<LayoutAutocomplete
-						bind:this={rightSearch}
-						layouts={rightLayouts}
-						id="compare-layout-search-right"
-						label="Find right layout"
-						onHighlight={(name) => (rightPreview = name)}
-						onSelect={commitRight}
-					/>
-				{/if}
-				{#if oldLayout}
-					<CompareLayoutSide
-						layout={oldLayout}
-						authorName={getAuthorName(oldLayout.user)}
-						likeCount={likesData[oldLayout.name] ?? 0}
-						compactStats={activeStatsMap?.[oldLayout.name]}
-						analyzer={compareAnalyzer}
-						onClear={rightName ? clearRight : undefined}
-						bind:clearButton={rightClearButton}
-						showCycleControls={Boolean(rightName) && canCycleSelected}
-						onCyclePrev={() => cycleViewSide('right', -1)}
-						onCycleNext={() => cycleViewSide('right', 1)}
-					/>
-				{:else}
-					<div
-						class="compare-empty"
-						class:compare-empty--options={rightQuickNames.length > 0}
-						style="color: var(--text-secondary); border-color: var(--border); background-color: var(--bg-secondary);"
-					>
-						{#if rightQuickNames.length > 0}
-							<p class="compare-empty-label">Selected layouts</p>
-							<ul class="compare-quick-list">
-								{#each rightQuickNames as name (name)}
-									<li>
-										<button
-											type="button"
-											class="compare-quick-option"
-											style="color: var(--text-primary);"
-											onclick={() => commitRight(name)}
-										>
-											{name}
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{:else}
-							Search to choose a layout.
-						{/if}
-					</div>
-				{/if}
-			</div>
+			<CompareLayoutPicker
+				side="right"
+				committedName={rightName}
+				layout={oldLayout}
+				availableLayouts={rightLayouts}
+				quickNames={rightQuickNames}
+				authorName={oldLayout ? getAuthorName(oldLayout.user) : undefined}
+				likeCount={oldLayout ? (likesData[oldLayout.name] ?? 0) : undefined}
+				compactStats={oldLayout ? activeStatsMap?.[oldLayout.name] : undefined}
+				analyzer={compareAnalyzer}
+				{canCycleSelected}
+				onHighlight={(name) => (rightPreview = name)}
+				onCommit={commitRight}
+				onClear={clearRight}
+				onCyclePrev={() => cycleViewSide('right', -1)}
+				onCycleNext={() => cycleViewSide('right', 1)}
+			/>
 		</div>
 	</div>
 </ModalShell>
@@ -519,14 +437,6 @@
 		grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr);
 		column-gap: 1.25rem;
 		align-items: stretch;
-	}
-
-	.compare-col {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		min-width: 0;
-		align-self: stretch;
 	}
 
 	.compare-col-diff {
@@ -552,7 +462,7 @@
 		padding-bottom: calc(0.75rem + 0.25rem + 2rem);
 	}
 
-	.compare-empty {
+	.compare-diff-empty {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -565,59 +475,8 @@
 		text-align: center;
 		font-size: 0.875rem;
 		line-height: 1.4;
-	}
-
-	.compare-empty--options {
-		flex-direction: column;
-		align-items: stretch;
-		justify-content: flex-start;
-		gap: 0.5rem;
-		text-align: left;
-	}
-
-	.compare-empty--diff {
 		align-self: stretch;
 		width: 100%;
-	}
-
-	.compare-empty-label {
-		margin: 0;
-		font-size: 0.6875rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
-	.compare-quick-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		min-width: 0;
-		overflow-y: auto;
-	}
-
-	.compare-quick-option {
-		display: block;
-		width: 100%;
-		padding: 0.375rem 0.5rem;
-		border: none;
-		border-radius: 0.5rem;
-		background: transparent;
-		font-size: 0.875rem;
-		font-weight: 500;
-		text-align: left;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		cursor: pointer;
-		transition: background-color 0.15s ease;
-	}
-
-	.compare-quick-option:hover {
-		background-color: var(--bg-primary);
 	}
 
 	.compare-mid-actions {
