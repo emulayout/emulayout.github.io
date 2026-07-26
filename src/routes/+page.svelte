@@ -1,10 +1,10 @@
 <script lang="ts">
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
-	import DeleteSavedFilterModal from '$lib/components/DeleteSavedFilterModal.svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
+	import LayoutViewTabs from '$lib/components/LayoutViewTabs.svelte';
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
@@ -30,8 +30,6 @@
 	/** How to seed the compare modal on the next open/session bump. */
 	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
 	let compareSession = $state(0);
-	let deleteSavedFilterId = $state<string | null>(null);
-	let deleteSavedFilterName = $state('');
 	let showSharedViewModal = $state(false);
 	let showSaveSelectedViewModal = $state(false);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
@@ -210,25 +208,9 @@
 	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
 	const filteredCount = $derived(filteredItems.length);
 	const selectedLayoutCount = $derived(filterStore.selectedLayoutNames.size);
-	const allTabSelected = $derived(
-		filterStore.layoutSource === 'all' && !filterStore.activeSavedFilterId
-	);
-	const selectedTabSelected = $derived(
-		filterStore.layoutSource === 'selected' && !filterStore.activeSavedFilterId
-	);
 	const resultsViewKey = $derived(
 		`${filterStore.layoutSource}:${filterStore.activeSavedFilterId ?? ''}`
 	);
-
-	function requestDeleteSavedFilter(id: string, name: string) {
-		deleteSavedFilterId = id;
-		deleteSavedFilterName = name;
-	}
-
-	function closeDeleteSavedFilterModal() {
-		deleteSavedFilterId = null;
-		deleteSavedFilterName = '';
-	}
 
 	$effect(() => {
 		if (filterStore.pendingSharedView) {
@@ -258,67 +240,8 @@
 </script>
 
 <div class="page-root">
-	<div class="layout-source-bar">
-		<div class="layout-source-tabs" role="tablist" aria-label="Layout source">
-			<button
-				type="button"
-				role="tab"
-				id="layout-source-tab-all"
-				aria-selected={allTabSelected}
-				tabindex={allTabSelected ? 0 : -1}
-				class="layout-source-tab"
-				class:layout-source-tab--selected={allTabSelected}
-				onclick={() => filterStore.setLayoutSource('all')}
-			>
-				All layouts
-			</button>
-			<button
-				type="button"
-				role="tab"
-				id="layout-source-tab-selected"
-				aria-selected={selectedTabSelected}
-				tabindex={selectedTabSelected ? 0 : -1}
-				class="layout-source-tab"
-				class:layout-source-tab--selected={selectedTabSelected}
-				onclick={() => filterStore.setLayoutSource('selected')}
-			>
-				Selected layouts ({selectedLayoutCount})
-			</button>
-			{#each filterStore.savedFilters as saved (saved.id)}
-				{@const savedSelected = filterStore.activeSavedFilterId === saved.id}
-				<div class="layout-source-saved" class:layout-source-saved--selected={savedSelected}>
-					<button
-						type="button"
-						role="tab"
-						id={`layout-source-tab-saved-${saved.id}`}
-						aria-selected={savedSelected}
-						tabindex={savedSelected ? 0 : -1}
-						class="layout-source-tab layout-source-tab--saved"
-						class:layout-source-tab--selected={savedSelected}
-						onclick={() => filterStore.applySavedFilter(saved.id)}
-					>
-						<span class="layout-source-tab-label">{saved.name}</span>
-					</button>
-					<button
-						type="button"
-						class="layout-source-tab-delete"
-						aria-label={`Delete view ${saved.name}`}
-						onclick={() => requestDeleteSavedFilter(saved.id, saved.name)}
-					>
-						<svg
-							class="layout-source-tab-delete-icon"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							aria-hidden="true"
-						>
-							<path d="M18 6L6 18M6 6l12 12" />
-						</svg>
-					</button>
-				</div>
-			{/each}
-		</div>
+	<div class="layout-view-bar">
+		<LayoutViewTabs />
 		<DisplaySettingsMenu />
 	</div>
 
@@ -477,13 +400,6 @@
 	{statsMaps}
 />
 
-<DeleteSavedFilterModal
-	open={deleteSavedFilterId !== null}
-	filterId={deleteSavedFilterId}
-	filterName={deleteSavedFilterName}
-	onClose={closeDeleteSavedFilterModal}
-/>
-
 <SharedViewModal
 	open={showSharedViewModal}
 	onClose={() => {
@@ -504,7 +420,7 @@
 		min-width: 0;
 	}
 
-	.layout-source-bar {
+	.layout-view-bar {
 		display: flex;
 		align-items: flex-end;
 		justify-content: space-between;
@@ -518,127 +434,7 @@
 		box-sizing: border-box;
 	}
 
-	.layout-source-tabs {
-		display: inline-flex;
-		align-items: stretch;
-		gap: 0.25rem;
-		min-width: 0;
-		max-width: 100%;
-		overflow-x: auto;
-		overflow-y: hidden;
-		overscroll-behavior-x: contain;
-		scrollbar-width: none;
-	}
-
-	.layout-source-tabs::-webkit-scrollbar {
-		display: none;
-	}
-
-	.layout-source-tab {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.25rem;
-		padding: 0.5rem 0.75rem;
-		margin-bottom: -1px;
-		border: none;
-		border-bottom: 2px solid transparent;
-		border-radius: 0;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-		font-weight: 500;
-		line-height: 1.25;
-		white-space: nowrap;
-		cursor: pointer;
-		transition:
-			color 0.15s ease,
-			border-color 0.15s ease;
-	}
-
-	.layout-source-tab--saved {
-		padding-right: 0.25rem;
-	}
-
-	.layout-source-saved {
-		display: inline-flex;
-		align-items: center;
-		margin-bottom: -1px;
-		border-bottom: 2px solid transparent;
-		min-width: 0;
-	}
-
-	.layout-source-saved--selected {
-		border-bottom-color: var(--accent);
-	}
-
-	.layout-source-saved .layout-source-tab {
-		margin-bottom: 0;
-		border-bottom: none;
-	}
-
-	.layout-source-saved--selected .layout-source-tab {
-		border-bottom: none;
-	}
-
-	.layout-source-tab-label {
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 10rem;
-	}
-
-	.layout-source-tab-delete {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		width: 1.25rem;
-		height: 1.25rem;
-		margin-right: 0.25rem;
-		padding: 0;
-		border: none;
-		border-radius: 0.25rem;
-		background: transparent;
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition:
-			color 0.15s ease,
-			background-color 0.15s ease;
-	}
-
-	.layout-source-tab-delete:hover {
-		color: var(--text-primary);
-		background-color: color-mix(in srgb, var(--text-primary) 10%, transparent);
-	}
-
-	.layout-source-tab-delete:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-
-	.layout-source-tab-delete-icon {
-		width: 0.875rem;
-		height: 0.875rem;
-	}
-
-	.layout-source-tab:hover {
-		color: var(--text-primary);
-	}
-
-	.layout-source-tab:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 2px var(--accent);
-		border-radius: 0.25rem;
-	}
-
-	.layout-source-tab--selected {
-		color: var(--text-primary);
-		font-weight: 600;
-		border-bottom-color: var(--accent);
-	}
-
-	.layout-source-bar :global(.display-settings-menu) {
+	.layout-view-bar :global(.display-settings-menu) {
 		align-self: center;
 		margin-bottom: 0.25rem;
 	}
