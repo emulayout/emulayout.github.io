@@ -12,17 +12,15 @@ import {
 	buildBotStatsBlockLines,
 	buildCyanophageStatsBlockLines,
 	buildMana2StatsBlockLines,
-	CYANOPHAGE_ANALYZER,
 	formatCyanophageStatsLoadingBlock,
 	formatCyanophageStatsUnavailableBlock,
 	formatMana2StatsLoadingBlock,
 	formatMana2StatsUnavailableBlock,
 	formatStatsLoadingBlock,
-	formatStatsUnavailableBlock,
-	MANA2_ANALYZER,
-	type getStatCardHighlightState,
-	type StatsAnalyzer
-} from '$lib/layoutStats';
+	formatStatsUnavailableBlock
+} from '$lib/statsCardFormatting';
+import { CYANOPHAGE_ANALYZER, MANA2_ANALYZER, type StatsAnalyzer } from '$lib/statsAnalyzers';
+import type { getStatCardHighlightState } from '$lib/layoutStats';
 import type { StatsBlockSegment } from '$lib/statsBlockFormatting';
 import type { SortOrder } from '$lib/statsSorting';
 
