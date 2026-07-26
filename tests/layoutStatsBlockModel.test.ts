@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
-import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
+import {
+	CYANOPHAGE_ANALYZER,
+	CYANOPHAGE_UNSUPPORTED_LABEL,
+	CMINI_ANALYZER,
+	MANA2_ANALYZER
+} from '$lib/statsAnalyzers';
 import {
 	COMPACT_STAT_FIELD_COUNT,
 	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,

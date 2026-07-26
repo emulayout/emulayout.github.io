@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import type {
 		DerivedBotStats,
 		DerivedCyanophageStats,
@@ -7,6 +6,7 @@
 	} from '$lib/statsDerivation';
 	import {
 		CYANOPHAGE_ANALYZER,
+		CYANOPHAGE_UNSUPPORTED_LABEL,
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		type StatsAnalyzer

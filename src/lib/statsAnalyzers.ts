@@ -7,6 +7,9 @@ export const DEFAULT_STATS_ANALYZER = CMINI_ANALYZER;
 /** Cyanophage stats analyzer. */
 export const CYANOPHAGE_ANALYZER = 'cyanophage';
 
+/** Shown when a layout cannot be linked or measured faithfully in Cyanophage. */
+export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
+
 /** Mana2 stats analyzer. */
 export const MANA2_ANALYZER = 'mana2';
 

@@ -1,5 +1,4 @@
 import type { CompactCyanophageStats, CompactLayoutStats, CompactMana2Stats } from '$lib/layout';
-import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 import {
 	decodeCyanophageStats,
 	decodeMana2Stats,
@@ -19,7 +18,12 @@ import {
 	formatStatsLoadingBlock,
 	formatStatsUnavailableBlock
 } from '$lib/statsCardFormatting';
-import { CYANOPHAGE_ANALYZER, MANA2_ANALYZER, type StatsAnalyzer } from '$lib/statsAnalyzers';
+import {
+	CYANOPHAGE_ANALYZER,
+	CYANOPHAGE_UNSUPPORTED_LABEL,
+	MANA2_ANALYZER,
+	type StatsAnalyzer
+} from '$lib/statsAnalyzers';
 import type { getStatCardHighlightState } from '$lib/statsUsage';
 import type { StatsBlockSegment } from '$lib/statsBlockFormatting';
 import type { SortOrder } from '$lib/statsSorting';

@@ -12,6 +12,7 @@
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		CYANOPHAGE_ANALYZER,
+		CYANOPHAGE_UNSUPPORTED_LABEL,
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		showsCyanophageStats,
@@ -25,7 +26,6 @@
 	import LayoutExpandModal from '$lib/components/LayoutExpandModal.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
-	import { CYANOPHAGE_UNSUPPORTED_LABEL } from '$lib/cyanophage';
 	import {
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
