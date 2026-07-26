@@ -5,8 +5,8 @@
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import LayoutViewTabs from '$lib/components/LayoutViewTabs.svelte';
+	import SelectedLayoutActions from '$lib/components/SelectedLayoutActions.svelte';
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
-	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { analyzerShortLabel, type StatsAnalyzer } from '$lib/statsAnalyzers';
@@ -31,7 +31,6 @@
 	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
 	let compareSession = $state(0);
 	let showSharedViewModal = $state(false);
-	let showSaveSelectedViewModal = $state(false);
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	let likesLoading = $state(false);
 	const statsReady = $derived(
@@ -308,82 +307,7 @@
 						/>
 					{/if}
 				</div>
-				{#if filterStore.layoutSource !== 'selected' && selectedLayoutCount > 0}
-					<div class="selected-layouts-fab" role="presentation">
-						<div class="selected-layouts-fab-group">
-							{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
-								<button
-									type="button"
-									class="selected-layouts-fab-button"
-									class:selected-layouts-fab-button--active={filterStore.includeSelectedInResults}
-									aria-pressed={filterStore.includeSelectedInResults}
-									aria-label={filterStore.includeSelectedInResults
-										? 'Always showing selected'
-										: `Show (${hiddenSelectedCount}) non-matching selected`}
-									onclick={() => filterStore.toggleIncludeSelectedInResults()}
-								>
-									{#if filterStore.includeSelectedInResults}
-										Always showing selected layouts
-									{:else}
-										Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount ===
-										1
-											? ''
-											: 's'}
-									{/if}
-								</button>
-							{/if}
-							<button
-								type="button"
-								class="selected-layouts-fab-button"
-								aria-label="Save selected as view"
-								onclick={() => (showSaveSelectedViewModal = true)}
-							>
-								Save selected as view
-							</button>
-							<button
-								type="button"
-								class="selected-layouts-fab-icon-button"
-								aria-label="Clear selected layouts"
-								title="Clear selected layouts"
-								onclick={() => filterStore.clearSelectedLayouts()}
-							>
-								<svg
-									class="size-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2.5"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-								</svg>
-							</button>
-						</div>
-					</div>
-				{:else if filterStore.layoutSource === 'selected' && selectedLayoutCount > 0}
-					<div class="selected-layouts-fab" role="presentation">
-						<div class="selected-layouts-fab-group">
-							<button
-								type="button"
-								class="selected-layouts-fab-button selected-layouts-fab-button--with-icon"
-								aria-label="Clear selected layouts"
-								onclick={() => filterStore.clearSelectedLayouts()}
-							>
-								Clear selected layouts
-								<svg
-									class="size-4 shrink-0"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2.5"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-								</svg>
-							</button>
-						</div>
-					</div>
-				{/if}
+				<SelectedLayoutActions {hiddenSelectedCount} />
 			</div>
 		</div>
 	{/key}
@@ -406,12 +330,6 @@
 		showSharedViewModal = false;
 		filterStore.clearPendingSharedView();
 	}}
-/>
-
-<SaveFilterModal
-	open={showSaveSelectedViewModal}
-	mode="selected"
-	onClose={() => (showSaveSelectedViewModal = false)}
 />
 
 <style>
@@ -490,98 +408,6 @@
 		border-color: var(--accent);
 		color: var(--accent);
 		outline: none;
-	}
-
-	.selected-layouts-fab {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 1.25rem;
-		z-index: 40;
-		display: flex;
-		justify-content: center;
-		pointer-events: none;
-	}
-
-	@media (min-width: 768px) {
-		.selected-layouts-fab {
-			/* Center within the results column, not the full viewport. */
-			position: absolute;
-		}
-	}
-
-	.selected-layouts-fab-group {
-		pointer-events: auto;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.375rem;
-	}
-
-	.selected-layouts-fab-button {
-		display: inline-flex;
-		align-items: center;
-		padding: 0.5rem 0.875rem;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		font-variant-numeric: tabular-nums;
-		cursor: pointer;
-		color: var(--text-primary);
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border);
-		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
-		transition:
-			color 0.15s ease,
-			border-color 0.15s ease,
-			background-color 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-
-	.selected-layouts-fab-button--with-icon {
-		gap: 0.375rem;
-		padding-right: 0.625rem;
-	}
-
-	.selected-layouts-fab-icon-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 2.25rem;
-		height: 2.25rem;
-		padding: 0;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		cursor: pointer;
-		color: var(--text-primary);
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border);
-		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
-		transition:
-			color 0.15s ease,
-			border-color 0.15s ease,
-			background-color 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-
-	.selected-layouts-fab-button:hover,
-	.selected-layouts-fab-icon-button:hover {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-
-	.selected-layouts-fab-button--active {
-		color: var(--accent);
-		border-color: var(--accent);
-		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
-		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
-	}
-
-	.selected-layouts-fab-button:focus-visible,
-	.selected-layouts-fab-icon-button:focus-visible {
-		outline: none;
-		box-shadow:
-			0 0 0 2px var(--accent),
-			0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
 	}
 
 	.page-root {
