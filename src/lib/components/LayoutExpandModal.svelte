@@ -113,13 +113,6 @@
 		return Boolean(mana2Compact);
 	}
 
-	$effect(() => {
-		if (!expanded) return;
-		if (showCmini) void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
-		if (showCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
-		if (showMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
-	});
-
 	function setAnalyzer(analyzer: StatsAnalyzer, checked: boolean) {
 		if (analyzer === CMINI_ANALYZER) showCmini = checked;
 		else if (analyzer === CYANOPHAGE_ANALYZER) showCyanophage = checked;
@@ -132,6 +125,9 @@
 		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER);
 		showMana2 = hasAnalyzerData(MANA2_ANALYZER);
 		expanded = true;
+		if (showCmini) void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
+		if (showCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
+		if (showMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
 	}
 
 	function close() {

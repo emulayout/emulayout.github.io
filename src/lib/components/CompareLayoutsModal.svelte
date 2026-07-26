@@ -113,6 +113,7 @@
 			compareAnalyzer = isStatsAnalyzer(filterStore.statsAnalyzer)
 				? filterStore.statsAnalyzer
 				: DEFAULT_STATS_ANALYZER;
+			void layoutStatsStore.ensureLoaded(compareAnalyzer);
 			leftPreview = null;
 			rightPreview = null;
 
@@ -136,14 +137,13 @@
 		});
 	});
 
-	// Fetch into the shared stats cache when this modal needs an analyzer that isn't loaded yet.
-	$effect(() => {
-		if (!open) return;
-		void layoutStatsStore.ensureLoaded(compareAnalyzer);
-	});
-
 	function retryStats() {
 		void layoutStatsStore.retry(compareAnalyzer);
+	}
+
+	function setCompareAnalyzer(analyzer: StatsAnalyzer) {
+		compareAnalyzer = analyzer;
+		void layoutStatsStore.ensureLoaded(analyzer);
 	}
 
 	function swapViewLayouts() {
@@ -245,7 +245,7 @@
 				>
 				<select
 					value={compareAnalyzer}
-					onchange={(e) => (compareAnalyzer = e.currentTarget.value as StatsAnalyzer)}
+					onchange={(event) => setCompareAnalyzer(event.currentTarget.value as StatsAnalyzer)}
 					class="px-2 py-1 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all max-w-[11rem] sm:max-w-[14rem]"
 					style="
 						background-color: var(--input-bg);
