@@ -29,12 +29,6 @@ jobs:
         with:
           bun-version: '1.3.14'
 
-      - name: Setup Go
-        uses: actions/setup-go@v7
-        with:
-          go-version: '1.26.4'
-          cache-dependency-path: bin/mana2-go/go.sum
-
       - name: Cache Bun + node_modules
         uses: actions/cache@v6
         with:
@@ -44,6 +38,24 @@ jobs:
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Check
+        run: bun run check
+
+      - name: Test
+        run: bun test
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.4'
+          cache-dependency-path: bin/mana2-go/go.sum
 
       - name: Cache cmini repo + layout timestamps
         uses: actions/cache@v6
@@ -65,9 +77,6 @@ jobs:
           key: ${{ runner.os }}-mana2-v1-${{ hashFiles('bin/mana2-sync.js', 'bin/mana2-layout.js', 'bin/mana2-stats.js', 'bin/mana2-go/**') }}
           restore-keys: |
             ${{ runner.os }}-mana2-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
 
       - name: Run cmini-sync
         run: bun run ./bin/cmini-sync.js
