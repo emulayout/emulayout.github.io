@@ -12,11 +12,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { $ } from 'bun';
-import {
-	TRIGRAM_STAT_KEYS,
-	DEFAULT_STATS_ANALYZER,
-	loadCorpusData
-} from './layout-stats.js';
+import { TRIGRAM_STAT_KEYS, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import { computeTrigramStats } from './cmini-analyzer.js';
 
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
@@ -141,15 +137,21 @@ async function run() {
 		}
 	}
 
-	console.log(`Checked ${checked} cmini cache files (${skipped} skipped, ${stale} stale layout/cache pairs)`);
+	console.log(
+		`Checked ${checked} cmini cache files (${skipped} skipped, ${stale} stale layout/cache pairs)`
+	);
 
 	if (failures.length === 0) {
-		console.log('✔ All computed trigram stats match cmini cache (or stale cmini cache was skipped)');
+		console.log(
+			'✔ All computed trigram stats match cmini cache (or stale cmini cache was skipped)'
+		);
 		return;
 	}
 
 	const report =
-		failures.length > MAX_MISMATCH_LAYOUTS ? console.error.bind(console) : console.warn.bind(console);
+		failures.length > MAX_MISMATCH_LAYOUTS
+			? console.error.bind(console)
+			: console.warn.bind(console);
 
 	report(
 		`${failures.length} layout(s) have true algorithm mismatches (threshold ${MAX_MISMATCH_LAYOUTS}):`

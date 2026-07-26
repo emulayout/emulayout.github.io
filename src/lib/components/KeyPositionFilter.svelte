@@ -21,6 +21,14 @@
 		return visible;
 	}
 
+	function indices(length: number): number[] {
+		const result: number[] = [];
+		for (let index = 0; index < length; index++) {
+			result.push(index);
+		}
+		return result;
+	}
+
 	interface Props {
 		label?: string;
 		grid: string[][];
@@ -72,6 +80,8 @@
 
 	const leftThumbVisibleCount = $derived(visibleThumbSlotCount(leftThumbKeys));
 	const rightThumbVisibleCount = $derived(visibleThumbSlotCount(rightThumbKeys));
+	const leftThumbVisibleIndices = $derived(indices(leftThumbVisibleCount));
+	const rightThumbVisibleIndices = $derived(indices(rightThumbVisibleCount));
 
 	/** Rem widths so every cell in a column matches the widest content in that column. */
 	const columnWidthsRem = $derived.by(() => {
@@ -124,7 +134,9 @@
 	class="key-filter flex flex-col items-center"
 	class:key-filter--nested={nested}
 	class:key-filter--compact={compact}
-	style={nested ? undefined : 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
+	style={nested
+		? undefined
+		: 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
 >
 	<div class="key-filter-grid flex flex-col font-mono">
 		{#if !nested}
@@ -169,7 +181,7 @@
 				</p>
 				<div class="key-filter-row flex">
 					<div class="flex justify-end flex-1 min-w-0 key-filter-thumb-hand">
-						{#each { length: leftThumbVisibleCount } as _, idx (idx)}
+						{#each leftThumbVisibleIndices as idx (idx)}
 							<input
 								type="text"
 								value={leftThumbKeys[idx]}
@@ -183,7 +195,7 @@
 					</div>
 					<div class="key-filter-split shrink-0"></div>
 					<div class="flex flex-1 min-w-0 key-filter-thumb-hand">
-						{#each { length: rightThumbVisibleCount } as _, idx (idx)}
+						{#each rightThumbVisibleIndices as idx (idx)}
 							<input
 								type="text"
 								value={rightThumbKeys[idx]}

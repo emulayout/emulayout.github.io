@@ -13,8 +13,7 @@ const CYANOPHAGE_IMPORT_CHAR_STRING = String.raw`qwertyuiop-asdfghjkl;'zxcvbnm,.
 /** Characters cyanophage can map via importLayout / exportLayout. */
 export const CYANOPHAGE_IMPORT_CHARS: ReadonlySet<string> = new Set(CYANOPHAGE_IMPORT_CHAR_STRING);
 
-const CYAN_DEFAULTS =
-	'qwertyuiop-asdfghjkl;\'zxcvbnm,./\\^';
+const CYAN_DEFAULTS = "qwertyuiop-asdfghjkl;'zxcvbnm,./\\^";
 
 type CyanSlot = { row: number; col: number; defaultChar?: string } | { defaultChar: string };
 
@@ -53,7 +52,9 @@ export type CyanophageIncompatibility =
 	| { kind: 'multiple-thumb-keys'; count: number };
 
 /** Reasons a layout cannot be imported or measured faithfully in cyanophage. */
-export function getCyanophageIncompatibilities(keys: Record<string, KeyInfo>): CyanophageIncompatibility[] {
+export function getCyanophageIncompatibilities(
+	keys: Record<string, KeyInfo>
+): CyanophageIncompatibility[] {
 	const incompatibilities: CyanophageIncompatibility[] = [];
 
 	const unsupportedChars = getUnsupportedCyanophageChars(keys);
@@ -230,7 +231,10 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 
 	const grid = buildKeyGrid(keys);
 	const slots = getSlotsForBoard(board);
-	const chars: Array<string | null> = Array.from({ length: CYANOPHAGE_IMPORT_SLOT_COUNT }, () => null);
+	const chars: Array<string | null> = Array.from(
+		{ length: CYANOPHAGE_IMPORT_SLOT_COUNT },
+		() => null
+	);
 
 	for (let index = 0; index < CYANOPHAGE_IMPORT_SLOT_COUNT; index++) {
 		const slot = slots[index];
@@ -242,18 +246,13 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 	chars[33] = thumbChar ?? '^';
 
 	const usedChars = (): Set<string> =>
-		new Set([
-			...reserved,
-			...chars.filter((char): char is string => char !== null)
-		]);
+		new Set([...reserved, ...chars.filter((char): char is string => char !== null)]);
 
 	for (const index of [10, 21]) {
 		if (chars[index] !== null) continue;
 		const used = new Set([
 			...reserved,
-			...chars.flatMap((char, charIndex) =>
-				char !== null && charIndex !== index ? [char] : []
-			)
+			...chars.flatMap((char, charIndex) => (char !== null && charIndex !== index ? [char] : []))
 		]);
 		const fallbacks = index === 10 ? PUNCT_PLACEHOLDER_SLOT_10 : PUNCT_PLACEHOLDER_SLOT_21;
 		chars[index] = pickPunctPlaceholder(used, fallbacks);

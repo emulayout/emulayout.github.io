@@ -163,7 +163,12 @@ function buildRow(byCol, row, minCol, maxCol) {
 		}
 		const token = mana2TokenForKey(entry.key);
 		if (token == null) {
-			return { tokens: [], fingers: [], ok: false, reason: `unsupported key ${JSON.stringify(entry.key)}` };
+			return {
+				tokens: [],
+				fingers: [],
+				ok: false,
+				reason: `unsupported key ${JSON.stringify(entry.key)}`
+			};
 		}
 		if (seen.has(token)) {
 			return { tokens: [], fingers: [], ok: false, reason: `duplicate key ${token}` };
@@ -196,8 +201,10 @@ export function convertCminiLayoutToMana2(layout) {
 	let maxCol = 0;
 	let minCol = Infinity;
 	for (const [, info] of entries) {
-		if (info.row < 0 || info.row > MAX_ROW) return { file: null, reason: `row out of range (${info.row})` };
-		if (info.col < 0 || info.col > MAX_COL) return { file: null, reason: `col out of range (${info.col})` };
+		if (info.row < 0 || info.row > MAX_ROW)
+			return { file: null, reason: `row out of range (${info.row})` };
+		if (info.col < 0 || info.col > MAX_COL)
+			return { file: null, reason: `col out of range (${info.col})` };
 		maxRow = Math.max(maxRow, info.row);
 		maxCol = Math.max(maxCol, info.col);
 		if (info.row < MAX_FINGER_ROWS) minCol = Math.min(minCol, info.col);
@@ -251,7 +258,8 @@ export function convertCminiLayoutToMana2(layout) {
 
 	for (const entry of thumbEntries) {
 		const token = mana2TokenForKey(entry.key);
-		if (token == null) return { file: null, reason: `unsupported thumb key ${JSON.stringify(entry.key)}` };
+		if (token == null)
+			return { file: null, reason: `unsupported thumb key ${JSON.stringify(entry.key)}` };
 		if (usedTokens.has(token)) return { file: null, reason: `duplicate key ${token}` };
 		usedTokens.add(token);
 

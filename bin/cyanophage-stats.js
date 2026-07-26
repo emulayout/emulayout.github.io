@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isCyanophageCompatible, buildCyanophageCharPositionMap, resolveCyanophageThumb } from '../src/lib/cyanophage.ts';
+import {
+	isCyanophageCompatible,
+	buildCyanophageCharPositionMap,
+	resolveCyanophageThumb
+} from '../src/lib/cyanophage.ts';
 
 /**
  * Cyanophage stats (English word-frequency input).

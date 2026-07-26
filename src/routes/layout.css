@@ -295,7 +295,9 @@ select:not([multiple]) {
 	outline: 2px solid var(--accent) !important;
 	outline-offset: 2px;
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
-	transition: outline-color 0.2s ease, box-shadow 0.2s ease;
+	transition:
+		outline-color 0.2s ease,
+		box-shadow 0.2s ease;
 }
 
 .filter-open-button-summary {

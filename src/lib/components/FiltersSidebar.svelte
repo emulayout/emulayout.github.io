@@ -44,10 +44,7 @@
 	const showShareButton = $derived(Boolean(filterStore.activeSavedFilterId));
 	/** Selection-only saved views: share is the sole footer action. */
 	const shareOnlyFooter = $derived(
-		showShareButton &&
-			!filterStore.hasActiveFilters &&
-			!showUpdateSplit &&
-			!showDuplicateSplit
+		showShareButton && !filterStore.hasActiveFilters && !showUpdateSplit && !showDuplicateSplit
 	);
 	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit || showShareButton);
 
@@ -472,8 +469,7 @@
 				</button>
 			{/if}
 
-			{#if filterStore.hasActiveFilters ||
-				(filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty)}
+			{#if filterStore.hasActiveFilters || (filterStore.activeSavedFilterId && filterStore.isActiveSavedViewDirty)}
 				<button
 					type="button"
 					class="filter-reset-button filters-sidebar-footer-icon"

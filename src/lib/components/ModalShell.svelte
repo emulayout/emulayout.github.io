@@ -135,9 +135,7 @@
 		const focusTimer = window.setTimeout(() => {
 			afterPaint(() => {
 				if (!panelEl) return;
-				const targeted = selector
-					? panelEl.querySelector<HTMLElement>(selector)
-					: null;
+				const targeted = selector ? panelEl.querySelector<HTMLElement>(selector) : null;
 				if (targeted) {
 					focusFilterControl(targeted);
 				} else {

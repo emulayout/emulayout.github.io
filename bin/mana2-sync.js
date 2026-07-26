@@ -12,10 +12,7 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { $ } from 'bun';
-import {
-	convertCminiLayoutToMana2,
-	mana2LayoutIdFromFilename
-} from './mana2-layout.js';
+import { convertCminiLayoutToMana2, mana2LayoutIdFromFilename } from './mana2-layout.js';
 import {
 	buildMana2AnalyzerFingerprint,
 	createMana2StatsCacheContext,
@@ -117,9 +114,7 @@ async function ensureMana2Checkout(offline) {
 	// Keep CI logs clean; parsed corpus stays on disk for cache hits.
 	const configPath = join(MANA2_CACHE_DIR, 'config.jsonc');
 	try {
-		const config = JSON.parse(
-			(await readFile(configPath, 'utf-8')).replace(/\/\/.*$/gm, '')
-		);
+		const config = JSON.parse((await readFile(configPath, 'utf-8')).replace(/\/\/.*$/gm, ''));
 		config.hideUpdateMessage = true;
 		config.corpus = config.corpus || 'monkeyracer';
 		config.engine = config.engine || 'standard';
@@ -213,9 +208,7 @@ async function runMana2JsonBatch(layoutIds) {
 		if (parsed.length >= 1) {
 			byId.set(id, /** @type {import('./mana2-stats.js').Mana2StatsJson} */ (parsed[0]));
 		} else {
-			console.warn(
-				`  ⚠ mana2 failed for ${id}: ${single.text.slice(0, 200).replace(/\s+/g, ' ')}`
-			);
+			console.warn(`  ⚠ mana2 failed for ${id}: ${single.text.slice(0, 200).replace(/\s+/g, ' ')}`);
 		}
 	}
 	return byId;

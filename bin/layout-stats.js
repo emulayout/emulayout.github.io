@@ -83,7 +83,9 @@ export async function loadCorpusData(cacheDir, corpus = DEFAULT_STATS_ANALYZER) 
 	const base = join(cacheDir, 'corpora', corpus);
 	const buffers = await Promise.all(CORPUS_FILES.map((filename) => readFile(join(base, filename))));
 	const fingerprint = fingerprintCorpusBuffers(buffers);
-	const [bigrams, monograms, trigrams] = buffers.map((buffer) => JSON.parse(buffer.toString('utf-8')));
+	const [bigrams, monograms, trigrams] = buffers.map((buffer) =>
+		JSON.parse(buffer.toString('utf-8'))
+	);
 	return { bigrams, monograms, trigrams, fingerprint };
 }
 
@@ -173,19 +175,20 @@ export function encodeMonkeyracerStats(stats) {
  * @param {{ statsCache?: import('./layout-stats-cache.js').StatsCacheContext, layoutContent?: string }} [options]
  * @returns {Promise<CompactLayoutStats | null>}
  */
-export async function buildLayoutStats(_cacheDir, layoutFilename, rawLayout, corpusData, options = {}) {
+export async function buildLayoutStats(
+	_cacheDir,
+	layoutFilename,
+	rawLayout,
+	corpusData,
+	options = {}
+) {
 	const layoutContent = options.layoutContent ?? JSON.stringify(rawLayout);
 	const layoutHash = hashLayoutContent(layoutContent);
 	const statsCache = options.statsCache;
 	const trigramSourceHash = 'computed';
 
 	if (statsCache) {
-		const cached = getCachedLayoutStats(
-			statsCache,
-			layoutFilename,
-			layoutHash,
-			trigramSourceHash
-		);
+		const cached = getCachedLayoutStats(statsCache, layoutFilename, layoutHash, trigramSourceHash);
 		if (cached) return cached;
 	}
 
@@ -198,13 +201,7 @@ export async function buildLayoutStats(_cacheDir, layoutFilename, rawLayout, cor
 	);
 
 	if (statsCache) {
-		setCachedLayoutStats(
-			statsCache,
-			layoutFilename,
-			layoutHash,
-			trigramSourceHash,
-			stats
-		);
+		setCachedLayoutStats(statsCache, layoutFilename, layoutHash, trigramSourceHash, stats);
 	}
 
 	return stats;

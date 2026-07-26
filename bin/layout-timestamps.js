@@ -146,8 +146,5 @@ async function commitExists(cacheDir, sha) {
 
 async function getRevList(cacheDir, range) {
 	const output = await $`git -C ${cacheDir} rev-list ${range}`.text();
-	return output
-		.trim()
-		.split('\n')
-		.filter(Boolean);
+	return output.trim().split('\n').filter(Boolean);
 }

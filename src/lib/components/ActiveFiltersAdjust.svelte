@@ -12,11 +12,7 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import type { KeyFilterKind } from '$lib/filterSummaries';
 	import type { LayoutData } from '$lib/layout';
-	import {
-		analyzerShortLabel,
-		STAT_ANALYZERS,
-		type StatsAnalyzer
-	} from '$lib/statsAnalyzers';
+	import { analyzerShortLabel, STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
 	import type { StatLimitKey } from '$lib/statsFiltering';
 
 	interface Props {
@@ -185,9 +181,7 @@
 			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 		>
 			<div class="filter-section-header">
-				<span class="filter-section-header-label"
-					>{analyzerShortLabel(group.analyzer)} stats</span
-				>
+				<span class="filter-section-header-label">{analyzerShortLabel(group.analyzer)} stats</span>
 			</div>
 			<div class="adjust-section-body adjust-section-body--stats">
 				{#if group.general.length > 0}

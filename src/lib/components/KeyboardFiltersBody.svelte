@@ -103,7 +103,8 @@
 
 	{#if showCharset}
 		<label class="keyboard-filters-field">
-			<span class="keyboard-filters-label" style="color: var(--text-secondary);">Character set</span>
+			<span class="keyboard-filters-label" style="color: var(--text-secondary);">Character set</span
+			>
 			<select
 				value={filterStore.characterSetFilter}
 				onchange={(e) =>

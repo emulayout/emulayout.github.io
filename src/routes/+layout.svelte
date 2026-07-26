@@ -1,5 +1,6 @@
 <script lang="ts">
 	import './layout.css';
+	import { resolve } from '$app/paths';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { hasOpenModal } from '$lib/modalScrollLock';
@@ -120,14 +121,11 @@
 
 	function openCompareHotkey() {
 		showQuickFind = false;
-		window.dispatchEvent(
-			new CustomEvent('emulayout:open-compare', { detail: { mode: 'hotkey' } })
-		);
+		window.dispatchEvent(new CustomEvent('emulayout:open-compare', { detail: { mode: 'hotkey' } }));
 	}
 
 	function toggleTheme() {
-		themeMode =
-			themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
+		themeMode = themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
 	}
 
 	const themeButtonLabel = $derived(
@@ -138,9 +136,7 @@
 				: 'Theme: dark. Switch to system mode'
 	);
 
-	const hintsButtonLabel = $derived(
-		uiPrefs.hintsEnabled ? 'Hide help hints' : 'Show help hints'
-	);
+	const hintsButtonLabel = $derived(uiPrefs.hintsEnabled ? 'Hide help hints' : 'Show help hints');
 </script>
 
 <svelte:head>
@@ -150,159 +146,158 @@
 <div class="app-shell">
 	<header class="app-header px-3 py-3 md:px-6">
 		<div class="flex w-full items-center justify-between gap-3">
-		<div class="flex min-w-0 items-center gap-3">
-			<a
-				href="/"
-				data-sveltekit-reload
-				class="flex min-w-0 items-center gap-3 no-underline hover:opacity-90 transition-opacity"
-			>
-				<img
-					src="/keycap.png"
-					alt=""
-					width="71"
-					height="72"
-					class="shrink-0 h-8 w-auto"
-				/>
-				<h1 class="truncate text-3xl font-bold tracking-tight" style="color: var(--text-primary);">
-					Emulayout
-				</h1>
-			</a>
-			{#if debugEnabled}
-				<span
-					class="shrink-0 font-mono text-xs"
-					style="color: var(--text-caption);"
-					title="Temporary layout debug label"
+			<div class="flex min-w-0 items-center gap-3">
+				<a
+					href={resolve('/')}
+					data-sveltekit-reload
+					class="flex min-w-0 items-center gap-3 no-underline hover:opacity-90 transition-opacity"
 				>
-					{debugBreakpoint} · {debugLayoutMode}
-				</span>
-			{/if}
-		</div>
-		<div class="flex shrink-0 justify-end gap-2">
-			<button
-				type="button"
-				onclick={() => uiPrefs.toggleHints()}
-				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-				class:app-header-toggle--on={uiPrefs.hintsEnabled}
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label={hintsButtonLabel}
-				aria-pressed={uiPrefs.hintsEnabled}
-				title={hintsButtonLabel}
-			>
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary);"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
+					<img src="/keycap.png" alt="" width="71" height="72" class="shrink-0 h-8 w-auto" />
+					<h1
+						class="truncate text-3xl font-bold tracking-tight"
+						style="color: var(--text-primary);"
+					>
+						Emulayout
+					</h1>
+				</a>
+				{#if debugEnabled}
+					<span
+						class="shrink-0 font-mono text-xs"
+						style="color: var(--text-caption);"
+						title="Temporary layout debug label"
+					>
+						{debugBreakpoint} · {debugLayoutMode}
+					</span>
+				{/if}
+			</div>
+			<div class="flex shrink-0 justify-end gap-2">
+				<button
+					type="button"
+					onclick={() => uiPrefs.toggleHints()}
+					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+					class:app-header-toggle--on={uiPrefs.hintsEnabled}
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-label={hintsButtonLabel}
+					aria-pressed={uiPrefs.hintsEnabled}
+					title={hintsButtonLabel}
 				>
-					<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-					<path d="M12 17h.01" />
-				</svg>
-			</button>
-			<button
-				onclick={openCompare}
-				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label="Compare layouts"
-				title="Compare layouts (⌘⇧K / Ctrl+Shift+K)"
-			>
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary);"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary);"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+						<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+						<path d="M12 17h.01" />
+					</svg>
+				</button>
+				<button
+					onclick={openCompare}
+					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-label="Compare layouts"
+					title="Compare layouts (⌘⇧K / Ctrl+Shift+K)"
 				>
-					<rect x="3" y="3" width="7" height="18" rx="1" />
-					<rect x="14" y="3" width="7" height="18" rx="1" />
-				</svg>
-			</button>
-			<button
-				onclick={openQuickFind}
-				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label="Quick find layouts"
-				title="Quick find (⌘K / Ctrl+K)"
-			>
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary);"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary);"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<rect x="3" y="3" width="7" height="18" rx="1" />
+						<rect x="14" y="3" width="7" height="18" rx="1" />
+					</svg>
+				</button>
+				<button
+					onclick={openQuickFind}
+					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-label="Quick find layouts"
+					title="Quick find (⌘K / Ctrl+K)"
 				>
-					<path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-				</svg>
-			</button>
-			<button
-				onclick={toggleTheme}
-				class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-				style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-				aria-label={themeButtonLabel}
-				title={themeButtonLabel}
-			>
-				<!-- System / auto icon -->
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary); opacity: {themeMode === 'system'
-						? 1
-						: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary);"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+					</svg>
+				</button>
+				<button
+					onclick={toggleTheme}
+					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-label={themeButtonLabel}
+					title={themeButtonLabel}
 				>
-					<rect x="2" y="3" width="20" height="14" rx="2" />
-					<path d="M8 21h8M12 17v4" />
-				</svg>
-				<!-- Sun icon -->
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary); opacity: {themeMode === 'light'
-						? 1
-						: 0}; transform: rotate({themeMode === 'light'
-						? 0
-						: -90}deg) scale({themeMode === 'light' ? 1 : 0.5});"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<circle cx="12" cy="12" r="4" />
-					<path
-						d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-					/>
-				</svg>
-				<!-- Moon icon -->
-				<svg
-					class="absolute inset-0 m-auto size-5 transition-all duration-300"
-					style="color: var(--text-primary); opacity: {themeMode === 'dark'
-						? 1
-						: 0}; transform: rotate({themeMode === 'dark'
-						? 0
-						: 90}deg) scale({themeMode === 'dark' ? 1 : 0.5});"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-				</svg>
-			</button>
-		</div>
+					<!-- System / auto icon -->
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary); opacity: {themeMode === 'system'
+							? 1
+							: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<rect x="2" y="3" width="20" height="14" rx="2" />
+						<path d="M8 21h8M12 17v4" />
+					</svg>
+					<!-- Sun icon -->
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary); opacity: {themeMode === 'light'
+							? 1
+							: 0}; transform: rotate({themeMode === 'light' ? 0 : -90}deg) scale({themeMode ===
+						'light'
+							? 1
+							: 0.5});"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<circle cx="12" cy="12" r="4" />
+						<path
+							d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+						/>
+					</svg>
+					<!-- Moon icon -->
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary); opacity: {themeMode === 'dark'
+							? 1
+							: 0}; transform: rotate({themeMode === 'dark' ? 0 : 90}deg) scale({themeMode ===
+						'dark'
+							? 1
+							: 0.5});"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+					</svg>
+				</button>
+			</div>
 		</div>
 	</header>
 

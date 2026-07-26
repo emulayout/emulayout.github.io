@@ -7,3 +7,7 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Bundled analyzer input datasets (tracked; preserve upstream formatting)
+/bin/cmini-data/*.json
+/bin/cyanophage-data/*.json

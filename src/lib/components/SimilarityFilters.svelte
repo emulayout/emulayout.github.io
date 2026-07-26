@@ -28,7 +28,9 @@
 	<div class="filter-section-header">
 		<div class="filter-section-header-start">
 			<span class="filter-section-header-label">Similarity filter</span>
-			<Tooltip text="Compare letter positions to a reference layout. Differing keys are highlighted on cards." />
+			<Tooltip
+				text="Compare letter positions to a reference layout. Differing keys are highlighted on cards."
+			/>
 		</div>
 	</div>
 
@@ -87,9 +89,7 @@
 					<select
 						value={filterStore.similarityFilterOperator}
 						onchange={(e) =>
-							filterStore.setSimilarityFilterOperator(
-								e.currentTarget.value as StatLimitOperator
-							)}
+							filterStore.setSimilarityFilterOperator(e.currentTarget.value as StatLimitOperator)}
 						class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 						style="
 							background-color: var(--input-bg);
@@ -167,9 +167,7 @@
 					id="similarity-mirror-filter"
 					value={filterStore.similarityMirrorMode}
 					onchange={(e) =>
-						filterStore.setSimilarityMirrorMode(
-							e.currentTarget.value as SimilarityMirrorMode
-						)}
+						filterStore.setSimilarityMirrorMode(e.currentTarget.value as SimilarityMirrorMode)}
 					class="w-full px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 					style="
 						background-color: var(--input-bg);

@@ -38,11 +38,7 @@
 	</div>
 
 	<div class="mt-auto">
-		<button
-			type="button"
-			class="missing-layout-remove"
-			onclick={() => onRemove(name)}
-		>
+		<button type="button" class="missing-layout-remove" onclick={() => onRemove(name)}>
 			Remove from view
 		</button>
 	</div>

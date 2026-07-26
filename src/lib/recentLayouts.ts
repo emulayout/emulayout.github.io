@@ -14,10 +14,7 @@ export function getLatestLayoutDayKey(layouts: LayoutData[]): string | null {
 	return latest;
 }
 
-export function isNewSinceLastSync(
-	layout: LayoutData,
-	latestDayKey: string | null
-): boolean {
+export function isNewSinceLastSync(layout: LayoutData, latestDayKey: string | null): boolean {
 	if (!latestDayKey) return false;
 	return localDayKey(new Date(layout.updatedAt)) === latestDayKey;
 }

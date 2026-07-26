@@ -100,11 +100,7 @@
 		class="flex items-center justify-end gap-2 border-t px-5 py-4"
 		style="border-color: var(--border);"
 	>
-		<button
-			type="button"
-			class="filter-reset-button save-filter-modal-button"
-			onclick={onClose}
-		>
+		<button type="button" class="filter-reset-button save-filter-modal-button" onclick={onClose}>
 			Cancel
 		</button>
 		<button

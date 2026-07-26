@@ -2,7 +2,12 @@ import type { BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout'
 import { THUMB_ROW } from '$lib/layoutDisplay';
 
 /** Keep in sync with BOARD_TYPES in bin/layout-codec.js */
-export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini'] as const satisfies readonly BoardType[];
+export const BOARD_TYPES = [
+	'angle',
+	'stagger',
+	'ortho',
+	'mini'
+] as const satisfies readonly BoardType[];
 
 export const BOARD_CODE: Record<BoardType, number> = {
 	angle: 0,

@@ -34,10 +34,7 @@ function thumbHandFromFinger(finger: string | undefined): 'left' | 'right' | nul
 	return null;
 }
 
-function resolveThumbSide(
-	entry: DisplayKeyEntry,
-	splitCol: number
-): 'left' | 'right' {
+function resolveThumbSide(entry: DisplayKeyEntry, splitCol: number): 'left' | 'right' {
 	if (entry.thumbHand === 'l') return 'left';
 	if (entry.thumbHand === 'r') return 'right';
 	const fromFinger = thumbHandFromFinger(entry.finger);
@@ -96,7 +93,10 @@ function joinDisplayRowCells(
 		0
 	);
 	const maxCol = Math.max(minCol, occupiedMax);
-	const filled = Array.from({ length: maxCol + 1 }, (_, i) => slotChars[i] ?? { char: ' ', slot: null });
+	const filled = Array.from(
+		{ length: maxCol + 1 },
+		(_, i) => slotChars[i] ?? { char: ' ', slot: null }
+	);
 	const left = filled.slice(0, splitCol);
 	const right = filled.slice(splitCol);
 	const out: DisplayCell[] = [];
@@ -204,7 +204,10 @@ export function computeDisplayRows(
 					r[col] = { char: key, slot: `${rowNum},${col}` };
 				}
 				const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
-				const filled = Array.from({ length: maxCol + 1 }, (_, i) => r[i] ?? { char: ' ', slot: null });
+				const filled = Array.from(
+					{ length: maxCol + 1 },
+					(_, i) => r[i] ?? { char: ' ', slot: null }
+				);
 				rowCells = joinDisplayRowCells(filled, splitCol);
 			}
 
@@ -232,10 +235,7 @@ export function computeDisplayRows(
 	}
 	out[0] = first.slice(start);
 
-	while (
-		out.length > 0 &&
-		out[out.length - 1].every((c) => c.char === ' ' && c.slot === null)
-	) {
+	while (out.length > 0 && out[out.length - 1].every((c) => c.char === ' ' && c.slot === null)) {
 		out.pop();
 	}
 

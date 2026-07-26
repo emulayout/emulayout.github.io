@@ -118,9 +118,7 @@ async function ensureCache(offline = false) {
 
 	if (!cacheExists) {
 		if (offline) {
-			throw new Error(
-				`cmini cache missing at ${CACHE_DIR}. Run: bun run ./bin/cmini-sync.js`
-			);
+			throw new Error(`cmini cache missing at ${CACHE_DIR}. Run: bun run ./bin/cmini-sync.js`);
 		}
 		console.log('→ Initial clone (this may take a while)...');
 		await mkdir(CACHE_DIR, { recursive: true });
@@ -130,7 +128,9 @@ async function ensureCache(offline = false) {
 		console.log('→ Using existing cmini cache (offline)...');
 	} else {
 		console.log('→ Updating cache...');
-		const isShallow = (await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()).trim();
+		const isShallow = (
+			await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()
+		).trim();
 		if (isShallow === 'true') {
 			console.log('→ Unshallowing cache for layout timestamps...');
 			await $`git -C ${CACHE_DIR} fetch --unshallow`.nothrow();
@@ -190,7 +190,9 @@ async function run() {
 		cyanophageData = await loadCyanophageData();
 		console.log(`→ Loaded ${CYANOPHAGE_ANALYZER} analyzer data for effort metrics`);
 	} catch (err) {
-		console.warn(`  ⚠ Could not load cyanophage data (${err.message}); cyanophage stats will be skipped`);
+		console.warn(
+			`  ⚠ Could not load cyanophage data (${err.message}); cyanophage stats will be skipped`
+		);
 	}
 
 	// Transform all layouts
@@ -306,11 +308,16 @@ async function run() {
 	const afterNames = new Set(transformedLayouts.map((l) => l[0]));
 
 	const added = transformedLayouts.filter((l) => !beforeNames.has(l[0])).map((l) => l[0]);
-	const removed = beforeLayouts.filter((l) => !afterNames.has(layoutEntryName(l))).map(layoutEntryName);
+	const removed = beforeLayouts
+		.filter((l) => !afterNames.has(layoutEntryName(l)))
+		.map(layoutEntryName);
 
 	// For modified, compare by hash (name + content hash)
 	const beforeHashes = new Map(
-		beforeLayouts.map((l) => [layoutEntryName(l), createHash('md5').update(JSON.stringify(l)).digest('hex')])
+		beforeLayouts.map((l) => [
+			layoutEntryName(l),
+			createHash('md5').update(JSON.stringify(l)).digest('hex')
+		])
 	);
 	const modified = transformedLayouts
 		.filter((l) => {

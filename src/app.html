@@ -6,7 +6,8 @@
 		<script>
 			(function () {
 				const stored = localStorage.getItem('theme');
-				const mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+				const mode =
+					stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 				const dark =
 					mode === 'dark' ||
 					(mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

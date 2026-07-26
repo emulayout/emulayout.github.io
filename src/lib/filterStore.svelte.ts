@@ -25,10 +25,7 @@ import {
 import { isAnalyzerStatsReady } from './layoutStatsAccess';
 import { analyzersNeededForLimits } from './statsUsage';
 import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
-import {
-	isSimilarityMirrorMode,
-	type SimilarityMirrorMode
-} from './layoutSimilarity';
+import { isSimilarityMirrorMode, type SimilarityMirrorMode } from './layoutSimilarity';
 import type { FilterFocusRequest } from './filterSummaries';
 import {
 	loadSavedFilters,
@@ -707,9 +704,7 @@ export class FilterStore {
 			url.searchParams.set('includeOr', includeOrSerialized);
 		}
 
-		const includeOrLeftThumbsSerialized = serializeThumbFilters(
-			this.appliedIncludeOrLeftThumbKeys
-		);
+		const includeOrLeftThumbsSerialized = serializeThumbFilters(this.appliedIncludeOrLeftThumbKeys);
 		if (includeOrLeftThumbsSerialized) {
 			url.searchParams.set('includeOrLeftThumbs', includeOrLeftThumbsSerialized);
 		}
@@ -893,9 +888,7 @@ export class FilterStore {
 	}
 
 	#setGridCell(grid: string[][], row: number, col: number, value: string): string[][] {
-		return grid.map((r, ri) =>
-			ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r
-		);
+		return grid.map((r, ri) => (ri === row ? r.map((c, ci) => (ci === col ? value : c)) : r));
 	}
 
 	#setThumbKey(keys: string[], index: number, value: string): string[] {
@@ -933,20 +926,12 @@ export class FilterStore {
 	}
 
 	setIncludeOrLeftThumbKey(index: number, value: string) {
-		this.includeOrLeftThumbKeys = this.#setThumbKey(
-			this.includeOrLeftThumbKeys,
-			index,
-			value
-		);
+		this.includeOrLeftThumbKeys = this.#setThumbKey(this.includeOrLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrRightThumbKey(index: number, value: string) {
-		this.includeOrRightThumbKeys = this.#setThumbKey(
-			this.includeOrRightThumbKeys,
-			index,
-			value
-		);
+		this.includeOrRightThumbKeys = this.#setThumbKey(this.includeOrRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
@@ -1433,11 +1418,7 @@ export class FilterStore {
 		if (!id) return false;
 		const saved = findSavedView(this.savedFilters, id);
 		if (!saved) return false;
-		return isSavedViewDirty(
-			saved,
-			this.#captureViewFilters(),
-			this.activeSourceLayoutNames
-		);
+		return isSavedViewDirty(saved, this.#captureViewFilters(), this.activeSourceLayoutNames);
 	}
 
 	/**
@@ -1811,11 +1792,7 @@ export class FilterStore {
 		return this.canUseLikes && this.statLimits.likes.value.trim() !== '';
 	}
 
-	#gridOrThumbsActive(
-		grid: string[][],
-		leftThumbs: string[],
-		rightThumbs: string[]
-	): boolean {
+	#gridOrThumbsActive(grid: string[][], leftThumbs: string[], rightThumbs: string[]): boolean {
 		return (
 			grid.some((row) => row.some((cell) => cell !== '')) ||
 			leftThumbs.some((k) => k !== '') ||
@@ -1886,9 +1863,7 @@ export class FilterStore {
 	statFiltersAwaitingStats(statsMaps: StatsMaps, statsReady: boolean): boolean {
 		const needed = this.analyzersNeededForStatLimits;
 		if (needed.length === 0) return false;
-		return (
-			!statsReady || !needed.every((analyzer) => isAnalyzerStatsReady(statsMaps, analyzer))
-		);
+		return !statsReady || !needed.every((analyzer) => isAnalyzerStatsReady(statsMaps, analyzer));
 	}
 
 	filterLayouts(

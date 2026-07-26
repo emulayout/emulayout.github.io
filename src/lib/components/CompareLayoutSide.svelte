@@ -238,7 +238,10 @@
 		padding: 0;
 		border-radius: 0.5rem;
 		cursor: pointer;
-		transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease,
+			background-color 0.15s ease;
 	}
 
 	.compare-side-clear:hover {

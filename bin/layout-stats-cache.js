@@ -101,11 +101,7 @@ export async function createStatsCacheContext(corpusFingerprint, analyzerFingerp
  */
 export function getCachedLayoutStats(ctx, layoutFilename, layoutHash, trigramSourceHash) {
 	const entry = ctx.layouts[layoutFilename];
-	if (
-		entry &&
-		entry.layoutHash === layoutHash &&
-		entry.trigramSourceHash === trigramSourceHash
-	) {
+	if (entry && entry.layoutHash === layoutHash && entry.trigramSourceHash === trigramSourceHash) {
 		ctx.hits++;
 		return entry.stats;
 	}
@@ -120,13 +116,7 @@ export function getCachedLayoutStats(ctx, layoutFilename, layoutHash, trigramSou
  * @param {string} trigramSourceHash
  * @param {number[]} stats
  */
-export function setCachedLayoutStats(
-	ctx,
-	layoutFilename,
-	layoutHash,
-	trigramSourceHash,
-	stats
-) {
+export function setCachedLayoutStats(ctx, layoutFilename, layoutHash, trigramSourceHash, stats) {
 	ctx.misses++;
 	ctx.layouts[layoutFilename] = { layoutHash, trigramSourceHash, stats };
 }

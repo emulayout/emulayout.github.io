@@ -73,9 +73,7 @@
 		border: 1px solid var(--border);
 		--tw-ring-color: var(--accent);
 	`;
-	const generalStatFilterColumnIndices = [
-		...Array(GENERAL_STAT_FILTER_COLUMN_COUNT).keys()
-	];
+	const generalStatFilterColumnIndices = [...Array(GENERAL_STAT_FILTER_COLUMN_COUNT).keys()];
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const leftHandFields = $derived(
@@ -124,7 +122,7 @@
 		data-stat-limit-control={field.key}
 	>
 		<span class="stat-limit-label-row" style={expanded ? undefined : `width: ${labelWidth};`}>
-			<span class="stat-limit-label" title={title}>{displayLabel}:</span>
+			<span class="stat-limit-label" {title}>{displayLabel}:</span>
 			{#if field.hint}
 				<Tooltip text={field.hint} />
 			{/if}
@@ -180,11 +178,7 @@
 								{#each generalStatFilterColumnIndices as colIndex (colIndex)}
 									{@const field = row[colIndex]}
 									{#if field}
-										{@render statLimitControl(
-											field,
-											generalStacked ? '3.25rem' : '2.5rem',
-											true
-										)}
+										{@render statLimitControl(field, generalStacked ? '3.25rem' : '2.5rem', true)}
 									{:else if !generalStacked}
 										<div class="stat-limit-cell-empty" aria-hidden="true"></div>
 									{/if}

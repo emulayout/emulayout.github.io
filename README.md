@@ -14,10 +14,10 @@ Filtering is where this gets interesting. You can search by name, author, board 
 
 Install [mise](https://mise.jdx.dev/), then use the versions pinned in [`mise.toml`](mise.toml) (kept in sync with [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)):
 
-| Tool | Purpose |
-| --- | --- |
-| Bun | App, sync scripts, build |
-| Go | Building [Mana2](https://codeberg.org/Zakkkk/mana2) for layout stats |
+| Tool | Purpose                                                              |
+| ---- | -------------------------------------------------------------------- |
+| Bun  | App, sync scripts, build                                             |
+| Go   | Building [Mana2](https://codeberg.org/Zakkkk/mana2) for layout stats |
 
 ```sh
 mise install                  # Bun + Go from mise.toml
