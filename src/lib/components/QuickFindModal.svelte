@@ -2,7 +2,7 @@
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { findLayoutNameMatches } from '$lib/layoutNameSearch';
+	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
@@ -16,7 +16,7 @@
 	let { open, onClose }: Props = $props();
 
 	let query = $state('');
-	let activeIndex = $state(0);
+	let requestedIndex = $state(0);
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
 	let resultsList = $state<HTMLUListElement | undefined>(undefined);
 	let previewPane = $state<HTMLDivElement | undefined>(undefined);
@@ -34,6 +34,7 @@
 	);
 
 	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layouts, query, MAX_RESULTS));
+	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
 
 	const highlightedLayout = $derived.by((): LayoutData | null => {
 		const name = matches[activeIndex];
@@ -45,23 +46,10 @@
 		highlightedLayout ? (authorById.get(highlightedLayout.user) ?? 'Unknown') : ''
 	);
 
-	// Reset highlight when the query changes; clamp if results shrink
-	$effect(() => {
-		void query;
-		activeIndex = 0;
-	});
-
-	$effect(() => {
-		const count = matches.length;
-		if (count > 0 && activeIndex >= count) {
-			activeIndex = count - 1;
-		}
-	});
-
 	$effect(() => {
 		if (!open) {
 			query = '';
-			activeIndex = 0;
+			requestedIndex = 0;
 			return;
 		}
 
@@ -108,20 +96,25 @@
 		onClose();
 	}
 
+	function handleSearchInput(event: Event) {
+		query = (event.currentTarget as HTMLInputElement).value;
+		requestedIndex = 0;
+	}
+
 	function handleSearchKeyDown(event: KeyboardEvent) {
 		const count = matches.length;
 
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
 			if (count === 0) return;
-			activeIndex = (activeIndex + 1) % count;
+			requestedIndex = (activeIndex + 1) % count;
 			return;
 		}
 
 		if (event.key === 'ArrowUp') {
 			event.preventDefault();
 			if (count === 0) return;
-			activeIndex = (activeIndex - 1 + count) % count;
+			requestedIndex = (activeIndex - 1 + count) % count;
 			return;
 		}
 
@@ -162,7 +155,8 @@
 		<input
 			bind:this={searchInput}
 			type="text"
-			bind:value={query}
+			value={query}
+			oninput={handleSearchInput}
 			onkeydown={handleSearchKeyDown}
 			placeholder="Search layout names…"
 			class="w-full rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all duration-200"
@@ -205,7 +199,7 @@
 							<button
 								type="button"
 								onclick={() => showLayout(name)}
-								onpointerenter={() => (activeIndex = index)}
+								onpointerenter={() => (requestedIndex = index)}
 								class="flex w-full items-baseline rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors"
 								style="
 									color: var(--text-primary);

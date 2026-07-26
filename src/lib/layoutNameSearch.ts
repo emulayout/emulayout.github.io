@@ -26,3 +26,9 @@ export function findLayoutNameMatches(
 	ranked.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
 	return ranked.slice(0, maxResults).map((entry) => entry.name);
 }
+
+/** Keep keyboard/pointer selection inside the current result set without mutating source state. */
+export function clampSearchResultIndex(index: number, resultCount: number): number {
+	if (resultCount <= 0) return 0;
+	return Math.min(Math.max(0, index), resultCount - 1);
+}

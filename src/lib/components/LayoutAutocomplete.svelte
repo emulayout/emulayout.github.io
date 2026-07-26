@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
-	import { findLayoutNameMatches } from '$lib/layoutNameSearch';
+	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 
 	interface Props {
 		layouts: LayoutData[];
@@ -26,12 +26,13 @@
 
 	let query = $state('');
 	let open = $state(false);
-	let activeIndex = $state(0);
+	let requestedIndex = $state(0);
 	let rootEl = $state<HTMLDivElement | undefined>(undefined);
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
 	let listEl = $state<HTMLUListElement | undefined>(undefined);
 
 	const matches = $derived(findLayoutNameMatches(layouts, query, maxResults));
+	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
 
 	const listOpen = $derived(open && query.trim().length > 0);
 
@@ -44,18 +45,6 @@
 	});
 
 	$effect(() => {
-		void query;
-		activeIndex = 0;
-	});
-
-	$effect(() => {
-		const count = matches.length;
-		if (count > 0 && activeIndex >= count) {
-			activeIndex = count - 1;
-		}
-	});
-
-	$effect(() => {
 		if (!listOpen || !listEl) return;
 		const item = listEl.children[activeIndex] as HTMLElement | undefined;
 		item?.scrollIntoView({ block: 'nearest' });
@@ -64,7 +53,7 @@
 	function clearQuery() {
 		query = '';
 		open = false;
-		activeIndex = 0;
+		requestedIndex = 0;
 	}
 
 	function selectName(name: string, via: 'enter' | 'click' = 'click') {
@@ -74,6 +63,12 @@
 	}
 
 	function handleInputFocus() {
+		open = true;
+	}
+
+	function handleInput(event: Event) {
+		query = (event.currentTarget as HTMLInputElement).value;
+		requestedIndex = 0;
 		open = true;
 	}
 
@@ -102,13 +97,13 @@
 
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
-			activeIndex = (activeIndex + 1) % matches.length;
+			requestedIndex = (activeIndex + 1) % matches.length;
 			return;
 		}
 
 		if (event.key === 'ArrowUp') {
 			event.preventDefault();
-			activeIndex = (activeIndex - 1 + matches.length) % matches.length;
+			requestedIndex = (activeIndex - 1 + matches.length) % matches.length;
 			return;
 		}
 
@@ -140,9 +135,9 @@
 			? `${id}-option-${activeIndex}`
 			: undefined}
 		{placeholder}
-		bind:value={query}
+		value={query}
 		onfocus={handleInputFocus}
-		oninput={() => (open = true)}
+		oninput={handleInput}
 		class="w-full rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-all"
 		style="
 			background-color: var(--input-bg);
@@ -173,7 +168,7 @@
 								color: var(--text-primary);
 								background-color: {index === activeIndex ? 'var(--bg-primary)' : 'transparent'};
 							"
-							onpointerenter={() => (activeIndex = index)}
+							onpointerenter={() => (requestedIndex = index)}
 							onclick={() => selectName(name)}
 						>
 							{name}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { findLayoutNameMatches } from '$lib/layoutNameSearch';
+import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 
 function layouts(...names: string[]): Array<{ name: string }> {
 	return names.map((name) => ({ name }));
@@ -50,5 +50,14 @@ describe('layout name search', () => {
 		expect(findLayoutNameMatches(candidates, ' ', 20)).toEqual([]);
 		expect(findLayoutNameMatches(candidates, 'al', 0)).toEqual([]);
 		expect(findLayoutNameMatches([], 'al', 20)).toEqual([]);
+	});
+});
+
+describe('search result selection', () => {
+	test('clamps requested indexes to the current result set', () => {
+		expect(clampSearchResultIndex(3, 10)).toBe(3);
+		expect(clampSearchResultIndex(12, 4)).toBe(3);
+		expect(clampSearchResultIndex(-2, 4)).toBe(0);
+		expect(clampSearchResultIndex(5, 0)).toBe(0);
 	});
 });
