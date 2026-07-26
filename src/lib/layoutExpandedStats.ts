@@ -1,4 +1,4 @@
-import { formatStatPercent } from '$lib/layoutStats';
+import { formatStatPercent } from '$lib/statsBlockFormatting';
 import type {
 	DerivedBotStats,
 	DerivedCyanophageStats,

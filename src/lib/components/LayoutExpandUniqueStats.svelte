@@ -9,10 +9,10 @@
 		CYANOPHAGE_ANALYZER,
 		CMINI_ANALYZER,
 		formatCyanophageStatValue,
-		formatStatPercent,
 		MANA2_ANALYZER,
 		type StatsAnalyzer
 	} from '$lib/layoutStats';
+	import { formatStatPercent } from '$lib/statsBlockFormatting';
 
 	interface Props {
 		analyzer: StatsAnalyzer;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { StatsBlockSegment } from '$lib/layoutStats';
+	import type { StatsBlockSegment } from '$lib/statsBlockFormatting';
 
 	interface Props {
 		lines: StatsBlockSegment[][] | null;

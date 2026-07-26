@@ -11,7 +11,7 @@ export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 12; // px (gap-3 between stats and
 export const LAYOUT_CARD_STATS_HEIGHT = 208;
 /**
  * Extra height when showing Mana2’s taller stats block (18 lines vs the default 14).
- * Keep in sync with MANA2_STATS_BLOCK_LINE_COUNT in layoutStats.ts.
+ * Keep in sync with MANA2_STATS_BLOCK_LINE_COUNT in statsBlockFormatting.ts.
  */
 export const LAYOUT_CARD_MANA2_STATS_EXTRA = 60;
 /** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-2). */

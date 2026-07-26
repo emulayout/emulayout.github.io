@@ -10,12 +10,10 @@
 	import {
 		buildBotStatsDiffBlockLines,
 		buildCyanophageStatsDiffBlockLines,
-		buildMana2StatsDiffBlockLines,
-		CYANOPHAGE_ANALYZER,
-		MANA2_ANALYZER,
-		type StatsAnalyzer,
-		type StatsBlockSegment
-	} from '$lib/layoutStats';
+		buildMana2StatsDiffBlockLines
+	} from '$lib/statsComparison';
+	import { CYANOPHAGE_ANALYZER, MANA2_ANALYZER, type StatsAnalyzer } from '$lib/statsAnalyzers';
+	import type { StatsBlockSegment } from '$lib/statsBlockFormatting';
 	import type { CompactCyanophageStats, CompactLayoutStats, CompactMana2Stats } from '$lib/layout';
 
 	interface Props {
