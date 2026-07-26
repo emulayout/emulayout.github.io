@@ -10,8 +10,7 @@ import {
 	isSortBy,
 	isSortOrder,
 	isStatSortBy,
-	normalizeSortBy,
-	parseLegacySortParam
+	normalizeSortBy
 } from '$lib/statsSorting';
 
 describe('stats sorting catalog and normalization', () => {
@@ -42,26 +41,15 @@ describe('stats sorting catalog and normalization', () => {
 		expect(isSortOrder('sideways')).toBe(false);
 	});
 
-	test('normalizes aliases and analyzer-disambiguated SFB fields', () => {
-		expect(normalizeSortBy('sfb', CMINI_ANALYZER)).toBe('sfb');
-		expect(normalizeSortBy('sfb', CYANOPHAGE_ANALYZER)).toBe('cyano-sfb');
-		expect(normalizeSortBy('sfb', MANA2_ANALYZER)).toBe('mana-sfb');
-		expect(normalizeSortBy('total-word-effort')).toBe('cyano-total-word-effort');
-		expect(normalizeSortBy('sfs')).toBe('cyano-sfs');
+	test('accepts canonical sort values and rejects obsolete aliases', () => {
+		expect(normalizeSortBy('sfb')).toBe('sfb');
+		expect(normalizeSortBy('cyano-sfb')).toBe('cyano-sfb');
+		expect(normalizeSortBy('mana-sfb')).toBe('mana-sfb');
+		expect(normalizeSortBy('total-word-effort')).toBeUndefined();
+		expect(normalizeSortBy('sfs')).toBeUndefined();
+		expect(normalizeSortBy('rtl-desc')).toBeUndefined();
+		expect(normalizeSortBy('dsfb-alt-asc')).toBeUndefined();
 		expect(normalizeSortBy('unknown')).toBeUndefined();
-	});
-
-	test('preserves legacy combined sort parameters', () => {
-		expect(parseLegacySortParam('rtl-desc')).toEqual({
-			sortBy: 'roll-total',
-			sortOrder: 'desc'
-		});
-		expect(parseLegacySortParam('red-asc')).toEqual({
-			sortBy: 'redirect',
-			sortOrder: 'asc'
-		});
-		expect(parseLegacySortParam('unknown')).toBeUndefined();
-		expect(normalizeSortBy('dsfb-alt-asc')).toBe('same-finger-skip-alternate');
 	});
 
 	test('coerces equivalent analyzer fields and exposes comparison direction', () => {

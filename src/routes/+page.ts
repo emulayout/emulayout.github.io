@@ -3,12 +3,7 @@ import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { parseStatLimitsParam } from '$lib/filterUrlCodec';
 import { parseStatsAnalyzerMode, type StatsAnalyzerMode } from '$lib/statsAnalyzers';
 import { analyzersNeededForLoad } from '$lib/statsUsage';
-import {
-	isStatSortBy,
-	normalizeSortBy,
-	parseLegacySortParam,
-	type SortBy
-} from '$lib/statsSorting';
+import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { PageLoad } from './$types';
@@ -21,11 +16,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
 	const statsAnalyzerMode = getInitialStatsAnalyzerMode(url);
-	const legacySort = sortParam ? parseLegacySortParam(sortParam) : undefined;
-	const parsedSortBy: SortBy =
-		legacySort?.sortBy ??
-		(sortParam ? normalizeSortBy(sortParam, statsAnalyzerMode) : undefined) ??
-		'date';
+	const parsedSortBy: SortBy = (sortParam ? normalizeSortBy(sortParam) : undefined) ?? 'date';
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const needsStatsForSort = isStatSortBy(sortBy);
 	const loadStats = url.searchParams.get('stats') !== '0' || needsStatsForSort;

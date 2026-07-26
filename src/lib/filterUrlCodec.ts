@@ -1,5 +1,5 @@
 import { ALL_STAT_FILTER_FIELDS, type StatLimitKey } from './statsFiltering';
-import { normalizeSortBy } from './statsSorting';
+import { getDefaultSortOrder, isSortOrder, normalizeSortBy } from './statsSorting';
 import { isSimilarityMirrorMode } from './layoutSimilarity';
 import { sortLayoutSourceNames } from './savedFiltersStorage';
 import {
@@ -14,7 +14,7 @@ import {
 	type ViewFilterSnapshot
 } from './filterSnapshot';
 
-/** Canonical view-owned filter parameters, including read-only legacy aliases. */
+/** Canonical view-owned filter parameters. */
 export const VIEW_FILTER_URL_PARAMS = [
 	'include',
 	'exclude',
@@ -30,8 +30,6 @@ export const VIEW_FILTER_URL_PARAMS = [
 	'includeRightThumbs',
 	'excludeLeftThumbs',
 	'excludeRightThumbs',
-	'includeThumbs',
-	'excludeThumbs',
 	'includeOrLeftThumbs',
 	'includeOrRightThumbs',
 	'sort',
@@ -145,7 +143,11 @@ export function writeViewFilterUrlState(
 		params.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
 	}
 
-	if (snapshot.sortBy !== 'date' || snapshot.sortOrder !== 'desc') {
+	if (
+		snapshot.sortBy !== 'date' ||
+		snapshot.sortOrder !== 'desc' ||
+		snapshot.similarReferenceName
+	) {
 		params.set('sort', snapshot.sortBy);
 		params.set('order', snapshot.sortOrder);
 	}
@@ -184,15 +186,13 @@ export function encodeViewFilterSnapshot(
 
 export type DecodedViewFilters = {
 	snapshot: ViewFilterSnapshot;
-	sourceLayoutNames?: string[];
+	/** `undefined` = absent, `null` = explicitly empty, array = explicit source. */
+	sourceLayoutNames?: string[] | null;
 };
 
-/** Decode a share `viewFilters` payload into a full view snapshot (+ optional layout source). */
-export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
+/** Read canonical view-owned filter parameters into a full snapshot. */
+export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilters {
 	const snapshot = createDefaultViewSnapshot();
-	if (!encoded.trim()) return { snapshot };
-
-	const params = new URLSearchParams(encoded);
 
 	const include = params.get('include');
 	if (include) {
@@ -293,18 +293,24 @@ export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
 
 	const sort = params.get('sort');
 	const order = params.get('order');
-	if (sort) {
-		const normalized = normalizeSortBy(sort);
-		if (normalized) snapshot.sortBy = normalized;
+	const normalizedSort = sort ? normalizeSortBy(sort) : undefined;
+	const normalizedOrder = order && isSortOrder(order) ? order : undefined;
+	if (normalizedSort) {
+		snapshot.sortBy = normalizedSort;
+		snapshot.sortOrder = getDefaultSortOrder(normalizedSort);
 	}
-	if (order === 'asc' || order === 'desc') {
-		snapshot.sortOrder = order;
-		snapshot.sortOrderManual = true;
+	if (normalizedOrder) {
+		snapshot.sortOrder = normalizedOrder;
+		snapshot.sortOrderManual = normalizedOrder !== getDefaultSortOrder(snapshot.sortBy);
 	}
 
 	const similar = params.get('similar');
 	if (similar) {
 		snapshot.similarReferenceName = similar;
+		if (!normalizedSort) {
+			snapshot.sortBy = 'similarity';
+			if (!normalizedOrder) snapshot.sortOrder = getDefaultSortOrder('similarity');
+		}
 		const similarFilter = params.get('similarFilter');
 		if (similarFilter) {
 			const [operator, ...valueParts] = similarFilter.split(':');
@@ -330,19 +336,27 @@ export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
 	}
 
 	const layoutsParam = params.get('layouts');
-	const sourceLayoutNames = layoutsParam
-		? sortLayoutSourceNames(
-				layoutsParam
-					.split(',')
-					.map((name) => name.trim())
-					.filter((name) => name.length > 0)
-			)
-		: undefined;
+	const sourceLayoutNames =
+		layoutsParam === null
+			? undefined
+			: layoutsParam.trim() === ''
+				? null
+				: sortLayoutSourceNames(
+						layoutsParam
+							.split(',')
+							.map((name) => name.trim())
+							.filter((name) => name.length > 0)
+					);
 
 	return {
 		snapshot,
-		...(sourceLayoutNames && sourceLayoutNames.length > 0 ? { sourceLayoutNames } : {})
+		...(sourceLayoutNames !== undefined ? { sourceLayoutNames } : {})
 	};
+}
+
+/** Decode a share `viewFilters` payload into a full view snapshot (+ optional layout source). */
+export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
+	return readViewFilterUrlState(new URLSearchParams(encoded));
 }
 
 // Serialize grid to compact string: "r0c0,r0c1,r1c2" for non-empty cells.

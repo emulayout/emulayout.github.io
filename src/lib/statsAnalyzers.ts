@@ -99,9 +99,9 @@ export function isStatsAnalyzerMode(value: string): value is StatsAnalyzerMode {
 	return isStatsAnalyzer(value);
 }
 
-/** Parse toolbar/URL analyzer; legacy `all` maps to the default analyzer. */
+/** Parse a toolbar/URL analyzer, falling back to the default. */
 export function parseStatsAnalyzerMode(value: string | null | undefined): StatsAnalyzerMode {
-	if (!value || value === 'all') return DEFAULT_STATS_ANALYZER;
+	if (!value) return DEFAULT_STATS_ANALYZER;
 	return isStatsAnalyzer(value) ? value : DEFAULT_STATS_ANALYZER;
 }
 

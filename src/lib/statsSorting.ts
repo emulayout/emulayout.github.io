@@ -1,9 +1,7 @@
 import {
 	CYANOPHAGE_ANALYZER,
 	CMINI_ANALYZER,
-	DEFAULT_STATS_ANALYZER,
 	MANA2_ANALYZER,
-	concreteAnalyzerForSort,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from '$lib/statsAnalyzers';
@@ -347,43 +345,6 @@ const LAYOUT_DEFAULT_SORT_ORDER: Record<LayoutSortBy, SortOrder> = {
 	similarity: 'desc'
 };
 
-/**
- * Pre-`cyano-*` URL values and other renames → current SortBy.
- * Ambiguous `sfb` is handled in {@link normalizeSortBy}.
- */
-const SORT_BY_ALIASES: Record<string, SortBy> = {
-	'total-word-effort': 'cyano-total-word-effort',
-	effort: 'cyano-effort',
-	sfs: 'cyano-sfs',
-	scissors: 'cyano-scissors',
-	lsb: 'cyano-lsb',
-	lh: 'cyano-lh',
-	rh: 'cyano-rh'
-};
-
-const LEGACY_SORT_BY_ORDER: Record<string, { sortBy: SortBy; sortOrder: SortOrder }> = {
-	name: { sortBy: 'name', sortOrder: 'asc' },
-	'date-asc': { sortBy: 'date', sortOrder: 'asc' },
-	'date-desc': { sortBy: 'date', sortOrder: 'desc' },
-	'likes-desc': { sortBy: 'likes', sortOrder: 'desc' },
-	'alternate-desc': { sortBy: 'alternate', sortOrder: 'desc' },
-	'roll-desc': { sortBy: 'roll', sortOrder: 'desc' },
-	'roll-in-desc': { sortBy: 'roll-in', sortOrder: 'desc' },
-	'roll-out-desc': { sortBy: 'roll-out', sortOrder: 'desc' },
-	'one-desc': { sortBy: 'one', sortOrder: 'desc' },
-	'one-in-desc': { sortBy: 'one-in', sortOrder: 'desc' },
-	'one-out-desc': { sortBy: 'one-out', sortOrder: 'desc' },
-	'rtl-desc': { sortBy: 'roll-total', sortOrder: 'desc' },
-	'rtl-in-desc': { sortBy: 'roll-total-in', sortOrder: 'desc' },
-	'rtl-out-desc': { sortBy: 'roll-total-out', sortOrder: 'desc' },
-	'red-asc': { sortBy: 'redirect', sortOrder: 'asc' },
-	'bad-redirect-asc': { sortBy: 'bad-redirect', sortOrder: 'asc' },
-	'sfb-asc': { sortBy: 'sfb', sortOrder: 'asc' },
-	'sfs-asc': { sortBy: 'same-finger-skip', sortOrder: 'asc' },
-	'dsfb-red-asc': { sortBy: 'same-finger-skip-redirect', sortOrder: 'asc' },
-	'dsfb-alt-asc': { sortBy: 'same-finger-skip-alternate', sortOrder: 'asc' }
-};
-
 export function isSortBy(value: string): value is SortBy {
 	return SORT_BY_VALUES.has(value);
 }
@@ -459,38 +420,9 @@ export function coerceSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer)
 	return match ? (match.value as SortBy) : null;
 }
 
-/**
- * Normalize a URL/query sort token to a current {@link SortBy}.
- * Handles legacy combo params, pre-`cyano-*` values, and analyzer-disambiguated `sfb`.
- */
-export function normalizeSortBy(
-	sort: string,
-	analyzer: StatsAnalyzerMode = DEFAULT_STATS_ANALYZER
-): SortBy | undefined {
-	const legacy = parseLegacySortParam(sort);
-	if (legacy) return legacy.sortBy;
-
-	if (sort === 'sfb') {
-		const concrete = concreteAnalyzerForSort(analyzer);
-		if (concrete === CYANOPHAGE_ANALYZER) return 'cyano-sfb';
-		if (concrete === MANA2_ANALYZER) return 'mana-sfb';
-		return 'sfb';
-	}
-
-	const aliased = SORT_BY_ALIASES[sort];
-	if (aliased) return aliased;
-
-	if (isSortBy(sort)) return sort;
-	return undefined;
-}
-
-export function parseLegacySortParam(
-	sort: string
-): { sortBy: SortBy; sortOrder: SortOrder } | undefined {
-	if (sort in LEGACY_SORT_BY_ORDER) {
-		return LEGACY_SORT_BY_ORDER[sort];
-	}
-	return undefined;
+/** Accept only a current canonical sort value. */
+export function normalizeSortBy(sort: string): SortBy | undefined {
+	return isSortBy(sort) ? sort : undefined;
 }
 
 /**

@@ -3,6 +3,7 @@ import {
 	decodeViewFilterSnapshot,
 	encodeViewFilterSnapshot,
 	parseStatLimitsParam,
+	readViewFilterUrlState,
 	writeViewFilterUrlState
 } from '$lib/filterUrlCodec';
 import { createDefaultViewSnapshot } from '$lib/filterSnapshot';
@@ -20,7 +21,7 @@ describe('view filter URL codec', () => {
 			selected: 'Colemak,Canary',
 			analyzer: 'mana2',
 			include: '00x',
-			includeThumbs: 'legacy',
+			exclude: '00z',
 			similar: 'Stale'
 		});
 		const snapshot = createDefaultViewSnapshot();
@@ -33,7 +34,7 @@ describe('view filter URL codec', () => {
 		expect(params.get('analyzer')).toBe('mana2');
 		expect(params.get('include')).toBe('00a');
 		expect(params.get('showUnfinished')).toBe('1');
-		expect(params.has('includeThumbs')).toBe(false);
+		expect(params.has('exclude')).toBe(false);
 		expect(params.has('similar')).toBe(false);
 	});
 
@@ -84,7 +85,7 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.selectedAuthors).toEqual([12, 34]);
 		expect(decoded.snapshot.sortBy).toBe('name');
 		expect(decoded.snapshot.sortOrder).toBe('asc');
-		expect(decoded.snapshot.sortOrderManual).toBe(true);
+		expect(decoded.snapshot.sortOrderManual).toBe(false);
 		expect(decoded.snapshot.similarReferenceName).toBe('Graphite');
 		expect(decoded.snapshot.similarityFilterOperator).toBe('lt');
 		expect(decoded.snapshot.similarityFilterValue).toBe('72.5');
@@ -94,6 +95,28 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.similarityMirrorMode).toBe('required');
 		expect(decoded.snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '10' });
 		expect(decoded.snapshot.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '10' });
+	});
+
+	test('preserves an explicit non-similarity sort while similarity is active', () => {
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.similarReferenceName = 'Canary';
+		snapshot.sortBy = 'date';
+		snapshot.sortOrder = 'desc';
+
+		const encoded = encodeViewFilterSnapshot(snapshot);
+		const decoded = decodeViewFilterSnapshot(encoded);
+
+		expect(new URLSearchParams(encoded).get('sort')).toBe('date');
+		expect(decoded.snapshot.sortBy).toBe('date');
+		expect(decoded.snapshot.sortOrder).toBe('desc');
+	});
+
+	test('uses the selected field default when canonical sort order is omitted', () => {
+		const { snapshot } = readViewFilterUrlState(new URLSearchParams({ sort: 'cyano-effort' }));
+
+		expect(snapshot.sortBy).toBe('cyano-effort');
+		expect(snapshot.sortOrder).toBe('asc');
+		expect(snapshot.sortOrderManual).toBe(false);
 	});
 
 	test('ignores malformed enum, grid, sort, similarity, and stat-limit values', () => {
@@ -119,12 +142,33 @@ describe('view filter URL codec', () => {
 		expect(snapshot.magicKeyFilter).toBe('optional');
 		expect(snapshot.characterSetFilter).toBe('english');
 		expect(snapshot.boardTypeFilter).toBe('all');
-		expect(snapshot.sortBy).toBe('date');
+		expect(snapshot.sortBy).toBe('similarity');
 		expect(snapshot.sortOrder).toBe('desc');
 		expect(snapshot.similarityFilterOperator).toBe('gt');
 		expect(snapshot.similarityFilterValue).toBe('50');
 		expect(snapshot.similarityMirrorMode).toBe('excluded');
 		expect(snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '' });
+	});
+
+	test('ignores obsolete URL aliases and preserves explicit empty sources', () => {
+		const decoded = readViewFilterUrlState(
+			new URLSearchParams({
+				includeThumbs: 'e|t',
+				excludeThumbs: 'n',
+				showUnfinished: 'true',
+				sort: 'rtl-desc',
+				similar: 'Canary',
+				similarMirror: 'include',
+				layouts: ''
+			})
+		);
+
+		expect(decoded.snapshot.includeLeftThumbKeys).toEqual(['', '', '', '']);
+		expect(decoded.snapshot.excludeLeftThumbKeys).toEqual(['', '', '', '']);
+		expect(decoded.snapshot.showUnfinished).toBe(false);
+		expect(decoded.snapshot.sortBy).toBe('similarity');
+		expect(decoded.snapshot.similarityMirrorMode).toBe('excluded');
+		expect(decoded.sourceLayoutNames).toBeNull();
 	});
 });
 

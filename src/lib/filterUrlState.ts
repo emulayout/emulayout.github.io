@@ -65,8 +65,6 @@ export function writeGlobalFilterUrlState(
 ): void {
 	for (const key of [
 		'selected',
-		// Remove the obsolete pre-selection-vocabulary parameter when rewriting the URL.
-		'compare',
 		'analyzer',
 		'stats',
 		'testArea',

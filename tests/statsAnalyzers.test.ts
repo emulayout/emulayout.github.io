@@ -57,10 +57,10 @@ describe('stats analyzer catalog', () => {
 		expect(isStatsAnalyzer(CYANOPHAGE_ANALYZER)).toBe(true);
 		expect(isStatsAnalyzer(MANA2_ANALYZER)).toBe(true);
 		expect(isStatsAnalyzer(MONKEYRACER_CORPUS)).toBe(false);
+		expect(isStatsAnalyzer('all')).toBe(false);
 		expect(isStatsAnalyzer('unknown')).toBe(false);
 		expect(parseStatsAnalyzerMode(CYANOPHAGE_ANALYZER)).toBe(CYANOPHAGE_ANALYZER);
 		expect(parseStatsAnalyzerMode(MONKEYRACER_CORPUS)).toBe(DEFAULT_STATS_ANALYZER);
-		expect(parseStatsAnalyzerMode('all')).toBe(DEFAULT_STATS_ANALYZER);
 		expect(parseStatsAnalyzerMode('unknown')).toBe(DEFAULT_STATS_ANALYZER);
 		expect(parseStatsAnalyzerMode(null)).toBe(DEFAULT_STATS_ANALYZER);
 	});

@@ -67,18 +67,11 @@ describe('global filter URL state', () => {
 		});
 	});
 
-	test('does not restore the obsolete compare parameter', () => {
-		expect(
-			readGlobalFilterUrlState(new URLSearchParams({ compare: 'Colemak' })).selectedLayoutNames
-		).toEqual([]);
-	});
-
 	test('omits default global settings', () => {
 		const params = new URLSearchParams({
 			analyzer: 'mana2',
 			stats: '0',
-			selected: 'Canary',
-			compare: 'Colemak'
+			selected: 'Canary'
 		});
 
 		writeGlobalFilterUrlState(params, {
