@@ -8,22 +8,18 @@
 	import SharedViewModal from '$lib/components/SharedViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import type { LayoutLikesMap } from '$lib/layout';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { analyzerShortLabel, type StatsAnalyzer } from '$lib/statsAnalyzers';
 	import { isAnalyzerStatsReady } from '$lib/layoutStatsAccess';
+	import { buildLayoutResults, createEmptyLayoutResults } from '$lib/layoutResults';
 	import { analyzersNeededForLoad } from '$lib/statsUsage';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import {
 		buildMirroredPositionMap,
 		buildSimilarityMatchMap,
-		isSimilarLayoutMatch,
-		matchesSimilarityPercentFilter,
-		sortLayoutsBySimilarity,
 		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
-	import type { LayoutListItem } from '$lib/layoutList';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
@@ -189,91 +185,24 @@
 
 	const filteredResult = $derived.by(() => {
 		if (resultsPending) {
-			return {
-				items: [] as LayoutListItem[],
-				forceIncludedNames: new Set<string>(),
-				hiddenSelectedCount: 0
-			};
+			return createEmptyLayoutResults();
 		}
 
-		let result = filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData);
-
-		if (filterStore.similarReferenceName) {
-			result = result.filter((layout) => {
-				if (
-					!isSimilarLayoutMatch(filterStore.similarReferenceName, layout.name, similarityMatches)
-				) {
-					return false;
-				}
-				const info = similarityMatches.get(layout.name);
-				if (info === undefined) return false;
-				return matchesSimilarityPercentFilter(
-					info.percent,
-					filterStore.similarityFilterOperator,
-					filterStore.appliedSimilarityFilterValue
-				);
-			});
-		}
-
-		const forceIncluded = new SvelteSet<string>();
-		let hiddenSelectedCount = 0;
-
-		// Count (and optionally inject) selected layouts that fail current filters.
-		if (filterStore.layoutSource === 'all' && filterStore.selectedLayoutNames.size > 0) {
-			const present = new SvelteSet(result.map((layout) => layout.name));
-			for (const layout of layouts) {
-				if (
-					!filterStore.selectedLayoutNames.has(layout.name) ||
-					layout.name === filterStore.similarReferenceName ||
-					present.has(layout.name)
-				) {
-					continue;
-				}
-				hiddenSelectedCount += 1;
-				if (filterStore.includeSelectedInResults) {
-					result.push(layout);
-					present.add(layout.name);
-					forceIncluded.add(layout.name);
-				}
-			}
-		}
-
-		const sorted =
-			filterStore.sortBy === 'similarity'
-				? sortLayoutsBySimilarity(result, similarityMatches, filterStore.sortOrder)
-				: filterStore.sortLayouts(result, statsMaps, resolvedLikesData);
-
-		// Keep the similarity reference out of the match list — it's shown pinned
-		// (sticky column at lg+, or first card below that).
-		const referenceName = filterStore.similarReferenceName;
-		const layoutsForList = referenceName
-			? sorted.filter((layout) => layout.name !== referenceName)
-			: sorted;
-
-		const sourceNames = filterStore.activeSourceLayoutNames;
-		let items: LayoutListItem[];
-		if (sourceNames !== null) {
-			const byName = new Map(layoutsForList.map((layout) => [layout.name, layout]));
-			const catalogNames = new Set(layouts.map((layout) => layout.name));
-			items = [];
-			for (const name of sourceNames) {
-				if (name === referenceName) continue;
-				const hit = byName.get(name);
-				if (hit) {
-					items.push({ kind: 'layout', layout: hit });
-				} else if (!catalogNames.has(name)) {
-					items.push({ kind: 'missing', name });
-				}
-			}
-		} else {
-			items = layoutsForList.map((layout) => ({ kind: 'layout' as const, layout }));
-		}
-
-		return {
-			items,
-			forceIncludedNames: forceIncluded,
-			hiddenSelectedCount
-		};
+		return buildLayoutResults({
+			catalogLayouts: layouts,
+			filteredLayouts: filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData),
+			layoutSource: filterStore.layoutSource,
+			selectedLayoutNames: filterStore.selectedLayoutNames,
+			includeSelectedInResults: filterStore.includeSelectedInResults,
+			sourceLayoutNames: filterStore.activeSourceLayoutNames,
+			similarReferenceName: filterStore.similarReferenceName,
+			similarityMatches,
+			similarityFilterOperator: filterStore.similarityFilterOperator,
+			similarityFilterValue: filterStore.appliedSimilarityFilterValue,
+			sortBy: filterStore.sortBy,
+			sortOrder: filterStore.sortOrder,
+			sortFilteredLayouts: (result) => filterStore.sortLayouts(result, statsMaps, resolvedLikesData)
+		});
 	});
 
 	const filteredItems = $derived(filteredResult.items);
