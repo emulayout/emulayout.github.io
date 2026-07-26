@@ -30,9 +30,6 @@
 		if (open) {
 			// Focus the search input when dropdown opens
 			searchInput?.focus();
-		} else {
-			// Clear search when dropdown closes
-			search = '';
 		}
 	});
 
@@ -53,19 +50,32 @@
 		onToggle(id);
 	}
 
+	function closeDropdown(restoreTriggerFocus = false) {
+		open = false;
+		search = '';
+		if (restoreTriggerFocus) triggerButton?.focus();
+	}
+
+	function toggleDropdown() {
+		if (open) {
+			closeDropdown();
+		} else {
+			open = true;
+		}
+	}
+
 	function handleFocusOut(e: FocusEvent) {
 		// Check if focus moved outside this component
 		const container = e.currentTarget as HTMLElement;
 		const relatedTarget = e.relatedTarget as HTMLElement | null;
 		if (relatedTarget && !container.contains(relatedTarget)) {
-			open = false;
+			closeDropdown();
 		}
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && open) {
-			open = false;
-			triggerButton?.focus();
+			closeDropdown(true);
 		}
 	}
 </script>
@@ -75,7 +85,7 @@
 	<button
 		id="author-filter-trigger"
 		bind:this={triggerButton}
-		onclick={() => (open = !open)}
+		onclick={toggleDropdown}
 		class="w-full px-4 py-2 rounded-xl text-sm text-left flex items-center justify-between transition-all duration-200 outline-none focus:ring-2"
 		style="
 			background-color: var(--input-bg);
@@ -109,13 +119,7 @@
 	{#if open}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<div
-			class="fixed inset-0 z-10"
-			onclick={() => {
-				open = false;
-				triggerButton?.focus();
-			}}
-		></div>
+		<div class="fixed inset-0 z-10" onclick={() => closeDropdown(true)}></div>
 		<div
 			class="absolute z-20 mt-2 w-full max-h-64 flex flex-col rounded-xl shadow-lg"
 			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
