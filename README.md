@@ -36,4 +36,5 @@ Generated `static/*.json` files are gitignored; CI regenerates them on each depl
 bun run build      # production build
 bun run preview    # preview the build
 bun run check      # typecheck
+bun run test:e2e   # Playwright integration specs (Chromium)
 ```

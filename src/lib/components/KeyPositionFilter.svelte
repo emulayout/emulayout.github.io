@@ -169,6 +169,7 @@
 						class="key-filter-cell text-center rounded transition-all duration-200 outline-none focus:ring-2"
 						style={cellInputStyle(rowIdx, colIdx)}
 						placeholder="·"
+						aria-label={`Key column ${colIdx}, row ${rowIdx}`}
 					/>
 				{/each}
 			</div>

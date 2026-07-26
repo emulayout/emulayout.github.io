@@ -51,6 +51,20 @@ jobs:
       - name: Test
         run: bun test
 
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Playwright tests
+        run: bun run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
