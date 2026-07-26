@@ -1,0 +1,54 @@
+import { describe, expect, test } from 'bun:test';
+import { findLayoutNameMatches } from '$lib/layoutNameSearch';
+
+function layouts(...names: string[]): Array<{ name: string }> {
+	return names.map((name) => ({ name }));
+}
+
+describe('layout name search', () => {
+	test('ranks exact, prefix, and substring matches in that order', () => {
+		const candidates = layouts('Airplane', 'Plan', 'Planet', 'Biplane', 'Planar', 'Maple');
+
+		expect(findLayoutNameMatches(candidates, 'plan', 20)).toEqual([
+			'Plan',
+			'Planar',
+			'Planet',
+			'Airplane',
+			'Biplane'
+		]);
+	});
+
+	test('matches case-insensitively and trims the query', () => {
+		const candidates = layouts('Canary', 'CANARY Wide', 'My canary', 'Graphite');
+
+		expect(findLayoutNameMatches(candidates, '  cAnArY  ', 20)).toEqual([
+			'Canary',
+			'CANARY Wide',
+			'My canary'
+		]);
+	});
+
+	test('alphabetizes equal-ranked results independently of catalog order', () => {
+		const candidates = layouts('Gamma Plan', 'Beta Plan', 'Alpha Plan');
+
+		expect(findLayoutNameMatches(candidates, 'plan', 20)).toEqual([
+			'Alpha Plan',
+			'Beta Plan',
+			'Gamma Plan'
+		]);
+		expect(candidates.map((layout) => layout.name)).toEqual([
+			'Gamma Plan',
+			'Beta Plan',
+			'Alpha Plan'
+		]);
+	});
+
+	test('applies the result limit and rejects empty or non-positive searches', () => {
+		const candidates = layouts('Alpha', 'Alpine', 'Alphabet');
+
+		expect(findLayoutNameMatches(candidates, 'al', 2)).toEqual(['Alpha', 'Alphabet']);
+		expect(findLayoutNameMatches(candidates, ' ', 20)).toEqual([]);
+		expect(findLayoutNameMatches(candidates, 'al', 0)).toEqual([]);
+		expect(findLayoutNameMatches([], 'al', 20)).toEqual([]);
+	});
+});

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { LayoutData } from '$lib/layout';
+	import { findLayoutNameMatches } from '$lib/layoutNameSearch';
 
 	interface Props {
 		layouts: LayoutData[];
@@ -30,22 +31,7 @@
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
 	let listEl = $state<HTMLUListElement | undefined>(undefined);
 
-	const matches = $derived.by(() => {
-		const term = query.trim().toLowerCase();
-		if (!term || layouts.length === 0) return [];
-
-		const ranked: { name: string; rank: number }[] = [];
-		for (const layout of layouts) {
-			const name = layout.name;
-			const lower = name.toLowerCase();
-			if (!lower.includes(term)) continue;
-			const rank = lower === term ? 0 : lower.startsWith(term) ? 1 : 2;
-			ranked.push({ name, rank });
-		}
-
-		ranked.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
-		return ranked.slice(0, maxResults).map((entry) => entry.name);
-	});
+	const matches = $derived(findLayoutNameMatches(layouts, query, maxResults));
 
 	const listOpen = $derived(open && query.trim().length > 0);
 
@@ -58,7 +44,7 @@
 	});
 
 	$effect(() => {
-		query;
+		void query;
 		activeIndex = 0;
 	});
 

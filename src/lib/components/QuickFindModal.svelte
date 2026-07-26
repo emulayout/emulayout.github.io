@@ -2,6 +2,7 @@
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
@@ -32,22 +33,7 @@
 		)
 	);
 
-	const matches = $derived.by(() => {
-		const term = query.trim().toLowerCase();
-		if (!term || layoutsCatalog.layouts.length === 0) return [];
-
-		const ranked: { name: string; rank: number }[] = [];
-		for (const layout of layoutsCatalog.layouts) {
-			const name = layout.name;
-			const lower = name.toLowerCase();
-			if (!lower.includes(term)) continue;
-			const rank = lower === term ? 0 : lower.startsWith(term) ? 1 : 2;
-			ranked.push({ name, rank });
-		}
-
-		ranked.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
-		return ranked.slice(0, MAX_RESULTS).map((r) => r.name);
-	});
+	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layouts, query, MAX_RESULTS));
 
 	const highlightedLayout = $derived.by((): LayoutData | null => {
 		const name = matches[activeIndex];
