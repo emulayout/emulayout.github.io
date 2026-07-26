@@ -14,6 +14,36 @@ import {
 	type ViewFilterSnapshot
 } from './filterSnapshot';
 
+/** Canonical view-owned filter parameters, including read-only legacy aliases. */
+export const VIEW_FILTER_URL_PARAMS = [
+	'include',
+	'exclude',
+	'includeOr',
+	'showUnfinished',
+	'thumbKeys',
+	'magicKey',
+	'characterSet',
+	'boardType',
+	'name',
+	'authors',
+	'includeLeftThumbs',
+	'includeRightThumbs',
+	'excludeLeftThumbs',
+	'excludeRightThumbs',
+	'includeThumbs',
+	'excludeThumbs',
+	'includeOrLeftThumbs',
+	'includeOrRightThumbs',
+	'sort',
+	'order',
+	'similar',
+	'similarFilter',
+	'similarHome',
+	'similarAnglemod',
+	'similarMirror',
+	'statLimits'
+] as const;
+
 export function serializeStatLimits(limits: Record<StatLimitKey, StatLimit>): string {
 	const parts: string[] = [];
 	for (const field of ALL_STAT_FILTER_FIELDS) {
@@ -59,12 +89,14 @@ export function deserializeThumbFilters(value: string | null | undefined): strin
 		: createEmptyThumbKeyFilters();
 }
 
-/** Compact query-string encoding of a view snapshot (shareable; not live URL filters). */
-export function encodeViewFilterSnapshot(
-	snapshot: ViewFilterSnapshot,
-	options?: { sourceLayoutNames?: string[] }
-): string {
-	const params = new URLSearchParams();
+/** Replace view-owned filter parameters while preserving unrelated URL state. */
+export function writeViewFilterUrlState(
+	params: URLSearchParams,
+	snapshot: ViewFilterSnapshot
+): void {
+	for (const key of VIEW_FILTER_URL_PARAMS) {
+		params.delete(key);
+	}
 
 	const includeSerialized = serializeGrid(snapshot.appliedIncludeGrid);
 	if (includeSerialized) params.set('include', includeSerialized);
@@ -133,6 +165,15 @@ export function encodeViewFilterSnapshot(
 
 	const statLimitsSerialized = serializeStatLimits(snapshot.appliedStatLimits);
 	if (statLimitsSerialized) params.set('statLimits', statLimitsSerialized);
+}
+
+/** Compact query-string encoding of a view snapshot (shareable; not global URL state). */
+export function encodeViewFilterSnapshot(
+	snapshot: ViewFilterSnapshot,
+	options?: { sourceLayoutNames?: string[] }
+): string {
+	const params = new URLSearchParams();
+	writeViewFilterUrlState(params, snapshot);
 
 	if (options?.sourceLayoutNames && options.sourceLayoutNames.length > 0) {
 		params.set('layouts', sortLayoutSourceNames(options.sourceLayoutNames).join(','));

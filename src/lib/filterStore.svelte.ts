@@ -50,9 +50,7 @@ import {
 	deserializeStatLimits,
 	deserializeThumbFilters,
 	encodeViewFilterSnapshot,
-	serializeGrid,
-	serializeStatLimits,
-	serializeThumbFilters
+	writeViewFilterUrlState
 } from './filterUrlCodec';
 import {
 	filterLayouts as filterLayoutCatalog,
@@ -628,43 +626,7 @@ export class FilterStore {
 		}
 
 		// Filter params use applied (committed) state so the URL matches results/chips.
-		const includeSerialized = serializeGrid(this.appliedIncludeGrid);
-		if (includeSerialized) {
-			url.searchParams.set('include', includeSerialized);
-		}
-
-		const excludeSerialized = serializeGrid(this.appliedExcludeGrid);
-		if (excludeSerialized) {
-			url.searchParams.set('exclude', excludeSerialized);
-		}
-
-		if (this.showUnfinished) {
-			url.searchParams.set('showUnfinished', '1');
-		}
-
-		if (this.thumbKeyFilter !== 'optional') {
-			url.searchParams.set('thumbKeys', this.thumbKeyFilter);
-		}
-
-		if (this.magicKeyFilter !== 'optional') {
-			url.searchParams.set('magicKey', this.magicKeyFilter);
-		}
-
-		if (this.characterSetFilter !== 'english') {
-			url.searchParams.set('characterSet', this.characterSetFilter);
-		}
-
-		if (this.boardTypeFilter !== 'all') {
-			url.searchParams.set('boardType', this.boardTypeFilter);
-		}
-
-		if (this.nameFilter) {
-			url.searchParams.set('name', this.nameFilter);
-		}
-
-		if (this.selectedAuthors.size > 0) {
-			url.searchParams.set('authors', Array.from(this.selectedAuthors).join(','));
-		}
+		writeViewFilterUrlState(url.searchParams, this.#captureViewFilters());
 
 		if (this.activeSavedFilterId) {
 			// Persist session source overrides (not in the filter snapshot).
@@ -677,70 +639,6 @@ export class FilterStore {
 			url.searchParams.set('source', 'selected');
 		} else if (this.includeSelectedInResults && this.selectedLayoutNames.size > 0) {
 			url.searchParams.set('showSelected', '1');
-		}
-
-		const includeLeftThumbsSerialized = serializeThumbFilters(this.appliedIncludeLeftThumbKeys);
-		if (includeLeftThumbsSerialized) {
-			url.searchParams.set('includeLeftThumbs', includeLeftThumbsSerialized);
-		}
-
-		const includeRightThumbsSerialized = serializeThumbFilters(this.appliedIncludeRightThumbKeys);
-		if (includeRightThumbsSerialized) {
-			url.searchParams.set('includeRightThumbs', includeRightThumbsSerialized);
-		}
-
-		const excludeLeftThumbsSerialized = serializeThumbFilters(this.appliedExcludeLeftThumbKeys);
-		if (excludeLeftThumbsSerialized) {
-			url.searchParams.set('excludeLeftThumbs', excludeLeftThumbsSerialized);
-		}
-
-		const excludeRightThumbsSerialized = serializeThumbFilters(this.appliedExcludeRightThumbKeys);
-		if (excludeRightThumbsSerialized) {
-			url.searchParams.set('excludeRightThumbs', excludeRightThumbsSerialized);
-		}
-
-		const includeOrSerialized = serializeGrid(this.appliedIncludeOrGrid);
-		if (includeOrSerialized) {
-			url.searchParams.set('includeOr', includeOrSerialized);
-		}
-
-		const includeOrLeftThumbsSerialized = serializeThumbFilters(this.appliedIncludeOrLeftThumbKeys);
-		if (includeOrLeftThumbsSerialized) {
-			url.searchParams.set('includeOrLeftThumbs', includeOrLeftThumbsSerialized);
-		}
-
-		const includeOrRightThumbsSerialized = serializeThumbFilters(
-			this.appliedIncludeOrRightThumbKeys
-		);
-		if (includeOrRightThumbsSerialized) {
-			url.searchParams.set('includeOrRightThumbs', includeOrRightThumbsSerialized);
-		}
-
-		if (this.sortBy !== 'date' || this.sortOrder !== 'desc') {
-			url.searchParams.set('sort', this.sortBy);
-			url.searchParams.set('order', this.sortOrder);
-		}
-
-		if (this.similarReferenceName) {
-			url.searchParams.set('similar', this.similarReferenceName);
-			url.searchParams.set(
-				'similarFilter',
-				`${this.similarityFilterOperator}:${this.appliedSimilarityFilterValue.trim()}`
-			);
-			if (this.similarityWeightHomeKeys) {
-				url.searchParams.set('similarHome', '1');
-			}
-			if (this.similarReferenceAnglemod) {
-				url.searchParams.set('similarAnglemod', '1');
-			}
-			if (this.similarityMirrorMode !== 'excluded') {
-				url.searchParams.set('similarMirror', this.similarityMirrorMode);
-			}
-		}
-
-		const statLimitsSerialized = serializeStatLimits(this.appliedStatLimits);
-		if (statLimitsSerialized) {
-			url.searchParams.set('statLimits', statLimitsSerialized);
 		}
 
 		this.#writeGlobalUrlState(url.searchParams);

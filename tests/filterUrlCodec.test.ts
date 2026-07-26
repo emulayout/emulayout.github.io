@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
 	decodeViewFilterSnapshot,
 	encodeViewFilterSnapshot,
-	parseStatLimitsParam
+	parseStatLimitsParam,
+	writeViewFilterUrlState
 } from '$lib/filterUrlCodec';
 import { createDefaultViewSnapshot } from '$lib/filterSnapshot';
 
@@ -12,6 +13,28 @@ describe('view filter URL codec', () => {
 
 		expect(encodeViewFilterSnapshot(defaults)).toBe('');
 		expect(decodeViewFilterSnapshot('')).toEqual({ snapshot: defaults });
+	});
+
+	test('replaces view-owned parameters while preserving unrelated URL state', () => {
+		const params = new URLSearchParams({
+			selected: 'Colemak,Canary',
+			analyzer: 'mana2',
+			include: '00x',
+			includeThumbs: 'legacy',
+			similar: 'Stale'
+		});
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.appliedIncludeGrid[0][0] = 'a';
+		snapshot.showUnfinished = true;
+
+		writeViewFilterUrlState(params, snapshot);
+
+		expect(params.get('selected')).toBe('Colemak,Canary');
+		expect(params.get('analyzer')).toBe('mana2');
+		expect(params.get('include')).toBe('00a');
+		expect(params.get('showUnfinished')).toBe('1');
+		expect(params.has('includeThumbs')).toBe(false);
+		expect(params.has('similar')).toBe(false);
 	});
 
 	test('round-trips applied filters and sorted source membership', () => {

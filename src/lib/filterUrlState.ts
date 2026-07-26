@@ -3,6 +3,7 @@ import {
 	parseStatsAnalyzerMode,
 	type StatsAnalyzerMode
 } from './statsAnalyzers';
+import { VIEW_FILTER_URL_PARAMS } from './filterUrlCodec';
 
 /**
  * Filter/sort params that mean a saved view's live state differs from its
@@ -10,32 +11,7 @@ import {
  * not appear here.
  */
 const SAVED_VIEW_FILTER_URL_PARAMS = [
-	'include',
-	'exclude',
-	'includeOr',
-	'showUnfinished',
-	'thumbKeys',
-	'magicKey',
-	'characterSet',
-	'boardType',
-	'name',
-	'authors',
-	'includeLeftThumbs',
-	'includeRightThumbs',
-	'excludeLeftThumbs',
-	'excludeRightThumbs',
-	'includeThumbs',
-	'excludeThumbs',
-	'includeOrLeftThumbs',
-	'includeOrRightThumbs',
-	'sort',
-	'order',
-	'similar',
-	'similarFilter',
-	'similarHome',
-	'similarAnglemod',
-	'similarMirror',
-	'statLimits',
+	...VIEW_FILTER_URL_PARAMS,
 	'layouts',
 	'showSelected'
 ] as const;
