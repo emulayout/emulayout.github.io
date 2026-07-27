@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	let open = $state(false);
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined);
@@ -237,6 +238,40 @@
 				</span>
 			</span>
 		</label>
+
+		<section class="display-settings-section" aria-labelledby="stats-presentation-title">
+			<h3 id="stats-presentation-title" class="display-settings-section-title">
+				Stats presentation
+			</h3>
+			<div class="display-settings-mode-row">
+				<span class="display-settings-copy">
+					<span id="finger-usage-display-label" class="display-settings-label">Finger usage</span>
+					<span class="display-settings-desc">
+						Choose how finger usage appears on layout cards.
+					</span>
+				</span>
+				<div
+					class="display-settings-mode-control"
+					role="group"
+					aria-labelledby="finger-usage-display-label"
+				>
+					<button
+						type="button"
+						class="display-settings-mode-option"
+						class:display-settings-mode-option--active={!uiPrefs.fingerUsageBars}
+						aria-pressed={!uiPrefs.fingerUsageBars}
+						onclick={() => uiPrefs.setFingerUsageBars(false)}>Text</button
+					>
+					<button
+						type="button"
+						class="display-settings-mode-option"
+						class:display-settings-mode-option--active={uiPrefs.fingerUsageBars}
+						aria-pressed={uiPrefs.fingerUsageBars}
+						onclick={() => uiPrefs.setFingerUsageBars(true)}>Visual</button
+					>
+				</div>
+			</div>
+		</section>
 	</div>
 </ModalShell>
 
@@ -251,6 +286,24 @@
 		gap: 1rem;
 	}
 
+	.display-settings-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.display-settings-section-title {
+		margin: 0;
+		color: var(--text-caption);
+		font-size: 0.6875rem;
+		font-weight: 600;
+		line-height: 1.2;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
 	.display-settings-row {
 		display: flex;
 		align-items: flex-start;
@@ -259,6 +312,53 @@
 		user-select: none;
 		font-size: 0.875rem;
 		line-height: 1.25;
+	}
+
+	.display-settings-mode-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		font-size: 0.875rem;
+		line-height: 1.25;
+	}
+
+	.display-settings-mode-control {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		flex-shrink: 0;
+		padding: 2px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		background: var(--bg-primary);
+	}
+
+	.display-settings-mode-option {
+		min-width: 3.75rem;
+		padding: 0.35rem 0.6rem;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.2;
+		cursor: pointer;
+		outline: none;
+		transition:
+			background-color 0.15s ease,
+			color 0.15s ease;
+	}
+
+	.display-settings-mode-option--active {
+		background: var(--accent);
+		color: white;
+	}
+
+	.display-settings-mode-option:focus-visible {
+		box-shadow:
+			0 0 0 2px var(--bg-secondary),
+			0 0 0 4px var(--accent);
 	}
 
 	.display-settings-check {

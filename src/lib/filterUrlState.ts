@@ -70,6 +70,7 @@ export function writeGlobalFilterUrlState(
 		'testArea',
 		'likes',
 		'newIndicator',
+		'fingerBars',
 		'stickySimilar'
 	]) {
 		searchParams.delete(key);

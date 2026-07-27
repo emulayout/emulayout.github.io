@@ -2,6 +2,8 @@
 export const STATS_BLOCK_LINE_COUNT = 14;
 export const CYANOPHAGE_STATS_BLOCK_LINE_COUNT = 14;
 export const MANA2_STATS_BLOCK_LINE_COUNT = 18;
+/** Hand totals plus the spacer and per-finger rows replaced by FingerUsageBars. */
+export const FINGER_USAGE_TEXT_LINE_COUNT = 6;
 
 /** Longest Cyanophage stat label, used to align its value column. */
 export const CYANOPHAGE_STAT_LABEL_WIDTH = 20;

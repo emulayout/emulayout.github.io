@@ -5,7 +5,9 @@ import {
 	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
-	deriveMana2Stats
+	deriveMana2Stats,
+	CYANOPHAGE_FINGER_STAT_KEYS,
+	type CyanophageFingerUsageKey
 } from '$lib/statsDerivation';
 import {
 	buildBotStatsBlockLines,
@@ -30,8 +32,16 @@ import type { SortOrder } from '$lib/statsSorting';
 
 export type CompactAnalyzerStats = CompactLayoutStats | CompactCyanophageStats | CompactMana2Stats;
 
+export interface LayoutFingerUsageModel {
+	usage: Record<CyanophageFingerUsageKey, number>;
+	leftTotal: number;
+	rightTotal: number;
+}
+
 export interface LayoutStatsBlockModel {
+	analyzer: StatsAnalyzer;
 	lines: StatsBlockSegment[][] | null;
+	fingerUsage: LayoutFingerUsageModel | null;
 	fallback: string;
 	loading: boolean;
 	mana2: boolean;
@@ -44,6 +54,18 @@ interface LayoutStatsBlockModelOptions {
 	cyanophageCompatible?: boolean;
 	highlights?: StatCardHighlightState;
 	sortOrder?: SortOrder | null;
+}
+
+function buildFingerUsageModel(
+	stats: Record<CyanophageFingerUsageKey | 'lh' | 'rh', number>
+): LayoutFingerUsageModel {
+	return {
+		usage: Object.fromEntries(
+			CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]])
+		) as Record<CyanophageFingerUsageKey, number>,
+		leftTotal: stats.lh,
+		rightTotal: stats.rh
+	};
 }
 
 export function buildLayoutStatsBlockModel(
@@ -60,15 +82,18 @@ export function buildLayoutStatsBlockModel(
 			cyanophageCompatible && compactStats
 				? decodeCyanophageStats(compactStats as CompactCyanophageStats)
 				: undefined;
+		const stats = decoded ? deriveCyanophageStats(decoded) : null;
 		return {
-			lines: decoded
+			analyzer,
+			lines: stats
 				? buildCyanophageStatsBlockLines(
-						deriveCyanophageStats(decoded),
+						stats,
 						highlights?.cyanophageFilterHighlightKeys,
 						highlights?.cyanophageSortHighlightKey,
 						sortOrder
 					)
 				: null,
+			fingerUsage: stats ? buildFingerUsageModel(stats) : null,
 			fallback: loading
 				? formatCyanophageStatsLoadingBlock()
 				: formatCyanophageStatsUnavailableBlock(
@@ -81,15 +106,18 @@ export function buildLayoutStatsBlockModel(
 
 	if (analyzer === MANA2_ANALYZER) {
 		const decoded = compactStats ? decodeMana2Stats(compactStats as CompactMana2Stats) : undefined;
+		const stats = decoded ? deriveMana2Stats(decoded) : null;
 		return {
-			lines: decoded
+			analyzer,
+			lines: stats
 				? buildMana2StatsBlockLines(
-						deriveMana2Stats(decoded),
+						stats,
 						highlights?.mana2FilterHighlightKeys,
 						highlights?.mana2SortHighlightKey,
 						sortOrder
 					)
 				: null,
+			fingerUsage: stats ? buildFingerUsageModel(stats) : null,
 			fallback: loading ? formatMana2StatsLoadingBlock() : formatMana2StatsUnavailableBlock(),
 			loading,
 			mana2: true
@@ -97,15 +125,18 @@ export function buildLayoutStatsBlockModel(
 	}
 
 	const decoded = compactStats ? decodeCminiStats(compactStats as CompactLayoutStats) : undefined;
+	const stats = decoded ? deriveBotStats(decoded) : null;
 	return {
-		lines: decoded
+		analyzer,
+		lines: stats
 			? buildBotStatsBlockLines(
-					deriveBotStats(decoded),
+					stats,
 					highlights?.botFilterHighlightKeys,
 					highlights?.botSortHighlightKey,
 					sortOrder
 				)
 			: null,
+		fingerUsage: stats ? buildFingerUsageModel(stats) : null,
 		fallback: loading ? formatStatsLoadingBlock() : formatStatsUnavailableBlock(),
 		loading,
 		mana2: false

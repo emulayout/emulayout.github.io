@@ -7,13 +7,27 @@
 		mana2?: boolean;
 		unavailable?: boolean;
 		shrink?: boolean;
+		/** Override the fixed line count when part of the text block is replaced by another view. */
+		lineCount?: number;
 	}
 
-	const { lines, fallback, mana2 = false, unavailable = true, shrink = false }: Props = $props();
+	const {
+		lines,
+		fallback,
+		mana2 = false,
+		unavailable = true,
+		shrink = false,
+		lineCount
+	}: Props = $props();
 </script>
 
 {#if lines}
-	<div class="stats-block" class:stats-block--mana2={mana2} class:shrink-0={shrink}>
+	<div
+		class="stats-block"
+		class:stats-block--mana2={mana2}
+		class:shrink-0={shrink}
+		style={lineCount === undefined ? undefined : `--stats-line-count: ${lineCount}`}
+	>
 		{#each lines as line, lineIndex (lineIndex)}
 			<div class="stats-block-line">
 				{#each line as segment, segmentIndex (segmentIndex)}
@@ -33,5 +47,8 @@
 		class="stats-block"
 		class:stats-block--mana2={mana2}
 		class:stats-block--unavailable={unavailable}
-		class:shrink-0={shrink}>{fallback}</pre>
+		class:shrink-0={shrink}
+		style={lineCount === undefined
+			? undefined
+			: `--stats-line-count: ${lineCount}`}>{fallback}</pre>
 {/if}

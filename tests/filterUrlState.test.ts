@@ -71,6 +71,7 @@ describe('global filter URL state', () => {
 		const params = new URLSearchParams({
 			analyzer: 'mana2',
 			stats: '0',
+			fingerBars: '0',
 			selected: 'Canary'
 		});
 

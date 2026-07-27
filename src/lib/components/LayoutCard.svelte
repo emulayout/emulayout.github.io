@@ -6,6 +6,7 @@
 		LayoutData
 	} from '$lib/layout';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
@@ -270,6 +271,7 @@
 					cmini={cminiStatsModel}
 					cyanophage={cyanophageStatsModel}
 					mana2={mana2StatsModel}
+					showFingerUsageBars={uiPrefs.fingerUsageBars}
 				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
