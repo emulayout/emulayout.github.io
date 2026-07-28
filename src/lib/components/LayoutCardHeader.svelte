@@ -74,25 +74,29 @@
 	</svg>
 {/snippet}
 
+{#snippet magicKeyIcon()}
+	<svg
+		class="size-4"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"
+	>
+		<!-- Lucide sparkles style (inline; no icon pack dependency) -->
+		<path
+			d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
+		/>
+	</svg>
+{/snippet}
+
 {#snippet mappingsIcon()}
 	{#if hasAdaptiveSwapMappings && !layout.hasMagicKeyMappings}
 		{@render adaptiveSwapIcon()}
 	{:else}
-		<svg
-			class="size-4"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<!-- Lucide sparkles style (inline; no icon pack dependency) -->
-			<path
-				d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"
-			/>
-		</svg>
+		{@render magicKeyIcon()}
 	{/if}
 {/snippet}
 
@@ -168,6 +172,15 @@
 					aria-label="Adaptive swap layout; mappings unavailable"
 				>
 					{@render adaptiveSwapIcon()}
+				</span>
+			{/if}
+			{#if layout.hasMagicKey && !layout.hasMagicKeyMappings}
+				<span
+					class="input-mappings-indicator input-mappings-indicator--unavailable"
+					title="Magic key layout; mappings unavailable"
+					aria-label="Magic key layout; mappings unavailable"
+				>
+					{@render magicKeyIcon()}
 				</span>
 			{/if}
 			{#if showNewIndicator}
