@@ -1,0 +1,44 @@
+{
+	"mappings": {
+		"l": {
+			"y": "j"
+		},
+		"n": {
+			"l": "b",
+			"'": "h",
+			"y": "r"
+		}
+	},
+	"groups": [
+		{
+			"id": "slides",
+			"label": "Slides",
+			"mappings": {
+				"p": {
+					"h": "m"
+				},
+				"u": {
+					"e": "o"
+				},
+				"w": {
+					"r": "c"
+				}
+			}
+		},
+		{
+			"id": "comfort",
+			"label": "Scissors and lateral stretches",
+			"mappings": {
+				"g": {
+					"r": "v"
+				},
+				"m": {
+					"b": "k"
+				},
+				"w": {
+					"s": "m"
+				}
+			}
+		}
+	]
+}

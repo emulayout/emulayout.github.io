@@ -21,6 +21,8 @@ function makeLayout(
 		hasAllLetters = true,
 		hasMagicKey = false,
 		hasMagicKeyMappings = false,
+		hasAdaptiveSwap = false,
+		hasAdaptiveSwapMappings = false,
 		updatedAt = '2026-01-01'
 	}: Partial<{
 		user: number;
@@ -32,6 +34,8 @@ function makeLayout(
 		hasAllLetters: boolean;
 		hasMagicKey: boolean;
 		hasMagicKeyMappings: boolean;
+		hasAdaptiveSwap: boolean;
+		hasAdaptiveSwapMappings: boolean;
 		updatedAt: string;
 	}> = {}
 ): LayoutData {
@@ -47,6 +51,8 @@ function makeLayout(
 		hasAllLetters,
 		hasMagicKey,
 		hasMagicKeyMappings,
+		hasAdaptiveSwap,
+		hasAdaptiveSwapMappings,
 		cyanophageCompatible: true,
 		updatedAt
 	};
@@ -61,6 +67,7 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		showUnfinished: snapshot.showUnfinished,
 		thumbKeyFilter: snapshot.thumbKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
+		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
 		characterSetFilter: snapshot.characterSetFilter,
 		boardTypeFilter: snapshot.boardTypeFilter,
 		nameFilter: snapshot.nameFilter,
@@ -147,6 +154,27 @@ describe('filterLayouts', () => {
 				makeCriteria({ magicKeyFilter: 'required-mapped' })
 			).map((layout) => layout.name)
 		).toEqual(['Mapped magic']);
+	});
+
+	test('distinguishes all adaptive layouts from those with known mappings', () => {
+		const ordinary = makeLayout('ordinary');
+		const unknown = makeLayout('adaptive-unknown', { hasAdaptiveSwap: true });
+		const mapped = makeLayout('adaptive-mapped', {
+			hasAdaptiveSwap: true,
+			hasAdaptiveSwapMappings: true
+		});
+		const layouts = [ordinary, unknown, mapped];
+
+		expect(filterLayouts(layouts, makeCriteria({ adaptiveSwapFilter: 'required' }))).toEqual([
+			unknown,
+			mapped
+		]);
+		expect(filterLayouts(layouts, makeCriteria({ adaptiveSwapFilter: 'required-mapped' }))).toEqual(
+			[mapped]
+		);
+		expect(filterLayouts(layouts, makeCriteria({ adaptiveSwapFilter: 'excluded' }))).toEqual([
+			ordinary
+		]);
 	});
 
 	test('hides unfinished layouts unless allowed by the current character rules', () => {

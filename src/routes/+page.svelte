@@ -21,12 +21,12 @@
 		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
 	import { onMount } from 'svelte';
-	import { compileMagicKeyRegistry } from '$lib/magicKeyRegistry';
+	import { compileLayoutInputRegistry } from '$lib/layoutInputBehaviors';
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
-	const magicKeyProfiles = $derived(compileMagicKeyRegistry(data.magicKeyMappings));
+	const inputProfiles = $derived(compileLayoutInputRegistry(data.inputBehaviors));
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
 	let lazyLikesData: LayoutLikesMap | null = $state(null);
 	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);
@@ -279,7 +279,7 @@
 							{getAuthorName}
 							likesData={resolvedLikesData}
 							{statsMaps}
-							{magicKeyProfiles}
+							{inputProfiles}
 							{similarityMatches}
 							similarDiffPositions={similarReferenceForCompare?.positionBySlot}
 							similarMirrorDiffPositions={mirroredReferencePositions}

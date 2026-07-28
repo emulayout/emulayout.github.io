@@ -1,5 +1,6 @@
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 import type {
+	AdaptiveSwapFilter,
 	BoardTypeFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
@@ -32,6 +33,7 @@ export type FilterChipSource = {
 	selectedAuthors: { size: number };
 	thumbKeyFilter: ThumbKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
+	adaptiveSwapFilter: AdaptiveSwapFilter;
 	boardTypeFilter: BoardTypeFilter;
 	characterSetFilter: CharacterSetFilter;
 	showUnfinished: boolean;
@@ -63,6 +65,7 @@ export function chipSourceFromViewSnapshot(
 		selectedAuthors: { size: snapshot.selectedAuthors.length },
 		thumbKeyFilter: snapshot.thumbKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
+		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
 		boardTypeFilter: snapshot.boardTypeFilter,
 		characterSetFilter: snapshot.characterSetFilter,
 		showUnfinished: snapshot.showUnfinished,
@@ -175,6 +178,7 @@ export type ActiveFilterClearAction =
 	| { kind: 'authors' }
 	| { kind: 'thumbKey' }
 	| { kind: 'magicKey' }
+	| { kind: 'adaptiveSwap' }
 	| { kind: 'boardType' }
 	| { kind: 'characterSet' }
 	| { kind: 'showUnfinished' }
@@ -265,6 +269,19 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 				? 'Magic: known mappings'
 				: `Magic ${store.magicKeyFilter}`;
 		pushChip(chips, 'magic', label, { kind: 'magicKey' }, { target: 'keyboard', field: 'magic' });
+	}
+	if (store.adaptiveSwapFilter !== 'optional') {
+		const label =
+			store.adaptiveSwapFilter === 'required-mapped'
+				? 'Adaptive: known mappings'
+				: `Adaptive ${store.adaptiveSwapFilter}`;
+		pushChip(
+			chips,
+			'adaptive',
+			label,
+			{ kind: 'adaptiveSwap' },
+			{ target: 'keyboard', field: 'adaptive' }
+		);
 	}
 	if (store.boardTypeFilter !== 'all') {
 		pushChip(
@@ -448,6 +465,7 @@ export interface ActiveFilterClearTarget {
 	clearAuthors(): void;
 	setThumbKeyFilter(value: ThumbKeyFilter): void;
 	setMagicKeyFilter(value: MagicKeyFilter): void;
+	setAdaptiveSwapFilter(value: AdaptiveSwapFilter): void;
 	setBoardTypeFilter(value: BoardTypeFilter): void;
 	setCharacterSetFilter(value: CharacterSetFilter): void;
 	setShowUnfinished(value: boolean): void;
@@ -478,6 +496,9 @@ export function clearActiveFilterChip(
 			break;
 		case 'magicKey':
 			store.setMagicKeyFilter('optional');
+			break;
+		case 'adaptiveSwap':
+			store.setAdaptiveSwapFilter('optional');
 			break;
 		case 'boardType':
 			store.setBoardTypeFilter('all');

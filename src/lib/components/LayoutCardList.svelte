@@ -14,8 +14,8 @@
 	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
-	import type { MagicKeyProfile } from '$lib/magicKeys';
-	import MagicKeyMappingsWindow from './MagicKeyMappingsWindow.svelte';
+	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
+	import InputMappingsWindow from './InputMappingsWindow.svelte';
 
 	interface Props {
 		items: LayoutListItem[];
@@ -26,7 +26,7 @@
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
-		magicKeyProfiles: ReadonlyMap<string, MagicKeyProfile>;
+		inputProfiles: ReadonlyMap<string, LayoutInputProfile>;
 		similarityMatches?: Map<string, SimilarityMatchInfo>;
 		/** Direct reference slots for per-key diff highlighting. */
 		similarDiffPositions?: Map<string, string>;
@@ -42,7 +42,7 @@
 		getAuthorName,
 		likesData,
 		statsMaps,
-		magicKeyProfiles,
+		inputProfiles,
 		similarityMatches = new Map(),
 		similarDiffPositions,
 		similarMirrorDiffPositions = null,
@@ -53,10 +53,10 @@
 		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
 		scrollTo?: (offset: number) => void;
 	}>();
-	let floatingMagicKeyLayoutName = $state<string>();
+	let floatingInputMappingsLayoutName = $state<string>();
 
-	const floatingMagicKeyProfile = $derived(
-		floatingMagicKeyLayoutName ? magicKeyProfiles.get(floatingMagicKeyLayoutName) : undefined
+	const floatingInputProfile = $derived(
+		floatingInputMappingsLayoutName ? inputProfiles.get(floatingInputMappingsLayoutName) : undefined
 	);
 
 	const splitUp = new MediaQuery(`(min-width: ${LAYOUT_SPLIT_MIN_WIDTH}px)`);
@@ -176,12 +176,13 @@
 		onRemoveMissingLayout?.(name);
 	}
 
-	function toggleFloatingMagicKeyMappings(layoutName: string) {
-		floatingMagicKeyLayoutName = floatingMagicKeyLayoutName === layoutName ? undefined : layoutName;
+	function toggleFloatingInputMappings(layoutName: string) {
+		floatingInputMappingsLayoutName =
+			floatingInputMappingsLayoutName === layoutName ? undefined : layoutName;
 	}
 
-	function closeFloatingMagicKeyMappings() {
-		floatingMagicKeyLayoutName = undefined;
+	function closeFloatingInputMappings() {
+		floatingInputMappingsLayoutName = undefined;
 	}
 </script>
 
@@ -200,9 +201,9 @@
 		compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
 			? statsMaps.mana2?.[layout.name]
 			: undefined}
-		magicKeyProfile={magicKeyProfiles.get(layout.name)}
-		magicKeyMappingsWindowOpen={floatingMagicKeyLayoutName === layout.name}
-		onToggleMagicKeyMappingsWindow={() => toggleFloatingMagicKeyMappings(layout.name)}
+		inputProfile={inputProfiles.get(layout.name)}
+		inputMappingsWindowOpen={floatingInputMappingsLayoutName === layout.name}
+		onToggleInputMappingsWindow={() => toggleFloatingInputMappings(layout.name)}
 		forceIncluded={forceIncludedNames.has(layout.name)}
 		similarMatchPercent={matchInfo?.percent}
 		similarMirrored={matchInfo?.mirrored ?? false}
@@ -275,11 +276,11 @@
 	{@render virtualList()}
 {/if}
 
-{#if floatingMagicKeyLayoutName && floatingMagicKeyProfile}
-	<MagicKeyMappingsWindow
-		layoutName={floatingMagicKeyLayoutName}
-		profile={floatingMagicKeyProfile}
-		onClose={closeFloatingMagicKeyMappings}
+{#if floatingInputMappingsLayoutName && floatingInputProfile}
+	<InputMappingsWindow
+		layoutName={floatingInputMappingsLayoutName}
+		profile={floatingInputProfile}
+		onClose={closeFloatingInputMappings}
 	/>
 {/if}
 

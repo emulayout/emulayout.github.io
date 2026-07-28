@@ -1,0 +1,6 @@
+# Layouts known to use adaptive swaps, including layouts whose mappings are not
+# curated locally. Keep names aligned with Cmini layout names.
+adaptive-bunya
+adaptive-gallium
+adaptive-north
+adaptive-sturdy

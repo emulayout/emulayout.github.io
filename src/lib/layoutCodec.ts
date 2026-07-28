@@ -23,6 +23,8 @@ export const LAYOUT_FLAG_INTERNATIONAL = 8;
 export const LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE = 16;
 export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
 export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
+export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
+export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
 
 /** Current wire format field count (no displayValue). */
 export const COMPACT_LAYOUT_FIELD_COUNT = 9;
@@ -119,6 +121,8 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		hasAllLetters: (flags & LAYOUT_FLAG_ALL_LETTERS) !== 0,
 		hasMagicKey: (flags & LAYOUT_FLAG_MAGIC_KEY) !== 0,
 		hasMagicKeyMappings: (flags & LAYOUT_FLAG_MAGIC_KEY_MAPPINGS) !== 0,
+		hasAdaptiveSwap: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP) !== 0,
+		hasAdaptiveSwapMappings: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS) !== 0,
 		characterSet: (flags & LAYOUT_FLAG_INTERNATIONAL) !== 0 ? 'international' : 'english',
 		cyanophageCompatible: (flags & LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE) !== 0,
 		cyanophageThumb:

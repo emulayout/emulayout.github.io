@@ -75,6 +75,7 @@ import {
 	createEmptyStatLimits,
 	createEmptyThumbKeyFilters,
 	normalizeViewSortBy,
+	type AdaptiveSwapFilter,
 	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
@@ -86,6 +87,7 @@ import {
 } from './filterSnapshot';
 
 export type {
+	AdaptiveSwapFilter,
 	BoardTypeFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
@@ -121,6 +123,7 @@ export class FilterStore {
 	showUnfinished: boolean = $state(false);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
+	adaptiveSwapFilter: AdaptiveSwapFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
 	boardTypeFilter: BoardTypeFilter = $state('all');
 	nameFilterInput: string = $state(''); // Immediate input value
@@ -297,6 +300,7 @@ export class FilterStore {
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
+		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
@@ -509,6 +513,7 @@ export class FilterStore {
 			showUnfinished: this.showUnfinished,
 			thumbKeyFilter: this.thumbKeyFilter,
 			magicKeyFilter: this.magicKeyFilter,
+			adaptiveSwapFilter: this.adaptiveSwapFilter,
 			characterSetFilter: this.characterSetFilter,
 			boardTypeFilter: this.boardTypeFilter,
 			nameFilterInput: this.nameFilterInput,
@@ -555,6 +560,7 @@ export class FilterStore {
 		this.showUnfinished = restored.showUnfinished;
 		this.thumbKeyFilter = restored.thumbKeyFilter;
 		this.magicKeyFilter = restored.magicKeyFilter;
+		this.adaptiveSwapFilter = restored.adaptiveSwapFilter;
 		this.characterSetFilter = restored.characterSetFilter;
 		this.boardTypeFilter = restored.boardTypeFilter;
 		this.nameFilterInput = restored.nameFilterInput;
@@ -673,6 +679,11 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	setAdaptiveSwapFilter(value: AdaptiveSwapFilter) {
+		this.adaptiveSwapFilter = value;
+		this.#debouncedSave();
+	}
+
 	setCharacterSetFilter(value: CharacterSetFilter) {
 		this.characterSetFilter = value;
 		this.#debouncedSave();
@@ -687,6 +698,7 @@ export class FilterStore {
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
+		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.boardTypeFilter = 'all';
 		this.#applyFiltersNow();
@@ -1411,6 +1423,7 @@ export class FilterStore {
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
+		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.boardTypeFilter = 'all';
 		this.nameFilterInput = '';
@@ -1450,6 +1463,7 @@ export class FilterStore {
 		this.selectedAuthors.clear();
 		this.thumbKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
+		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'all';
 		this.boardTypeFilter = 'all';
 		this.showUnfinished = true;
@@ -1566,6 +1580,7 @@ export class FilterStore {
 			this.showUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
+			this.adaptiveSwapFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
 			this.boardTypeFilter !== 'all'
 		);
@@ -1604,6 +1619,7 @@ export class FilterStore {
 				showUnfinished: this.showUnfinished,
 				thumbKeyFilter: this.thumbKeyFilter,
 				magicKeyFilter: this.magicKeyFilter,
+				adaptiveSwapFilter: this.adaptiveSwapFilter,
 				characterSetFilter: this.characterSetFilter,
 				boardTypeFilter: this.boardTypeFilter,
 				nameFilter: this.nameFilter,

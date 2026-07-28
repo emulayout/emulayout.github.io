@@ -2,6 +2,7 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		filterStore,
+		type AdaptiveSwapFilter,
 		type BoardTypeFilter,
 		type CharacterSetFilter,
 		type MagicKeyFilter,
@@ -18,6 +19,7 @@
 
 	const showThumbs = $derived(!only || only.thumbs);
 	const showMagic = $derived(!only || only.magic);
+	const showAdaptive = $derived(!only || only.adaptive);
 	const showBoard = $derived(!only || only.board);
 	const showCharset = $derived(!only || only.charset);
 	const showUnfinished = $derived(!only || only.unfinished);
@@ -62,6 +64,38 @@
 				onchange={(e) => filterStore.setMagicKeyFilter(e.currentTarget.value as MagicKeyFilter)}
 				class="keyboard-filters-select"
 				data-keyboard-field="magic"
+				style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+			>
+				<option value="optional">Optional</option>
+				<option value="excluded">Excluded</option>
+				<option value="required">Required</option>
+				<option value="required-mapped">Require with known mappings</option>
+			</select>
+		</label>
+	{/if}
+
+	{#if showAdaptive}
+		<label class="keyboard-filters-field">
+			<span
+				class="keyboard-filters-label keyboard-filters-label--with-tip"
+				style="color: var(--text-secondary);"
+			>
+				Adaptive swap
+				<Tooltip
+					text="Changes which character a key produces based on the immediately preceding key."
+				/>
+			</span>
+			<select
+				value={filterStore.adaptiveSwapFilter}
+				onchange={(e) =>
+					filterStore.setAdaptiveSwapFilter(e.currentTarget.value as AdaptiveSwapFilter)}
+				class="keyboard-filters-select"
+				data-keyboard-field="adaptive"
 				style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);

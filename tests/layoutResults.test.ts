@@ -19,6 +19,8 @@ function makeLayout(name: string): LayoutData {
 		hasAllLetters: true,
 		hasMagicKey: false,
 		hasMagicKeyMappings: false,
+		hasAdaptiveSwap: false,
+		hasAdaptiveSwapMappings: false,
 		cyanophageCompatible: true,
 		updatedAt: '2026-01-01'
 	};

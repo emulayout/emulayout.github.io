@@ -48,6 +48,7 @@ describe('view filter URL codec', () => {
 		snapshot.showUnfinished = true;
 		snapshot.thumbKeyFilter = 'required';
 		snapshot.magicKeyFilter = 'required-mapped';
+		snapshot.adaptiveSwapFilter = 'required';
 		snapshot.characterSetFilter = 'international';
 		snapshot.boardTypeFilter = 'ortho';
 		snapshot.nameFilter = 'Canary & Friends';
@@ -78,6 +79,7 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.showUnfinished).toBe(true);
 		expect(decoded.snapshot.thumbKeyFilter).toBe('required');
 		expect(decoded.snapshot.magicKeyFilter).toBe('required-mapped');
+		expect(decoded.snapshot.adaptiveSwapFilter).toBe('required');
 		expect(decoded.snapshot.characterSetFilter).toBe('international');
 		expect(decoded.snapshot.boardTypeFilter).toBe('ortho');
 		expect(decoded.snapshot.nameFilterInput).toBe('Canary & Friends');
@@ -140,6 +142,7 @@ describe('view filter URL codec', () => {
 			include: '00a,99z,xxq,0',
 			thumbKeys: 'sometimes',
 			magicKey: 'maybe',
+			adaptiveSwap: 'maybe',
 			characterSet: 'emoji',
 			boardType: 'curved',
 			sort: 'unknown',
@@ -156,6 +159,7 @@ describe('view filter URL codec', () => {
 		expect(snapshot.includeGrid.flat().filter(Boolean)).toEqual(['a']);
 		expect(snapshot.thumbKeyFilter).toBe('optional');
 		expect(snapshot.magicKeyFilter).toBe('optional');
+		expect(snapshot.adaptiveSwapFilter).toBe('optional');
 		expect(snapshot.characterSetFilter).toBe('english');
 		expect(snapshot.boardTypeFilter).toBe('all');
 		expect(snapshot.sortBy).toBe('similarity');

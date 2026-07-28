@@ -37,8 +37,8 @@ export const test = base.extend<CatalogFixtures>({
 			await page.route('**/authors.json', async (route) => {
 				await route.fulfill({ json: authors });
 			});
-			await page.route('**/magic-key-mappings.json', async (route) => {
-				await route.fulfill({ json: { vylet: vyletMappings } });
+			await page.route('**/layout-input-behaviors.json', async (route) => {
+				await route.fulfill({ json: { vylet: { magicKeys: vyletMappings } } });
 			});
 
 			await use();

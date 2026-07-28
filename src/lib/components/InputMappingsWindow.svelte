@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import MagicKeyMappingsPanel from '$lib/components/MagicKeyMappingsPanel.svelte';
-	import type { MagicKeyProfile } from '$lib/magicKeys';
+	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
+	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 
 	interface Props {
 		layoutName: string;
-		profile: MagicKeyProfile;
+		profile: LayoutInputProfile;
 		onClose: () => void;
 	}
 
 	const { layoutName, profile, onClose }: Props = $props();
+	const mappingsLabel = $derived(inputProfileMappingsLabel(profile));
 
 	let panelElement = $state<HTMLDivElement>();
 	let left = $state(16);
@@ -24,9 +25,7 @@
 		| undefined
 	>();
 
-	const titleId = $derived(
-		`magic-key-mappings-window-${layoutName.replace(/[^a-zA-Z0-9_-]/g, '_')}`
-	);
+	const titleId = $derived(`input-mappings-window-${layoutName.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 
 	function portalToBody(node: HTMLElement) {
 		document.body.appendChild(node);
@@ -131,28 +130,28 @@
 <div
 	use:portalToBody
 	bind:this={panelElement}
-	class="magic-key-mappings-window"
-	class:magic-key-mappings-window--positioned={positioned}
+	class="input-mappings-window"
+	class:input-mappings-window--positioned={positioned}
 	style:left={`${left}px`}
 	style:top={`${top}px`}
 	role="dialog"
 	aria-labelledby={titleId}
 >
-	<div class="magic-key-mappings-window-header">
+	<div class="input-mappings-window-header">
 		<button
 			type="button"
-			class="magic-key-mappings-window-drag-handle"
-			class:magic-key-mappings-window-drag-handle--dragging={Boolean(drag)}
-			aria-label={`Drag ${layoutName} magic key mappings window`}
+			class="input-mappings-window-drag-handle"
+			class:input-mappings-window-drag-handle--dragging={Boolean(drag)}
+			aria-label={`Drag ${layoutName} ${mappingsLabel} window`}
 			onkeydown={handleDragKeyDown}
 			onpointerdown={handlePointerDown}
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerEnd}
 			onpointercancel={handlePointerEnd}
 		>
-			<span id={titleId} title={layoutName}>{layoutName} magic key mappings</span>
+			<span id={titleId} title={layoutName}>{layoutName} {mappingsLabel}</span>
 		</button>
-		<button type="button" onclick={onClose} aria-label="Close magic key mappings">
+		<button type="button" onclick={onClose} aria-label={`Close ${mappingsLabel}`}>
 			<svg
 				class="size-4"
 				viewBox="0 0 24 24"
@@ -166,13 +165,13 @@
 			</svg>
 		</button>
 	</div>
-	<div class="magic-key-mappings-window-body">
-		<MagicKeyMappingsPanel {profile} />
+	<div class="input-mappings-window-body">
+		<InputMappingsPanel {profile} />
 	</div>
 </div>
 
 <style>
-	.magic-key-mappings-window {
+	.input-mappings-window {
 		position: fixed;
 		/* Above page chrome (z-40), below takeover modals and their backdrops (z-50). */
 		z-index: 45;
@@ -190,11 +189,11 @@
 		opacity: 0;
 	}
 
-	.magic-key-mappings-window--positioned {
+	.input-mappings-window--positioned {
 		opacity: 1;
 	}
 
-	.magic-key-mappings-window-header {
+	.input-mappings-window-header {
 		display: flex;
 		flex-shrink: 0;
 		align-items: center;
@@ -203,7 +202,7 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.magic-key-mappings-window-drag-handle {
+	.input-mappings-window-drag-handle {
 		display: block;
 		min-width: 0;
 		flex: 1;
@@ -217,11 +216,11 @@
 		user-select: none;
 	}
 
-	.magic-key-mappings-window-drag-handle--dragging {
+	.input-mappings-window-drag-handle--dragging {
 		cursor: grabbing;
 	}
 
-	.magic-key-mappings-window-drag-handle span {
+	.input-mappings-window-drag-handle span {
 		display: block;
 		min-width: 0;
 		overflow: hidden;
@@ -232,7 +231,7 @@
 		white-space: nowrap;
 	}
 
-	.magic-key-mappings-window-header > button:last-child {
+	.input-mappings-window-header > button:last-child {
 		display: inline-flex;
 		width: 1.75rem;
 		height: 1.75rem;
@@ -247,17 +246,17 @@
 		margin-right: 0.5rem;
 	}
 
-	.magic-key-mappings-window-header > button:last-child:hover {
+	.input-mappings-window-header > button:last-child:hover {
 		background-color: var(--bg-primary);
 		color: var(--text-primary);
 	}
 
-	.magic-key-mappings-window-header button:focus-visible {
+	.input-mappings-window-header button:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 1px;
 	}
 
-	.magic-key-mappings-window-body {
+	.input-mappings-window-body {
 		min-height: 0;
 		padding: 0.75rem;
 		overflow: auto;

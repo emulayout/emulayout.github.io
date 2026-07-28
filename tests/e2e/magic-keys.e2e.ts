@@ -10,7 +10,7 @@ test('shows mappings inline with stats and in a floating window without stats', 
 	await page.goto(mappedLayoutView);
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
-	const mappingsToggle = card.locator('button.magic-key-indicator');
+	const mappingsToggle = card.locator('button.input-mappings-indicator');
 	await expect(mappingsToggle).toHaveAccessibleName('Show magic key mappings');
 	await mappingsToggle.click();
 	await expect(mappingsToggle).toHaveAttribute('aria-pressed', 'true');
@@ -53,7 +53,7 @@ test('shows mappings inline with stats and in a floating window without stats', 
 test('keeps the mappings indicator noninteractive when the sidecar is unavailable', async ({
 	page
 }) => {
-	await page.route('**/magic-key-mappings.json', async (route) => {
+	await page.route('**/layout-input-behaviors.json', async (route) => {
 		await route.fulfill({ json: {} });
 	});
 	await page.goto(mappedLayoutView);
@@ -85,7 +85,7 @@ test('filters to layouts with known magic-key mappings and applies their rules',
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
 	await expect(card).toBeVisible();
-	const mappingsToggle = card.locator('button.magic-key-indicator');
+	const mappingsToggle = card.locator('button.input-mappings-indicator');
 	await expect(mappingsToggle).toBeVisible();
 
 	const textarea = card.getByPlaceholder('Layout test area');

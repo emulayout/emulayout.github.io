@@ -2,7 +2,13 @@ import type { StatsAnalyzer } from '$lib/statsAnalyzers';
 import type { StatFilterSection, StatLimitKey } from '$lib/statsFiltering';
 
 export type KeyFilterKind = 'and' | 'or' | 'exclude';
-export type KeyboardFilterField = 'thumbs' | 'magic' | 'board' | 'charset' | 'unfinished';
+export type KeyboardFilterField =
+	| 'thumbs'
+	| 'magic'
+	| 'adaptive'
+	| 'board'
+	| 'charset'
+	| 'unfinished';
 export type SidebarFilterField = 'name' | 'authors' | 'similarity';
 
 /** Request to open a filter UI and focus a specific control. */

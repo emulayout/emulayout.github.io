@@ -78,7 +78,7 @@ jobs:
             .cache/cmini-repo
             .cache/layout-timestamps.json
             .cache/layout-stats-monkeyracer.json
-          key: ${{ runner.os }}-cmini-v4-${{ hashFiles('bin/cmini-sync.js', 'bin/magic-key-data.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'data/magic-keys/**', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+          key: ${{ runner.os }}-cmini-v6-${{ hashFiles('bin/cmini-sync.js', 'bin/magic-key-data.js', 'bin/adaptive-swap-data.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/magic-keys/**', 'data/adaptive-swaps/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 

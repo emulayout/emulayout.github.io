@@ -6,7 +6,7 @@ import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-import type { MagicKeyMappingsByLayout } from '$lib/magicKeys';
+import type { LayoutInputBehaviorsByLayout } from '$lib/layoutInputBehaviors';
 import type { PageLoad } from './$types';
 
 function getInitialStatsAnalyzerMode(url: URL): StatsAnalyzerMode {
@@ -28,11 +28,11 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		sortBy
 	});
 
-	const [layoutsResponse, authorsResponse, magicKeyMappingsResponse, likesResponse, statsResults] =
+	const [layoutsResponse, authorsResponse, inputBehaviorsResponse, likesResponse, statsResults] =
 		await Promise.all([
 			fetch('/all-layouts.json'),
 			fetch('/authors.json'),
-			fetch('/magic-key-mappings.json'),
+			fetch('/layout-input-behaviors.json'),
 			loadLikes ? fetch('/layout-likes.json') : Promise.resolve(null),
 			Promise.all(analyzersToPreload.map((analyzer) => loadAnalyzerStats(analyzer, { fetch })))
 		]);
@@ -40,8 +40,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
-	const magicKeyMappings: MagicKeyMappingsByLayout = magicKeyMappingsResponse.ok
-		? await magicKeyMappingsResponse.json()
+	const inputBehaviors: LayoutInputBehaviorsByLayout = inputBehaviorsResponse.ok
+		? await inputBehaviorsResponse.json()
 		: {};
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
@@ -63,7 +63,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	return {
 		layouts,
 		authorsData,
-		magicKeyMappings,
+		inputBehaviors,
 		likesData,
 		/** True when the load function attempted to fetch likes (even if empty/404). */
 		likesAttempted: loadLikes,

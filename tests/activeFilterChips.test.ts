@@ -14,6 +14,7 @@ describe('active filter chips', () => {
 		snapshot.selectedAuthors = [12, 34];
 		snapshot.boardTypeFilter = 'ortho';
 		snapshot.magicKeyFilter = 'required-mapped';
+		snapshot.adaptiveSwapFilter = 'required-mapped';
 		snapshot.appliedIncludeGrid[0][0] = 'a';
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
 		snapshot.similarReferenceName = 'Graphite';
@@ -28,6 +29,7 @@ describe('active filter chips', () => {
 			'name',
 			'authors',
 			'magic',
+			'adaptive',
 			'board',
 			'keys-and',
 			'stat-cyano-sfb',
@@ -50,6 +52,7 @@ describe('active filter chips', () => {
 		});
 		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity > 70%');
 		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic: known mappings');
+		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive: known mappings');
 	});
 
 	test('routes every clear action to its owning store mutation', () => {
@@ -60,6 +63,7 @@ describe('active filter chips', () => {
 			clearAuthors: () => calls.push('authors'),
 			setThumbKeyFilter: (value) => calls.push(`thumbs:${value}`),
 			setMagicKeyFilter: (value) => calls.push(`magic:${value}`),
+			setAdaptiveSwapFilter: (value) => calls.push(`adaptive:${value}`),
 			setBoardTypeFilter: (value) => calls.push(`board:${value}`),
 			setCharacterSetFilter: (value) => calls.push(`charset:${value}`),
 			setShowUnfinished: (value) => calls.push(`unfinished:${value}`),
@@ -75,6 +79,7 @@ describe('active filter chips', () => {
 		clearActiveFilterChip(target, { kind: 'authors' });
 		clearActiveFilterChip(target, { kind: 'thumbKey' });
 		clearActiveFilterChip(target, { kind: 'magicKey' });
+		clearActiveFilterChip(target, { kind: 'adaptiveSwap' });
 		clearActiveFilterChip(target, { kind: 'boardType' });
 		clearActiveFilterChip(target, { kind: 'characterSet' });
 		clearActiveFilterChip(target, { kind: 'showUnfinished' });
@@ -90,6 +95,7 @@ describe('active filter chips', () => {
 			'authors',
 			'thumbs:optional',
 			'magic:optional',
+			'adaptive:optional',
 			'board:all',
 			'charset:english',
 			'unfinished:false',

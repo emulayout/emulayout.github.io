@@ -5,7 +5,6 @@
  * rule such as `"th": "e"` does not require a storage or resolver change.
  */
 export type MagicKeyMappings = Readonly<Record<string, Readonly<Record<string, string>>>>;
-export type MagicKeyMappingsByLayout = Readonly<Record<string, MagicKeyMappings>>;
 
 export interface CompiledMagicKeyRule {
 	after: string;
@@ -17,10 +16,9 @@ export interface MagicKeyProfile {
 	maxHistoryLength: number;
 }
 
-export interface MagicKeyInputResult {
+export interface MagicKeyOutputResult {
 	text: string;
 	matched: boolean;
-	nextHistory: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -100,38 +98,20 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 	return { triggers, maxHistoryLength };
 }
 
-/**
- * Process one logical layout-key output and advance its bounded history.
- *
- * History represents uninterrupted logical key input, not the text around the
- * editor caret. Callers clear it when navigation or an external edit interrupts
- * that input sequence. Magic-key output is appended like ordinary input so it
- * can trigger a subsequent rule.
- */
-export function resolveMagicKeyInput(
+export function resolveMagicKeyOutput(
 	profile: MagicKeyProfile | undefined,
 	inputHistory: string,
 	inputText: string
-): MagicKeyInputResult {
-	if (!profile) {
-		return { text: inputText, matched: false, nextHistory: '' };
-	}
+): MagicKeyOutputResult {
+	if (!profile) return { text: inputText, matched: false };
 
 	const rules = profile.triggers[inputText];
 	if (rules) {
 		const normalizedHistory = trimContext(inputHistory.toLowerCase(), profile.maxHistoryLength);
 		const rule = rules.find(({ after }) => normalizedHistory.endsWith(after));
 		const text = rule?.emit ?? inputText;
-		return {
-			text,
-			matched: Boolean(rule),
-			nextHistory: trimContext(inputHistory + text, profile.maxHistoryLength)
-		};
+		return { text, matched: Boolean(rule) };
 	}
 
-	return {
-		text: inputText,
-		matched: false,
-		nextHistory: trimContext(inputHistory + inputText, profile.maxHistoryLength)
-	};
+	return { text: inputText, matched: false };
 }

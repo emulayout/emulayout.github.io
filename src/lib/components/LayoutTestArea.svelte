@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import type { LayoutData } from '$lib/layout';
-	import { resolveMagicKeyInput, type MagicKeyProfile } from '$lib/magicKeys';
+	import { resolveLayoutInput, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import {
 		insertTextAtSelection,
 		resolveLayoutTestKeyDown,
@@ -13,15 +13,15 @@
 	interface Props {
 		layout: LayoutData;
 		keyMaps: LayoutTestKeyMaps;
-		magicKeyProfile?: MagicKeyProfile;
+		inputProfile?: LayoutInputProfile;
 	}
 
-	const { layout, keyMaps, magicKeyProfile }: Props = $props();
+	const { layout, keyMaps, inputProfile }: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
-	let magicKeyHistory = '';
+	let inputHistory = '';
 
-	function resetMagicKeyHistory() {
-		magicKeyHistory = '';
+	function resetInputHistory() {
+		inputHistory = '';
 	}
 
 	function isModifierKey(key: string) {
@@ -41,9 +41,9 @@
 	}
 
 	function processLayoutText(text: string) {
-		const result = resolveMagicKeyInput(magicKeyProfile, magicKeyHistory, text);
+		const result = resolveLayoutInput(inputProfile, inputHistory, text);
 		insertText(result.text);
-		magicKeyHistory = result.nextHistory;
+		inputHistory = result.nextHistory;
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -58,11 +58,11 @@
 		if (decision.stopPropagation) event.stopPropagation();
 		if (decision.edit?.type === 'clear') {
 			if (textareaElement) textareaElement.value = '';
-			resetMagicKeyHistory();
+			resetInputHistory();
 		} else if (decision.edit?.type === 'insert') {
 			processLayoutText(decision.edit.text);
 		} else if (!isModifierKey(event.key)) {
-			resetMagicKeyHistory();
+			resetInputHistory();
 		}
 	}
 
@@ -102,9 +102,9 @@
 		placeholder="Layout test area"
 		onkeydown={handleKeyDown}
 		onkeyup={handleKeyUp}
-		oninput={resetMagicKeyHistory}
-		onpointerdown={resetMagicKeyHistory}
-		onblur={resetMagicKeyHistory}></textarea>
+		oninput={resetInputHistory}
+		onpointerdown={resetInputHistory}
+		onblur={resetInputHistory}></textarea>
 </div>
 
 <style>

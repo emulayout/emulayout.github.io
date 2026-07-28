@@ -32,6 +32,7 @@ import {
 	FILTER_GRID_ROWS,
 	FILTER_THUMB_KEYS_PER_HAND,
 	createEmptyThumbKeyFilters,
+	type AdaptiveSwapFilter,
 	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
@@ -47,6 +48,7 @@ export interface LayoutFilterCriteria {
 	showUnfinished: boolean;
 	thumbKeyFilter: ThumbKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
+	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
 	boardTypeFilter: BoardTypeFilter;
 	nameFilter: string;
@@ -246,6 +248,15 @@ function matchesMagicKeyFilter(layout: LayoutData, filter: MagicKeyFilter): bool
 	return !layout.hasMagicKey;
 }
 
+function matchesAdaptiveSwapFilter(layout: LayoutData, filter: AdaptiveSwapFilter): boolean {
+	if (filter === 'optional') return true;
+	if (filter === 'required') return layout.hasAdaptiveSwap;
+	if (filter === 'required-mapped') {
+		return layout.hasAdaptiveSwap && layout.hasAdaptiveSwapMappings;
+	}
+	return !layout.hasAdaptiveSwap;
+}
+
 function matchesThumbKeyFilter(layout: LayoutData, filter: ThumbKeyFilter): boolean {
 	if (filter === 'optional') return true;
 	return filter === 'required' ? layout.hasThumbKeys : !layout.hasThumbKeys;
@@ -370,6 +381,7 @@ export function filterLayouts(
 		}
 		if (!matchesThumbKeyFilter(layout, criteria.thumbKeyFilter)) return false;
 		if (!matchesMagicKeyFilter(layout, criteria.magicKeyFilter)) return false;
+		if (!matchesAdaptiveSwapFilter(layout, criteria.adaptiveSwapFilter)) return false;
 		if (!matchesCharacterSet(layout, criteria.characterSetFilter)) return false;
 		if (!matchesBoardType(layout, criteria.boardTypeFilter)) return false;
 		if (!matchesName(layout, nameTerms)) return false;

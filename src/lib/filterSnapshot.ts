@@ -4,6 +4,7 @@ import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSi
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
+export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
@@ -33,6 +34,7 @@ export type ViewFilterSnapshot = {
 	showUnfinished: boolean;
 	thumbKeyFilter: ThumbKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
+	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
 	boardTypeFilter: BoardTypeFilter;
 	nameFilterInput: string;
@@ -161,6 +163,7 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		showUnfinished: false,
 		thumbKeyFilter: 'optional',
 		magicKeyFilter: 'optional',
+		adaptiveSwapFilter: 'optional',
 		characterSetFilter: 'english',
 		boardTypeFilter: 'all',
 		nameFilterInput: '',
@@ -331,6 +334,11 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			value.magicKeyFilter,
 			['optional', 'excluded', 'required', 'required-mapped'],
 			defaults.magicKeyFilter
+		),
+		adaptiveSwapFilter: normalizeEnum<AdaptiveSwapFilter>(
+			value.adaptiveSwapFilter,
+			['optional', 'excluded', 'required', 'required-mapped'],
+			defaults.adaptiveSwapFilter
 		),
 		characterSetFilter: normalizeEnum<CharacterSetFilter>(
 			value.characterSetFilter,

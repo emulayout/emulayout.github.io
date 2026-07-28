@@ -28,6 +28,10 @@ export interface LayoutData {
 	hasMagicKey: boolean;
 	/** A curated profile is available in the separately loaded mappings payload. */
 	hasMagicKeyMappings: boolean;
+	/** The layout is known to use adaptive swaps, whether or not mappings are available. */
+	hasAdaptiveSwap: boolean;
+	/** Curated adaptive-swap mappings are available in the input-behavior payload. */
+	hasAdaptiveSwapMappings: boolean;
 	cyanophageCompatible: boolean;
 	/** Set when the layout has exactly one thumb key (cyanophage playground). */
 	cyanophageThumb?: 'l' | 'r';
