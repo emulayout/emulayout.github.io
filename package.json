@@ -13,6 +13,7 @@
 		"test": "bun test",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",
+		"audit:blacklist": "bun run ./bin/audit-layout-blacklist.js",
 		"validate:mappings": "bun run ./bin/validate-input-mappings.js",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

@@ -56,3 +56,14 @@ every Adaptive trigger and swap key against the corresponding Cmini layout. Pull
 same validation automatically through the `Validate mappings / Validate mapping files` check.
 PR validation rejects orphan mappings. Production syncs instead warn and omit a mapping when its
 layout has since been removed upstream, so a stale mapping cannot prevent deployment.
+
+For local blacklist maintenance, compare `layout-blacklist.txt` with the current cached Cmini
+layouts:
+
+```sh
+bun run audit:blacklist
+```
+
+The audit is read-only and exits successfully after reporting entries that are not currently
+present. Review them manually before removal because some may be intentionally retained in case a
+layout returns.
