@@ -8,7 +8,10 @@ test('shows mappings in a floating window', async ({ page }) => {
 	await page.goto(mappedLayoutView);
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
-	const mappingsToggle = card.locator('button.input-mappings-indicator');
+	const keyboardRow = card.locator('.layout-keyboard-row');
+	const indicatorRail = keyboardRow.locator('.input-mappings-indicators');
+	const mappingsToggle = indicatorRail.locator('button.input-mappings-indicator');
+	await expect(indicatorRail).toHaveCSS('flex-direction', 'column');
 	await expect(mappingsToggle).toHaveAccessibleName('Show magic key mappings');
 	await mappingsToggle.click();
 	await expect(mappingsToggle).toHaveAttribute('aria-pressed', 'true');
@@ -73,7 +76,9 @@ test('filters to layouts with known magic-key mappings and applies their rules',
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
 	await expect(card).toBeVisible();
-	const mappingsToggle = card.locator('button.input-mappings-indicator');
+	const mappingsToggle = card
+		.locator('.layout-keyboard-row .input-mappings-indicators')
+		.locator('button.input-mappings-indicator');
 	await expect(mappingsToggle).toBeVisible();
 
 	const textarea = card.getByPlaceholder('Layout test area');

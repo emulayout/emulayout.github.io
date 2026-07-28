@@ -24,6 +24,7 @@
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
+	import LayoutInputMappingsIndicator from '$lib/components/LayoutInputMappingsIndicator.svelte';
 	import LayoutExpandModal from '$lib/components/LayoutExpandModal.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
@@ -83,7 +84,6 @@
 	let expandModal = $state<{ open: () => void }>();
 
 	const inputMappingsAvailable = $derived(Boolean(inputProfile));
-	const hasInputMappings = $derived(layout.hasMagicKeyMappings || layout.hasAdaptiveSwapMappings);
 	const mappingsLabel = $derived(
 		inputMappingsLabel({
 			magicKeys: layout.hasMagicKeyMappings,
@@ -231,23 +231,26 @@
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
 		{similarMatchPercent}
 		{similarMirrored}
-		{hasInputMappings}
-		hasAdaptiveSwapMappings={layout.hasAdaptiveSwapMappings}
-		inputMappingsUnavailable={hasInputMappings && !inputMappingsAvailable}
-		{mappingsLabel}
-		inputMappingsActive={showExpand && inputMappingsWindowOpen}
-		onToggleInputMappings={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
 		onToggleSelection={handleToggleSelection}
 		onSelectAuthor={handleSelectAuthor}
 	/>
 
-	<LayoutKeyDisplay
-		rows={transformedDisplayRows}
-		value={transformedDisplayValue}
-		highlightDifferences={showSimilarDiffs}
-		referencePositions={similarDiffPositions}
-		fillAvailableSpace={showExpand}
-	/>
+	<div class="layout-keyboard-row min-w-0" class:flex-1={showExpand}>
+		<LayoutKeyDisplay
+			rows={transformedDisplayRows}
+			value={transformedDisplayValue}
+			highlightDifferences={showSimilarDiffs}
+			referencePositions={similarDiffPositions}
+			fillAvailableSpace={showExpand}
+		/>
+		<LayoutInputMappingsIndicator
+			{layout}
+			{mappingsLabel}
+			inputMappingsUnavailable={!inputMappingsAvailable}
+			active={showExpand && inputMappingsWindowOpen}
+			onToggle={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
+		/>
+	</div>
 
 	<LayoutCardActions
 		{markFirstAction}
@@ -333,6 +336,11 @@
 		transform: translateZ(0);
 		-webkit-backface-visibility: hidden;
 		backface-visibility: hidden;
+	}
+
+	.layout-keyboard-row {
+		display: flex;
+		align-items: center;
 	}
 
 	/*
