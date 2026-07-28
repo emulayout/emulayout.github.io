@@ -1,18 +1,34 @@
+export type MagicKeyFallback = 'repeat-last';
+
+export type MagicKeyRules = Readonly<Record<string, string>>;
+
+export interface ExtendedMagicKeyTriggerSource {
+	mappings: MagicKeyRules;
+	fallback?: MagicKeyFallback;
+}
+
 /**
- * trigger key -> preceding key sequence -> text emitted by the magic key.
+ * trigger key -> either a compact rule map or an extended trigger definition.
  *
  * Preceding sequences are strings rather than single characters so a future
  * rule such as `"th": "e"` does not require a storage or resolver change.
  */
-export type MagicKeyMappings = Readonly<Record<string, Readonly<Record<string, string>>>>;
+export type MagicKeyMappings = Readonly<
+	Record<string, MagicKeyRules | ExtendedMagicKeyTriggerSource>
+>;
 
 export interface CompiledMagicKeyRule {
 	after: string;
 	emit: string;
 }
 
+export interface CompiledMagicKeyTrigger {
+	rules: readonly CompiledMagicKeyRule[];
+	fallback?: MagicKeyFallback;
+}
+
 export interface MagicKeyProfile {
-	triggers: Readonly<Record<string, readonly CompiledMagicKeyRule[]>>;
+	triggers: Readonly<Record<string, CompiledMagicKeyTrigger>>;
 	maxHistoryLength: number;
 }
 
@@ -31,6 +47,16 @@ function trimContext(context: string, maxLength: number): string {
 	return characters.slice(-maxLength).join('');
 }
 
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+	return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function isExtendedTriggerSource(
+	value: MagicKeyRules | ExtendedMagicKeyTriggerSource
+): value is ExtendedMagicKeyTriggerSource {
+	return isRecord(value.mappings);
+}
+
 /**
  * Validate untrusted JSON and return a normalized profile with null-prototype
  * rule objects. Sync scripts use the same validator before publishing.
@@ -40,11 +66,33 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 		throw new Error('Magic-key mappings must be an object');
 	}
 
-	const mappings: Record<string, Record<string, string>> = Object.create(null);
-	for (const [trigger, rawRules] of Object.entries(value)) {
+	const mappings: Record<string, MagicKeyRules | ExtendedMagicKeyTriggerSource> =
+		Object.create(null);
+	for (const [trigger, rawTrigger] of Object.entries(value)) {
 		if (!trigger) throw new Error('Magic key triggers cannot be empty');
-		if (!isRecord(rawRules)) {
+		if (!isRecord(rawTrigger)) {
 			throw new Error(`Magic key "${trigger}" rules must be an object`);
+		}
+
+		const extended = hasOwn(rawTrigger, 'mappings') || hasOwn(rawTrigger, 'fallback');
+		let rawRules: Record<string, unknown> = rawTrigger;
+		let fallback: MagicKeyFallback | undefined;
+		if (extended) {
+			if (!isRecord(rawTrigger.mappings)) {
+				throw new Error(`Magic key "${trigger}" mappings must be an object`);
+			}
+			rawRules = rawTrigger.mappings;
+			for (const key of Object.keys(rawTrigger)) {
+				if (key !== 'mappings' && key !== 'fallback') {
+					throw new Error(`Magic key "${trigger}" has unknown option "${key}"`);
+				}
+			}
+			if (hasOwn(rawTrigger, 'fallback')) {
+				if (rawTrigger.fallback !== 'repeat-last') {
+					throw new Error(`Magic key "${trigger}" fallback must be "repeat-last" when provided`);
+				}
+				fallback = rawTrigger.fallback;
+			}
 		}
 
 		const rules: Record<string, string> = Object.create(null);
@@ -65,10 +113,10 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 			rules[after] = emit;
 		}
 
-		if (Object.keys(rules).length === 0) {
+		if (Object.keys(rules).length === 0 && !fallback) {
 			throw new Error(`Magic key "${trigger}" must have at least one rule`);
 		}
-		mappings[trigger] = rules;
+		mappings[trigger] = extended ? { mappings: rules, ...(fallback ? { fallback } : {}) } : rules;
 	}
 
 	if (Object.keys(mappings).length === 0) {
@@ -79,10 +127,13 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 
 export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 	const mappings = validateMagicKeyMappings(value);
-	const triggers: Record<string, CompiledMagicKeyRule[]> = Object.create(null);
+	const triggers: Record<string, CompiledMagicKeyTrigger> = Object.create(null);
 	let maxHistoryLength = 0;
 
-	for (const [trigger, rawRules] of Object.entries(mappings)) {
+	for (const [trigger, rawTrigger] of Object.entries(mappings)) {
+		const extended = isExtendedTriggerSource(rawTrigger);
+		const rawRules = extended ? rawTrigger.mappings : rawTrigger;
+		const fallback: MagicKeyFallback | undefined = extended ? rawTrigger.fallback : undefined;
 		const rules: CompiledMagicKeyRule[] = [];
 
 		for (const [after, emit] of Object.entries(rawRules)) {
@@ -92,7 +143,8 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 
 		// Longest suffix wins if both a one-key and multi-key rule could match.
 		rules.sort((a, b) => Array.from(b.after).length - Array.from(a.after).length);
-		triggers[trigger] = rules;
+		triggers[trigger] = { rules, ...(fallback ? { fallback } : {}) };
+		if (fallback === 'repeat-last') maxHistoryLength = Math.max(maxHistoryLength, 1);
 	}
 
 	return { triggers, maxHistoryLength };
@@ -105,12 +157,18 @@ export function resolveMagicKeyOutput(
 ): MagicKeyOutputResult {
 	if (!profile) return { text: inputText, matched: false };
 
-	const rules = profile.triggers[inputText];
-	if (rules) {
+	const trigger = profile.triggers[inputText];
+	if (trigger) {
 		const normalizedHistory = trimContext(inputHistory.toLowerCase(), profile.maxHistoryLength);
-		const rule = rules.find(({ after }) => normalizedHistory.endsWith(after));
-		const text = rule?.emit ?? inputText;
-		return { text, matched: Boolean(rule) };
+		const rule = trigger.rules.find(({ after }) => normalizedHistory.endsWith(after));
+		if (rule) return { text: rule.emit, matched: true };
+
+		if (trigger.fallback === 'repeat-last') {
+			const lastCharacter = Array.from(inputHistory).at(-1);
+			if (lastCharacter !== undefined) return { text: lastCharacter, matched: true };
+		}
+
+		return { text: inputText, matched: false };
 	}
 
 	return { text: inputText, matched: false };

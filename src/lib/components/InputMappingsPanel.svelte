@@ -30,8 +30,8 @@
 	{#if profile.magicKeys}
 		<div class="input-mappings-heading">Magic key mappings</div>
 		<div class="magic-key-mappings-list">
-			{#each triggerGroups as [trigger, rules] (trigger)}
-				{#each rules as rule (rule.after)}
+			{#each triggerGroups as [trigger, definition] (trigger)}
+				{#each definition.rules as rule (rule.after)}
 					<div class="magic-key-mapping">
 						<span>{rule.after}</span>
 						<span class="mapping-trigger">{trigger}</span>
@@ -39,6 +39,14 @@
 						<span>{rule.after}{rule.emit}</span>
 					</div>
 				{/each}
+				{#if definition.fallback === 'repeat-last'}
+					<div class="magic-key-mapping magic-key-mapping--fallback">
+						<span>otherwise</span>
+						<span class="mapping-trigger">{trigger}</span>
+						<span class="mapping-arrow" aria-hidden="true">→</span>
+						<span>repeat previous</span>
+					</div>
+				{/if}
 			{/each}
 		</div>
 	{/if}
@@ -114,6 +122,11 @@
 
 	.magic-key-mapping {
 		grid-template-columns: minmax(1ch, auto) minmax(1ch, auto) 1rem minmax(2ch, 1fr);
+	}
+
+	.magic-key-mapping--fallback {
+		grid-column: 1 / -1;
+		color: var(--text-secondary);
 	}
 
 	.adaptive-swap-mapping {

@@ -9,6 +9,7 @@ import {
 import { validateMagicKeyMappings } from '$lib/magicKeys';
 import { compileAdaptiveSwapSource, validateAdaptiveSwapSource } from '$lib/adaptiveSwaps';
 import vyletMappings from '../data/magic-keys/vylet.json';
+import whirlMappings from '../data/magic-keys/whirl.json';
 import vyletV4Swaps from '../data/adaptive-swaps/vylet-v4.json';
 import { validateMagicKeyMappingsForLayout } from '../bin/magic-key-data.js';
 import { validateAdaptiveSwapSourceForLayout } from '../bin/adaptive-swap-data.js';
@@ -34,11 +35,13 @@ function typeLogicalKeys(
 describe('layout input registry', () => {
 	const profiles = compileLayoutInputRegistry({
 		vylet: { magicKeys: vyletMappings },
+		whirl: { magicKeys: whirlMappings },
 		'vylet-v4': { adaptiveSwaps: vyletV4Swaps }
 	});
 
 	test('loads each behavior by its Cmini layout name', () => {
 		expect(typeLogicalKeys(profiles.get('vylet')!, ['c', '*']).text).toBe('ck');
+		expect(typeLogicalKeys(profiles.get('whirl')!, ['w', '*']).text).toBe('wh');
 		expect(typeLogicalKeys(profiles.get('vylet-v4')!, ['l', 'y']).text).toBe('lj');
 		expect(profiles.has('not-configured')).toBe(false);
 	});
@@ -90,12 +93,41 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(resolveLayoutInput(profile, '', '*').text).toBe('*');
 	});
 
+	test('repeats the last emitted character when an extended trigger has no explicit rule', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: {
+				'*': {
+					mappings: { w: 'h', y: ',' },
+					fallback: 'repeat-last'
+				}
+			}
+		});
+
+		expect(typeLogicalKeys(profile, ['a', '*', '*']).text).toBe('aaa');
+		expect(typeLogicalKeys(profile, ['A', '*']).text).toBe('AA');
+		expect(typeLogicalKeys(profile, ['y', '*', '*']).text).toBe('y,,');
+		expect(typeLogicalKeys(profile, ['w', '*']).text).toBe('wh');
+		expect(resolveLayoutInput(profile, '', '*')).toMatchObject({
+			text: '*',
+			applied: []
+		});
+	});
+
 	test('rejects malformed and case-ambiguous profiles', () => {
 		expect(() => validateMagicKeyMappings({ '*': null })).toThrow('rules must be an object');
 		expect(() => validateMagicKeyMappings({ '*': {} })).toThrow('must have at least one rule');
 		expect(() => validateMagicKeyMappings({ '*': { A: 'x', a: 'y' } })).toThrow(
 			'repeats preceding sequence'
 		);
+		expect(() => validateMagicKeyMappings({ '*': { mappings: {}, fallback: 'unknown' } })).toThrow(
+			'fallback must be "repeat-last"'
+		);
+		expect(() => validateMagicKeyMappings({ '*': { fallback: 'repeat-last' } })).toThrow(
+			'mappings must be an object'
+		);
+		expect(() =>
+			validateMagicKeyMappings({ '*': { mappings: {}, fallback: 'repeat-last' } })
+		).not.toThrow();
 	});
 
 	test('validates profile identity and triggers against its Cmini layout', () => {

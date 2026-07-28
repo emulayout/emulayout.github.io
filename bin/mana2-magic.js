@@ -3,7 +3,7 @@
  * feature set supported by Mana2's experimental extended engine.
  */
 
-/** @typedef {Record<string, Record<string, unknown>>} RawMagicKeyMappings */
+/** @typedef {Record<string, unknown>} RawMagicKeyMappings */
 
 /**
  * @typedef {
@@ -44,6 +44,22 @@
 /** @param {unknown} value */
 function runeLength(value) {
 	return typeof value === 'string' ? [...value].length : 0;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * @param {Record<string, unknown>} value
+ * @param {string} key
+ */
+function hasOwn(value, key) {
+	return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 /**
@@ -100,17 +116,40 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 			`Magic key ${JSON.stringify(trigger)} is not present on the layout.`
 		);
 	}
-	if (!rawRules || typeof rawRules !== 'object' || Array.isArray(rawRules)) {
+	if (!isRecord(rawRules)) {
 		return excluded('invalid-profile', 'Magic-key rules must be an object.');
 	}
 
-	const entries = Object.entries(/** @type {Record<string, unknown>} */ (rawRules));
-	if (entries.length === 0) {
-		return excluded('no-rules', 'The magic key has no mappings.');
+	let rawRuleMap = rawRules;
+	let fallback;
+	const extended = hasOwn(rawRules, 'mappings') || hasOwn(rawRules, 'fallback');
+	if (extended) {
+		if (!isRecord(rawRules.mappings)) {
+			return excluded('invalid-profile', 'Extended magic-key mappings must be an object.');
+		}
+		rawRuleMap = rawRules.mappings;
+		fallback = rawRules.fallback;
+		const unknownOption = Object.keys(rawRules).find(
+			(key) => key !== 'mappings' && key !== 'fallback'
+		);
+		if (unknownOption) {
+			return excluded(
+				'invalid-profile',
+				`Magic key ${JSON.stringify(trigger)} has unknown option ${JSON.stringify(unknownOption)}.`
+			);
+		}
 	}
+	if (fallback !== undefined && fallback !== 'repeat-last') {
+		return excluded(
+			'invalid-profile',
+			`Mana2 does not recognize the magic-key fallback ${JSON.stringify(fallback)}.`
+		);
+	}
+	const entries = Object.entries(rawRuleMap);
 
 	/** @type {{ inputs: string, output: string }[]} */
 	const rules = [];
+	const explicitInputs = new Set();
 	for (const [after, emit] of entries) {
 		if (runeLength(after) !== 1) {
 			return excluded(
@@ -141,6 +180,21 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 			inputs: after + trigger,
 			output: after + /** @type {string} */ (emit)
 		});
+		explicitInputs.add(after);
+	}
+
+	if (fallback === 'repeat-last') {
+		for (const key of Object.keys(layoutKeys)) {
+			if (key === trigger || runeLength(key) !== 1 || explicitInputs.has(key)) continue;
+			rules.push({
+				inputs: key + trigger,
+				output: key + key
+			});
+		}
+	}
+
+	if (rules.length === 0) {
+		return excluded('no-rules', 'The magic key has no mappings or applicable fallback rules.');
 	}
 
 	return {

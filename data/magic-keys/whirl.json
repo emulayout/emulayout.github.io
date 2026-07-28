@@ -1,0 +1,12 @@
+{
+	"*": {
+		"mappings": {
+			"w": "h",
+			"y": ",",
+			"u": "e",
+			"g": "s",
+			"'": "r"
+		},
+		"fallback": "repeat-last"
+	}
+}

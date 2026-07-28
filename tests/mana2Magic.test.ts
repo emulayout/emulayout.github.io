@@ -7,6 +7,7 @@ import {
 } from '../bin/mana2-magic.js';
 import { buildMana2LayoutHash } from '../bin/mana2-stats.js';
 import vyletMappings from '../data/magic-keys/vylet.json';
+import whirlMappings from '../data/magic-keys/whirl.json';
 
 const layoutKeys = Object.fromEntries(
 	[..."abcdefghijklmnopqrstuvwxyz*'"].map((key) => [key, { row: 0, col: 0 }])
@@ -26,13 +27,27 @@ describe('Mana2 magic-key adaptation', () => {
 		expect(prepared.rules).toContainEqual({ inputs: 'l*', output: 'll' });
 	});
 
+	test('expands repeat-last fallbacks while preserving explicit mappings', () => {
+		const prepared = prepareMana2Magic(whirlMappings, { ...layoutKeys, ',': {} });
+
+		expect(prepared).toMatchObject({
+			engine: 'extended',
+			analysis: { status: 'included', engine: 'extended' }
+		});
+		expect(prepared.rules).toContainEqual({ inputs: 'w*', output: 'wh' });
+		expect(prepared.rules).not.toContainEqual({ inputs: 'w*', output: 'ww' });
+		expect(prepared.rules).toContainEqual({ inputs: 'a*', output: 'aa' });
+		expect(prepared.rules).toContainEqual({ inputs: ',*', output: ',,' });
+	});
+
 	const unsupportedCases = [
 		[{ '*': { a: 'o' }, '@': { a: 'e' } }, 'multiple-magic-keys', { ...layoutKeys, '@': {} }],
 		[{ '*': { th: 'e' } }, 'multi-key-input', layoutKeys],
 		[{ '*': { t: 'ion' } }, 'multi-character-output', layoutKeys],
 		[{ '*': { t: ['i', 'o'] } }, 'multiple-outputs-per-input', layoutKeys],
 		[{ '@': { a: 'o' } }, 'magic-key-not-on-layout', layoutKeys],
-		[{ '*': { '?': 'l' } }, 'input-key-not-on-layout', layoutKeys]
+		[{ '*': { '?': 'l' } }, 'input-key-not-on-layout', layoutKeys],
+		[{ '*': { fallback: 'repeat-last' } }, 'invalid-profile', layoutKeys]
 	] as const;
 
 	for (const [mappings, reason, keys] of unsupportedCases) {
