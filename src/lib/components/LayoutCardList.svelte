@@ -23,6 +23,8 @@
 		similarReference?: LayoutData | null;
 		/** Layouts injected into results despite failing filters. */
 		forceIncludedNames?: ReadonlySet<string>;
+		/** Leave the final row clear of floating actions rendered over the results. */
+		reserveBottomActionSpace?: boolean;
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
@@ -39,6 +41,7 @@
 		items,
 		similarReference = null,
 		forceIncludedNames = new Set(),
+		reserveBottomActionSpace = false,
 		getAuthorName,
 		likesData,
 		statsMaps,
@@ -220,6 +223,7 @@
 
 	<div
 		class="layout-card-row grid gap-3 mb-3"
+		class:layout-card-row--bottom-clearance={reserveBottomActionSpace && end === listItems.length}
 		style="grid-template-columns: repeat({columns}, 1fr);"
 	>
 		{#each rowItems as item (layoutListItemKey(item))}
@@ -290,6 +294,10 @@
 		transform: translateZ(0);
 		-webkit-backface-visibility: hidden;
 		backface-visibility: hidden;
+	}
+
+	.layout-card-row--bottom-clearance {
+		padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 	}
 
 	.layout-results-with-pin {

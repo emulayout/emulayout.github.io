@@ -276,6 +276,7 @@
 							items={filteredItems}
 							similarReference={similarReferenceLayout}
 							{forceIncludedNames}
+							reserveBottomActionSpace={selectedLayoutCount > 0}
 							{getAuthorName}
 							likesData={resolvedLikesData}
 							{statsMaps}
