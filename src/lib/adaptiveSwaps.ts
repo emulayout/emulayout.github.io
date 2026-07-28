@@ -1,3 +1,5 @@
+import { adaptiveRuleMappingId, type DisabledInputMappingIds } from '$lib/inputMappingControls';
+
 /**
  * Trigger key -> one side of a swap -> the other side.
  *
@@ -30,8 +32,8 @@ export interface AdaptiveSwapGroup {
 }
 
 export interface AdaptiveSwapProfile {
-	/** Every stored group is active; group metadata is presentation-only for now. */
 	byTrigger: Readonly<Record<string, Readonly<Record<string, string>>>>;
+	mappingIdsByTrigger: Readonly<Record<string, Readonly<Record<string, string>>>>;
 	rules: readonly AdaptiveSwapRule[];
 	groups: readonly AdaptiveSwapGroup[];
 }
@@ -160,13 +162,18 @@ export function validateAdaptiveSwapSource(value: unknown): AdaptiveSwapSource {
 export function compileAdaptiveSwapSource(value: unknown): AdaptiveSwapProfile {
 	const source = validateAdaptiveSwapSource(value);
 	const byTrigger: Record<string, Record<string, string>> = Object.create(null);
+	const mappingIdsByTrigger: Record<string, Record<string, string>> = Object.create(null);
 	const seenPairs = new Set<string>();
 
-	function compileMappings(mappings: AdaptiveSwapMappings | undefined): AdaptiveSwapRule[] {
+	function compileMappings(
+		mappings: AdaptiveSwapMappings | undefined,
+		groupId?: string
+	): AdaptiveSwapRule[] {
 		const rules: AdaptiveSwapRule[] = [];
 		for (const [rawTrigger, swaps] of Object.entries(mappings ?? {})) {
 			const trigger = rawTrigger.toLowerCase();
 			const triggerMap = (byTrigger[trigger] ??= Object.create(null));
+			const triggerMappingIds = (mappingIdsByTrigger[trigger] ??= Object.create(null));
 
 			for (const [rawLeft, rawRight] of Object.entries(swaps)) {
 				const left = rawLeft.toLowerCase();
@@ -187,7 +194,11 @@ export function compileAdaptiveSwapSource(value: unknown): AdaptiveSwapProfile {
 				seenPairs.add(pairKey);
 				triggerMap[left] = right;
 				triggerMap[right] = left;
-				rules.push({ trigger, left, right });
+				const rule = { trigger, left, right };
+				const mappingId = adaptiveRuleMappingId(groupId, rule);
+				triggerMappingIds[left] = mappingId;
+				triggerMappingIds[right] = mappingId;
+				rules.push(rule);
 			}
 		}
 		return rules;
@@ -197,16 +208,17 @@ export function compileAdaptiveSwapSource(value: unknown): AdaptiveSwapProfile {
 	const groups = (source.groups ?? []).map((group) => ({
 		id: group.id,
 		label: group.label,
-		rules: compileMappings(group.mappings)
+		rules: compileMappings(group.mappings, group.id)
 	}));
 
-	return { byTrigger, rules, groups };
+	return { byTrigger, mappingIdsByTrigger, rules, groups };
 }
 
 export function resolveAdaptiveSwap(
 	profile: AdaptiveSwapProfile | undefined,
 	previousOutput: string,
-	inputText: string
+	inputText: string,
+	disabledMappingIds?: DisabledInputMappingIds
 ): { text: string; matched: boolean } {
 	if (!profile || Array.from(inputText).length !== 1) {
 		return { text: inputText, matched: false };
@@ -216,6 +228,10 @@ export function resolveAdaptiveSwap(
 	const normalizedInput = inputText.toLowerCase();
 	const swapped = trigger ? profile.byTrigger[trigger]?.[normalizedInput] : undefined;
 	if (!swapped) return { text: inputText, matched: false };
+	const mappingId = trigger ? profile.mappingIdsByTrigger[trigger]?.[normalizedInput] : undefined;
+	if (mappingId && disabledMappingIds?.has(mappingId)) {
+		return { text: inputText, matched: false };
+	}
 
 	const text = inputText !== normalizedInput ? swapped.toUpperCase() : swapped;
 	return { text, matched: true };

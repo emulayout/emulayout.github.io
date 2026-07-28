@@ -57,6 +57,7 @@
 		scrollTo?: (offset: number) => void;
 	}>();
 	let floatingInputMappingsLayoutName = $state<string>();
+	let disabledMappingsByLayout = $state<Record<string, string[]>>({});
 
 	const floatingInputProfile = $derived(
 		floatingInputMappingsLayoutName ? inputProfiles.get(floatingInputMappingsLayoutName) : undefined
@@ -187,6 +188,10 @@
 	function closeFloatingInputMappings() {
 		floatingInputMappingsLayoutName = undefined;
 	}
+
+	function setDisabledMappings(layoutName: string, ids: string[]) {
+		disabledMappingsByLayout[layoutName] = ids;
+	}
 </script>
 
 {#snippet layoutCard(layout: LayoutData)}
@@ -205,6 +210,8 @@
 			? statsMaps.mana2?.[layout.name]
 			: undefined}
 		inputProfile={inputProfiles.get(layout.name)}
+		disabledMappingIds={disabledMappingsByLayout[layout.name] ?? []}
+		onDisabledMappingIdsChange={(ids) => setDisabledMappings(layout.name, ids)}
 		inputMappingsWindowOpen={floatingInputMappingsLayoutName === layout.name}
 		onToggleInputMappingsWindow={() => toggleFloatingInputMappings(layout.name)}
 		forceIncluded={forceIncludedNames.has(layout.name)}
@@ -284,6 +291,8 @@
 	<InputMappingsWindow
 		layoutName={floatingInputMappingsLayoutName}
 		profile={floatingInputProfile}
+		disabledMappingIds={disabledMappingsByLayout[floatingInputMappingsLayoutName] ?? []}
+		onDisabledMappingIdsChange={(ids) => setDisabledMappings(floatingInputMappingsLayoutName!, ids)}
 		onClose={closeFloatingInputMappings}
 	/>
 {/if}

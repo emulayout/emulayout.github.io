@@ -126,8 +126,9 @@ source organization:
 }
 ```
 
-Every stored group is currently active. Group enable/disable controls are deferred; the stable
-`id` is intended for that future setting, while `label` is presentation text.
+Every stored group is enabled by default. The mapping UI can disable a whole labeled group or any
+individual swap for the current page session. The stable `id` associates each compiled rule with
+its group, while `label` remains presentation text.
 
 Validation rejects empty profiles, malformed keys, self-swaps, reversed duplicates, and any trigger
 that assigns the same base key to more than one swap. Sync also verifies that every trigger and
@@ -163,7 +164,9 @@ in the swapped output.
 
 - `LayoutTestArea` owns DOM keyboard events, textarea edits, and history resets.
 - The pure resolver owns matching, precedence, case handling, and bounded history.
-- `InputMappingsPanel` renders either or both feature sections.
+- `InputMappingsPanel` renders either or both feature sections and their ephemeral enable/disable
+  controls. Section and group checkboxes are bulk controls over their individual mappings and show
+  a partial state when only some children are enabled.
 - `LayoutInputMappingsIndicator` renders a vertical feature rail beside the formatted keyboard.
   Known mappings share one toggle that opens `InputMappingsWindow`, while unavailable mappings
   remain muted and noninteractive.
@@ -172,12 +175,17 @@ in the swapped output.
 The resolver returns which behaviors were applied to a keypress. The layout test area does not
 currently display this, but a dedicated typing page may use it later.
 
+Disabled mapping state is owned by the current layout-results view, shared by the floating window,
+expanded modal, and layout test area, and is intentionally not persisted. All mappings return to
+enabled after a page reload.
+
 ## Deferred work
 
-### Configurable adaptive groups
+### Persistent mapping preferences
 
-Group settings should select compiled rule sets without changing the authoring schema. The baseline
-must always remain active.
+If enable/disable preferences become persistent, store stable mapping identities rather than
+rewriting the authoring data. Persistence needs an explicit migration strategy for renamed group
+IDs and changed mapping rules.
 
 ### Position identity
 

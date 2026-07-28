@@ -150,7 +150,10 @@ history. DOM events and history-reset decisions remain the layout test area's re
 
 The mapping UI is shared with adaptive swaps and can display either or both sections. It renders
 the complete result, such as `t* -> tion`, even though the stored value is only `ion`, and labels
-any configured fallback after the explicit rules.
+any configured fallback after the explicit rules. The section, every explicit rule, and fallback
+behavior have checkboxes that are enabled by default. Disabling is ephemeral and immediately
+affects the layout test area; the section checkbox acts as a bulk control and shows a partial state
+when only some mappings are enabled.
 
 Layout-card feature indicators form a vertical rail immediately to the right of the formatted
 keyboard. Known mappings use an interactive toggle that opens the single draggable, non-modal

@@ -10,6 +10,7 @@ import {
 	type MagicKeyMappings,
 	type MagicKeyProfile
 } from '$lib/magicKeys';
+import type { DisabledInputMappingIds } from '$lib/inputMappingControls';
 
 export interface LayoutInputBehaviorSource {
 	magicKeys?: MagicKeyMappings;
@@ -78,7 +79,8 @@ export function compileLayoutInputRegistry(
 export function resolveLayoutInput(
 	profile: LayoutInputProfile | undefined,
 	inputHistory: string,
-	inputText: string
+	inputText: string,
+	disabledMappingIds?: DisabledInputMappingIds
 ): LayoutInputResult {
 	if (!profile) {
 		return {
@@ -88,8 +90,18 @@ export function resolveLayoutInput(
 		};
 	}
 
-	const adaptive = resolveAdaptiveSwap(profile.adaptiveSwaps, inputHistory, inputText);
-	const magic = resolveMagicKeyOutput(profile.magicKeys, inputHistory, adaptive.text);
+	const adaptive = resolveAdaptiveSwap(
+		profile.adaptiveSwaps,
+		inputHistory,
+		inputText,
+		disabledMappingIds
+	);
+	const magic = resolveMagicKeyOutput(
+		profile.magicKeys,
+		inputHistory,
+		adaptive.text,
+		disabledMappingIds
+	);
 	const applied: AppliedLayoutInputBehavior[] = [];
 	if (adaptive.matched) applied.push('adaptive-swap');
 	if (magic.matched) applied.push('magic-key');

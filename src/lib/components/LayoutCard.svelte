@@ -50,6 +50,8 @@
 		/** Compact mana2 stats when that analyzer is shown. */
 		compactMana2Stats?: CompactMana2Stats;
 		inputProfile?: LayoutInputProfile;
+		disabledMappingIds?: readonly string[];
+		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		inputMappingsWindowOpen?: boolean;
 		onToggleInputMappingsWindow?: () => void;
 		/** Injected into results despite failing filters (Include selected). */
@@ -71,6 +73,8 @@
 		compactCyanophageStats,
 		compactMana2Stats,
 		inputProfile,
+		disabledMappingIds = [],
+		onDisabledMappingIdsChange,
 		inputMappingsWindowOpen = false,
 		onToggleInputMappingsWindow,
 		forceIncluded = false,
@@ -303,7 +307,7 @@
 				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
-				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {inputProfile} />
+				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {inputProfile} {disabledMappingIds} />
 			{/if}
 		</div>
 	{/if}
@@ -316,6 +320,8 @@
 	{compactCyanophageStats}
 	{compactMana2Stats}
 	{inputProfile}
+	{disabledMappingIds}
+	{onDisabledMappingIdsChange}
 	{forceIncluded}
 	similarActive={isSimilarActive}
 >

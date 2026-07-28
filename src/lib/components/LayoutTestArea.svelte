@@ -14,11 +14,13 @@
 		layout: LayoutData;
 		keyMaps: LayoutTestKeyMaps;
 		inputProfile?: LayoutInputProfile;
+		disabledMappingIds?: readonly string[];
 	}
 
-	const { layout, keyMaps, inputProfile }: Props = $props();
+	const { layout, keyMaps, inputProfile, disabledMappingIds = [] }: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let inputHistory = '';
+	const disabledMappings = $derived(new Set(disabledMappingIds));
 
 	function resetInputHistory() {
 		inputHistory = '';
@@ -41,10 +43,15 @@
 	}
 
 	function processLayoutText(text: string) {
-		const result = resolveLayoutInput(inputProfile, inputHistory, text);
+		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
 		insertText(result.text);
 		inputHistory = result.nextHistory;
 	}
+
+	$effect(() => {
+		void disabledMappingIds;
+		resetInputHistory();
+	});
 
 	function handleKeyDown(event: KeyboardEvent) {
 		const decision = resolveLayoutTestKeyDown(event, {

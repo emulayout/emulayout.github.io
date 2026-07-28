@@ -34,6 +34,8 @@
 		compactCyanophageStats?: CompactCyanophageStats;
 		compactMana2Stats?: CompactMana2Stats;
 		inputProfile?: LayoutInputProfile;
+		disabledMappingIds?: readonly string[];
+		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		forceIncluded?: boolean;
 		similarActive?: boolean;
 		layoutCard: Snippet;
@@ -45,6 +47,8 @@
 		compactCyanophageStats,
 		compactMana2Stats,
 		inputProfile,
+		disabledMappingIds = [],
+		onDisabledMappingIdsChange,
 		forceIncluded = false,
 		similarActive = false,
 		layoutCard
@@ -272,7 +276,11 @@
 
 			<div class="modal-main">
 				{#if inputProfile}
-					<InputMappingsPanel profile={inputProfile} />
+					<InputMappingsPanel
+						profile={inputProfile}
+						{disabledMappingIds}
+						{onDisabledMappingIdsChange}
+					/>
 				{/if}
 
 				{#if analyzerCount > 0}

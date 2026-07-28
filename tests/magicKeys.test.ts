@@ -8,6 +8,11 @@ import {
 } from '$lib/layoutInputBehaviors';
 import { validateMagicKeyMappings } from '$lib/magicKeys';
 import { compileAdaptiveSwapSource, validateAdaptiveSwapSource } from '$lib/adaptiveSwaps';
+import {
+	adaptiveRuleMappingId,
+	magicFallbackMappingId,
+	magicRuleMappingId
+} from '$lib/inputMappingControls';
 import vyletMappings from '../data/magic-keys/vylet.json';
 import whirlMappings from '../data/magic-keys/whirl.json';
 import vyletV4Swaps from '../data/adaptive-swaps/vylet-v4.json';
@@ -16,14 +21,15 @@ import { validateAdaptiveSwapSourceForLayout } from '../bin/adaptive-swap-data.j
 
 function typeLogicalKeys(
 	profile: LayoutInputProfile,
-	keys: string[]
+	keys: string[],
+	disabledMappingIds?: ReadonlySet<string>
 ): { text: string; applied: readonly AppliedLayoutInputBehavior[][] } {
 	let text = '';
 	let history = '';
 	const applied: AppliedLayoutInputBehavior[][] = [];
 
 	for (const key of keys) {
-		const result = resolveLayoutInput(profile, history, key);
+		const result = resolveLayoutInput(profile, history, key, disabledMappingIds);
 		text += result.text;
 		history = result.nextHistory;
 		applied.push([...result.applied]);
@@ -113,6 +119,27 @@ describe('magic-key resolution through the unified engine', () => {
 		});
 	});
 
+	test('can disable individual rules and fallback behavior independently', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: {
+				'*': {
+					mappings: { w: 'h', h: 'x', th: 'e' },
+					fallback: 'repeat-last'
+				}
+			}
+		});
+
+		expect(
+			typeLogicalKeys(profile, ['t', 'h', '*'], new Set([magicRuleMappingId('*', 'th')])).text
+		).toBe('thx');
+		expect(typeLogicalKeys(profile, ['w', '*'], new Set([magicRuleMappingId('*', 'w')])).text).toBe(
+			'ww'
+		);
+		expect(typeLogicalKeys(profile, ['q', '*'], new Set([magicFallbackMappingId('*')])).text).toBe(
+			'q*'
+		);
+	});
+
 	test('rejects malformed and case-ambiguous profiles', () => {
 		expect(() => validateMagicKeyMappings({ '*': null })).toThrow('rules must be an object');
 		expect(() => validateMagicKeyMappings({ '*': {} })).toThrow('must have at least one rule');
@@ -172,6 +199,30 @@ describe('adaptive-swap resolution through the unified engine', () => {
 
 	test('reports the behavior applied to each logical keypress', () => {
 		expect(typeLogicalKeys(profile, ['l', 'y']).applied).toEqual([[], ['adaptive-swap']]);
+	});
+
+	test('can disable baseline and grouped swaps independently', () => {
+		const baselineRule = profile.adaptiveSwaps!.rules.find(
+			(rule) => rule.trigger === 'l' && rule.left === 'y'
+		)!;
+		const groupedRule = profile
+			.adaptiveSwaps!.groups.flatMap((group) => group.rules.map((rule) => ({ group, rule })))
+			.find(({ rule }) => rule.trigger === 'w' && rule.left === 's')!;
+
+		expect(
+			typeLogicalKeys(
+				profile,
+				['l', 'y'],
+				new Set([adaptiveRuleMappingId(undefined, baselineRule)])
+			).text
+		).toBe('ly');
+		expect(
+			typeLogicalKeys(
+				profile,
+				['w', 's'],
+				new Set([adaptiveRuleMappingId(groupedRule.group.id, groupedRule.rule)])
+			).text
+		).toBe('ws');
 	});
 
 	test('rejects empty, malformed, duplicate, and conflicting swaps', () => {

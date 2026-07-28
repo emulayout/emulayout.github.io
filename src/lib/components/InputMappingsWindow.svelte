@@ -6,10 +6,18 @@
 	interface Props {
 		layoutName: string;
 		profile: LayoutInputProfile;
+		disabledMappingIds?: readonly string[];
+		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		onClose: () => void;
 	}
 
-	const { layoutName, profile, onClose }: Props = $props();
+	const {
+		layoutName,
+		profile,
+		disabledMappingIds = [],
+		onDisabledMappingIdsChange,
+		onClose
+	}: Props = $props();
 	const mappingsLabel = $derived(inputProfileMappingsLabel(profile));
 
 	let panelElement = $state<HTMLDivElement>();
@@ -142,14 +150,14 @@
 			type="button"
 			class="input-mappings-window-drag-handle"
 			class:input-mappings-window-drag-handle--dragging={Boolean(drag)}
-			aria-label={`Drag ${layoutName} ${mappingsLabel} window`}
+			aria-label={`Drag ${layoutName} mappings window`}
 			onkeydown={handleDragKeyDown}
 			onpointerdown={handlePointerDown}
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerEnd}
 			onpointercancel={handlePointerEnd}
 		>
-			<span id={titleId} title={layoutName}>{layoutName} {mappingsLabel}</span>
+			<span id={titleId} title={layoutName}>{layoutName} mappings</span>
 		</button>
 		<button type="button" onclick={onClose} aria-label={`Close ${mappingsLabel}`}>
 			<svg
@@ -166,7 +174,7 @@
 		</button>
 	</div>
 	<div class="input-mappings-window-body">
-		<InputMappingsPanel {profile} />
+		<InputMappingsPanel {profile} {disabledMappingIds} {onDisabledMappingIdsChange} />
 	</div>
 </div>
 
@@ -176,7 +184,7 @@
 		/* Above page chrome (z-40), below takeover modals and their backdrops (z-50). */
 		z-index: 45;
 		display: flex;
-		width: min(30rem, calc(100vw - 1rem));
+		width: min(34rem, calc(100vw - 1rem));
 		max-height: calc(100vh - 1rem);
 		flex-direction: column;
 		overflow: hidden;

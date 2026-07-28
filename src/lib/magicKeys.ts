@@ -1,3 +1,9 @@
+import {
+	magicFallbackMappingId,
+	magicRuleMappingId,
+	type DisabledInputMappingIds
+} from '$lib/inputMappingControls';
+
 export type MagicKeyFallback = 'repeat-last';
 
 export type MagicKeyRules = Readonly<Record<string, string>>;
@@ -153,17 +159,25 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 export function resolveMagicKeyOutput(
 	profile: MagicKeyProfile | undefined,
 	inputHistory: string,
-	inputText: string
+	inputText: string,
+	disabledMappingIds?: DisabledInputMappingIds
 ): MagicKeyOutputResult {
 	if (!profile) return { text: inputText, matched: false };
 
 	const trigger = profile.triggers[inputText];
 	if (trigger) {
 		const normalizedHistory = trimContext(inputHistory.toLowerCase(), profile.maxHistoryLength);
-		const rule = trigger.rules.find(({ after }) => normalizedHistory.endsWith(after));
+		const rule = trigger.rules.find(
+			({ after }) =>
+				!disabledMappingIds?.has(magicRuleMappingId(inputText, after)) &&
+				normalizedHistory.endsWith(after)
+		);
 		if (rule) return { text: rule.emit, matched: true };
 
-		if (trigger.fallback === 'repeat-last') {
+		if (
+			trigger.fallback === 'repeat-last' &&
+			!disabledMappingIds?.has(magicFallbackMappingId(inputText))
+		) {
 			const lastCharacter = Array.from(inputHistory).at(-1);
 			if (lastCharacter !== undefined) return { text: lastCharacter, matched: true };
 		}
