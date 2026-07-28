@@ -4,10 +4,9 @@
 
 	interface Props {
 		profile: LayoutInputProfile;
-		height?: number;
 	}
 
-	const { profile, height }: Props = $props();
+	const { profile }: Props = $props();
 	const triggerGroups = $derived(Object.entries(profile.magicKeys?.triggers ?? {}));
 	const label = $derived(inputProfileMappingsLabel(profile));
 	const accessibleLabel = $derived(label.charAt(0).toUpperCase() + label.slice(1));
@@ -27,12 +26,7 @@
 	</div>
 {/snippet}
 
-<section
-	class="input-mappings-panel"
-	class:input-mappings-panel--constrained={height !== undefined}
-	style:height={height === undefined ? undefined : `${height}px`}
-	aria-label={accessibleLabel}
->
+<section class="input-mappings-panel" aria-label={accessibleLabel}>
 	{#if profile.magicKeys}
 		<div class="input-mappings-heading">Magic key mappings</div>
 		<div class="magic-key-mappings-list">
@@ -74,10 +68,6 @@
 		border-radius: 0.5rem;
 		background-color: var(--bg-primary);
 		overflow: auto;
-	}
-
-	.input-mappings-panel--constrained {
-		min-height: 0;
 	}
 
 	.input-mappings-heading {

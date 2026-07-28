@@ -16,7 +16,6 @@
 		mappingsLabel?: string;
 		inputMappingsUnavailable?: boolean;
 		inputMappingsActive?: boolean;
-		inputMappingsFloatingActive?: boolean;
 		onToggleInputMappings?: () => void;
 		onToggleSelection: () => void;
 		onSelectAuthor: () => void;
@@ -37,7 +36,6 @@
 		mappingsLabel = 'input mappings',
 		inputMappingsUnavailable = false,
 		inputMappingsActive = false,
-		inputMappingsFloatingActive = false,
 		onToggleInputMappings,
 		onToggleSelection,
 		onSelectAuthor
@@ -54,11 +52,7 @@
 		mappingsLabel.charAt(0).toUpperCase() + mappingsLabel.slice(1)
 	);
 	const mappingsTitle = $derived(
-		inputMappingsActive
-			? inputMappingsFloatingActive
-				? `Close ${mappingsLabel}`
-				: 'Show layout stats'
-			: `Show ${mappingsLabel}`
+		inputMappingsActive ? `Close ${mappingsLabel}` : `Show ${mappingsLabel}`
 	);
 </script>
 

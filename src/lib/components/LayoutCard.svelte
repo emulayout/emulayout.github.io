@@ -10,7 +10,7 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
-	import { getLayoutCardHeight, LAYOUT_CARD_STATS_HEIGHT } from '$lib/constants';
+	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		CYANOPHAGE_ANALYZER,
 		CYANOPHAGE_UNSUPPORTED_LABEL,
@@ -24,7 +24,6 @@
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
-	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutExpandModal from '$lib/components/LayoutExpandModal.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
@@ -81,7 +80,6 @@
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
-	let inputMappingsSelected = $state(false);
 	let expandModal = $state<{ open: () => void }>();
 
 	const inputMappingsAvailable = $derived(Boolean(inputProfile));
@@ -92,11 +90,6 @@
 			adaptiveSwaps: layout.hasAdaptiveSwapMappings
 		})
 	);
-	const inputMappingsInlineActive = $derived(
-		inputMappingsAvailable && filterStore.showLayoutStats && inputMappingsSelected
-	);
-	const inputMappingsActive = $derived(inputMappingsInlineActive || inputMappingsWindowOpen);
-
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 	const isSelected = $derived(filterStore.selectedLayoutNames.has(layout.name));
 
@@ -223,15 +216,7 @@
 
 	function toggleInputMappings() {
 		if (!inputProfile) return;
-		if (inputMappingsWindowOpen) {
-			onToggleInputMappingsWindow?.();
-			return;
-		}
-		if (!filterStore.showLayoutStats) {
-			onToggleInputMappingsWindow?.();
-			return;
-		}
-		inputMappingsSelected = !inputMappingsInlineActive;
+		onToggleInputMappingsWindow?.();
 	}
 </script>
 
@@ -250,8 +235,7 @@
 		hasAdaptiveSwapMappings={layout.hasAdaptiveSwapMappings}
 		inputMappingsUnavailable={hasInputMappings && !inputMappingsAvailable}
 		{mappingsLabel}
-		inputMappingsActive={showExpand && inputMappingsActive}
-		inputMappingsFloatingActive={showExpand && inputMappingsWindowOpen}
+		inputMappingsActive={showExpand && inputMappingsWindowOpen}
 		onToggleInputMappings={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
 		onToggleSelection={handleToggleSelection}
 		onSelectAuthor={handleSelectAuthor}
@@ -308,16 +292,12 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
-				{#if inputMappingsInlineActive && inputProfile}
-					<InputMappingsPanel profile={inputProfile} height={LAYOUT_CARD_STATS_HEIGHT} />
-				{:else}
-					<LayoutCardStatsPanel
-						cmini={cminiStatsModel}
-						cyanophage={cyanophageStatsModel}
-						mana2={mana2StatsModel}
-						showFingerUsageBars={uiPrefs.fingerUsageBars}
-					/>
-				{/if}
+				<LayoutCardStatsPanel
+					cmini={cminiStatsModel}
+					cyanophage={cyanophageStatsModel}
+					mana2={mana2StatsModel}
+					showFingerUsageBars={uiPrefs.fingerUsageBars}
+				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
 				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {inputProfile} />

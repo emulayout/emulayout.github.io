@@ -4,9 +4,7 @@ import { magicSturdy, qwerty, vylet } from './fixtures/catalog-data';
 const mappedLayoutName = vylet[0];
 const mappedLayoutView = `/?name=${encodeURIComponent(mappedLayoutName)}&likes=0&newIndicator=0`;
 
-test('shows mappings inline with stats and in a floating window without stats', async ({
-	page
-}) => {
+test('shows mappings in a floating window', async ({ page }) => {
 	await page.goto(mappedLayoutView);
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
@@ -14,20 +12,7 @@ test('shows mappings inline with stats and in a floating window without stats', 
 	await expect(mappingsToggle).toHaveAccessibleName('Show magic key mappings');
 	await mappingsToggle.click();
 	await expect(mappingsToggle).toHaveAttribute('aria-pressed', 'true');
-	await expect(mappingsToggle).toHaveAccessibleName('Show layout stats');
-	await expect(card.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
-
-	await page.getByRole('button', { name: 'Display settings' }).click();
-	const displaySettings = page.getByRole('dialog', { name: 'Display settings' });
-	await displaySettings
-		.getByRole('group', { name: 'Stats' })
-		.getByRole('button', { name: 'Off' })
-		.click();
-	await displaySettings.getByRole('button', { name: 'Close' }).click();
-
-	await expect(card.getByRole('region', { name: 'Magic key mappings' })).toHaveCount(0);
-	await expect(mappingsToggle).toHaveAccessibleName('Show magic key mappings');
-	await mappingsToggle.click();
+	await expect(mappingsToggle).toHaveAccessibleName('Close magic key mappings');
 
 	const mappingsWindow = page.getByRole('dialog', {
 		name: `${mappedLayoutName} magic key mappings`
