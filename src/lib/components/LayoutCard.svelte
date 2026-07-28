@@ -332,6 +332,7 @@
 	{compactCminiStats}
 	{compactCyanophageStats}
 	{compactMana2Stats}
+	{inputProfile}
 	{forceIncluded}
 	similarActive={isSimilarActive}
 >

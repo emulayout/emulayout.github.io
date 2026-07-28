@@ -23,6 +23,8 @@
 	} from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
+	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
+	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 
@@ -31,6 +33,7 @@
 		compactCminiStats?: CompactLayoutStats;
 		compactCyanophageStats?: CompactCyanophageStats;
 		compactMana2Stats?: CompactMana2Stats;
+		inputProfile?: LayoutInputProfile;
 		forceIncluded?: boolean;
 		similarActive?: boolean;
 		layoutCard: Snippet;
@@ -41,6 +44,7 @@
 		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
+		inputProfile,
 		forceIncluded = false,
 		similarActive = false,
 		layoutCard
@@ -267,6 +271,10 @@
 			</div>
 
 			<div class="modal-main">
+				{#if inputProfile}
+					<InputMappingsPanel profile={inputProfile} />
+				{/if}
+
 				{#if analyzerCount > 0}
 					<div class="unique-columns" style="--unique-cols: {analyzerCount};">
 						{#if showCmini}
