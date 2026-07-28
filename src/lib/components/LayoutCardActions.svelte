@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+
 	interface Props {
 		markFirstAction: boolean;
 		similarActive: boolean;
@@ -41,6 +43,84 @@
 				: 'Find similar layouts'
 	);
 	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
+
+	let externalLinksOpen = $state(false);
+	let externalLinksRoot = $state<HTMLDivElement | undefined>(undefined);
+	let externalLinksTrigger = $state<HTMLButtonElement | undefined>(undefined);
+
+	function closeExternalLinks(restoreTriggerFocus = false) {
+		externalLinksOpen = false;
+		if (restoreTriggerFocus) externalLinksTrigger?.focus();
+	}
+
+	async function toggleExternalLinks() {
+		externalLinksOpen = !externalLinksOpen;
+		if (!externalLinksOpen) return;
+		await tick();
+		const firstItem = externalLinksRoot?.querySelector<HTMLButtonElement>(
+			'[role="menuitem"]:not(:disabled)'
+		);
+		firstItem?.focus();
+	}
+
+	function openPlayground() {
+		closeExternalLinks();
+		void onOpenPlayground();
+	}
+
+	function practiceTyping() {
+		closeExternalLinks();
+		void onPractice();
+	}
+
+	function handleExternalLinksKeyDown(event: KeyboardEvent) {
+		if (!externalLinksOpen) return;
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			event.stopPropagation();
+			closeExternalLinks(true);
+			return;
+		}
+
+		if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+		const items = Array.from(
+			externalLinksRoot?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ??
+				[]
+		);
+		if (items.length === 0) return;
+
+		event.preventDefault();
+		const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
+		const nextIndex =
+			event.key === 'Home'
+				? 0
+				: event.key === 'End'
+					? items.length - 1
+					: event.key === 'ArrowUp'
+						? (currentIndex - 1 + items.length) % items.length
+						: (currentIndex + 1) % items.length;
+		items[nextIndex]?.focus();
+	}
+
+	function handleExternalLinksFocusOut(event: FocusEvent) {
+		const nextTarget = event.relatedTarget;
+		if (nextTarget instanceof Node && !externalLinksRoot?.contains(nextTarget)) {
+			closeExternalLinks();
+		}
+	}
+
+	$effect(() => {
+		if (!externalLinksOpen) return;
+
+		function handlePointerDown(event: PointerEvent) {
+			const target = event.target;
+			if (!(target instanceof Node) || externalLinksRoot?.contains(target)) return;
+			closeExternalLinks();
+		}
+
+		document.addEventListener('pointerdown', handlePointerDown);
+		return () => document.removeEventListener('pointerdown', handlePointerDown);
+	});
 </script>
 
 <div class="card-action-divider shrink-0" aria-label="Layout actions">
@@ -96,49 +176,63 @@
 				<path d="M3 21v-5h5" />
 			</svg>
 		</button>
-		<button
-			type="button"
-			onclick={onPractice}
-			class="card-action-button"
-			title="Practice on Colemak Camp"
-			aria-label="Practice on Colemak Camp"
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="external-links-root"
+			bind:this={externalLinksRoot}
+			onkeydown={handleExternalLinksKeyDown}
+			onfocusout={handleExternalLinksFocusOut}
 		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				aria-hidden="true"
+			<button
+				bind:this={externalLinksTrigger}
+				type="button"
+				onclick={toggleExternalLinks}
+				class="card-action-button"
+				class:card-action-button--accent={externalLinksOpen}
+				title="External links"
+				aria-label="External links"
+				aria-haspopup="menu"
+				aria-expanded={externalLinksOpen}
 			>
-				<rect x="2" y="4" width="20" height="16" rx="2" />
-				<path stroke-linecap="round" d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8" />
-			</svg>
-		</button>
-		<button
-			type="button"
-			onclick={onOpenPlayground}
-			disabled={!cyanophageCompatible}
-			class="card-action-button"
-			title={cyanophageTitle}
-			aria-label={cyanophageTitle}
-			aria-disabled={!cyanophageCompatible}
-		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				aria-hidden="true"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-				/>
-			</svg>
-		</button>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+					/>
+				</svg>
+			</button>
+			{#if externalLinksOpen}
+				<div class="external-links-menu" role="menu" aria-label="External links">
+					<button
+						type="button"
+						role="menuitem"
+						class="external-links-menu-item"
+						disabled={!cyanophageCompatible}
+						title={cyanophageCompatible ? undefined : cyanophageTitle}
+						aria-disabled={!cyanophageCompatible}
+						onclick={openPlayground}
+					>
+						View in Cyanophage playground
+					</button>
+					<button
+						type="button"
+						role="menuitem"
+						class="external-links-menu-item"
+						onclick={practiceTyping}
+					>
+						Practice typing on Colemak Camp
+					</button>
+				</div>
+			{/if}
+		</div>
 		{#if showExpand}
 			<button
 				type="button"
@@ -279,5 +373,55 @@
 	.card-action-button--similar:active:not(:disabled) {
 		background-color: color-mix(in srgb, var(--similar-diff) 78%, black);
 		border-color: color-mix(in srgb, var(--similar-diff) 78%, black);
+	}
+
+	.external-links-root {
+		position: relative;
+	}
+
+	.external-links-menu {
+		position: absolute;
+		top: calc(100% + 0.375rem);
+		left: 50%;
+		z-index: 20;
+		display: flex;
+		width: max-content;
+		min-width: 14.5rem;
+		flex-direction: column;
+		padding: 0.25rem;
+		transform: translateX(-50%);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background-color: var(--bg-primary);
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
+	}
+
+	.external-links-menu-item {
+		display: flex;
+		width: 100%;
+		align-items: center;
+		padding: 0.5rem 0.75rem;
+		border: 0;
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.external-links-menu-item:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-primary));
+	}
+
+	.external-links-menu-item:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.external-links-menu-item:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 </style>
