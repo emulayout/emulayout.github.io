@@ -4,9 +4,10 @@
  */
 
 /** Bump when conversion rules change (invalidates mana2 stats cache). */
-export const MANA2_CONVERTER_VERSION = 1;
+export const MANA2_CONVERTER_VERSION = 2;
 
 /** cmini finger label → Mana2 fingermap digit (0–9). */
+/** @type {Record<string, number>} */
 const FINGER_TO_DIGIT = {
 	LP: 0,
 	LR: 1,
@@ -53,7 +54,10 @@ const MAX_ROW = 3;
  *     rowOrColumnStagger: number[]
  *   },
  *   layers: null,
- *   magic: { magicKeys: null, rules: [] }
+ *   magic: {
+ *     magicKeys: null,
+ *     rules: { inputs: string, output: string }[]
+ *   }
  * }} Mana2LayoutFile
  */
 

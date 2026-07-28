@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import type { LayoutData } from '$lib/layout';
+	import { resolveMagicKeyInput, type MagicKeyProfile } from '$lib/magicKeys';
 	import {
 		insertTextAtSelection,
 		resolveLayoutTestKeyDown,
@@ -12,21 +13,37 @@
 	interface Props {
 		layout: LayoutData;
 		keyMaps: LayoutTestKeyMaps;
+		magicKeyProfile?: MagicKeyProfile;
 	}
 
-	const { layout, keyMaps }: Props = $props();
+	const { layout, keyMaps, magicKeyProfile }: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
+	let magicKeyHistory = '';
 
-	function insertCharacter(character: string) {
-		if (!textareaElement || !character) return;
+	function resetMagicKeyHistory() {
+		magicKeyHistory = '';
+	}
+
+	function isModifierKey(key: string) {
+		return key === 'Shift' || key === 'Control' || key === 'Alt' || key === 'Meta';
+	}
+
+	function insertText(text: string) {
+		if (!textareaElement || !text) return;
 		const edit = insertTextAtSelection(
 			textareaElement.value,
 			textareaElement.selectionStart,
 			textareaElement.selectionEnd,
-			character
+			text
 		);
 		textareaElement.value = edit.value;
 		textareaElement.setSelectionRange(edit.cursor, edit.cursor);
+	}
+
+	function processLayoutText(text: string) {
+		const result = resolveMagicKeyInput(magicKeyProfile, magicKeyHistory, text);
+		insertText(result.text);
+		magicKeyHistory = result.nextHistory;
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -41,8 +58,11 @@
 		if (decision.stopPropagation) event.stopPropagation();
 		if (decision.edit?.type === 'clear') {
 			if (textareaElement) textareaElement.value = '';
+			resetMagicKeyHistory();
 		} else if (decision.edit?.type === 'insert') {
-			insertCharacter(decision.edit.text);
+			processLayoutText(decision.edit.text);
+		} else if (!isModifierKey(event.key)) {
+			resetMagicKeyHistory();
 		}
 	}
 
@@ -81,7 +101,10 @@
 		rows="2"
 		placeholder="Layout test area"
 		onkeydown={handleKeyDown}
-		onkeyup={handleKeyUp}></textarea>
+		onkeyup={handleKeyUp}
+		oninput={resetMagicKeyHistory}
+		onpointerdown={resetMagicKeyHistory}
+		onblur={resetMagicKeyHistory}></textarea>
 </div>
 
 <style>

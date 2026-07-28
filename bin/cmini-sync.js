@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
+import { loadMagicKeyMappings, validateMagicKeyMappingsForLayout } from './magic-key-data.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
@@ -21,6 +22,7 @@ import {
 } from './cyanophage-stats.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
+const MAGIC_KEY_MAPPINGS_FILE = 'static/magic-key-mappings.json';
 const STATS_FILE = 'static/layout-stats.json';
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const LIKES_FILE = 'static/layout-likes.json';
@@ -153,6 +155,7 @@ async function run() {
 	await ensureCache(offline);
 
 	const blacklist = await loadBlacklist();
+	const magicKeyMappings = await loadMagicKeyMappings();
 
 	// Get existing layouts before sync (read from the generated file if it exists)
 	let beforeLayouts = [];
@@ -170,6 +173,19 @@ async function run() {
 	const cacheLayoutsDir = join(CACHE_DIR, 'layouts');
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
+	const layoutFileSet = new Set(layoutFiles);
+
+	for (const [profileName, mappings] of magicKeyMappings) {
+		const filename = `${profileName}.json`;
+		if (!layoutFileSet.has(filename)) {
+			throw new Error(`Magic-key profile ${profileName} has no matching Cmini layout file`);
+		}
+		if (blacklist.has(profileName) || blacklist.has(filename)) {
+			throw new Error(`Magic-key profile ${profileName} belongs to a blacklisted layout`);
+		}
+		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
+		validateMagicKeyMappingsForLayout(profileName, mappings, rawLayout);
+	}
 
 	console.log('→ Resolving layout timestamps from git history...');
 	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
@@ -216,6 +232,7 @@ async function run() {
 		const rawLayout = JSON.parse(originalContent);
 		const transformedLayout = transformLayout(rawLayout);
 		transformedLayout.updatedAt = layoutTimestamps[filename];
+		transformedLayout.hasMagicKeyMappings = magicKeyMappings.has(rawLayout.name);
 
 		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData, {
 			statsCache: statsCache ?? undefined,
@@ -265,6 +282,19 @@ async function run() {
 
 	// Write compact layout tuples (minified — GitHub Pages gzip-compresses on transfer)
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
+
+	const validLayoutNames = new Set(transformedLayouts.map((layout) => layout[0]));
+	const publishedMagicKeyMappings = Object.fromEntries(
+		[...magicKeyMappings.entries()].filter(([name]) => validLayoutNames.has(name))
+	);
+	await writeFile(
+		MAGIC_KEY_MAPPINGS_FILE,
+		JSON.stringify(publishedMagicKeyMappings) + '\n',
+		'utf-8'
+	);
+	console.log(
+		`  ✔ Magic-key mappings for ${Object.keys(publishedMagicKeyMappings).length} layouts`
+	);
 
 	console.log('→ Building layout likes...');
 	const layoutLikes = await loadLayoutLikes(new Set(transformedLayouts.map((layout) => layout[0])));

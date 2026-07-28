@@ -13,6 +13,7 @@ describe('active filter chips', () => {
 		snapshot.nameFilter = 'Canary';
 		snapshot.selectedAuthors = [12, 34];
 		snapshot.boardTypeFilter = 'ortho';
+		snapshot.magicKeyFilter = 'required-mapped';
 		snapshot.appliedIncludeGrid[0][0] = 'a';
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
 		snapshot.similarReferenceName = 'Graphite';
@@ -26,6 +27,7 @@ describe('active filter chips', () => {
 			'source',
 			'name',
 			'authors',
+			'magic',
 			'board',
 			'keys-and',
 			'stat-cyano-sfb',
@@ -47,6 +49,7 @@ describe('active filter chips', () => {
 			}
 		});
 		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity > 70%');
+		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic: known mappings');
 	});
 
 	test('routes every clear action to its owning store mutation', () => {

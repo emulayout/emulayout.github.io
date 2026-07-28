@@ -41,3 +41,25 @@ test('combines thumb, magic key, and board type filters', async ({ page }) => {
 	await expect(page.locator('[data-layout-name]')).toHaveCount(1);
 	await expect(page.getByRole('heading', { name: 'turnip', exact: true })).toBeVisible();
 });
+
+test('filters magic-key layouts to those with known mappings', async ({ page }) => {
+	await page.goto(lightweightView);
+	await page.getByRole('button', { name: 'Keyboard filters', exact: true }).click();
+
+	const magicKey = page.getByRole('region', { name: 'Keyboard filters' }).getByLabel('Magic key');
+	await magicKey.selectOption('required');
+	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toBeVisible();
+
+	await magicKey.selectOption('required-mapped');
+
+	await expect(page.locator('#results-status')).toContainText('Showing 1 layout');
+	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toHaveCount(0);
+	await expect(page).toHaveURL(/(?:\?|&)magicKey=required-mapped(?:&|$)/);
+
+	await page.reload();
+	await page.getByRole('button', { name: /^Keyboard filters/ }).click();
+	await expect(magicKey).toHaveValue('required-mapped');
+	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
+});

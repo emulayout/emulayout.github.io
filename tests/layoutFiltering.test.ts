@@ -20,6 +20,7 @@ function makeLayout(
 		characterSet = 'english',
 		hasAllLetters = true,
 		hasMagicKey = false,
+		hasMagicKeyMappings = false,
 		updatedAt = '2026-01-01'
 	}: Partial<{
 		user: number;
@@ -30,6 +31,7 @@ function makeLayout(
 		characterSet: LayoutData['characterSet'];
 		hasAllLetters: boolean;
 		hasMagicKey: boolean;
+		hasMagicKeyMappings: boolean;
 		updatedAt: string;
 	}> = {}
 ): LayoutData {
@@ -44,6 +46,7 @@ function makeLayout(
 		characterSet,
 		hasAllLetters,
 		hasMagicKey,
+		hasMagicKeyMappings,
 		cyanophageCompatible: true,
 		updatedAt
 	};
@@ -123,6 +126,27 @@ describe('filterLayouts', () => {
 		});
 
 		expect(filterLayouts(layouts, criteria).map((layout) => layout.name)).toEqual(['Canary']);
+	});
+
+	test('distinguishes all magic layouts from those with known mappings', () => {
+		const plain = makeLayout('Plain');
+		const unknown = makeLayout('Unknown magic', { hasMagicKey: true });
+		const mapped = makeLayout('Mapped magic', {
+			hasMagicKey: true,
+			hasMagicKeyMappings: true
+		});
+
+		expect(
+			filterLayouts([plain, unknown, mapped], makeCriteria({ magicKeyFilter: 'required' })).map(
+				(layout) => layout.name
+			)
+		).toEqual(['Unknown magic', 'Mapped magic']);
+		expect(
+			filterLayouts(
+				[plain, unknown, mapped],
+				makeCriteria({ magicKeyFilter: 'required-mapped' })
+			).map((layout) => layout.name)
+		).toEqual(['Mapped magic']);
 	});
 
 	test('hides unfinished layouts unless allowed by the current character rules', () => {

@@ -5,6 +5,7 @@
 
 import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
 import { THUMB_ROW } from '../src/lib/layoutDisplay.ts';
+import { hasMagicKey } from './layout-features.js';
 
 const SPLIT_COL = 5;
 
@@ -40,7 +41,7 @@ export function transformLayout(layout) {
 		hasThumbKeys: computeHasThumbKeys(stripped),
 		characterSet: computeCharacterSet(stripped),
 		hasAllLetters: computeHasAllLetters(stripped),
-		hasMagicKey: computeHasMagicKey(stripped),
+		hasMagicKey: hasMagicKey(stripped.keys),
 		cyanophageCompatible: isCyanophageCompatible(keys),
 		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
 	};
@@ -170,16 +171,4 @@ function computeHasAllLetters(layout) {
 		}
 	}
 	return found.size === 26;
-}
-
-/**
- * Computes whether a layout has a magic key assigned.
- */
-function computeHasMagicKey(layout) {
-	if (!layout.keys || typeof layout.keys !== 'object') {
-		return false;
-	}
-
-	// Check if any key in the keys object is "*" or "@"
-	return Object.keys(layout.keys).some((key) => key === '*' || key === '@');
 }

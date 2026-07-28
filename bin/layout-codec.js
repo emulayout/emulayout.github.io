@@ -19,6 +19,7 @@ export const LAYOUT_FLAG_MAGIC_KEY = 4;
 export const LAYOUT_FLAG_INTERNATIONAL = 8;
 export const LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE = 16;
 export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
+export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
 
 /** @typedef {[
  *   string,
@@ -46,6 +47,7 @@ export function encodeLayout(layout) {
 	if (layout.characterSet === 'international') flags |= LAYOUT_FLAG_INTERNATIONAL;
 	if (layout.cyanophageCompatible) flags |= LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE;
 	if (layout.cyanophageThumb === 'r') flags |= LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT;
+	if (layout.hasMagicKeyMappings) flags |= LAYOUT_FLAG_MAGIC_KEY_MAPPINGS;
 
 	return [
 		layout.name,

@@ -24,6 +24,7 @@
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
+	import MagicKeyMappingsPanel from '$lib/components/MagicKeyMappingsPanel.svelte';
 	import LayoutExpandModal from '$lib/components/LayoutExpandModal.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
@@ -36,6 +37,7 @@
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
+	import type { MagicKeyProfile } from '$lib/magicKeys';
 
 	interface Props {
 		layout: LayoutData;
@@ -47,6 +49,9 @@
 		compactCyanophageStats?: CompactCyanophageStats;
 		/** Compact mana2 stats when that analyzer is shown. */
 		compactMana2Stats?: CompactMana2Stats;
+		magicKeyProfile?: MagicKeyProfile;
+		magicKeyMappingsWindowOpen?: boolean;
+		onToggleMagicKeyMappingsWindow?: () => void;
 		/** Injected into results despite failing filters (Include selected). */
 		forceIncluded?: boolean;
 		similarMatchPercent?: number;
@@ -65,6 +70,9 @@
 		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
+		magicKeyProfile,
+		magicKeyMappingsWindowOpen = false,
+		onToggleMagicKeyMappingsWindow,
 		forceIncluded = false,
 		similarMatchPercent,
 		similarMirrored = false,
@@ -73,7 +81,16 @@
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
+	let magicKeyMappingsSelected = $state(false);
 	let expandModal = $state<{ open: () => void }>();
+
+	const magicKeyMappingsAvailable = $derived(Boolean(magicKeyProfile));
+	const magicKeyMappingsInlineActive = $derived(
+		magicKeyMappingsAvailable && filterStore.showLayoutStats && magicKeyMappingsSelected
+	);
+	const magicKeyMappingsActive = $derived(
+		magicKeyMappingsInlineActive || magicKeyMappingsWindowOpen
+	);
 
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 	const isSelected = $derived(filterStore.selectedLayoutNames.has(layout.name));
@@ -103,7 +120,6 @@
 
 	const transformedDisplayValue = $derived(displayRowsToString(transformedDisplayRows));
 	const layoutTestKeyMaps = $derived(createLayoutTestKeyMaps(transformedDisplayValue));
-
 	const showSimilarDiffs = $derived(
 		Boolean(similarDiffPositions && similarDiffPositions.size > 0 && !isSimilarActive)
 	);
@@ -199,6 +215,19 @@
 		filterStore.toggleAuthor(layout.user);
 		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
+
+	function toggleMagicKeyMappings() {
+		if (!magicKeyProfile) return;
+		if (magicKeyMappingsWindowOpen) {
+			onToggleMagicKeyMappingsWindow?.();
+			return;
+		}
+		if (!filterStore.showLayoutStats) {
+			onToggleMagicKeyMappingsWindow?.();
+			return;
+		}
+		magicKeyMappingsSelected = !magicKeyMappingsInlineActive;
+	}
 </script>
 
 {#snippet layoutCardMain(markFirstAction: boolean, showExpand = true)}
@@ -212,6 +241,13 @@
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
 		{similarMatchPercent}
 		{similarMirrored}
+		hasMagicKeyMappings={layout.hasMagicKeyMappings}
+		magicKeyMappingsUnavailable={layout.hasMagicKeyMappings && !magicKeyMappingsAvailable}
+		magicKeyMappingsActive={showExpand && magicKeyMappingsActive}
+		magicKeyMappingsFloatingActive={showExpand && magicKeyMappingsWindowOpen}
+		onToggleMagicKeyMappings={showExpand && magicKeyMappingsAvailable
+			? toggleMagicKeyMappings
+			: undefined}
 		onToggleSelection={handleToggleSelection}
 		onSelectAuthor={handleSelectAuthor}
 	/>
@@ -267,15 +303,19 @@
 	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
-				<LayoutCardStatsPanel
-					cmini={cminiStatsModel}
-					cyanophage={cyanophageStatsModel}
-					mana2={mana2StatsModel}
-					showFingerUsageBars={uiPrefs.fingerUsageBars}
-				/>
+				{#if magicKeyMappingsInlineActive && magicKeyProfile}
+					<MagicKeyMappingsPanel profile={magicKeyProfile} />
+				{:else}
+					<LayoutCardStatsPanel
+						cmini={cminiStatsModel}
+						cyanophage={cyanophageStatsModel}
+						mana2={mana2StatsModel}
+						showFingerUsageBars={uiPrefs.fingerUsageBars}
+					/>
+				{/if}
 			{/if}
 			{#if filterStore.showLayoutTestArea}
-				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} />
+				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {magicKeyProfile} />
 			{/if}
 		</div>
 	{/if}

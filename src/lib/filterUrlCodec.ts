@@ -212,7 +212,12 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 	}
 
 	const magicKey = params.get('magicKey');
-	if (magicKey === 'excluded' || magicKey === 'required' || magicKey === 'optional') {
+	if (
+		magicKey === 'excluded' ||
+		magicKey === 'required' ||
+		magicKey === 'required-mapped' ||
+		magicKey === 'optional'
+	) {
 		snapshot.magicKeyFilter = magicKey;
 	}
 

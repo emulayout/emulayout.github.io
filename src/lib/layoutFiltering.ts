@@ -241,7 +241,9 @@ function getNameSearchRank(layout: LayoutData, nameTerms: string[]): number {
 
 function matchesMagicKeyFilter(layout: LayoutData, filter: MagicKeyFilter): boolean {
 	if (filter === 'optional') return true;
-	return filter === 'required' ? layout.hasMagicKey : !layout.hasMagicKey;
+	if (filter === 'required') return layout.hasMagicKey;
+	if (filter === 'required-mapped') return layout.hasMagicKey && layout.hasMagicKeyMappings;
+	return !layout.hasMagicKey;
 }
 
 function matchesThumbKeyFilter(layout: LayoutData, filter: ThumbKeyFilter): boolean {

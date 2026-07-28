@@ -14,6 +14,8 @@
 	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
+	import type { MagicKeyProfile } from '$lib/magicKeys';
+	import MagicKeyMappingsWindow from './MagicKeyMappingsWindow.svelte';
 
 	interface Props {
 		items: LayoutListItem[];
@@ -24,6 +26,7 @@
 		getAuthorName: (userId: number) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
+		magicKeyProfiles: ReadonlyMap<string, MagicKeyProfile>;
 		similarityMatches?: Map<string, SimilarityMatchInfo>;
 		/** Direct reference slots for per-key diff highlighting. */
 		similarDiffPositions?: Map<string, string>;
@@ -39,6 +42,7 @@
 		getAuthorName,
 		likesData,
 		statsMaps,
+		magicKeyProfiles,
 		similarityMatches = new Map(),
 		similarDiffPositions,
 		similarMirrorDiffPositions = null,
@@ -49,6 +53,11 @@
 		scrollToIndex: (index: number, opts?: { align?: 'start' | 'center' | 'end' }) => void;
 		scrollTo?: (offset: number) => void;
 	}>();
+	let floatingMagicKeyLayoutName = $state<string>();
+
+	const floatingMagicKeyProfile = $derived(
+		floatingMagicKeyLayoutName ? magicKeyProfiles.get(floatingMagicKeyLayoutName) : undefined
+	);
 
 	const splitUp = new MediaQuery(`(min-width: ${LAYOUT_SPLIT_MIN_WIDTH}px)`);
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
@@ -166,6 +175,14 @@
 	function handleRemoveMissing(name: string) {
 		onRemoveMissingLayout?.(name);
 	}
+
+	function toggleFloatingMagicKeyMappings(layoutName: string) {
+		floatingMagicKeyLayoutName = floatingMagicKeyLayoutName === layoutName ? undefined : layoutName;
+	}
+
+	function closeFloatingMagicKeyMappings() {
+		floatingMagicKeyLayoutName = undefined;
+	}
 </script>
 
 {#snippet layoutCard(layout: LayoutData)}
@@ -183,6 +200,9 @@
 		compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
 			? statsMaps.mana2?.[layout.name]
 			: undefined}
+		magicKeyProfile={magicKeyProfiles.get(layout.name)}
+		magicKeyMappingsWindowOpen={floatingMagicKeyLayoutName === layout.name}
+		onToggleMagicKeyMappingsWindow={() => toggleFloatingMagicKeyMappings(layout.name)}
 		forceIncluded={forceIncludedNames.has(layout.name)}
 		similarMatchPercent={matchInfo?.percent}
 		similarMirrored={matchInfo?.mirrored ?? false}
@@ -253,6 +273,14 @@
 	</div>
 {:else}
 	{@render virtualList()}
+{/if}
+
+{#if floatingMagicKeyLayoutName && floatingMagicKeyProfile}
+	<MagicKeyMappingsWindow
+		layoutName={floatingMagicKeyLayoutName}
+		profile={floatingMagicKeyProfile}
+		onClose={closeFloatingMagicKeyMappings}
+	/>
 {/if}
 
 <style>

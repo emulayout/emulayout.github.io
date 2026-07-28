@@ -132,7 +132,7 @@ export const vylet = compactLayout({
 	user: ACAS_USER_ID,
 	board: 2,
 	updatedAt: '2026-05-18T00:00:03+00:00',
-	flags: 6,
+	flags: 70,
 	rows: [
 		['w', 'c', 'm', 'p', 'b', 'x', 'l', 'o', 'u', 'j', '-'],
 		['r', 's', 't', 'h', 'f', 'y', 'n', 'a', 'e', 'i', ','],

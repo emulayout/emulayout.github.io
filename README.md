@@ -29,8 +29,8 @@ bun run dev
 
 Generated `static/*.json` files are gitignored; CI regenerates them on each deploy (including the daily sync).
 
-- **cmini-sync** clones [Apsu/cmini](https://github.com/Apsu/cmini) into `.cache/cmini-repo` and writes layout/stats JSON under `static/`.
-- **mana2-sync** clones Mana2 into `.cache/mana2`, builds the CLI, and writes `static/layout-stats-mana2.json`. Requires the Go version from `mise.toml`. Use `--offline` on later runs to skip git fetches. If Go is missing, the script skips instead of failing (except in CI).
+- **cmini-sync** clones [Apsu/cmini](https://github.com/Apsu/cmini) into `.cache/cmini-repo` and writes layout/stats JSON under `static/`. Curated profiles in `data/magic-keys/<layout-name>.json` set a compact “mappings available” layout flag and are published separately as `static/magic-key-mappings.json`.
+- **mana2-sync** clones Mana2 into `.cache/mana2`, builds the CLI, and writes `static/layout-stats-mana2.json`. Magic-key profiles under `data/magic-keys/` use Mana2's extended engine when their rules are supported. Magic-key results are stored as `{ stats, magicKeys }`, where `magicKeys` records either `included`, `mappings-unavailable`, or another explicit standard-engine fallback reason; ordinary layouts remain compact stat arrays. Requires the Go version from `mise.toml`. Use `--offline` on later runs to skip git fetches. If Go is missing, the script skips instead of failing (except in CI).
 
 ```sh
 bun run build      # production build

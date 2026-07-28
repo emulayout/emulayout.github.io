@@ -1,4 +1,10 @@
-import type { CyanophageStats, Mana2Stats, CminiStats } from '$lib/layout';
+import type {
+	CompactMana2Stats,
+	CyanophageStats,
+	Mana2MagicKeyAnalysis,
+	Mana2Stats,
+	CminiStats
+} from '$lib/layout';
 
 /** Keep in sync with FINGERS in bin/cmini-analyzer.js. */
 export const FINGER_USAGE_KEYS = [
@@ -279,15 +285,22 @@ export function isValidMana2Stats(stats: Mana2Stats): boolean {
 	return (stats.sfb ?? 0) > 0 || (stats.alt ?? 0) > 0 || (stats.roll ?? 0) > 0;
 }
 
-export function decodeMana2Stats(values: number[]): Mana2Stats | undefined {
-	if (values.length !== MANA2_COMPACT_STAT_FIELD_COUNT) {
+export function getMana2MagicKeyAnalysis(
+	values: CompactMana2Stats
+): Mana2MagicKeyAnalysis | undefined {
+	return Array.isArray(values) ? undefined : values.magicKeys;
+}
+
+export function decodeMana2Stats(values: CompactMana2Stats): Mana2Stats | undefined {
+	const compactValues = Array.isArray(values) ? values : values.stats;
+	if (compactValues.length !== MANA2_COMPACT_STAT_FIELD_COUNT) {
 		return undefined;
 	}
 
 	const stats = {} as Mana2Stats;
 	for (let i = 0; i < MANA2_STAT_KEYS.length; i++) {
 		const key = MANA2_STAT_KEYS[i];
-		const raw = values[i] / MANA2_STAT_VALUE_SCALE;
+		const raw = compactValues[i] / MANA2_STAT_VALUE_SCALE;
 		// Mana2 emits percentage-points for most metrics; keep stretch/weights raw.
 		stats[key] = MANA2_RAW_STAT_KEYS.has(key) ? raw : raw / 100;
 	}

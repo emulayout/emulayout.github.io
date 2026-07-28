@@ -260,13 +260,11 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 		);
 	}
 	if (store.magicKeyFilter !== 'optional') {
-		pushChip(
-			chips,
-			'magic',
-			`Magic ${store.magicKeyFilter}`,
-			{ kind: 'magicKey' },
-			{ target: 'keyboard', field: 'magic' }
-		);
+		const label =
+			store.magicKeyFilter === 'required-mapped'
+				? 'Magic: known mappings'
+				: `Magic ${store.magicKeyFilter}`;
+		pushChip(chips, 'magic', label, { kind: 'magicKey' }, { target: 'keyboard', field: 'magic' });
 	}
 	if (store.boardTypeFilter !== 'all') {
 		pushChip(

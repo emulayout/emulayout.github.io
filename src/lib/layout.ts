@@ -26,6 +26,8 @@ export interface LayoutData {
 	characterSet: 'english' | 'international';
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;
+	/** A curated profile is available in the separately loaded mappings payload. */
+	hasMagicKeyMappings: boolean;
 	cyanophageCompatible: boolean;
 	/** Set when the layout has exactly one thumb key (cyanophage playground). */
 	cyanophageThumb?: 'l' | 'r';
@@ -109,11 +111,44 @@ export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
  */
 export type Mana2Stats = Record<string, number>;
 
+export type Mana2MagicKeyExclusionReason =
+	| 'mappings-unavailable'
+	| 'multiple-magic-keys'
+	| 'invalid-magic-key'
+	| 'no-rules'
+	| 'multi-key-input'
+	| 'multiple-outputs-per-input'
+	| 'multi-character-output'
+	| 'magic-key-not-on-layout'
+	| 'input-key-not-on-layout'
+	| 'invalid-profile'
+	| 'extended-engine-failed';
+
+/**
+ * Records whether a configured magic-key profile was included in Mana2's
+ * result, or why the result fell back to ordinary standard-engine analysis.
+ */
+export type Mana2MagicKeyAnalysis =
+	| { status: 'included'; engine: 'extended' }
+	| {
+			status: 'excluded';
+			engine: 'standard';
+			reason: Mana2MagicKeyExclusionReason;
+			detail: string;
+	  };
+
 /**
  * Compact mana2 stats: fixed-point values (×10_000) in MANA2_STAT_KEYS order.
+ * Ordinary layouts remain bare arrays. A magic-key layout carries its stats
+ * and magic-analysis result together, including when mappings are unavailable.
  * @see MANA2_STAT_KEYS in statsDerivation.ts / bin/mana2-stats.js
  */
-export type CompactMana2Stats = number[];
+export type CompactMana2Stats =
+	| number[]
+	| {
+			stats: number[];
+			magicKeys: Mana2MagicKeyAnalysis;
+	  };
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats-mana2.json. */
 export type Mana2StatsMap = Record<string, CompactMana2Stats>;

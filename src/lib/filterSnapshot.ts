@@ -3,7 +3,7 @@ import { isSortOrder, normalizeSortBy, type SortBy, type SortOrder } from '$lib/
 import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSimilarity';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
-export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
+export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
 export type StatLimitOperator = 'lt' | 'gt';
@@ -329,7 +329,7 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		),
 		magicKeyFilter: normalizeEnum<MagicKeyFilter>(
 			value.magicKeyFilter,
-			['optional', 'excluded', 'required'],
+			['optional', 'excluded', 'required', 'required-mapped'],
 			defaults.magicKeyFilter
 		),
 		characterSetFilter: normalizeEnum<CharacterSetFilter>(

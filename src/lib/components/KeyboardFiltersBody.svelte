@@ -72,6 +72,7 @@
 				<option value="optional">Optional</option>
 				<option value="excluded">Excluded</option>
 				<option value="required">Required</option>
+				<option value="required-mapped">Require with known mappings</option>
 			</select>
 		</label>
 	{/if}

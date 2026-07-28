@@ -5,6 +5,7 @@ import { $ } from 'bun';
 
 const REQUIRED_FILES = [
 	'static/all-layouts.json',
+	'static/magic-key-mappings.json',
 	'static/authors.json',
 	'static/layout-stats.json'
 ];

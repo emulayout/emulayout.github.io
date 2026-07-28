@@ -14,12 +14,20 @@ import { join } from 'node:path';
 import { $ } from 'bun';
 import { convertCminiLayoutToMana2, mana2LayoutIdFromFilename } from './mana2-layout.js';
 import {
+	encodeMana2StatsResult,
+	mana2MagicEngineFailure,
+	mana2MagicMappingsUnavailable,
+	prepareMana2Magic
+} from './mana2-magic.js';
+import { loadMagicKeyMappings } from './magic-key-data.js';
+import { hasMagicKey } from './layout-features.js';
+import {
 	buildMana2AnalyzerFingerprint,
+	buildMana2LayoutHash,
 	createMana2StatsCacheContext,
 	encodeMana2Stats,
 	extractJsonValues,
 	getCachedMana2Stats,
-	hashContent,
 	pathExists,
 	pruneMana2StatsCache,
 	saveMana2StatsCache,
@@ -117,7 +125,7 @@ async function ensureMana2Checkout(offline) {
 		const config = JSON.parse((await readFile(configPath, 'utf-8')).replace(/\/\/.*$/gm, ''));
 		config.hideUpdateMessage = true;
 		config.corpus = config.corpus || 'monkeyracer';
-		config.engine = config.engine || 'standard';
+		config.engine = 'standard';
 		await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
 	} catch {
 		await writeFile(
@@ -184,14 +192,20 @@ async function runMana2Cli(arg) {
 
 /**
  * @param {string[]} layoutIds
+ * @param {'standard' | 'extended'} engine
  * @returns {Promise<Map<string, import('./mana2-stats.js').Mana2StatsJson>>}
  */
-async function runMana2JsonBatch(layoutIds) {
+async function runMana2JsonBatch(layoutIds, engine) {
 	/** @type {Map<string, import('./mana2-stats.js').Mana2StatsJson>} */
 	const byId = new Map();
 	if (layoutIds.length === 0) return byId;
 
-	const command = layoutIds.map((id) => `(json ${id})`).join(' ');
+	const command = [
+		`(engine ${engine})`,
+		...layoutIds.map((id) => `(json ${id})`),
+		// Keep the checkout deterministic for later manual CLI use and interrupted sync retries.
+		'(engine standard)'
+	].join(' ');
 	const result = await runMana2Cli(command);
 	const values = extractJsonValues(result.text);
 	if (values.length === layoutIds.length) {
@@ -203,7 +217,7 @@ async function runMana2JsonBatch(layoutIds) {
 
 	// Fallback: analyze one-by-one so a single bad layout does not drop the batch.
 	for (const id of layoutIds) {
-		const single = await runMana2Cli(`json ${id}`);
+		const single = await runMana2Cli(`(engine ${engine}) (json ${id}) (engine standard)`);
 		const parsed = extractJsonValues(single.text);
 		if (parsed.length >= 1) {
 			byId.set(id, /** @type {import('./mana2-stats.js').Mana2StatsJson} */ (parsed[0]));
@@ -239,6 +253,7 @@ async function run() {
 	const mana2Commit = await ensureMana2Binary();
 
 	const blacklist = await loadBlacklist();
+	const magicKeyMappings = await loadMagicKeyMappings();
 	const analyzerFingerprint = await buildMana2AnalyzerFingerprint(mana2Commit);
 	const statsCache = await createMana2StatsCacheContext(analyzerFingerprint);
 
@@ -254,7 +269,9 @@ async function run() {
 	 *   layoutName: string,
 	 *   mana2Id: string,
 	 *   layoutHash: string,
-	 *   cachedStats: number[] | null
+	 *   engine: 'standard' | 'extended',
+	 *   magicAnalysis: import('./mana2-magic.js').Mana2MagicAnalysis | null,
+	 *   cachedResult: import('./mana2-stats.js').Mana2StatsResult | null
 	 * }} WorkItem
 	 */
 
@@ -281,6 +298,7 @@ async function run() {
 			skipReasons.set('invalid-json', (skipReasons.get('invalid-json') ?? 0) + 1);
 			continue;
 		}
+		const layoutName = typeof raw.name === 'string' ? raw.name : layoutNameGuess;
 
 		const converted = convertCminiLayoutToMana2(raw);
 		if (!converted.file) {
@@ -290,19 +308,38 @@ async function run() {
 			continue;
 		}
 
+		const rawMagicMappings = magicKeyMappings.get(layoutName);
+		let engine = /** @type {'standard' | 'extended'} */ ('standard');
+		let magicAnalysis = null;
+		if (rawMagicMappings !== undefined) {
+			const prepared = prepareMana2Magic(rawMagicMappings, raw.keys);
+			engine = prepared.engine;
+			magicAnalysis = prepared.analysis;
+			if (prepared.engine === 'extended') {
+				converted.file.magic = {
+					magicKeys: null,
+					rules: prepared.rules
+				};
+			}
+		} else if (hasMagicKey(raw.keys)) {
+			magicAnalysis = mana2MagicMappingsUnavailable();
+		}
+
 		const mana2Id = mana2LayoutIdFromFilename(filename);
 		const jsoncPath = join(layoutsOutDir, `${mana2Id}.jsonc`);
 		const jsoncBody = JSON.stringify(converted.file, null, 2) + '\n';
 		await writeFile(jsoncPath, jsoncBody, 'utf-8');
 
-		const layoutHash = hashContent(content + '\0' + jsoncBody);
-		const cachedStats = getCachedMana2Stats(statsCache, filename, layoutHash);
+		const layoutHash = buildMana2LayoutHash(content, jsoncBody, engine, magicAnalysis);
+		const cachedResult = getCachedMana2Stats(statsCache, filename, layoutHash);
 		work.push({
 			cminiFilename: filename,
-			layoutName: typeof raw.name === 'string' ? raw.name : layoutNameGuess,
+			layoutName,
 			mana2Id,
 			layoutHash,
-			cachedStats
+			engine,
+			magicAnalysis,
+			cachedResult
 		});
 	}
 
@@ -313,15 +350,26 @@ async function run() {
 			console.log(`    · ${count}× ${reason}`);
 		}
 	}
+	for (const [layoutName, mappings] of magicKeyMappings) {
+		if (
+			!work.some(
+				(item) => item.layoutName === layoutName || item.cminiFilename === `${layoutName}.json`
+			)
+		) {
+			console.warn(
+				`  ⚠ Magic-key profile ${layoutName} did not match a converted cmini layout (${typeof mappings})`
+			);
+		}
+	}
 
-	/** @type {Record<string, number[]>} */
+	/** @type {Record<string, import('./mana2-stats.js').Mana2StatsResult>} */
 	const layoutStats = {};
 	/** @type {WorkItem[]} */
 	const needCompute = [];
 
 	for (const item of work) {
-		if (item.cachedStats) {
-			layoutStats[item.layoutName] = item.cachedStats;
+		if (item.cachedResult) {
+			layoutStats[item.layoutName] = item.cachedResult;
 		} else {
 			needCompute.push(item);
 		}
@@ -331,25 +379,64 @@ async function run() {
 		`→ Analyzing with mana2 (${needCompute.length} to compute, ${work.length - needCompute.length} cache hits)...`
 	);
 
-	for (let i = 0; i < needCompute.length; i += BATCH_SIZE) {
-		const batch = needCompute.slice(i, i + BATCH_SIZE);
-		const results = await runMana2JsonBatch(batch.map((item) => item.mana2Id));
+	/** @type {WorkItem[]} */
+	const extendedFallback = [];
+	for (const engine of /** @type {const} */ (['standard', 'extended'])) {
+		const engineWork = needCompute.filter((item) => item.engine === engine);
+		if (engineWork.length > 0) {
+			console.log(`  · ${engineWork.length} with ${engine} engine`);
+		}
+		for (let i = 0; i < engineWork.length; i += BATCH_SIZE) {
+			const batch = engineWork.slice(i, i + BATCH_SIZE);
+			const results = await runMana2JsonBatch(
+				batch.map((item) => item.mana2Id),
+				engine
+			);
 
-		for (const item of batch) {
+			for (const item of batch) {
+				const rawStats = results.get(item.mana2Id);
+				const compact = rawStats ? encodeMana2Stats(rawStats) : null;
+				if (!compact) {
+					if (engine === 'extended') {
+						extendedFallback.push(item);
+					} else {
+						console.warn(`  ⚠ Could not encode mana2 stats for ${item.layoutName}`);
+					}
+					continue;
+				}
+				const result = encodeMana2StatsResult(compact, item.magicAnalysis);
+				layoutStats[item.layoutName] = result;
+				setCachedMana2Stats(statsCache, item.cminiFilename, item.layoutHash, result);
+			}
+
+			if ((i / BATCH_SIZE) % 10 === 0 || i + BATCH_SIZE >= engineWork.length) {
+				const done = Math.min(i + BATCH_SIZE, engineWork.length);
+				console.log(`  … ${done}/${engineWork.length} ${engine}`);
+			}
+		}
+	}
+
+	if (extendedFallback.length > 0) {
+		console.warn(
+			`  ⚠ Extended engine failed for ${extendedFallback.length} layout(s); falling back to standard`
+		);
+		const results = await runMana2JsonBatch(
+			extendedFallback.map((item) => item.mana2Id),
+			'standard'
+		);
+		for (const item of extendedFallback) {
 			const rawStats = results.get(item.mana2Id);
-			if (!rawStats) continue;
-			const compact = encodeMana2Stats(rawStats);
+			const compact = rawStats ? encodeMana2Stats(rawStats) : null;
 			if (!compact) {
-				console.warn(`  ⚠ Could not encode mana2 stats for ${item.layoutName}`);
+				console.warn(`  ⚠ Could not encode fallback mana2 stats for ${item.layoutName}`);
 				continue;
 			}
-			layoutStats[item.layoutName] = compact;
-			setCachedMana2Stats(statsCache, item.cminiFilename, item.layoutHash, compact);
-		}
-
-		if ((i / BATCH_SIZE) % 10 === 0 || i + BATCH_SIZE >= needCompute.length) {
-			const done = Math.min(i + BATCH_SIZE, needCompute.length);
-			console.log(`  … ${done}/${needCompute.length}`);
+			const result = encodeMana2StatsResult(
+				compact,
+				mana2MagicEngineFailure('Mana2 extended engine returned no encodable stats.')
+			);
+			layoutStats[item.layoutName] = result;
+			setCachedMana2Stats(statsCache, item.cminiFilename, item.layoutHash, result);
 		}
 	}
 

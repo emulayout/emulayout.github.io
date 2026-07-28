@@ -71,7 +71,7 @@ export const MANA2_STAT_KEYS = [
 ];
 
 /** Bump when encode key order / parsing changes. */
-export const MANA2_STATS_ALGORITHM_VERSION = 1;
+export const MANA2_STATS_ALGORITHM_VERSION = 2;
 
 /**
  * @typedef {{ Id?: string, id?: string, Value?: number, value?: number }} Mana2StatEntry
@@ -192,9 +192,34 @@ export async function buildMana2AnalyzerFingerprint(mana2Commit) {
 }
 
 /**
+ * Hash everything that can change one layout's Mana2 result. Magic profile
+ * rules are present in jsoncBody; analysis is included separately because
+ * unsupported profiles may produce identical standard-engine layout files but
+ * different exclusion metadata.
+ *
+ * @param {string} sourceContent
+ * @param {string} jsoncBody
+ * @param {'standard' | 'extended'} engine
+ * @param {import('./mana2-magic.js').Mana2MagicAnalysis | null} magicAnalysis
+ */
+export function buildMana2LayoutHash(sourceContent, jsoncBody, engine, magicAnalysis) {
+	return hashContent([sourceContent, jsoncBody, engine, JSON.stringify(magicAnalysis)].join('\0'));
+}
+
+/**
+ * @typedef {
+ *   | number[]
+ *   | {
+ *       stats: number[],
+ *       magicKeys: import('./mana2-magic.js').Mana2MagicAnalysis
+ *     }
+ * } Mana2StatsResult
+ */
+
+/**
  * @typedef {Object} Mana2StatsCacheEntry
  * @property {string} layoutHash
- * @property {number[]} stats
+ * @property {Mana2StatsResult} result
  */
 
 /**
@@ -231,7 +256,7 @@ export function getCachedMana2Stats(ctx, layoutFilename, layoutHash) {
 	const entry = ctx.layouts[layoutFilename];
 	if (entry && entry.layoutHash === layoutHash) {
 		ctx.hits++;
-		return entry.stats;
+		return entry.result;
 	}
 	return null;
 }
@@ -240,11 +265,11 @@ export function getCachedMana2Stats(ctx, layoutFilename, layoutHash) {
  * @param {Mana2StatsCacheContext} ctx
  * @param {string} layoutFilename
  * @param {string} layoutHash
- * @param {number[]} stats
+ * @param {Mana2StatsResult} result
  */
-export function setCachedMana2Stats(ctx, layoutFilename, layoutHash, stats) {
+export function setCachedMana2Stats(ctx, layoutFilename, layoutHash, result) {
 	ctx.misses++;
-	ctx.layouts[layoutFilename] = { layoutHash, stats };
+	ctx.layouts[layoutFilename] = { layoutHash, result };
 }
 
 /**

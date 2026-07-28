@@ -11,7 +11,8 @@ import {
 	decodeCminiStats,
 	deriveBotStats,
 	deriveCyanophageStats,
-	deriveMana2Stats
+	deriveMana2Stats,
+	getMana2MagicKeyAnalysis
 } from '$lib/statsDerivation';
 
 function setCompactValue(
@@ -97,5 +98,21 @@ describe('frontend stats decoding and derivation', () => {
 		expect(derived.rh).toBeCloseTo(0.1);
 		expect(derived.LP).toBeCloseTo(0.1);
 		expect(derived.RP).toBeCloseTo(0.08);
+	});
+
+	test('decodes magic-aware Mana2 results and exposes their analysis status', () => {
+		const compact = Array(MANA2_COMPACT_STAT_FIELD_COUNT).fill(0);
+		setCompactValue(compact, MANA2_STAT_KEYS, 'sfb', 25_000);
+		const result = {
+			stats: compact,
+			magicKeys: { status: 'included', engine: 'extended' }
+		} as const;
+
+		expect(decodeMana2Stats(result)?.sfb).toBeCloseTo(0.025);
+		expect(getMana2MagicKeyAnalysis(result)).toEqual({
+			status: 'included',
+			engine: 'extended'
+		});
+		expect(getMana2MagicKeyAnalysis(compact)).toBeUndefined();
 	});
 });

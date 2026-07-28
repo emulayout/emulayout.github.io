@@ -47,7 +47,7 @@ describe('view filter URL codec', () => {
 		snapshot.appliedIncludeOrRightThumbKeys = ['n', '', '', ''];
 		snapshot.showUnfinished = true;
 		snapshot.thumbKeyFilter = 'required';
-		snapshot.magicKeyFilter = 'excluded';
+		snapshot.magicKeyFilter = 'required-mapped';
 		snapshot.characterSetFilter = 'international';
 		snapshot.boardTypeFilter = 'ortho';
 		snapshot.nameFilter = 'Canary & Friends';
@@ -77,7 +77,7 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.includeOrRightThumbKeys).toEqual(['n', '', '', '']);
 		expect(decoded.snapshot.showUnfinished).toBe(true);
 		expect(decoded.snapshot.thumbKeyFilter).toBe('required');
-		expect(decoded.snapshot.magicKeyFilter).toBe('excluded');
+		expect(decoded.snapshot.magicKeyFilter).toBe('required-mapped');
 		expect(decoded.snapshot.characterSetFilter).toBe('international');
 		expect(decoded.snapshot.boardTypeFilter).toBe('ortho');
 		expect(decoded.snapshot.nameFilterInput).toBe('Canary & Friends');

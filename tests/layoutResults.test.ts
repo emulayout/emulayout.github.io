@@ -18,6 +18,7 @@ function makeLayout(name: string): LayoutData {
 		characterSet: 'english',
 		hasAllLetters: true,
 		hasMagicKey: false,
+		hasMagicKeyMappings: false,
 		cyanophageCompatible: true,
 		updatedAt: '2026-01-01'
 	};
