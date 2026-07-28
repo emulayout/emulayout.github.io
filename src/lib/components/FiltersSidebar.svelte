@@ -4,6 +4,7 @@
 	import FiltersSidebarFooter from '$lib/components/FiltersSidebarFooter.svelte';
 	import KeyFilters from '$lib/components/KeyFilters.svelte';
 	import KeyboardFilters from '$lib/components/KeyboardFilters.svelte';
+	import LayoutNameFilter from '$lib/components/LayoutNameFilter.svelte';
 	import SimilarityFilters from '$lib/components/SimilarityFilters.svelte';
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
@@ -92,23 +93,7 @@
 			</div>
 		{:else}
 			<div class="filters-sidebar-search">
-				<label class="filters-field">
-					<span class="filters-label" style="color: var(--text-secondary);">Layout name</span>
-					<input
-						id="name-filter"
-						type="text"
-						value={filterStore.nameFilterInput}
-						oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
-						class="filters-input"
-						style="
-							background-color: var(--input-bg);
-							color: var(--text-primary);
-							border: 1px solid var(--border);
-							--tw-ring-color: var(--accent);
-						"
-						placeholder="Use commas for multiple results"
-					/>
-				</label>
+				<LayoutNameFilter />
 
 				<div class="filters-field">
 					<div class="filters-label" style="color: var(--text-secondary);">Author</div>
@@ -182,24 +167,6 @@
 	.filters-label {
 		font-size: 0.875rem;
 		line-height: 1.25;
-	}
-
-	.filters-input {
-		width: 100%;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		outline: none;
-	}
-
-	.filters-input:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
-	}
-
-	.filters-input:-webkit-autofill:focus-visible {
-		box-shadow:
-			0 0 0 1000px var(--input-bg) inset,
-			0 0 0 2px var(--accent);
 	}
 
 	/* Split view: fill the rail and scroll the filter body independently. */

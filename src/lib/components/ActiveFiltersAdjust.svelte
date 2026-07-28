@@ -2,6 +2,7 @@
 	import AuthorSelect from '$lib/components/AuthorSelect.svelte';
 	import KeyPositionFilter from '$lib/components/KeyPositionFilter.svelte';
 	import KeyboardFiltersBody from '$lib/components/KeyboardFiltersBody.svelte';
+	import LayoutNameFilter from '$lib/components/LayoutNameFilter.svelte';
 	import SimilarityFiltersBody from '$lib/components/SimilarityFiltersBody.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
 	import {
@@ -67,23 +68,7 @@
 			</div>
 			<div class="adjust-section-body">
 				{#if snapshot.name}
-					<label class="filters-field">
-						<span class="filters-label" style="color: var(--text-secondary);">Layout name</span>
-						<input
-							id="name-filter"
-							type="text"
-							value={filterStore.nameFilterInput}
-							oninput={(e) => filterStore.setNameFilter(e.currentTarget.value)}
-							class="filters-input"
-							style="
-								background-color: var(--input-bg);
-								color: var(--text-primary);
-								border: 1px solid var(--border);
-								--tw-ring-color: var(--accent);
-							"
-							placeholder="Use commas for multiple results"
-						/>
-					</label>
+					<LayoutNameFilter />
 				{/if}
 
 				{#if snapshot.authors}
@@ -259,17 +244,5 @@
 	.filters-label {
 		font-size: 0.875rem;
 		line-height: 1.25;
-	}
-
-	.filters-input {
-		width: 100%;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.75rem;
-		font-size: 0.875rem;
-		outline: none;
-	}
-
-	.filters-input:focus-visible {
-		box-shadow: 0 0 0 2px var(--accent);
 	}
 </style>
