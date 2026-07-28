@@ -19,7 +19,10 @@ test('shows mappings inline with stats and in a floating window without stats', 
 
 	await page.getByRole('button', { name: 'Display settings' }).click();
 	const displaySettings = page.getByRole('dialog', { name: 'Display settings' });
-	await displaySettings.getByRole('checkbox', { name: 'Show stats' }).uncheck();
+	await displaySettings
+		.getByRole('group', { name: 'Stats' })
+		.getByRole('button', { name: 'Off' })
+		.click();
 	await displaySettings.getByRole('button', { name: 'Close' }).click();
 
 	await expect(card.getByRole('region', { name: 'Magic key mappings' })).toHaveCount(0);

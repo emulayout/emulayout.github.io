@@ -46,11 +46,43 @@
 	</button>
 </div>
 
+{#snippet displaySetting(
+	id: string,
+	label: string,
+	description: string,
+	enabled: boolean,
+	setEnabled: (enabled: boolean) => void
+)}
+	<div class="display-settings-mode-row">
+		<span class="display-settings-copy">
+			<span {id} class="display-settings-label">{label}</span>
+			<span class="display-settings-desc">{description}</span>
+		</span>
+		<div class="display-settings-mode-control" role="group" aria-labelledby={id}>
+			<button
+				type="button"
+				class="display-settings-mode-option"
+				class:display-settings-mode-option--active={!enabled}
+				aria-pressed={!enabled}
+				onclick={() => setEnabled(false)}>Off</button
+			>
+			<button
+				type="button"
+				class="display-settings-mode-option"
+				class:display-settings-mode-option--active={enabled}
+				aria-pressed={enabled}
+				onclick={() => setEnabled(true)}>On</button
+			>
+		</div>
+	</div>
+{/snippet}
+
 <ModalShell
 	{open}
 	onClose={close}
 	labelledBy="display-settings-title"
-	panelClass="max-w-md w-[min(100%,24rem)]"
+	panelClass="max-h-[calc(100dvh-2rem)] max-w-lg w-[min(100%,28rem)]"
+	initialFocusSelector=".display-settings-mode-option--active"
 >
 	<div
 		class="flex items-center justify-between gap-3 border-b px-5 py-4"
@@ -77,199 +109,84 @@
 	</div>
 
 	<div class="display-settings-body px-5 py-4">
-		<label class="display-settings-row">
-			<span class="display-settings-check">
-				<input
-					type="checkbox"
-					checked={!filterStore.hideLayoutTestArea}
-					onchange={(e) => filterStore.setHideLayoutTestArea(!e.currentTarget.checked)}
-					class="size-4 rounded appearance-none cursor-pointer relative"
-					style="
-						background-color: {!filterStore.hideLayoutTestArea ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if !filterStore.hideLayoutTestArea}
-					<svg
-						class="display-settings-check-mark"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="display-settings-copy">
-				<span class="display-settings-label">Show test area</span>
-			</span>
-		</label>
-
-		<label class="display-settings-row">
-			<span class="display-settings-check">
-				<input
-					type="checkbox"
-					checked={!filterStore.hideLayoutStats}
-					onchange={(e) => filterStore.setHideLayoutStats(!e.currentTarget.checked)}
-					class="size-4 rounded appearance-none cursor-pointer relative"
-					style="
-						background-color: {!filterStore.hideLayoutStats ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if !filterStore.hideLayoutStats}
-					<svg
-						class="display-settings-check-mark"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="display-settings-copy">
-				<span class="display-settings-label">Show stats</span>
-			</span>
-		</label>
-
-		<label class="display-settings-row">
-			<span class="display-settings-check">
-				<input
-					type="checkbox"
-					checked={!filterStore.hideLayoutLikes}
-					onchange={(e) => filterStore.setHideLayoutLikes(!e.currentTarget.checked)}
-					class="size-4 rounded appearance-none cursor-pointer relative"
-					style="
-						background-color: {!filterStore.hideLayoutLikes ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if !filterStore.hideLayoutLikes}
-					<svg
-						class="display-settings-check-mark"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="display-settings-copy">
-				<span class="display-settings-label">Show likes</span>
-			</span>
-		</label>
-
-		<label class="display-settings-row">
-			<span class="display-settings-check">
-				<input
-					type="checkbox"
-					checked={!filterStore.hideNewLayoutIndicator}
-					onchange={(e) => filterStore.setHideNewLayoutIndicator(!e.currentTarget.checked)}
-					class="size-4 rounded appearance-none cursor-pointer relative"
-					style="
-						background-color: {!filterStore.hideNewLayoutIndicator ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if !filterStore.hideNewLayoutIndicator}
-					<svg
-						class="display-settings-check-mark"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="display-settings-copy">
-				<span class="display-settings-label">Show new layout indicator</span>
-				<span class="display-settings-desc">
-					Shows a red dot next to the layout name for newly synced layouts.
-				</span>
-			</span>
-		</label>
-
-		<label class="display-settings-row">
-			<span class="display-settings-check">
-				<input
-					type="checkbox"
-					checked={filterStore.stickySimilarityCard}
-					onchange={(e) => filterStore.setStickySimilarityCard(e.currentTarget.checked)}
-					class="size-4 rounded appearance-none cursor-pointer relative"
-					style="
-						background-color: {filterStore.stickySimilarityCard ? 'var(--accent)' : 'var(--bg-primary)'};
-						border: 1px solid var(--border);
-					"
-				/>
-				{#if filterStore.stickySimilarityCard}
-					<svg
-						class="display-settings-check-mark"
-						style="color: white;"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="3"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-					</svg>
-				{/if}
-			</span>
-			<span class="display-settings-copy">
-				<span class="display-settings-label">Pin similarity reference</span>
-				<span class="display-settings-desc">
-					Keeps the reference layout locked in place while you scroll matching layouts, so you can
-					compare them against the layout the similarities are based on from anywhere in the list.
-				</span>
-			</span>
-		</label>
-
-		<section class="display-settings-section" aria-labelledby="stats-presentation-title">
-			<h3 id="stats-presentation-title" class="display-settings-section-title">
-				Stats presentation
-			</h3>
-			<div class="display-settings-mode-row">
-				<span class="display-settings-copy">
-					<span id="finger-usage-display-label" class="display-settings-label">Finger usage</span>
-					<span class="display-settings-desc">
-						Choose how finger usage appears on layout cards.
-					</span>
-				</span>
-				<div
-					class="display-settings-mode-control"
-					role="group"
-					aria-labelledby="finger-usage-display-label"
-				>
-					<button
-						type="button"
-						class="display-settings-mode-option"
-						class:display-settings-mode-option--active={!uiPrefs.fingerUsageBars}
-						aria-pressed={!uiPrefs.fingerUsageBars}
-						onclick={() => uiPrefs.setFingerUsageBars(false)}>Text</button
-					>
-					<button
-						type="button"
-						class="display-settings-mode-option"
-						class:display-settings-mode-option--active={uiPrefs.fingerUsageBars}
-						aria-pressed={uiPrefs.fingerUsageBars}
-						onclick={() => uiPrefs.setFingerUsageBars(true)}>Visual</button
-					>
+		<section class="display-settings-section" aria-labelledby="layout-card-settings-title">
+			<h3 id="layout-card-settings-title" class="display-settings-section-title">Layout cards</h3>
+			<div class="display-settings-section-options">
+				{@render displaySetting(
+					'new-layout-display-label',
+					'New layout indicator',
+					'Mark layouts added by the latest sync with a red dot.',
+					!filterStore.hideNewLayoutIndicator,
+					(enabled) => filterStore.setHideNewLayoutIndicator(!enabled)
+				)}
+				{@render displaySetting(
+					'likes-display-label',
+					'Likes',
+					"Show each layout's like count in its card header.",
+					!filterStore.hideLayoutLikes,
+					(enabled) => filterStore.setHideLayoutLikes(!enabled)
+				)}
+				{@render displaySetting(
+					'stats-display-label',
+					'Stats',
+					'Show analyzer statistics directly on layout cards.',
+					!filterStore.hideLayoutStats,
+					(enabled) => filterStore.setHideLayoutStats(!enabled)
+				)}
+				<div class="display-settings-nested-option">
+					<div class="display-settings-mode-row">
+						<span class="display-settings-copy">
+							<span id="finger-usage-display-label" class="display-settings-label"
+								>Finger usage</span
+							>
+							<span class="display-settings-desc">
+								Choose how finger usage appears within card stats.
+							</span>
+						</span>
+						<div
+							class="display-settings-mode-control"
+							role="group"
+							aria-labelledby="finger-usage-display-label"
+						>
+							<button
+								type="button"
+								class="display-settings-mode-option"
+								class:display-settings-mode-option--active={!uiPrefs.fingerUsageBars}
+								aria-pressed={!uiPrefs.fingerUsageBars}
+								onclick={() => uiPrefs.setFingerUsageBars(false)}>Text</button
+							>
+							<button
+								type="button"
+								class="display-settings-mode-option"
+								class:display-settings-mode-option--active={uiPrefs.fingerUsageBars}
+								aria-pressed={uiPrefs.fingerUsageBars}
+								onclick={() => uiPrefs.setFingerUsageBars(true)}>Visual</button
+							>
+						</div>
+					</div>
 				</div>
+				{@render displaySetting(
+					'test-area-display-label',
+					'Test area',
+					'Show a typing field on each card for trying the layout.',
+					!filterStore.hideLayoutTestArea,
+					(enabled) => filterStore.setHideLayoutTestArea(!enabled)
+				)}
+			</div>
+		</section>
+
+		<section class="display-settings-section" aria-labelledby="similarity-display-title">
+			<h3 id="similarity-display-title" class="display-settings-section-title">
+				Similarity comparison
+			</h3>
+			<div class="display-settings-section-options">
+				{@render displaySetting(
+					'similarity-reference-display-label',
+					'Pin reference layout',
+					'Keep the reference layout visible while scrolling through its similarity matches.',
+					filterStore.stickySimilarityCard,
+					(enabled) => filterStore.setStickySimilarityCard(enabled)
+				)}
 			</div>
 		</section>
 	</div>
@@ -283,15 +200,28 @@
 	.display-settings-body {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.25rem;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.display-settings-section {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		padding-top: 1rem;
+		padding-top: 1.25rem;
 		border-top: 1px solid var(--border);
+	}
+
+	.display-settings-section:first-child {
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	.display-settings-section-options {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	.display-settings-section-title {
@@ -304,14 +234,10 @@
 		text-transform: uppercase;
 	}
 
-	.display-settings-row {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		cursor: pointer;
-		user-select: none;
-		font-size: 0.875rem;
-		line-height: 1.25;
+	.display-settings-nested-option {
+		margin-left: 0.25rem;
+		padding-left: 0.75rem;
+		border-left: 2px solid color-mix(in srgb, var(--accent) 24%, var(--border));
 	}
 
 	.display-settings-mode-row {
@@ -359,25 +285,6 @@
 		box-shadow:
 			0 0 0 2px var(--bg-secondary),
 			0 0 0 4px var(--accent);
-	}
-
-	.display-settings-check {
-		position: relative;
-		flex-shrink: 0;
-		/* Same line box as .display-settings-label so the checkbox centers on the text. */
-		height: 1.25em;
-		display: inline-flex;
-		align-items: center;
-	}
-
-	.display-settings-check-mark {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 1rem;
-		height: 1rem;
-		transform: translate(-50%, -50%);
-		pointer-events: none;
 	}
 
 	.display-settings-copy {
