@@ -103,6 +103,10 @@ static/layout-input-behaviors.json
 The compact layout payload carries only the two presence flags. Filtering therefore does not
 require loading or inspecting full mappings.
 
+Pull-request validation rejects mapping files without a current Cmini layout. If Cmini removes a
+layout after a mapping has merged, production sync warns and omits that orphan profile instead of
+failing deployment.
+
 The client compiles the behavior payload once into profiles keyed by layout name. Magic rules are
 ordered longest-first, and each profile records the maximum history length its rules need.
 

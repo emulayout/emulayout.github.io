@@ -38,3 +38,21 @@ bun run preview    # preview the build
 bun run check      # typecheck
 bun run test:e2e   # Playwright integration specs (Chromium)
 ```
+
+## Contributing input mappings
+
+Add mapping profiles under `data/magic-keys/<layout-name>.json` or
+`data/adaptive-swaps/<layout-name>.json`. The filename must exactly match the Cmini layout name.
+
+After running `cmini-sync` at least once to create `.cache/cmini-repo`, validate all mapping files
+locally with:
+
+```sh
+bun run validate:mappings
+```
+
+This checks the mapping structure, profile-to-layout filename, blacklist, magic-key trigger, and
+every Adaptive trigger and swap key against the corresponding Cmini layout. Pull requests run the
+same validation automatically through the `Validate mappings / Validate mapping files` check.
+PR validation rejects orphan mappings. Production syncs instead warn and omit a mapping when its
+layout has since been removed upstream, so a stale mapping cannot prevent deployment.

@@ -53,6 +53,11 @@ The Cmini sync validates the source data and publishes one merged runtime payloa
 The generated file is `static/layout-input-behaviors.json`. A layout may contain either feature or
 both.
 
+Pull-request validation requires every mapping profile to match a current Cmini layout. Production
+sync is deliberately more resilient: if Cmini later removes a layout, its mapping profile and any
+stale `adaptive-layouts.txt` presence entry produce warnings and are omitted rather than failing
+the entire sync.
+
 ## Compact layout metadata
 
 The compact layout tuple keeps presence independent from mapping availability:

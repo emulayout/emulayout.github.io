@@ -6,11 +6,9 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
-import { loadMagicKeyMappings, validateMagicKeyMappingsForLayout } from './magic-key-data.js';
-import {
-	loadAdaptiveSwapSources,
-	validateAdaptiveSwapSourceForLayout
-} from './adaptive-swap-data.js';
+import { loadMagicKeyMappings } from './magic-key-data.js';
+import { loadAdaptiveSwapSources } from './adaptive-swap-data.js';
+import { validateInputMappingsForLayouts } from './input-mapping-validation.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
@@ -170,8 +168,6 @@ async function run() {
 	await ensureCache(offline);
 
 	const blacklist = await loadBlacklist();
-	const magicKeyMappings = await loadMagicKeyMappings();
-	const adaptiveSwapSources = await loadAdaptiveSwapSources();
 	const adaptiveLayoutNames = await loadAdaptiveLayoutNames();
 
 	// Get existing layouts before sync (read from the generated file if it exists)
@@ -191,11 +187,18 @@ async function run() {
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 	const layoutFileSet = new Set(layoutFiles);
+	const [magicKeyMappings, adaptiveSwapSources] = await Promise.all([
+		loadMagicKeyMappings(),
+		loadAdaptiveSwapSources()
+	]);
 
 	for (const layoutName of adaptiveLayoutNames) {
 		const filename = `${layoutName}.json`;
 		if (!layoutFileSet.has(filename)) {
-			throw new Error(`Adaptive layout ${layoutName} has no matching Cmini layout file`);
+			console.warn(
+				`  ⚠ Adaptive layout ${layoutName} has no matching Cmini layout file; ignoring stale presence entry`
+			);
+			continue;
 		}
 		if (blacklist.has(layoutName) || blacklist.has(filename)) {
 			throw new Error(`Adaptive layout ${layoutName} is blacklisted`);
@@ -208,27 +211,16 @@ async function run() {
 		}
 	}
 
-	for (const [profileName, mappings] of magicKeyMappings) {
-		const filename = `${profileName}.json`;
-		if (!layoutFileSet.has(filename)) {
-			throw new Error(`Magic-key profile ${profileName} has no matching Cmini layout file`);
-		}
-		if (blacklist.has(profileName) || blacklist.has(filename)) {
-			throw new Error(`Magic-key profile ${profileName} belongs to a blacklisted layout`);
-		}
-		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
-		validateMagicKeyMappingsForLayout(profileName, mappings, rawLayout);
-	}
-	for (const [profileName, source] of adaptiveSwapSources) {
-		const filename = `${profileName}.json`;
-		if (!layoutFileSet.has(filename)) {
-			throw new Error(`Adaptive-swap profile ${profileName} has no matching Cmini layout file`);
-		}
-		if (blacklist.has(profileName) || blacklist.has(filename)) {
-			throw new Error(`Adaptive-swap profile ${profileName} belongs to a blacklisted layout`);
-		}
-		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
-		validateAdaptiveSwapSourceForLayout(profileName, source, rawLayout);
+	const inputMappingValidation = await validateInputMappingsForLayouts({
+		layoutsDir: cacheLayoutsDir,
+		layoutFiles,
+		blacklist,
+		magicKeyMappings,
+		adaptiveSwapSources,
+		allowOrphanedProfiles: true
+	});
+	for (const orphanedProfile of inputMappingValidation.orphanedProfiles) {
+		console.warn(`  ⚠ ${orphanedProfile} has no matching Cmini layout file; skipping mapping`);
 	}
 
 	console.log('→ Resolving layout timestamps from git history...');
