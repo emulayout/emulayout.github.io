@@ -1,69 +1,159 @@
 # Emulayout
 
-Browse, filter, and try thousands of alternative keyboard layouts in one place.
+**A workbench for exploring alternative keyboard layouts.**
 
-**Live site:** [emulayout.github.io](https://emulayout.github.io)
+Search the community-maintained [cmini](https://github.com/Apsu/cmini) catalog, narrow it down with
+position-aware filters and analyzer statistics, compare promising layouts, and type on them
+directly in the browser.
 
-Emulayout helps you discover and quickly test keyboard layouts from the [cmini](https://github.com/Apsu/cmini) community repo — a large, constantly growing collection of ergonomic and alternative designs. You'll find mainstream alternatives alongside experimental and quirky ones. The real value is in narrowing that down to something that fits you.
+[Open Emulayout](https://emulayout.github.io)
 
-Type directly on any layout card to get a feel for it without installing anything. Each card also links to [Cyanophage](https://cyanophage.github.io/playground.html), which benchmarks a layout for things like finger usage and finger travel — useful when you want deeper stats on a particular design.
+## Explore
 
-Filtering is where this gets interesting. You can search by name, author, board type, thumb keys, and more — but the standout feature is per-key position matching. Specify exactly which characters you want (or don't want) at specific row and column positions, with AND, OR, and exclude logic. It's niche, but it's the kind of tool that pays off when you know what you're looking for.
+- Search by layout name or author, or jump directly to a layout with Quick find.
+- Filter by keyboard shape, character set, thumb keys, Magic keys, Adaptive swaps, and layout
+  completeness.
+- Describe the keys you want at exact positions using AND, OR, and exclude rules.
+- Set metric limits from cmini, Cyanophage, or Mana2, then sort the results by any available stat,
+  name, date, likes, or similarity.
+- Build a custom source from any subset of the catalog when the full collection is too broad.
 
-## Running locally
+## Analyze and compare
 
-Install [mise](https://mise.jdx.dev/), then use the versions pinned in [`mise.toml`](mise.toml) (kept in sync with [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)):
+- Switch between three independent analyzers without leaving the results.
+- Find layouts similar to a reference, tune the match threshold, weight home positions, and include
+  or require mirrored matches.
+- Select interesting layouts as you browse and keep them visible even when they do not match the
+  current filters.
+- Compare two layouts side by side, including per-metric differences.
+- Expand a layout for a cross-analyzer view of its statistics.
 
-| Tool | Purpose                                                              |
-| ---- | -------------------------------------------------------------------- |
-| Bun  | App, sync scripts, build                                             |
-| Go   | Building [Mana2](https://codeberg.org/Zakkkk/mana2) for layout stats |
+| Analyzer                                                   | Emulayout integration                                             |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics using the Monkeyracer corpus            |
+| [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground   |
+| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Monkeyracer statistics with supported Magic-key mappings included |
+
+Each analyzer retains its own metric definitions and units. cmini and Cyanophage describe the base
+layout. Mana2 can include supported Magic-key profiles; Adaptive swaps are not currently included
+in analyzer results.
+
+## Try layouts in place
+
+Every layout card can include a typing area, so layouts can be sampled without installing them.
+Anglemod can be toggled per card, and links open the layout in Cyanophage or
+[a specialized fork of Colemak Camp](https://colemakcamp.github.io) that supports links to typing
+practice with a custom layout already configured.
+
+Curated Magic-key and Adaptive-swap mappings also work in the typing area. Their indicators open an
+inspectable mapping panel where an entire behavior type, a named mapping group, or an individual
+mapping can be temporarily disabled. All mappings start enabled, and these choices are intentionally
+ephemeral.
+
+## Save and share a search
+
+Selections and filter combinations can be saved as named views in the browser. A saved view can be
+updated, duplicated, renamed, or shared as a URL. Shared views open with a preview so the recipient
+can apply them temporarily or save their own copy.
+
+Useful shortcuts:
+
+| Shortcut                                                         | Action          |
+| ---------------------------------------------------------------- | --------------- |
+| <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd>                    | Quick find      |
+| <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd> | Compare layouts |
+
+## Run locally
+
+Install [mise](https://mise.jdx.dev/), then:
 
 ```sh
-mise install                  # Bun + Go from mise.toml
+mise install
 bun install
-bun run ./bin/cmini-sync.js   # layouts + cmini/cyanophage stats → static/
-bun run ./bin/mana2-sync.js   # Mana2 stats → static/layout-stats-mana2.json
 bun run dev
 ```
 
-Generated `static/*.json` files are gitignored; CI regenerates them on each deploy (including the daily sync).
-
-- **cmini-sync** clones [Apsu/cmini](https://github.com/Apsu/cmini) into `.cache/cmini-repo` and writes layout/stats JSON under `static/`. Curated profiles in `data/magic-keys/<layout-name>.json` and `data/adaptive-swaps/<layout-name>.json` set compact “mappings available” flags and are combined in `static/layout-input-behaviors.json`. `adaptive-layouts.txt` records layouts known to use adaptive swaps even when their mappings are not yet curated.
-- **mana2-sync** clones Mana2 into `.cache/mana2`, builds the CLI, and writes `static/layout-stats-mana2.json`. Magic-key profiles under `data/magic-keys/` use Mana2's extended engine when their rules are supported. Magic-key results are stored as `{ stats, magicKeys }`, where `magicKeys` records either `included`, `mappings-unavailable`, or another explicit standard-engine fallback reason; ordinary layouts remain compact stat arrays. Requires the Go version from `mise.toml`. Use `--offline` on later runs to skip git fetches. If Go is missing, the script skips instead of failing (except in CI).
+The layout catalog, authors, and input-behavior metadata under `static/` are required. On a fresh
+checkout, populate them once before starting the development server:
 
 ```sh
-bun run build      # production build
-bun run preview    # preview the build
-bun run check      # typecheck
-bun run test:e2e   # Playwright integration specs (Chromium)
+bun run ./bin/cmini-sync.js
+bun run dev
 ```
 
-## Contributing input mappings
+Analyzer stats are optional at runtime. Without them, catalog browsing, non-stat filters, layout
+testing, selections, and saved views still work; analyzer displays, stat filters, and stat sorting
+remain unavailable. In the normal local workflow, cmini stats are generated alongside the required
+catalog and checked as part of the same generated data set.
 
-Add mapping profiles under `data/magic-keys/<layout-name>.json` or
-`data/adaptive-swaps/<layout-name>.json`. The filename must exactly match the Cmini layout name.
+### Generate analyzer data
 
-After running `cmini-sync` at least once to create `.cache/cmini-repo`, validate all mapping files
-locally with:
+```sh
+bun run ./bin/cmini-sync.js  # refresh catalog, cmini stats, and Cyanophage stats
+bun run ./bin/mana2-sync.js  # generate Mana2 stats
+```
+
+The cmini sync currently creates its catalog and analyzer outputs together. Mana2 generation is
+independent and requires Go. All generated `static/*.json` files are gitignored; CI regenerates
+them for deployments and the daily catalog sync.
+
+### Common commands
+
+| Command                     | Purpose                                            |
+| --------------------------- | -------------------------------------------------- |
+| `bun run dev`               | Start the development server                       |
+| `bun run build`             | Create a production build                          |
+| `bun run preview`           | Preview the production build                       |
+| `bun run check`             | Run Svelte and TypeScript checks                   |
+| `bun run lint`              | Check formatting and lint the project              |
+| `bun test`                  | Run unit tests                                     |
+| `bun run test:e2e`          | Run Playwright integration tests in Chromium       |
+| `bun run validate:mappings` | Validate every Magic-key and Adaptive-swap profile |
+| `bun run audit:blacklist`   | Report stale entries in the local layout blacklist |
+
+## Generated data
+
+`bin/cmini-sync.js` clones cmini into `.cache/cmini-repo` and generates the layout catalog, cmini
+stats, Cyanophage stats, likes, and input-behavior metadata under `static/`. Curated behavior
+profiles come from `data/magic-keys/` and `data/adaptive-swaps/`;
+`adaptive-layouts.txt` records layouts known to use Adaptive swaps even when their mappings have not
+yet been curated.
+
+`bin/mana2-sync.js` clones Mana2 into `.cache/mana2`, builds its CLI, and writes
+`static/layout-stats-mana2.json`. Supported Magic-key rules use Mana2's extended engine. Unsupported
+profiles use the standard engine and carry an explicit fallback reason in the generated data.
+Use `--offline` after the first sync to skip fetching the Mana2 repository. If Go is unavailable,
+the script skips outside CI rather than failing.
+
+## Contribute input mappings
+
+Add a profile at `data/magic-keys/<layout-name>.json` or
+`data/adaptive-swaps/<layout-name>.json`. The filename must exactly match its cmini layout name.
+
+Run the cmini sync at least once to populate `.cache/cmini-repo`, then validate all profiles:
 
 ```sh
 bun run validate:mappings
 ```
 
-This checks the mapping structure, profile-to-layout filename, blacklist, magic-key trigger, and
-every Adaptive trigger and swap key against the corresponding Cmini layout. Pull requests run the
-same validation automatically through the `Validate mappings / Validate mapping files` check.
-PR validation rejects orphan mappings. Production syncs instead warn and omit a mapping when its
-layout has since been removed upstream, so a stale mapping cannot prevent deployment.
+Validation checks:
 
-For local blacklist maintenance, compare `layout-blacklist.txt` with the current cached Cmini
-layouts:
+- the profile structure and permitted keys;
+- the mapping filename against the layout name and blacklist;
+- the Magic-key trigger against the corresponding layout;
+- every Adaptive trigger and swap key against the corresponding layout; and
+- orphan profiles whose layout is not present in the current cmini catalog.
+
+Pull requests run this validation automatically through the
+`Validate mappings / Validate mapping files` check and reject orphan profiles. Production syncs
+are deliberately more resilient: if cmini removes a layout after its mapping merges, the sync warns
+and omits the orphan instead of blocking deployment.
+
+For local blacklist maintenance, compare `layout-blacklist.txt` with the cached cmini catalog:
 
 ```sh
 bun run audit:blacklist
 ```
 
 The audit is read-only and exits successfully after reporting entries that are not currently
-present. Review them manually before removal because some may be intentionally retained in case a
-layout returns.
+present. Review them before removal because a layout may have been removed only temporarily.
