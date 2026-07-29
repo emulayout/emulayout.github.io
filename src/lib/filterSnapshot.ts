@@ -3,6 +3,7 @@ import { isSortOrder, normalizeSortBy, type SortBy, type SortOrder } from '$lib/
 import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSimilarity';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
+export type RepeatKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
@@ -33,6 +34,7 @@ export type ViewFilterSnapshot = {
 	excludeRightThumbKeys: string[];
 	showUnfinished: boolean;
 	thumbKeyFilter: ThumbKeyFilter;
+	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
@@ -162,6 +164,7 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		excludeRightThumbKeys: createEmptyThumbKeyFilters(),
 		showUnfinished: false,
 		thumbKeyFilter: 'optional',
+		repeatKeyFilter: 'optional',
 		magicKeyFilter: 'optional',
 		adaptiveSwapFilter: 'optional',
 		characterSetFilter: 'english',
@@ -329,6 +332,11 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			value.thumbKeyFilter,
 			['optional', 'excluded', 'required'],
 			defaults.thumbKeyFilter
+		),
+		repeatKeyFilter: normalizeEnum<RepeatKeyFilter>(
+			value.repeatKeyFilter,
+			['optional', 'excluded', 'required'],
+			defaults.repeatKeyFilter
 		),
 		magicKeyFilter: normalizeEnum<MagicKeyFilter>(
 			value.magicKeyFilter,

@@ -150,14 +150,14 @@
 			type="button"
 			class="input-mappings-window-drag-handle"
 			class:input-mappings-window-drag-handle--dragging={Boolean(drag)}
-			aria-label={`Drag ${layoutName} mappings window`}
+			aria-label={`Drag ${layoutName} ${mappingsLabel} window`}
 			onkeydown={handleDragKeyDown}
 			onpointerdown={handlePointerDown}
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerEnd}
 			onpointercancel={handlePointerEnd}
 		>
-			<span id={titleId} title={layoutName}>{layoutName} mappings</span>
+			<span id={titleId} title={layoutName}>{layoutName} {mappingsLabel}</span>
 		</button>
 		<button type="button" onclick={onClose} aria-label={`Close ${mappingsLabel}`}>
 			<svg

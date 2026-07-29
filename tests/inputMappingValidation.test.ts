@@ -27,19 +27,23 @@ describe('input mapping file validation', () => {
 	test('accepts structurally valid profiles whose keys exist on their layouts', async () => {
 		const layoutsDir = await createLayouts({
 			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } },
+			'odd-symbol': { name: 'odd-symbol', keys: { '#': {}, a: {}, o: {} } },
 			adaptive: { name: 'adaptive', keys: { l: {}, y: {}, j: {} } }
 		});
 
 		await expect(
 			validateInputMappingsForLayouts({
 				layoutsDir,
-				layoutFiles: ['magic.json', 'adaptive.json'],
+				layoutFiles: ['magic.json', 'odd-symbol.json', 'adaptive.json'],
 				blacklist: new Set(),
-				magicKeyMappings: new Map([['magic', { '*': { a: 'o' } }]]),
+				magicKeyMappings: new Map([
+					['magic', { '*': { a: 'o' } }],
+					['odd-symbol', { '#': { a: 'o' } }]
+				]),
 				adaptiveSwapSources: new Map([['adaptive', { mappings: { l: { y: 'j' } } }]])
 			})
 		).resolves.toEqual({
-			magicKeyProfileCount: 1,
+			magicKeyProfileCount: 2,
 			adaptiveSwapProfileCount: 1,
 			orphanedProfiles: []
 		});

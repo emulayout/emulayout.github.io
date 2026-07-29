@@ -200,10 +200,10 @@ export async function buildMana2AnalyzerFingerprint(mana2Commit) {
  * @param {string} sourceContent
  * @param {string} jsoncBody
  * @param {'standard' | 'extended'} engine
- * @param {import('./mana2-magic.js').Mana2MagicAnalysis | null} magicAnalysis
+ * @param {import('./mana2-magic.js').Mana2InputAnalyses | null} inputAnalyses
  */
-export function buildMana2LayoutHash(sourceContent, jsoncBody, engine, magicAnalysis) {
-	return hashContent([sourceContent, jsoncBody, engine, JSON.stringify(magicAnalysis)].join('\0'));
+export function buildMana2LayoutHash(sourceContent, jsoncBody, engine, inputAnalyses) {
+	return hashContent([sourceContent, jsoncBody, engine, JSON.stringify(inputAnalyses)].join('\0'));
 }
 
 /**
@@ -211,7 +211,8 @@ export function buildMana2LayoutHash(sourceContent, jsoncBody, engine, magicAnal
  *   | number[]
  *   | {
  *       stats: number[],
- *       magicKeys: import('./mana2-magic.js').Mana2MagicAnalysis
+ *       magicKeys?: import('./mana2-magic.js').Mana2MagicAnalysis,
+ *       repeatKey?: import('./mana2-magic.js').Mana2RepeatKeyAnalysis
  *     }
  * } Mana2StatsResult
  */

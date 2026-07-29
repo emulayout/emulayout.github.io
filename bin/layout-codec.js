@@ -22,6 +22,7 @@ export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
 export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
+export const LAYOUT_FLAG_REPEAT_KEY = 512;
 
 /** @typedef {[
  *   string,
@@ -52,6 +53,7 @@ export function encodeLayout(layout) {
 	if (layout.hasMagicKeyMappings) flags |= LAYOUT_FLAG_MAGIC_KEY_MAPPINGS;
 	if (layout.hasAdaptiveSwapMappings) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS;
 	if (layout.hasAdaptiveSwap) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP;
+	if (layout.hasRepeatKey) flags |= LAYOUT_FLAG_REPEAT_KEY;
 
 	return [
 		layout.name,

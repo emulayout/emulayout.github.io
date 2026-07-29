@@ -11,7 +11,7 @@ directly in the browser.
 ## Explore
 
 - Search by layout name or author, or jump directly to a layout with Quick find.
-- Filter by keyboard shape, character set, thumb keys, Magic keys, Adaptive swaps, and layout
+- Filter by keyboard shape, character set, thumb keys, Repeat keys, Magic keys, Adaptive swaps, and layout
   completeness.
 - Describe the keys you want at exact positions using AND, OR, and exclude rules.
 - Set metric limits from cmini, Cyanophage, or Mana2, then sort the results by any available stat,
@@ -117,11 +117,14 @@ them for deployments and the daily catalog sync.
 stats, Cyanophage stats, likes, and input-behavior metadata under `static/`. Curated behavior
 profiles come from `data/magic-keys/` and `data/adaptive-swaps/`;
 `adaptive-layouts.txt` records layouts known to use Adaptive swaps even when their mappings have not
-yet been curated.
+yet been curated. A layout key named `@` repeats the previous uninterrupted emitted character by
+default, so that behavior does not require a per-layout profile. A curated Magic mapping whose
+trigger is `@` overrides the default and may opt back into repeat fallback explicitly.
 
 `bin/mana2-sync.js` clones Mana2 into `.cache/mana2`, builds its CLI, and writes
-`static/layout-stats-mana2.json`. Supported Magic-key rules use Mana2's extended engine. Unsupported
-profiles use the standard engine and carry an explicit fallback reason in the generated data.
+`static/layout-stats-mana2.json`. Supported Magic-key rules and standalone Repeat-key behavior use
+Mana2's extended engine. Unsupported or combined profiles use the standard engine and carry an
+explicit fallback reason in the generated data.
 Use `--offline` after the first sync to skip fetching the Mana2 repository. If Go is unavailable,
 the script skips outside CI rather than failing.
 

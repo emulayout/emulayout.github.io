@@ -4,6 +4,7 @@ import type { StatFilterSection, StatLimitKey } from '$lib/statsFiltering';
 export type KeyFilterKind = 'and' | 'or' | 'exclude';
 export type KeyboardFilterField =
 	| 'thumbs'
+	| 'repeat'
 	| 'magic'
 	| 'adaptive'
 	| 'board'

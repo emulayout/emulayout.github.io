@@ -2,9 +2,12 @@
 	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import type { AdaptiveSwapRule } from '$lib/adaptiveSwaps';
 	import {
+		adaptiveProfileMappingIds,
 		adaptiveRuleMappingId,
+		adaptiveRulesMappingIds,
 		magicFallbackMappingId,
-		magicRuleMappingId
+		magicRuleMappingId,
+		magicProfileMappingIds
 	} from '$lib/inputMappingControls';
 
 	interface Props {
@@ -19,27 +22,16 @@
 	const accessibleLabel = $derived(label.charAt(0).toUpperCase() + label.slice(1));
 	const disabledIds = $derived(new Set(disabledMappingIds));
 
-	const magicMappingIds = $derived.by(() =>
-		triggerGroups.flatMap(([trigger, definition]) => [
-			...definition.rules.map((rule) => magicRuleMappingId(trigger, rule.after)),
-			...(definition.fallback === 'repeat-last' ? [magicFallbackMappingId(trigger)] : [])
-		])
-	);
-	const baselineAdaptiveMappingIds = $derived(
-		(profile.adaptiveSwaps?.rules ?? []).map((rule) => adaptiveRuleMappingId(undefined, rule))
-	);
+	const magicMappingIds = $derived(magicProfileMappingIds(profile.magicKeys));
 	const adaptiveGroupMappingIds = $derived(
 		new Map(
 			(profile.adaptiveSwaps?.groups ?? []).map((group) => [
 				group.id,
-				group.rules.map((rule) => adaptiveRuleMappingId(group.id, rule))
+				adaptiveRulesMappingIds(group.rules, group.id)
 			])
 		)
 	);
-	const adaptiveMappingIds = $derived([
-		...baselineAdaptiveMappingIds,
-		...Array.from(adaptiveGroupMappingIds.values()).flat()
-	]);
+	const adaptiveMappingIds = $derived(adaptiveProfileMappingIds(profile.adaptiveSwaps));
 
 	function allEnabled(ids: readonly string[]): boolean {
 		return ids.length > 0 && ids.every((id) => !disabledIds.has(id));

@@ -1,7 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { validateMagicKeyMappings } from '../src/lib/magicKeys.ts';
-import { hasMagicKey } from './layout-features.js';
 
 const MAGIC_KEYS_DIR = join(process.cwd(), 'data', 'magic-keys');
 
@@ -66,9 +65,6 @@ export function validateMagicKeyMappingsForLayout(profileName, mappings, rawLayo
 		throw new Error(
 			`Magic-key profile ${profileName} matched layout named ${JSON.stringify(layout.name)}`
 		);
-	}
-	if (!hasMagicKey(layout.keys)) {
-		throw new Error(`Magic-key profile ${profileName} matched a layout with no magic key`);
 	}
 	if (!layout.keys || typeof layout.keys !== 'object' || Array.isArray(layout.keys)) {
 		throw new Error(`Magic-key layout ${profileName} has an invalid key map`);

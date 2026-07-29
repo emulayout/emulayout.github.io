@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import {
 	compileLayoutInputProfile,
 	compileLayoutInputRegistry,
@@ -11,7 +11,8 @@ import { compileAdaptiveSwapSource, validateAdaptiveSwapSource } from '$lib/adap
 import {
 	adaptiveRuleMappingId,
 	magicFallbackMappingId,
-	magicRuleMappingId
+	magicRuleMappingId,
+	repeatKeyMappingId
 } from '$lib/inputMappingControls';
 import vyletMappings from '../data/magic-keys/vylet.json';
 import whirlMappings from '../data/magic-keys/whirl.json';
@@ -57,6 +58,77 @@ describe('layout input registry', () => {
 		expect(result.text).toBe("you'll");
 		expect(result.applied.slice(-2)).toEqual([['magic-key'], ['magic-key']]);
 	});
+
+	test('synthesizes default repeat behavior for layouts containing an unclaimed @', () => {
+		const repeatProfiles = compileLayoutInputRegistry({}, [
+			{
+				name: 'repeat-layout',
+				keys: {
+					a: { row: 0, col: 0 },
+					'@': { row: 0, col: 1 }
+				}
+			}
+		]);
+		const profile = repeatProfiles.get('repeat-layout')!;
+
+		const result = typeLogicalKeys(profile, ['a', '@', '@']);
+		expect(result.text).toBe('aaa');
+		expect(result.applied.slice(-2)).toEqual([['repeat-key'], ['repeat-key']]);
+		expect(profile.repeatKey).toEqual({ trigger: '@' });
+		expect(profile.magicKeys).toBeUndefined();
+		expect(typeLogicalKeys(profile, ['a', '@'], new Set([repeatKeyMappingId('@')])).text).toBe(
+			'a@'
+		);
+	});
+
+	test('uses compact metadata to prevent missing mappings from reclassifying @ as Repeat', () => {
+		const layouts = [
+			{
+				name: 'mapped-at',
+				keys: {
+					a: { row: 0, col: 0 },
+					'@': { row: 0, col: 1 }
+				},
+				hasRepeatKey: false
+			}
+		];
+
+		expect(compileLayoutInputRegistry({}, layouts).has('mapped-at')).toBe(false);
+
+		const profile = compileLayoutInputRegistry(
+			{ 'mapped-at': { magicKeys: { '@': { a: 'o' } } } },
+			layouts
+		).get('mapped-at')!;
+		expect(profile.magicKeys).toBeDefined();
+		expect(profile.repeatKey).toBeUndefined();
+		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ao');
+
+		const legacyProfile = compileLayoutInputRegistry(
+			{ 'mapped-at': { magicKeys: { '@': { a: 'o' } } } },
+			layouts.map(({ name, keys }) => ({ name, keys }))
+		).get('mapped-at')!;
+		expect(legacyProfile.repeatKey).toBeUndefined();
+	});
+
+	test('preserves authoritative Repeat metadata when an @ sidecar profile is malformed', () => {
+		const warning = spyOn(console, 'warn').mockImplementation(() => {});
+		const profile = compileLayoutInputRegistry({ 'repeat-layout': { magicKeys: { '@': null } } }, [
+			{
+				name: 'repeat-layout',
+				keys: {
+					a: { row: 0, col: 0 },
+					'@': { row: 0, col: 1 }
+				},
+				hasRepeatKey: true
+			}
+		]).get('repeat-layout')!;
+
+		expect(profile.repeatKey).toEqual({ trigger: '@' });
+		expect(profile.magicKeys).toBeUndefined();
+		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('aa');
+		expect(warning).toHaveBeenCalled();
+		warning.mockRestore();
+	});
 });
 
 describe('magic-key resolution through the unified engine', () => {
@@ -87,6 +159,43 @@ describe('magic-key resolution through the unified engine', () => {
 
 		expect(typeLogicalKeys(profile, ['a', '*']).text).toBe('ao');
 		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ae');
+	});
+
+	test('treats an explicit @ mapping as magic instead of repeat behavior', () => {
+		const profile = compileLayoutInputProfile(
+			{
+				magicKeys: {
+					'@': { a: 'o' }
+				}
+			},
+			{ a: {}, b: {}, '@': {} }
+		);
+
+		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ao');
+		expect(typeLogicalKeys(profile, ['b', '@', '@']).text).toBe('b@@');
+		expect(profile.repeatKey).toBeUndefined();
+		expect(resolveLayoutInput(profile, '', '@')).toMatchObject({
+			text: '@',
+			applied: []
+		});
+	});
+
+	test('allows an @ magic mapping to request repeat-last explicitly', () => {
+		const profile = compileLayoutInputProfile(
+			{
+				magicKeys: {
+					'@': {
+						mappings: { a: 'o' },
+						fallback: 'repeat-last'
+					}
+				}
+			},
+			{ a: {}, b: {}, '@': {} }
+		);
+
+		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ao');
+		expect(typeLogicalKeys(profile, ['b', '@', '@']).text).toBe('bbb');
+		expect(profile.repeatKey).toBeUndefined();
 	});
 
 	test('records unmatched triggers and matches preceding letters case-insensitively', () => {

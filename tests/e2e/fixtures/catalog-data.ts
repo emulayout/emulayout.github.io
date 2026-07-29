@@ -145,9 +145,37 @@ export const magicSturdy = compactLayout({
 	user: IKCELAKS_USER_ID,
 	board: 2,
 	updatedAt: '2024-05-12T00:00:02+00:00',
-	flags: 5,
+	flags: 517,
 	rows: [
 		['v', 'm', 'l', 'c', 'p', 'b', '*', 'u', 'o', ','],
+		['s', 't', 'r', 'd', 'y', 'f', 'n', 'e', 'a', 'i'],
+		['x', 'k', 'j', 'g', 'w', 'z', 'h', ';', "'", '.'],
+		['@']
+	],
+	thumbHands: 'r'
+});
+
+export const repeatKey = compactLayout({
+	name: 'repeat-key',
+	user: IKCELAKS_USER_ID,
+	board: 2,
+	updatedAt: '2026-07-28T00:00:02+00:00',
+	flags: 514,
+	rows: [
+		['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+		['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+		['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '@']
+	]
+});
+
+export const combinedInputBehaviors = compactLayout({
+	name: 'combined-input-behaviors',
+	user: IKCELAKS_USER_ID,
+	board: 2,
+	updatedAt: '2026-07-28T00:00:03+00:00',
+	flags: 965,
+	rows: [
+		['v', 'm', 'l', 'c', 'p', 'b', '*', 'u', 'o', '#'],
 		['s', 't', 'r', 'd', 'y', 'f', 'n', 'e', 'a', 'i'],
 		['x', 'k', 'j', 'g', 'w', 'z', 'h', ';', "'", '.'],
 		['@']

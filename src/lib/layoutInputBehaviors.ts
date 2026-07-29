@@ -10,7 +10,14 @@ import {
 	type MagicKeyMappings,
 	type MagicKeyProfile
 } from '$lib/magicKeys';
+import {
+	compileRepeatKeyProfile,
+	DEFAULT_REPEAT_KEY,
+	resolveRepeatKeyOutput,
+	type RepeatKeyProfile
+} from '$lib/repeatKeys';
 import type { DisabledInputMappingIds } from '$lib/inputMappingControls';
+import type { LayoutData } from '$lib/layout';
 
 export interface LayoutInputBehaviorSource {
 	magicKeys?: MagicKeyMappings;
@@ -21,11 +28,12 @@ export type LayoutInputBehaviorsByLayout = Readonly<Record<string, LayoutInputBe
 
 export interface LayoutInputProfile {
 	magicKeys?: MagicKeyProfile;
+	repeatKey?: RepeatKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
 	maxHistoryLength: number;
 }
 
-export type AppliedLayoutInputBehavior = 'adaptive-swap' | 'magic-key';
+export type AppliedLayoutInputBehavior = 'adaptive-swap' | 'magic-key' | 'repeat-key';
 
 export interface LayoutInputResult {
 	text: string;
@@ -38,34 +46,79 @@ function trimContext(context: string, maxLength: number): string {
 	return Array.from(context).slice(-maxLength).join('');
 }
 
-export function compileLayoutInputProfile(value: LayoutInputBehaviorSource): LayoutInputProfile {
+export function compileLayoutInputProfile(
+	value: LayoutInputBehaviorSource,
+	rawLayoutKeys?: unknown,
+	repeatKeyEnabled = Boolean(compileRepeatKeyProfile(rawLayoutKeys, value.magicKeys))
+): LayoutInputProfile {
 	const magicKeys = value.magicKeys ? compileMagicKeyMappings(value.magicKeys) : undefined;
+	const repeatKey =
+		repeatKeyEnabled && !magicKeys?.triggers[DEFAULT_REPEAT_KEY]
+			? compileRepeatKeyProfile(rawLayoutKeys)
+			: undefined;
 	const adaptiveSwaps = value.adaptiveSwaps
 		? compileAdaptiveSwapSource(value.adaptiveSwaps)
 		: undefined;
-	if (!magicKeys && !adaptiveSwaps) {
+	if (!magicKeys && !repeatKey && !adaptiveSwaps) {
 		throw new Error('Layout input profile must contain at least one behavior');
 	}
 
 	return {
 		...(magicKeys ? { magicKeys } : {}),
+		...(repeatKey ? { repeatKey } : {}),
 		...(adaptiveSwaps ? { adaptiveSwaps } : {}),
-		maxHistoryLength: Math.max(magicKeys?.maxHistoryLength ?? 0, adaptiveSwaps ? 1 : 0)
+		maxHistoryLength: Math.max(
+			magicKeys?.maxHistoryLength ?? 0,
+			repeatKey ? 1 : 0,
+			adaptiveSwaps ? 1 : 0
+		)
 	};
 }
 
 export function compileLayoutInputRegistry(
-	value: unknown
+	value: unknown,
+	layouts: readonly (Pick<LayoutData, 'name' | 'keys'> &
+		Partial<Pick<LayoutData, 'hasRepeatKey'>>)[] = []
 ): ReadonlyMap<string, LayoutInputProfile> {
 	const profiles = new Map<string, LayoutInputProfile>();
-	if (!value || typeof value !== 'object' || Array.isArray(value)) return profiles;
+	const sources =
+		value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	const layoutByName = new Map(layouts.map((layout) => [layout.name, layout]));
+	const layoutNames = new Set([...Object.keys(sources), ...layoutByName.keys()]);
 
-	for (const [layoutName, source] of Object.entries(value)) {
-		if (!source || typeof source !== 'object' || Array.isArray(source)) continue;
+	for (const layoutName of layoutNames) {
+		const source = sources[layoutName];
+		const layout = layoutByName.get(layoutName);
+		const rawMagicMappings =
+			source && typeof source === 'object' && !Array.isArray(source)
+				? (source as LayoutInputBehaviorSource).magicKeys
+				: undefined;
+		const hasDefaultRepeat =
+			layout?.hasRepeatKey ?? Boolean(compileRepeatKeyProfile(layout?.keys, rawMagicMappings));
+		if (source === undefined && !hasDefaultRepeat) continue;
+		if (source !== undefined && (!source || typeof source !== 'object' || Array.isArray(source))) {
+			console.warn(`Ignoring invalid input-behavior profile ${layoutName}`);
+			if (hasDefaultRepeat) {
+				profiles.set(layoutName, compileLayoutInputProfile({}, layout?.keys, true));
+			}
+			continue;
+		}
 		try {
-			profiles.set(layoutName, compileLayoutInputProfile(source as LayoutInputBehaviorSource));
+			profiles.set(
+				layoutName,
+				compileLayoutInputProfile(
+					(source ?? {}) as LayoutInputBehaviorSource,
+					layout?.keys,
+					hasDefaultRepeat
+				)
+			);
 		} catch (error) {
 			console.warn(`Ignoring invalid input-behavior profile ${layoutName}:`, error);
+			if (hasDefaultRepeat) {
+				profiles.set(layoutName, compileLayoutInputProfile({}, layout?.keys, true));
+			}
 		}
 	}
 	return profiles;
@@ -73,8 +126,9 @@ export function compileLayoutInputRegistry(
 
 /**
  * Resolve one uninterrupted logical keypress. Adaptive swaps run first; their
- * logical output may then act as a magic-key trigger. The final emitted text is
- * appended once to the shared history so either behavior can arm the next key.
+ * logical output may then act as a magic-key or repeat-key trigger. The final
+ * emitted text is appended once to shared history so any behavior can arm the
+ * next key.
  */
 export function resolveLayoutInput(
 	profile: LayoutInputProfile | undefined,
@@ -102,13 +156,17 @@ export function resolveLayoutInput(
 		adaptive.text,
 		disabledMappingIds
 	);
+	const repeat = magic.matched
+		? { text: magic.text, matched: false }
+		: resolveRepeatKeyOutput(profile.repeatKey, inputHistory, adaptive.text, disabledMappingIds);
 	const applied: AppliedLayoutInputBehavior[] = [];
 	if (adaptive.matched) applied.push('adaptive-swap');
 	if (magic.matched) applied.push('magic-key');
+	if (repeat.matched) applied.push('repeat-key');
 
 	return {
-		text: magic.text,
-		nextHistory: trimContext(inputHistory + magic.text, profile.maxHistoryLength),
+		text: repeat.text,
+		nextHistory: trimContext(inputHistory + repeat.text, profile.maxHistoryLength),
 		applied
 	};
 }

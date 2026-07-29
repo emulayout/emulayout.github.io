@@ -15,12 +15,10 @@ import { $ } from 'bun';
 import { convertCminiLayoutToMana2, mana2LayoutIdFromFilename } from './mana2-layout.js';
 import {
 	encodeMana2StatsResult,
-	mana2MagicEngineFailure,
-	mana2MagicMappingsUnavailable,
-	prepareMana2Magic
+	mana2InputEngineFailure,
+	prepareMana2InputBehaviors
 } from './mana2-magic.js';
 import { loadMagicKeyMappings } from './magic-key-data.js';
-import { hasMagicKey } from './layout-features.js';
 import {
 	buildMana2AnalyzerFingerprint,
 	buildMana2LayoutHash,
@@ -270,7 +268,7 @@ async function run() {
 	 *   mana2Id: string,
 	 *   layoutHash: string,
 	 *   engine: 'standard' | 'extended',
-	 *   magicAnalysis: import('./mana2-magic.js').Mana2MagicAnalysis | null,
+	 *   inputAnalyses: import('./mana2-magic.js').Mana2InputAnalyses | null,
 	 *   cachedResult: import('./mana2-stats.js').Mana2StatsResult | null
 	 * }} WorkItem
 	 */
@@ -309,20 +307,18 @@ async function run() {
 		}
 
 		const rawMagicMappings = magicKeyMappings.get(layoutName);
+		const preparedInput = prepareMana2InputBehaviors(rawMagicMappings, raw.keys);
 		let engine = /** @type {'standard' | 'extended'} */ ('standard');
-		let magicAnalysis = null;
-		if (rawMagicMappings !== undefined) {
-			const prepared = prepareMana2Magic(rawMagicMappings, raw.keys);
-			engine = prepared.engine;
-			magicAnalysis = prepared.analysis;
-			if (prepared.engine === 'extended') {
+		let inputAnalyses = null;
+		if (preparedInput) {
+			engine = preparedInput.engine;
+			inputAnalyses = preparedInput.analyses;
+			if (preparedInput.engine === 'extended') {
 				converted.file.magic = {
 					magicKeys: null,
-					rules: prepared.rules
+					rules: preparedInput.rules
 				};
 			}
-		} else if (hasMagicKey(raw.keys)) {
-			magicAnalysis = mana2MagicMappingsUnavailable();
 		}
 
 		const mana2Id = mana2LayoutIdFromFilename(filename);
@@ -330,7 +326,7 @@ async function run() {
 		const jsoncBody = JSON.stringify(converted.file, null, 2) + '\n';
 		await writeFile(jsoncPath, jsoncBody, 'utf-8');
 
-		const layoutHash = buildMana2LayoutHash(content, jsoncBody, engine, magicAnalysis);
+		const layoutHash = buildMana2LayoutHash(content, jsoncBody, engine, inputAnalyses);
 		const cachedResult = getCachedMana2Stats(statsCache, filename, layoutHash);
 		work.push({
 			cminiFilename: filename,
@@ -338,7 +334,7 @@ async function run() {
 			mana2Id,
 			layoutHash,
 			engine,
-			magicAnalysis,
+			inputAnalyses,
 			cachedResult
 		});
 	}
@@ -404,7 +400,7 @@ async function run() {
 					}
 					continue;
 				}
-				const result = encodeMana2StatsResult(compact, item.magicAnalysis);
+				const result = encodeMana2StatsResult(compact, item.inputAnalyses);
 				layoutStats[item.layoutName] = result;
 				setCachedMana2Stats(statsCache, item.cminiFilename, item.layoutHash, result);
 			}
@@ -433,7 +429,10 @@ async function run() {
 			}
 			const result = encodeMana2StatsResult(
 				compact,
-				mana2MagicEngineFailure('Mana2 extended engine returned no encodable stats.')
+				mana2InputEngineFailure(
+					item.inputAnalyses ?? {},
+					'Mana2 extended engine returned no encodable stats.'
+				)
 			);
 			layoutStats[item.layoutName] = result;
 			setCachedMana2Stats(statsCache, item.cminiFilename, item.layoutHash, result);

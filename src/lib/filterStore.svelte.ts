@@ -79,6 +79,7 @@ import {
 	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
+	type RepeatKeyFilter,
 	type SortSnapshot,
 	type StatLimit,
 	type StatLimitOperator,
@@ -91,6 +92,7 @@ export type {
 	BoardTypeFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
+	RepeatKeyFilter,
 	StatLimit,
 	StatLimitOperator,
 	ThumbKeyFilter,
@@ -122,6 +124,7 @@ export class FilterStore {
 	excludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	showUnfinished: boolean = $state(false);
 	thumbKeyFilter: ThumbKeyFilter = $state('optional');
+	repeatKeyFilter: RepeatKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
 	adaptiveSwapFilter: AdaptiveSwapFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
@@ -299,6 +302,7 @@ export class FilterStore {
 		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
+		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
@@ -512,6 +516,7 @@ export class FilterStore {
 			excludeRightThumbKeys: this.excludeRightThumbKeys,
 			showUnfinished: this.showUnfinished,
 			thumbKeyFilter: this.thumbKeyFilter,
+			repeatKeyFilter: this.repeatKeyFilter,
 			magicKeyFilter: this.magicKeyFilter,
 			adaptiveSwapFilter: this.adaptiveSwapFilter,
 			characterSetFilter: this.characterSetFilter,
@@ -559,6 +564,7 @@ export class FilterStore {
 		this.excludeRightThumbKeys = restored.excludeRightThumbKeys;
 		this.showUnfinished = restored.showUnfinished;
 		this.thumbKeyFilter = restored.thumbKeyFilter;
+		this.repeatKeyFilter = restored.repeatKeyFilter;
 		this.magicKeyFilter = restored.magicKeyFilter;
 		this.adaptiveSwapFilter = restored.adaptiveSwapFilter;
 		this.characterSetFilter = restored.characterSetFilter;
@@ -679,6 +685,11 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
+	setRepeatKeyFilter(value: RepeatKeyFilter) {
+		this.repeatKeyFilter = value;
+		this.#debouncedSave();
+	}
+
 	setAdaptiveSwapFilter(value: AdaptiveSwapFilter) {
 		this.adaptiveSwapFilter = value;
 		this.#debouncedSave();
@@ -697,6 +708,7 @@ export class FilterStore {
 	clearKeyboardFilters() {
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
+		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
@@ -1422,6 +1434,7 @@ export class FilterStore {
 		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.showUnfinished = false;
 		this.thumbKeyFilter = 'optional';
+		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'english';
@@ -1462,6 +1475,7 @@ export class FilterStore {
 		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
 		this.selectedAuthors.clear();
 		this.thumbKeyFilter = 'optional';
+		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
 		this.characterSetFilter = 'all';
@@ -1579,6 +1593,7 @@ export class FilterStore {
 		return (
 			this.showUnfinished ||
 			this.thumbKeyFilter !== 'optional' ||
+			this.repeatKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
 			this.adaptiveSwapFilter !== 'optional' ||
 			this.characterSetFilter !== 'english' ||
@@ -1618,6 +1633,7 @@ export class FilterStore {
 				sourceLayoutNames: this.activeSourceLayoutNameSet,
 				showUnfinished: this.showUnfinished,
 				thumbKeyFilter: this.thumbKeyFilter,
+				repeatKeyFilter: this.repeatKeyFilter,
 				magicKeyFilter: this.magicKeyFilter,
 				adaptiveSwapFilter: this.adaptiveSwapFilter,
 				characterSetFilter: this.characterSetFilter,

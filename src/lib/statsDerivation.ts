@@ -2,6 +2,7 @@ import type {
 	CompactMana2Stats,
 	CyanophageStats,
 	Mana2MagicKeyAnalysis,
+	Mana2RepeatKeyAnalysis,
 	Mana2Stats,
 	CminiStats
 } from '$lib/layout';
@@ -289,6 +290,12 @@ export function getMana2MagicKeyAnalysis(
 	values: CompactMana2Stats
 ): Mana2MagicKeyAnalysis | undefined {
 	return Array.isArray(values) ? undefined : values.magicKeys;
+}
+
+export function getMana2RepeatKeyAnalysis(
+	values: CompactMana2Stats
+): Mana2RepeatKeyAnalysis | undefined {
+	return Array.isArray(values) ? undefined : values.repeatKey;
 }
 
 export function decodeMana2Stats(values: CompactMana2Stats): Mana2Stats | undefined {

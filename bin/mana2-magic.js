@@ -3,6 +3,8 @@
  * feature set supported by Mana2's experimental extended engine.
  */
 
+import { hasMagicKey, hasRepeatKey } from './layout-features.js';
+
 /** @typedef {Record<string, unknown>} RawMagicKeyMappings */
 
 /**
@@ -17,6 +19,7 @@
  *   | 'magic-key-not-on-layout'
  *   | 'input-key-not-on-layout'
  *   | 'invalid-profile'
+ *   | 'combined-input-behaviors'
  *   | 'extended-engine-failed'
  * } Mana2MagicExclusionReason
  */
@@ -31,6 +34,25 @@
  *       detail: string
  *     }
  * } Mana2MagicAnalysis
+ */
+
+/**
+ * @typedef {
+ *   | { status: 'included', engine: 'extended' }
+ *   | {
+ *       status: 'excluded',
+ *       engine: 'standard',
+ *       reason: 'combined-input-behaviors' | 'extended-engine-failed',
+ *       detail: string
+ *     }
+ * } Mana2RepeatKeyAnalysis
+ */
+
+/**
+ * @typedef {{
+ *   magicKeys?: Mana2MagicAnalysis,
+ *   repeatKey?: Mana2RepeatKeyAnalysis
+ * }} Mana2InputAnalyses
  */
 
 /**
@@ -205,11 +227,84 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 }
 
 /**
- * @param {number[]} stats
- * @param {Mana2MagicAnalysis | null} analysis
+ * Prepare Magic-key and Repeat-key behavior independently. Mana2's extended
+ * adapter currently accepts only one contextual trigger, so a layout with
+ * both features stays on the standard engine and records why.
+ *
+ * @param {unknown} rawMappings
+ * @param {Record<string, unknown>} layoutKeys
+ * @returns {{
+ *   engine: 'standard' | 'extended',
+ *   analyses: Mana2InputAnalyses,
+ *   rules: { inputs: string, output: string }[]
+ * } | null}
  */
-export function encodeMana2StatsResult(stats, analysis) {
-	return analysis ? { stats, magicKeys: analysis } : stats;
+export function prepareMana2InputBehaviors(rawMappings, layoutKeys) {
+	const repeatKey = hasRepeatKey(layoutKeys, rawMappings);
+	/** @type {Mana2MagicPreparation | null} */
+	let magicPreparation = null;
+	if (rawMappings !== undefined) {
+		magicPreparation = prepareMana2Magic(rawMappings, layoutKeys);
+	} else if (hasMagicKey(layoutKeys, rawMappings)) {
+		magicPreparation = {
+			engine: 'standard',
+			analysis: mana2MagicMappingsUnavailable(),
+			rules: []
+		};
+	}
+
+	if (repeatKey && magicPreparation) {
+		const combinedDetail = 'Mana2 does not include Magic-key and Repeat-key behavior together.';
+		const magicAnalysis =
+			magicPreparation.analysis.status === 'included'
+				? {
+						status: /** @type {const} */ ('excluded'),
+						engine: /** @type {const} */ ('standard'),
+						reason: /** @type {const} */ ('combined-input-behaviors'),
+						detail: combinedDetail
+					}
+				: magicPreparation.analysis;
+		return {
+			engine: 'standard',
+			analyses: {
+				magicKeys: magicAnalysis,
+				repeatKey: {
+					status: 'excluded',
+					engine: 'standard',
+					reason: 'combined-input-behaviors',
+					detail: combinedDetail
+				}
+			},
+			rules: []
+		};
+	}
+
+	if (repeatKey) {
+		const rules = Object.keys(layoutKeys)
+			.filter((key) => key !== '@' && runeLength(key) === 1)
+			.map((key) => ({ inputs: key + '@', output: key + key }));
+		return {
+			engine: 'extended',
+			analyses: { repeatKey: { status: 'included', engine: 'extended' } },
+			rules
+		};
+	}
+
+	return magicPreparation
+		? {
+				engine: magicPreparation.engine,
+				analyses: { magicKeys: magicPreparation.analysis },
+				rules: magicPreparation.rules
+			}
+		: null;
+}
+
+/**
+ * @param {number[]} stats
+ * @param {Mana2InputAnalyses | null} analyses
+ */
+export function encodeMana2StatsResult(stats, analyses) {
+	return analyses && Object.keys(analyses).length > 0 ? { stats, ...analyses } : stats;
 }
 
 /**
@@ -223,6 +318,39 @@ export function mana2MagicEngineFailure(detail) {
 		engine: 'standard',
 		reason: 'extended-engine-failed',
 		detail
+	};
+}
+
+/**
+ * Downgrade whichever contextual behaviors required the extended engine.
+ *
+ * @param {Mana2InputAnalyses} analyses
+ * @param {string} detail
+ * @returns {Mana2InputAnalyses}
+ */
+export function mana2InputEngineFailure(analyses, detail) {
+	return {
+		...(analyses.magicKeys
+			? {
+					magicKeys:
+						analyses.magicKeys.status === 'included'
+							? mana2MagicEngineFailure(detail)
+							: analyses.magicKeys
+				}
+			: {}),
+		...(analyses.repeatKey
+			? {
+					repeatKey:
+						analyses.repeatKey.status === 'included'
+							? {
+									status: /** @type {const} */ ('excluded'),
+									engine: /** @type {const} */ ('standard'),
+									reason: /** @type {const} */ ('extended-engine-failed'),
+									detail
+								}
+							: analyses.repeatKey
+				}
+			: {})
 	};
 }
 

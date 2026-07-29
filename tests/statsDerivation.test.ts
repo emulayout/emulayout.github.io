@@ -12,7 +12,8 @@ import {
 	deriveBotStats,
 	deriveCyanophageStats,
 	deriveMana2Stats,
-	getMana2MagicKeyAnalysis
+	getMana2MagicKeyAnalysis,
+	getMana2RepeatKeyAnalysis
 } from '$lib/statsDerivation';
 
 function setCompactValue(
@@ -100,12 +101,18 @@ describe('frontend stats decoding and derivation', () => {
 		expect(derived.RP).toBeCloseTo(0.08);
 	});
 
-	test('decodes magic-aware Mana2 results and exposes their analysis status', () => {
+	test('decodes contextual Mana2 results and exposes feature-specific analysis status', () => {
 		const compact = Array(MANA2_COMPACT_STAT_FIELD_COUNT).fill(0);
 		setCompactValue(compact, MANA2_STAT_KEYS, 'sfb', 25_000);
 		const result = {
 			stats: compact,
-			magicKeys: { status: 'included', engine: 'extended' }
+			magicKeys: { status: 'included', engine: 'extended' },
+			repeatKey: {
+				status: 'excluded',
+				engine: 'standard',
+				reason: 'combined-input-behaviors',
+				detail: 'Combined profile'
+			}
 		} as const;
 
 		expect(decodeMana2Stats(result)?.sfb).toBeCloseTo(0.025);
@@ -113,6 +120,13 @@ describe('frontend stats decoding and derivation', () => {
 			status: 'included',
 			engine: 'extended'
 		});
+		expect(getMana2RepeatKeyAnalysis(result)).toEqual({
+			status: 'excluded',
+			engine: 'standard',
+			reason: 'combined-input-behaviors',
+			detail: 'Combined profile'
+		});
 		expect(getMana2MagicKeyAnalysis(compact)).toBeUndefined();
+		expect(getMana2RepeatKeyAnalysis(compact)).toBeUndefined();
 	});
 });

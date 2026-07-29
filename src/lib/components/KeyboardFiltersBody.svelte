@@ -6,6 +6,7 @@
 		type BoardTypeFilter,
 		type CharacterSetFilter,
 		type MagicKeyFilter,
+		type RepeatKeyFilter,
 		type ThumbKeyFilter
 	} from '$lib/filterStore.svelte';
 	import type { ActiveKeyboardSnapshot } from '$lib/activeFiltersAdjust';
@@ -18,6 +19,7 @@
 	let { only = null }: Props = $props();
 
 	const showThumbs = $derived(!only || only.thumbs);
+	const showRepeat = $derived(!only || only.repeat);
 	const showMagic = $derived(!only || only.magic);
 	const showAdaptive = $derived(!only || only.adaptive);
 	const showBoard = $derived(!only || only.board);
@@ -34,6 +36,34 @@
 				onchange={(e) => filterStore.setThumbKeyFilter(e.currentTarget.value as ThumbKeyFilter)}
 				class="keyboard-filters-select"
 				data-keyboard-field="thumbs"
+				style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+			>
+				<option value="optional">Optional</option>
+				<option value="excluded">Excluded</option>
+				<option value="required">Required</option>
+			</select>
+		</label>
+	{/if}
+
+	{#if showRepeat}
+		<label class="keyboard-filters-field">
+			<span
+				class="keyboard-filters-label keyboard-filters-label--with-tip"
+				style="color: var(--text-secondary);"
+			>
+				Repeat key
+				<Tooltip text="The @ key repeats the previous uninterrupted character." />
+			</span>
+			<select
+				value={filterStore.repeatKeyFilter}
+				onchange={(e) => filterStore.setRepeatKeyFilter(e.currentTarget.value as RepeatKeyFilter)}
+				class="keyboard-filters-select"
+				data-keyboard-field="repeat"
 				style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);
@@ -197,7 +227,9 @@
 				style="color: var(--text-secondary);"
 			>
 				Show unfinished layouts
-				<Tooltip text="English layouts (no magic key) that are missing some A–Z letters." />
+				<Tooltip
+					text="English layouts (no Magic or Repeat key) that are missing some A–Z letters."
+				/>
 			</span>
 		</label>
 	{/if}

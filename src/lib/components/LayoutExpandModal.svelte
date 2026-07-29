@@ -275,7 +275,7 @@
 			</div>
 
 			<div class="modal-main">
-				{#if inputProfile}
+				{#if inputProfile?.magicKeys || inputProfile?.adaptiveSwaps}
 					<InputMappingsPanel
 						profile={inputProfile}
 						{disabledMappingIds}

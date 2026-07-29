@@ -37,7 +37,16 @@
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
-	import { inputMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
+	import {
+		inputMappingsLabel,
+		inputProfileMappingsLabel,
+		type LayoutInputProfile
+	} from '$lib/layoutInputBehaviors';
+	import {
+		adaptiveProfileMappingIds,
+		magicProfileMappingIds,
+		repeatKeyMappingId
+	} from '$lib/inputMappingControls';
 
 	interface Props {
 		layout: LayoutData;
@@ -87,12 +96,31 @@
 	let localAnglemod = $state(false);
 	let expandModal = $state<{ open: () => void }>();
 
-	const inputMappingsAvailable = $derived(Boolean(inputProfile));
+	const inputMappingsAvailable = $derived(
+		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
 	const mappingsLabel = $derived(
-		inputMappingsLabel({
-			magicKeys: layout.hasMagicKeyMappings,
-			adaptiveSwaps: layout.hasAdaptiveSwapMappings
-		})
+		inputProfile
+			? inputProfileMappingsLabel(inputProfile)
+			: inputMappingsLabel({
+					magicKeys: layout.hasMagicKeyMappings,
+					adaptiveSwaps: layout.hasAdaptiveSwapMappings
+				})
+	);
+	const repeatMappingId = $derived(
+		inputProfile?.repeatKey ? repeatKeyMappingId(inputProfile.repeatKey.trigger) : undefined
+	);
+	const repeatKeyEnabled = $derived(
+		repeatMappingId === undefined || !disabledMappingIds.includes(repeatMappingId)
+	);
+	const adaptiveMappingIds = $derived(adaptiveProfileMappingIds(inputProfile?.adaptiveSwaps));
+	const adaptiveMappingsEnabled = $derived(
+		adaptiveMappingIds.length === 0 ||
+			adaptiveMappingIds.some((id) => !disabledMappingIds.includes(id))
+	);
+	const magicMappingIds = $derived(magicProfileMappingIds(inputProfile?.magicKeys));
+	const magicMappingsEnabled = $derived(
+		magicMappingIds.length === 0 || magicMappingIds.some((id) => !disabledMappingIds.includes(id))
 	);
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 	const isSelected = $derived(filterStore.selectedLayoutNames.has(layout.name));
@@ -219,8 +247,14 @@
 	}
 
 	function toggleInputMappings() {
-		if (!inputProfile) return;
+		if (!inputMappingsAvailable) return;
 		onToggleInputMappingsWindow?.();
+	}
+
+	function toggleRepeatKey() {
+		if (!repeatMappingId || !onDisabledMappingIdsChange) return;
+		const retained = disabledMappingIds.filter((id) => id !== repeatMappingId);
+		onDisabledMappingIdsChange(repeatKeyEnabled ? [...retained, repeatMappingId] : retained);
 	}
 </script>
 
@@ -250,9 +284,13 @@
 		<LayoutInputMappingsIndicator
 			{layout}
 			{mappingsLabel}
-			inputMappingsUnavailable={!inputMappingsAvailable}
+			{inputProfile}
 			active={showExpand && inputMappingsWindowOpen}
-			onToggle={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
+			{repeatKeyEnabled}
+			{adaptiveMappingsEnabled}
+			{magicMappingsEnabled}
+			onToggleRepeat={inputProfile?.repeatKey ? toggleRepeatKey : undefined}
+			onToggleMappings={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
 		/>
 	</div>
 

@@ -22,6 +22,7 @@ import {
 	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
 } from './cyanophage-stats.js';
+import { hasMagicKey, hasRepeatKey } from './layout-features.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const INPUT_BEHAVIORS_FILE = 'static/layout-input-behaviors.json';
@@ -267,8 +268,11 @@ async function run() {
 		const originalContent = await readFile(cachePath, 'utf-8');
 		const rawLayout = JSON.parse(originalContent);
 		const transformedLayout = transformLayout(rawLayout);
+		const magicMappings = magicKeyMappings.get(rawLayout.name);
 		transformedLayout.updatedAt = layoutTimestamps[filename];
-		transformedLayout.hasMagicKeyMappings = magicKeyMappings.has(rawLayout.name);
+		transformedLayout.hasMagicKey = hasMagicKey(rawLayout.keys, magicMappings);
+		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, magicMappings);
+		transformedLayout.hasMagicKeyMappings = Boolean(magicMappings);
 		transformedLayout.hasAdaptiveSwap =
 			adaptiveLayoutNames.has(rawLayout.name) || adaptiveSwapSources.has(rawLayout.name);
 		transformedLayout.hasAdaptiveSwapMappings = adaptiveSwapSources.has(rawLayout.name);

@@ -25,6 +25,7 @@ export const LAYOUT_FLAG_CYANOPHAGE_THUMB_RIGHT = 32;
 export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
+export const LAYOUT_FLAG_REPEAT_KEY = 512;
 
 /** Current wire format field count (no displayValue). */
 export const COMPACT_LAYOUT_FIELD_COUNT = 9;
@@ -120,6 +121,7 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		hasThumbKeys: (flags & LAYOUT_FLAG_THUMB_KEYS) !== 0,
 		hasAllLetters: (flags & LAYOUT_FLAG_ALL_LETTERS) !== 0,
 		hasMagicKey: (flags & LAYOUT_FLAG_MAGIC_KEY) !== 0,
+		hasRepeatKey: (flags & LAYOUT_FLAG_REPEAT_KEY) !== 0,
 		hasMagicKeyMappings: (flags & LAYOUT_FLAG_MAGIC_KEY_MAPPINGS) !== 0,
 		hasAdaptiveSwap: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP) !== 0,
 		hasAdaptiveSwapMappings: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS) !== 0,

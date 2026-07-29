@@ -14,6 +14,7 @@ describe('active filter chips', () => {
 		snapshot.selectedAuthors = [12, 34];
 		snapshot.boardTypeFilter = 'ortho';
 		snapshot.magicKeyFilter = 'required-mapped';
+		snapshot.repeatKeyFilter = 'required';
 		snapshot.adaptiveSwapFilter = 'required-mapped';
 		snapshot.appliedIncludeGrid[0][0] = 'a';
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
@@ -28,6 +29,7 @@ describe('active filter chips', () => {
 			'source',
 			'name',
 			'authors',
+			'repeat',
 			'magic',
 			'adaptive',
 			'board',
@@ -52,6 +54,7 @@ describe('active filter chips', () => {
 		});
 		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity > 70%');
 		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic: known mappings');
+		expect(chips.find(({ id }) => id === 'repeat')?.label).toBe('Repeat required');
 		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive: known mappings');
 	});
 
@@ -63,6 +66,7 @@ describe('active filter chips', () => {
 			clearAuthors: () => calls.push('authors'),
 			setThumbKeyFilter: (value) => calls.push(`thumbs:${value}`),
 			setMagicKeyFilter: (value) => calls.push(`magic:${value}`),
+			setRepeatKeyFilter: (value) => calls.push(`repeat:${value}`),
 			setAdaptiveSwapFilter: (value) => calls.push(`adaptive:${value}`),
 			setBoardTypeFilter: (value) => calls.push(`board:${value}`),
 			setCharacterSetFilter: (value) => calls.push(`charset:${value}`),
@@ -79,6 +83,7 @@ describe('active filter chips', () => {
 		clearActiveFilterChip(target, { kind: 'authors' });
 		clearActiveFilterChip(target, { kind: 'thumbKey' });
 		clearActiveFilterChip(target, { kind: 'magicKey' });
+		clearActiveFilterChip(target, { kind: 'repeatKey' });
 		clearActiveFilterChip(target, { kind: 'adaptiveSwap' });
 		clearActiveFilterChip(target, { kind: 'boardType' });
 		clearActiveFilterChip(target, { kind: 'characterSet' });
@@ -95,6 +100,7 @@ describe('active filter chips', () => {
 			'authors',
 			'thumbs:optional',
 			'magic:optional',
+			'repeat:optional',
 			'adaptive:optional',
 			'board:all',
 			'charset:english',

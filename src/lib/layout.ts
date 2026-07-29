@@ -26,6 +26,8 @@ export interface LayoutData {
 	characterSet: 'english' | 'international';
 	hasAllLetters: boolean;
 	hasMagicKey: boolean;
+	/** The layout contains an unclaimed `@`, which repeats the previous character by default. */
+	hasRepeatKey: boolean;
 	/** A curated profile is available in the separately loaded mappings payload. */
 	hasMagicKeyMappings: boolean;
 	/** The layout is known to use adaptive swaps, whether or not mappings are available. */
@@ -126,6 +128,7 @@ export type Mana2MagicKeyExclusionReason =
 	| 'magic-key-not-on-layout'
 	| 'input-key-not-on-layout'
 	| 'invalid-profile'
+	| 'combined-input-behaviors'
 	| 'extended-engine-failed';
 
 /**
@@ -141,17 +144,27 @@ export type Mana2MagicKeyAnalysis =
 			detail: string;
 	  };
 
+export type Mana2RepeatKeyAnalysis =
+	| { status: 'included'; engine: 'extended' }
+	| {
+			status: 'excluded';
+			engine: 'standard';
+			reason: 'combined-input-behaviors' | 'extended-engine-failed';
+			detail: string;
+	  };
+
 /**
  * Compact mana2 stats: fixed-point values (×10_000) in MANA2_STAT_KEYS order.
- * Ordinary layouts remain bare arrays. A magic-key layout carries its stats
- * and magic-analysis result together, including when mappings are unavailable.
+ * Ordinary layouts remain bare arrays. Layouts with contextual behavior carry
+ * their stats and feature-specific analysis results together.
  * @see MANA2_STAT_KEYS in statsDerivation.ts / bin/mana2-stats.js
  */
 export type CompactMana2Stats =
 	| number[]
 	| {
 			stats: number[];
-			magicKeys: Mana2MagicKeyAnalysis;
+			magicKeys?: Mana2MagicKeyAnalysis;
+			repeatKey?: Mana2RepeatKeyAnalysis;
 	  };
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats-mana2.json. */

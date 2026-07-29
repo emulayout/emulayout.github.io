@@ -5,7 +5,8 @@ import {
 	LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS,
 	LAYOUT_FLAG_ALL_LETTERS,
 	LAYOUT_FLAG_MAGIC_KEY,
-	LAYOUT_FLAG_MAGIC_KEY_MAPPINGS
+	LAYOUT_FLAG_MAGIC_KEY_MAPPINGS,
+	LAYOUT_FLAG_REPEAT_KEY
 } from '$lib/layoutCodec';
 
 describe('layout codec flags', () => {
@@ -23,9 +24,27 @@ describe('layout codec flags', () => {
 		]);
 
 		expect(knownMagic.hasMagicKey).toBe(true);
+		expect(knownMagic.hasRepeatKey).toBe(false);
 		expect(knownMagic.hasMagicKeyMappings).toBe(false);
 		expect(mappedMagic.hasMagicKey).toBe(true);
 		expect(mappedMagic.hasMagicKeyMappings).toBe(true);
+	});
+
+	test('decodes repeat-key presence independently from the @ character', () => {
+		const repeat = decodeLayout([
+			'repeat',
+			1,
+			2,
+			'2026-01-01',
+			LAYOUT_FLAG_ALL_LETTERS | LAYOUT_FLAG_REPEAT_KEY,
+			['@'],
+			[0],
+			[0]
+		]);
+
+		expect(repeat.hasMagicKey).toBe(false);
+		expect(repeat.hasRepeatKey).toBe(true);
+		expect(repeat.hasMagicKeyMappings).toBe(false);
 	});
 
 	test('decodes adaptive presence separately from known mappings', () => {

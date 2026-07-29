@@ -1,198 +1,217 @@
-# Magic-key architecture
+# Magic-key and Repeat-key architecture
 
-This document is the durable reference for understanding or changing magic keys in Emulayout. The
-shared contextual-input engine and adaptive swaps are described in
+This document is the durable reference for the distinction between Magic keys and Repeat keys in
+Emulayout. The shared contextual-input engine and Adaptive swaps are described in
 [`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md).
 
-## Behavior
+## Two separate concepts
 
-A magic key is a dedicated layout key whose output depends on the immediately preceding
-uninterrupted logical output:
+A Magic key has author-defined output that depends on uninterrupted preceding output:
 
 ```text
 c followed by * produces ck
 t followed by * produces tion
 ```
 
-The preceding text is already present when the magic key is pressed, so a rule stores only what
-the magic key emits:
+A Repeat key has one fixed behavior:
+
+```text
+@ repeats the previous uninterrupted emitted character
+```
+
+`*` is the conventional Magic-key marker. `@` is the conventional Repeat-key marker. They are
+separate features even though both use the same contextual-input engine.
+
+The conventions are deliberately overridable:
+
+- a layout containing `*` is considered a Magic-key layout even before its mappings are curated;
+- any symbol becomes a Magic key when a curated mapping uses it as a trigger;
+- `@` is a Repeat key only when no curated Magic mapping claims `@`;
+- a curated `@` Magic mapping completely overrides default Repeat-key behavior;
+- an author who wants mapped `@` rules plus repeat fallback must explicitly set
+  `"fallback": "repeat-last"`.
+
+This makes unconfigured `@` deterministic without preventing authors from using it as an ordinary
+Magic trigger.
+
+## Presence and mapping metadata
+
+Compact layout metadata keeps these facts separate:
+
+- `hasMagicKey`: the layout contains `*`, or a curated Magic profile defines any trigger;
+- `hasRepeatKey`: the layout contains `@` and no curated Magic profile defines `@`;
+- `hasMagicKeyMappings`: curated Magic mappings are available;
+- Adaptive-swap presence and mapping availability use their own flags.
+
+`hasRepeatKey` has a dedicated compact wire flag. The generated metadata, rather than the client
+inspecting `@`, is authoritative because the catalog generator has access to the curated profiles.
+This prevents a missing or invalid runtime sidecar from accidentally reclassifying an author-mapped
+`@` as a Repeat key.
+
+Names are never used to infer either behavior.
+
+## Curated Magic format
+
+Magic mappings are stored by exact Cmini layout name:
+
+```text
+data/magic-keys/<layout-name>.json
+```
+
+The top-level object maps each Magic trigger to its rules. Each rule maps preceding emitted text to
+the text emitted by the trigger:
 
 ```json
 {
 	"*": {
 		"c": "k",
 		"t": "ion"
-	}
-}
-```
-
-Unlike an adaptive swap, a magic rule changes the output of a dedicated trigger key. A layout may
-use either feature or both.
-
-## Presence and known mappings
-
-Layout metadata keeps two facts separate:
-
-- `hasMagicKey`: the base layout contains a recognized `*` or `@` magic-key marker.
-- `hasMagicKeyMappings`: Emulayout has curated mappings for the layout.
-
-Names are not used to infer magic behavior. This distinction lets filters include all magic-key
-layouts even when mappings are unavailable. Mapping controls appear only when there is curated data
-to show; a muted, non-interactive feature indicator is shown when mappings are unknown.
-
-## Curated format
-
-Mappings are stored by exact Cmini layout name in:
-
-```text
-data/magic-keys/<layout-name>.json
-```
-
-The top-level object maps each dedicated magic key to its rules. Each inner key is the preceding
-emitted sequence and its value is the text emitted by the magic key:
-
-```json
-{
-	"*": {
-		"c": "k",
-		"'": "l",
-		"l": "l"
 	},
-	"@": {
-		"th": "e"
+	"#": {
+		"a": "o"
 	}
 }
 ```
 
-The format supports multiple dedicated magic keys, multi-character preceding sequences, and
-multi-character output. Preceding sequences match case-insensitively. Output is emitted exactly as
-stored rather than automatically inheriting case.
+Triggers need not be `*`. Multiple triggers, multi-character preceding sequences, and
+multi-character output are supported. Preceding sequences match case-insensitively. Output is
+emitted exactly as stored rather than inheriting case.
 
-Most triggers use the compact rule map above. A trigger that needs behavior when no explicit rule
-matches uses the extended form:
+A trigger can explicitly repeat the previous character when no rule matches:
 
 ```json
 {
-	"*": {
+	"@": {
 		"mappings": {
-			"w": "h",
-			"y": ","
+			"a": "o"
 		},
 		"fallback": "repeat-last"
 	}
 }
 ```
 
-`repeat-last` repeats the final character of uninterrupted emitted history, preserving its case
-and allowing punctuation. Explicit mappings take precedence. A repeated character enters history,
-so `a**` produces `aaa`; with no history, the magic key is emitted literally. A fallback-only
-trigger may use an empty `mappings` object.
+Explicit rules take precedence over the fallback. Repeated output enters history, so `b@@` produces
+`bbb` in this example. Without history, the trigger is emitted literally. A fallback-only trigger
+may use an empty `mappings` object.
 
-Validation rejects empty triggers, rule sets without a fallback, preceding sequences, and outputs,
-as well as preceding sequences that collide after lowercase normalization. Sync also checks that
-the layout and each configured magic trigger exist in Cmini.
+The same extended form is available for `*` or any other Magic trigger. Repeat fallback is never
+injected into a curated Magic profile implicitly.
 
-## Runtime data
+Validation rejects malformed or empty triggers, empty rule sets without a fallback, empty
+preceding sequences or outputs, and preceding sequences that collide after lowercase
+normalization. Sync also verifies that the layout and every configured trigger and preceding input
+exist in Cmini. A mapped trigger is valid regardless of which symbol it uses.
 
-Sync publishes valid mappings in the merged per-layout behavior payload:
+## Runtime data and compilation
+
+Sync publishes curated Magic and Adaptive mappings in:
 
 ```text
 static/layout-input-behaviors.json
 ```
 
-The compact layout payload carries only the two presence flags. Filtering therefore does not
-require loading or inspecting full mappings.
+Repeat keys do not need per-layout source records. The client combines the optional sidecar with
+the authoritative compact layout metadata into one `LayoutInputProfile`:
+
+```text
+magicKeys? + repeatKey? + adaptiveSwaps?
+```
+
+Magic profiles remain mapping-driven. Repeat profiles contain only the conventional `@` trigger.
+If the behavior sidecar cannot be loaded, Repeat behavior still works from compact metadata while
+curated Magic behavior is reported as unavailable.
 
 Pull-request validation rejects mapping files without a current Cmini layout. If Cmini removes a
-layout after a mapping has merged, production sync warns and omits that orphan profile instead of
+layout after a mapping has merged, production sync warns and omits the orphan profile instead of
 failing deployment.
 
-The client compiles the behavior payload once into profiles keyed by layout name. Magic rules are
-ordered longest-first, and each profile records the maximum history length its rules need.
+## Resolution and history
 
-## Resolution, history, and chaining
+For one captured layout key, the resolver:
 
-For a captured layout key, the resolver:
+1. applies at most one Adaptive swap to the base output;
+2. treats that output as a possible Magic trigger;
+3. if Magic matches, emits its rule, explicit fallback, or literal trigger;
+4. otherwise, treats `@` as a possible Repeat trigger;
+5. inserts the final output and appends it once to bounded shared history.
 
-1. receives the base output after any adaptive swap;
-2. treats that output as a possible magic trigger;
-3. chooses the longest rule whose preceding sequence matches the end of uninterrupted history;
-4. emits the mapped value, applies the trigger's optional fallback, or emits the trigger literally;
-5. appends the final output once to bounded shared history.
-
-Output is not recursively processed during the same physical keypress. It becomes context for the
-next keypress.
+Magic and Repeat are not recursively applied during the same physical keypress. A Magic match also
+prevents the resulting text from being interpreted as Repeat output. This makes an explicit `@`
+Magic profile a complete override even in defensive or malformed combined runtime data.
 
 History represents uninterrupted logical output, not text near the caret. It is cleared by caret
 navigation, pointer interaction, blur, native edits such as paste or deletion, and unmapped
-non-modifier keys. Modifier keys alone do not clear it. Moving the caret therefore cannot make a
-magic key inspect existing text at the new position.
+non-modifier keys. Modifier keys alone do not clear it.
 
-Magic output enters history like ordinary output and can activate the next rule. Given:
+Magic and Repeat output enter history like ordinary output. Given:
 
 ```text
 '* -> 'l
 l* -> ll
 ```
 
-typing `y o u ' * *` produces `you'll`: the first magic press emits `l`, and the second uses that
-emitted `l` as its context.
+typing `y o u ' * *` produces `you'll`: the first Magic press emits `l`, and the second uses that
+emitted `l` as context.
 
-## Composition with adaptive swaps
+## Composition with Adaptive swaps
 
-Adaptive swaps resolve before magic keys, and only the final output is added to their shared
+Adaptive swaps resolve before Magic and Repeat behavior. Only the final output is added to shared
 history. Consequently:
 
-- magic output can arm an adaptive swap on the next keypress;
-- adaptive output can become context for a later magic key;
-- adaptive output can become a magic trigger during the same keypress.
+- Magic or Repeat output can arm an Adaptive swap on the next keypress;
+- Adaptive output can become context for later contextual behavior;
+- Adaptive output can become a Magic or Repeat trigger during the same keypress.
 
-The pure resolver reports each behavior that applied independently of the inserted text and next
-history. DOM events and history-reset decisions remain the layout test area's responsibility.
+The pure resolver reports `adaptive-swap`, `magic-key`, and `repeat-key` independently. DOM events,
+text insertion, and history-reset decisions remain the layout test area's responsibility.
 
 ## Presentation and filtering
 
-The mapping UI is shared with adaptive swaps and can display either or both sections. It renders
-the complete result, such as `t* -> tion`, even though the stored value is only `ion`, and labels
-any configured fallback after the explicit rules. The section, every explicit rule, and fallback
-behavior have checkboxes that are enabled by default. Disabling is ephemeral and immediately
-affects the layout test area; the section checkbox acts as a bulk control and shows a partial state
-when only some mappings are enabled.
+Magic and Adaptive behavior use the shared mappings window. Repeat toggles the entire behavior
+directly and never opens a mappings window. All three use the same borderless feature-control
+component and `on`, `off`, and `unavailable` visual language; Repeat uses only `on` and `off`.
 
-Layout-card feature indicators form a vertical rail immediately to the right of the formatted
-keyboard. Known mappings use an interactive toggle that opens the single draggable, non-modal
-mappings window; known mappings whose runtime sidecar is unavailable and features without known
-mappings remain muted and noninteractive. When both magic keys and adaptive swaps have known
-mappings, their glyphs share one toggle. The expanded stats modal also shows mappings above
-analyzer statistics.
+Recognized `*` markers whose mappings are unavailable remain muted and noninteractive. A layout
+containing an unmapped `*` and a default `@` therefore exposes working Repeat behavior while
+separately showing unavailable Magic behavior.
 
-The Magic key filter distinguishes:
+Filters are also independent:
 
-- all layouts with a magic-key marker;
-- layouts with known mappings;
-- layouts without a magic key.
+- the Magic filter can require any Magic layout or only layouts with curated mappings;
+- the Repeat filter can require or exclude default `@` Repeat behavior;
+- an explicitly mapped `@` appears under Magic and not Repeat.
+
+The expanded stats modal may show Magic and Adaptive controls, while Repeat remains controlled by
+the icon beside the keyboard.
 
 ## Analyzer boundaries
 
-Cmini and Cyanophage stats describe the base layout and do not incorporate magic behavior.
+Cmini and Cyanophage stats describe the base layout and do not incorporate contextual behavior.
 
-Mana2 uses its extended engine only for profiles it can express: exactly one one-character magic
-key, one-character preceding inputs and outputs, and referenced keys present on the layout. A
-`repeat-last` fallback is expanded into per-key rules, with explicit mappings taking precedence.
-Unsupported profiles use standard-engine stats. Results record whether mappings were included,
-unavailable, or excluded with a reason, so base-layout stats are never presented as magic-aware.
+Mana2 records Magic and Repeat analysis independently:
+
+- a standalone supported Magic profile can use the extended engine;
+- a standalone Repeat key expands to per-key `x@ -> xx` rules in the extended engine;
+- a layout with both Magic and Repeat behavior stays on the standard engine because the current
+  adapter supports only one contextual feature at a time;
+- unsupported or unavailable Magic mappings use standard-engine stats with an explicit reason;
+- an explicit `@` Magic mapping is analyzed as Magic, not Repeat.
 
 Adaptive swaps are not currently included in Mana2 analysis.
 
 ## Architectural invariants
 
-- Presence and known mapping availability are separate facts.
-- Feature-specific source files are combined only in the generated runtime payload.
+- Magic and Repeat are separate domain concepts, metadata flags, controls, filters, and analysis
+  results.
+- `*` implies Magic presence; `@` implies Repeat only when no curated `@` Magic mapping exists.
+- Any curated trigger symbol establishes Magic behavior.
+- Explicit `@` Magic mappings override default Repeat behavior completely.
+- Repeat fallback inside a Magic profile is always explicit.
+- Compact metadata is authoritative for feature classification.
+- Feature-specific source files are combined only in generated runtime data.
 - Matching uses uninterrupted emitted history, never text near the caret.
-- Magic output enters history and may be chained.
-- The longest matching preceding sequence wins.
-- Adaptive swaps run before magic keys.
+- The longest matching Magic preceding sequence wins.
+- Adaptive swaps run before Magic, which runs before Repeat.
 - Final output is inserted and added to history exactly once.
-- Event handling stays outside the pure resolver.
 - Filtering uses compact metadata rather than mapping details.
-- Analyzer metadata states whether magic behavior affected the result.
+- Analyzer metadata states independently which contextual behavior affected the result.

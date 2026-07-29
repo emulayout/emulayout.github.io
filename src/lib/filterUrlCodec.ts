@@ -22,6 +22,7 @@ export const VIEW_FILTER_URL_PARAMS = [
 	'includeOr',
 	'showUnfinished',
 	'thumbKeys',
+	'repeatKey',
 	'magicKey',
 	'adaptiveSwap',
 	'characterSet',
@@ -106,6 +107,7 @@ export function writeViewFilterUrlState(
 
 	if (snapshot.showUnfinished) params.set('showUnfinished', '1');
 	if (snapshot.thumbKeyFilter !== 'optional') params.set('thumbKeys', snapshot.thumbKeyFilter);
+	if (snapshot.repeatKeyFilter !== 'optional') params.set('repeatKey', snapshot.repeatKeyFilter);
 	if (snapshot.magicKeyFilter !== 'optional') params.set('magicKey', snapshot.magicKeyFilter);
 	if (snapshot.adaptiveSwapFilter !== 'optional') {
 		params.set('adaptiveSwap', snapshot.adaptiveSwapFilter);
@@ -223,6 +225,11 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 		magicKey === 'optional'
 	) {
 		snapshot.magicKeyFilter = magicKey;
+	}
+
+	const repeatKey = params.get('repeatKey');
+	if (repeatKey === 'excluded' || repeatKey === 'required' || repeatKey === 'optional') {
+		snapshot.repeatKeyFilter = repeatKey;
 	}
 
 	const adaptiveSwap = params.get('adaptiveSwap');

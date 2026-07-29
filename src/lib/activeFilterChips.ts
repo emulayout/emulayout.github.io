@@ -4,6 +4,7 @@ import type {
 	BoardTypeFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
+	RepeatKeyFilter,
 	StatLimit,
 	StatLimitOperator,
 	ThumbKeyFilter,
@@ -32,6 +33,7 @@ export type FilterChipSource = {
 	nameFilter: string;
 	selectedAuthors: { size: number };
 	thumbKeyFilter: ThumbKeyFilter;
+	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
 	boardTypeFilter: BoardTypeFilter;
@@ -64,6 +66,7 @@ export function chipSourceFromViewSnapshot(
 		nameFilter: snapshot.nameFilter,
 		selectedAuthors: { size: snapshot.selectedAuthors.length },
 		thumbKeyFilter: snapshot.thumbKeyFilter,
+		repeatKeyFilter: snapshot.repeatKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
 		boardTypeFilter: snapshot.boardTypeFilter,
@@ -177,6 +180,7 @@ export type ActiveFilterClearAction =
 	| { kind: 'name' }
 	| { kind: 'authors' }
 	| { kind: 'thumbKey' }
+	| { kind: 'repeatKey' }
 	| { kind: 'magicKey' }
 	| { kind: 'adaptiveSwap' }
 	| { kind: 'boardType' }
@@ -261,6 +265,15 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 			`Thumbs ${store.thumbKeyFilter}`,
 			{ kind: 'thumbKey' },
 			{ target: 'keyboard', field: 'thumbs' }
+		);
+	}
+	if (store.repeatKeyFilter !== 'optional') {
+		pushChip(
+			chips,
+			'repeat',
+			`Repeat ${store.repeatKeyFilter}`,
+			{ kind: 'repeatKey' },
+			{ target: 'keyboard', field: 'repeat' }
 		);
 	}
 	if (store.magicKeyFilter !== 'optional') {
@@ -464,6 +477,7 @@ export interface ActiveFilterClearTarget {
 	setNameFilter(value: string): void;
 	clearAuthors(): void;
 	setThumbKeyFilter(value: ThumbKeyFilter): void;
+	setRepeatKeyFilter(value: RepeatKeyFilter): void;
 	setMagicKeyFilter(value: MagicKeyFilter): void;
 	setAdaptiveSwapFilter(value: AdaptiveSwapFilter): void;
 	setBoardTypeFilter(value: BoardTypeFilter): void;
@@ -493,6 +507,9 @@ export function clearActiveFilterChip(
 			break;
 		case 'thumbKey':
 			store.setThumbKeyFilter('optional');
+			break;
+		case 'repeatKey':
+			store.setRepeatKeyFilter('optional');
 			break;
 		case 'magicKey':
 			store.setMagicKeyFilter('optional');

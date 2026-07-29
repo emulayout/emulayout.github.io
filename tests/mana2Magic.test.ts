@@ -3,7 +3,9 @@ import {
 	encodeMana2StatsResult,
 	mana2MagicEngineFailure,
 	mana2MagicMappingsUnavailable,
-	prepareMana2Magic
+	prepareMana2InputBehaviors,
+	prepareMana2Magic,
+	mana2InputEngineFailure
 } from '../bin/mana2-magic.js';
 import { buildMana2LayoutHash } from '../bin/mana2-stats.js';
 import vyletMappings from '../data/magic-keys/vylet.json';
@@ -40,6 +42,58 @@ describe('Mana2 magic-key adaptation', () => {
 		expect(prepared.rules).toContainEqual({ inputs: ',*', output: ',,' });
 	});
 
+	test('includes default @ repeat behavior for standalone Repeat-key layouts', () => {
+		const prepared = prepareMana2InputBehaviors(undefined, {
+			a: {},
+			b: {},
+			'@': {}
+		});
+
+		expect(prepared).toMatchObject({
+			engine: 'extended',
+			analyses: {
+				repeatKey: { status: 'included', engine: 'extended' }
+			}
+		});
+		expect(prepared?.rules).toContainEqual({ inputs: 'a@', output: 'aa' });
+		expect(prepared?.rules).toContainEqual({ inputs: 'b@', output: 'bb' });
+	});
+
+	test('does not partially analyze layouts whose * mappings remain unavailable', () => {
+		const prepared = prepareMana2InputBehaviors(undefined, {
+			a: {},
+			'*': {},
+			'@': {}
+		});
+
+		expect(prepared).toMatchObject({
+			engine: 'standard',
+			analyses: {
+				magicKeys: {
+					status: 'excluded',
+					reason: 'mappings-unavailable'
+				},
+				repeatKey: {
+					status: 'excluded',
+					reason: 'combined-input-behaviors'
+				}
+			}
+		});
+		expect(prepared?.rules).toEqual([]);
+	});
+
+	test('lets an explicit @ magic mapping override repeat-key classification', () => {
+		const prepared = prepareMana2InputBehaviors({ '@': { a: 'o' } }, { a: {}, b: {}, '@': {} });
+
+		expect(prepared).toMatchObject({
+			engine: 'extended',
+			analyses: {
+				magicKeys: { status: 'included', engine: 'extended' }
+			}
+		});
+		expect(prepared?.analyses.repeatKey).toBeUndefined();
+	});
+
 	const unsupportedCases = [
 		[{ '*': { a: 'o' }, '@': { a: 'e' } }, 'multiple-magic-keys', { ...layoutKeys, '@': {} }],
 		[{ '*': { th: 'e' } }, 'multi-key-input', layoutKeys],
@@ -67,7 +121,7 @@ describe('Mana2 magic-key adaptation', () => {
 		const stats = [1, 2, 3];
 		const included = { status: 'included', engine: 'extended' } as const;
 		expect(encodeMana2StatsResult(stats, null)).toEqual(stats);
-		expect(encodeMana2StatsResult(stats, included)).toEqual({
+		expect(encodeMana2StatsResult(stats, { magicKeys: included })).toEqual({
 			stats,
 			magicKeys: included
 		});
@@ -81,6 +135,14 @@ describe('Mana2 magic-key adaptation', () => {
 			engine: 'standard',
 			reason: 'mappings-unavailable'
 		});
+		expect(
+			mana2InputEngineFailure({ repeatKey: { status: 'included', engine: 'extended' } }, 'failed')
+		).toMatchObject({
+			repeatKey: {
+				status: 'excluded',
+				reason: 'extended-engine-failed'
+			}
+		});
 	});
 
 	test('scopes magic profile cache invalidation to the affected layout hash', () => {
@@ -90,8 +152,12 @@ describe('Mana2 magic-key adaptation', () => {
 		const unavailable = mana2MagicMappingsUnavailable();
 		const included = { status: 'included', engine: 'extended' } as const;
 
-		const before = buildMana2LayoutHash(source, standardLayout, 'standard', unavailable);
-		const after = buildMana2LayoutHash(source, includedLayout, 'extended', included);
+		const before = buildMana2LayoutHash(source, standardLayout, 'standard', {
+			magicKeys: unavailable
+		});
+		const after = buildMana2LayoutHash(source, includedLayout, 'extended', {
+			magicKeys: included
+		});
 		const ordinary = buildMana2LayoutHash(source, standardLayout, 'standard', null);
 
 		expect(after).not.toBe(before);

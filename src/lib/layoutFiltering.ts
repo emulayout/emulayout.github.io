@@ -36,6 +36,7 @@ import {
 	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
+	type RepeatKeyFilter,
 	type StatLimit,
 	type StatLimitOperator,
 	type ThumbKeyFilter
@@ -47,6 +48,7 @@ export interface LayoutFilterCriteria {
 	sourceLayoutNames: ReadonlySet<string> | null;
 	showUnfinished: boolean;
 	thumbKeyFilter: ThumbKeyFilter;
+	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
@@ -248,6 +250,11 @@ function matchesMagicKeyFilter(layout: LayoutData, filter: MagicKeyFilter): bool
 	return !layout.hasMagicKey;
 }
 
+function matchesRepeatKeyFilter(layout: LayoutData, filter: RepeatKeyFilter): boolean {
+	if (filter === 'optional') return true;
+	return filter === 'required' ? layout.hasRepeatKey : !layout.hasRepeatKey;
+}
+
 function matchesAdaptiveSwapFilter(layout: LayoutData, filter: AdaptiveSwapFilter): boolean {
 	if (filter === 'optional') return true;
 	if (filter === 'required') return layout.hasAdaptiveSwap;
@@ -375,11 +382,13 @@ export function filterLayouts(
 			!criteria.showUnfinished &&
 			criteria.characterSetFilter !== 'international' &&
 			!layout.hasAllLetters &&
-			!layout.hasMagicKey
+			!layout.hasMagicKey &&
+			!layout.hasRepeatKey
 		) {
 			return false;
 		}
 		if (!matchesThumbKeyFilter(layout, criteria.thumbKeyFilter)) return false;
+		if (!matchesRepeatKeyFilter(layout, criteria.repeatKeyFilter)) return false;
 		if (!matchesMagicKeyFilter(layout, criteria.magicKeyFilter)) return false;
 		if (!matchesAdaptiveSwapFilter(layout, criteria.adaptiveSwapFilter)) return false;
 		if (!matchesCharacterSet(layout, criteria.characterSetFilter)) return false;

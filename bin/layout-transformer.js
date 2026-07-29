@@ -5,7 +5,7 @@
 
 import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
 import { THUMB_ROW } from '../src/lib/layoutDisplay.ts';
-import { hasMagicKey } from './layout-features.js';
+import { hasMagicKeyMarker, hasRepeatKey } from './layout-features.js';
 
 const SPLIT_COL = 5;
 
@@ -41,7 +41,8 @@ export function transformLayout(layout) {
 		hasThumbKeys: computeHasThumbKeys(stripped),
 		characterSet: computeCharacterSet(stripped),
 		hasAllLetters: computeHasAllLetters(stripped),
-		hasMagicKey: hasMagicKey(stripped.keys),
+		hasMagicKey: hasMagicKeyMarker(stripped.keys),
+		hasRepeatKey: hasRepeatKey(stripped.keys),
 		cyanophageCompatible: isCyanophageCompatible(keys),
 		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
 	};

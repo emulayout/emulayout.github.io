@@ -20,6 +20,7 @@ function makeLayout(
 		characterSet = 'english',
 		hasAllLetters = true,
 		hasMagicKey = false,
+		hasRepeatKey = false,
 		hasMagicKeyMappings = false,
 		hasAdaptiveSwap = false,
 		hasAdaptiveSwapMappings = false,
@@ -33,6 +34,7 @@ function makeLayout(
 		characterSet: LayoutData['characterSet'];
 		hasAllLetters: boolean;
 		hasMagicKey: boolean;
+		hasRepeatKey: boolean;
 		hasMagicKeyMappings: boolean;
 		hasAdaptiveSwap: boolean;
 		hasAdaptiveSwapMappings: boolean;
@@ -50,6 +52,7 @@ function makeLayout(
 		characterSet,
 		hasAllLetters,
 		hasMagicKey,
+		hasRepeatKey,
 		hasMagicKeyMappings,
 		hasAdaptiveSwap,
 		hasAdaptiveSwapMappings,
@@ -66,6 +69,7 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		sourceLayoutNames: null,
 		showUnfinished: snapshot.showUnfinished,
 		thumbKeyFilter: snapshot.thumbKeyFilter,
+		repeatKeyFilter: snapshot.repeatKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
 		characterSetFilter: snapshot.characterSetFilter,
@@ -154,6 +158,23 @@ describe('filterLayouts', () => {
 				makeCriteria({ magicKeyFilter: 'required-mapped' })
 			).map((layout) => layout.name)
 		).toEqual(['Mapped magic']);
+	});
+
+	test('filters repeat keys independently from magic keys', () => {
+		const plain = makeLayout('Plain');
+		const repeat = makeLayout('Repeat', { hasRepeatKey: true });
+		const magic = makeLayout('Magic', { hasMagicKey: true });
+
+		expect(
+			filterLayouts([plain, repeat, magic], makeCriteria({ repeatKeyFilter: 'required' })).map(
+				(layout) => layout.name
+			)
+		).toEqual(['Repeat']);
+		expect(
+			filterLayouts([plain, repeat, magic], makeCriteria({ magicKeyFilter: 'required' })).map(
+				(layout) => layout.name
+			)
+		).toEqual(['Magic']);
 	});
 
 	test('distinguishes all adaptive layouts from those with known mappings', () => {
