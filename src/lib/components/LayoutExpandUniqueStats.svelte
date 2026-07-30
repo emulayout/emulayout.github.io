@@ -68,7 +68,28 @@
 			const s = stats as DerivedCyanophageStats;
 			return [
 				{ label: 'Total word effort', value: formatCyanophageStatValue(s.totalWordEffort) },
-				{ label: 'Effort', value: formatCyanophageStatValue(s.effort) }
+				{ label: 'Effort', value: formatCyanophageStatValue(s.effort) },
+				{ label: 'Finger distance', value: formatCyanophageStatValue(s.distance) },
+				{
+					label: 'Index distance (L / R)',
+					value: `${formatCyanophageStatValue(s.distanceLI)} | ${formatCyanophageStatValue(s.distanceRI)}`
+				},
+				{
+					label: 'Middle distance (L / R)',
+					value: `${formatCyanophageStatValue(s.distanceLM)} | ${formatCyanophageStatValue(s.distanceRM)}`
+				},
+				{
+					label: 'Ring distance (L / R)',
+					value: `${formatCyanophageStatValue(s.distanceLR)} | ${formatCyanophageStatValue(s.distanceRR)}`
+				},
+				{
+					label: 'Pinky distance (L / R)',
+					value: `${formatCyanophageStatValue(s.distanceLP)} | ${formatCyanophageStatValue(s.distanceRP)}`
+				},
+				{
+					label: 'Thumb distance (L / R)',
+					value: `${formatCyanophageStatValue(s.distanceLT)} | ${formatCyanophageStatValue(s.distanceRT)}`
+				}
 			];
 		}
 

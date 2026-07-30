@@ -68,6 +68,8 @@ describe('frontend stats decoding and derivation', () => {
 		const compact = Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(0);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'total-word-effort', 50_000);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'effort', 25_000);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'distance', 1_234_000);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'distance-LI', 123_000);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'sfb', 100);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'LI', 1_500);
 
@@ -76,6 +78,8 @@ describe('frontend stats decoding and derivation', () => {
 		const derived = deriveCyanophageStats(decoded!);
 		expect(derived.totalWordEffort).toBe(5);
 		expect(derived.effort).toBe(2.5);
+		expect(derived.distance).toBe(123.4);
+		expect(derived.distanceLI).toBe(12.3);
 		expect(derived.sfb).toBeCloseTo(0.01);
 		expect(derived.LI).toBeCloseTo(0.15);
 	});

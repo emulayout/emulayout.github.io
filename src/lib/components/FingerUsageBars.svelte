@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export const FINGER_USAGE_BARS_MAX_HEIGHT = 88;
+	export const FINGER_USAGE_BARS_HEIGHT = 103;
 
 	export type FingerUsageBarKey =
 		| 'LP'
@@ -30,6 +30,15 @@
 		scaleMax?: number;
 		label?: string;
 		tone?: StatsAnalyzer;
+		/** Fit two charts side by side within a layout card. */
+		compact?: boolean;
+		/** Show the accessible label as a visible chart caption. */
+		showLabel?: boolean;
+		/** Optional value shown directly below the visible chart caption. */
+		labelDetail?: string;
+		/** Format bar tooltips as normalized raw values rather than percentages. */
+		valueUnit?: 'percent' | 'raw';
+		height?: number;
 	}
 
 	const {
@@ -38,7 +47,12 @@
 		rightTotal,
 		scaleMax = 0.25,
 		label = 'Finger usage',
-		tone
+		tone,
+		compact = false,
+		showLabel = false,
+		labelDetail,
+		valueUnit = 'percent',
+		height = FINGER_USAGE_BARS_HEIGHT
 	}: Props = $props();
 
 	let tipOpen = $state(false);
@@ -67,6 +81,10 @@
 
 	const safeScaleMax = $derived(Math.max(0.001, finiteNonNegative(scaleMax)));
 
+	function formatBarValue(value: number): string {
+		return valueUnit === 'raw' ? value.toFixed(1) : formatStatPercent(value);
+	}
+
 	function buildBars(fingers: typeof leftFingers | typeof rightFingers) {
 		return fingers.map((finger) => {
 			const value = finiteNonNegative(usage[finger.key]);
@@ -75,7 +93,7 @@
 				value,
 				visible: !finger.thumb || value > 0,
 				height: Math.min(100, (value / safeScaleMax) * 100),
-				tip: formatStatPercent(value)
+				tip: formatBarValue(value)
 			};
 		});
 	}
@@ -109,9 +127,20 @@
 	class:finger-usage-bars--cmini={tone === 'cmini'}
 	class:finger-usage-bars--cyanophage={tone === 'cyanophage'}
 	class:finger-usage-bars--mana2={tone === 'mana2'}
+	class:finger-usage-bars--compact={compact}
+	class:finger-usage-bars--with-label={showLabel}
 	aria-label={label}
-	style={`--finger-usage-height: ${FINGER_USAGE_BARS_MAX_HEIGHT}px`}
+	style={`--finger-usage-height: ${height}px`}
 >
+	{#if showLabel}
+		<figcaption>
+			<span>{label}</span>
+			{#if labelDetail !== undefined}
+				<span class="label-detail">{labelDetail}</span>
+			{/if}
+		</figcaption>
+	{/if}
+
 	<div class="hands">
 		<div class="hand-bars">
 			{#each leftBars as finger (finger.key)}
@@ -166,8 +195,8 @@
 	</div>
 
 	<div class="hand-totals">
-		<span>{formatStatPercent(displayedLeftTotal)}</span>
-		<span>{formatStatPercent(displayedRightTotal)}</span>
+		<span class="hand-total-left">{formatStatPercent(displayedLeftTotal)}</span>
+		<span class="hand-total-right">{formatStatPercent(displayedRightTotal)}</span>
 	</div>
 </figure>
 
@@ -201,6 +230,36 @@
 		font-family: var(--font-mono);
 		font-size: 10px;
 		line-height: 1.1;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.finger-usage-bars--with-label {
+		grid-template-rows: auto minmax(0, 1fr) auto auto;
+	}
+
+	.finger-usage-bars--compact {
+		--finger-usage-bar-width: 9px;
+		--finger-usage-bar-gap: 3px;
+		--finger-usage-hand-width: 57px;
+		--finger-usage-hand-gap: 10px;
+		width: min(100%, 124px);
+		font-size: 9px;
+	}
+
+	figcaption {
+		display: grid;
+		gap: 1px;
+		overflow: hidden;
+		color: var(--text-secondary);
+		font-size: 10px;
+		line-height: 1.1;
+		text-align: center;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.label-detail {
+		color: var(--stats-fg);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -281,5 +340,13 @@
 		color: var(--stats-fg);
 		font-weight: 600;
 		text-align: center;
+	}
+
+	.hand-total-left {
+		text-align: left;
+	}
+
+	.hand-total-right {
+		text-align: right;
 	}
 </style>

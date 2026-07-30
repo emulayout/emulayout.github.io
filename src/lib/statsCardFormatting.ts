@@ -274,7 +274,13 @@ export function buildCyanophageStatsBlockLines(
 				highlight: filterHl('effort')
 			}
 		],
-		[{ text: '' }],
+		[
+			sortLabel('Distance:', CYANOPHAGE_STAT_LABEL_WIDTH, 'distance'),
+			{
+				text: formatCyanophageStatValue(stats.distance).padStart(6),
+				highlight: filterHl('distance')
+			}
+		],
 		[
 			sortLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH, 'sfb'),
 			{ text: formatStatField(stats.sfb, 6), highlight: filterHl('sfb') }

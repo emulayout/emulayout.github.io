@@ -7,6 +7,8 @@ import {
 	deriveCyanophageStats,
 	deriveMana2Stats,
 	CYANOPHAGE_FINGER_STAT_KEYS,
+	LEFT_HAND_FINGERS,
+	RIGHT_HAND_FINGERS,
 	type CyanophageFingerUsageKey
 } from '$lib/statsDerivation';
 import {
@@ -38,10 +40,18 @@ export interface LayoutFingerUsageModel {
 	rightTotal: number;
 }
 
+export interface LayoutFingerDistanceModel {
+	distance: Record<CyanophageFingerUsageKey, number>;
+	leftShare: number;
+	rightShare: number;
+	total: number;
+}
+
 export interface LayoutStatsBlockModel {
 	analyzer: StatsAnalyzer;
 	lines: StatsBlockSegment[][] | null;
 	fingerUsage: LayoutFingerUsageModel | null;
+	fingerDistance: LayoutFingerDistanceModel | null;
 	fallback: string;
 	loading: boolean;
 	mana2: boolean;
@@ -65,6 +75,24 @@ function buildFingerUsageModel(
 		) as Record<CyanophageFingerUsageKey, number>,
 		leftTotal: stats.lh,
 		rightTotal: stats.rh
+	};
+}
+
+function buildFingerDistanceModel(
+	stats: ReturnType<typeof deriveCyanophageStats>
+): LayoutFingerDistanceModel {
+	const distance = Object.fromEntries(
+		CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[`distance${finger}`]])
+	) as Record<CyanophageFingerUsageKey, number>;
+	const leftDistance = LEFT_HAND_FINGERS.reduce((sum, finger) => sum + distance[finger], 0);
+	const rightDistance = RIGHT_HAND_FINGERS.reduce((sum, finger) => sum + distance[finger], 0);
+	const total = Math.max(0, stats.distance);
+
+	return {
+		distance,
+		leftShare: total > 0 ? leftDistance / total : 0,
+		rightShare: total > 0 ? rightDistance / total : 0,
+		total
 	};
 }
 
@@ -94,6 +122,7 @@ export function buildLayoutStatsBlockModel(
 					)
 				: null,
 			fingerUsage: stats ? buildFingerUsageModel(stats) : null,
+			fingerDistance: stats ? buildFingerDistanceModel(stats) : null,
 			fallback: loading
 				? formatCyanophageStatsLoadingBlock()
 				: formatCyanophageStatsUnavailableBlock(
@@ -118,6 +147,7 @@ export function buildLayoutStatsBlockModel(
 					)
 				: null,
 			fingerUsage: stats ? buildFingerUsageModel(stats) : null,
+			fingerDistance: null,
 			fallback: loading ? formatMana2StatsLoadingBlock() : formatMana2StatsUnavailableBlock(),
 			loading,
 			mana2: true
@@ -137,6 +167,7 @@ export function buildLayoutStatsBlockModel(
 				)
 			: null,
 		fingerUsage: stats ? buildFingerUsageModel(stats) : null,
+		fingerDistance: null,
 		fallback: loading ? formatStatsLoadingBlock() : formatStatsUnavailableBlock(),
 		loading,
 		mana2: false

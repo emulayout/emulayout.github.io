@@ -81,6 +81,7 @@ export type LayoutLikesMap = Record<string, number>;
 export interface CyanophageStats {
 	'total-word-effort': number;
 	effort: number;
+	distance: number;
 	sfb: number;
 	sfs: number;
 	scissors: number;
@@ -100,6 +101,16 @@ export interface CyanophageStats {
 	RP: number;
 	LT: number;
 	RT: number;
+	'distance-LI': number;
+	'distance-LM': number;
+	'distance-LR': number;
+	'distance-LP': number;
+	'distance-RI': number;
+	'distance-RM': number;
+	'distance-RR': number;
+	'distance-RP': number;
+	'distance-LT': number;
+	'distance-RT': number;
 }
 
 /**

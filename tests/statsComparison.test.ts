@@ -77,7 +77,7 @@ describe('stats comparison formatting', () => {
 		expect(valueSegment(lines, 'SFB:')).toMatchObject({ text: '  1.00%', tone: 'worse' });
 	});
 
-	test('uses raw delta units for Cyanophage effort and Mana2 stretch', () => {
+	test('uses raw delta units for Cyanophage effort/distance and Mana2 stretch', () => {
 		const previousCyanophage = cyanophageStats();
 		const nextCyanophage = {
 			...previousCyanophage,
@@ -86,6 +86,20 @@ describe('stats comparison formatting', () => {
 		const cyanophageLines = buildCyanophageStatsDiffBlockLines(nextCyanophage, previousCyanophage);
 		expect(valueSegment(cyanophageLines, 'Total Word Effort:')).toMatchObject({
 			text: '   +2.5',
+			tone: 'worse'
+		});
+
+		const fartherCyanophage = {
+			...previousCyanophage,
+			distance: previousCyanophage.distance + 3.2
+		};
+		expect(
+			valueSegment(
+				buildCyanophageStatsDiffBlockLines(fartherCyanophage, previousCyanophage),
+				'Distance:'
+			)
+		).toMatchObject({
+			text: '   +3.2',
 			tone: 'worse'
 		});
 

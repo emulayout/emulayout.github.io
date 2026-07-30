@@ -78,11 +78,12 @@ describe('stats card formatting', () => {
 	});
 
 	test('preserves raw Cyanophage and Mana2 values while formatting percentages', () => {
-		const cyanophage = { ...cyanophageStats(), totalWordEffort: 12.34 };
+		const cyanophage = { ...cyanophageStats(), totalWordEffort: 12.34, distance: 345.67 };
 		const cyanophageLines = buildCyanophageStatsBlockLines(cyanophage);
 		const cyanophageValue = lineForLabel(cyanophageLines, 'Total Word Effort:')[1].text;
 		expect(cyanophageValue.trim()).toBe('12.3');
 		expect(cyanophageValue).not.toContain('%');
+		expect(lineForLabel(cyanophageLines, 'Distance:')[1].text.trim()).toBe('345.7');
 
 		const mana2 = { ...mana2Stats(), lsb: 1.2345, lss: 2.3456 };
 		const stretchLine = lineForLabel(buildMana2StatsBlockLines(mana2), 'Stretch:');

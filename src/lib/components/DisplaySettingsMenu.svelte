@@ -134,35 +134,44 @@
 					(enabled) => filterStore.setHideLayoutStats(!enabled)
 				)}
 				<div class="display-settings-nested-option">
-					<div class="display-settings-mode-row">
-						<span class="display-settings-copy">
-							<span id="finger-usage-display-label" class="display-settings-label"
-								>Finger usage</span
-							>
-							<span class="display-settings-desc">
-								Choose how finger usage appears within card stats.
+					<div class="display-settings-nested-options">
+						<div class="display-settings-mode-row">
+							<span class="display-settings-copy">
+								<span id="finger-usage-display-label" class="display-settings-label"
+									>Finger usage</span
+								>
+								<span class="display-settings-desc">
+									Choose how finger usage appears within card stats.
+								</span>
 							</span>
-						</span>
-						<div
-							class="display-settings-mode-control"
-							role="group"
-							aria-labelledby="finger-usage-display-label"
-						>
-							<button
-								type="button"
-								class="display-settings-mode-option"
-								class:display-settings-mode-option--active={!uiPrefs.fingerUsageBars}
-								aria-pressed={!uiPrefs.fingerUsageBars}
-								onclick={() => uiPrefs.setFingerUsageBars(false)}>Text</button
+							<div
+								class="display-settings-mode-control"
+								role="group"
+								aria-labelledby="finger-usage-display-label"
 							>
-							<button
-								type="button"
-								class="display-settings-mode-option"
-								class:display-settings-mode-option--active={uiPrefs.fingerUsageBars}
-								aria-pressed={uiPrefs.fingerUsageBars}
-								onclick={() => uiPrefs.setFingerUsageBars(true)}>Visual</button
-							>
+								<button
+									type="button"
+									class="display-settings-mode-option"
+									class:display-settings-mode-option--active={!uiPrefs.fingerUsageBars}
+									aria-pressed={!uiPrefs.fingerUsageBars}
+									onclick={() => uiPrefs.setFingerUsageBars(false)}>Text</button
+								>
+								<button
+									type="button"
+									class="display-settings-mode-option"
+									class:display-settings-mode-option--active={uiPrefs.fingerUsageBars}
+									aria-pressed={uiPrefs.fingerUsageBars}
+									onclick={() => uiPrefs.setFingerUsageBars(true)}>Visual</button
+								>
+							</div>
 						</div>
+						{@render displaySetting(
+							'finger-distance-display-label',
+							'Finger distance',
+							'Show the finger-distance graph in Visual mode. Applies only to Cyanophage stats.',
+							uiPrefs.fingerDistanceBars,
+							(enabled) => uiPrefs.setFingerDistanceBars(enabled)
+						)}
 					</div>
 				</div>
 				{@render displaySetting(
@@ -238,6 +247,12 @@
 		margin-left: 0.25rem;
 		padding-left: 0.75rem;
 		border-left: 2px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+	}
+
+	.display-settings-nested-options {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
 	.display-settings-mode-row {

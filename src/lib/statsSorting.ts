@@ -42,6 +42,14 @@ export const CYANOPHAGE_STAT_SORT_FIELDS = [
 		higherIsBetter: false
 	},
 	{
+		value: 'cyano-distance',
+		label: 'Finger Distance',
+		key: 'distance',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
 		value: 'cyano-sfb',
 		label: 'Same Finger Bigrams',
 		key: 'sfb',

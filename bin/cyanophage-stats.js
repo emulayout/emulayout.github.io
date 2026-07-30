@@ -29,10 +29,16 @@ export const CYANOPHAGE_FINGER_STAT_KEYS = [
 	'RT'
 ];
 
-/** @type {readonly ['total-word-effort', 'effort', 'sfb', 'sfs', 'scissors', 'lsb', 'alternate', 'roll', 'redirect', 'lh', 'rh', ...typeof CYANOPHAGE_FINGER_STAT_KEYS]} */
+/** Per-finger travel-distance keys, in the same order as finger usage. */
+export const CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS = CYANOPHAGE_FINGER_STAT_KEYS.map(
+	(finger) => `distance-${finger}`
+);
+
+/** @type {readonly string[]} */
 export const CYANOPHAGE_STAT_KEYS = [
 	'total-word-effort',
 	'effort',
+	'distance',
 	'sfb',
 	'sfs',
 	'scissors',
@@ -42,7 +48,8 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'redirect',
 	'lh',
 	'rh',
-	...CYANOPHAGE_FINGER_STAT_KEYS
+	...CYANOPHAGE_FINGER_STAT_KEYS,
+	...CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS
 ];
 
 /** Fixed-point scale for compact stat arrays (4 decimal places). */
@@ -53,6 +60,9 @@ const TOTAL_WORD_EFFORT_DISPLAY_DIVISOR = 100;
 
 /** Normalizer for per-character effort (cyanophage UI). */
 const EFFORT_DISPLAY_MULTIPLIER = 577;
+
+/** Cyanophage's display scale for total and per-finger travel distance. */
+const DISTANCE_DISPLAY_MULTIPLIER = 5.110882176 * 100;
 
 /** Corpus input-length scale applied to total word effort. */
 const TOTAL_WORD_EFFORT_CORPUS_SCALE = 1_006_393;
@@ -80,7 +90,7 @@ const FINGER_ASSIGNMENT = [
 	[1, 1, 2, 3, 4, 4, 7, 7, 8, 9, 10, 10, 10]
 ];
 
-/** Cyanophage finger id → cmini-style key (keyboard_svg.js chart labels 1–10). */
+/** @type {Record<number, string>} Cyanophage finger id → cmini-style key. */
 const CYANOPHAGE_FINGER_ID_TO_KEY = {
 	1: 'LP',
 	2: 'LR',
@@ -94,13 +104,39 @@ const CYANOPHAGE_FINGER_ID_TO_KEY = {
 	10: 'RP'
 };
 
+/** Starting row/column for Cyanophage finger ids 0–10; index 0 is unused. */
+const FINGER_HOME_POSITIONS = [
+	[0, 0],
+	[1, 1],
+	[1, 2],
+	[1, 3],
+	[1, 4],
+	[3, 4],
+	[3, 7],
+	[1, 7],
+	[1, 8],
+	[1, 9],
+	[1, 10]
+];
+
 /** @typedef {Map<string, { row: number, col: number }>} CharPositionMap */
 /** @typedef {Record<string, number>} WordFrequencyMap */
+/** @typedef {Record<number, Record<number, Record<number, Record<number, number>>>>} BigramEffortMap */
+/**
+ * @typedef {{
+ *   words: WordFrequencyMap,
+ *   dictionary: string[],
+ *   bigramEffort: BigramEffortMap,
+ *   effortGrid: number[][],
+ *   effortWords: string[]
+ * }} CyanophageData
+ */
 /** @typedef {number[]} CompactCyanophageStats */
 /**
  * @typedef {{
  *   totalWordEffort: number,
  *   effort: number,
+ *   distance: number,
  *   sfb: number,
  *   sfs: number,
  *   scissors: number,
@@ -119,14 +155,25 @@ const CYANOPHAGE_FINGER_ID_TO_KEY = {
  *   RR: number,
  *   RP: number,
  *   LT: number,
- *   RT: number
+ *   RT: number,
+ *   'distance-LI': number,
+ *   'distance-LM': number,
+ *   'distance-LR': number,
+ *   'distance-LP': number,
+ *   'distance-RI': number,
+ *   'distance-RM': number,
+ *   'distance-RR': number,
+ *   'distance-RP': number,
+ *   'distance-LT': number,
+ *   'distance-RT': number
  * }} CyanophageStats
  */
 
+/** @type {CyanophageData | null} */
 let cachedData = null;
 
 /**
- * @returns {Promise<{ words: WordFrequencyMap, dictionary: string[], bigramEffort: object, effortGrid: number[][] }>}
+ * @returns {Promise<CyanophageData>}
  */
 export async function loadCyanophageData() {
 	if (cachedData) return cachedData;
@@ -155,8 +202,8 @@ export async function loadCyanophageData() {
 }
 
 /**
- * @param {Record<string, { row?: number, col?: number }>} keys
- * @param {string} board
+ * @param {Record<string, { row: number, col: number }>} keys
+ * @param {import('../src/lib/layout.js').BoardType} board
  * @param {'l' | 'r'} [thumb]
  * @returns {CharPositionMap}
  */
@@ -187,6 +234,32 @@ function getFinger(row, col) {
 }
 
 /**
+ * Cyanophage key-center coordinates in key-width units.
+ * `ortho`/`mini` use the playground's split ergo geometry; `stagger`/`angle`
+ * use its ANSI/ISO row stagger.
+ * @param {number} row
+ * @param {number} col
+ * @param {string} board
+ */
+function getPhysicalPosition(row, col, board) {
+	if (board === 'stagger' || board === 'angle') {
+		const rowOffset = row === 0 ? 0.5 : row === 1 ? 0.75 : 1.25;
+		return { x: col + rowOffset, y: row };
+	}
+
+	// Cyanophage's ergo view inserts a 40 px gap after column 5 (38 px = 1u).
+	return { x: col + (col > 5 ? 40 / 38 : 0), y: row };
+}
+
+/**
+ * @param {{ x: number, y: number }} a
+ * @param {{ x: number, y: number }} b
+ */
+function physicalDistance(a, b) {
+	return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/**
  * @param {number[][]} effortGrid
  * @param {number} row
  * @param {number} col
@@ -197,7 +270,7 @@ function getEffort(effortGrid, row, col) {
 }
 
 /**
- * @param {object} bigramEffort
+ * @param {BigramEffortMap} bigramEffort
  * @param {number} col1
  * @param {number} row1
  * @param {number} col2
@@ -210,7 +283,7 @@ function lookupBigramEffort(bigramEffort, col1, row1, col2, row2) {
 
 /**
  * @param {CharPositionMap} charMap
- * @param {object} bigramEffort
+ * @param {BigramEffortMap} bigramEffort
  * @param {string} char1
  * @param {string} char2
  */
@@ -223,7 +296,7 @@ function pairBigramEffort(charMap, bigramEffort, char1, char2) {
 
 /**
  * @param {CharPositionMap} charMap
- * @param {object} bigramEffort
+ * @param {BigramEffortMap} bigramEffort
  * @param {string} char1
  */
 function wordEndBigramEffort(charMap, bigramEffort, char1) {
@@ -235,7 +308,7 @@ function wordEndBigramEffort(charMap, bigramEffort, char1) {
 /**
  * @param {CharPositionMap} charMap
  * @param {string[]} dictionary
- * @param {object} bigramEffort
+ * @param {BigramEffortMap} bigramEffort
  * @returns {Record<string, number>}
  */
 export function measureDictionaryWordEffort(charMap, dictionary, bigramEffort) {
@@ -362,12 +435,14 @@ function classifyTrigram(ppFinger, prevFinger, finger, ppChar, char) {
  * @param {WordFrequencyMap} words
  * @param {Record<string, number>} wordEffort
  * @param {number[][]} effortGrid
+ * @param {import('../src/lib/layout.js').BoardType} [board]
  * @returns {CyanophageStats | null}
  */
-export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
+export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board = 'ortho') {
 	let inputLength = 0;
 	let totalWordEffort = 0;
 	let effortSum = 0;
+	let distanceSum = 0;
 	let sfb = 0;
 	let sfs = 0;
 	let scissors = 0;
@@ -379,6 +454,10 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	let rh = 0;
 	/** @type {Record<string, number>} */
 	const fingerUsage = Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((key) => [key, 0]));
+	/** @type {Record<string, number>} */
+	const fingerDistance = Object.fromEntries(
+		CYANOPHAGE_FINGER_STAT_KEYS.map((key) => [`distance-${key}`, 0])
+	);
 	let wordCount = 0;
 
 	for (const word in words) {
@@ -393,6 +472,7 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 			totalWordEffort += wordEffort[word] * count;
 		}
 
+		const fingerPositions = FINGER_HOME_POSITIONS.map(([row, col]) => ({ row, col }));
 		let prevChar = '';
 		let prevCol = -1;
 		let prevRow = -1;
@@ -425,6 +505,18 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 			const fingerKey = CYANOPHAGE_FINGER_ID_TO_KEY[finger];
 			if (fingerKey) {
 				fingerUsage[fingerKey] += count;
+
+				const previousPosition = fingerPositions[finger];
+				if (previousPosition) {
+					const distance =
+						physicalDistance(
+							getPhysicalPosition(row, col, board),
+							getPhysicalPosition(previousPosition.row, previousPosition.col, board)
+						) * count;
+					distanceSum += distance;
+					fingerDistance[`distance-${fingerKey}`] += distance;
+					fingerPositions[finger] = { row, col };
+				}
 			}
 
 			if (i > 0 && prevCol >= 0) {
@@ -480,6 +572,10 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 	const invInputLength = 1 / inputLength;
 	const handTotal = lh + rh;
 	totalWordEffort *= TOTAL_WORD_EFFORT_CORPUS_SCALE * invInputLength;
+	const distanceScale = DISTANCE_DISPLAY_MULTIPLIER * invInputLength;
+	for (const key of CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS) {
+		fingerDistance[key] *= distanceScale;
+	}
 
 	let fingerTotal = 0;
 	for (const key of CYANOPHAGE_FINGER_STAT_KEYS) {
@@ -490,9 +586,10 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 		fingerUsage[key] *= invFingerTotal;
 	}
 
-	return {
+	return /** @type {CyanophageStats} */ ({
 		totalWordEffort: totalWordEffort / TOTAL_WORD_EFFORT_DISPLAY_DIVISOR,
 		effort: EFFORT_DISPLAY_MULTIPLIER * effortSum * invInputLength,
+		distance: distanceSum * distanceScale,
 		sfb: sfb * invInputLength,
 		sfs: sfs * invInputLength,
 		scissors: scissors * invInputLength,
@@ -502,11 +599,18 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid) {
 		redirect: redirect * invInputLength,
 		lh: handTotal > 0 ? lh / handTotal : 0.5,
 		rh: handTotal > 0 ? rh / handTotal : 0.5,
-		...fingerUsage
-	};
+		...fingerUsage,
+		...fingerDistance
+	});
 }
 
-/** @deprecated Use measureLayoutStats */
+/**
+ * @deprecated Use measureLayoutStats.
+ * @param {CharPositionMap} charMap
+ * @param {WordFrequencyMap} words
+ * @param {Record<string, number>} wordEffort
+ * @param {number[][]} effortGrid
+ */
 export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
 	return measureLayoutStats(charMap, words, wordEffort, effortGrid);
 }
@@ -517,14 +621,21 @@ export function measureCorpusEffort(charMap, words, wordEffort, effortGrid) {
  */
 export function encodeCyanophageStats(stats) {
 	return CYANOPHAGE_STAT_KEYS.map((key) => {
-		const value = key === 'total-word-effort' ? stats.totalWordEffort : stats[key];
+		const value =
+			key === 'total-word-effort'
+				? stats.totalWordEffort
+				: stats[/** @type {keyof CyanophageStats} */ (key)];
 		return Math.round(value * CYANOPHAGE_STAT_VALUE_SCALE);
 	});
 }
 
 /**
- * @param {object} rawLayout
- * @param {{ words: WordFrequencyMap, dictionary: string[], bigramEffort: object, effortGrid: number[][] } | null} data
+ * @param {{
+ *   keys?: Record<string, { row: number, col: number, finger?: string }>,
+ *   board?: import('../src/lib/layout.js').BoardType,
+ *   cyanophageThumb?: 'l' | 'r'
+ * }} rawLayout
+ * @param {CyanophageData | null} data
  * @returns {CompactCyanophageStats | null}
  */
 export function buildCyanophageStats(rawLayout, data) {
@@ -537,7 +648,7 @@ export function buildCyanophageStats(rawLayout, data) {
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.effortWords, data.bigramEffort);
-	const stats = measureLayoutStats(charMap, data.words, wordEffort, data.effortGrid);
+	const stats = measureLayoutStats(charMap, data.words, wordEffort, data.effortGrid, board);
 	if (!stats) return null;
 
 	return encodeCyanophageStats(stats);

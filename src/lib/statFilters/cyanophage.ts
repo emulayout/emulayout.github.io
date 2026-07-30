@@ -27,6 +27,16 @@ export const CYANOPHAGE_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGr
 					hint: 'Average per-key effort from Cyanophage’s position effort grid. Lower is better.',
 					unit: 'raw'
 				}
+			],
+			[
+				{
+					key: 'cyano-distance',
+					statKey: 'distance',
+					label: 'Distance',
+					title: 'Finger Distance',
+					hint: 'Total finger travel through each word, using Cyanophage’s board geometry and normalization. Lower is better.',
+					unit: 'raw'
+				}
 			]
 		]
 	},

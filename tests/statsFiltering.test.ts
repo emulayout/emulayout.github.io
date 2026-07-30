@@ -31,6 +31,7 @@ describe('stats filtering catalog', () => {
 		expect(new Set(keys).size).toBe(keys.length);
 		expect(keys).toContain(LIKES_STAT_FILTER_FIELD.key);
 		expect(keys).toContain('cyano-sfb');
+		expect(keys).toContain('cyano-distance');
 		expect(keys).toContain('mana-sfb');
 	});
 
@@ -72,6 +73,7 @@ describe('stats filtering catalog', () => {
 		expect(parseStatFilterThreshold(field('sfb'), '2.5')).toBeCloseTo(0.025);
 		expect(parseStatFilterThreshold(field('cyano-sfb'), '1.25')).toBeCloseTo(0.0125);
 		expect(parseStatFilterThreshold(field('totalWordEffort'), '42.5')).toBe(42.5);
+		expect(parseStatFilterThreshold(field('cyano-distance'), '321.5')).toBe(321.5);
 		expect(parseStatFilterThreshold(field('mana-lsb'), '1.234')).toBe(1.234);
 		expect(parseStatFilterThreshold(LIKES_STAT_FILTER_FIELD, '100')).toBe(100);
 		expect(parseStatFilterThreshold(field('sfb'), ' ')).toBeNull();

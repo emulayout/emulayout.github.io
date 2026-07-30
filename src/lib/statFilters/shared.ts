@@ -7,6 +7,7 @@ import type { CyanophageStatSortKey, Mana2StatSortKey, StatSortKey } from '$lib/
 export type CyanoStatLimitKey =
 	| 'cyano-sfb'
 	| 'cyano-sfs'
+	| 'cyano-distance'
 	| 'cyano-lh'
 	| 'cyano-rh'
 	| 'cyano-LI'

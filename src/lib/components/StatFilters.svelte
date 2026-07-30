@@ -64,7 +64,13 @@
 				}
 			],
 			trigram: [],
-			other: [{ id: 'effort', label: 'Effort', keys: ['totalWordEffort', 'effort'] }]
+			other: [
+				{
+					id: 'effort',
+					label: 'Effort',
+					keys: ['totalWordEffort', 'effort', 'cyano-distance']
+				}
+			]
 		},
 		[MANA2_ANALYZER]: {
 			bigram: [

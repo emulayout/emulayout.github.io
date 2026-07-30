@@ -53,6 +53,7 @@ describe('layout stats access', () => {
 	test('resolves analyzer-owned sort values and rejects mismatched access', () => {
 		expect(getStatSortValue(statsMaps, layout, 'alternate')).toBe(1);
 		expect(getStatSortValue(statsMaps, layout, 'cyano-effort')).toBe(1);
+		expect(getStatSortValue(statsMaps, layout, 'cyano-distance')).toBe(1);
 		expect(getStatSortValue(statsMaps, layout, 'mana-lsb')).toBe(1);
 		expect(getStatSortValue(statsMaps, layout, 'cyano-effort', CMINI_ANALYZER)).toBeNull();
 		expect(

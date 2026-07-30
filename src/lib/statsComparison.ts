@@ -45,7 +45,21 @@ function formatCyanophageStatDiffField(delta: number, width: number): string {
 	return `${sign}${body}`.padStart(width);
 }
 
-const CYANOPHAGE_RAW_DIFF_KEYS = new Set<CyanophageStatSortKey>(['totalWordEffort', 'effort']);
+const CYANOPHAGE_RAW_DIFF_KEYS = new Set<CyanophageStatSortKey>([
+	'totalWordEffort',
+	'effort',
+	'distance',
+	'distanceLI',
+	'distanceLM',
+	'distanceLR',
+	'distanceLP',
+	'distanceLT',
+	'distanceRI',
+	'distanceRM',
+	'distanceRR',
+	'distanceRP',
+	'distanceRT'
+]);
 
 function diffSegment(
 	delta: number,
@@ -203,7 +217,10 @@ export function buildCyanophageStatsDiffBlockLines(
 			{ text: formatStatLabel('Effort:', CYANOPHAGE_STAT_LABEL_WIDTH) },
 			cyanophageDiff(newStats, oldStats, 'effort', 7)
 		],
-		[{ text: '' }],
+		[
+			{ text: formatStatLabel('Distance:', CYANOPHAGE_STAT_LABEL_WIDTH) },
+			cyanophageDiff(newStats, oldStats, 'distance', 7)
+		],
 		[
 			{ text: formatStatLabel('Same Finger Bigrams:', CYANOPHAGE_STAT_LABEL_WIDTH) },
 			cyanophageDiff(newStats, oldStats, 'sfb', 7)

@@ -31,6 +31,13 @@ export const CYANOPHAGE_FINGER_STAT_KEYS = FINGER_USAGE_KEYS.filter(
 
 export type CyanophageFingerUsageKey = (typeof CYANOPHAGE_FINGER_STAT_KEYS)[number];
 
+export const CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS = CYANOPHAGE_FINGER_STAT_KEYS.map(
+	(finger) => `distance-${finger}` as const
+);
+
+export type CyanophageFingerDistanceStatKey = (typeof CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS)[number];
+export type CyanophageFingerDistanceKey = `distance${CyanophageFingerUsageKey}`;
+
 export const LEFT_HAND_FINGERS = ['LI', 'LM', 'LR', 'LP'] as const;
 export const RIGHT_HAND_FINGERS = ['RI', 'RM', 'RR', 'RP'] as const;
 
@@ -58,6 +65,7 @@ export const COMPACT_STAT_FIELD_COUNT = BOT_STAT_KEYS.length;
 export const CYANOPHAGE_STAT_KEYS = [
 	'total-word-effort',
 	'effort',
+	'distance',
 	'sfb',
 	'sfs',
 	'scissors',
@@ -67,7 +75,8 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'redirect',
 	'lh',
 	'rh',
-	...CYANOPHAGE_FINGER_STAT_KEYS
+	...CYANOPHAGE_FINGER_STAT_KEYS,
+	...CYANOPHAGE_FINGER_DISTANCE_STAT_KEYS
 ] as const;
 
 export const CYANOPHAGE_STAT_VALUE_SCALE = 10_000;
@@ -76,6 +85,7 @@ export const CYANOPHAGE_COMPACT_STAT_FIELD_COUNT = CYANOPHAGE_STAT_KEYS.length;
 export type DerivedCyanophageStats = {
 	totalWordEffort: number;
 	effort: number;
+	distance: number;
 	sfb: number;
 	sfs: number;
 	scissors: number;
@@ -85,7 +95,7 @@ export type DerivedCyanophageStats = {
 	redirect: number;
 	lh: number;
 	rh: number;
-} & Record<CyanophageFingerUsageKey, number>;
+} & Record<CyanophageFingerUsageKey | CyanophageFingerDistanceKey, number>;
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
@@ -269,6 +279,7 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 	return {
 		totalWordEffort: stats['total-word-effort'],
 		effort: stats.effort,
+		distance: stats.distance,
 		sfb: stats.sfb,
 		sfs: stats.sfs,
 		scissors: stats.scissors,
@@ -278,7 +289,13 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 		redirect: stats.redirect,
 		lh: stats.lh,
 		rh: stats.rh,
-		...Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]]))
+		...Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]])),
+		...Object.fromEntries(
+			CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [
+				`distance${finger}`,
+				stats[`distance-${finger}`]
+			])
+		)
 	} as DerivedCyanophageStats;
 }
 

@@ -342,6 +342,7 @@
 					cyanophage={cyanophageStatsModel}
 					mana2={mana2StatsModel}
 					showFingerUsageBars={uiPrefs.fingerUsageBars}
+					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}
