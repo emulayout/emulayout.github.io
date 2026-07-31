@@ -1628,7 +1628,7 @@ export class FilterStore {
 		limits: Record<StatLimitKey, StatLimit>,
 		fingerWorkload: FingerWorkloadConfig
 	): StatsAnalyzer[] {
-		const needed = new Set([
+		const needed = new SvelteSet([
 			...analyzersNeededForLimits(limits),
 			...analyzersNeededForFingerWorkloadConfig(fingerWorkload)
 		]);

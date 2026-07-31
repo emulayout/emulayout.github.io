@@ -84,13 +84,17 @@ test('selects, restores, and clears layouts from All and Selected views', async 
 	await nameFilter.fill('Colemak');
 
 	await expect(selectedActions.getByRole('button')).toHaveCount(1);
-	await expect(selectedActions.getByRole('button', { name: 'Save as view', exact: true })).toHaveCount(0);
+	await expect(
+		selectedActions.getByRole('button', { name: 'Save as view', exact: true })
+	).toHaveCount(0);
 	await expect(clearSelectedLayouts).toHaveText('Clear selected layouts');
 
 	await page.getByRole('button', { name: 'Clear layout name' }).click();
 
 	await expect(selectedActions.getByRole('button')).toHaveCount(2);
-	await expect(selectedActions.getByRole('button', { name: 'Save as view', exact: true })).toBeVisible();
+	await expect(
+		selectedActions.getByRole('button', { name: 'Save as view', exact: true })
+	).toBeVisible();
 
 	await clearSelectedLayouts.click();
 
