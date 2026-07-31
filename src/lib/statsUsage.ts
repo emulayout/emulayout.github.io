@@ -15,6 +15,11 @@ import {
 	type StatLimitKey
 } from '$lib/statsFiltering';
 import { getStatSortAnalyzer, getStatSortField, type SortBy } from '$lib/statsSorting';
+import {
+	analyzersNeededForFingerWorkloadPreferences,
+	hasActiveFingerWorkloadPreference,
+	type FingerWorkloadPreferences
+} from '$lib/fingerWorkload';
 
 /**
  * Derived-stat keys with an active limit for the given analyzer.
@@ -38,13 +43,22 @@ export function getActiveFilterStatKeys(
 export function countActiveStatFiltersForAnalyzer(
 	limits: Record<StatLimitKey, { value: string }>,
 	analyzer: StatsAnalyzer,
-	options?: { includeLikes?: boolean }
+	options?: {
+		includeLikes?: boolean;
+		fingerWorkloadPreferences?: FingerWorkloadPreferences;
+	}
 ): number {
 	let count = 0;
 	for (const field of getStatFilterFieldsForAnalyzer(analyzer)) {
 		if (limits[field.key]?.value.trim()) count += 1;
 	}
 	if (options?.includeLikes && limits.likes?.value.trim()) count += 1;
+	if (
+		options?.fingerWorkloadPreferences &&
+		hasActiveFingerWorkloadPreference(options.fingerWorkloadPreferences[analyzer])
+	) {
+		count += 1;
+	}
 	return count;
 }
 
@@ -68,6 +82,8 @@ export type AnalyzersNeededForLoadOptions = {
 	displayMode?: StatsAnalyzerMode;
 	/** Applied (or draft) limits — analyzers with active values are included. */
 	limits?: Record<StatLimitKey, { value: string }>;
+	/** Applied (or draft) relative finger-workload preferences. */
+	fingerWorkloadPreferences?: FingerWorkloadPreferences;
 	/** Include the analyzer that owns this sort key, if any. */
 	sortBy?: SortBy;
 };
@@ -91,6 +107,14 @@ export function analyzersNeededForLoad(options: AnalyzersNeededForLoadOptions): 
 		}
 	}
 
+	if (options.fingerWorkloadPreferences) {
+		for (const analyzer of analyzersNeededForFingerWorkloadPreferences(
+			options.fingerWorkloadPreferences
+		)) {
+			needed.add(analyzer);
+		}
+	}
+
 	if (options.sortBy) {
 		const sortAnalyzer = getStatSortAnalyzer(options.sortBy);
 		if (sortAnalyzer) needed.add(sortAnalyzer);
@@ -103,13 +127,17 @@ export function analyzersNeededForLoad(options: AnalyzersNeededForLoadOptions): 
 export function getHiddenAnalyzerFilterCaution(
 	displayMode: StatsAnalyzerMode,
 	limits: Record<StatLimitKey, { value: string }>,
-	options?: { includeLikes?: boolean }
+	options?: {
+		includeLikes?: boolean;
+		fingerWorkloadPreferences?: FingerWorkloadPreferences;
+	}
 ): { analyzer: StatsAnalyzer; count: number; text: string } | null {
 	const visible = new Set(resolveStatsAnalyzers(displayMode));
 	for (const { value: analyzer } of STAT_ANALYZERS) {
 		if (visible.has(analyzer)) continue;
 		const count = countActiveStatFiltersForAnalyzer(limits, analyzer, {
-			includeLikes: Boolean(options?.includeLikes) && analyzer === CMINI_ANALYZER
+			includeLikes: Boolean(options?.includeLikes) && analyzer === CMINI_ANALYZER,
+			fingerWorkloadPreferences: options?.fingerWorkloadPreferences
 		});
 		if (count === 0) continue;
 		const label = analyzerShortLabel(analyzer);

@@ -58,6 +58,7 @@
 			showStats: filterStore.showLayoutStats,
 			displayMode: filterStore.statsAnalyzer,
 			limits: filterStore.appliedStatLimits,
+			fingerWorkloadPreferences: filterStore.appliedFingerWorkloadPreferences,
 			sortBy: filterStore.sortBy
 		})
 	);
@@ -393,6 +394,9 @@
 	}
 
 	.results-layout {
+		--results-scroll-end-space: 4rem;
+		--filters-footer-clearance: 4.5rem;
+
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 0.75rem;

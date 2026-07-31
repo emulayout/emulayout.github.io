@@ -5,6 +5,7 @@ import { page } from '$app/state';
 import type { PathnameWithSearchOrHash } from '$app/types';
 import { getDefaultSortOrder, type SortBy, type SortOrder } from './statsSorting';
 import {
+	getFingerUsageStatFilterFieldsForAnalyzer,
 	getGeneralStatFilterRowsForAnalyzer,
 	getHandStatFilterFieldsForAnalyzer,
 	type StatLimitKey
@@ -12,11 +13,23 @@ import {
 import {
 	DEFAULT_STATS_ANALYZER,
 	parseStatsAnalyzerMode,
+	STAT_ANALYZERS,
 	type StatsAnalyzer,
 	type StatsAnalyzerMode
 } from './statsAnalyzers';
 import { isAnalyzerStatsReady } from './layoutStatsAccess';
 import { analyzersNeededForLimits } from './statsUsage';
+import {
+	analyzersNeededForFingerWorkloadPreferences,
+	cloneFingerWorkloadPreferences,
+	createEmptyFingerWorkloadPreferences,
+	fingerWorkloadHandPreferencesEqual,
+	hasConfiguredFingerWorkloadPreferences,
+	type FingerWorkloadFinger,
+	type FingerWorkloadHand,
+	type FingerWorkloadLevel,
+	type FingerWorkloadPreferences
+} from './fingerWorkload';
 import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import type { SimilarityMirrorMode } from './layoutSimilarity';
 import type { FilterFocusRequest } from './filterFocus';
@@ -112,6 +125,13 @@ export type { SavedFilter };
 
 const DEBOUNCE_MS = 300;
 
+function createLinkedFingerWorkloadHands(): Record<StatsAnalyzer, boolean> {
+	return Object.fromEntries(STAT_ANALYZERS.map(({ value }) => [value, true])) as Record<
+		StatsAnalyzer,
+		boolean
+	>;
+}
+
 export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyFilterGrid());
 	excludeGrid: string[][] = $state(createEmptyFilterGrid());
@@ -206,6 +226,13 @@ export class FilterStore {
 	stickySimilarityCard: boolean = $state(true);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
+	fingerWorkloadPreferences: FingerWorkloadPreferences = $state(
+		createEmptyFingerWorkloadPreferences()
+	);
+	/** UI mode only: linked edits mirror the same finger preferences to both hands. */
+	fingerWorkloadHandsLinked: Record<StatsAnalyzer, boolean> = $state(
+		createLinkedFingerWorkloadHands()
+	);
 
 	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
 	appliedIncludeGrid: string[][] = $state(createEmptyFilterGrid());
@@ -218,6 +245,9 @@ export class FilterStore {
 	appliedExcludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedExcludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedStatLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
+	appliedFingerWorkloadPreferences: FingerWorkloadPreferences = $state(
+		createEmptyFingerWorkloadPreferences()
+	);
 	/** Bumped when debounced applied filters commit — stable dependency for chips/results UI. */
 	appliedFiltersRevision: number = $state(0);
 
@@ -271,6 +301,9 @@ export class FilterStore {
 		this.appliedExcludeLeftThumbKeys = cloneThumbKeyFilters(this.excludeLeftThumbKeys);
 		this.appliedExcludeRightThumbKeys = cloneThumbKeyFilters(this.excludeRightThumbKeys);
 		this.appliedStatLimits = cloneStatLimits(this.statLimits);
+		this.appliedFingerWorkloadPreferences = cloneFingerWorkloadPreferences(
+			this.fingerWorkloadPreferences
+		);
 		this.appliedSimilarityFilterValue = this.similarityFilterValue;
 		this.nameFilter = this.nameFilterInput;
 		this.appliedFiltersRevision += 1;
@@ -329,6 +362,8 @@ export class FilterStore {
 		this.hideNewLayoutIndicator = false;
 		this.stickySimilarityCard = true;
 		this.statLimits = createEmptyStatLimits();
+		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
+		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
 	}
 
 	#loadFromUrl() {
@@ -538,6 +573,7 @@ export class FilterStore {
 			sortBeforeSimilar: this.#sortBeforeSimilar,
 			exitSortRestore: this.#exitSortRestore,
 			statLimits: this.statLimits,
+			fingerWorkloadPreferences: this.fingerWorkloadPreferences,
 			appliedIncludeGrid: this.appliedIncludeGrid,
 			appliedExcludeGrid: this.appliedExcludeGrid,
 			appliedIncludeOrGrid: this.appliedIncludeOrGrid,
@@ -547,7 +583,8 @@ export class FilterStore {
 			appliedIncludeRightThumbKeys: this.appliedIncludeRightThumbKeys,
 			appliedExcludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
 			appliedExcludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
-			appliedStatLimits: this.appliedStatLimits
+			appliedStatLimits: this.appliedStatLimits,
+			appliedFingerWorkloadPreferences: this.appliedFingerWorkloadPreferences
 		});
 	}
 
@@ -589,6 +626,7 @@ export class FilterStore {
 		this.#sortBeforeSimilar = restored.sortBeforeSimilar;
 		this.#exitSortRestore = restored.exitSortRestore;
 		this.statLimits = restored.statLimits;
+		this.fingerWorkloadPreferences = restored.fingerWorkloadPreferences;
 		this.appliedIncludeGrid = restored.appliedIncludeGrid;
 		this.appliedExcludeGrid = restored.appliedExcludeGrid;
 		this.appliedIncludeOrGrid = restored.appliedIncludeOrGrid;
@@ -599,6 +637,7 @@ export class FilterStore {
 		this.appliedExcludeLeftThumbKeys = restored.appliedExcludeLeftThumbKeys;
 		this.appliedExcludeRightThumbKeys = restored.appliedExcludeRightThumbKeys;
 		this.appliedStatLimits = restored.appliedStatLimits;
+		this.appliedFingerWorkloadPreferences = restored.appliedFingerWorkloadPreferences;
 		this.appliedFiltersRevision += 1;
 	}
 
@@ -841,6 +880,40 @@ export class FilterStore {
 		this.#scheduleFilterApply();
 	}
 
+	setFingerWorkloadPreference(
+		analyzer: StatsAnalyzer,
+		hand: FingerWorkloadHand,
+		finger: FingerWorkloadFinger,
+		level: FingerWorkloadLevel
+	) {
+		const handsLinked = this.fingerWorkloadHandsAreLinked(analyzer);
+		this.fingerWorkloadPreferences[analyzer][hand][finger] = level;
+		if (handsLinked) {
+			const otherHand = hand === 'left' ? 'right' : 'left';
+			this.fingerWorkloadPreferences[analyzer][otherHand][finger] = level;
+		}
+		this.#scheduleFilterApply();
+	}
+
+	fingerWorkloadHandsAreLinked(analyzer: StatsAnalyzer): boolean {
+		const preference = this.fingerWorkloadPreferences[analyzer];
+		return (
+			this.fingerWorkloadHandsLinked[analyzer] &&
+			fingerWorkloadHandPreferencesEqual(preference.left, preference.right)
+		);
+	}
+
+	unlinkFingerWorkloadHands(analyzer: StatsAnalyzer) {
+		this.fingerWorkloadHandsLinked[analyzer] = false;
+	}
+
+	relinkFingerWorkloadHands(analyzer: StatsAnalyzer) {
+		const preference = this.fingerWorkloadPreferences[analyzer];
+		preference.right = { ...preference.left };
+		this.fingerWorkloadHandsLinked[analyzer] = true;
+		this.#scheduleFilterApply();
+	}
+
 	/** Step a stat limit by delta (e.g. ±0.1); uses the same debounce as typing. */
 	nudgeStatLimitValue(key: StatLimitKey, delta: number) {
 		const parsed = Number.parseFloat(this.statLimits[key].value.trim());
@@ -953,6 +1026,8 @@ export class FilterStore {
 
 	clearStatLimits() {
 		this.statLimits = createEmptyStatLimits();
+		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
+		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
 		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
@@ -979,6 +1054,23 @@ export class FilterStore {
 	clearHandStatLimits(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
 		const next = { ...this.statLimits };
 		for (const field of getHandStatFilterFieldsForAnalyzer(analyzer)) {
+			next[field.key] = { operator: 'lt', value: '' };
+		}
+		this.statLimits = next;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearFingerWorkloadPreferences(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
+		this.fingerWorkloadPreferences[analyzer] = createEmptyFingerWorkloadPreferences()[analyzer];
+		this.fingerWorkloadHandsLinked[analyzer] = true;
+		this.#applyFiltersNow();
+		this.#debouncedSave();
+	}
+
+	clearFingerUsageFilters(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
+		const next = { ...this.statLimits };
+		for (const field of getFingerUsageStatFilterFieldsForAnalyzer(analyzer)) {
 			next[field.key] = { operator: 'lt', value: '' };
 		}
 		this.statLimits = next;
@@ -1452,6 +1544,8 @@ export class FilterStore {
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
+		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
+		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
 		this.#cancelFilterApply();
 		this.#applyFiltersNow();
 		// Push so Back can restore the previous filter URL.
@@ -1530,16 +1624,27 @@ export class FilterStore {
 	 * Analyzers whose stats must be loaded/checked for the given limits.
 	 * Each analyzer’s limits are fully independent (no shared keys).
 	 */
-	#analyzersNeededForLimits(limits: Record<StatLimitKey, StatLimit>): StatsAnalyzer[] {
-		return analyzersNeededForLimits(limits);
+	#analyzersNeededForStatFilters(
+		limits: Record<StatLimitKey, StatLimit>,
+		fingerWorkloadPreferences: FingerWorkloadPreferences
+	): StatsAnalyzer[] {
+		const needed = new Set([
+			...analyzersNeededForLimits(limits),
+			...analyzersNeededForFingerWorkloadPreferences(fingerWorkloadPreferences)
+		]);
+		return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) => needed.has(analyzer));
 	}
 
 	get analyzersNeededForStatLimits(): StatsAnalyzer[] {
-		return this.#analyzersNeededForLimits(this.appliedStatLimits);
+		return this.#analyzersNeededForStatFilters(
+			this.appliedStatLimits,
+			this.appliedFingerWorkloadPreferences
+		);
 	}
 
 	get hasActiveStatLimits(): boolean {
-		if (this.#analyzersNeededForLimits(this.statLimits).length > 0) return true;
+		if (analyzersNeededForLimits(this.statLimits).length > 0) return true;
+		if (hasConfiguredFingerWorkloadPreferences(this.fingerWorkloadPreferences)) return true;
 		return this.canUseLikes && this.statLimits.likes.value.trim() !== '';
 	}
 
@@ -1650,6 +1755,7 @@ export class FilterStore {
 				excludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
 				excludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
 				statLimits: this.appliedStatLimits,
+				fingerWorkloadPreferences: this.appliedFingerWorkloadPreferences,
 				canUseLikes: this.canUseLikes
 			},
 			statsMaps,

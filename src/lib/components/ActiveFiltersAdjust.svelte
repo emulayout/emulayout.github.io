@@ -34,20 +34,22 @@
 			general: StatLimitKey[];
 			handUsage: StatLimitKey[];
 			fingerUsage: StatLimitKey[];
+			workload: boolean;
 		}> = [];
 
 		for (const entry of STAT_ANALYZERS) {
 			const general: StatLimitKey[] = [];
 			const handUsage: StatLimitKey[] = [];
 			const fingerUsage: StatLimitKey[] = [];
+			const workload = snapshot.fingerWorkloadAnalyzers.includes(entry.value);
 			for (const item of snapshot.stats) {
 				if (item.analyzer !== entry.value) continue;
 				if (item.section === 'general') general.push(item.key);
 				else if (item.section === 'hand-usage') handUsage.push(item.key);
 				else fingerUsage.push(item.key);
 			}
-			if (general.length > 0 || handUsage.length > 0 || fingerUsage.length > 0) {
-				groups.push({ analyzer: entry.value, general, handUsage, fingerUsage });
+			if (general.length > 0 || handUsage.length > 0 || fingerUsage.length > 0 || workload) {
+				groups.push({ analyzer: entry.value, general, handUsage, fingerUsage, workload });
 			}
 		}
 		return groups;
@@ -209,6 +211,9 @@
 						stacked
 						onlyKeys={group.fingerUsage}
 					/>
+				{/if}
+				{#if group.workload}
+					<StatLimitFiltersBody section="finger-workload" analyzer={group.analyzer} stacked />
 				{/if}
 			</div>
 		</div>

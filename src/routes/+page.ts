@@ -1,6 +1,6 @@
 import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { parseStatLimitsParam } from '$lib/filterUrlCodec';
+import { deserializeFingerWorkloadPreferences, parseStatLimitsParam } from '$lib/filterUrlCodec';
 import { parseStatsAnalyzerMode, type StatsAnalyzerMode } from '$lib/statsAnalyzers';
 import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
@@ -25,6 +25,9 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		showStats: loadStats,
 		displayMode: statsAnalyzerMode,
 		limits: parseStatLimitsParam(url.searchParams.get('statLimits')),
+		fingerWorkloadPreferences: deserializeFingerWorkloadPreferences(
+			url.searchParams.get('fingerWorkload')
+		),
 		sortBy
 	});
 

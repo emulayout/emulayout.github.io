@@ -17,9 +17,18 @@
 		type StatLimitKey
 	} from '$lib/statsFiltering';
 	import type { StatFilterSection } from '$lib/statsFiltering';
+	import {
+		FINGER_WORKLOAD_FINGERS,
+		FINGER_WORKLOAD_HANDS,
+		hasActiveFingerWorkloadHandPreference,
+		hasConfiguredFingerWorkloadHandPreference,
+		type FingerWorkloadFinger,
+		type FingerWorkloadHand,
+		type FingerWorkloadLevel
+	} from '$lib/fingerWorkload';
 
 	interface Props {
-		section: StatFilterSection;
+		section: StatFilterSection | 'finger-workload';
 		/** Which analyzer’s general filter fields to show. */
 		analyzer?: StatsAnalyzer;
 		/** Force a single column (e.g. narrow modal). */
@@ -75,6 +84,16 @@
 		--tw-ring-color: var(--accent);
 	`;
 	const generalStatFilterColumnIndices = [...Array(GENERAL_STAT_FILTER_COLUMN_COUNT).keys()];
+	const workloadFingerLabels: Record<FingerWorkloadFinger, string> = {
+		pinky: 'Pinky',
+		ring: 'Ring',
+		middle: 'Middle',
+		index: 'Index'
+	};
+	const workloadHandLabels: Record<FingerWorkloadHand, string> = {
+		left: 'Left hand',
+		right: 'Right hand'
+	};
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const handUsageFields = $derived(getHandUsageStatFilterFieldsForAnalyzer(analyzer));
@@ -82,14 +101,18 @@
 		const fields =
 			section === 'hand-usage'
 				? handUsageFields.slice(0, 1)
-				: getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer);
+				: section === 'finger-usage'
+					? getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer)
+					: [];
 		return fields.filter((field) => includeKey(field.key));
 	});
 	const rightUsageFields = $derived.by(() => {
 		const fields =
 			section === 'hand-usage'
 				? handUsageFields.slice(1)
-				: getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer);
+				: section === 'finger-usage'
+					? getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer)
+					: [];
 		return fields.filter((field) => includeKey(field.key));
 	});
 	/** Cyanophage uses long single-field rows; mana2/cmini keep related stats on one row. */
@@ -97,6 +120,9 @@
 	const showLikesFilter = $derived(
 		filterStore.canUseLikes && includeKey(LIKES_STAT_FILTER_FIELD.key)
 	);
+	const workloadPreference = $derived(filterStore.fingerWorkloadPreferences[analyzer]);
+	const workloadHandsLinked = $derived(filterStore.fingerWorkloadHandsAreLinked(analyzer));
+	const hasUsageLimits = $derived(leftUsageFields.length > 0 || rightUsageFields.length > 0);
 
 	/** Keep titled groups when `onlyKeys` is set; drop empty rows/groups. */
 	const visibleGeneralGroups = $derived.by(() => {
@@ -166,6 +192,74 @@
 	</div>
 {/snippet}
 
+{#snippet usageLimitGrid()}
+	<div class="stat-limits-hand-grid">
+		{#if leftUsageFields.length > 0}
+			<div class="stat-limits-group--labeled">
+				<div class="stat-limits-hand-heading">Left hand</div>
+				<div class="stat-limits-hand-list">
+					{#each leftUsageFields as field (field.key)}
+						{@render statLimitControl(field, '3.25rem')}
+					{/each}
+				</div>
+			</div>
+		{/if}
+		{#if rightUsageFields.length > 0}
+			<div class="stat-limits-group--labeled">
+				<div class="stat-limits-hand-heading">Right hand</div>
+				<div class="stat-limits-hand-list">
+					{#each rightUsageFields as field (field.key)}
+						{@render statLimitControl(field, '3.25rem')}
+					{/each}
+				</div>
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet workloadHandControls(hand: FingerWorkloadHand, label: string, linked = false)}
+	{@const handPreference = workloadPreference[hand]}
+	{@const handConfigured = hasConfiguredFingerWorkloadHandPreference(handPreference)}
+	{@const handActive = hasActiveFingerWorkloadHandPreference(handPreference)}
+	<div class="finger-workload-hand">
+		<div class="finger-workload-hand-header">
+			<div class="stat-limits-hand-heading">{label}</div>
+		</div>
+		<div class="finger-workload-list">
+			{#each FINGER_WORKLOAD_FINGERS as finger (finger)}
+				<label class="finger-workload-control">
+					<span>{workloadFingerLabels[finger]}</span>
+					<select
+						class="finger-workload-select"
+						style={fieldStyle}
+						value={handPreference[finger]}
+						aria-label="{label} {workloadFingerLabels[finger]} workload preference"
+						data-finger-workload-key="{hand}-{finger}"
+						onchange={(event) =>
+							filterStore.setFingerWorkloadPreference(
+								analyzer,
+								hand,
+								finger,
+								event.currentTarget.value as FingerWorkloadLevel
+							)}
+					>
+						<option value="none">No preference</option>
+						<option value="lightest">Lightest</option>
+						<option value="light">Light</option>
+						<option value="medium">Medium</option>
+						<option value="heavy">Heavy</option>
+					</select>
+				</label>
+			{/each}
+		</div>
+		{#if handConfigured && !handActive}
+			<p class="finger-workload-hint">
+				Choose at least two different levels{linked ? '' : ' for this hand'}.
+			</p>
+		{/if}
+	</div>
+{/snippet}
+
 <div
 	class="stat-limits-body"
 	class:stat-limits-body--stacked={stacked || (section === 'general' && generalStacked)}
@@ -222,33 +316,47 @@
 				</div>
 			{/if}
 		</section>
-	{:else if leftUsageFields.length > 0 || rightUsageFields.length > 0}
+	{:else if section === 'finger-workload'}
+		<section class="finger-workload" aria-label="Finger workload filters">
+			<p class="finger-workload-description">Choose how much work you want each finger to carry.</p>
+			<div
+				class="finger-workload-hand-grid"
+				class:finger-workload-hand-grid--linked={workloadHandsLinked}
+			>
+				{#if workloadHandsLinked}
+					{@render workloadHandControls('left', 'Both hands', true)}
+				{:else}
+					{#each FINGER_WORKLOAD_HANDS as hand (hand)}
+						{@render workloadHandControls(hand, workloadHandLabels[hand])}
+					{/each}
+				{/if}
+			</div>
+			<div class="finger-workload-action-row">
+				{#if workloadHandsLinked}
+					<button
+						type="button"
+						class="finger-workload-action"
+						onclick={() => filterStore.unlinkFingerWorkloadHands(analyzer)}
+					>
+						Unlink hands
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="finger-workload-action"
+						onclick={() => filterStore.relinkFingerWorkloadHands(analyzer)}
+					>
+						Relink hands
+					</button>
+				{/if}
+			</div>
+		</section>
+	{:else if hasUsageLimits}
 		<section
 			class="stat-limits-hands"
 			aria-label={section === 'hand-usage' ? 'Hand usage filters' : 'Finger usage filters'}
 		>
-			<div class="stat-limits-hand-grid">
-				{#if leftUsageFields.length > 0}
-					<div class="stat-limits-group--labeled">
-						<div class="stat-limits-hand-heading">Left hand</div>
-						<div class="stat-limits-hand-list">
-							{#each leftUsageFields as field (field.key)}
-								{@render statLimitControl(field, '3.25rem')}
-							{/each}
-						</div>
-					</div>
-				{/if}
-				{#if rightUsageFields.length > 0}
-					<div class="stat-limits-group--labeled">
-						<div class="stat-limits-hand-heading">Right hand</div>
-						<div class="stat-limits-hand-list">
-							{#each rightUsageFields as field (field.key)}
-								{@render statLimitControl(field, '3.25rem')}
-							{/each}
-						</div>
-					</div>
-				{/if}
-			</div>
+			{@render usageLimitGrid()}
 		</section>
 	{/if}
 </div>
@@ -438,6 +546,119 @@
 		gap: var(--stat-field-gap);
 	}
 
+	.finger-workload {
+		min-width: 0;
+		padding-block: 0.125rem;
+	}
+
+	.finger-workload-description {
+		margin: 0 0 0.75rem;
+		font-size: 0.75rem;
+		line-height: 1.25rem;
+		color: var(--text-secondary);
+	}
+
+	.finger-workload-hand-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+		min-width: 0;
+	}
+
+	.finger-workload-hand {
+		min-width: 0;
+	}
+
+	.finger-workload-hand-grid--linked {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.finger-workload-hand-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.finger-workload-hand-header .stat-limits-hand-heading {
+		margin-bottom: 0;
+	}
+
+	.finger-workload-action-row {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.75rem;
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border);
+		color: var(--text-caption);
+		font-size: 0.75rem;
+		line-height: 1.25rem;
+	}
+
+	.finger-workload-action {
+		flex-shrink: 0;
+		padding: 0.375rem 0.625rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background: var(--input-bg);
+		color: var(--text-primary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1rem;
+		cursor: pointer;
+	}
+
+	.finger-workload-action:hover {
+		border-color: var(--text-caption);
+	}
+
+	.finger-workload-action:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.finger-workload-hint {
+		margin: 0.75rem 0 0;
+		font-size: 0.75rem;
+		line-height: 1.25rem;
+		color: var(--text-caption);
+	}
+
+	.finger-workload-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.finger-workload-control {
+		display: grid;
+		grid-template-columns: 4rem minmax(0, 1fr);
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		line-height: 1rem;
+	}
+
+	.finger-workload-select {
+		width: 100%;
+		min-width: 0;
+		padding: 0.375rem 0.5rem;
+		border-radius: 0.5rem;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		outline: none;
+		cursor: pointer;
+	}
+
+	.finger-workload-select:focus-visible {
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
 	.stat-limits-body--stacked .stat-limit-row {
 		grid-template-columns: 1fr;
 		gap: var(--stat-field-gap);
@@ -448,6 +669,10 @@
 	}
 
 	.stat-limits-body--stacked .stat-limits-hand-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.stat-limits-body--stacked .finger-workload-hand-grid {
 		grid-template-columns: 1fr;
 	}
 
@@ -464,6 +689,19 @@
 
 		.stat-limits-hand-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.finger-workload-hand-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.finger-workload-action-row {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.finger-workload-action {
+			width: 100%;
 		}
 	}
 

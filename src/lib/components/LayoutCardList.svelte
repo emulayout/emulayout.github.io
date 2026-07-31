@@ -229,7 +229,8 @@
 	{@const rowItems = listItems.slice(startIndex, end)}
 
 	<div
-		class="layout-card-row grid gap-3 mb-3"
+		class="layout-card-row grid gap-3"
+		class:layout-card-row--last={end === listItems.length}
 		class:layout-card-row--bottom-clearance={reserveBottomActionSpace && end === listItems.length}
 		style="grid-template-columns: repeat({columns}, 1fr);"
 	>
@@ -300,13 +301,29 @@
 <style>
 	/* Help Safari paint row contents while virtua translates the row. */
 	.layout-card-row {
+		margin-bottom: 0.75rem;
 		transform: translateZ(0);
 		-webkit-backface-visibility: hidden;
 		backface-visibility: hidden;
 	}
 
+	.layout-card-row--last {
+		margin-bottom: 0;
+		padding-bottom: var(--results-scroll-end-space, 4rem);
+	}
+
 	.layout-card-row--bottom-clearance {
 		padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+	}
+
+	@media (min-width: 768px) {
+		.layout-card-row--last,
+		.layout-card-row--bottom-clearance {
+			padding-bottom: calc(
+				var(--results-scroll-end-space, 4rem) + var(--filters-footer-clearance, 4.5rem) +
+					env(safe-area-inset-bottom, 0px)
+			);
+		}
 	}
 
 	.layout-results-with-pin {

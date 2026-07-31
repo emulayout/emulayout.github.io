@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { createEmptyStatLimits } from '$lib/filterSnapshot';
+import { createEmptyFingerWorkloadPreferences } from '$lib/fingerWorkload';
 import { CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 import {
 	analyzersNeededForLimits,
@@ -43,6 +44,9 @@ describe('stats analyzer usage', () => {
 			['cyano-sfb', '3'],
 			['mana-lsb', '4']
 		]);
+		const fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
+		fingerWorkloadPreferences.cmini.left.middle = 'heavy';
+		fingerWorkloadPreferences.cmini.left.index = 'medium';
 
 		expect(analyzersNeededForLimits(limits)).toEqual([CYANOPHAGE_ANALYZER, MANA2_ANALYZER]);
 		expect(
@@ -50,9 +54,17 @@ describe('stats analyzer usage', () => {
 				showStats: true,
 				displayMode: MANA2_ANALYZER,
 				limits,
+				fingerWorkloadPreferences,
 				sortBy: 'sfb'
 			})
 		).toEqual([CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER]);
+
+		expect(
+			analyzersNeededForLoad({
+				showStats: false,
+				fingerWorkloadPreferences
+			})
+		).toEqual([CMINI_ANALYZER]);
 	});
 
 	test('describes the first hidden analyzer whose filters remain active', () => {
@@ -67,6 +79,19 @@ describe('stats analyzer usage', () => {
 			text: 'Cyanophage stats are hidden, but its filters (1) still affect which layouts appear.'
 		});
 		expect(getHiddenAnalyzerFilterCaution(CMINI_ANALYZER, createEmptyStatLimits())).toBeNull();
+
+		const fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
+		fingerWorkloadPreferences.cyanophage.right.middle = 'heavy';
+		fingerWorkloadPreferences.cyanophage.right.index = 'medium';
+		expect(
+			getHiddenAnalyzerFilterCaution(CMINI_ANALYZER, createEmptyStatLimits(), {
+				fingerWorkloadPreferences
+			})
+		).toEqual({
+			analyzer: CYANOPHAGE_ANALYZER,
+			count: 1,
+			text: 'Cyanophage stats are hidden, but its filters (1) still affect which layouts appear.'
+		});
 	});
 
 	test('builds independent analyzer filter and sort highlights', () => {

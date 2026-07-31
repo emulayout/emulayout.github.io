@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { createDefaultViewSnapshot } from '$lib/filterSnapshot';
 import { filterLayouts, sortLayouts, type LayoutFilterCriteria } from '$lib/layoutFiltering';
 import type { LayoutData } from '$lib/layout';
+import type { StatsMaps } from '$lib/layout';
+import { BOT_STAT_KEYS, COMPACT_STAT_FIELD_COUNT } from '$lib/statsDerivation';
 
 function makeLayout(
 	name: string,
@@ -86,9 +88,24 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		excludeLeftThumbKeys: snapshot.appliedExcludeLeftThumbKeys,
 		excludeRightThumbKeys: snapshot.appliedExcludeRightThumbKeys,
 		statLimits: snapshot.appliedStatLimits,
+		fingerWorkloadPreferences: snapshot.appliedFingerWorkloadPreferences,
 		canUseLikes: false,
 		...overrides
 	};
+}
+
+function makeCminiStats(
+	usage: Partial<Record<'LP' | 'LR' | 'LM' | 'LI' | 'RP' | 'RR' | 'RM' | 'RI', number>>
+): number[] {
+	const compact = Array(COMPACT_STAT_FIELD_COUNT).fill(0);
+	const set = (key: string, value: number) => {
+		const index = BOT_STAT_KEYS.indexOf(key as (typeof BOT_STAT_KEYS)[number]);
+		if (index < 0) throw new Error(`Unknown cmini stat: ${key}`);
+		compact[index] = Math.round(value * 10_000);
+	};
+	set('alternate', 0.1);
+	for (const [key, value] of Object.entries(usage)) set(key, value);
+	return compact;
 }
 
 describe('filterLayouts', () => {
@@ -224,6 +241,69 @@ describe('filterLayouts', () => {
 		const statsCriteria = makeCriteria();
 		statsCriteria.statLimits['cyano-sfb'] = { operator: 'lt', value: '1' };
 		expect(filterLayouts(layouts, statsCriteria, {}, false)).toEqual([]);
+	});
+
+	test('chains relative finger workload with absolute percentage limits', () => {
+		const ordered = makeLayout('Ordered');
+		const highPinky = makeLayout('High pinky');
+		const wrongRightOrder = makeLayout('Wrong right order');
+		const layouts = [ordered, highPinky, wrongRightOrder];
+		const criteria = makeCriteria();
+		criteria.fingerWorkloadPreferences.cmini = {
+			left: {
+				pinky: 'lightest',
+				ring: 'light',
+				middle: 'heavy',
+				index: 'medium'
+			},
+			right: {
+				pinky: 'lightest',
+				ring: 'light',
+				middle: 'heavy',
+				index: 'medium'
+			}
+		};
+		criteria.statLimits.LP = { operator: 'lt', value: '4.5' };
+		criteria.statLimits.RP = { operator: 'lt', value: '4.5' };
+
+		const statsMaps: StatsMaps = {
+			cmini: {
+				Ordered: makeCminiStats({
+					LP: 0.03,
+					LR: 0.08,
+					LI: 0.17,
+					LM: 0.22,
+					RP: 0.02,
+					RR: 0.07,
+					RI: 0.18,
+					RM: 0.23
+				}),
+				'High pinky': makeCminiStats({
+					LP: 0.05,
+					LR: 0.08,
+					LI: 0.17,
+					LM: 0.22,
+					RP: 0.04,
+					RR: 0.07,
+					RI: 0.18,
+					RM: 0.23
+				}),
+				'Wrong right order': makeCminiStats({
+					LP: 0.03,
+					LR: 0.08,
+					LI: 0.17,
+					LM: 0.22,
+					RP: 0.02,
+					RR: 0.07,
+					RI: 0.24,
+					RM: 0.23
+				})
+			}
+		};
+
+		expect(filterLayouts(layouts, criteria, statsMaps, true).map((layout) => layout.name)).toEqual([
+			'Ordered'
+		]);
 	});
 });
 

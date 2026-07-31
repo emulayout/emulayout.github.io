@@ -41,6 +41,12 @@ import {
 	type StatLimitOperator,
 	type ThumbKeyFilter
 } from './filterSnapshot';
+import {
+	hasActiveFingerWorkloadPreference,
+	matchesFingerWorkloadPreference,
+	type FingerWorkloadPreference,
+	type FingerWorkloadPreferences
+} from './fingerWorkload';
 
 export interface LayoutFilterCriteria {
 	layoutSource: 'all' | 'selected';
@@ -65,6 +71,7 @@ export interface LayoutFilterCriteria {
 	excludeLeftThumbKeys: string[];
 	excludeRightThumbKeys: string[];
 	statLimits: Record<StatLimitKey, StatLimit>;
+	fingerWorkloadPreferences: FingerWorkloadPreferences;
 	canUseLikes: boolean;
 }
 
@@ -81,6 +88,7 @@ type ActiveAnalyzerStatFilters = {
 		threshold: number;
 		statKey: ReturnType<typeof getStatFilterStatKey>;
 	}>;
+	fingerWorkload: FingerWorkloadPreference | null;
 };
 
 type LikesLimitCheck = { operator: StatLimitOperator; threshold: number };
@@ -282,7 +290,8 @@ function matchesBoardType(layout: LayoutData, filter: BoardTypeFilter): boolean 
 }
 
 function buildActiveAnalyzerStatFilters(
-	limits: Record<StatLimitKey, StatLimit>
+	limits: Record<StatLimitKey, StatLimit>,
+	fingerWorkloadPreferences: FingerWorkloadPreferences
 ): ActiveAnalyzerStatFilters[] {
 	const active: ActiveAnalyzerStatFilters[] = [];
 
@@ -298,7 +307,10 @@ function buildActiveAnalyzerStatFilters(
 				statKey: getStatFilterStatKey(field)
 			});
 		}
-		if (checks.length > 0) active.push({ analyzer, checks });
+		const fingerWorkload = hasActiveFingerWorkloadPreference(fingerWorkloadPreferences[analyzer])
+			? fingerWorkloadPreferences[analyzer]
+			: null;
+		if (checks.length > 0 || fingerWorkload) active.push({ analyzer, checks, fingerWorkload });
 	}
 
 	return active;
@@ -313,7 +325,7 @@ function matchesStatLimits(
 ): boolean {
 	if (activeFilters.length === 0 && !likesCheck) return true;
 
-	for (const { analyzer, checks } of activeFilters) {
+	for (const { analyzer, checks, fingerWorkload } of activeFilters) {
 		const analyzerStats = getLayoutAnalyzerStats(
 			statsMaps,
 			layout.name,
@@ -334,6 +346,12 @@ function matchesStatLimits(
 			if (operator === 'lt' && value >= threshold) return false;
 			if (operator === 'gt' && value <= threshold) return false;
 		}
+		if (
+			fingerWorkload &&
+			!matchesFingerWorkloadPreference(stats as Record<string, number>, fingerWorkload)
+		) {
+			return false;
+		}
 	}
 
 	if (likesCheck) {
@@ -352,7 +370,10 @@ export function filterLayouts(
 	statsReady = false,
 	likesData: LayoutLikesMap = {}
 ): LayoutData[] {
-	const activeFilters = buildActiveAnalyzerStatFilters(criteria.statLimits);
+	const activeFilters = buildActiveAnalyzerStatFilters(
+		criteria.statLimits,
+		criteria.fingerWorkloadPreferences
+	);
 	let likesCheck: LikesLimitCheck | null = null;
 	if (criteria.canUseLikes) {
 		const threshold = Number.parseFloat(criteria.statLimits.likes.value.trim());

@@ -12,6 +12,11 @@ import type {
 } from '$lib/filterSnapshot';
 import type { FilterFocusRequest, KeyFilterKind } from '$lib/filterFocus';
 import {
+	formatFingerWorkloadPreference,
+	hasConfiguredFingerWorkloadPreference,
+	type FingerWorkloadPreferences
+} from '$lib/fingerWorkload';
+import {
 	CYANOPHAGE_ANALYZER,
 	CMINI_ANALYZER,
 	MANA2_ANALYZER,
@@ -50,6 +55,7 @@ export type FilterChipSource = {
 	appliedExcludeLeftThumbKeys: string[];
 	appliedExcludeRightThumbKeys: string[];
 	appliedStatLimits: Record<StatLimitKey, StatLimit>;
+	appliedFingerWorkloadPreferences: FingerWorkloadPreferences;
 	canUseLikes: boolean;
 	hasSimilarReference: boolean;
 	similarityFilterOperator: StatLimitOperator;
@@ -83,6 +89,7 @@ export function chipSourceFromViewSnapshot(
 		appliedExcludeLeftThumbKeys: snapshot.appliedExcludeLeftThumbKeys,
 		appliedExcludeRightThumbKeys: snapshot.appliedExcludeRightThumbKeys,
 		appliedStatLimits: snapshot.appliedStatLimits,
+		appliedFingerWorkloadPreferences: snapshot.appliedFingerWorkloadPreferences,
 		canUseLikes: options?.canUseLikes ?? true,
 		hasSimilarReference: snapshot.similarReferenceName !== null,
 		similarityFilterOperator: snapshot.similarityFilterOperator,
@@ -191,6 +198,7 @@ export type ActiveFilterClearAction =
 	| { kind: 'showUnfinished' }
 	| { kind: 'keyFilter'; filter: KeyFilterKind }
 	| { kind: 'statLimit'; key: StatLimitKey }
+	| { kind: 'fingerWorkload'; analyzer: StatsAnalyzer }
 	| { kind: 'similarity' };
 
 export interface ActiveFilterChip {
@@ -464,6 +472,24 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 				);
 			}
 		}
+
+		const fingerWorkload = store.appliedFingerWorkloadPreferences[analyzer];
+		if (hasConfiguredFingerWorkloadPreference(fingerWorkload)) {
+			pushChip(
+				chips,
+				`finger-workload-${analyzer}`,
+				`Workload: ${formatFingerWorkloadPreference(fingerWorkload)}`,
+				{ kind: 'fingerWorkload', analyzer },
+				{
+					target: 'stats',
+					section: 'finger-workload',
+					analyzer,
+					workload: true
+				},
+				tone,
+				analyzerTitle
+			);
+		}
 	}
 
 	if (store.hasSimilarReference) {
@@ -496,6 +522,7 @@ export interface ActiveFilterClearTarget {
 	clearIncludeOr(): void;
 	clearExclude(): void;
 	clearStatLimit(key: StatLimitKey): void;
+	clearFingerWorkloadPreferences(analyzer: StatsAnalyzer): void;
 	clearSimilarReference(): void;
 }
 
@@ -542,6 +569,9 @@ export function clearActiveFilterChip(
 			break;
 		case 'statLimit':
 			store.clearStatLimit(action.key);
+			break;
+		case 'fingerWorkload':
+			store.clearFingerWorkloadPreferences(action.analyzer);
 			break;
 		case 'similarity':
 			store.clearSimilarReference();

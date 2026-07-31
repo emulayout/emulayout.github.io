@@ -3,6 +3,13 @@ import { getDefaultSortOrder, isSortOrder, normalizeSortBy } from './statsSortin
 import { isSimilarityMirrorMode } from './layoutSimilarity';
 import { sortLayoutSourceNames } from './savedFiltersStorage';
 import {
+	FINGER_WORKLOAD_FINGERS,
+	FINGER_WORKLOAD_HANDS,
+	createEmptyFingerWorkloadPreferences,
+	isFingerWorkloadLevel,
+	type FingerWorkloadPreferences
+} from './fingerWorkload';
+import {
 	FILTER_GRID_COLUMNS,
 	FILTER_GRID_ROWS,
 	FILTER_THUMB_KEYS_PER_HAND,
@@ -42,7 +49,8 @@ export const VIEW_FILTER_URL_PARAMS = [
 	'similarHome',
 	'similarAnglemod',
 	'similarMirror',
-	'statLimits'
+	'statLimits',
+	'fingerWorkload'
 ] as const;
 
 export function serializeStatLimits(limits: Record<StatLimitKey, StatLimit>): string {
@@ -78,6 +86,56 @@ export function parseStatLimitsParam(
 	str: string | null | undefined
 ): Record<StatLimitKey, StatLimit> {
 	return deserializeStatLimits(str?.trim() ?? '');
+}
+
+export function serializeFingerWorkloadPreferences(preferences: FingerWorkloadPreferences): string {
+	const analyzers: string[] = [];
+	for (const [analyzer, preference] of Object.entries(preferences)) {
+		const fingers = FINGER_WORKLOAD_HANDS.flatMap((hand) =>
+			FINGER_WORKLOAD_FINGERS.flatMap((finger) => {
+				const level = preference[hand][finger];
+				return level === 'none' ? [] : [`${hand}.${finger}:${level}`];
+			})
+		);
+		if (fingers.length > 0) analyzers.push(`${analyzer}=${fingers.join('|')}`);
+	}
+	return analyzers.join(',');
+}
+
+export function deserializeFingerWorkloadPreferences(
+	value: string | null | undefined
+): FingerWorkloadPreferences {
+	const preferences = createEmptyFingerWorkloadPreferences();
+	if (!value) return preferences;
+
+	for (const analyzerPart of value.split(',')) {
+		const [analyzer, encodedFingers] = analyzerPart.split('=');
+		if (!analyzer || !encodedFingers || !(analyzer in preferences)) continue;
+		for (const fingerPart of encodedFingers.split('|')) {
+			const [encodedFinger, level] = fingerPart.split(':');
+			const [encodedHand, finger] = encodedFinger.includes('.')
+				? encodedFinger.split('.')
+				: [null, encodedFinger];
+			if (
+				FINGER_WORKLOAD_FINGERS.includes(finger as (typeof FINGER_WORKLOAD_FINGERS)[number]) &&
+				isFingerWorkloadLevel(level)
+			) {
+				const hands =
+					encodedHand &&
+					FINGER_WORKLOAD_HANDS.includes(encodedHand as (typeof FINGER_WORKLOAD_HANDS)[number])
+						? [encodedHand as (typeof FINGER_WORKLOAD_HANDS)[number]]
+						: encodedHand
+							? []
+							: [...FINGER_WORKLOAD_HANDS];
+				for (const hand of hands) {
+					preferences[analyzer as keyof FingerWorkloadPreferences][hand][
+						finger as (typeof FINGER_WORKLOAD_FINGERS)[number]
+					] = level;
+				}
+			}
+		}
+	}
+	return preferences;
 }
 
 export function serializeThumbFilters(filters: string[]): string {
@@ -171,6 +229,11 @@ export function writeViewFilterUrlState(
 
 	const statLimitsSerialized = serializeStatLimits(snapshot.appliedStatLimits);
 	if (statLimitsSerialized) params.set('statLimits', statLimitsSerialized);
+
+	const fingerWorkloadSerialized = serializeFingerWorkloadPreferences(
+		snapshot.appliedFingerWorkloadPreferences
+	);
+	if (fingerWorkloadSerialized) params.set('fingerWorkload', fingerWorkloadSerialized);
 }
 
 /** Compact query-string encoding of a view snapshot (shareable; not global URL state). */
@@ -358,6 +421,13 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 	if (statLimits) {
 		snapshot.statLimits = deserializeStatLimits(statLimits);
 		snapshot.appliedStatLimits = deserializeStatLimits(statLimits);
+	}
+
+	const fingerWorkload = params.get('fingerWorkload');
+	if (fingerWorkload) {
+		snapshot.fingerWorkloadPreferences = deserializeFingerWorkloadPreferences(fingerWorkload);
+		snapshot.appliedFingerWorkloadPreferences =
+			deserializeFingerWorkloadPreferences(fingerWorkload);
 	}
 
 	const layoutsParam = params.get('layouts');

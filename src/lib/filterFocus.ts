@@ -23,4 +23,10 @@ export type FilterFocusRequest =
 			section: StatFilterSection;
 			analyzer: StatsAnalyzer;
 			key: StatLimitKey;
+	  }
+	| {
+			target: 'stats';
+			section: 'finger-workload';
+			analyzer: StatsAnalyzer;
+			workload: true;
 	  };
