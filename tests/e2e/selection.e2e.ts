@@ -63,6 +63,7 @@ test('selects, restores, and clears layouts from All and Selected views', async 
 	await expect(page.getByRole('heading', { name: 'Colemak-DH', exact: true })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'QWERTY', exact: true })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Save as view', exact: true })).toBeVisible();
 	await expect(clearSelectedLayouts).toBeVisible();
 	await expect(page).toHaveURL(/(?:\?|&)source=selected(?:&|$)/);
 	await expect(page).toHaveURL(/(?:\?|&)selected=[^&]*(?:%2C|,)[^&]+(?:&|$)/);
@@ -77,6 +78,19 @@ test('selects, restores, and clears layouts from All and Selected views', async 
 	await expect(page.getByRole('heading', { name: 'Colemak-DH', exact: true })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
 	await expect(clearSelectedLayouts).toBeVisible();
+
+	const selectedActions = page.locator('.selected-layout-actions-group');
+	const nameFilter = page.getByRole('textbox', { name: 'Layout name' });
+	await nameFilter.fill('Colemak');
+
+	await expect(selectedActions.getByRole('button')).toHaveCount(1);
+	await expect(selectedActions.getByRole('button', { name: 'Save as view', exact: true })).toHaveCount(0);
+	await expect(clearSelectedLayouts).toHaveText('Clear selected layouts');
+
+	await page.getByRole('button', { name: 'Clear layout name' }).click();
+
+	await expect(selectedActions.getByRole('button')).toHaveCount(2);
+	await expect(selectedActions.getByRole('button', { name: 'Save as view', exact: true })).toBeVisible();
 
 	await clearSelectedLayouts.click();
 

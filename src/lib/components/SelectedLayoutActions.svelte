@@ -63,24 +63,53 @@
 					</svg>
 				</button>
 			{:else}
-				<button
-					type="button"
-					class="selected-layout-actions-button selected-layout-actions-button--with-icon"
-					aria-label="Clear selected layouts"
-					onclick={() => filterStore.clearSelectedLayouts()}
-				>
-					Clear selected layouts
-					<svg
-						class="size-4 shrink-0"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2.5"
-						aria-hidden="true"
+				{#if filterStore.hasActiveFilters}
+					<button
+						type="button"
+						class="selected-layout-actions-button selected-layout-actions-button--with-icon"
+						aria-label="Clear selected layouts"
+						onclick={() => filterStore.clearSelectedLayouts()}
 					>
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
-				</button>
+						Clear selected layouts
+						<svg
+							class="size-4 shrink-0"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2.5"
+							aria-hidden="true"
+						>
+							<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+						</svg>
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="selected-layout-actions-button"
+						aria-label="Save as view"
+						onclick={() => (showSaveSelectedViewModal = true)}
+					>
+						Save as view
+					</button>
+					<button
+						type="button"
+						class="selected-layout-actions-icon-button"
+						aria-label="Clear selected layouts"
+						title="Clear selected layouts"
+						onclick={() => filterStore.clearSelectedLayouts()}
+					>
+						<svg
+							class="size-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2.5"
+							aria-hidden="true"
+						>
+							<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+						</svg>
+					</button>
+				{/if}
 			{/if}
 		</div>
 	</div>
