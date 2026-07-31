@@ -215,6 +215,7 @@
 		--finger-usage-bar-width: 14px;
 		--finger-usage-bar-gap: 6px;
 		--finger-usage-hand-width: 94px;
+		--finger-usage-main-hand-width: 74px;
 		--finger-usage-hand-gap: 28px;
 		box-sizing: border-box;
 		display: grid;
@@ -241,6 +242,7 @@
 		--finger-usage-bar-width: 9px;
 		--finger-usage-bar-gap: 3px;
 		--finger-usage-hand-width: 57px;
+		--finger-usage-main-hand-width: 45px;
 		--finger-usage-hand-gap: 10px;
 		width: min(100%, 124px);
 		font-size: 9px;
@@ -343,10 +345,12 @@
 	}
 
 	.hand-total-left {
-		text-align: left;
+		justify-self: start;
+		width: var(--finger-usage-main-hand-width);
 	}
 
 	.hand-total-right {
-		text-align: right;
+		justify-self: end;
+		width: var(--finger-usage-main-hand-width);
 	}
 </style>
