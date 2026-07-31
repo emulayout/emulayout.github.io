@@ -20,10 +20,11 @@ describe('active filter chips', () => {
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
 		snapshot.appliedStatLimits['cyano-lh'] = { operator: 'gt', value: '45' };
 		snapshot.appliedStatLimits['cyano-LI'] = { operator: 'lt', value: '24' };
-		snapshot.appliedFingerWorkloadPreferences.cyanophage.left.pinky = 'lightest';
-		snapshot.appliedFingerWorkloadPreferences.cyanophage.left.middle = 'heavy';
-		snapshot.appliedFingerWorkloadPreferences.cyanophage.right.pinky = 'lightest';
-		snapshot.appliedFingerWorkloadPreferences.cyanophage.right.middle = 'heavy';
+		snapshot.appliedFingerWorkload.analyzer = 'cyanophage';
+		snapshot.appliedFingerWorkload.preference.left.pinky = 'lightest';
+		snapshot.appliedFingerWorkload.preference.left.middle = 'heavy';
+		snapshot.appliedFingerWorkload.preference.right.pinky = 'lightest';
+		snapshot.appliedFingerWorkload.preference.right.middle = 'heavy';
 		snapshot.similarReferenceName = 'Graphite';
 		snapshot.appliedSimilarityFilterValue = '70';
 
@@ -43,7 +44,7 @@ describe('active filter chips', () => {
 			'stat-cyano-sfb',
 			'hand-cyano-lh',
 			'finger-cyano-LI',
-			'finger-workload-cyanophage',
+			'finger-workload',
 			'similarity'
 		]);
 		expect(chips.find(({ id }) => id === 'source')).toMatchObject({
@@ -79,8 +80,8 @@ describe('active filter chips', () => {
 				key: 'cyano-LI'
 			}
 		});
-		expect(chips.find(({ id }) => id === 'finger-workload-cyanophage')).toMatchObject({
-			label: 'Workload: Both M > P',
+		expect(chips.find(({ id }) => id === 'finger-workload')).toMatchObject({
+			label: 'Workload (Cyanophage): Both M > P',
 			focus: {
 				target: 'stats',
 				section: 'finger-workload',
@@ -111,7 +112,7 @@ describe('active filter chips', () => {
 			clearIncludeOr: () => calls.push('keys:or'),
 			clearExclude: () => calls.push('keys:exclude'),
 			clearStatLimit: (key) => calls.push(`stat:${key}`),
-			clearFingerWorkloadPreferences: (analyzer) => calls.push(`workload:${analyzer}`),
+			clearFingerWorkloadPreference: () => calls.push('workload'),
 			clearSimilarReference: () => calls.push('similarity')
 		};
 
@@ -129,7 +130,7 @@ describe('active filter chips', () => {
 		clearActiveFilterChip(target, { kind: 'keyFilter', filter: 'or' });
 		clearActiveFilterChip(target, { kind: 'keyFilter', filter: 'exclude' });
 		clearActiveFilterChip(target, { kind: 'statLimit', key: 'cyano-sfb' });
-		clearActiveFilterChip(target, { kind: 'fingerWorkload', analyzer: 'cyanophage' });
+		clearActiveFilterChip(target, { kind: 'fingerWorkload' });
 		clearActiveFilterChip(target, { kind: 'similarity' });
 
 		expect(calls).toEqual([
@@ -147,7 +148,7 @@ describe('active filter chips', () => {
 			'keys:or',
 			'keys:exclude',
 			'stat:cyano-sfb',
-			'workload:cyanophage',
+			'workload',
 			'similarity'
 		]);
 	});

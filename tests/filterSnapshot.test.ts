@@ -13,7 +13,7 @@ describe('view filter snapshot construction', () => {
 		first.includeGrid[0][0] = 'a';
 		first.includeLeftThumbKeys[0] = 'e';
 		first.statLimits.likes.value = '10';
-		first.fingerWorkloadPreferences.cmini.left.middle = 'heavy';
+		first.fingerWorkload.preference.left.middle = 'heavy';
 
 		expect(first.appliedIncludeGrid[0][0]).toBe('');
 		expect(first.appliedIncludeLeftThumbKeys[0]).toBe('');
@@ -22,8 +22,8 @@ describe('view filter snapshot construction', () => {
 		expect(second.includeLeftThumbKeys[0]).toBe('');
 		expect(second.statLimits.likes).toEqual({ operator: 'gt', value: '' });
 		expect(second.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '' });
-		expect(second.fingerWorkloadPreferences.cmini.left.middle).toBe('none');
-		expect(second.appliedFingerWorkloadPreferences.cmini.left.middle).toBe('none');
+		expect(second.fingerWorkload.preference.left.middle).toBe('none');
+		expect(second.appliedFingerWorkload.preference.left.middle).toBe('none');
 	});
 
 	test('deep-clones every mutable snapshot field', () => {
@@ -38,8 +38,8 @@ describe('view filter snapshot construction', () => {
 		};
 		original.statLimits.likes.value = '10';
 		original.appliedStatLimits.likes.value = '20';
-		original.fingerWorkloadPreferences.cmini.left.middle = 'heavy';
-		original.appliedFingerWorkloadPreferences.cmini.right.middle = 'medium';
+		original.fingerWorkload.preference.left.middle = 'heavy';
+		original.appliedFingerWorkload.preference.right.middle = 'medium';
 
 		const clone = cloneViewFilterSnapshot(original);
 		clone.includeGrid[0][0] = 'b';
@@ -48,8 +48,8 @@ describe('view filter snapshot construction', () => {
 		clone.sortBeforeSimilar!.sortOrder = 'desc';
 		clone.statLimits.likes.value = '30';
 		clone.appliedStatLimits.likes.value = '40';
-		clone.fingerWorkloadPreferences.cmini.left.middle = 'light';
-		clone.appliedFingerWorkloadPreferences.cmini.right.middle = 'lightest';
+		clone.fingerWorkload.preference.left.middle = 'light';
+		clone.appliedFingerWorkload.preference.right.middle = 'lightest';
 
 		expect(original.includeGrid[0][0]).toBe('a');
 		expect(original.includeLeftThumbKeys[0]).toBe('e');
@@ -57,8 +57,8 @@ describe('view filter snapshot construction', () => {
 		expect(original.sortBeforeSimilar.sortOrder).toBe('asc');
 		expect(original.statLimits.likes.value).toBe('10');
 		expect(original.appliedStatLimits.likes.value).toBe('20');
-		expect(original.fingerWorkloadPreferences.cmini.left.middle).toBe('heavy');
-		expect(original.appliedFingerWorkloadPreferences.cmini.right.middle).toBe('medium');
+		expect(original.fingerWorkload.preference.left.middle).toBe('heavy');
+		expect(original.appliedFingerWorkload.preference.right.middle).toBe('medium');
 	});
 });
 
@@ -97,11 +97,12 @@ describe('normalizeViewFilterSnapshot', () => {
 		expect(snapshot.sortOrder).toBe('asc');
 		expect(snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '10' });
 		expect(snapshot.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '10' });
-		expect(snapshot.fingerWorkloadPreferences.cmini.left.pinky).toBe('lightest');
-		expect(snapshot.fingerWorkloadPreferences.cmini.left.middle).toBe('heavy');
-		expect(snapshot.fingerWorkloadPreferences.cmini.right.pinky).toBe('lightest');
-		expect(snapshot.fingerWorkloadPreferences.cmini.right.middle).toBe('heavy');
-		expect(snapshot.appliedFingerWorkloadPreferences).toEqual(snapshot.fingerWorkloadPreferences);
+		expect(snapshot.fingerWorkload.analyzer).toBe('cmini');
+		expect(snapshot.fingerWorkload.preference.left.pinky).toBe('lightest');
+		expect(snapshot.fingerWorkload.preference.left.middle).toBe('heavy');
+		expect(snapshot.fingerWorkload.preference.right.pinky).toBe('lightest');
+		expect(snapshot.fingerWorkload.preference.right.middle).toBe('heavy');
+		expect(snapshot.appliedFingerWorkload).toEqual(snapshot.fingerWorkload);
 	});
 
 	test('replaces invalid enum and nested values with safe defaults', () => {
@@ -127,7 +128,7 @@ describe('normalizeViewFilterSnapshot', () => {
 		expect(snapshot.similarityMirrorMode).toBe('excluded');
 		expect(snapshot.sortBeforeSimilar).toBeNull();
 		expect(snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '' });
-		expect(snapshot.fingerWorkloadPreferences.cmini.left.middle).toBe('none');
+		expect(snapshot.fingerWorkload.preference.left.middle).toBe('none');
 	});
 
 	test('replaces similarity sorting when no reference layout exists', () => {

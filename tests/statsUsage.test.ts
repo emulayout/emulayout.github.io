@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { createEmptyStatLimits } from '$lib/filterSnapshot';
-import { createEmptyFingerWorkloadPreferences } from '$lib/fingerWorkload';
+import { createDefaultFingerWorkloadConfig } from '$lib/fingerWorkload';
 import { CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 import {
 	analyzersNeededForLimits,
@@ -44,9 +44,9 @@ describe('stats analyzer usage', () => {
 			['cyano-sfb', '3'],
 			['mana-lsb', '4']
 		]);
-		const fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
-		fingerWorkloadPreferences.cmini.left.middle = 'heavy';
-		fingerWorkloadPreferences.cmini.left.index = 'medium';
+		const fingerWorkload = createDefaultFingerWorkloadConfig();
+		fingerWorkload.preference.left.middle = 'heavy';
+		fingerWorkload.preference.left.index = 'medium';
 
 		expect(analyzersNeededForLimits(limits)).toEqual([CYANOPHAGE_ANALYZER, MANA2_ANALYZER]);
 		expect(
@@ -54,7 +54,7 @@ describe('stats analyzer usage', () => {
 				showStats: true,
 				displayMode: MANA2_ANALYZER,
 				limits,
-				fingerWorkloadPreferences,
+				fingerWorkload,
 				sortBy: 'sfb'
 			})
 		).toEqual([CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER]);
@@ -62,7 +62,7 @@ describe('stats analyzer usage', () => {
 		expect(
 			analyzersNeededForLoad({
 				showStats: false,
-				fingerWorkloadPreferences
+				fingerWorkload
 			})
 		).toEqual([CMINI_ANALYZER]);
 	});
@@ -80,12 +80,13 @@ describe('stats analyzer usage', () => {
 		});
 		expect(getHiddenAnalyzerFilterCaution(CMINI_ANALYZER, createEmptyStatLimits())).toBeNull();
 
-		const fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
-		fingerWorkloadPreferences.cyanophage.right.middle = 'heavy';
-		fingerWorkloadPreferences.cyanophage.right.index = 'medium';
+		const fingerWorkload = createDefaultFingerWorkloadConfig();
+		fingerWorkload.analyzer = CYANOPHAGE_ANALYZER;
+		fingerWorkload.preference.right.middle = 'heavy';
+		fingerWorkload.preference.right.index = 'medium';
 		expect(
 			getHiddenAnalyzerFilterCaution(CMINI_ANALYZER, createEmptyStatLimits(), {
-				fingerWorkloadPreferences
+				fingerWorkload
 			})
 		).toEqual({
 			analyzer: CYANOPHAGE_ANALYZER,

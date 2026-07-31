@@ -63,12 +63,12 @@ describe('view filter URL codec', () => {
 		snapshot.similarReferenceAnglemod = true;
 		snapshot.similarityMirrorMode = 'required';
 		snapshot.appliedStatLimits.likes = { operator: 'gt', value: '10' };
-		snapshot.appliedFingerWorkloadPreferences.cmini.left.pinky = 'lightest';
-		snapshot.appliedFingerWorkloadPreferences.cmini.left.ring = 'light';
-		snapshot.appliedFingerWorkloadPreferences.cmini.left.index = 'medium';
-		snapshot.appliedFingerWorkloadPreferences.cmini.left.middle = 'heavy';
-		snapshot.appliedFingerWorkloadPreferences.cmini.right.pinky = 'heavy';
-		snapshot.appliedFingerWorkloadPreferences.cmini.right.index = 'lightest';
+		snapshot.appliedFingerWorkload.preference.left.pinky = 'lightest';
+		snapshot.appliedFingerWorkload.preference.left.ring = 'light';
+		snapshot.appliedFingerWorkload.preference.left.index = 'medium';
+		snapshot.appliedFingerWorkload.preference.left.middle = 'heavy';
+		snapshot.appliedFingerWorkload.preference.right.pinky = 'heavy';
+		snapshot.appliedFingerWorkload.preference.right.index = 'lightest';
 
 		const decoded = decodeViewFilterSnapshot(
 			encodeViewFilterSnapshot(snapshot, {
@@ -105,23 +105,24 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.similarityMirrorMode).toBe('required');
 		expect(decoded.snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '10' });
 		expect(decoded.snapshot.appliedStatLimits.likes).toEqual({ operator: 'gt', value: '10' });
-		expect(decoded.snapshot.fingerWorkloadPreferences.cmini).toEqual({
-			left: {
-				pinky: 'lightest',
-				ring: 'light',
-				middle: 'heavy',
-				index: 'medium'
-			},
-			right: {
-				pinky: 'heavy',
-				ring: 'none',
-				middle: 'none',
-				index: 'lightest'
+		expect(decoded.snapshot.fingerWorkload).toEqual({
+			analyzer: 'cmini',
+			preference: {
+				left: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'medium'
+				},
+				right: {
+					pinky: 'heavy',
+					ring: 'none',
+					middle: 'none',
+					index: 'lightest'
+				}
 			}
 		});
-		expect(decoded.snapshot.appliedFingerWorkloadPreferences.cmini).toEqual(
-			decoded.snapshot.fingerWorkloadPreferences.cmini
-		);
+		expect(decoded.snapshot.appliedFingerWorkload).toEqual(decoded.snapshot.fingerWorkload);
 	});
 
 	test('preserves an explicit non-similarity sort while similarity is active', () => {
@@ -196,8 +197,8 @@ describe('view filter URL codec', () => {
 		expect(snapshot.similarityFilterValue).toBe('50');
 		expect(snapshot.similarityMirrorMode).toBe('excluded');
 		expect(snapshot.statLimits.likes).toEqual({ operator: 'gt', value: '' });
-		expect(snapshot.fingerWorkloadPreferences.cmini.left.middle).toBe('none');
-		expect(snapshot.fingerWorkloadPreferences.cmini.right.middle).toBe('none');
+		expect(snapshot.fingerWorkload.preference.left.middle).toBe('none');
+		expect(snapshot.fingerWorkload.preference.right.middle).toBe('none');
 	});
 
 	test('reads legacy shared workload preferences into both hands', () => {
@@ -205,11 +206,12 @@ describe('view filter URL codec', () => {
 			'fingerWorkload=cmini%3Dmiddle%3Aheavy%7Cindex%3Amedium'
 		);
 
-		expect(snapshot.fingerWorkloadPreferences.cmini.left).toMatchObject({
+		expect(snapshot.fingerWorkload.analyzer).toBe('cmini');
+		expect(snapshot.fingerWorkload.preference.left).toMatchObject({
 			middle: 'heavy',
 			index: 'medium'
 		});
-		expect(snapshot.fingerWorkloadPreferences.cmini.right).toMatchObject({
+		expect(snapshot.fingerWorkload.preference.right).toMatchObject({
 			middle: 'heavy',
 			index: 'medium'
 		});

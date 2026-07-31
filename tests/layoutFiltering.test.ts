@@ -88,7 +88,7 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		excludeLeftThumbKeys: snapshot.appliedExcludeLeftThumbKeys,
 		excludeRightThumbKeys: snapshot.appliedExcludeRightThumbKeys,
 		statLimits: snapshot.appliedStatLimits,
-		fingerWorkloadPreferences: snapshot.appliedFingerWorkloadPreferences,
+		fingerWorkload: snapshot.appliedFingerWorkload,
 		canUseLikes: false,
 		...overrides
 	};
@@ -249,18 +249,21 @@ describe('filterLayouts', () => {
 		const wrongRightOrder = makeLayout('Wrong right order');
 		const layouts = [ordered, highPinky, wrongRightOrder];
 		const criteria = makeCriteria();
-		criteria.fingerWorkloadPreferences.cmini = {
-			left: {
-				pinky: 'lightest',
-				ring: 'light',
-				middle: 'heavy',
-				index: 'medium'
-			},
-			right: {
-				pinky: 'lightest',
-				ring: 'light',
-				middle: 'heavy',
-				index: 'medium'
+		criteria.fingerWorkload = {
+			analyzer: 'cmini',
+			preference: {
+				left: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'medium'
+				},
+				right: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'medium'
+				}
 			}
 		};
 		criteria.statLimits.LP = { operator: 'lt', value: '4.5' };

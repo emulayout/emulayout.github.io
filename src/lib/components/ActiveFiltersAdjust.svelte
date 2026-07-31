@@ -34,22 +34,20 @@
 			general: StatLimitKey[];
 			handUsage: StatLimitKey[];
 			fingerUsage: StatLimitKey[];
-			workload: boolean;
 		}> = [];
 
 		for (const entry of STAT_ANALYZERS) {
 			const general: StatLimitKey[] = [];
 			const handUsage: StatLimitKey[] = [];
 			const fingerUsage: StatLimitKey[] = [];
-			const workload = snapshot.fingerWorkloadAnalyzers.includes(entry.value);
 			for (const item of snapshot.stats) {
 				if (item.analyzer !== entry.value) continue;
 				if (item.section === 'general') general.push(item.key);
 				else if (item.section === 'hand-usage') handUsage.push(item.key);
 				else fingerUsage.push(item.key);
 			}
-			if (general.length > 0 || handUsage.length > 0 || fingerUsage.length > 0 || workload) {
-				groups.push({ analyzer: entry.value, general, handUsage, fingerUsage, workload });
+			if (general.length > 0 || handUsage.length > 0 || fingerUsage.length > 0) {
+				groups.push({ analyzer: entry.value, general, handUsage, fingerUsage });
 			}
 		}
 		return groups;
@@ -179,6 +177,24 @@
 		</div>
 	{/if}
 
+	{#if snapshot.fingerWorkload}
+		<div
+			class="adjust-section"
+			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+		>
+			<div class="filter-section-header">
+				<span class="filter-section-header-label">Finger workload</span>
+			</div>
+			<div class="adjust-section-body adjust-section-body--stats">
+				<StatLimitFiltersBody
+					section="finger-workload"
+					analyzer={filterStore.fingerWorkload.analyzer}
+					stacked
+				/>
+			</div>
+		</div>
+	{/if}
+
 	{#each statsByAnalyzer as group (group.analyzer)}
 		<div
 			class="adjust-section"
@@ -211,9 +227,6 @@
 						stacked
 						onlyKeys={group.fingerUsage}
 					/>
-				{/if}
-				{#if group.workload}
-					<StatLimitFiltersBody section="finger-workload" analyzer={group.analyzer} stacked />
 				{/if}
 			</div>
 		</div>

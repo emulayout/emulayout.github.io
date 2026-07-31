@@ -4,6 +4,7 @@
 	import {
 		CYANOPHAGE_ANALYZER,
 		DEFAULT_STATS_ANALYZER,
+		STAT_ANALYZERS,
 		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
 	import {
@@ -20,11 +21,14 @@
 	import {
 		FINGER_WORKLOAD_FINGERS,
 		FINGER_WORKLOAD_HANDS,
+		FINGER_WORKLOAD_PRESETS,
+		fingerWorkloadHandPreferencesEqual,
 		hasActiveFingerWorkloadHandPreference,
 		hasConfiguredFingerWorkloadHandPreference,
 		type FingerWorkloadFinger,
 		type FingerWorkloadHand,
-		type FingerWorkloadLevel
+		type FingerWorkloadLevel,
+		type FingerWorkloadPreset
 	} from '$lib/fingerWorkload';
 
 	interface Props {
@@ -94,6 +98,18 @@
 		left: 'Left hand',
 		right: 'Right hand'
 	};
+	const workloadLevelBarHeights: Record<FingerWorkloadLevel, string> = {
+		none: '0%',
+		lightest: '25%',
+		light: '45%',
+		medium: '70%',
+		heavy: '100%'
+	};
+
+	let workloadPresetOpen = $state(false);
+	let workloadPresetRoot = $state<HTMLElement>();
+	let workloadPresetTrigger = $state<HTMLButtonElement>();
+	let workloadPresetMenuStyle = $state('');
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const handUsageFields = $derived(getHandUsageStatFilterFieldsForAnalyzer(analyzer));
@@ -120,8 +136,13 @@
 	const showLikesFilter = $derived(
 		filterStore.canUseLikes && includeKey(LIKES_STAT_FILTER_FIELD.key)
 	);
-	const workloadPreference = $derived(filterStore.fingerWorkloadPreferences[analyzer]);
-	const workloadHandsLinked = $derived(filterStore.fingerWorkloadHandsAreLinked(analyzer));
+	const workloadPreference = $derived(filterStore.fingerWorkload.preference);
+	const workloadHandsLinked = $derived(filterStore.fingerWorkloadHandsAreLinked());
+	const activeWorkloadPreset = $derived(
+		FINGER_WORKLOAD_PRESETS.find((preset) =>
+			fingerWorkloadHandPreferencesEqual(workloadPreference.left, preset.preference)
+		)
+	);
 	const hasUsageLimits = $derived(leftUsageFields.length > 0 || rightUsageFields.length > 0);
 
 	/** Keep titled groups when `onlyKeys` is set; drop empty rows/groups. */
@@ -146,7 +167,84 @@
 	}
 
 	const hasLabeledGeneralGroups = $derived(visibleGeneralGroups.some(groupIsLabeled));
+
+	function workloadPresetSummary(preset: FingerWorkloadPreset): string {
+		return FINGER_WORKLOAD_FINGERS.map(
+			(finger, index) =>
+				`${index === 0 ? workloadFingerLabels[finger] : workloadFingerLabels[finger].toLowerCase()} ${preset.preference[finger]}`
+		).join(' · ');
+	}
+
+	function applyWorkloadPreset(preset: FingerWorkloadPreset) {
+		filterStore.setFingerWorkloadPreset(preset.preference);
+		workloadPresetOpen = false;
+		requestAnimationFrame(() => workloadPresetTrigger?.focus());
+	}
+
+	function positionWorkloadPresetMenu() {
+		if (!workloadPresetTrigger) return;
+
+		const triggerRect = workloadPresetTrigger.getBoundingClientRect();
+		const viewportPadding = 12;
+		const menuGap = 6;
+		const menuWidth = Math.min(416, window.innerWidth - viewportPadding * 2);
+		const menuLeft = Math.min(
+			Math.max(triggerRect.left, viewportPadding),
+			window.innerWidth - menuWidth - viewportPadding
+		);
+		const spaceBelow = window.innerHeight - triggerRect.bottom - viewportPadding - menuGap;
+		const spaceAbove = triggerRect.top - viewportPadding - menuGap;
+		const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
+		const maxHeight = Math.max(160, openAbove ? spaceAbove : spaceBelow);
+
+		workloadPresetMenuStyle = openAbove
+			? `left: ${menuLeft}px; top: auto; bottom: ${window.innerHeight - triggerRect.top + menuGap}px; width: ${menuWidth}px; max-height: ${maxHeight}px;`
+			: `left: ${menuLeft}px; top: ${triggerRect.bottom + menuGap}px; bottom: auto; width: ${menuWidth}px; max-height: ${maxHeight}px;`;
+	}
+
+	function toggleWorkloadPresetMenu() {
+		if (workloadPresetOpen) {
+			workloadPresetOpen = false;
+			return;
+		}
+		positionWorkloadPresetMenu();
+		workloadPresetOpen = true;
+	}
+
+	function handleWorkloadPresetWindowClick(event: MouseEvent) {
+		if (!workloadPresetOpen || !workloadPresetRoot) return;
+		const target = event.target as Node | null;
+		if (target && !workloadPresetRoot.contains(target)) workloadPresetOpen = false;
+	}
+
+	function handleWorkloadPresetWindowKeydown(event: KeyboardEvent) {
+		if (!workloadPresetOpen || event.key !== 'Escape') return;
+		event.preventDefault();
+		workloadPresetOpen = false;
+		requestAnimationFrame(() => workloadPresetTrigger?.focus());
+	}
+
+	function unlinkWorkloadHands() {
+		workloadPresetOpen = false;
+		filterStore.unlinkFingerWorkloadHands();
+	}
+
+	$effect(() => {
+		if (!workloadPresetOpen) return;
+		positionWorkloadPresetMenu();
+		window.addEventListener('resize', positionWorkloadPresetMenu);
+		window.addEventListener('scroll', positionWorkloadPresetMenu, true);
+		return () => {
+			window.removeEventListener('resize', positionWorkloadPresetMenu);
+			window.removeEventListener('scroll', positionWorkloadPresetMenu, true);
+		};
+	});
 </script>
+
+<svelte:window
+	onclick={handleWorkloadPresetWindowClick}
+	onkeydown={handleWorkloadPresetWindowKeydown}
+/>
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
 	{@const limit = filterStore.statLimits[field.key]}
@@ -217,6 +315,22 @@
 	</div>
 {/snippet}
 
+{#snippet workloadPresetShape(preset: FingerWorkloadPreset)}
+	<span class="finger-workload-preset-shape" aria-hidden="true">
+		{#each FINGER_WORKLOAD_FINGERS as finger (finger)}
+			<span class="finger-workload-preset-shape-column">
+				<span class="finger-workload-preset-bar-track">
+					<span
+						class="finger-workload-preset-bar"
+						style:height={workloadLevelBarHeights[preset.preference[finger]]}
+					></span>
+				</span>
+				<span class="finger-workload-preset-letter">{workloadFingerLabels[finger][0]}</span>
+			</span>
+		{/each}
+	</span>
+{/snippet}
+
 {#snippet workloadHandControls(hand: FingerWorkloadHand, label: string, linked = false)}
 	{@const handPreference = workloadPreference[hand]}
 	{@const handConfigured = hasConfiguredFingerWorkloadHandPreference(handPreference)}
@@ -225,6 +339,66 @@
 		<div class="finger-workload-hand-header">
 			<div class="stat-limits-hand-heading">{label}</div>
 		</div>
+		{#if linked}
+			<div bind:this={workloadPresetRoot} class="finger-workload-preset">
+				<button
+					bind:this={workloadPresetTrigger}
+					type="button"
+					class="finger-workload-preset-trigger"
+					aria-haspopup="listbox"
+					aria-expanded={workloadPresetOpen}
+					aria-controls="finger-workload-presets-{analyzer}"
+					onclick={toggleWorkloadPresetMenu}
+				>
+					{#if activeWorkloadPreset}
+						{@render workloadPresetShape(activeWorkloadPreset)}
+					{/if}
+					<span class="finger-workload-preset-trigger-label">
+						{activeWorkloadPreset?.label ?? 'Quick preset'}
+					</span>
+					<svg
+						class="finger-workload-preset-caret"
+						class:finger-workload-preset-caret--open={workloadPresetOpen}
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if workloadPresetOpen}
+					<div
+						id="finger-workload-presets-{analyzer}"
+						class="finger-workload-preset-menu"
+						style={workloadPresetMenuStyle}
+						role="listbox"
+						aria-label="Quick finger workload presets"
+					>
+						{#each FINGER_WORKLOAD_PRESETS as preset (preset.id)}
+							{@const selected = activeWorkloadPreset?.id === preset.id}
+							<button
+								type="button"
+								class="finger-workload-preset-option"
+								class:finger-workload-preset-option--selected={selected}
+								role="option"
+								aria-selected={selected}
+								onclick={() => applyWorkloadPreset(preset)}
+							>
+								{@render workloadPresetShape(preset)}
+								<span class="finger-workload-preset-option-copy">
+									<span class="finger-workload-preset-option-label">{preset.label}</span>
+									<span class="finger-workload-preset-option-summary">
+										{workloadPresetSummary(preset)}
+									</span>
+								</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 		<div class="finger-workload-list">
 			{#each FINGER_WORKLOAD_FINGERS as finger (finger)}
 				<label class="finger-workload-control">
@@ -237,7 +411,6 @@
 						data-finger-workload-key="{hand}-{finger}"
 						onchange={(event) =>
 							filterStore.setFingerWorkloadPreference(
-								analyzer,
 								hand,
 								finger,
 								event.currentTarget.value as FingerWorkloadLevel
@@ -318,7 +491,21 @@
 		</section>
 	{:else if section === 'finger-workload'}
 		<section class="finger-workload" aria-label="Finger workload filters">
-			<p class="finger-workload-description">Choose how much work you want each finger to carry.</p>
+			<label class="finger-workload-analyzer">
+				<span>Measure using</span>
+				<select
+					class="finger-workload-select"
+					style={fieldStyle}
+					value={filterStore.fingerWorkload.analyzer}
+					aria-label="Measure finger workload using"
+					onchange={(event) =>
+						filterStore.setFingerWorkloadAnalyzer(event.currentTarget.value as StatsAnalyzer)}
+				>
+					{#each STAT_ANALYZERS as analyzerOption (analyzerOption.value)}
+						<option value={analyzerOption.value}>{analyzerOption.shortLabel}</option>
+					{/each}
+				</select>
+			</label>
 			<div
 				class="finger-workload-hand-grid"
 				class:finger-workload-hand-grid--linked={workloadHandsLinked}
@@ -333,18 +520,14 @@
 			</div>
 			<div class="finger-workload-action-row">
 				{#if workloadHandsLinked}
-					<button
-						type="button"
-						class="finger-workload-action"
-						onclick={() => filterStore.unlinkFingerWorkloadHands(analyzer)}
-					>
+					<button type="button" class="finger-workload-action" onclick={unlinkWorkloadHands}>
 						Unlink hands
 					</button>
 				{:else}
 					<button
 						type="button"
 						class="finger-workload-action"
-						onclick={() => filterStore.relinkFingerWorkloadHands(analyzer)}
+						onclick={() => filterStore.relinkFingerWorkloadHands()}
 					>
 						Relink hands
 					</button>
@@ -551,11 +734,19 @@
 		padding-block: 0.125rem;
 	}
 
-	.finger-workload-description {
-		margin: 0 0 0.75rem;
-		font-size: 0.75rem;
-		line-height: 1.25rem;
+	.finger-workload-analyzer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.875rem;
 		color: var(--text-secondary);
+		font-size: 0.75rem;
+		line-height: 1rem;
+	}
+
+	.finger-workload-analyzer .finger-workload-select {
+		width: min(11rem, 58%);
 	}
 
 	.finger-workload-hand-grid {
@@ -583,6 +774,162 @@
 
 	.finger-workload-hand-header .stat-limits-hand-heading {
 		margin-bottom: 0;
+	}
+
+	.finger-workload-preset {
+		position: relative;
+		z-index: 2;
+		margin-bottom: 0.75rem;
+	}
+
+	.finger-workload-preset-trigger {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		width: 100%;
+		min-width: 0;
+		min-height: 2.5rem;
+		padding: 0.375rem 0.625rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background: var(--input-bg);
+		color: var(--text-primary);
+		font-size: 0.75rem;
+		line-height: 1rem;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.finger-workload-preset-trigger:hover {
+		border-color: var(--text-caption);
+	}
+
+	.finger-workload-preset-trigger:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.finger-workload-preset-trigger-label {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.finger-workload-preset-caret {
+		flex-shrink: 0;
+		width: 1rem;
+		height: 1rem;
+		color: var(--text-caption);
+		transition: transform 0.2s ease;
+	}
+
+	.finger-workload-preset-caret--open {
+		transform: rotate(180deg);
+	}
+
+	.finger-workload-preset-menu {
+		position: fixed;
+		z-index: 50;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		overflow-y: auto;
+		padding: 0.375rem;
+		border: 1px solid var(--border);
+		border-radius: 0.625rem;
+		background: var(--bg-primary);
+		box-shadow: 0 0.75rem 2rem color-mix(in srgb, #000 28%, transparent);
+	}
+
+	.finger-workload-preset-option {
+		display: grid;
+		grid-template-columns: 3.75rem minmax(0, 1fr);
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		min-width: 0;
+		padding: 0.5rem;
+		border: 1px solid transparent;
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--text-primary);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.finger-workload-preset-option:hover,
+	.finger-workload-preset-option:focus-visible {
+		border-color: var(--border);
+		background: var(--input-bg);
+		outline: none;
+	}
+
+	.finger-workload-preset-option--selected {
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+	}
+
+	.finger-workload-preset-option-copy {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		min-width: 0;
+	}
+
+	.finger-workload-preset-option-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1rem;
+	}
+
+	.finger-workload-preset-option-summary {
+		overflow: hidden;
+		color: var(--text-caption);
+		font-size: 0.6875rem;
+		line-height: 1rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.finger-workload-preset-shape {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.1875rem;
+		width: 3.25rem;
+		height: 2rem;
+		flex-shrink: 0;
+	}
+
+	.finger-workload-preset-shape-column {
+		display: grid;
+		grid-template-rows: minmax(0, 1fr) 0.625rem;
+		gap: 0.0625rem;
+		min-width: 0;
+	}
+
+	.finger-workload-preset-bar-track {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		min-height: 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.finger-workload-preset-bar {
+		display: block;
+		width: 100%;
+		min-height: 0.125rem;
+		border-radius: 0.125rem 0.125rem 0 0;
+		background: color-mix(in srgb, var(--accent) 72%, var(--text-secondary));
+	}
+
+	.finger-workload-preset-letter {
+		color: var(--text-caption);
+		font-size: 0.5rem;
+		line-height: 0.625rem;
+		text-align: center;
 	}
 
 	.finger-workload-action-row {

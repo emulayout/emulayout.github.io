@@ -3,6 +3,7 @@ import {
 	cloneFingerWorkloadPreferences,
 	createDefaultFingerWorkloadPreference,
 	createEmptyFingerWorkloadPreferences,
+	FINGER_WORKLOAD_PRESETS,
 	fingerWorkloadHandPreferencesEqual,
 	formatFingerWorkloadPreference,
 	hasActiveFingerWorkloadPreference,
@@ -13,6 +14,71 @@ import {
 } from '$lib/fingerWorkload';
 
 describe('finger workload preferences', () => {
+	test('defines the quick workload presets', () => {
+		expect(FINGER_WORKLOAD_PRESETS).toEqual([
+			{
+				id: 'middle-dominant',
+				label: 'Middle finger dominant',
+				preference: {
+					pinky: 'light',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'medium'
+				}
+			},
+			{
+				id: 'middle-dominant-low-pinkies',
+				label: 'Middle finger dominant (low pinkies)',
+				preference: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'medium'
+				}
+			},
+			{
+				id: 'middle-index-dominant',
+				label: 'Middle/index dominant',
+				preference: {
+					pinky: 'light',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'heavy'
+				}
+			},
+			{
+				id: 'middle-index-dominant-low-pinkies',
+				label: 'Middle/index dominant (low pinkies)',
+				preference: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'heavy',
+					index: 'heavy'
+				}
+			},
+			{
+				id: 'index-dominant',
+				label: 'Index dominant',
+				preference: {
+					pinky: 'lightest',
+					ring: 'light',
+					middle: 'medium',
+					index: 'heavy'
+				}
+			},
+			{
+				id: 'low-pinkies',
+				label: 'Low pinkies',
+				preference: {
+					pinky: 'lightest',
+					ring: 'heavy',
+					middle: 'heavy',
+					index: 'heavy'
+				}
+			}
+		]);
+	});
+
 	test('default, clone, and normalization keep analyzer preferences independent', () => {
 		const preferences = createEmptyFingerWorkloadPreferences();
 		preferences.cmini.left.middle = 'heavy';

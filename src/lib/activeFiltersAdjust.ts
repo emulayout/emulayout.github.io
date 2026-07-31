@@ -40,7 +40,7 @@ export type ActiveFiltersSnapshot = {
 	keyboard: ActiveKeyboardSnapshot;
 	keys: ActiveKeysSnapshot;
 	stats: ActiveStatSnapshotEntry[];
-	fingerWorkloadAnalyzers: StatsAnalyzer[];
+	fingerWorkload: boolean;
 	similarity: boolean;
 };
 
@@ -63,7 +63,6 @@ function limitActive(store: FilterStore, key: StatLimitKey): boolean {
 /** Build a freeze-on-enter snapshot from live/draft filter state. */
 export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSnapshot {
 	const stats: ActiveStatSnapshotEntry[] = [];
-	const fingerWorkloadAnalyzers: StatsAnalyzer[] = [];
 
 	for (const entry of STAT_ANALYZERS) {
 		const analyzer = entry.value;
@@ -91,9 +90,6 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 		for (const field of getFingerUsageStatFilterFieldsForAnalyzer(analyzer)) {
 			if (!limitActive(store, field.key)) continue;
 			stats.push({ analyzer, key: field.key, section: 'finger-usage' });
-		}
-		if (hasConfiguredFingerWorkloadPreference(store.fingerWorkloadPreferences[analyzer])) {
-			fingerWorkloadAnalyzers.push(analyzer);
 		}
 	}
 
@@ -127,7 +123,7 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 			)
 		},
 		stats,
-		fingerWorkloadAnalyzers,
+		fingerWorkload: hasConfiguredFingerWorkloadPreference(store.fingerWorkload.preference),
 		similarity: store.hasSimilarReference
 	};
 }

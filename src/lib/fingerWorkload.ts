@@ -1,4 +1,9 @@
-import { STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
+import {
+	DEFAULT_STATS_ANALYZER,
+	STAT_ANALYZERS,
+	isStatsAnalyzer,
+	type StatsAnalyzer
+} from '$lib/statsAnalyzers';
 
 export const FINGER_WORKLOAD_FINGERS = ['pinky', 'ring', 'middle', 'index'] as const;
 export const FINGER_WORKLOAD_LEVELS = ['none', 'lightest', 'light', 'medium', 'heavy'] as const;
@@ -9,7 +14,80 @@ export type FingerWorkloadLevel = (typeof FINGER_WORKLOAD_LEVELS)[number];
 export type FingerWorkloadHand = (typeof FINGER_WORKLOAD_HANDS)[number];
 export type FingerWorkloadHandPreference = Record<FingerWorkloadFinger, FingerWorkloadLevel>;
 export type FingerWorkloadPreference = Record<FingerWorkloadHand, FingerWorkloadHandPreference>;
+export type FingerWorkloadConfig = {
+	analyzer: StatsAnalyzer;
+	preference: FingerWorkloadPreference;
+};
+/** Legacy analyzer-scoped shape retained for saved-view and URL migration. */
 export type FingerWorkloadPreferences = Record<StatsAnalyzer, FingerWorkloadPreference>;
+export type FingerWorkloadPreset = {
+	id: string;
+	label: string;
+	preference: FingerWorkloadHandPreference;
+};
+
+export const FINGER_WORKLOAD_PRESETS: readonly FingerWorkloadPreset[] = [
+	{
+		id: 'middle-dominant',
+		label: 'Middle finger dominant',
+		preference: {
+			pinky: 'light',
+			ring: 'light',
+			middle: 'heavy',
+			index: 'medium'
+		}
+	},
+	{
+		id: 'middle-dominant-low-pinkies',
+		label: 'Middle finger dominant (low pinkies)',
+		preference: {
+			pinky: 'lightest',
+			ring: 'light',
+			middle: 'heavy',
+			index: 'medium'
+		}
+	},
+	{
+		id: 'middle-index-dominant',
+		label: 'Middle/index dominant',
+		preference: {
+			pinky: 'light',
+			ring: 'light',
+			middle: 'heavy',
+			index: 'heavy'
+		}
+	},
+	{
+		id: 'middle-index-dominant-low-pinkies',
+		label: 'Middle/index dominant (low pinkies)',
+		preference: {
+			pinky: 'lightest',
+			ring: 'light',
+			middle: 'heavy',
+			index: 'heavy'
+		}
+	},
+	{
+		id: 'index-dominant',
+		label: 'Index dominant',
+		preference: {
+			pinky: 'lightest',
+			ring: 'light',
+			middle: 'medium',
+			index: 'heavy'
+		}
+	},
+	{
+		id: 'low-pinkies',
+		label: 'Low pinkies',
+		preference: {
+			pinky: 'lightest',
+			ring: 'heavy',
+			middle: 'heavy',
+			index: 'heavy'
+		}
+	}
+];
 
 const LEVEL_RANK: Record<FingerWorkloadLevel, number> = {
 	none: 0,
@@ -38,6 +116,13 @@ export function createDefaultFingerWorkloadPreference(): FingerWorkloadPreferenc
 	};
 }
 
+export function createDefaultFingerWorkloadConfig(): FingerWorkloadConfig {
+	return {
+		analyzer: DEFAULT_STATS_ANALYZER,
+		preference: createDefaultFingerWorkloadPreference()
+	};
+}
+
 export function createDefaultFingerWorkloadHandPreference(): FingerWorkloadHandPreference {
 	return {
 		pinky: 'none',
@@ -63,6 +148,22 @@ export function cloneFingerWorkloadPreferences(
 		}
 	}
 	return clone;
+}
+
+export function cloneFingerWorkloadPreference(
+	preference: FingerWorkloadPreference
+): FingerWorkloadPreference {
+	return {
+		left: { ...preference.left },
+		right: { ...preference.right }
+	};
+}
+
+export function cloneFingerWorkloadConfig(config: FingerWorkloadConfig): FingerWorkloadConfig {
+	return {
+		analyzer: config.analyzer,
+		preference: cloneFingerWorkloadPreference(config.preference)
+	};
 }
 
 export function isFingerWorkloadLevel(value: unknown): value is FingerWorkloadLevel {
@@ -99,6 +200,67 @@ export function normalizeFingerWorkloadPreferences(
 		}
 	}
 	return normalized;
+}
+
+export function normalizeFingerWorkloadPreference(
+	value: unknown,
+	fallback: FingerWorkloadPreference = createDefaultFingerWorkloadPreference()
+): FingerWorkloadPreference {
+	const normalized = cloneFingerWorkloadPreference(fallback);
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return normalized;
+
+	for (const hand of FINGER_WORKLOAD_HANDS) {
+		const handCandidate = (value as Record<string, unknown>)[hand];
+		if (!handCandidate || typeof handCandidate !== 'object' || Array.isArray(handCandidate)) {
+			continue;
+		}
+		for (const finger of FINGER_WORKLOAD_FINGERS) {
+			const level = (handCandidate as Record<string, unknown>)[finger];
+			if (isFingerWorkloadLevel(level)) normalized[hand][finger] = level;
+		}
+	}
+	return normalized;
+}
+
+/**
+ * Normalize the standalone workload filter while accepting the previous
+ * analyzer-keyed shape from saved views and shared URLs.
+ */
+export function normalizeFingerWorkloadConfig(
+	value: unknown,
+	fallback: FingerWorkloadConfig = createDefaultFingerWorkloadConfig()
+): FingerWorkloadConfig {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return cloneFingerWorkloadConfig(fallback);
+	}
+
+	const record = value as Record<string, unknown>;
+	const requestedAnalyzer =
+		typeof record.analyzer === 'string' && isStatsAnalyzer(record.analyzer)
+			? record.analyzer
+			: fallback.analyzer;
+	if (record.preference) {
+		return {
+			analyzer: requestedAnalyzer,
+			preference: normalizeFingerWorkloadPreference(record.preference, fallback.preference)
+		};
+	}
+
+	const legacy = normalizeFingerWorkloadPreferences(value);
+	const analyzer =
+		(hasConfiguredFingerWorkloadPreference(legacy[requestedAnalyzer])
+			? requestedAnalyzer
+			: STAT_ANALYZERS.find(({ value: candidate }) =>
+					hasConfiguredFingerWorkloadPreference(legacy[candidate])
+				)?.value) ?? requestedAnalyzer;
+	return {
+		analyzer,
+		preference: cloneFingerWorkloadPreference(
+			hasConfiguredFingerWorkloadPreference(legacy[analyzer])
+				? legacy[analyzer]
+				: fallback.preference
+		)
+	};
 }
 
 export function hasConfiguredFingerWorkloadHandPreference(
@@ -154,6 +316,12 @@ export function analyzersNeededForFingerWorkloadPreferences(
 	return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) =>
 		hasActiveFingerWorkloadPreference(preferences[analyzer])
 	);
+}
+
+export function analyzersNeededForFingerWorkloadConfig(
+	config: FingerWorkloadConfig
+): StatsAnalyzer[] {
+	return hasActiveFingerWorkloadPreference(config.preference) ? [config.analyzer] : [];
 }
 
 export function formatFingerWorkloadHandPreference(

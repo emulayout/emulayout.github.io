@@ -32,8 +32,7 @@
 	/** Hidden analyzer still narrowing results via applied stat filters. */
 	const hiddenAnalyzerFilterCaution = $derived(
 		getHiddenAnalyzerFilterCaution(filterStore.statsAnalyzer, filterStore.appliedStatLimits, {
-			includeLikes: filterStore.canUseLikes,
-			fingerWorkloadPreferences: filterStore.appliedFingerWorkloadPreferences
+			includeLikes: filterStore.canUseLikes
 		})
 	);
 

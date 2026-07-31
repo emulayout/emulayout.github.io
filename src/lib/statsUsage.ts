@@ -16,9 +16,9 @@ import {
 } from '$lib/statsFiltering';
 import { getStatSortAnalyzer, getStatSortField, type SortBy } from '$lib/statsSorting';
 import {
-	analyzersNeededForFingerWorkloadPreferences,
+	analyzersNeededForFingerWorkloadConfig,
 	hasActiveFingerWorkloadPreference,
-	type FingerWorkloadPreferences
+	type FingerWorkloadConfig
 } from '$lib/fingerWorkload';
 
 /**
@@ -45,7 +45,7 @@ export function countActiveStatFiltersForAnalyzer(
 	analyzer: StatsAnalyzer,
 	options?: {
 		includeLikes?: boolean;
-		fingerWorkloadPreferences?: FingerWorkloadPreferences;
+		fingerWorkload?: FingerWorkloadConfig;
 	}
 ): number {
 	let count = 0;
@@ -54,8 +54,8 @@ export function countActiveStatFiltersForAnalyzer(
 	}
 	if (options?.includeLikes && limits.likes?.value.trim()) count += 1;
 	if (
-		options?.fingerWorkloadPreferences &&
-		hasActiveFingerWorkloadPreference(options.fingerWorkloadPreferences[analyzer])
+		options?.fingerWorkload?.analyzer === analyzer &&
+		hasActiveFingerWorkloadPreference(options.fingerWorkload.preference)
 	) {
 		count += 1;
 	}
@@ -83,7 +83,7 @@ export type AnalyzersNeededForLoadOptions = {
 	/** Applied (or draft) limits — analyzers with active values are included. */
 	limits?: Record<StatLimitKey, { value: string }>;
 	/** Applied (or draft) relative finger-workload preferences. */
-	fingerWorkloadPreferences?: FingerWorkloadPreferences;
+	fingerWorkload?: FingerWorkloadConfig;
 	/** Include the analyzer that owns this sort key, if any. */
 	sortBy?: SortBy;
 };
@@ -107,10 +107,8 @@ export function analyzersNeededForLoad(options: AnalyzersNeededForLoadOptions): 
 		}
 	}
 
-	if (options.fingerWorkloadPreferences) {
-		for (const analyzer of analyzersNeededForFingerWorkloadPreferences(
-			options.fingerWorkloadPreferences
-		)) {
+	if (options.fingerWorkload) {
+		for (const analyzer of analyzersNeededForFingerWorkloadConfig(options.fingerWorkload)) {
 			needed.add(analyzer);
 		}
 	}
@@ -129,7 +127,7 @@ export function getHiddenAnalyzerFilterCaution(
 	limits: Record<StatLimitKey, { value: string }>,
 	options?: {
 		includeLikes?: boolean;
-		fingerWorkloadPreferences?: FingerWorkloadPreferences;
+		fingerWorkload?: FingerWorkloadConfig;
 	}
 ): { analyzer: StatsAnalyzer; count: number; text: string } | null {
 	const visible = new Set(resolveStatsAnalyzers(displayMode));
@@ -137,7 +135,7 @@ export function getHiddenAnalyzerFilterCaution(
 		if (visible.has(analyzer)) continue;
 		const count = countActiveStatFiltersForAnalyzer(limits, analyzer, {
 			includeLikes: Boolean(options?.includeLikes) && analyzer === CMINI_ANALYZER,
-			fingerWorkloadPreferences: options?.fingerWorkloadPreferences
+			fingerWorkload: options?.fingerWorkload
 		});
 		if (count === 0) continue;
 		const label = analyzerShortLabel(analyzer);

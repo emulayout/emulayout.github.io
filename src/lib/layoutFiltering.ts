@@ -44,8 +44,8 @@ import {
 import {
 	hasActiveFingerWorkloadPreference,
 	matchesFingerWorkloadPreference,
-	type FingerWorkloadPreference,
-	type FingerWorkloadPreferences
+	type FingerWorkloadConfig,
+	type FingerWorkloadPreference
 } from './fingerWorkload';
 
 export interface LayoutFilterCriteria {
@@ -71,7 +71,7 @@ export interface LayoutFilterCriteria {
 	excludeLeftThumbKeys: string[];
 	excludeRightThumbKeys: string[];
 	statLimits: Record<StatLimitKey, StatLimit>;
-	fingerWorkloadPreferences: FingerWorkloadPreferences;
+	fingerWorkload: FingerWorkloadConfig;
 	canUseLikes: boolean;
 }
 
@@ -291,7 +291,7 @@ function matchesBoardType(layout: LayoutData, filter: BoardTypeFilter): boolean 
 
 function buildActiveAnalyzerStatFilters(
 	limits: Record<StatLimitKey, StatLimit>,
-	fingerWorkloadPreferences: FingerWorkloadPreferences
+	fingerWorkloadConfig: FingerWorkloadConfig
 ): ActiveAnalyzerStatFilters[] {
 	const active: ActiveAnalyzerStatFilters[] = [];
 
@@ -307,9 +307,11 @@ function buildActiveAnalyzerStatFilters(
 				statKey: getStatFilterStatKey(field)
 			});
 		}
-		const fingerWorkload = hasActiveFingerWorkloadPreference(fingerWorkloadPreferences[analyzer])
-			? fingerWorkloadPreferences[analyzer]
-			: null;
+		const fingerWorkload =
+			fingerWorkloadConfig.analyzer === analyzer &&
+			hasActiveFingerWorkloadPreference(fingerWorkloadConfig.preference)
+				? fingerWorkloadConfig.preference
+				: null;
 		if (checks.length > 0 || fingerWorkload) active.push({ analyzer, checks, fingerWorkload });
 	}
 
@@ -372,7 +374,7 @@ export function filterLayouts(
 ): LayoutData[] {
 	const activeFilters = buildActiveAnalyzerStatFilters(
 		criteria.statLimits,
-		criteria.fingerWorkloadPreferences
+		criteria.fingerWorkload
 	);
 	let likesCheck: LikesLimitCheck | null = null;
 	if (criteria.canUseLikes) {

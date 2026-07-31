@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import {
@@ -169,8 +170,7 @@
 				includeLikes: filterStore.canUseLikes
 			}) ||
 			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hand-usage') ||
-			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'finger-usage') ||
-			hasConfiguredFingerWorkloadPreference(filterStore.fingerWorkloadPreferences[analyzer])
+			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'finger-usage')
 		);
 	}
 
@@ -219,10 +219,23 @@
 		}
 	}
 
+	function workloadIsOpen(): boolean {
+		return Boolean(openById[FINGER_WORKLOAD_ID]);
+	}
+
+	function toggleWorkload() {
+		const next = !workloadIsOpen();
+		openById[FINGER_WORKLOAD_ID] = next;
+		if (!next && focusWorkload) {
+			focusWorkload = false;
+			focusAnalyzer = null;
+			focusAccordionId = null;
+		}
+	}
+
 	function clearAnalyzer(analyzer: StatsAnalyzer) {
 		filterStore.clearGeneralStatLimits(analyzer);
 		filterStore.clearHandStatLimits(analyzer);
-		filterStore.clearFingerWorkloadPreferences(analyzer);
 	}
 
 	function clearAccordion(analyzer: StatsAnalyzer, keys: readonly StatLimitKey[]) {
@@ -251,6 +264,20 @@
 		const accordionId = workload
 			? FINGER_WORKLOAD_ID
 			: accordionIdForKey(analyzer, req.key, req.section);
+		if (workload) {
+			openById[FINGER_WORKLOAD_ID] = true;
+			focusAnalyzer = analyzer;
+			focusAccordionId = accordionId;
+			focusKey = null;
+			focusWorkload = true;
+			focusToken = req.seq;
+			afterPaint(() => {
+				document
+					.getElementById('stat-filters-finger-workload-accordion')
+					?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+			});
+			return;
+		}
 		selectedAnalyzer = analyzer;
 		openById[accordionDomId(analyzer, accordionId)] = true;
 		focusAnalyzer = analyzer;
@@ -267,21 +294,26 @@
 
 	$effect(() => {
 		if (!focusAnalyzer || !focusAccordionId || (!focusKey && !focusWorkload) || !focusToken) return;
-		if (selectedAnalyzer !== focusAnalyzer) return;
-		if (!isOpen(focusAnalyzer, focusAccordionId)) return;
+		if (focusWorkload) {
+			if (!workloadIsOpen()) return;
+			afterPaint(() => {
+				focusFilterControl(
+					document.querySelector<HTMLElement>(
+						'#stat-filters-finger-workload-panel [data-finger-workload-key]'
+					)
+				);
+			});
+			return;
+		}
+		if (selectedAnalyzer !== focusAnalyzer || !isOpen(focusAnalyzer, focusAccordionId)) return;
 		const analyzer = focusAnalyzer;
 		const accordionId = focusAccordionId;
 		const key = focusKey;
-		const workload = focusWorkload;
 		afterPaint(() => {
 			focusFilterControl(
-				workload
-					? document.querySelector<HTMLElement>(
-							`#stat-filters-${analyzer}-${accordionId}-panel [data-finger-workload-key]`
-						)
-					: document.querySelector<HTMLElement>(
-							`#stat-filters-${analyzer}-${accordionId}-panel [data-stat-limit-key="${key}"]`
-						)
+				document.querySelector<HTMLElement>(
+					`#stat-filters-${analyzer}-${accordionId}-panel [data-stat-limit-key="${key}"]`
+				)
 			);
 		});
 	});
@@ -434,17 +466,15 @@
 	</div>
 {/snippet}
 
-{#snippet workloadAccordion(analyzer: StatsAnalyzer, analyzerLabel: string)}
-	{@const open = isOpen(analyzer, FINGER_WORKLOAD_ID)}
-	{@const active = hasConfiguredFingerWorkloadPreference(
-		filterStore.fingerWorkloadPreferences[analyzer]
-	)}
-	{@const panelId = `stat-filters-${analyzer}-${FINGER_WORKLOAD_ID}-panel`}
+{#snippet workloadAccordion()}
+	{@const open = workloadIsOpen()}
+	{@const active = hasConfiguredFingerWorkloadPreference(filterStore.fingerWorkload.preference)}
+	{@const panelId = 'stat-filters-finger-workload-panel'}
 	<div
-		id="stat-filters-{analyzer}-{FINGER_WORKLOAD_ID}-accordion"
+		id="stat-filters-finger-workload-accordion"
 		class="filter-accordion"
 		class:filter-accordion--open={open}
-		style="background-color: var(--bg-primary); border: 1px solid var(--border);"
+		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
 		<div class="filter-accordion-header">
 			<button
@@ -452,7 +482,7 @@
 				class="filter-accordion-trigger"
 				aria-expanded={open}
 				aria-controls={panelId}
-				onclick={() => toggle(analyzer, FINGER_WORKLOAD_ID)}
+				onclick={toggleWorkload}
 			>
 				<span class="sr-only"
 					>Finger workload{#if active}, active filters{/if}</span
@@ -478,13 +508,16 @@
 						{/if}
 					</span>
 				</span>
+				<div class="filter-accordion-header-hint">
+					<Tooltip text="Choose how much work you want each finger to carry." />
+				</div>
 				<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
 				{#if active}
 					<div class="filter-accordion-header-actions">
 						<button
 							type="button"
 							class="filter-reset-button shrink-0"
-							onclick={() => filterStore.clearFingerWorkloadPreferences(analyzer)}
+							onclick={() => filterStore.clearFingerWorkloadPreference()}
 						>
 							Reset all
 						</button>
@@ -494,13 +527,12 @@
 		</div>
 
 		{#if open}
-			<div
-				id={panelId}
-				class="filter-accordion-panel"
-				role="region"
-				aria-label="{analyzerLabel} Finger workload"
-			>
-				<StatLimitFiltersBody section="finger-workload" {analyzer} stacked />
+			<div id={panelId} class="filter-accordion-panel" role="region" aria-label="Finger workload">
+				<StatLimitFiltersBody
+					section="finger-workload"
+					analyzer={filterStore.fingerWorkload.analyzer}
+					stacked
+				/>
 			</div>
 		{/if}
 	</div>
@@ -539,7 +571,6 @@
 			<div class="filter-accordion-group">
 				{@render usageAccordion(analyzer, analyzerLabel, HAND_USAGE_ID, 'Hand usage')}
 				{@render usageAccordion(analyzer, analyzerLabel, FINGER_USAGE_ID, 'Finger usage')}
-				{@render workloadAccordion(analyzer, analyzerLabel)}
 			</div>
 
 			{#each CATEGORIES.slice(2) as category (category.id)}
@@ -559,33 +590,44 @@
 	</div>
 {/snippet}
 
-<div
-	class="stat-filters"
-	style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
->
-	<div class="filter-section-header">
-		<span class="filter-section-header-label">Analyzer filters</span>
-	</div>
-	<AnalyzerTabs
-		variant="filters"
-		ariaLabel="Analyzer filters"
-		value={selectedAnalyzer}
-		onChange={(next) => (selectedAnalyzer = next)}
-		isActive={analyzerIsActive}
-		idPrefix="stat-filters-tab"
-		controls="stat-filters-tabpanel"
-	/>
-
+<div class="stat-filter-sections">
+	{@render workloadAccordion()}
 	<div
-		id="stat-filters-tabpanel"
-		role="region"
-		aria-labelledby="stat-filters-tab-{selectedAnalyzer}"
+		class="stat-filters"
+		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
 	>
-		{@render analyzerPanel(selectedAnalyzer, selectedAnalyzerDef.shortLabel)}
+		<div class="filter-section-header">
+			<span class="filter-section-header-label">Analyzer filters</span>
+		</div>
+		<AnalyzerTabs
+			variant="filters"
+			ariaLabel="Analyzer filters"
+			value={selectedAnalyzer}
+			onChange={(next) => (selectedAnalyzer = next)}
+			isActive={analyzerIsActive}
+			idPrefix="stat-filters-tab"
+			controls="stat-filters-tabpanel"
+		/>
+
+		<div
+			id="stat-filters-tabpanel"
+			role="region"
+			aria-labelledby="stat-filters-tab-{selectedAnalyzer}"
+		>
+			{@render analyzerPanel(selectedAnalyzer, selectedAnalyzerDef.shortLabel)}
+		</div>
 	</div>
 </div>
 
 <style>
+	.stat-filter-sections {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		width: 100%;
+		min-width: 0;
+	}
+
 	.stat-filters {
 		display: flex;
 		flex-direction: column;

@@ -6,7 +6,9 @@ import {
 	FINGER_WORKLOAD_FINGERS,
 	FINGER_WORKLOAD_HANDS,
 	createEmptyFingerWorkloadPreferences,
+	normalizeFingerWorkloadConfig,
 	isFingerWorkloadLevel,
+	type FingerWorkloadConfig,
 	type FingerWorkloadPreferences
 } from './fingerWorkload';
 import {
@@ -88,25 +90,19 @@ export function parseStatLimitsParam(
 	return deserializeStatLimits(str?.trim() ?? '');
 }
 
-export function serializeFingerWorkloadPreferences(preferences: FingerWorkloadPreferences): string {
-	const analyzers: string[] = [];
-	for (const [analyzer, preference] of Object.entries(preferences)) {
-		const fingers = FINGER_WORKLOAD_HANDS.flatMap((hand) =>
-			FINGER_WORKLOAD_FINGERS.flatMap((finger) => {
-				const level = preference[hand][finger];
-				return level === 'none' ? [] : [`${hand}.${finger}:${level}`];
-			})
-		);
-		if (fingers.length > 0) analyzers.push(`${analyzer}=${fingers.join('|')}`);
-	}
-	return analyzers.join(',');
+export function serializeFingerWorkload(config: FingerWorkloadConfig): string {
+	const fingers = FINGER_WORKLOAD_HANDS.flatMap((hand) =>
+		FINGER_WORKLOAD_FINGERS.flatMap((finger) => {
+			const level = config.preference[hand][finger];
+			return level === 'none' ? [] : [`${hand}.${finger}:${level}`];
+		})
+	);
+	return fingers.length > 0 ? `${config.analyzer}=${fingers.join('|')}` : '';
 }
 
-export function deserializeFingerWorkloadPreferences(
-	value: string | null | undefined
-): FingerWorkloadPreferences {
+export function deserializeFingerWorkload(value: string | null | undefined): FingerWorkloadConfig {
 	const preferences = createEmptyFingerWorkloadPreferences();
-	if (!value) return preferences;
+	if (!value) return normalizeFingerWorkloadConfig(preferences);
 
 	for (const analyzerPart of value.split(',')) {
 		const [analyzer, encodedFingers] = analyzerPart.split('=');
@@ -135,7 +131,7 @@ export function deserializeFingerWorkloadPreferences(
 			}
 		}
 	}
-	return preferences;
+	return normalizeFingerWorkloadConfig(preferences);
 }
 
 export function serializeThumbFilters(filters: string[]): string {
@@ -230,9 +226,7 @@ export function writeViewFilterUrlState(
 	const statLimitsSerialized = serializeStatLimits(snapshot.appliedStatLimits);
 	if (statLimitsSerialized) params.set('statLimits', statLimitsSerialized);
 
-	const fingerWorkloadSerialized = serializeFingerWorkloadPreferences(
-		snapshot.appliedFingerWorkloadPreferences
-	);
+	const fingerWorkloadSerialized = serializeFingerWorkload(snapshot.appliedFingerWorkload);
 	if (fingerWorkloadSerialized) params.set('fingerWorkload', fingerWorkloadSerialized);
 }
 
@@ -425,9 +419,8 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 
 	const fingerWorkload = params.get('fingerWorkload');
 	if (fingerWorkload) {
-		snapshot.fingerWorkloadPreferences = deserializeFingerWorkloadPreferences(fingerWorkload);
-		snapshot.appliedFingerWorkloadPreferences =
-			deserializeFingerWorkloadPreferences(fingerWorkload);
+		snapshot.fingerWorkload = deserializeFingerWorkload(fingerWorkload);
+		snapshot.appliedFingerWorkload = deserializeFingerWorkload(fingerWorkload);
 	}
 
 	const layoutsParam = params.get('layouts');

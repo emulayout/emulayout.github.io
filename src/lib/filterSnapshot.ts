@@ -2,10 +2,10 @@ import { ALL_STAT_FILTER_FIELDS, type StatLimitKey } from '$lib/statsFiltering';
 import { isSortOrder, normalizeSortBy, type SortBy, type SortOrder } from '$lib/statsSorting';
 import { isSimilarityMirrorMode, type SimilarityMirrorMode } from '$lib/layoutSimilarity';
 import {
-	cloneFingerWorkloadPreferences,
-	createEmptyFingerWorkloadPreferences,
-	normalizeFingerWorkloadPreferences,
-	type FingerWorkloadPreferences
+	cloneFingerWorkloadConfig,
+	createDefaultFingerWorkloadConfig,
+	normalizeFingerWorkloadConfig,
+	type FingerWorkloadConfig
 } from '$lib/fingerWorkload';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
@@ -62,7 +62,7 @@ export type ViewFilterSnapshot = {
 	sortBeforeSimilar: SortSnapshot | null;
 	exitSortRestore: SortSnapshot | null;
 	statLimits: Record<StatLimitKey, StatLimit>;
-	fingerWorkloadPreferences: FingerWorkloadPreferences;
+	fingerWorkload: FingerWorkloadConfig;
 	appliedIncludeGrid: string[][];
 	appliedExcludeGrid: string[][];
 	appliedIncludeOrGrid: string[][];
@@ -73,7 +73,7 @@ export type ViewFilterSnapshot = {
 	appliedExcludeLeftThumbKeys: string[];
 	appliedExcludeRightThumbKeys: string[];
 	appliedStatLimits: Record<StatLimitKey, StatLimit>;
-	appliedFingerWorkloadPreferences: FingerWorkloadPreferences;
+	appliedFingerWorkload: FingerWorkloadConfig;
 };
 
 export const FILTER_GRID_ROWS = 3;
@@ -146,7 +146,7 @@ export function cloneViewFilterSnapshot(snapshot: ViewFilterSnapshot): ViewFilte
 		sortBeforeSimilar: cloneSortSnapshot(snapshot.sortBeforeSimilar),
 		exitSortRestore: cloneSortSnapshot(snapshot.exitSortRestore),
 		statLimits: cloneStatLimits(snapshot.statLimits),
-		fingerWorkloadPreferences: cloneFingerWorkloadPreferences(snapshot.fingerWorkloadPreferences),
+		fingerWorkload: cloneFingerWorkloadConfig(snapshot.fingerWorkload),
 		appliedIncludeGrid: cloneFilterGrid(snapshot.appliedIncludeGrid),
 		appliedExcludeGrid: cloneFilterGrid(snapshot.appliedExcludeGrid),
 		appliedIncludeOrGrid: cloneFilterGrid(snapshot.appliedIncludeOrGrid),
@@ -157,9 +157,7 @@ export function cloneViewFilterSnapshot(snapshot: ViewFilterSnapshot): ViewFilte
 		appliedExcludeLeftThumbKeys: cloneThumbKeyFilters(snapshot.appliedExcludeLeftThumbKeys),
 		appliedExcludeRightThumbKeys: cloneThumbKeyFilters(snapshot.appliedExcludeRightThumbKeys),
 		appliedStatLimits: cloneStatLimits(snapshot.appliedStatLimits),
-		appliedFingerWorkloadPreferences: cloneFingerWorkloadPreferences(
-			snapshot.appliedFingerWorkloadPreferences
-		)
+		appliedFingerWorkload: cloneFingerWorkloadConfig(snapshot.appliedFingerWorkload)
 	};
 }
 
@@ -198,7 +196,7 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		sortBeforeSimilar: null,
 		exitSortRestore: null,
 		statLimits: createEmptyStatLimits(),
-		fingerWorkloadPreferences: createEmptyFingerWorkloadPreferences(),
+		fingerWorkload: createDefaultFingerWorkloadConfig(),
 		appliedIncludeGrid: createEmptyFilterGrid(),
 		appliedExcludeGrid: createEmptyFilterGrid(),
 		appliedIncludeOrGrid: createEmptyFilterGrid(),
@@ -209,7 +207,7 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		appliedExcludeLeftThumbKeys: createEmptyThumbKeyFilters(),
 		appliedExcludeRightThumbKeys: createEmptyThumbKeyFilters(),
 		appliedStatLimits: createEmptyStatLimits(),
-		appliedFingerWorkloadPreferences: createEmptyFingerWorkloadPreferences()
+		appliedFingerWorkload: createDefaultFingerWorkloadConfig()
 	};
 }
 
@@ -329,9 +327,9 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		similarReferenceName
 	);
 	const statLimits = normalizeStatLimits(value.statLimits, defaults.statLimits);
-	const fingerWorkloadPreferences = normalizeFingerWorkloadPreferences(
-		value.fingerWorkloadPreferences,
-		defaults.fingerWorkloadPreferences
+	const fingerWorkload = normalizeFingerWorkloadConfig(
+		value.fingerWorkload ?? value.fingerWorkloadPreferences,
+		defaults.fingerWorkload
 	);
 
 	return {
@@ -422,7 +420,7 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		sortBeforeSimilar: normalizeSortSnapshot(value.sortBeforeSimilar),
 		exitSortRestore: normalizeSortSnapshot(value.exitSortRestore),
 		statLimits,
-		fingerWorkloadPreferences,
+		fingerWorkload,
 		appliedIncludeGrid: normalizeGrid(value.appliedIncludeGrid, includeGrid),
 		appliedExcludeGrid: normalizeGrid(value.appliedExcludeGrid, excludeGrid),
 		appliedIncludeOrGrid: normalizeGrid(value.appliedIncludeOrGrid, includeOrGrid),
@@ -451,9 +449,9 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			excludeRightThumbKeys
 		),
 		appliedStatLimits: normalizeStatLimits(value.appliedStatLimits, statLimits),
-		appliedFingerWorkloadPreferences: normalizeFingerWorkloadPreferences(
-			value.appliedFingerWorkloadPreferences,
-			fingerWorkloadPreferences
+		appliedFingerWorkload: normalizeFingerWorkloadConfig(
+			value.appliedFingerWorkload ?? value.appliedFingerWorkloadPreferences,
+			fingerWorkload
 		)
 	};
 }

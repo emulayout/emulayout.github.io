@@ -20,15 +20,17 @@ import {
 import { isAnalyzerStatsReady } from './layoutStatsAccess';
 import { analyzersNeededForLimits } from './statsUsage';
 import {
-	analyzersNeededForFingerWorkloadPreferences,
-	cloneFingerWorkloadPreferences,
-	createEmptyFingerWorkloadPreferences,
+	analyzersNeededForFingerWorkloadConfig,
+	cloneFingerWorkloadConfig,
+	createDefaultFingerWorkloadConfig,
+	createDefaultFingerWorkloadPreference,
 	fingerWorkloadHandPreferencesEqual,
-	hasConfiguredFingerWorkloadPreferences,
+	hasConfiguredFingerWorkloadPreference,
+	type FingerWorkloadConfig,
 	type FingerWorkloadFinger,
 	type FingerWorkloadHand,
-	type FingerWorkloadLevel,
-	type FingerWorkloadPreferences
+	type FingerWorkloadHandPreference,
+	type FingerWorkloadLevel
 } from './fingerWorkload';
 import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import type { SimilarityMirrorMode } from './layoutSimilarity';
@@ -125,13 +127,6 @@ export type { SavedFilter };
 
 const DEBOUNCE_MS = 300;
 
-function createLinkedFingerWorkloadHands(): Record<StatsAnalyzer, boolean> {
-	return Object.fromEntries(STAT_ANALYZERS.map(({ value }) => [value, true])) as Record<
-		StatsAnalyzer,
-		boolean
-	>;
-}
-
 export class FilterStore {
 	includeGrid: string[][] = $state(createEmptyFilterGrid());
 	excludeGrid: string[][] = $state(createEmptyFilterGrid());
@@ -226,13 +221,9 @@ export class FilterStore {
 	stickySimilarityCard: boolean = $state(true);
 	likesDataAvailable: boolean = $state(false);
 	statLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
-	fingerWorkloadPreferences: FingerWorkloadPreferences = $state(
-		createEmptyFingerWorkloadPreferences()
-	);
+	fingerWorkload: FingerWorkloadConfig = $state(createDefaultFingerWorkloadConfig());
 	/** UI mode only: linked edits mirror the same finger preferences to both hands. */
-	fingerWorkloadHandsLinked: Record<StatsAnalyzer, boolean> = $state(
-		createLinkedFingerWorkloadHands()
-	);
+	fingerWorkloadHandsLinked: boolean = $state(true);
 
 	/** Debounced copies used by filterLayouts (UI grids/limits update immediately). */
 	appliedIncludeGrid: string[][] = $state(createEmptyFilterGrid());
@@ -245,9 +236,7 @@ export class FilterStore {
 	appliedExcludeLeftThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedExcludeRightThumbKeys: string[] = $state(createEmptyThumbKeyFilters());
 	appliedStatLimits: Record<StatLimitKey, StatLimit> = $state(createEmptyStatLimits());
-	appliedFingerWorkloadPreferences: FingerWorkloadPreferences = $state(
-		createEmptyFingerWorkloadPreferences()
-	);
+	appliedFingerWorkload: FingerWorkloadConfig = $state(createDefaultFingerWorkloadConfig());
 	/** Bumped when debounced applied filters commit — stable dependency for chips/results UI. */
 	appliedFiltersRevision: number = $state(0);
 
@@ -301,9 +290,7 @@ export class FilterStore {
 		this.appliedExcludeLeftThumbKeys = cloneThumbKeyFilters(this.excludeLeftThumbKeys);
 		this.appliedExcludeRightThumbKeys = cloneThumbKeyFilters(this.excludeRightThumbKeys);
 		this.appliedStatLimits = cloneStatLimits(this.statLimits);
-		this.appliedFingerWorkloadPreferences = cloneFingerWorkloadPreferences(
-			this.fingerWorkloadPreferences
-		);
+		this.appliedFingerWorkload = cloneFingerWorkloadConfig(this.fingerWorkload);
 		this.appliedSimilarityFilterValue = this.similarityFilterValue;
 		this.nameFilter = this.nameFilterInput;
 		this.appliedFiltersRevision += 1;
@@ -362,8 +349,8 @@ export class FilterStore {
 		this.hideNewLayoutIndicator = false;
 		this.stickySimilarityCard = true;
 		this.statLimits = createEmptyStatLimits();
-		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
-		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
+		this.fingerWorkload = createDefaultFingerWorkloadConfig();
+		this.fingerWorkloadHandsLinked = true;
 	}
 
 	#loadFromUrl() {
@@ -573,7 +560,7 @@ export class FilterStore {
 			sortBeforeSimilar: this.#sortBeforeSimilar,
 			exitSortRestore: this.#exitSortRestore,
 			statLimits: this.statLimits,
-			fingerWorkloadPreferences: this.fingerWorkloadPreferences,
+			fingerWorkload: this.fingerWorkload,
 			appliedIncludeGrid: this.appliedIncludeGrid,
 			appliedExcludeGrid: this.appliedExcludeGrid,
 			appliedIncludeOrGrid: this.appliedIncludeOrGrid,
@@ -584,7 +571,7 @@ export class FilterStore {
 			appliedExcludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
 			appliedExcludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
 			appliedStatLimits: this.appliedStatLimits,
-			appliedFingerWorkloadPreferences: this.appliedFingerWorkloadPreferences
+			appliedFingerWorkload: this.appliedFingerWorkload
 		});
 	}
 
@@ -626,7 +613,7 @@ export class FilterStore {
 		this.#sortBeforeSimilar = restored.sortBeforeSimilar;
 		this.#exitSortRestore = restored.exitSortRestore;
 		this.statLimits = restored.statLimits;
-		this.fingerWorkloadPreferences = restored.fingerWorkloadPreferences;
+		this.fingerWorkload = restored.fingerWorkload;
 		this.appliedIncludeGrid = restored.appliedIncludeGrid;
 		this.appliedExcludeGrid = restored.appliedExcludeGrid;
 		this.appliedIncludeOrGrid = restored.appliedIncludeOrGrid;
@@ -637,7 +624,7 @@ export class FilterStore {
 		this.appliedExcludeLeftThumbKeys = restored.appliedExcludeLeftThumbKeys;
 		this.appliedExcludeRightThumbKeys = restored.appliedExcludeRightThumbKeys;
 		this.appliedStatLimits = restored.appliedStatLimits;
-		this.appliedFingerWorkloadPreferences = restored.appliedFingerWorkloadPreferences;
+		this.appliedFingerWorkload = restored.appliedFingerWorkload;
 		this.appliedFiltersRevision += 1;
 	}
 
@@ -881,36 +868,49 @@ export class FilterStore {
 	}
 
 	setFingerWorkloadPreference(
-		analyzer: StatsAnalyzer,
 		hand: FingerWorkloadHand,
 		finger: FingerWorkloadFinger,
 		level: FingerWorkloadLevel
 	) {
-		const handsLinked = this.fingerWorkloadHandsAreLinked(analyzer);
-		this.fingerWorkloadPreferences[analyzer][hand][finger] = level;
+		const handsLinked = this.fingerWorkloadHandsAreLinked();
+		this.fingerWorkload.preference[hand][finger] = level;
 		if (handsLinked) {
 			const otherHand = hand === 'left' ? 'right' : 'left';
-			this.fingerWorkloadPreferences[analyzer][otherHand][finger] = level;
+			this.fingerWorkload.preference[otherHand][finger] = level;
 		}
 		this.#scheduleFilterApply();
 	}
 
-	fingerWorkloadHandsAreLinked(analyzer: StatsAnalyzer): boolean {
-		const preference = this.fingerWorkloadPreferences[analyzer];
+	setFingerWorkloadPreset(preset: FingerWorkloadHandPreference) {
+		this.fingerWorkload.preference = {
+			left: { ...preset },
+			right: { ...preset }
+		};
+		this.fingerWorkloadHandsLinked = true;
+		this.#scheduleFilterApply();
+	}
+
+	setFingerWorkloadAnalyzer(analyzer: StatsAnalyzer) {
+		this.fingerWorkload.analyzer = analyzer;
+		this.#scheduleFilterApply();
+	}
+
+	fingerWorkloadHandsAreLinked(): boolean {
+		const preference = this.fingerWorkload.preference;
 		return (
-			this.fingerWorkloadHandsLinked[analyzer] &&
+			this.fingerWorkloadHandsLinked &&
 			fingerWorkloadHandPreferencesEqual(preference.left, preference.right)
 		);
 	}
 
-	unlinkFingerWorkloadHands(analyzer: StatsAnalyzer) {
-		this.fingerWorkloadHandsLinked[analyzer] = false;
+	unlinkFingerWorkloadHands() {
+		this.fingerWorkloadHandsLinked = false;
 	}
 
-	relinkFingerWorkloadHands(analyzer: StatsAnalyzer) {
-		const preference = this.fingerWorkloadPreferences[analyzer];
+	relinkFingerWorkloadHands() {
+		const preference = this.fingerWorkload.preference;
 		preference.right = { ...preference.left };
-		this.fingerWorkloadHandsLinked[analyzer] = true;
+		this.fingerWorkloadHandsLinked = true;
 		this.#scheduleFilterApply();
 	}
 
@@ -1026,8 +1026,8 @@ export class FilterStore {
 
 	clearStatLimits() {
 		this.statLimits = createEmptyStatLimits();
-		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
-		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
+		this.fingerWorkload = createDefaultFingerWorkloadConfig();
+		this.fingerWorkloadHandsLinked = true;
 		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
@@ -1061,9 +1061,9 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	clearFingerWorkloadPreferences(analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER) {
-		this.fingerWorkloadPreferences[analyzer] = createEmptyFingerWorkloadPreferences()[analyzer];
-		this.fingerWorkloadHandsLinked[analyzer] = true;
+	clearFingerWorkloadPreference() {
+		this.fingerWorkload.preference = createDefaultFingerWorkloadPreference();
+		this.fingerWorkloadHandsLinked = true;
 		this.#applyFiltersNow();
 		this.#debouncedSave();
 	}
@@ -1544,8 +1544,8 @@ export class FilterStore {
 		this.#restoreSortAfterSimilar();
 		this.#resetSimilarityFilter();
 		this.statLimits = createEmptyStatLimits();
-		this.fingerWorkloadPreferences = createEmptyFingerWorkloadPreferences();
-		this.fingerWorkloadHandsLinked = createLinkedFingerWorkloadHands();
+		this.fingerWorkload = createDefaultFingerWorkloadConfig();
+		this.fingerWorkloadHandsLinked = true;
 		this.#cancelFilterApply();
 		this.#applyFiltersNow();
 		// Push so Back can restore the previous filter URL.
@@ -1626,25 +1626,22 @@ export class FilterStore {
 	 */
 	#analyzersNeededForStatFilters(
 		limits: Record<StatLimitKey, StatLimit>,
-		fingerWorkloadPreferences: FingerWorkloadPreferences
+		fingerWorkload: FingerWorkloadConfig
 	): StatsAnalyzer[] {
 		const needed = new Set([
 			...analyzersNeededForLimits(limits),
-			...analyzersNeededForFingerWorkloadPreferences(fingerWorkloadPreferences)
+			...analyzersNeededForFingerWorkloadConfig(fingerWorkload)
 		]);
 		return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) => needed.has(analyzer));
 	}
 
 	get analyzersNeededForStatLimits(): StatsAnalyzer[] {
-		return this.#analyzersNeededForStatFilters(
-			this.appliedStatLimits,
-			this.appliedFingerWorkloadPreferences
-		);
+		return this.#analyzersNeededForStatFilters(this.appliedStatLimits, this.appliedFingerWorkload);
 	}
 
 	get hasActiveStatLimits(): boolean {
 		if (analyzersNeededForLimits(this.statLimits).length > 0) return true;
-		if (hasConfiguredFingerWorkloadPreferences(this.fingerWorkloadPreferences)) return true;
+		if (hasConfiguredFingerWorkloadPreference(this.fingerWorkload.preference)) return true;
 		return this.canUseLikes && this.statLimits.likes.value.trim() !== '';
 	}
 
@@ -1755,7 +1752,7 @@ export class FilterStore {
 				excludeLeftThumbKeys: this.appliedExcludeLeftThumbKeys,
 				excludeRightThumbKeys: this.appliedExcludeRightThumbKeys,
 				statLimits: this.appliedStatLimits,
-				fingerWorkloadPreferences: this.appliedFingerWorkloadPreferences,
+				fingerWorkload: this.appliedFingerWorkload,
 				canUseLikes: this.canUseLikes
 			},
 			statsMaps,

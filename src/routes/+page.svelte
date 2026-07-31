@@ -58,7 +58,7 @@
 			showStats: filterStore.showLayoutStats,
 			displayMode: filterStore.statsAnalyzer,
 			limits: filterStore.appliedStatLimits,
-			fingerWorkloadPreferences: filterStore.appliedFingerWorkloadPreferences,
+			fingerWorkload: filterStore.appliedFingerWorkload,
 			sortBy: filterStore.sortBy
 		})
 	);
