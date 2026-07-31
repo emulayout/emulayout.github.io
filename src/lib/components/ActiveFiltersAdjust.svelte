@@ -32,19 +32,22 @@
 		const groups: Array<{
 			analyzer: StatsAnalyzer;
 			general: StatLimitKey[];
-			hands: StatLimitKey[];
+			handUsage: StatLimitKey[];
+			fingerUsage: StatLimitKey[];
 		}> = [];
 
 		for (const entry of STAT_ANALYZERS) {
 			const general: StatLimitKey[] = [];
-			const hands: StatLimitKey[] = [];
+			const handUsage: StatLimitKey[] = [];
+			const fingerUsage: StatLimitKey[] = [];
 			for (const item of snapshot.stats) {
 				if (item.analyzer !== entry.value) continue;
 				if (item.section === 'general') general.push(item.key);
-				else hands.push(item.key);
+				else if (item.section === 'hand-usage') handUsage.push(item.key);
+				else fingerUsage.push(item.key);
 			}
-			if (general.length > 0 || hands.length > 0) {
-				groups.push({ analyzer: entry.value, general, hands });
+			if (general.length > 0 || handUsage.length > 0 || fingerUsage.length > 0) {
+				groups.push({ analyzer: entry.value, general, handUsage, fingerUsage });
 			}
 		}
 		return groups;
@@ -191,12 +194,20 @@
 						onlyKeys={group.general}
 					/>
 				{/if}
-				{#if group.hands.length > 0}
+				{#if group.handUsage.length > 0}
 					<StatLimitFiltersBody
-						section="hands"
+						section="hand-usage"
 						analyzer={group.analyzer}
 						stacked
-						onlyKeys={group.hands}
+						onlyKeys={group.handUsage}
+					/>
+				{/if}
+				{#if group.fingerUsage.length > 0}
+					<StatLimitFiltersBody
+						section="finger-usage"
+						analyzer={group.analyzer}
+						stacked
+						onlyKeys={group.fingerUsage}
 					/>
 				{/if}
 			</div>

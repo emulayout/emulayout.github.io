@@ -9,8 +9,9 @@
 	import {
 		GENERAL_STAT_FILTER_COLUMN_COUNT,
 		getGeneralStatFilterGroupsForAnalyzer,
-		getLeftHandStatFilterFieldsForAnalyzer,
-		getRightHandStatFilterFieldsForAnalyzer,
+		getHandUsageStatFilterFieldsForAnalyzer,
+		getLeftFingerUsageStatFilterFieldsForAnalyzer,
+		getRightFingerUsageStatFilterFieldsForAnalyzer,
 		LIKES_STAT_FILTER_FIELD,
 		type StatFilterField,
 		type StatLimitKey
@@ -76,12 +77,21 @@
 	const generalStatFilterColumnIndices = [...Array(GENERAL_STAT_FILTER_COLUMN_COUNT).keys()];
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
-	const leftHandFields = $derived(
-		getLeftHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
-	);
-	const rightHandFields = $derived(
-		getRightHandStatFilterFieldsForAnalyzer(analyzer).filter((field) => includeKey(field.key))
-	);
+	const handUsageFields = $derived(getHandUsageStatFilterFieldsForAnalyzer(analyzer));
+	const leftUsageFields = $derived.by(() => {
+		const fields =
+			section === 'hand-usage'
+				? handUsageFields.slice(0, 1)
+				: getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer);
+		return fields.filter((field) => includeKey(field.key));
+	});
+	const rightUsageFields = $derived.by(() => {
+		const fields =
+			section === 'hand-usage'
+				? handUsageFields.slice(1)
+				: getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer);
+		return fields.filter((field) => includeKey(field.key));
+	});
 	/** Cyanophage uses long single-field rows; mana2/cmini keep related stats on one row. */
 	const generalStacked = $derived(stacked || analyzer === CYANOPHAGE_ANALYZER);
 	const showLikesFilter = $derived(
@@ -212,24 +222,27 @@
 				</div>
 			{/if}
 		</section>
-	{:else if leftHandFields.length > 0 || rightHandFields.length > 0}
-		<section class="stat-limits-hands" aria-label="Hand and finger stat filters">
+	{:else if leftUsageFields.length > 0 || rightUsageFields.length > 0}
+		<section
+			class="stat-limits-hands"
+			aria-label={section === 'hand-usage' ? 'Hand usage filters' : 'Finger usage filters'}
+		>
 			<div class="stat-limits-hand-grid">
-				{#if leftHandFields.length > 0}
+				{#if leftUsageFields.length > 0}
 					<div class="stat-limits-group--labeled">
 						<div class="stat-limits-hand-heading">Left hand</div>
 						<div class="stat-limits-hand-list">
-							{#each leftHandFields as field (field.key)}
+							{#each leftUsageFields as field (field.key)}
 								{@render statLimitControl(field, '3.25rem')}
 							{/each}
 						</div>
 					</div>
 				{/if}
-				{#if rightHandFields.length > 0}
+				{#if rightUsageFields.length > 0}
 					<div class="stat-limits-group--labeled">
 						<div class="stat-limits-hand-heading">Right hand</div>
 						<div class="stat-limits-hand-list">
-							{#each rightHandFields as field (field.key)}
+							{#each rightUsageFields as field (field.key)}
 								{@render statLimitControl(field, '3.25rem')}
 							{/each}
 						</div>

@@ -8,10 +8,14 @@ import {
 	ALL_STAT_FILTER_FIELDS,
 	GENERAL_STAT_FILTER_COLUMN_COUNT,
 	LIKES_STAT_FILTER_FIELD,
+	getFingerUsageStatFilterFieldsForAnalyzer,
 	getGeneralStatFilterGroupsForAnalyzer,
 	getHandStatFilterFieldsForAnalyzer,
+	getHandUsageStatFilterFieldsForAnalyzer,
 	getLeftHandStatFilterFieldsForAnalyzer,
+	getLeftFingerUsageStatFilterFieldsForAnalyzer,
 	getRightHandStatFilterFieldsForAnalyzer,
+	getRightFingerUsageStatFilterFieldsForAnalyzer,
 	getStatFilterCatalogForAnalyzer,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
@@ -54,6 +58,10 @@ describe('stats filtering catalog', () => {
 			expect(getLeftHandStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(6);
 			expect(getRightHandStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(6);
 			expect(getHandStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(12);
+			expect(getHandUsageStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(2);
+			expect(getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(5);
+			expect(getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(5);
+			expect(getFingerUsageStatFilterFieldsForAnalyzer(analyzer)).toHaveLength(10);
 			expect(getStatFilterFieldsForAnalyzer(analyzer)).toBe(
 				getStatFilterFieldsForAnalyzer(analyzer)
 			);
@@ -88,8 +96,12 @@ describe('stats filtering catalog', () => {
 		expect(hasActiveStatFilterSection(limits, CMINI_ANALYZER, 'general')).toBe(false);
 
 		limits['mana-LI'].value = '10';
-		expect(hasActiveStatFilterSection(limits, MANA2_ANALYZER, 'hands')).toBe(true);
-		expect(hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'hands')).toBe(false);
+		expect(hasActiveStatFilterSection(limits, MANA2_ANALYZER, 'finger-usage')).toBe(true);
+		expect(hasActiveStatFilterSection(limits, MANA2_ANALYZER, 'hand-usage')).toBe(false);
+		expect(hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'finger-usage')).toBe(false);
+
+		limits['mana-lh'].value = '45';
+		expect(hasActiveStatFilterSection(limits, MANA2_ANALYZER, 'hand-usage')).toBe(true);
 	});
 
 	test('attributes the optional likes filter only to cmini', () => {

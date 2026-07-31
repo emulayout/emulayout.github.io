@@ -20,9 +20,10 @@ import {
 	type StatsAnalyzer
 } from '$lib/statsAnalyzers';
 import {
+	getHandUsageStatFilterFieldsForAnalyzer,
 	getGeneralStatFilterRowsForAnalyzer,
-	getLeftHandStatFilterFieldsForAnalyzer,
-	getRightHandStatFilterFieldsForAnalyzer,
+	getLeftFingerUsageStatFilterFieldsForAnalyzer,
+	getRightFingerUsageStatFilterFieldsForAnalyzer,
 	LIKES_STAT_FILTER_FIELD,
 	type StatFilterField,
 	type StatLimitKey
@@ -156,7 +157,9 @@ function handSummaryLabel(hand: 'LH' | 'RH', field: StatFilterField): string {
 		field.key === 'lh' ||
 		field.key === 'rh' ||
 		field.key === 'cyano-lh' ||
-		field.key === 'cyano-rh';
+		field.key === 'cyano-rh' ||
+		field.key === 'mana-lh' ||
+		field.key === 'mana-rh';
 	return isHandTotal ? hand : `${hand} ${field.label}`;
 }
 
@@ -419,8 +422,9 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 			}
 		}
 
-		for (const field of getLeftHandStatFilterFieldsForAnalyzer(analyzer)) {
-			const part = formatActiveLimit(appliedLimits, field, handSummaryLabel('LH', field));
+		for (const [index, field] of getHandUsageStatFilterFieldsForAnalyzer(analyzer).entries()) {
+			const hand = index === 0 ? 'LH' : 'RH';
+			const part = formatActiveLimit(appliedLimits, field, handSummaryLabel(hand, field));
 			if (!part) continue;
 			pushChip(
 				chips,
@@ -429,7 +433,7 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 				{ kind: 'statLimit', key: field.key },
 				{
 					target: 'stats',
-					section: 'hands',
+					section: 'hand-usage',
 					analyzer,
 					key: field.key
 				},
@@ -437,23 +441,28 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 				analyzerTitle
 			);
 		}
-		for (const field of getRightHandStatFilterFieldsForAnalyzer(analyzer)) {
-			const part = formatActiveLimit(appliedLimits, field, handSummaryLabel('RH', field));
-			if (!part) continue;
-			pushChip(
-				chips,
-				`hand-${field.key}`,
-				part,
-				{ kind: 'statLimit', key: field.key },
-				{
-					target: 'stats',
-					section: 'hands',
-					analyzer,
-					key: field.key
-				},
-				tone,
-				analyzerTitle
-			);
+		for (const [hand, fields] of [
+			['LH', getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer)],
+			['RH', getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer)]
+		] as const) {
+			for (const field of fields) {
+				const part = formatActiveLimit(appliedLimits, field, handSummaryLabel(hand, field));
+				if (!part) continue;
+				pushChip(
+					chips,
+					`finger-${field.key}`,
+					part,
+					{ kind: 'statLimit', key: field.key },
+					{
+						target: 'stats',
+						section: 'finger-usage',
+						analyzer,
+						key: field.key
+					},
+					tone,
+					analyzerTitle
+				);
+			}
 		}
 	}
 

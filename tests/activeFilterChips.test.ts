@@ -18,6 +18,8 @@ describe('active filter chips', () => {
 		snapshot.adaptiveSwapFilter = 'required-mapped';
 		snapshot.appliedIncludeGrid[0][0] = 'a';
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
+		snapshot.appliedStatLimits['cyano-lh'] = { operator: 'gt', value: '45' };
+		snapshot.appliedStatLimits['cyano-LI'] = { operator: 'lt', value: '24' };
 		snapshot.similarReferenceName = 'Graphite';
 		snapshot.appliedSimilarityFilterValue = '70';
 
@@ -35,6 +37,8 @@ describe('active filter chips', () => {
 			'board',
 			'keys-and',
 			'stat-cyano-sfb',
+			'hand-cyano-lh',
+			'finger-cyano-LI',
 			'similarity'
 		]);
 		expect(chips.find(({ id }) => id === 'source')).toMatchObject({
@@ -50,6 +54,24 @@ describe('active filter chips', () => {
 				section: 'general',
 				analyzer: 'cyanophage',
 				key: 'cyano-sfb'
+			}
+		});
+		expect(chips.find(({ id }) => id === 'hand-cyano-lh')).toMatchObject({
+			label: 'LH > 45%',
+			focus: {
+				target: 'stats',
+				section: 'hand-usage',
+				analyzer: 'cyanophage',
+				key: 'cyano-lh'
+			}
+		});
+		expect(chips.find(({ id }) => id === 'finger-cyano-LI')).toMatchObject({
+			label: 'LH Index < 24%',
+			focus: {
+				target: 'stats',
+				section: 'finger-usage',
+				analyzer: 'cyanophage',
+				key: 'cyano-LI'
 			}
 		});
 		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity > 70%');

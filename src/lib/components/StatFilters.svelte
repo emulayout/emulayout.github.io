@@ -13,12 +13,15 @@
 		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
 	import {
-		getHandStatFilterFieldsForAnalyzer,
+		getFingerUsageStatFilterFieldsForAnalyzer,
+		getHandUsageStatFilterFieldsForAnalyzer,
 		hasActiveStatFilterSection,
+		type StatFilterSection,
 		type StatLimitKey
 	} from '$lib/statsFiltering';
 
 	type StatCategory = 'bigram' | 'trigram' | 'other';
+	type UsageStatFilterSection = Exclude<StatFilterSection, 'general'>;
 
 	interface StatAccordionDef {
 		id: string;
@@ -32,7 +35,8 @@
 		{ id: 'other', label: 'Other' }
 	];
 
-	const HANDS_ID = 'hands';
+	const HAND_USAGE_ID = 'hand-usage';
+	const FINGER_USAGE_ID = 'finger-usage';
 
 	/** Category → subgroup accordions per analyzer. */
 	const ACCORDIONS: Record<StatsAnalyzer, Record<StatCategory, readonly StatAccordionDef[]>> = {
@@ -160,7 +164,9 @@
 		return (
 			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'general', {
 				includeLikes: filterStore.canUseLikes
-			}) || hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hands')
+			}) ||
+			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hand-usage') ||
+			hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'finger-usage')
 		);
 	}
 
@@ -168,25 +174,33 @@
 		return visibleKeys(keys).some(limitIsActive);
 	}
 
-	function handsIsActive(analyzer: StatsAnalyzer): boolean {
-		return hasActiveStatFilterSection(filterStore.statLimits, analyzer, 'hands');
+	function usageKeys(
+		analyzer: StatsAnalyzer,
+		section: UsageStatFilterSection
+	): readonly StatLimitKey[] {
+		return section === 'hand-usage'
+			? getHandUsageStatFilterFieldsForAnalyzer(analyzer).map((field) => field.key)
+			: getFingerUsageStatFilterFieldsForAnalyzer(analyzer).map((field) => field.key);
 	}
 
 	function accordionIdForKey(
 		analyzer: StatsAnalyzer,
 		key: StatLimitKey,
-		section: 'general' | 'hands'
+		section: StatFilterSection
 	): string {
-		if (section === 'hands') return HANDS_ID;
+		if (section !== 'general') return section;
 		for (const category of CATEGORIES) {
 			for (const entry of ACCORDIONS[analyzer][category.id]) {
 				if (entry.keys.includes(key)) return entry.id;
 			}
 		}
-		if (getHandStatFilterFieldsForAnalyzer(analyzer).some((field) => field.key === key)) {
-			return HANDS_ID;
+		if (getHandUsageStatFilterFieldsForAnalyzer(analyzer).some((field) => field.key === key)) {
+			return HAND_USAGE_ID;
 		}
-		return ACCORDIONS[analyzer].other[0]?.id ?? HANDS_ID;
+		if (getFingerUsageStatFilterFieldsForAnalyzer(analyzer).some((field) => field.key === key)) {
+			return FINGER_USAGE_ID;
+		}
+		return ACCORDIONS[analyzer].other[0]?.id ?? HAND_USAGE_ID;
 	}
 
 	function toggle(analyzer: StatsAnalyzer, id: string) {
@@ -209,10 +223,6 @@
 		for (const key of visibleKeys(keys)) {
 			filterStore.clearStatLimit(key);
 		}
-	}
-
-	function clearHands(analyzer: StatsAnalyzer) {
-		filterStore.clearHandStatLimits(analyzer);
 	}
 
 	$effect(() => {
@@ -321,11 +331,84 @@
 	</div>
 {/snippet}
 
+{#snippet usageAccordion(
+	analyzer: StatsAnalyzer,
+	analyzerLabel: string,
+	section: UsageStatFilterSection,
+	label: string
+)}
+	{@const keys = usageKeys(analyzer, section)}
+	{@const open = isOpen(analyzer, section)}
+	{@const active = accordionIsActive(analyzer, keys)}
+	{@const panelId = `stat-filters-${analyzer}-${section}-panel`}
+	<div
+		id="stat-filters-{analyzer}-{section}-accordion"
+		class="filter-accordion"
+		class:filter-accordion--open={open}
+		style="background-color: var(--bg-primary); border: 1px solid var(--border);"
+	>
+		<div class="filter-accordion-header">
+			<button
+				type="button"
+				class="filter-accordion-trigger"
+				aria-expanded={open}
+				aria-controls={panelId}
+				onclick={() => toggle(analyzer, section)}
+			>
+				<span class="sr-only"
+					>{label}{#if active}, active filters{/if}</span
+				>
+			</button>
+			<div class="filter-accordion-header-face">
+				<span class="filter-accordion-trigger-main">
+					<svg
+						class="filter-accordion-caret"
+						class:filter-accordion-caret--expanded={open}
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+					</svg>
+					<span class="filter-accordion-trigger-label">
+						{label}
+						{#if active}
+							<span class="filter-open-button-dot" aria-hidden="true"></span>
+						{/if}
+					</span>
+				</span>
+				<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
+				{#if active}
+					<div class="filter-accordion-header-actions">
+						<button
+							type="button"
+							class="filter-reset-button shrink-0"
+							onclick={() => clearAccordion(analyzer, keys)}
+						>
+							Reset all
+						</button>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		{#if open}
+			<div
+				id={panelId}
+				class="filter-accordion-panel"
+				role="region"
+				aria-label="{analyzerLabel} {label}"
+			>
+				<StatLimitFiltersBody {section} {analyzer} onlyKeys={keys} stacked />
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
 {#snippet analyzerPanel(analyzer: StatsAnalyzer, analyzerLabel: string)}
 	{@const analyzerActive = analyzerIsActive(analyzer)}
-	{@const handsOpen = isOpen(analyzer, HANDS_ID)}
-	{@const handsActive = handsIsActive(analyzer)}
-	{@const handsPanelId = `stat-filters-${analyzer}-${HANDS_ID}-panel`}
 	<div class="stat-analyzer-panel">
 		{#if analyzerActive}
 			<div class="stat-analyzer-panel-toolbar">
@@ -355,70 +438,8 @@
 			{/each}
 
 			<div class="filter-accordion-group">
-				<div
-					id="stat-filters-{analyzer}-{HANDS_ID}-accordion"
-					class="filter-accordion"
-					class:filter-accordion--open={handsOpen}
-					style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-				>
-					<div class="filter-accordion-header">
-						<button
-							type="button"
-							class="filter-accordion-trigger"
-							aria-expanded={handsOpen}
-							aria-controls={handsPanelId}
-							onclick={() => toggle(analyzer, HANDS_ID)}
-						>
-							<span class="sr-only">
-								Hands &amp; fingers{#if handsActive}, active filters{/if}
-							</span>
-						</button>
-						<div class="filter-accordion-header-face">
-							<span class="filter-accordion-trigger-main">
-								<svg
-									class="filter-accordion-caret"
-									class:filter-accordion-caret--expanded={handsOpen}
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="2"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-								</svg>
-								<span class="filter-accordion-trigger-label">
-									Hands &amp; fingers
-									{#if handsActive}
-										<span class="filter-open-button-dot" aria-hidden="true"></span>
-									{/if}
-								</span>
-							</span>
-							<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
-							{#if handsActive}
-								<div class="filter-accordion-header-actions">
-									<button
-										type="button"
-										class="filter-reset-button shrink-0"
-										onclick={() => clearHands(analyzer)}
-									>
-										Reset all
-									</button>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					{#if handsOpen}
-						<div
-							id={handsPanelId}
-							class="filter-accordion-panel"
-							role="region"
-							aria-label="{analyzerLabel} Hands & fingers"
-						>
-							<StatLimitFiltersBody section="hands" {analyzer} stacked />
-						</div>
-					{/if}
-				</div>
+				{@render usageAccordion(analyzer, analyzerLabel, HAND_USAGE_ID, 'Hand usage')}
+				{@render usageAccordion(analyzer, analyzerLabel, FINGER_USAGE_ID, 'Finger usage')}
 			</div>
 
 			{#each CATEGORIES.slice(2) as category (category.id)}

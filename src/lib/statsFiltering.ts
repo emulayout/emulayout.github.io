@@ -23,7 +23,7 @@ export * from '$lib/statFilters/cyanophage';
 export * from '$lib/statFilters/mana2';
 export * from '$lib/statFilters/shared';
 
-export type StatFilterSection = 'general' | 'hands';
+export type StatFilterSection = 'general' | 'hand-usage' | 'finger-usage';
 
 const STAT_FILTER_CATALOG_BY_ANALYZER = {
 	[CMINI_ANALYZER]: CMINI_STAT_FILTER_CATALOG,
@@ -84,6 +84,36 @@ export function getHandStatFilterFieldsForAnalyzer(
 	return getStatFilterCatalogForAnalyzer(analyzer).handFields;
 }
 
+export function getHandUsageStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	const catalog = getStatFilterCatalogForAnalyzer(analyzer);
+	return [catalog.leftHandFields[0], catalog.rightHandFields[0]].filter(
+		(field): field is StatFilterField => field !== undefined
+	);
+}
+
+export function getLeftFingerUsageStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return getStatFilterCatalogForAnalyzer(analyzer).leftHandFields.slice(1);
+}
+
+export function getRightFingerUsageStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return getStatFilterCatalogForAnalyzer(analyzer).rightHandFields.slice(1);
+}
+
+export function getFingerUsageStatFilterFieldsForAnalyzer(
+	analyzer: StatsAnalyzer
+): readonly StatFilterField[] {
+	return [
+		...getLeftFingerUsageStatFilterFieldsForAnalyzer(analyzer),
+		...getRightFingerUsageStatFilterFieldsForAnalyzer(analyzer)
+	];
+}
+
 export function getStatFilterFieldsForAnalyzer(
 	analyzer: StatsAnalyzer
 ): readonly StatFilterField[] {
@@ -102,8 +132,12 @@ export function hasActiveStatFilterSection(
 	section: StatFilterSection,
 	options: { includeLikes?: boolean } = {}
 ): boolean {
-	if (section === 'hands') {
-		return hasActiveStatLimit(limits, getHandStatFilterFieldsForAnalyzer(analyzer));
+	if (section === 'hand-usage') {
+		return hasActiveStatLimit(limits, getHandUsageStatFilterFieldsForAnalyzer(analyzer));
+	}
+
+	if (section === 'finger-usage') {
+		return hasActiveStatLimit(limits, getFingerUsageStatFilterFieldsForAnalyzer(analyzer));
 	}
 
 	if (hasActiveStatLimit(limits, getGeneralStatFilterRowsForAnalyzer(analyzer).flat())) {

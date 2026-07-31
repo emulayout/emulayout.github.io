@@ -4,9 +4,9 @@ import type { StatFilterSection } from '$lib/statsFiltering';
 import { CMINI_ANALYZER, STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
 import {
 	LIKES_STAT_FILTER_FIELD,
+	getFingerUsageStatFilterFieldsForAnalyzer,
 	getGeneralStatFilterRowsForAnalyzer,
-	getLeftHandStatFilterFieldsForAnalyzer,
-	getRightHandStatFilterFieldsForAnalyzer,
+	getHandUsageStatFilterFieldsForAnalyzer,
 	type StatLimitKey
 } from '$lib/statsFiltering';
 
@@ -81,13 +81,13 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 			}
 		}
 
-		for (const field of getLeftHandStatFilterFieldsForAnalyzer(analyzer)) {
+		for (const field of getHandUsageStatFilterFieldsForAnalyzer(analyzer)) {
 			if (!limitActive(store, field.key)) continue;
-			stats.push({ analyzer, key: field.key, section: 'hands' });
+			stats.push({ analyzer, key: field.key, section: 'hand-usage' });
 		}
-		for (const field of getRightHandStatFilterFieldsForAnalyzer(analyzer)) {
+		for (const field of getFingerUsageStatFilterFieldsForAnalyzer(analyzer)) {
 			if (!limitActive(store, field.key)) continue;
-			stats.push({ analyzer, key: field.key, section: 'hands' });
+			stats.push({ analyzer, key: field.key, section: 'finger-usage' });
 		}
 	}
 
