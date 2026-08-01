@@ -1,15 +1,67 @@
 <script lang="ts">
+	import DisplaySettingsPanel from '$lib/components/DisplaySettingsPanel.svelte';
+	import ExportViewsPanel from '$lib/components/ExportViewsPanel.svelte';
+	import ImportViewsPanel from '$lib/components/ImportViewsPanel.svelte';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
-	import { filterStore } from '$lib/filterStore.svelte';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
+	import type { TabOption } from '$lib/tabs';
+
+	type SettingsSection = 'display' | 'import' | 'export';
+
+	const sections: TabOption<SettingsSection>[] = [
+		{
+			value: 'display',
+			label: 'Display settings',
+			id: 'settings-tab-display',
+			controls: 'settings-panel-display'
+		},
+		{
+			value: 'import',
+			label: 'Import views',
+			id: 'settings-tab-import',
+			controls: 'settings-panel-import'
+		},
+		{
+			value: 'export',
+			label: 'Export views',
+			id: 'settings-tab-export',
+			controls: 'settings-panel-export'
+		}
+	];
 
 	let open = $state(false);
+	let activeSection = $state<SettingsSection>('display');
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined);
+	let importSnackbar = $state<string | null>(null);
+	let importSnackbarTimer: number | undefined;
+
+	$effect(() => {
+		if (open) return;
+		importSnackbar = null;
+		if (importSnackbarTimer !== undefined) {
+			window.clearTimeout(importSnackbarTimer);
+			importSnackbarTimer = undefined;
+		}
+	});
+
+	function openSettings() {
+		activeSection = 'display';
+		open = true;
+	}
 
 	function close() {
 		open = false;
 		queueMicrotask(() => settingsButton?.focus());
+	}
+
+	function showImportSnackbar(message: string) {
+		importSnackbar = message;
+		if (importSnackbarTimer !== undefined) window.clearTimeout(importSnackbarTimer);
+		importSnackbarTimer = window.setTimeout(() => {
+			importSnackbar = null;
+			importSnackbarTimer = undefined;
+		}, 3000);
 	}
 </script>
 
@@ -17,7 +69,7 @@
 	<button
 		bind:this={settingsButton}
 		type="button"
-		onclick={() => (open = true)}
+		onclick={openSettings}
 		class="flex items-center justify-center size-[34px] rounded-lg transition-all outline-none focus:ring-2 cursor-pointer"
 		style="
 			background-color: var(--bg-secondary);
@@ -25,7 +77,7 @@
 			border: 1px solid {open ? 'var(--accent)' : 'var(--border)'};
 			--tw-ring-color: var(--accent);
 		"
-		aria-label="Display settings"
+		aria-label="Settings"
 		aria-haspopup="dialog"
 		aria-expanded={open}
 	>
@@ -47,107 +99,63 @@
 	</button>
 </div>
 
-{#snippet displaySetting(
-	id: string,
-	label: string,
-	description: string,
-	enabled: boolean,
-	setEnabled: (enabled: boolean) => void
-)}
-	<div class="display-settings-mode-row">
-		<span class="display-settings-copy">
-			<span {id} class="display-settings-label">{label}</span>
-			<span class="display-settings-desc">{description}</span>
-		</span>
-		<div class="display-settings-mode-control" role="group" aria-labelledby={id}>
-			<button
-				type="button"
-				class="display-settings-mode-option"
-				class:display-settings-mode-option--active={!enabled}
-				aria-pressed={!enabled}
-				onclick={() => setEnabled(false)}>Off</button
-			>
-			<button
-				type="button"
-				class="display-settings-mode-option"
-				class:display-settings-mode-option--active={enabled}
-				aria-pressed={enabled}
-				onclick={() => setEnabled(true)}>On</button
-			>
-		</div>
-	</div>
-{/snippet}
-
 <ModalShell
 	{open}
 	onClose={close}
-	labelledBy="display-settings-title"
-	panelClass="max-h-[calc(100dvh-2rem)] max-w-lg w-[min(100%,28rem)]"
-	initialFocusSelector=".display-settings-mode-option--active"
+	labelledBy="settings-title"
+	panelClass="max-h-[calc(100dvh-2rem)] max-w-2xl w-[min(100%,42rem)]"
+	initialFocusSelector=".settings-tabs [role='tab'][aria-selected='true']"
 >
-	<ModalHeader titleId="display-settings-title" title="Display settings" onClose={close} />
+	<ModalHeader titleId="settings-title" title="Settings" onClose={close} />
 
-	<div class="display-settings-body px-5 py-4">
-		<section class="display-settings-section" aria-labelledby="layout-card-settings-title">
-			<h3 id="layout-card-settings-title" class="display-settings-section-title">Layout cards</h3>
-			<div class="display-settings-section-options">
-				{@render displaySetting(
-					'new-layout-display-label',
-					'New layout indicator',
-					'Mark layouts added by the latest sync with a red dot.',
-					!filterStore.hideNewLayoutIndicator,
-					(enabled) => filterStore.setHideNewLayoutIndicator(!enabled)
-				)}
-				{@render displaySetting(
-					'likes-display-label',
-					'Likes',
-					"Show each layout's like count in its card header.",
-					!filterStore.hideLayoutLikes,
-					(enabled) => filterStore.setHideLayoutLikes(!enabled)
-				)}
-				{@render displaySetting(
-					'stats-display-label',
-					'Stats',
-					'Show analyzer statistics directly on layout cards.',
-					!filterStore.hideLayoutStats,
-					(enabled) => filterStore.setHideLayoutStats(!enabled)
-				)}
-				<div class="display-settings-nested-option">
-					<div class="display-settings-nested-options">
-						{@render displaySetting(
-							'finger-distance-display-label',
-							'Finger distance',
-							'Show the finger-distance graph in Highlights. Applies only to Cyanophage stats.',
-							uiPrefs.fingerDistanceBars,
-							(enabled) => uiPrefs.setFingerDistanceBars(enabled)
-						)}
-					</div>
-				</div>
-				{@render displaySetting(
-					'test-area-display-label',
-					'Test area',
-					'Show a typing field on each card for trying the layout.',
-					!filterStore.hideLayoutTestArea,
-					(enabled) => filterStore.setHideLayoutTestArea(!enabled)
-				)}
-			</div>
-		</section>
-
-		<section class="display-settings-section" aria-labelledby="similarity-display-title">
-			<h3 id="similarity-display-title" class="display-settings-section-title">
-				Similarity comparison
-			</h3>
-			<div class="display-settings-section-options">
-				{@render displaySetting(
-					'similarity-reference-display-label',
-					'Pin reference layout',
-					'Keep the reference layout visible while scrolling through its similarity matches.',
-					filterStore.stickySimilarityCard,
-					(enabled) => filterStore.setStickySimilarityCard(enabled)
-				)}
-			</div>
-		</section>
+	<div class="settings-navigation">
+		<Tabs
+			value={activeSection}
+			onChange={(section) => (activeSection = section)}
+			options={sections}
+			ariaLabel="Settings sections"
+			class="settings-tabs"
+			buttonClass="settings-tab"
+			selectedClass="settings-tab--selected"
+		/>
 	</div>
+
+	<div class="settings-panel-wrap">
+		{#if activeSection === 'display'}
+			<div
+				id="settings-panel-display"
+				class="settings-panel"
+				role="tabpanel"
+				aria-labelledby="settings-tab-display"
+			>
+				<DisplaySettingsPanel />
+			</div>
+		{:else if activeSection === 'import'}
+			<div
+				id="settings-panel-import"
+				class="settings-panel"
+				role="tabpanel"
+				aria-labelledby="settings-tab-import"
+			>
+				<ImportViewsPanel onImported={showImportSnackbar} />
+			</div>
+		{:else}
+			<div
+				id="settings-panel-export"
+				class="settings-panel"
+				role="tabpanel"
+				aria-labelledby="settings-tab-export"
+			>
+				<ExportViewsPanel />
+			</div>
+		{/if}
+	</div>
+
+	{#if importSnackbar}
+		<div class="settings-snackbar" role="status" aria-live="polite">
+			{importSnackbar}
+		</div>
+	{/if}
 </ModalShell>
 
 <style>
@@ -155,119 +163,85 @@
 		flex-shrink: 0;
 	}
 
-	.display-settings-body {
+	.settings-navigation {
+		padding: 0 1.25rem;
+		border-bottom: 1px solid var(--border);
+		background: var(--bg-secondary);
+	}
+
+	.settings-navigation :global(.settings-tabs) {
 		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
-		min-height: 0;
-		overflow-y: auto;
+		gap: 0.25rem;
+		overflow-x: auto;
+		scrollbar-width: none;
 	}
 
-	.display-settings-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		padding-top: 1.25rem;
-		border-top: 1px solid var(--border);
+	.settings-navigation :global(.settings-tabs::-webkit-scrollbar) {
+		display: none;
 	}
 
-	.display-settings-section:first-child {
-		padding-top: 0;
-		border-top: 0;
-	}
-
-	.display-settings-section-options {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.display-settings-section-title {
-		margin: 0;
-		color: var(--text-caption);
-		font-size: 0.6875rem;
-		font-weight: 600;
-		line-height: 1.2;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-
-	.display-settings-nested-option {
-		margin-left: 0.25rem;
-		padding-left: 0.75rem;
-		border-left: 2px solid color-mix(in srgb, var(--accent) 24%, var(--border));
-	}
-
-	.display-settings-nested-options {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.display-settings-mode-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		font-size: 0.875rem;
-		line-height: 1.25;
-	}
-
-	.display-settings-mode-control {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+	.settings-navigation :global(.settings-tab) {
 		flex-shrink: 0;
-		padding: 2px;
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		background: var(--bg-primary);
-	}
-
-	.display-settings-mode-option {
-		min-width: 3.75rem;
-		padding: 0.35rem 0.6rem;
+		padding: 0.75rem 0.625rem;
 		border: 0;
-		border-radius: 6px;
+		border-bottom: 2px solid transparent;
 		background: transparent;
 		color: var(--text-secondary);
 		font-size: 0.8125rem;
 		font-weight: 500;
-		line-height: 1.2;
 		cursor: pointer;
 		outline: none;
-		transition:
-			background-color 0.15s ease,
-			color 0.15s ease;
 	}
 
-	.display-settings-mode-option--active {
-		background: var(--accent);
-		color: white;
-	}
-
-	.display-settings-mode-option:focus-visible {
-		box-shadow:
-			0 0 0 2px var(--bg-secondary),
-			0 0 0 4px var(--accent);
-	}
-
-	.display-settings-copy {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		min-width: 0;
-	}
-
-	.display-settings-label {
-		font-size: 0.875rem;
-		line-height: 1.25;
+	.settings-navigation :global(.settings-tab:hover) {
 		color: var(--text-primary);
-		font-weight: 500;
 	}
 
-	.display-settings-desc {
-		font-size: 0.8125rem;
-		line-height: 1.4;
-		color: var(--text-secondary);
+	.settings-navigation :global(.settings-tab--selected) {
+		border-bottom-color: var(--accent);
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+
+	.settings-navigation :global(.settings-tab:focus-visible) {
+		border-radius: 0.25rem;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.settings-panel-wrap {
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.settings-panel {
+		padding: 1.25rem;
+	}
+
+	.settings-snackbar {
+		position: absolute;
+		inset-inline-start: 50%;
+		inset-block-end: 1rem;
+		z-index: 5;
+		max-width: calc(100% - 2rem);
+		transform: translateX(-50%);
+		padding: 0.55rem 0.8rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+		border-radius: 0.65rem;
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--bg-primary) 88%, var(--accent));
+		box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, black 30%, transparent);
+		font-size: 0.8rem;
+		font-weight: 600;
+		line-height: 1.2;
+		text-align: center;
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	@media (max-width: 32rem) {
+		.settings-snackbar {
+			width: max-content;
+			white-space: normal;
+		}
 	}
 </style>

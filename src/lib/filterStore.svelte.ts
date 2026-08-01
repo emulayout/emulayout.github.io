@@ -80,6 +80,7 @@ import {
 	upsertSavedView,
 	type LayoutSource
 } from './savedViews';
+import { mergeSavedViews, type SavedViewsImportMode } from './savedViewsBackup';
 import {
 	cloneFilterGrid,
 	cloneStatLimits,
@@ -1201,6 +1202,39 @@ export class FilterStore {
 		this.includeSelectedInResults = false;
 		this.#saveToUrl();
 		return result.id;
+	}
+
+	/** Import selected backup views, either merging them or replacing the local collection. */
+	importSavedViews(filters: SavedFilter[], mode: SavedViewsImportMode) {
+		const previousActiveId = this.activeSavedFilterId;
+		const merged = mergeSavedViews(this.savedFilters, filters, mode);
+		this.savedFilters = merged.filters;
+		this.#persistSavedFilters();
+
+		if (!previousActiveId) return;
+
+		const active = findSavedView(this.savedFilters, previousActiveId);
+		if (active && (mode === 'replace' || merged.importedIds.has(previousActiveId))) {
+			this.#cancelFilterApply();
+			this.draftSourceLayoutNames = undefined;
+			this.#restoreViewFilters(active.snapshot);
+			this.#saveToUrl();
+			return;
+		}
+
+		if (active) return;
+
+		this.activeSavedFilterId = null;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
+		this.layoutSource = 'all';
+		const incoming = this.#viewFilterSnapshots.get('all');
+		if (incoming) {
+			this.#restoreViewFilters(incoming);
+		} else {
+			this.#resetViewFiltersToDefaults();
+		}
+		this.#saveToUrl();
 	}
 
 	/**

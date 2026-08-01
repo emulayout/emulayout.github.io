@@ -1,4 +1,8 @@
-import { normalizeViewFilterSnapshot, type ViewFilterSnapshot } from '$lib/filterSnapshot';
+import {
+	compactViewFilterSnapshot,
+	normalizeViewFilterSnapshot,
+	type ViewFilterSnapshot
+} from '$lib/filterSnapshot';
 
 const STORAGE_KEY = 'emulayout:saved-filters';
 export const SAVED_FILTERS_SCHEMA_VERSION = 1;
@@ -64,11 +68,18 @@ export function parseSavedFiltersDocument(value: unknown): SavedFilter[] {
 	return entries.map(parseSavedFilter).filter((entry): entry is SavedFilter => entry !== null);
 }
 
-export function serializeSavedFiltersDocument(filters: SavedFilter[]): string {
-	return JSON.stringify({
-		version: SAVED_FILTERS_SCHEMA_VERSION,
-		filters
-	});
+export function serializeSavedFiltersDocument(filters: SavedFilter[], space?: number): string {
+	return JSON.stringify(
+		{
+			version: SAVED_FILTERS_SCHEMA_VERSION,
+			filters: filters.map((filter) => ({
+				...filter,
+				snapshot: compactViewFilterSnapshot(filter.snapshot)
+			}))
+		},
+		null,
+		space
+	);
 }
 
 export function loadSavedFilters(): SavedFilter[] {

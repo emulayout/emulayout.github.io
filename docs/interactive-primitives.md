@@ -48,6 +48,11 @@ Use `SegmentedControl` for mutually exclusive settings that change presentation 
 without a tabpanel. It uses radiogroup/radio semantics. Both primitives leave the selected option as
 the sole Tab stop and fall back to the first option if persisted runtime state is invalid.
 
+The Settings modal uses `Tabs` to switch among its Display settings, Import views, and Export views
+panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
+consistent as the panel content changes. A successful view import resets the import form, restores
+focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
+
 ## Invariants
 
 - Interactive consumers pass state down and receive changes through callbacks; primitives do not

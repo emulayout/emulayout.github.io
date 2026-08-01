@@ -45,6 +45,59 @@ describe('saved filter storage migrations', () => {
 		};
 
 		expect(document.version).toBe(SAVED_FILTERS_SCHEMA_VERSION);
+		expect(document.filters[0]).toMatchObject({ snapshot: {} });
+		expect(parseSavedFiltersDocument(document)).toEqual([filter]);
+	});
+
+	test('writes only non-default snapshot fields and derives identical applied state', () => {
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.includeOrGrid[1][2] = 'x';
+		snapshot.appliedIncludeOrGrid[1][2] = 'x';
+		snapshot.statLimits.likes.value = '10';
+		snapshot.appliedStatLimits.likes.value = '10';
+		snapshot.nameFilterInput = 'Canary';
+		snapshot.nameFilter = 'Canary';
+		const filter: SavedFilter = {
+			id: 'compact-view',
+			name: 'Compact view',
+			snapshot,
+			createdAt: 789
+		};
+
+		const document = JSON.parse(serializeSavedFiltersDocument([filter])) as {
+			filters: { snapshot: Record<string, unknown> }[];
+		};
+
+		expect(document.filters[0].snapshot).toEqual({
+			includeOrGrid: snapshot.includeOrGrid,
+			nameFilter: 'Canary',
+			statLimits: { likes: { value: '10' } }
+		});
+		expect(parseSavedFiltersDocument(document)).toEqual([filter]);
+	});
+
+	test('retains applied fields when they differ from their draft value', () => {
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.includeGrid[0][0] = 'a';
+		snapshot.appliedIncludeGrid[0][0] = 'b';
+		snapshot.nameFilterInput = 'pending';
+		const filter: SavedFilter = {
+			id: 'pending-view',
+			name: 'Pending view',
+			snapshot,
+			createdAt: 999
+		};
+
+		const document = JSON.parse(serializeSavedFiltersDocument([filter])) as {
+			filters: { snapshot: Record<string, unknown> }[];
+		};
+
+		expect(document.filters[0].snapshot).toEqual({
+			includeGrid: snapshot.includeGrid,
+			nameFilterInput: 'pending',
+			nameFilter: '',
+			appliedIncludeGrid: snapshot.appliedIncludeGrid
+		});
 		expect(parseSavedFiltersDocument(document)).toEqual([filter]);
 	});
 

@@ -211,6 +211,59 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 	};
 }
 
+function compactValue(value: unknown, fallback: unknown): unknown {
+	if (Array.isArray(value)) {
+		return JSON.stringify(value) === JSON.stringify(fallback) ? undefined : value;
+	}
+
+	if (isPlainObject(value)) {
+		const fallbackRecord = isPlainObject(fallback) ? fallback : {};
+		const compacted = Object.fromEntries(
+			Object.entries(value).flatMap(([key, entry]) => {
+				const compactedEntry = compactValue(entry, fallbackRecord[key]);
+				return compactedEntry === undefined ? [] : [[key, compactedEntry]];
+			})
+		);
+		return Object.keys(compacted).length === 0 ? undefined : compacted;
+	}
+
+	return Object.is(value, fallback) ? undefined : value;
+}
+
+/**
+ * Return the v1 persisted shape: only values that cannot be reconstructed by
+ * `normalizeViewFilterSnapshot` are retained. Applied fields inherit their
+ * draft counterpart, so the usual identical copies do not occupy storage.
+ */
+export function compactViewFilterSnapshot(snapshot: ViewFilterSnapshot): Record<string, unknown> {
+	const fallback = createDefaultViewSnapshot();
+	fallback.appliedIncludeGrid = snapshot.includeGrid;
+	fallback.appliedExcludeGrid = snapshot.excludeGrid;
+	fallback.appliedIncludeOrGrid = snapshot.includeOrGrid;
+	fallback.appliedIncludeOrLeftThumbKeys = snapshot.includeOrLeftThumbKeys;
+	fallback.appliedIncludeOrRightThumbKeys = snapshot.includeOrRightThumbKeys;
+	fallback.appliedIncludeLeftThumbKeys = snapshot.includeLeftThumbKeys;
+	fallback.appliedIncludeRightThumbKeys = snapshot.includeRightThumbKeys;
+	fallback.appliedExcludeLeftThumbKeys = snapshot.excludeLeftThumbKeys;
+	fallback.appliedExcludeRightThumbKeys = snapshot.excludeRightThumbKeys;
+	fallback.appliedSimilarityFilterValue = snapshot.similarityFilterValue;
+	fallback.appliedStatLimits = snapshot.statLimits;
+	fallback.appliedFingerWorkload = snapshot.fingerWorkload;
+
+	const compacted = (compactValue(snapshot, fallback) as Record<string, unknown> | undefined) ?? {};
+
+	if (snapshot.nameFilterInput === snapshot.nameFilter) {
+		delete compacted.nameFilterInput;
+	} else {
+		// Both are required to preserve an in-flight debounced name filter, even
+		// when one side happens to equal its static default.
+		compacted.nameFilterInput = snapshot.nameFilterInput;
+		compacted.nameFilter = snapshot.nameFilter;
+	}
+
+	return compacted;
+}
+
 function normalizeGrid(value: unknown, fallback: string[][]): string[][] {
 	if (!Array.isArray(value)) return cloneFilterGrid(fallback);
 	return Array.from({ length: FILTER_GRID_ROWS }, (_, rowIndex) => {
