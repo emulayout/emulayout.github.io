@@ -194,14 +194,14 @@ in the swapped output.
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
   or Adaptive mapping updates that feature's control.
-- The expanded stats modal also renders the mappings panel above analyzer stats.
+- The layout detail page also renders the mappings panel above analyzer stats.
 
 The resolver returns which behaviors were applied to a keypress. The layout test area does not
 currently display this, but a dedicated typing page may use it later.
 
-Disabled mapping state is owned by the current layout-results view, shared by the floating window,
-expanded modal, and layout test area, and is intentionally not persisted. All mappings return to
-enabled after a page reload.
+Disabled mapping state is owned by the current page, shared by the floating window and layout test
+area on the index or by the mappings panel and keyboard summary on the detail route. It is
+intentionally not persisted, and all mappings return to enabled after navigation or a page reload.
 
 ## Deferred work
 

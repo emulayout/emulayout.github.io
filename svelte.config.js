@@ -11,7 +11,8 @@ const config = {
 		adapter: adapter({
 			pages: 'build',
 			assets: 'build',
-			fallback: 'index.html', // Enable SPA mode for client-side routing
+			// GitHub Pages serves 404.html for direct requests to client-side routes.
+			fallback: '404.html',
 			precompress: false,
 			strict: true
 		})

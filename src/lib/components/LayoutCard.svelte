@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -26,7 +27,6 @@
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
 	import LayoutInputMappingsIndicator from '$lib/components/LayoutInputMappingsIndicator.svelte';
-	import LayoutExpandModal from '$lib/components/LayoutExpandModal.svelte';
 	import LayoutKeyDisplay from '$lib/components/LayoutKeyDisplay.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import {
@@ -89,6 +89,8 @@
 			value: string,
 			enabled: boolean
 		) => void;
+		/** Catalog cards link to details and may render stats/test UI; summaries stay compact. */
+		variant?: 'catalog' | 'summary';
 	}
 
 	const {
@@ -111,11 +113,11 @@
 		statFilterInteraction = 'focus',
 		statsMode = 'focused',
 		allowStatSorting = true,
-		onStatFilterChanged
+		onStatFilterChanged,
+		variant = 'catalog'
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
-	let expandModal = $state<{ open: () => void }>();
 
 	const inputMappingsAvailable = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
@@ -279,10 +281,6 @@
 		filterStore.requestFilterFocus({ target: 'stats', analyzer: metric.analyzer, ...target });
 	}
 
-	function openExpanded() {
-		expandModal?.open();
-	}
-
 	const cardHeight = $derived(
 		getLayoutCardHeight(
 			filterStore.showLayoutStats,
@@ -338,7 +336,7 @@
 	}
 </script>
 
-{#snippet layoutCardMain(markFirstAction: boolean, showExpand = true)}
+{#snippet layoutCardMain(markFirstAction: boolean, catalogCard = true)}
 	<LayoutCardHeader
 		{layout}
 		{authorName}
@@ -353,24 +351,24 @@
 		onSelectAuthor={handleSelectAuthor}
 	/>
 
-	<div class="layout-keyboard-row min-w-0" class:flex-1={showExpand}>
+	<div class="layout-keyboard-row min-w-0" class:flex-1={catalogCard}>
 		<LayoutKeyDisplay
 			rows={transformedDisplayRows}
 			value={transformedDisplayValue}
 			highlightDifferences={showSimilarDiffs}
 			referencePositions={similarDiffPositions}
-			fillAvailableSpace={showExpand}
+			fillAvailableSpace={catalogCard}
 		/>
 		<LayoutInputMappingsIndicator
 			{layout}
 			{mappingsLabel}
 			{inputProfile}
-			active={showExpand && inputMappingsWindowOpen}
+			active={catalogCard && inputMappingsWindowOpen}
 			{repeatKeyEnabled}
 			{adaptiveMappingsEnabled}
 			{magicMappingsEnabled}
 			onToggleRepeat={inputProfile?.repeatKey ? toggleRepeatKey : undefined}
-			onToggleMappings={showExpand && inputMappingsAvailable ? toggleInputMappings : undefined}
+			onToggleMappings={catalogCard && inputMappingsAvailable ? toggleInputMappings : undefined}
 		/>
 	</div>
 
@@ -382,13 +380,13 @@
 		angleBoard={isAngleBoard}
 		cyanophageCompatible={layout.cyanophageCompatible}
 		cyanophageTitle={cyanophageLinkTitle}
-		{showExpand}
+		expandLayoutName={catalogCard ? layout.name : undefined}
+		expandSearch={page.url.search}
 		{forceIncluded}
 		onFindSimilar={handleFindSimilarClick}
 		onToggleAnglemod={toggleAnglemod}
 		onPractice={handleColemakCampClick}
 		onOpenPlayground={handlePlaygroundClick}
-		onExpand={openExpanded}
 	/>
 {/snippet}
 
@@ -404,7 +402,7 @@
 			? 'var(--similar-diff)'
 			: 'var(--border)'};
 		--force-border-color: {isSimilarActive ? 'var(--similar-diff)' : 'var(--border)'};
-		height: {cardHeight}px;
+		height: {variant === 'catalog' ? `${cardHeight}px` : 'auto'};
 	"
 >
 	{#if forceIncluded}
@@ -412,9 +410,9 @@
 			<rect pathLength="100" />
 		</svg>
 	{/if}
-	{@render layoutCardMain(true)}
+	{@render layoutCardMain(variant === 'catalog', variant === 'catalog')}
 
-	{#if filterStore.showLayoutStats || filterStore.showLayoutTestArea}
+	{#if variant === 'catalog' && (filterStore.showLayoutStats || filterStore.showLayoutTestArea)}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
 			{#if filterStore.showLayoutStats}
 				<LayoutCardStatsPanel
@@ -435,23 +433,6 @@
 		</div>
 	{/if}
 </div>
-
-<LayoutExpandModal
-	bind:this={expandModal}
-	{layout}
-	{compactCminiStats}
-	{compactCyanophageStats}
-	{compactMana2Stats}
-	{inputProfile}
-	{disabledMappingIds}
-	{onDisabledMappingIdsChange}
-	{forceIncluded}
-	similarActive={isSimilarActive}
->
-	{#snippet layoutCard()}
-		{@render layoutCardMain(false, false)}
-	{/snippet}
-</LayoutExpandModal>
 
 <style>
 	/*

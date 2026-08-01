@@ -181,8 +181,8 @@ Filters are also independent:
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
-The expanded stats modal may show Magic and Adaptive controls, while Repeat remains controlled by
-the icon beside the keyboard.
+The layout detail page may show Magic and Adaptive controls, while Repeat remains controlled by the
+icon beside the keyboard summary.
 
 ## Analyzer boundaries
 

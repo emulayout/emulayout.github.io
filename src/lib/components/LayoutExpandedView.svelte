@@ -1,5 +1,7 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { resolve } from '$app/paths';
+	import type { PathnameWithSearchOrHash } from '$app/types';
+	import { onMount } from 'svelte';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -25,34 +27,33 @@
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
+	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
-	import ModalHeader from '$lib/components/ModalHeader.svelte';
-	import ModalShell from '$lib/components/ModalShell.svelte';
 
 	interface Props {
 		layout: LayoutData;
+		authorName: string;
+		likeCount: number;
+		returnSearch?: string;
 		compactCminiStats?: CompactLayoutStats;
 		compactCyanophageStats?: CompactCyanophageStats;
 		compactMana2Stats?: CompactMana2Stats;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
-		forceIncluded?: boolean;
-		similarActive?: boolean;
-		layoutCard: Snippet;
 	}
 
 	const {
 		layout,
+		authorName,
+		likeCount,
+		returnSearch = '',
 		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
 		inputProfile,
 		disabledMappingIds = [],
-		onDisabledMappingIdsChange,
-		forceIncluded = false,
-		similarActive = false,
-		layoutCard
+		onDisabledMappingIdsChange
 	}: Props = $props();
 
 	const cminiLabel =
@@ -64,10 +65,10 @@
 	const mana2Label =
 		STAT_ANALYZERS.find((analyzer) => analyzer.value === MANA2_ANALYZER)?.label ?? 'Mana2';
 
-	let expanded = $state(false);
 	let showCmini = $state(false);
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
+	const returnTarget = $derived(`/${returnSearch}` as PathnameWithSearchOrHash);
 
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const analyzersTitleId = $derived(`${titleId}-analyzers`);
@@ -129,19 +130,14 @@
 		if (checked) void layoutStatsStore.ensureLoaded(analyzer);
 	}
 
-	export function open() {
+	onMount(() => {
 		showCmini = hasAnalyzerData(CMINI_ANALYZER);
 		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER);
 		showMana2 = hasAnalyzerData(MANA2_ANALYZER);
-		expanded = true;
 		if (showCmini) void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
 		if (showCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
 		if (showMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
-	}
-
-	function close() {
-		expanded = false;
-	}
+	});
 </script>
 
 {#snippet analyzerToggle(analyzer: StatsAnalyzer, label: string, checked: boolean, accent: string)}
@@ -199,32 +195,41 @@
 	{/if}
 {/snippet}
 
-<ModalShell
-	open={expanded}
-	onClose={close}
-	labelledBy={titleId}
-	panelClass="max-h-[min(94vh,980px)] max-w-[min(1480px,98vw)]"
->
-	<ModalHeader
-		{titleId}
-		title={layout.name}
-		titleClass="truncate"
-		titleTooltip={layout.name}
-		onClose={close}
-	/>
+<article class="layout-detail-page" data-layout-detail aria-labelledby={titleId}>
+	<header class="layout-detail-header">
+		<a class="layout-detail-back" href={resolve(returnTarget)} aria-label="Back to layouts">
+			<svg
+				class="size-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d="m15 18-6-6 6-6" />
+			</svg>
+			<span>Back to layouts</span>
+		</a>
+		<h2 id={titleId} class="layout-detail-title" title={layout.name}>{layout.name}</h2>
+	</header>
 
-	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-		<div class="modal-columns">
-			<div class="modal-side">
-				<div
-					class="flex min-w-0 flex-col gap-2 rounded-xl px-3 pt-3 pb-2"
-					style="
-						background-color: {forceIncluded ? 'var(--bg-primary)' : 'var(--bg-secondary)'};
-						border: 1px solid {similarActive ? 'var(--similar-diff)' : 'var(--border)'};
-					"
-				>
-					{@render layoutCard()}
-				</div>
+	<div class="layout-detail-scroll">
+		<div class="detail-columns">
+			<div class="detail-side">
+				<LayoutCard
+					{layout}
+					{authorName}
+					{likeCount}
+					{compactCminiStats}
+					{compactCyanophageStats}
+					{compactMana2Stats}
+					{inputProfile}
+					{disabledMappingIds}
+					{onDisabledMappingIdsChange}
+					variant="summary"
+				/>
 
 				<section
 					class="flex min-w-0 flex-col gap-2 rounded-xl px-3 py-3"
@@ -251,7 +256,7 @@
 				</section>
 			</div>
 
-			<div class="modal-main">
+			<div class="detail-main">
 				{#if inputProfile?.magicKeys || inputProfile?.adaptiveSwaps}
 					<InputMappingsPanel
 						profile={inputProfile}
@@ -392,24 +397,81 @@
 			</div>
 		</div>
 	</div>
-</ModalShell>
+</article>
 
 <style>
-	.modal-columns {
+	.layout-detail-page {
+		display: flex;
+		flex: 1 1 0;
+		flex-direction: column;
+		min-height: 0;
+		width: 100%;
+	}
+
+	.layout-detail-header {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.5rem;
+		flex-shrink: 0;
+		padding: 0.25rem 0.25rem 0.75rem;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.layout-detail-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		width: fit-content;
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+		text-decoration: none;
+	}
+
+	.layout-detail-back:hover,
+	.layout-detail-back:focus-visible {
+		color: var(--accent);
+	}
+
+	.layout-detail-back:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+		outline-offset: 0.2rem;
+		border-radius: 0.25rem;
+	}
+
+	.layout-detail-title {
+		min-width: 0;
+		margin: 0;
+		overflow: hidden;
+		color: var(--text-primary);
+		font-size: 1.25rem;
+		font-weight: 700;
+		line-height: 1.5rem;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.layout-detail-scroll {
+		min-height: 0;
+		padding: 1rem 0.25rem 2rem;
+	}
+
+	.detail-columns {
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1.25rem;
 		align-items: start;
 	}
 
-	.modal-side {
+	.detail-side {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		min-width: 0;
 	}
 
-	.modal-main {
+	.detail-main {
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
@@ -432,13 +494,22 @@
 		}
 	}
 
+	@media (min-width: 768px) {
+		.layout-detail-scroll {
+			flex: 1 1 0;
+			overflow-y: auto;
+			scrollbar-width: thin;
+			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
+		}
+	}
+
 	@media (min-width: 960px) {
-		.modal-columns {
+		.detail-columns {
 			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
 			gap: 1.5rem;
 		}
 
-		.modal-side {
+		.detail-side {
 			position: sticky;
 			top: 0;
 			align-self: start;

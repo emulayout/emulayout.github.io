@@ -49,8 +49,12 @@ test('shows mappings in a floating window', async ({ page }) => {
 	expect(afterDrag!.y).toBeGreaterThan(beforeDrag!.y + 20);
 
 	await mappingsWindow.getByRole('button', { name: 'Close magic key mappings' }).click();
-	await card.getByRole('button', { name: 'Expand layout' }).click();
-	const expandedLayout = page.getByRole('dialog', { name: mappedLayoutName, exact: true });
+	await card.getByRole('link', { name: 'View layout details' }).click();
+	const expandedLayout = page.locator('[data-layout-detail]');
+	await expect(page).toHaveURL(
+		new RegExp(`/layouts/${encodeURIComponent(mappedLayoutName)}(?:\\?|$)`)
+	);
+	await expect(expandedLayout.locator('.layout-detail-title')).toHaveText(mappedLayoutName);
 	const expandedMagicStatus = expandedLayout.locator('[data-input-feature="magic"]');
 	await expect(expandedMagicStatus).toHaveAttribute('role', 'img');
 	await expect(expandedMagicStatus).toHaveAccessibleName('Magic key mappings enabled');

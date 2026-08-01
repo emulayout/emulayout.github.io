@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 
 	interface Props {
@@ -9,13 +10,13 @@
 		angleBoard: boolean;
 		cyanophageCompatible: boolean;
 		cyanophageTitle: string;
-		showExpand: boolean;
+		expandLayoutName?: string;
+		expandSearch?: string;
 		forceIncluded: boolean;
 		onFindSimilar: () => void;
 		onToggleAnglemod: () => void;
 		onPractice: () => void | Promise<void>;
 		onOpenPlayground: () => void | Promise<void>;
-		onExpand: () => void;
 	}
 
 	const {
@@ -26,13 +27,13 @@
 		angleBoard,
 		cyanophageCompatible,
 		cyanophageTitle,
-		showExpand,
+		expandLayoutName,
+		expandSearch = '',
 		forceIncluded,
 		onFindSimilar,
 		onToggleAnglemod,
 		onPractice,
-		onOpenPlayground,
-		onExpand
+		onOpenPlayground
 	}: Props = $props();
 
 	const similarityTitle = $derived(
@@ -43,6 +44,9 @@
 				: 'Find similar layouts'
 	);
 	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
+	const expandTarget = $derived(
+		`/layouts/[name]${expandSearch}` as '/layouts/[name]' | `/layouts/[name]?${string}`
+	);
 
 	let externalLinksOpen = $state(false);
 </script>
@@ -155,13 +159,12 @@
 				</button>
 			{/snippet}
 		</DropdownMenu>
-		{#if showExpand}
-			<button
-				type="button"
-				onclick={onExpand}
+		{#if expandLayoutName}
+			<a
+				href={resolve(expandTarget, { name: expandLayoutName })}
 				class="card-action-button"
-				title="Expand layout"
-				aria-label="Expand layout"
+				title="View layout details"
+				aria-label="View layout details"
 			>
 				<svg
 					class="size-4"
@@ -178,7 +181,7 @@
 					<path d="M21 3l-7 7" />
 					<path d="M3 21l7-7" />
 				</svg>
-			</button>
+			</a>
 		{/if}
 	</div>
 </div>
@@ -225,6 +228,7 @@
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		cursor: pointer;
+		text-decoration: none;
 		color: var(--text-primary);
 		background-color: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
 		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
