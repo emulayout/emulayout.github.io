@@ -270,8 +270,8 @@
 				style={fieldStyle}
 				aria-label="{title} comparison"
 			>
-				<option value="lt">Less than</option>
-				<option value="gt">Greater than</option>
+				<option value="lt">Less than (or eq)</option>
+				<option value="gt">Greater than (or eq)</option>
 			</select>
 			<input
 				type="text"

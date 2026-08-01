@@ -43,7 +43,7 @@
 					value={filterStore.similarityFilterOperator}
 					onchange={(e) =>
 						filterStore.setSimilarityFilterOperator(e.currentTarget.value as StatLimitOperator)}
-					class="w-[6.75rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
+					class="w-[10rem] shrink-0 px-1.5 py-1 rounded-lg text-xs outline-none cursor-pointer focus:ring-2"
 					style="
 						background-color: var(--input-bg);
 						color: var(--text-primary);
@@ -52,8 +52,8 @@
 					"
 					aria-label="Similarity comparison"
 				>
-					<option value="lt">Less than</option>
-					<option value="gt">Greater than</option>
+					<option value="lt">Less than (or eq)</option>
+					<option value="gt">Greater than (or eq)</option>
 				</select>
 				<input
 					id="similarity-match-value"

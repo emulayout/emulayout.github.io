@@ -345,8 +345,8 @@ function matchesStatLimits(
 
 		for (const { operator, threshold, statKey } of checks) {
 			const value = stats[statKey as keyof typeof stats];
-			if (operator === 'lt' && value >= threshold) return false;
-			if (operator === 'gt' && value <= threshold) return false;
+			if (operator === 'lt' && value > threshold) return false;
+			if (operator === 'gt' && value < threshold) return false;
 		}
 		if (
 			fingerWorkload &&
@@ -358,8 +358,8 @@ function matchesStatLimits(
 
 	if (likesCheck) {
 		const value = likesData[layout.name] ?? 0;
-		if (likesCheck.operator === 'lt' && value >= likesCheck.threshold) return false;
-		if (likesCheck.operator === 'gt' && value <= likesCheck.threshold) return false;
+		if (likesCheck.operator === 'lt' && value > likesCheck.threshold) return false;
+		if (likesCheck.operator === 'gt' && value < likesCheck.threshold) return false;
 	}
 
 	return true;

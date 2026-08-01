@@ -53,7 +53,7 @@ describe('active filter chips', () => {
 			focus: { target: 'source' }
 		});
 		expect(chips.find(({ id }) => id === 'stat-cyano-sfb')).toMatchObject({
-			label: 'SFB < 1.5%',
+			label: 'SFB ≤ 1.5%',
 			tone: 'cyanophage',
 			focus: {
 				target: 'stats',
@@ -63,7 +63,7 @@ describe('active filter chips', () => {
 			}
 		});
 		expect(chips.find(({ id }) => id === 'hand-cyano-lh')).toMatchObject({
-			label: 'LH > 45%',
+			label: 'LH ≥ 45%',
 			focus: {
 				target: 'stats',
 				section: 'hand-usage',
@@ -72,7 +72,7 @@ describe('active filter chips', () => {
 			}
 		});
 		expect(chips.find(({ id }) => id === 'finger-cyano-LI')).toMatchObject({
-			label: 'LH Index < 24%',
+			label: 'LH Index ≤ 24%',
 			focus: {
 				target: 'stats',
 				section: 'finger-usage',
@@ -89,7 +89,7 @@ describe('active filter chips', () => {
 				workload: true
 			}
 		});
-		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity > 70%');
+		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity ≥ 70%');
 		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic: known mappings');
 		expect(chips.find(({ id }) => id === 'repeat')?.label).toBe('Repeat required');
 		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive: known mappings');

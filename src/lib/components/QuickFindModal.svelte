@@ -112,7 +112,7 @@
 		enabled: boolean
 	) {
 		filterSnackbar = enabled
-			? `${metric.label} ${operator === 'gt' ? '>' : '<'} ${metric.value} filter set`
+			? `${metric.label} ${operator === 'gt' ? '≥' : '≤'} ${metric.value} filter set`
 			: `${metric.label} filter cleared`;
 		if (filterSnackbarTimer !== undefined) window.clearTimeout(filterSnackbarTimer);
 		filterSnackbarTimer = window.setTimeout(() => {

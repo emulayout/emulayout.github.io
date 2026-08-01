@@ -56,7 +56,7 @@ function itemLabels(result: ReturnType<typeof buildLayoutResults>): string[] {
 }
 
 describe('layout result building', () => {
-	test('applies similarity membership, strict percentage filtering, and similarity sorting', () => {
+	test('applies similarity membership, inclusive percentage filtering, and similarity sorting', () => {
 		const reference = makeLayout('Reference');
 		const alpha = makeLayout('Alpha');
 		const beta = makeLayout('Beta');
@@ -79,7 +79,7 @@ describe('layout result building', () => {
 			})
 		);
 
-		expect(itemLabels(result)).toEqual(['layout:Gamma', 'layout:Alpha']);
+		expect(itemLabels(result)).toEqual(['layout:Gamma', 'layout:Alpha', 'layout:Beta']);
 	});
 
 	test('counts and optionally injects selected layouts removed by filters', () => {

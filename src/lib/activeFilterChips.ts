@@ -143,7 +143,7 @@ function formatKeySection(
 }
 
 function operatorSymbol(operator: 'lt' | 'gt'): string {
-	return operator === 'lt' ? '<' : '>';
+	return operator === 'lt' ? '≤' : '≥';
 }
 
 function formatActiveLimit(
@@ -494,7 +494,7 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 	}
 
 	if (store.hasSimilarReference) {
-		const op = store.similarityFilterOperator === 'lt' ? '<' : '>';
+		const op = store.similarityFilterOperator === 'lt' ? '≤' : '≥';
 		const value = store.appliedSimilarityFilterValue.trim() || '0';
 		pushChip(
 			chips,

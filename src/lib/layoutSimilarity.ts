@@ -306,7 +306,7 @@ export function isSimilarLayoutMatch(
 	return similarityMatches.has(layoutName);
 }
 
-/** `gt` and `lt` are strict comparisons. Empty or invalid values disable the filter. */
+/** `gt` and `lt` include equality. Empty or invalid values disable the filter. */
 export function matchesSimilarityPercentFilter(
 	percent: number,
 	operator: 'lt' | 'gt',
@@ -316,8 +316,8 @@ export function matchesSimilarityPercentFilter(
 	if (!trimmed) return true;
 	const threshold = Number.parseFloat(trimmed);
 	if (!Number.isFinite(threshold)) return true;
-	if (operator === 'lt') return percent < threshold;
-	return percent > threshold;
+	if (operator === 'lt') return percent <= threshold;
+	return percent >= threshold;
 }
 
 export function sortLayoutsBySimilarity(

@@ -227,7 +227,7 @@ describe('filterLayouts', () => {
 		).toEqual(['Plain']);
 	});
 
-	test('uses strict likes thresholds and holds analyzer-filtered results until stats are ready', () => {
+	test('uses inclusive likes thresholds and holds analyzer-filtered results until stats are ready', () => {
 		const layouts = [makeLayout('Ten'), makeLayout('Eleven')];
 		const likesCriteria = makeCriteria({ canUseLikes: true });
 		likesCriteria.statLimits.likes = { operator: 'gt', value: '10' };
@@ -236,11 +236,26 @@ describe('filterLayouts', () => {
 			filterLayouts(layouts, likesCriteria, {}, false, { Ten: 10, Eleven: 11 }).map(
 				(layout) => layout.name
 			)
-		).toEqual(['Eleven']);
+		).toEqual(['Ten', 'Eleven']);
 
 		const statsCriteria = makeCriteria();
 		statsCriteria.statLimits['cyano-sfb'] = { operator: 'lt', value: '1' };
 		expect(filterLayouts(layouts, statsCriteria, {}, false)).toEqual([]);
+	});
+
+	test('includes analyzer stat values equal to either comparison threshold', () => {
+		const layout = makeLayout('Equal');
+		const statsMaps: StatsMaps = {
+			cmini: { Equal: makeCminiStats({ LP: 0.045 }) }
+		};
+
+		const lessCriteria = makeCriteria();
+		lessCriteria.statLimits.LP = { operator: 'lt', value: '4.5' };
+		expect(filterLayouts([layout], lessCriteria, statsMaps, true)).toEqual([layout]);
+
+		const greaterCriteria = makeCriteria();
+		greaterCriteria.statLimits.LP = { operator: 'gt', value: '4.5' };
+		expect(filterLayouts([layout], greaterCriteria, statsMaps, true)).toEqual([layout]);
 	});
 
 	test('chains relative finger workload with absolute percentage limits', () => {
