@@ -14,14 +14,13 @@
 		cmini?: LayoutStatsBlockModel | null;
 		cyanophage?: LayoutStatsBlockModel | null;
 		mana2?: LayoutStatsBlockModel | null;
-		showFingerUsageBars?: boolean;
 		showFingerDistanceBars?: boolean;
 		/** Active sort metric, including when another analyzer owns it. */
 		sortMetric?: LayoutCardMetric | null;
 		filterValueOnClick?: boolean;
 		onFilterMetric?: (metric: LayoutCardMetric, useMetricValue: boolean) => void;
 		onSortMetric?: (metric: LayoutCardMetric, order: SortOrder) => void;
-		/** Detailed keeps the former preformatted card view available for future display settings. */
+		/** Highlights uses visual finger usage; Detailed uses the text stat block. */
 		mode?: 'focused' | 'detailed';
 	}
 
@@ -29,7 +28,6 @@
 		cmini = null,
 		cyanophage = null,
 		mana2 = null,
-		showFingerUsageBars = false,
 		showFingerDistanceBars = true,
 		sortMetric = null,
 		filterValueOnClick = false,
@@ -37,6 +35,7 @@
 		onSortMetric,
 		mode = 'focused'
 	}: Props = $props();
+	const showFingerUsageBars = $derived(mode === 'focused');
 
 	function fallbackCopy(model: LayoutStatsBlockModel) {
 		const lines = model.fallback

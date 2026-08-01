@@ -20,7 +20,7 @@ export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
 const STATS_TEXT_LINE_HEIGHT = 14.85;
 /** Two 44px rows plus the extra 8px gap Highlights adds over Detailed. */
 const HIGHLIGHTS_STATS_HEIGHT = 96;
-/** Detailed text lines left above the shared finger visualization. */
+/** Detailed non-finger stat lines; finger usage occupies the chart's former fixed-height region. */
 const DETAILED_STATS_LINE_COUNT: Readonly<Record<StatsAnalyzer, number>> = {
 	cmini: 8,
 	cyanophage: 7,

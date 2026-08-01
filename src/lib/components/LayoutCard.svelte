@@ -425,7 +425,6 @@
 					filterValueOnClick={statFilterInteraction === 'apply-only'}
 					onFilterMetric={handleFilterMetric}
 					onSortMetric={allowStatSorting ? handleSortMetric : undefined}
-					showFingerUsageBars={uiPrefs.fingerUsageBars}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}
 				/>
