@@ -476,7 +476,6 @@
 		}
 
 		.results-toolbar-stats-display :global(.stats-display-tabs),
-
 		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar) {
 			flex: 1 1 auto;
 			min-width: 0;

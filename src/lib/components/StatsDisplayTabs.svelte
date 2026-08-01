@@ -48,12 +48,7 @@
 	}
 </script>
 
-<div
-	bind:this={rootEl}
-	class="stats-display-tabs"
-	role="toolbar"
-	aria-label="Stats display"
->
+<div bind:this={rootEl} class="stats-display-tabs" role="toolbar" aria-label="Stats display">
 	{#each options as option, index (option.value)}
 		<button
 			type="button"
