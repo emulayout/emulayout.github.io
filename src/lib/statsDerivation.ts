@@ -71,8 +71,16 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'scissors',
 	'lsb',
 	'alternate',
+	'alt-sfs',
 	'roll',
+	'roll-in',
+	'roll-out',
+	'roll-in-2',
+	'roll-out-2',
+	'roll-in-3',
+	'roll-out-3',
 	'redirect',
+	'redirect-weak',
 	'lh',
 	'rh',
 	...CYANOPHAGE_FINGER_STAT_KEYS,
@@ -91,8 +99,16 @@ export type DerivedCyanophageStats = {
 	scissors: number;
 	lsb: number;
 	alternate: number;
+	altSfs: number;
 	roll: number;
+	rollIn: number;
+	rollOut: number;
+	rollIn2: number;
+	rollOut2: number;
+	rollIn3: number;
+	rollOut3: number;
 	redirect: number;
+	redirectWeak: number;
 	lh: number;
 	rh: number;
 } & Record<CyanophageFingerUsageKey | CyanophageFingerDistanceKey, number>;
@@ -285,8 +301,16 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 		scissors: stats.scissors,
 		lsb: stats.lsb,
 		alternate: stats.alternate,
+		altSfs: stats['alt-sfs'],
 		roll: stats.roll,
+		rollIn: stats['roll-in'],
+		rollOut: stats['roll-out'],
+		rollIn2: stats['roll-in-2'],
+		rollOut2: stats['roll-out-2'],
+		rollIn3: stats['roll-in-3'],
+		rollOut3: stats['roll-out-3'],
 		redirect: stats.redirect,
+		redirectWeak: stats['redirect-weak'],
 		lh: stats.lh,
 		rh: stats.rh,
 		...Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]])),

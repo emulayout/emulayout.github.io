@@ -87,8 +87,16 @@ export interface CyanophageStats {
 	scissors: number;
 	lsb: number;
 	alternate: number;
+	'alt-sfs': number;
 	roll: number;
+	'roll-in': number;
+	'roll-out': number;
+	'roll-in-2': number;
+	'roll-out-2': number;
+	'roll-in-3': number;
+	'roll-out-3': number;
 	redirect: number;
+	'redirect-weak': number;
 	lh: number;
 	rh: number;
 	LI: number;

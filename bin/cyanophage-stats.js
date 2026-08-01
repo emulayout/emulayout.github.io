@@ -44,8 +44,16 @@ export const CYANOPHAGE_STAT_KEYS = [
 	'scissors',
 	'lsb',
 	'alternate',
+	'alt-sfs',
 	'roll',
+	'roll-in',
+	'roll-out',
+	'roll-in-2',
+	'roll-out-2',
+	'roll-in-3',
+	'roll-out-3',
 	'redirect',
+	'redirect-weak',
 	'lh',
 	'rh',
 	...CYANOPHAGE_FINGER_STAT_KEYS,
@@ -142,8 +150,16 @@ const FINGER_HOME_POSITIONS = [
  *   scissors: number,
  *   lsb: number,
  *   alternate: number,
+ *   'alt-sfs': number,
  *   roll: number,
+ *   'roll-in': number,
+ *   'roll-out': number,
+ *   'roll-in-2': number,
+ *   'roll-out-2': number,
+ *   'roll-in-3': number,
+ *   'roll-out-3': number,
  *   redirect: number,
+ *   'redirect-weak': number,
  *   lh: number,
  *   rh: number,
  *   LI: number,
@@ -448,8 +464,16 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board
 	let scissors = 0;
 	let lsb = 0;
 	let alternate = 0;
+	let altSfs = 0;
 	let roll = 0;
+	let rollIn = 0;
+	let rollOut = 0;
+	let rollIn2 = 0;
+	let rollOut2 = 0;
+	let rollIn3 = 0;
+	let rollOut3 = 0;
 	let redirect = 0;
+	let redirectWeak = 0;
 	let lh = 0;
 	let rh = 0;
 	/** @type {Record<string, number>} */
@@ -546,15 +570,29 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board
 				const cat = classifyTrigram(ppFinger, prevFinger, finger, ppChar, char);
 				if (cat === 'alt') {
 					alternate += count;
-				} else if (cat === 'redirect' || cat === 'weak redirect') {
+				} else if (cat === 'alt sfs') {
+					altSfs += count;
+				} else if (cat === 'redirect') {
 					redirect += count;
-				} else if (
-					cat === 'roll in' ||
-					cat === 'roll out' ||
-					cat === 'bigram roll in' ||
-					cat === 'bigram roll out'
-				) {
+				} else if (cat === 'weak redirect') {
+					redirect += count;
+					redirectWeak += count;
+				} else if (cat === 'roll in') {
 					roll += count;
+					rollIn += count;
+					rollIn3 += count;
+				} else if (cat === 'roll out') {
+					roll += count;
+					rollOut += count;
+					rollOut3 += count;
+				} else if (cat === 'bigram roll in') {
+					roll += count;
+					rollIn += count;
+					rollIn2 += count;
+				} else if (cat === 'bigram roll out') {
+					roll += count;
+					rollOut += count;
+					rollOut2 += count;
 				}
 			}
 
@@ -595,8 +633,16 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board
 		scissors: scissors * invInputLength,
 		lsb: lsb * invInputLength,
 		alternate: alternate * invInputLength,
+		'alt-sfs': altSfs * invInputLength,
 		roll: roll * invInputLength,
+		'roll-in': rollIn * invInputLength,
+		'roll-out': rollOut * invInputLength,
+		'roll-in-2': rollIn2 * invInputLength,
+		'roll-out-2': rollOut2 * invInputLength,
+		'roll-in-3': rollIn3 * invInputLength,
+		'roll-out-3': rollOut3 * invInputLength,
 		redirect: redirect * invInputLength,
+		'redirect-weak': redirectWeak * invInputLength,
 		lh: handTotal > 0 ? lh / handTotal : 0.5,
 		rh: handTotal > 0 ? rh / handTotal : 0.5,
 		...fingerUsage,

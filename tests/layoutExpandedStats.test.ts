@@ -33,7 +33,7 @@ describe('expanded layout stats tables', () => {
 			mana2Loading: false
 		});
 
-		expect(tables.sharedRows).toHaveLength(12);
+		expect(tables.sharedRows).toHaveLength(13);
 		expect(tables.leftHandRows.map((row) => row.label)).toEqual([
 			'Hand',
 			'Index',
@@ -53,7 +53,30 @@ describe('expanded layout stats tables', () => {
 
 		const rollPair = tables.sharedRows.find((row) => row.label === 'Roll in / out (2)');
 		expect(rollPair?.cmini).toContain(' | ');
+		expect(rollPair?.cyanophage).toContain(' | ');
 		expect(rollPair?.mana2).toContain(' | ');
+
+		const recoveredCells = [
+			['Same-finger skip', 'cmini'],
+			['Alt & SFS', 'cyanophage'],
+			['Roll in / out (total)', 'cyanophage'],
+			['Roll in / out (3)', 'cyanophage'],
+			['Weak / bad redirect', 'cyanophage']
+		] as const;
+		for (const [label, analyzer] of recoveredCells) {
+			expect(tables.sharedRows.find((row) => row.label === label)?.[analyzer]).not.toBe('—');
+		}
+
+		const unavailableCells = tables.sharedRows.flatMap((row) =>
+			(['cmini', 'cyanophage', 'mana2'] as const)
+				.filter((analyzer) => row[analyzer] === '—')
+				.map((analyzer) => `${row.label}:${analyzer}`)
+		);
+		expect(unavailableCells).toEqual([
+			'Redirect & SFS:cyanophage',
+			'Lat stretch bigrams:cmini',
+			'Scissors:cmini'
+		]);
 
 		const lateralStretch = tables.sharedRows.find((row) => row.label === 'Lat stretch bigrams');
 		expect(lateralStretch?.cmini).toBe('—');

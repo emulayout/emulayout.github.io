@@ -78,6 +78,10 @@ export function buildExpandedStatsTables({
 		getA: (stats: DerivedMana2Stats) => number,
 		getB: (stats: DerivedMana2Stats) => number
 	) => formatPair(mana2Stats, mana2Loading, getA, getB);
+	const cyanophagePair = (
+		getA: (stats: DerivedCyanophageStats) => number,
+		getB: (stats: DerivedCyanophageStats) => number
+	) => formatPair(cyanophageStats, cyanophageLoading, getA, getB);
 	const mana2Raw = (value: number) => value.toFixed(3);
 
 	const sharedRows: ExpandedStatsRow[] = [
@@ -88,9 +92,8 @@ export function buildExpandedStatsTables({
 			mana2: mana2Cell((stats) => stats.sfb)
 		},
 		{
-			// Skipgram SFB — cmini’s “SFS” is trigram end-same-finger, not this.
 			label: 'Same-finger skip',
-			cmini: DASH,
+			cmini: cminiCell((stats) => stats.sfs),
 			cyanophage: cyanophageCell((stats) => stats.sfs),
 			mana2: mana2Cell((stats) => stats.sfs)
 		},
@@ -103,7 +106,7 @@ export function buildExpandedStatsTables({
 		{
 			label: 'Alt & SFS',
 			cmini: cminiCell((stats) => stats.dsfbAlt),
-			cyanophage: DASH,
+			cyanophage: cyanophageCell((stats) => stats.altSfs),
 			mana2: mana2Cell((stats) => stats.altSfs)
 		},
 		{
@@ -114,24 +117,45 @@ export function buildExpandedStatsTables({
 			mana2: mana2Cell((stats) => stats.roll)
 		},
 		{
+			label: 'Roll in / out (total)',
+			cmini: cminiPair(
+				(stats) => stats.rtlIn,
+				(stats) => stats.rtlOut
+			),
+			cyanophage: cyanophagePair(
+				(stats) => stats.rollIn,
+				(stats) => stats.rollOut
+			),
+			mana2: mana2Pair(
+				(stats) => stats.inroll2 + stats.inroll3,
+				(stats) => stats.outroll2 + stats.outroll3
+			)
+		},
+		{
 			label: 'Roll in / out (2)',
 			cmini: cminiPair(
 				(stats) => stats.rollIn,
 				(stats) => stats.rollOut
 			),
-			cyanophage: DASH,
+			cyanophage: cyanophagePair(
+				(stats) => stats.rollIn2,
+				(stats) => stats.rollOut2
+			),
 			mana2: mana2Pair(
 				(stats) => stats.inroll2,
 				(stats) => stats.outroll2
 			)
 		},
 		{
-			label: 'One-hand in / out (3)',
+			label: 'Roll in / out (3)',
 			cmini: cminiPair(
 				(stats) => stats.oneIn,
 				(stats) => stats.oneOut
 			),
-			cyanophage: DASH,
+			cyanophage: cyanophagePair(
+				(stats) => stats.rollIn3,
+				(stats) => stats.rollOut3
+			),
 			mana2: mana2Pair(
 				(stats) => stats.inroll3,
 				(stats) => stats.outroll3
@@ -146,7 +170,7 @@ export function buildExpandedStatsTables({
 		{
 			label: 'Weak / bad redirect',
 			cmini: cminiCell((stats) => stats.badRedirect),
-			cyanophage: DASH,
+			cyanophage: cyanophageCell((stats) => stats.redirectWeak),
 			mana2: mana2Cell((stats) => stats.redirectWeak)
 		},
 		{

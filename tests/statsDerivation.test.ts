@@ -71,6 +71,14 @@ describe('frontend stats decoding and derivation', () => {
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'distance', 1_234_000);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'distance-LI', 123_000);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'sfb', 100);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'alt-sfs', 200);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-in', 300);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-out', 400);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-in-2', 500);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-out-2', 600);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-in-3', 700);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'roll-out-3', 800);
+		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'redirect-weak', 900);
 		setCompactValue(compact, CYANOPHAGE_STAT_KEYS, 'LI', 1_500);
 
 		const decoded = decodeCyanophageStats(compact);
@@ -81,6 +89,14 @@ describe('frontend stats decoding and derivation', () => {
 		expect(derived.distance).toBe(123.4);
 		expect(derived.distanceLI).toBe(12.3);
 		expect(derived.sfb).toBeCloseTo(0.01);
+		expect(derived.altSfs).toBeCloseTo(0.02);
+		expect(derived.rollIn).toBeCloseTo(0.03);
+		expect(derived.rollOut).toBeCloseTo(0.04);
+		expect(derived.rollIn2).toBeCloseTo(0.05);
+		expect(derived.rollOut2).toBeCloseTo(0.06);
+		expect(derived.rollIn3).toBeCloseTo(0.07);
+		expect(derived.rollOut3).toBeCloseTo(0.08);
+		expect(derived.redirectWeak).toBeCloseTo(0.09);
 		expect(derived.LI).toBeCloseTo(0.15);
 	});
 
