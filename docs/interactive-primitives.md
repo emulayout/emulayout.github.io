@@ -17,8 +17,9 @@ retain domain-specific markup and styling.
 - `SegmentedControl.svelte` owns mutually exclusive radiogroup semantics and roving focus for
   presentation or analyzer choices that do not reveal a tabpanel.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
-  dismissal, scroll locking, and portal placement. `ModalHeader.svelte` provides the shared title and
-  close-button chrome.
+  dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
+  focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
+  title and close-button chrome.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
   Escape dismissal, and body portal placement.
 

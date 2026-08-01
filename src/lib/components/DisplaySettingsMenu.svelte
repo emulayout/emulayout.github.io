@@ -205,7 +205,8 @@
 
 	.settings-navigation :global(.settings-tab:focus-visible) {
 		border-radius: 0.25rem;
-		box-shadow: 0 0 0 2px var(--accent);
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
 	}
 
 	.settings-panel-wrap {

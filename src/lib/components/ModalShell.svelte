@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { afterPaint, focusFilterControl } from '$lib/focusFilterControl';
+	import { afterPaint } from '$lib/focusFilterControl';
 	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
 	import { portalToBody } from '$lib/portalToBody';
 
@@ -13,7 +13,7 @@
 		panelClass?: string;
 		/**
 		 * Optional selector (scoped to the panel) for the control to focus on open.
-		 * When set, that control is focused/highlighted instead of the first form field.
+		 * When set, that control receives ordinary focus instead of the first form field.
 		 */
 		initialFocusSelector?: string | null;
 		/** Bump to re-run targeted focus while the modal stays open. */
@@ -128,7 +128,7 @@
 				if (!panelEl) return;
 				const targeted = selector ? panelEl.querySelector<HTMLElement>(selector) : null;
 				if (targeted) {
-					focusFilterControl(targeted);
+					targeted.focus({ preventScroll: true });
 				} else {
 					getInitialFocus(panelEl).focus();
 				}

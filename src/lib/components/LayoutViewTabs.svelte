@@ -251,8 +251,8 @@
 	}
 
 	.layout-view-tab:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 2px var(--accent);
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
 		border-radius: 0.25rem;
 	}
 
