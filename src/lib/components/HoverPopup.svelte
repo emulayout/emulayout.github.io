@@ -1,10 +1,14 @@
 <script lang="ts">
+	import { portalToBody } from '$lib/portalToBody';
+
 	interface Props {
 		/** Whether the popup is visible. */
 		open: boolean;
 		/** Element the popup is anchored to. */
 		anchor: HTMLElement | null | undefined;
 		text: string;
+		/** Optional id for `aria-describedby` linkage. */
+		id?: string;
 		/** Wide help copy vs short value tip. */
 		size?: 'default' | 'compact';
 		/** Preferred side; flips when there isn’t room. */
@@ -13,19 +17,18 @@
 		mono?: boolean;
 	}
 
-	let { open, anchor, text, size = 'default', placement = 'below', mono = false }: Props = $props();
+	let {
+		open,
+		anchor,
+		text,
+		id,
+		size = 'default',
+		placement = 'below',
+		mono = false
+	}: Props = $props();
 
 	let popupEl = $state<HTMLDivElement | undefined>(undefined);
 	let coords = $state({ top: 0, left: 0 });
-
-	function portalToBody(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
-	}
 
 	function updatePosition() {
 		if (!anchor) return;
@@ -72,6 +75,7 @@
 {#if open && text}
 	<div
 		bind:this={popupEl}
+		{id}
 		use:portalToBody
 		class="hover-popup"
 		class:hover-popup--default={size === 'default'}

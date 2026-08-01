@@ -1,6 +1,8 @@
 <script lang="ts">
+	import Listbox from '$lib/components/Listbox.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
+	import { navigateListIndex } from '$lib/listboxNavigation';
 
 	interface Props {
 		layouts: LayoutData[];
@@ -34,9 +36,9 @@
 	let requestedIndex = $state(0);
 	let rootEl = $state<HTMLDivElement | undefined>(undefined);
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
-	let listEl = $state<HTMLUListElement | undefined>(undefined);
 
 	const committed = $derived(selected ?? '');
+	const listboxId = $derived(`${id}-listbox`);
 	/** Writable derived: follows `selected`, overridable while the user is typing. */
 	let query = $derived(committed);
 	const showClear = $derived(Boolean(onClear && committed));
@@ -52,12 +54,6 @@
 
 	$effect(() => {
 		onHighlight?.(highlightedName);
-	});
-
-	$effect(() => {
-		if (!listOpen || !listEl) return;
-		const item = listEl.children[activeIndex] as HTMLElement | undefined;
-		item?.scrollIntoView({ block: 'nearest' });
 	});
 
 	function resetToCommitted() {
@@ -119,15 +115,12 @@
 
 		if (!listOpen || matches.length === 0) return;
 
-		if (event.key === 'ArrowDown') {
+		const next = navigateListIndex(event.key, activeIndex, matches.length, {
+			homeEnd: false
+		});
+		if (next !== null) {
 			event.preventDefault();
-			requestedIndex = (activeIndex + 1) % matches.length;
-			return;
-		}
-
-		if (event.key === 'ArrowUp') {
-			event.preventDefault();
-			requestedIndex = (activeIndex - 1 + matches.length) % matches.length;
+			requestedIndex = next;
 			return;
 		}
 
@@ -156,9 +149,9 @@
 			role="combobox"
 			aria-autocomplete="list"
 			aria-expanded={listOpen}
-			aria-controls="{id}-listbox"
+			aria-controls={listboxId}
 			aria-activedescendant={listOpen && matches[activeIndex]
-				? `${id}-option-${activeIndex}`
+				? `${listboxId}-option-${activeIndex}`
 				: undefined}
 			autocomplete="off"
 			autocapitalize="off"
@@ -206,35 +199,35 @@
 	</div>
 
 	{#if listOpen}
-		<ul
-			bind:this={listEl}
-			id="{id}-listbox"
+		<Listbox
+			id={listboxId}
+			{label}
+			options={matches}
+			{activeIndex}
+			onActiveIndexChange={(index) => (requestedIndex = index)}
+			onSelect={(name) => selectName(name)}
+			getKey={(name) => name}
+			isSelected={(_, index) => index === activeIndex}
+			preserveExternalFocus
 			class="layout-autocomplete-list absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl py-1 shadow-lg"
 			style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-			role="listbox"
-			aria-label={label}
 		>
-			{#if matches.length === 0}
-				<li class="px-3 py-2 text-sm" style="color: var(--text-secondary);">No layouts match.</li>
-			{:else}
-				{#each matches as name, index (name)}
-					<li role="option" aria-selected={index === activeIndex} id="{id}-option-{index}">
-						<button
-							type="button"
-							class="flex w-full items-baseline px-3 py-1.5 text-left text-sm font-medium transition-colors"
-							style="
-								color: var(--text-primary);
-								background-color: {index === activeIndex ? 'var(--bg-primary)' : 'transparent'};
-							"
-							onpointerenter={() => (requestedIndex = index)}
-							onclick={() => selectName(name)}
-						>
-							{name}
-						</button>
-					</li>
-				{/each}
-			{/if}
-		</ul>
+			{#snippet item({ option: name, active, optionProps })}
+				<button
+					{...optionProps}
+					class="flex w-full items-baseline px-3 py-1.5 text-left text-sm font-medium transition-colors"
+					style="
+						color: var(--text-primary);
+						background-color: {active ? 'var(--bg-primary)' : 'transparent'};
+					"
+				>
+					{name}
+				</button>
+			{/snippet}
+			{#snippet empty()}
+				<p class="px-3 py-2 text-sm" style="color: var(--text-secondary);">No layouts match.</p>
+			{/snippet}
+		</Listbox>
 	{/if}
 </div>
 

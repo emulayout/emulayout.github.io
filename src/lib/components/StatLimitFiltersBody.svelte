@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+	import Listbox from '$lib/components/Listbox.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import {
@@ -109,7 +111,9 @@
 	let workloadPresetOpen = $state(false);
 	let workloadPresetRoot = $state<HTMLElement>();
 	let workloadPresetTrigger = $state<HTMLButtonElement>();
+	let workloadPresetListbox = $state<{ focus: () => void }>();
 	let workloadPresetMenuStyle = $state('');
+	let workloadPresetIndex = $state(0);
 
 	const generalStatFilterGroups = $derived(getGeneralStatFilterGroupsForAnalyzer(analyzer));
 	const handUsageFields = $derived(getHandUsageStatFilterFieldsForAnalyzer(analyzer));
@@ -181,6 +185,11 @@
 		requestAnimationFrame(() => workloadPresetTrigger?.focus());
 	}
 
+	function closeWorkloadPresetMenu(restoreTriggerFocus = false) {
+		workloadPresetOpen = false;
+		if (restoreTriggerFocus) requestAnimationFrame(() => workloadPresetTrigger?.focus());
+	}
+
 	function positionWorkloadPresetMenu() {
 		if (!workloadPresetTrigger) return;
 
@@ -202,26 +211,32 @@
 			: `left: ${menuLeft}px; top: ${triggerRect.bottom + menuGap}px; bottom: auto; width: ${menuWidth}px; max-height: ${maxHeight}px;`;
 	}
 
-	function toggleWorkloadPresetMenu() {
+	async function toggleWorkloadPresetMenu() {
 		if (workloadPresetOpen) {
-			workloadPresetOpen = false;
+			closeWorkloadPresetMenu();
 			return;
 		}
 		positionWorkloadPresetMenu();
+		workloadPresetIndex = Math.max(
+			0,
+			FINGER_WORKLOAD_PRESETS.findIndex((preset) => preset.id === activeWorkloadPreset?.id)
+		);
 		workloadPresetOpen = true;
+		await tick();
+		workloadPresetListbox?.focus();
 	}
 
 	function handleWorkloadPresetWindowClick(event: MouseEvent) {
 		if (!workloadPresetOpen || !workloadPresetRoot) return;
 		const target = event.target as Node | null;
-		if (target && !workloadPresetRoot.contains(target)) workloadPresetOpen = false;
+		if (target && !workloadPresetRoot.contains(target)) closeWorkloadPresetMenu();
 	}
 
-	function handleWorkloadPresetWindowKeydown(event: KeyboardEvent) {
-		if (!workloadPresetOpen || event.key !== 'Escape') return;
-		event.preventDefault();
-		workloadPresetOpen = false;
-		requestAnimationFrame(() => workloadPresetTrigger?.focus());
+	function handleWorkloadPresetFocusOut(event: FocusEvent) {
+		const nextTarget = event.relatedTarget;
+		if (!(nextTarget instanceof Node) || !workloadPresetRoot?.contains(nextTarget)) {
+			closeWorkloadPresetMenu();
+		}
 	}
 
 	function unlinkWorkloadHands() {
@@ -241,10 +256,7 @@
 	});
 </script>
 
-<svelte:window
-	onclick={handleWorkloadPresetWindowClick}
-	onkeydown={handleWorkloadPresetWindowKeydown}
-/>
+<svelte:window onclick={handleWorkloadPresetWindowClick} />
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
 	{@const limit = filterStore.statLimits[field.key]}
@@ -340,7 +352,11 @@
 			<div class="stat-limits-hand-heading">{label}</div>
 		</div>
 		{#if linked}
-			<div bind:this={workloadPresetRoot} class="finger-workload-preset">
+			<div
+				bind:this={workloadPresetRoot}
+				class="finger-workload-preset"
+				onfocusout={handleWorkloadPresetFocusOut}
+			>
 				<button
 					bind:this={workloadPresetTrigger}
 					type="button"
@@ -369,22 +385,27 @@
 					</svg>
 				</button>
 				{#if workloadPresetOpen}
-					<div
+					<Listbox
+						bind:this={workloadPresetListbox}
 						id="finger-workload-presets-{analyzer}"
+						label="Quick finger workload presets"
+						options={FINGER_WORKLOAD_PRESETS}
+						activeIndex={workloadPresetIndex}
+						onActiveIndexChange={(index) => (workloadPresetIndex = index)}
+						onSelect={applyWorkloadPreset}
+						getKey={(preset) => preset.id}
+						isSelected={(preset) => activeWorkloadPreset?.id === preset.id}
+						focusable
+						onEscape={() => closeWorkloadPresetMenu(true)}
 						class="finger-workload-preset-menu"
 						style={workloadPresetMenuStyle}
-						role="listbox"
-						aria-label="Quick finger workload presets"
 					>
-						{#each FINGER_WORKLOAD_PRESETS as preset (preset.id)}
-							{@const selected = activeWorkloadPreset?.id === preset.id}
+						{#snippet item({ option: preset, active, selected, optionProps })}
 							<button
-								type="button"
+								{...optionProps}
 								class="finger-workload-preset-option"
+								class:finger-workload-preset-option--active={active}
 								class:finger-workload-preset-option--selected={selected}
-								role="option"
-								aria-selected={selected}
-								onclick={() => applyWorkloadPreset(preset)}
 							>
 								{@render workloadPresetShape(preset)}
 								<span class="finger-workload-preset-option-copy">
@@ -394,8 +415,8 @@
 									</span>
 								</span>
 							</button>
-						{/each}
-					</div>
+						{/snippet}
+					</Listbox>
 				{/if}
 			</div>
 		{/if}
@@ -829,7 +850,7 @@
 		transform: rotate(180deg);
 	}
 
-	.finger-workload-preset-menu {
+	.finger-workload-preset :global(.finger-workload-preset-menu) {
 		position: fixed;
 		z-index: 50;
 		display: flex;
@@ -860,7 +881,8 @@
 	}
 
 	.finger-workload-preset-option:hover,
-	.finger-workload-preset-option:focus-visible {
+	.finger-workload-preset-option:focus-visible,
+	.finger-workload-preset-option--active {
 		border-color: var(--border);
 		background: var(--input-bg);
 		outline: none;

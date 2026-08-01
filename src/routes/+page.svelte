@@ -225,7 +225,7 @@
 	</div>
 
 	{#key resultsViewKey}
-		<div class="results-layout">
+		<div id="layout-view-panel" class="results-layout" role="tabpanel" aria-label="Layout results">
 			<aside class="results-sidebar">
 				<FiltersSidebar {authorList} {layouts} />
 			</aside>

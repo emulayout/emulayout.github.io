@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
@@ -84,29 +85,7 @@
 	panelClass="max-h-[calc(100dvh-2rem)] max-w-lg w-[min(100%,28rem)]"
 	initialFocusSelector=".display-settings-mode-option--active"
 >
-	<div
-		class="flex items-center justify-between gap-3 border-b px-5 py-4"
-		style="border-color: var(--border);"
-	>
-		<h2
-			id="display-settings-title"
-			class="text-lg font-semibold"
-			style="color: var(--text-primary);"
-		>
-			Display settings
-		</h2>
-		<button
-			type="button"
-			onclick={close}
-			class="flex size-8 items-center justify-center rounded-full transition-colors"
-			style="color: var(--text-secondary);"
-			aria-label="Close"
-		>
-			<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-				<path d="M18 6L6 18M6 6l12 12" />
-			</svg>
-		</button>
-	</div>
+	<ModalHeader titleId="display-settings-title" title="Display settings" onClose={close} />
 
 	<div class="display-settings-body px-5 py-4">
 		<section class="display-settings-section" aria-labelledby="layout-card-settings-title">

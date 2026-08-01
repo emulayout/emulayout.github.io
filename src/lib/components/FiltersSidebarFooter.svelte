@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import RenameViewModal from '$lib/components/RenameViewModal.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -15,7 +16,6 @@
 	let showSaveModal = $state(false);
 	let showRenameModal = $state(false);
 	let saveMenuOpen = $state(false);
-	let splitRootEl = $state<HTMLDivElement | undefined>(undefined);
 	let shareCopied = $state(false);
 	let shareCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -37,18 +37,16 @@
 	);
 	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit || showShareButton);
 
-	function openSaveModal() {
+	function openSaveModal(close?: (restoreTriggerFocus?: boolean) => void) {
+		close?.();
 		saveMenuOpen = false;
 		showSaveModal = true;
 	}
 
-	function openRenameModal() {
+	function openRenameModal(close?: (restoreTriggerFocus?: boolean) => void) {
+		close?.();
 		saveMenuOpen = false;
 		showRenameModal = true;
-	}
-
-	function toggleSaveMenu() {
-		saveMenuOpen = !saveMenuOpen;
 	}
 
 	async function shareActiveView() {
@@ -70,31 +68,6 @@
 
 	$effect(() => {
 		if (!showViewSplit) saveMenuOpen = false;
-	});
-
-	$effect(() => {
-		if (!saveMenuOpen) return;
-
-		function handlePointerDown(event: PointerEvent) {
-			const target = event.target;
-			if (!(target instanceof Node)) return;
-			if (splitRootEl?.contains(target)) return;
-			saveMenuOpen = false;
-		}
-
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === 'Escape') {
-				event.preventDefault();
-				saveMenuOpen = false;
-			}
-		}
-
-		document.addEventListener('pointerdown', handlePointerDown);
-		document.addEventListener('keydown', handleKeyDown);
-		return () => {
-			document.removeEventListener('pointerdown', handlePointerDown);
-			document.removeEventListener('keydown', handleKeyDown);
-		};
 	});
 </script>
 
@@ -231,106 +204,114 @@
 
 		{#if showUpdateSplit}
 			<div class="filters-sidebar-footer-primary">
-				<div class="filters-split-button" bind:this={splitRootEl}>
-					<button
-						type="button"
-						class="filter-reset-button filters-split-button-main"
-						onclick={() => {
-							saveMenuOpen = false;
-							filterStore.updateActiveSavedView();
-						}}
-					>
-						Update view
-					</button>
-					<button
-						type="button"
-						class="filter-reset-button filters-split-button-toggle"
-						aria-label="More save options"
-						aria-haspopup="menu"
-						aria-expanded={saveMenuOpen}
-						onclick={toggleSaveMenu}
-					>
-						<svg
-							class="filters-split-button-caret"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2.5"
-							aria-hidden="true"
+				<DropdownMenu
+					bind:open={saveMenuOpen}
+					placement="top-stretch"
+					rootClass="filters-split-button"
+					menuLabel="More save options"
+				>
+					{#snippet trigger({ toggle, triggerProps })}
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-main"
+							onclick={() => {
+								saveMenuOpen = false;
+								filterStore.updateActiveSavedView();
+							}}
 						>
-							<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-						</svg>
-					</button>
-					{#if saveMenuOpen}
-						<div class="filters-split-menu" role="menu">
-							<button
-								type="button"
-								role="menuitem"
-								class="filters-split-menu-item"
-								onclick={openSaveModal}
+							Update view
+						</button>
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-toggle"
+							aria-label="More save options"
+							{...triggerProps}
+							onclick={toggle}
+						>
+							<svg
+								class="filters-split-button-caret"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2.5"
+								aria-hidden="true"
 							>
-								Save as new view
-							</button>
-							<button
-								type="button"
-								role="menuitem"
-								class="filters-split-menu-item"
-								onclick={openRenameModal}
-							>
-								Rename view
-							</button>
-						</div>
-					{/if}
-				</div>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					{/snippet}
+					{#snippet children({ close })}
+						<button
+							type="button"
+							role="menuitem"
+							class="filters-split-menu-item"
+							onclick={() => openSaveModal(close)}
+						>
+							Save as new view
+						</button>
+						<button
+							type="button"
+							role="menuitem"
+							class="filters-split-menu-item"
+							onclick={() => openRenameModal(close)}
+						>
+							Rename view
+						</button>
+					{/snippet}
+				</DropdownMenu>
 			</div>
 		{:else if showDuplicateSplit}
 			<div class="filters-sidebar-footer-primary">
-				<div class="filters-split-button" bind:this={splitRootEl}>
-					<button
-						type="button"
-						class="filter-reset-button filters-split-button-main"
-						onclick={openSaveModal}
-					>
-						Duplicate view
-					</button>
-					<button
-						type="button"
-						class="filter-reset-button filters-split-button-toggle"
-						aria-label="More view options"
-						aria-haspopup="menu"
-						aria-expanded={saveMenuOpen}
-						onclick={toggleSaveMenu}
-					>
-						<svg
-							class="filters-split-button-caret"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2.5"
-							aria-hidden="true"
+				<DropdownMenu
+					bind:open={saveMenuOpen}
+					placement="top-stretch"
+					rootClass="filters-split-button"
+					menuLabel="More view options"
+				>
+					{#snippet trigger({ toggle, triggerProps })}
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-main"
+							onclick={() => openSaveModal()}
 						>
-							<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-						</svg>
-					</button>
-					{#if saveMenuOpen}
-						<div class="filters-split-menu" role="menu">
-							<button
-								type="button"
-								role="menuitem"
-								class="filters-split-menu-item"
-								onclick={openRenameModal}
+							Duplicate view
+						</button>
+						<button
+							type="button"
+							class="filter-reset-button filters-split-button-toggle"
+							aria-label="More view options"
+							{...triggerProps}
+							onclick={toggle}
+						>
+							<svg
+								class="filters-split-button-caret"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2.5"
+								aria-hidden="true"
 							>
-								Rename view
-							</button>
-						</div>
-					{/if}
-				</div>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					{/snippet}
+					{#snippet children({ close })}
+						<button
+							type="button"
+							role="menuitem"
+							class="filters-split-menu-item"
+							onclick={() => openRenameModal(close)}
+						>
+							Rename view
+						</button>
+					{/snippet}
+				</DropdownMenu>
 			</div>
 		{:else if filterStore.hasActiveFilters}
 			<button
 				type="button"
 				class="filter-reset-button filters-sidebar-footer-button filters-sidebar-footer-primary"
-				onclick={openSaveModal}
+				onclick={() => openSaveModal()}
 			>
 				Save as view
 			</button>
@@ -420,7 +401,7 @@
 		height: 1rem;
 	}
 
-	.filters-split-button {
+	.filters-sidebar-footer :global(.filters-split-button) {
 		position: relative;
 		display: flex;
 		align-items: stretch;
@@ -454,21 +435,6 @@
 	.filters-split-button-caret {
 		width: 0.875rem;
 		height: 0.875rem;
-	}
-
-	.filters-split-menu {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: calc(100% + 0.25rem);
-		z-index: 20;
-		display: flex;
-		flex-direction: column;
-		padding: 0.25rem;
-		border-radius: 0.75rem;
-		border: 1px solid var(--border);
-		background-color: var(--bg-primary);
-		box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
 	}
 
 	.filters-split-menu-item {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 
@@ -53,25 +54,7 @@
 </script>
 
 <ModalShell {open} {onClose} labelledBy="rename-view-title" panelClass="max-w-md">
-	<div
-		class="flex items-center justify-between border-b px-5 py-4"
-		style="border-color: var(--border);"
-	>
-		<h2 id="rename-view-title" class="text-lg font-semibold" style="color: var(--text-primary);">
-			Rename view
-		</h2>
-		<button
-			type="button"
-			onclick={onClose}
-			class="flex size-8 items-center justify-center rounded-full transition-colors"
-			style="color: var(--text-secondary);"
-			aria-label="Close"
-		>
-			<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-				<path d="M18 6L6 18M6 6l12 12" />
-			</svg>
-		</button>
-	</div>
+	<ModalHeader titleId="rename-view-title" title="Rename view" {onClose} />
 
 	<div class="px-5 py-4">
 		<label class="flex flex-col gap-1.5">

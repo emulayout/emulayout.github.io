@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { afterPaint, focusFilterControl } from '$lib/focusFilterControl';
 	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
+	import { portalToBody } from '$lib/portalToBody';
 
 	interface Props {
 		open: boolean;
@@ -61,16 +62,6 @@
 		const focusables = getFocusableElements(container);
 		const nonClose = focusables.find((el) => el.getAttribute('aria-label') !== 'Close');
 		return nonClose ?? focusables[0] ?? container;
-	}
-
-	/** Escape sticky/overflow stacking contexts so the overlay always paints above page content. */
-	function portalToBody(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
 	}
 
 	$effect(() => {

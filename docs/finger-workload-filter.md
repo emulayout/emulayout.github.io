@@ -73,9 +73,9 @@ Quick presets:
 - Domain model, presets, ranking, matching, and legacy normalization:
   `src/lib/fingerWorkload.ts`
 - Standalone accordion and analyzer-filter separation:
-  `src/lib/components/StatFilters.svelte`
+  `src/lib/components/StatFilters.svelte`, `src/lib/components/AccordionSection.svelte`
 - Workload controls, preset menu, analyzer selector, and hand linking:
-  `src/lib/components/StatLimitFiltersBody.svelte`
+  `src/lib/components/StatLimitFiltersBody.svelte`, `src/lib/components/Listbox.svelte`
 - Store state and mutations: `src/lib/filterStore.svelte.ts`
 - Snapshot and URL persistence: `src/lib/filterSnapshot.ts`, `src/lib/filterUrlCodec.ts`
 - Analyzer loading and layout matching: `src/lib/statsUsage.ts`, `src/lib/layoutFiltering.ts`

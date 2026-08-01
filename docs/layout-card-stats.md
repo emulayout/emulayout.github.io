@@ -95,7 +95,7 @@ there are no metric-cell filter or sort targets.
 
 - Display preference and persistence: `src/lib/uiPrefs.svelte.ts`
 - Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
-  `src/lib/components/LayoutResultsToolbar.svelte`
+  `src/lib/components/LayoutResultsToolbar.svelte`, `src/lib/components/SegmentedControl.svelte`
 - Analyzer models, base metrics, preferred sort directions, and dynamic sixth-cell placement:
   `src/lib/layoutStatsBlockModel.ts`
 - Highlights grid, filter target, sort target, analyzer tones, and Detailed rendering:

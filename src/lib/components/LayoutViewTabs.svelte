@@ -1,16 +1,44 @@
 <script lang="ts">
 	import DeleteSavedFilterModal from '$lib/components/DeleteSavedFilterModal.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import type { TabOption } from '$lib/tabs';
+
+	type LayoutViewTabValue = 'all' | 'selected' | `saved:${string}`;
 
 	let deleteSavedFilterId = $state<string | null>(null);
 	let deleteSavedFilterName = $state('');
 
 	const selectedLayoutCount = $derived(filterStore.selectedLayoutNames.size);
-	const allTabSelected = $derived(
-		filterStore.layoutSource === 'all' && !filterStore.activeSavedFilterId
+	const activeValue = $derived<LayoutViewTabValue>(
+		filterStore.activeSavedFilterId
+			? `saved:${filterStore.activeSavedFilterId}`
+			: filterStore.layoutSource
 	);
-	const selectedTabSelected = $derived(
-		filterStore.layoutSource === 'selected' && !filterStore.activeSavedFilterId
+	const options = $derived<TabOption<LayoutViewTabValue>[]>([
+		{
+			value: 'all',
+			label: 'All layouts',
+			id: 'layout-view-tab-all',
+			controls: 'layout-view-panel'
+		},
+		{
+			value: 'selected',
+			label: `Selected layouts (${selectedLayoutCount})`,
+			id: 'layout-view-tab-selected',
+			controls: 'layout-view-panel'
+		},
+		...filterStore.savedFilters.map((saved) => ({
+			value: `saved:${saved.id}` as const,
+			label: saved.name,
+			id: `layout-view-tab-saved-${saved.id}`,
+			controls: 'layout-view-panel'
+		}))
+	]);
+	const savedFilterByValue = $derived(
+		new Map(
+			filterStore.savedFilters.map((saved) => [`saved:${saved.id}` as LayoutViewTabValue, saved])
+		)
 	);
 
 	function requestDeleteSavedFilter(id: string, name: string) {
@@ -21,68 +49,85 @@
 	function closeDeleteSavedFilterModal() {
 		deleteSavedFilterId = null;
 		deleteSavedFilterName = '';
+		requestAnimationFrame(() => {
+			document
+				.querySelector<HTMLElement>('.layout-view-tabs [role="tab"][aria-selected="true"]')
+				?.focus();
+		});
+	}
+
+	function handleSavedTabKeydown(
+		event: KeyboardEvent,
+		saved: { id: string; name: string },
+		handleTabKeydown: (event: KeyboardEvent) => void
+	) {
+		if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			requestDeleteSavedFilter(saved.id, saved.name);
+			return;
+		}
+		handleTabKeydown(event);
+	}
+
+	function changeView(value: LayoutViewTabValue) {
+		if (value === 'all' || value === 'selected') {
+			filterStore.setLayoutSource(value);
+			return;
+		}
+		filterStore.applySavedFilter(value.slice('saved:'.length));
 	}
 </script>
 
-<div class="layout-view-tabs" role="tablist" aria-label="Layout view">
-	<button
-		type="button"
-		role="tab"
-		id="layout-view-tab-all"
-		aria-selected={allTabSelected}
-		tabindex={allTabSelected ? 0 : -1}
-		class="layout-view-tab"
-		class:layout-view-tab--selected={allTabSelected}
-		onclick={() => filterStore.setLayoutSource('all')}
+<div class="layout-view-tabs-scope">
+	<Tabs
+		value={activeValue}
+		onChange={changeView}
+		{options}
+		ariaLabel="Layout view"
+		class="layout-view-tabs"
 	>
-		All layouts
-	</button>
-	<button
-		type="button"
-		role="tab"
-		id="layout-view-tab-selected"
-		aria-selected={selectedTabSelected}
-		tabindex={selectedTabSelected ? 0 : -1}
-		class="layout-view-tab"
-		class:layout-view-tab--selected={selectedTabSelected}
-		onclick={() => filterStore.setLayoutSource('selected')}
-	>
-		Selected layouts ({selectedLayoutCount})
-	</button>
-	{#each filterStore.savedFilters as saved (saved.id)}
-		{@const savedSelected = filterStore.activeSavedFilterId === saved.id}
-		<div class="layout-view-saved" class:layout-view-saved--selected={savedSelected}>
-			<button
-				type="button"
-				role="tab"
-				id={`layout-view-tab-saved-${saved.id}`}
-				aria-selected={savedSelected}
-				tabindex={savedSelected ? 0 : -1}
-				class="layout-view-tab layout-view-tab--saved"
-				class:layout-view-tab--selected={savedSelected}
-				onclick={() => filterStore.applySavedFilter(saved.id)}
-			>
-				<span class="layout-view-tab-label">{saved.name}</span>
-			</button>
-			<button
-				type="button"
-				class="layout-view-tab-delete"
-				aria-label={`Delete view ${saved.name}`}
-				onclick={() => requestDeleteSavedFilter(saved.id, saved.name)}
-			>
-				<svg
-					class="layout-view-tab-delete-icon"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<path d="M18 6L6 18M6 6l12 12" />
-				</svg>
-			</button>
-		</div>
-	{/each}
+		{#snippet item({ option, selected, tabProps })}
+			{@const saved = savedFilterByValue.get(option.value)}
+			{#if saved}
+				<div class="layout-view-saved" class:layout-view-saved--selected={selected}>
+					<button
+						{...tabProps}
+						aria-label={`${option.label}. Press Delete to delete this view.`}
+						onkeydown={(event) => handleSavedTabKeydown(event, saved, tabProps.onkeydown)}
+						class="layout-view-tab layout-view-tab--saved"
+						class:layout-view-tab--selected={selected}
+					>
+						<span class="layout-view-tab-label">{option.label}</span>
+					</button>
+					<!-- Pointer shortcut; the focused tab exposes the same action via Delete/Backspace. -->
+					<span
+						class="layout-view-tab-delete"
+						aria-hidden="true"
+						title={`Delete view ${saved.name}`}
+						onclick={(event) => {
+							event.stopPropagation();
+							requestDeleteSavedFilter(saved.id, saved.name);
+						}}
+					>
+						<svg
+							class="layout-view-tab-delete-icon"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							aria-hidden="true"
+						>
+							<path d="M18 6L6 18M6 6l12 12" />
+						</svg>
+					</span>
+				</div>
+			{:else}
+				<button {...tabProps} class="layout-view-tab" class:layout-view-tab--selected={selected}>
+					{option.label}
+				</button>
+			{/if}
+		{/snippet}
+	</Tabs>
 </div>
 
 <DeleteSavedFilterModal
@@ -93,7 +138,11 @@
 />
 
 <style>
-	.layout-view-tabs {
+	.layout-view-tabs-scope {
+		display: contents;
+	}
+
+	.layout-view-tabs-scope :global(.layout-view-tabs) {
 		display: inline-flex;
 		align-items: stretch;
 		gap: 0.25rem;
@@ -105,7 +154,7 @@
 		scrollbar-width: none;
 	}
 
-	.layout-view-tabs::-webkit-scrollbar {
+	.layout-view-tabs-scope :global(.layout-view-tabs::-webkit-scrollbar) {
 		display: none;
 	}
 

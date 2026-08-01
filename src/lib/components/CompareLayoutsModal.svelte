@@ -2,6 +2,7 @@
 	import { tick, untrack } from 'svelte';
 	import CompareLayoutPicker from '$lib/components/CompareLayoutPicker.svelte';
 	import CompareStatsDiff from '$lib/components/CompareStatsDiff.svelte';
+	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
@@ -227,18 +228,8 @@
 	labelledBy="compare-layouts-title"
 	panelClass="max-h-[min(92vh,960px)] max-w-[1000px]"
 >
-	<div
-		class="flex items-center justify-between gap-3 border-b px-5 py-4"
-		style="border-color: var(--border);"
-	>
-		<h2
-			id="compare-layouts-title"
-			class="text-lg font-semibold shrink-0"
-			style="color: var(--text-primary);"
-		>
-			Compare
-		</h2>
-		<div class="flex items-center gap-2 min-w-0">
+	<ModalHeader titleId="compare-layouts-title" title="Compare" titleClass="shrink-0" {onClose}>
+		{#snippet actions()}
 			<label class="flex items-center gap-2 min-w-0 select-none">
 				<span class="text-sm shrink-0 hidden sm:inline" style="color: var(--text-secondary);"
 					>Analyzer</span
@@ -260,18 +251,8 @@
 					{/each}
 				</select>
 			</label>
-			<button
-				onclick={onClose}
-				class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
-				style="color: var(--text-secondary);"
-				aria-label="Close"
-			>
-				<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path d="M18 6L6 18M6 6l12 12" />
-				</svg>
-			</button>
-		</div>
-	</div>
+		{/snippet}
+	</ModalHeader>
 	{#if statsError}
 		<div
 			class="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm"

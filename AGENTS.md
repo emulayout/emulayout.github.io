@@ -31,6 +31,7 @@
 - Before changing a documented feature, read its document and preserve the stated product model and invariants. Update the document when behavior or architecture changes materially.
 - `docs/finger-workload-filter.md` covers finger-workload ranking, filtering, persistence, UI behavior, and its code map.
 - `docs/layout-card-stats.md` covers stats display modes, card and Quick Find interactions, data loading, and fixed display invariants.
+- `docs/interactive-primitives.md` covers shared interactive primitives, keyboard and focus models, ARIA contracts, and their consumers. Read it before changing shared accordions, menus, listboxes, tabs, segmented controls, modals, tooltips, or portal behavior. Update it whenever one of these primitives is added, removed, or materially changes its API or behavior.
 - `docs/magic-keys-architecture.md` covers Magic-key and Repeat-key metadata, runtime behavior, composition, filtering, and analyzer boundaries.
 - `docs/adaptive-swaps-architecture.md` covers contextual input data ownership, source formats, runtime resolution, UI boundaries, and deferred work.
 

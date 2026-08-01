@@ -1,4 +1,7 @@
 <script lang="ts">
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
+	import type { SegmentedOption } from '$lib/segmentedControl';
 	import {
 		CYANOPHAGE_ANALYZER,
 		CMINI_ANALYZER,
@@ -33,100 +36,82 @@
 		class: className = ''
 	}: Props = $props();
 
-	let rootEl = $state<HTMLDivElement | undefined>(undefined);
-
-	function selectAt(index: number) {
-		const next = STAT_ANALYZERS[index];
-		if (!next) return;
-		onChange(next.value);
-		const buttons = rootEl?.querySelectorAll<HTMLButtonElement>('[data-analyzer-tab]');
-		buttons?.[index]?.focus();
-	}
-
-	function handleKeydown(event: KeyboardEvent, index: number) {
-		const count = STAT_ANALYZERS.length;
-		let nextIndex: number;
-
-		switch (event.key) {
-			case 'ArrowRight':
-			case 'ArrowDown':
-				nextIndex = (index + 1) % count;
-				break;
-			case 'ArrowLeft':
-			case 'ArrowUp':
-				nextIndex = (index - 1 + count) % count;
-				break;
-			case 'Home':
-				nextIndex = 0;
-				break;
-			case 'End':
-				nextIndex = count - 1;
-				break;
-			default:
-				return;
-		}
-
-		event.preventDefault();
-		selectAt(nextIndex);
-	}
+	const options = $derived<SegmentedOption<StatsAnalyzer>[]>(
+		STAT_ANALYZERS.map((analyzerDef) => {
+			const analyzerClass =
+				analyzerDef.value === CMINI_ANALYZER
+					? 'analyzer-tab--cmini'
+					: analyzerDef.value === CYANOPHAGE_ANALYZER
+						? 'analyzer-tab--cyanophage'
+						: analyzerDef.value === MANA2_ANALYZER
+							? 'analyzer-tab--mana2'
+							: '';
+			const active = isActive?.(analyzerDef.value) ?? false;
+			return {
+				value: analyzerDef.value,
+				label: analyzerDef.shortLabel,
+				id: idPrefix ? `${idPrefix}-${analyzerDef.value}` : undefined,
+				class: analyzerClass,
+				indicator: variant === 'filters' && active,
+				indicatorSrLabel: variant === 'filters' && active ? 'Has active filters' : undefined
+			};
+		})
+	);
 </script>
 
-<div
-	bind:this={rootEl}
-	class="analyzer-tabs analyzer-tabs--{variant} {className}"
-	style="background-color: var(--bg-primary); border: 1px solid var(--border);"
-	role="toolbar"
-	aria-label={ariaLabel}
-	aria-orientation="horizontal"
->
-	{#each STAT_ANALYZERS as analyzerDef, index (analyzerDef.value)}
-		{@const selected = value === analyzerDef.value}
-		{@const active = isActive?.(analyzerDef.value) ?? false}
-		<button
-			type="button"
-			data-analyzer-tab
-			id={idPrefix ? `${idPrefix}-${analyzerDef.value}` : undefined}
-			aria-pressed={selected}
-			aria-controls={controls}
-			tabindex="0"
-			class="analyzer-tab"
-			class:analyzer-tab--selected={selected}
-			class:analyzer-tab--cmini={analyzerDef.value === CMINI_ANALYZER}
-			class:analyzer-tab--cyanophage={analyzerDef.value === CYANOPHAGE_ANALYZER}
-			class:analyzer-tab--mana2={analyzerDef.value === MANA2_ANALYZER}
-			onclick={() => onChange(analyzerDef.value)}
-			onkeydown={(event) => handleKeydown(event, index)}
-		>
-			<span>{analyzerDef.shortLabel}</span>
-			{#if variant === 'filters' && active}
-				<span class="analyzer-tab-dot" aria-hidden="true"></span>
-				<span class="analyzer-tab-sr">Has active filters</span>
-			{/if}
-		</button>
-	{/each}
+<div class="analyzer-tabs-scope">
+	{#if variant === 'filters'}
+		<Tabs
+			{value}
+			{onChange}
+			{options}
+			{ariaLabel}
+			{controls}
+			class="analyzer-tabs analyzer-tabs--{variant} {className}"
+			buttonClass="analyzer-tab"
+			selectedClass="analyzer-tab--selected"
+		/>
+	{:else}
+		<SegmentedControl
+			{value}
+			{onChange}
+			{options}
+			{ariaLabel}
+			{controls}
+			class="analyzer-tabs analyzer-tabs--{variant} {className}"
+			buttonClass="analyzer-tab"
+			selectedClass="analyzer-tab--selected"
+		/>
+	{/if}
 </div>
 
 <style>
-	.analyzer-tabs {
+	.analyzer-tabs-scope {
+		display: contents;
+	}
+
+	.analyzer-tabs-scope :global(.analyzer-tabs) {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		flex-shrink: 0;
+		background-color: var(--bg-primary);
+		border: 1px solid var(--border);
 	}
 
-	.analyzer-tabs--filters {
+	.analyzer-tabs-scope :global(.analyzer-tabs--filters) {
 		gap: 0.25rem;
 		padding: 0.25rem;
 		border-radius: 0.5rem;
 	}
 
-	.analyzer-tabs--toolbar {
+	.analyzer-tabs-scope :global(.analyzer-tabs--toolbar) {
 		display: inline-grid;
 		gap: 0.125rem;
 		padding: 0.125rem;
 		border-radius: 0.375rem;
 	}
 
-	.analyzer-tab {
+	.analyzer-tabs-scope :global(.analyzer-tab) {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -143,14 +128,14 @@
 			color 0.15s ease;
 	}
 
-	.analyzer-tabs--filters .analyzer-tab {
+	.analyzer-tabs-scope :global(.analyzer-tabs--filters .analyzer-tab) {
 		padding: 0.4375rem 0.375rem;
 		border-radius: 0.5rem;
 		font-size: 0.8125rem;
 		line-height: 1.25;
 	}
 
-	.analyzer-tabs--toolbar .analyzer-tab {
+	.analyzer-tabs-scope :global(.analyzer-tabs--toolbar .analyzer-tab) {
 		min-width: 3.5rem;
 		padding: 0.125rem 0.4rem;
 		border-radius: 0.25rem;
@@ -158,120 +143,111 @@
 		line-height: 1.2;
 	}
 
-	.analyzer-tab:hover {
+	.analyzer-tabs-scope :global(.analyzer-tab:hover) {
 		color: var(--text-primary);
 	}
 
-	.analyzer-tab:focus-visible {
+	.analyzer-tabs-scope :global(.analyzer-tab:focus-visible) {
 		outline: none;
 		box-shadow: 0 0 0 2px var(--accent);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--selected {
+	.analyzer-tabs-scope :global(.analyzer-tabs--filters .analyzer-tab--selected) {
 		background-color: var(--bg-secondary);
 		border-color: var(--border);
 		color: var(--text-primary);
 		font-weight: 600;
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--cmini.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--filters .analyzer-tab--cmini.analyzer-tab--selected) {
 		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
 		box-shadow: inset 0 -2px 0 var(--analyzer-cmini);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--cyanophage.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--filters .analyzer-tab--cyanophage.analyzer-tab--selected) {
 		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
 		box-shadow: inset 0 -2px 0 var(--analyzer-cyanophage);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--mana2.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--filters .analyzer-tab--mana2.analyzer-tab--selected) {
 		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
 		box-shadow: inset 0 -2px 0 var(--analyzer-mana2);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--cmini.analyzer-tab--selected:focus-visible {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--filters .analyzer-tab--cmini.analyzer-tab--selected:focus-visible) {
 		box-shadow:
 			inset 0 -2px 0 var(--analyzer-cmini),
 			0 0 0 2px var(--accent);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--cyanophage.analyzer-tab--selected:focus-visible {
+	.analyzer-tabs-scope
+		:global(
+			.analyzer-tabs--filters .analyzer-tab--cyanophage.analyzer-tab--selected:focus-visible
+		) {
 		box-shadow:
 			inset 0 -2px 0 var(--analyzer-cyanophage),
 			0 0 0 2px var(--accent);
 	}
 
-	.analyzer-tabs--filters .analyzer-tab--mana2.analyzer-tab--selected:focus-visible {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--filters .analyzer-tab--mana2.analyzer-tab--selected:focus-visible) {
 		box-shadow:
 			inset 0 -2px 0 var(--analyzer-mana2),
 			0 0 0 2px var(--accent);
 	}
 
-	.analyzer-tabs--toolbar .analyzer-tab--selected {
+	.analyzer-tabs-scope :global(.analyzer-tabs--toolbar .analyzer-tab--selected) {
 		font-weight: 600;
 		color: var(--text-primary);
 		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
 		border-color: var(--border);
 	}
 
-	.analyzer-tabs--toolbar .analyzer-tab--cmini.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--toolbar .analyzer-tab--cmini.analyzer-tab--selected) {
 		color: var(--analyzer-cmini);
 		border-color: color-mix(in srgb, var(--analyzer-cmini) 45%, var(--border));
 		background-color: color-mix(in srgb, var(--analyzer-cmini) 14%, var(--bg-primary));
 	}
 
-	.analyzer-tabs--toolbar .analyzer-tab--cyanophage.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--toolbar .analyzer-tab--cyanophage.analyzer-tab--selected) {
 		color: var(--analyzer-cyanophage);
 		border-color: color-mix(in srgb, var(--analyzer-cyanophage) 45%, var(--border));
 		background-color: color-mix(in srgb, var(--analyzer-cyanophage) 14%, var(--bg-primary));
 	}
 
-	.analyzer-tabs--toolbar .analyzer-tab--mana2.analyzer-tab--selected {
+	.analyzer-tabs-scope
+		:global(.analyzer-tabs--toolbar .analyzer-tab--mana2.analyzer-tab--selected) {
 		color: var(--analyzer-mana2);
 		border-color: color-mix(in srgb, var(--analyzer-mana2) 45%, var(--border));
 		background-color: color-mix(in srgb, var(--analyzer-mana2) 14%, var(--bg-primary));
 	}
 
-	.analyzer-tab-dot {
-		width: 0.375rem;
-		height: 0.375rem;
-		border-radius: 9999px;
-		background-color: var(--filter-active-dot);
-		flex-shrink: 0;
-	}
-
-	.analyzer-tab--cmini .analyzer-tab-dot {
+	.analyzer-tabs-scope :global(.analyzer-tab--cmini .tab-dot) {
 		background-color: var(--analyzer-cmini);
 	}
 
-	.analyzer-tab--cyanophage .analyzer-tab-dot {
+	.analyzer-tabs-scope :global(.analyzer-tab--cyanophage .tab-dot) {
 		background-color: var(--analyzer-cyanophage);
 	}
 
-	.analyzer-tab--mana2 .analyzer-tab-dot {
+	.analyzer-tabs-scope :global(.analyzer-tab--mana2 .tab-dot) {
 		background-color: var(--analyzer-mana2);
 	}
 
-	.analyzer-tab-sr {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		padding: 0;
-		margin: -1px;
-		overflow: hidden;
-		clip: rect(0, 0, 0, 0);
-		white-space: nowrap;
-		border: 0;
-	}
-
 	@container (max-width: 36rem) {
-		.analyzer-tabs--toolbar {
+		.analyzer-tabs-scope :global(.analyzer-tabs--toolbar) {
 			display: grid;
 			flex: 1 1 auto;
 			min-width: 0;
 		}
 
-		.analyzer-tabs--toolbar .analyzer-tab {
+		.analyzer-tabs-scope :global(.analyzer-tabs--toolbar .analyzer-tab) {
 			min-width: 0;
 		}
 	}

@@ -108,3 +108,23 @@ test('selects, restores, and clears layouts from All and Selected views', async 
 	await expect(clearSelectedLayouts).toHaveCount(0);
 	await expect(page).not.toHaveURL(/(?:\?|&)selected=/);
 });
+
+test('navigates layout-view tabs with roving focus and exposes their panel relationship', async ({
+	page
+}) => {
+	await page.goto('/?source=selected');
+
+	const selectedTab = page.getByRole('tab', { name: 'Selected layouts (0)' });
+	const allTab = page.getByRole('tab', { name: 'All layouts' });
+	await expect(selectedTab).toHaveAttribute('aria-controls', 'layout-view-panel');
+	await expect(page.getByRole('tabpanel', { name: 'Layout results' })).toBeVisible();
+
+	await selectedTab.focus();
+	await selectedTab.press('ArrowLeft');
+	await expect(allTab).toBeFocused();
+	await expect(allTab).toHaveAttribute('aria-selected', 'true');
+
+	await allTab.press('ArrowRight');
+	await expect(selectedTab).toBeFocused();
+	await expect(selectedTab).toHaveAttribute('aria-selected', 'true');
+});

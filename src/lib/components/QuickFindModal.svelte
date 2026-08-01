@@ -1,5 +1,7 @@
 <script lang="ts">
+	import Listbox from '$lib/components/Listbox.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
+	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import type { LayoutCardMetric } from '$lib/layoutStatsBlockModel';
@@ -8,6 +10,7 @@
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import { navigateListIndex } from '$lib/listboxNavigation';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
@@ -20,7 +23,6 @@
 	let query = $state('');
 	let requestedIndex = $state(0);
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
-	let resultsList = $state<HTMLUListElement | undefined>(undefined);
 	let previewPane = $state<HTMLDivElement | undefined>(undefined);
 	let filterSnackbar = $state<string | null>(null);
 	let filterSnackbarTimer: number | undefined;
@@ -82,13 +84,6 @@
 		};
 	});
 
-	// Scroll the highlighted result into view
-	$effect(() => {
-		if (!resultsList || matches.length === 0) return;
-		const item = resultsList.children[activeIndex] as HTMLElement | undefined;
-		item?.scrollIntoView({ block: 'nearest' });
-	});
-
 	function focusPreviewFirstAction() {
 		const firstAction = previewPane?.querySelector(
 			'[data-layout-card-first-action]'
@@ -127,19 +122,12 @@
 	}
 
 	function handleSearchKeyDown(event: KeyboardEvent) {
-		const count = matches.length;
-
-		if (event.key === 'ArrowDown') {
+		const next = navigateListIndex(event.key, activeIndex, matches.length, {
+			homeEnd: false
+		});
+		if (next !== null) {
 			event.preventDefault();
-			if (count === 0) return;
-			requestedIndex = (activeIndex + 1) % count;
-			return;
-		}
-
-		if (event.key === 'ArrowUp') {
-			event.preventDefault();
-			if (count === 0) return;
-			requestedIndex = (activeIndex - 1 + count) % count;
+			requestedIndex = next;
 			return;
 		}
 
@@ -157,24 +145,7 @@
 	labelledBy="quick-find-title"
 	panelClass="max-h-[min(90vh,720px)] max-w-4xl"
 >
-	<div
-		class="flex items-center justify-between border-b px-5 py-4"
-		style="border-color: var(--border);"
-	>
-		<h2 id="quick-find-title" class="text-lg font-semibold" style="color: var(--text-primary);">
-			Quick find
-		</h2>
-		<button
-			onclick={onClose}
-			class="flex size-8 items-center justify-center rounded-full transition-colors"
-			style="color: var(--text-secondary);"
-			aria-label="Close"
-		>
-			<svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-				<path d="M18 6L6 18M6 6l12 12" />
-			</svg>
-		</button>
-	</div>
+	<ModalHeader titleId="quick-find-title" title="Quick find" {onClose} />
 
 	<div class="border-b px-5 py-3" style="border-color: var(--border);">
 		<input
@@ -193,7 +164,9 @@
 			"
 			aria-label="Search layout names"
 			aria-controls="quick-find-results"
-			aria-activedescendant={matches[activeIndex] ? `quick-find-option-${activeIndex}` : undefined}
+			aria-activedescendant={matches[activeIndex]
+				? `quick-find-results-option-${activeIndex}`
+				: undefined}
 			role="combobox"
 			aria-expanded={matches.length > 0}
 			aria-autocomplete="list"
@@ -212,30 +185,31 @@
 			{:else if matches.length === 0}
 				<p class="text-sm" style="color: var(--text-secondary);">No layouts match.</p>
 			{:else}
-				<ul
-					bind:this={resultsList}
+				<Listbox
 					id="quick-find-results"
+					label="Matching layouts"
+					options={matches}
+					{activeIndex}
+					onActiveIndexChange={(index) => (requestedIndex = index)}
+					onSelect={showLayout}
+					getKey={(name) => name}
+					isSelected={(_, index) => index === activeIndex}
+					preserveExternalFocus
 					class="space-y-1"
-					role="listbox"
-					aria-label="Matching layouts"
 				>
-					{#each matches as name, index (name)}
-						<li role="option" aria-selected={index === activeIndex} id="quick-find-option-{index}">
-							<button
-								type="button"
-								onclick={() => showLayout(name)}
-								onpointerenter={() => (requestedIndex = index)}
-								class="flex w-full items-baseline rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors"
-								style="
-									color: var(--text-primary);
-									background-color: {index === activeIndex ? 'var(--bg-secondary)' : 'transparent'};
-								"
-							>
-								{name}
-							</button>
-						</li>
-					{/each}
-				</ul>
+					{#snippet item({ option: name, active, optionProps })}
+						<button
+							{...optionProps}
+							class="flex w-full items-baseline rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors"
+							style="
+								color: var(--text-primary);
+								background-color: {active ? 'var(--bg-secondary)' : 'transparent'};
+							"
+						>
+							{name}
+						</button>
+					{/snippet}
+				</Listbox>
 				{#if matches.length === MAX_RESULTS}
 					<p class="mt-3 text-xs" style="color: var(--text-caption);">
 						Showing first {MAX_RESULTS} matches. Refine your search for more.

@@ -12,6 +12,7 @@
 
 	let showTooltip = $state(false);
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
+	const tooltipId = `tooltip-${crypto.randomUUID()}`;
 
 	const ariaLabel = $derived(variant === 'caution' ? 'Caution' : 'Help');
 	/** Help tips follow the app-bar toggle; caution warnings always stay visible. */
@@ -24,6 +25,15 @@
 
 	function close() {
 		showTooltip = false;
+	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && showTooltip) {
+			event.preventDefault();
+			event.stopPropagation();
+			close();
+			triggerEl?.focus();
+		}
 	}
 
 	$effect(() => {
@@ -40,10 +50,12 @@
 			onmouseleave={close}
 			onfocus={open}
 			onblur={close}
+			onkeydown={handleKeyDown}
 			class="tooltip-trigger"
 			class:tooltip-trigger--help={variant === 'help'}
 			class:tooltip-trigger--caution={variant === 'caution'}
 			aria-label={ariaLabel}
+			aria-describedby={showTooltip ? tooltipId : undefined}
 		>
 			{#if variant === 'caution'}
 				<svg
@@ -68,7 +80,14 @@
 		</button>
 	</span>
 
-	<HoverPopup open={showTooltip} anchor={triggerEl} {text} size="default" placement="below" />
+	<HoverPopup
+		open={showTooltip}
+		anchor={triggerEl}
+		{text}
+		id={tooltipId}
+		size="default"
+		placement="below"
+	/>
 {/if}
 
 <style>

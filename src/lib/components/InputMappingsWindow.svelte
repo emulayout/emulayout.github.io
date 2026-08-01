@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
+	import { portalToBody } from '$lib/portalToBody';
 
 	interface Props {
 		layoutName: string;
@@ -34,15 +35,6 @@
 	>();
 
 	const titleId = $derived(`input-mappings-window-${layoutName.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
-
-	function portalToBody(node: HTMLElement) {
-		document.body.appendChild(node);
-		return {
-			destroy() {
-				node.remove();
-			}
-		};
-	}
 
 	function clampPosition(nextLeft: number, nextTop: number) {
 		if (!panelElement) return { left: nextLeft, top: nextTop };

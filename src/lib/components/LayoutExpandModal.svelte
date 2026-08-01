@@ -26,6 +26,7 @@
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
+	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 
 	interface Props {
@@ -204,37 +205,13 @@
 	labelledBy={titleId}
 	panelClass="max-h-[min(94vh,980px)] max-w-[min(1480px,98vw)]"
 >
-	<div
-		class="flex items-center justify-between gap-3 border-b px-5 py-4 shrink-0"
-		style="border-color: var(--border);"
-	>
-		<h2
-			id={titleId}
-			class="text-lg font-semibold truncate min-w-0"
-			style="color: var(--text-primary);"
-			title={layout.name}
-		>
-			{layout.name}
-		</h2>
-		<button
-			type="button"
-			onclick={close}
-			class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
-			style="color: var(--text-secondary);"
-			aria-label="Close"
-		>
-			<svg
-				class="size-5"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				aria-hidden="true"
-			>
-				<path d="M18 6L6 18M6 6l12 12" />
-			</svg>
-		</button>
-	</div>
+	<ModalHeader
+		{titleId}
+		title={layout.name}
+		titleClass="truncate"
+		titleTooltip={layout.name}
+		onClose={close}
+	/>
 
 	<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 		<div class="modal-columns">

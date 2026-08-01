@@ -1,7 +1,9 @@
 <script lang="ts">
+	import AccordionSection from '$lib/components/AccordionSection.svelte';
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import StatLimitFiltersBody from '$lib/components/StatLimitFiltersBody.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import { hasConfiguredFingerWorkloadPreference } from '$lib/fingerWorkload';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
 	import {
@@ -20,7 +22,6 @@
 		type StatFilterSection,
 		type StatLimitKey
 	} from '$lib/statsFiltering';
-	import { hasConfiguredFingerWorkloadPreference } from '$lib/fingerWorkload';
 
 	type StatCategory = 'bigram' | 'trigram' | 'other';
 	type UsageStatFilterSection = Exclude<StatFilterSection, 'general'>;
@@ -330,70 +331,19 @@
 	{@const keys = visibleKeys(entry.keys)}
 	{@const active = accordionIsActive(analyzer, keys)}
 	{@const panelId = `stat-filters-${analyzer}-${entry.id}-panel`}
-	<div
+	<AccordionSection
 		id="stat-filters-{analyzer}-{entry.id}-accordion"
-		class="filter-accordion"
-		class:filter-accordion--open={open}
-		style="background-color: var(--bg-primary); border: 1px solid var(--border);"
+		{open}
+		onToggle={() => toggle(analyzer, entry.id)}
+		label={entry.label}
+		{panelId}
+		{active}
+		regionLabel="{analyzerLabel} {entry.label}"
+		surface="primary"
+		onReset={() => clearAccordion(analyzer, keys)}
 	>
-		<div class="filter-accordion-header">
-			<button
-				type="button"
-				class="filter-accordion-trigger"
-				aria-expanded={open}
-				aria-controls={panelId}
-				onclick={() => toggle(analyzer, entry.id)}
-			>
-				<span class="sr-only">
-					{entry.label}{#if active}, active filters{/if}
-				</span>
-			</button>
-			<div class="filter-accordion-header-face">
-				<span class="filter-accordion-trigger-main">
-					<svg
-						class="filter-accordion-caret"
-						class:filter-accordion-caret--expanded={open}
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-					</svg>
-					<span class="filter-accordion-trigger-label">
-						{entry.label}
-						{#if active}
-							<span class="filter-open-button-dot" aria-hidden="true"></span>
-						{/if}
-					</span>
-				</span>
-				<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
-				{#if active}
-					<div class="filter-accordion-header-actions">
-						<button
-							type="button"
-							class="filter-reset-button shrink-0"
-							onclick={() => clearAccordion(analyzer, keys)}
-						>
-							Reset all
-						</button>
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		{#if open}
-			<div
-				id={panelId}
-				class="filter-accordion-panel"
-				role="region"
-				aria-label="{analyzerLabel} {entry.label}"
-			>
-				<StatLimitFiltersBody section="general" {analyzer} onlyKeys={keys} stacked />
-			</div>
-		{/if}
-	</div>
+		<StatLimitFiltersBody section="general" {analyzer} onlyKeys={keys} stacked />
+	</AccordionSection>
 {/snippet}
 
 {#snippet usageAccordion(
@@ -406,142 +356,43 @@
 	{@const open = isOpen(analyzer, section)}
 	{@const active = accordionIsActive(analyzer, keys)}
 	{@const panelId = `stat-filters-${analyzer}-${section}-panel`}
-	<div
+	<AccordionSection
 		id="stat-filters-{analyzer}-{section}-accordion"
-		class="filter-accordion"
-		class:filter-accordion--open={open}
-		style="background-color: var(--bg-primary); border: 1px solid var(--border);"
+		{open}
+		onToggle={() => toggle(analyzer, section)}
+		{label}
+		{panelId}
+		{active}
+		regionLabel="{analyzerLabel} {label}"
+		surface="primary"
+		onReset={() => clearUsageAccordion(analyzer, section, keys)}
 	>
-		<div class="filter-accordion-header">
-			<button
-				type="button"
-				class="filter-accordion-trigger"
-				aria-expanded={open}
-				aria-controls={panelId}
-				onclick={() => toggle(analyzer, section)}
-			>
-				<span class="sr-only"
-					>{label}{#if active}, active filters{/if}</span
-				>
-			</button>
-			<div class="filter-accordion-header-face">
-				<span class="filter-accordion-trigger-main">
-					<svg
-						class="filter-accordion-caret"
-						class:filter-accordion-caret--expanded={open}
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-					</svg>
-					<span class="filter-accordion-trigger-label">
-						{label}
-						{#if active}
-							<span class="filter-open-button-dot" aria-hidden="true"></span>
-						{/if}
-					</span>
-				</span>
-				<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
-				{#if active}
-					<div class="filter-accordion-header-actions">
-						<button
-							type="button"
-							class="filter-reset-button shrink-0"
-							onclick={() => clearUsageAccordion(analyzer, section, keys)}
-						>
-							Reset all
-						</button>
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		{#if open}
-			<div
-				id={panelId}
-				class="filter-accordion-panel"
-				role="region"
-				aria-label="{analyzerLabel} {label}"
-			>
-				<StatLimitFiltersBody {section} {analyzer} onlyKeys={keys} stacked />
-			</div>
-		{/if}
-	</div>
+		<StatLimitFiltersBody {section} {analyzer} onlyKeys={keys} stacked />
+	</AccordionSection>
 {/snippet}
 
 {#snippet workloadAccordion()}
 	{@const open = workloadIsOpen()}
 	{@const active = hasConfiguredFingerWorkloadPreference(filterStore.fingerWorkload.preference)}
 	{@const panelId = 'stat-filters-finger-workload-panel'}
-	<div
+	<AccordionSection
 		id="stat-filters-finger-workload-accordion"
-		class="filter-accordion"
-		class:filter-accordion--open={open}
-		style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+		{open}
+		onToggle={toggleWorkload}
+		label="Finger workload"
+		{panelId}
+		{active}
+		onReset={() => filterStore.clearFingerWorkloadPreference()}
 	>
-		<div class="filter-accordion-header">
-			<button
-				type="button"
-				class="filter-accordion-trigger"
-				aria-expanded={open}
-				aria-controls={panelId}
-				onclick={toggleWorkload}
-			>
-				<span class="sr-only"
-					>Finger workload{#if active}, active filters{/if}</span
-				>
-			</button>
-			<div class="filter-accordion-header-face">
-				<span class="filter-accordion-trigger-main">
-					<svg
-						class="filter-accordion-caret"
-						class:filter-accordion-caret--expanded={open}
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-					</svg>
-					<span class="filter-accordion-trigger-label">
-						Finger workload
-						{#if active}
-							<span class="filter-open-button-dot" aria-hidden="true"></span>
-						{/if}
-					</span>
-				</span>
-				<div class="filter-accordion-header-hint">
-					<Tooltip text="Choose how much work you want each finger to carry." />
-				</div>
-				<span class="filter-accordion-header-spacer" aria-hidden="true"></span>
-				{#if active}
-					<div class="filter-accordion-header-actions">
-						<button
-							type="button"
-							class="filter-reset-button shrink-0"
-							onclick={() => filterStore.clearFingerWorkloadPreference()}
-						>
-							Reset all
-						</button>
-					</div>
-				{/if}
-			</div>
-		</div>
-
-		{#if open}
-			<div id={panelId} class="filter-accordion-panel" role="region" aria-label="Finger workload">
-				<StatLimitFiltersBody
-					section="finger-workload"
-					analyzer={filterStore.fingerWorkload.analyzer}
-					stacked
-				/>
-			</div>
-		{/if}
-	</div>
+		{#snippet hint()}
+			<Tooltip text="Choose how much work you want each finger to carry." />
+		{/snippet}
+		<StatLimitFiltersBody
+			section="finger-workload"
+			analyzer={filterStore.fingerWorkload.analyzer}
+			stacked
+		/>
+	</AccordionSection>
 {/snippet}
 
 {#snippet analyzerPanel(analyzer: StatsAnalyzer, analyzerLabel: string)}
@@ -617,7 +468,7 @@
 
 		<div
 			id="stat-filters-tabpanel"
-			role="region"
+			role="tabpanel"
 			aria-labelledby="stat-filters-tab-{selectedAnalyzer}"
 		>
 			{@render analyzerPanel(selectedAnalyzer, selectedAnalyzerDef.shortLabel)}
