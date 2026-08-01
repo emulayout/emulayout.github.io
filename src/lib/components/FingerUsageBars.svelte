@@ -1,24 +1,11 @@
-<script lang="ts" module>
-	export const FINGER_USAGE_BARS_HEIGHT = 103;
-
-	export type FingerUsageBarKey =
-		| 'LP'
-		| 'LR'
-		| 'LM'
-		| 'LI'
-		| 'LT'
-		| 'RT'
-		| 'RI'
-		| 'RM'
-		| 'RR'
-		| 'RP';
-	export type FingerUsageBarValues = Partial<Record<FingerUsageBarKey, number>>;
-</script>
-
 <script lang="ts">
 	import HoverPopup from '$lib/components/HoverPopup.svelte';
+	import { FINGER_USAGE_BARS_HEIGHT } from '$lib/constants';
 	import { formatStatPercent } from '$lib/statsBlockFormatting';
 	import type { StatsAnalyzer } from '$lib/statsAnalyzers';
+
+	type FingerUsageBarKey = 'LP' | 'LR' | 'LM' | 'LI' | 'LT' | 'RT' | 'RI' | 'RM' | 'RR' | 'RP';
+	type FingerUsageBarValues = Partial<Record<FingerUsageBarKey, number>>;
 
 	interface Props {
 		/** Finger usage as 0–1 fractions. */

@@ -6,7 +6,6 @@
 		type LayoutCardMetric,
 		type LayoutStatsBlockModel
 	} from '$lib/layoutStatsBlockModel';
-	import { FINGER_USAGE_TEXT_LINE_COUNT } from '$lib/statsBlockFormatting';
 	import { analyzerShortLabel } from '$lib/statsAnalyzers';
 	import type { SortOrder } from '$lib/statsSorting';
 
@@ -35,7 +34,6 @@
 		onSortMetric,
 		mode = 'focused'
 	}: Props = $props();
-	const showFingerUsageBars = $derived(mode === 'focused');
 
 	function fallbackCopy(model: LayoutStatsBlockModel) {
 		const lines = model.fallback
@@ -45,30 +43,6 @@
 		return {
 			title: model.loading ? 'Loading stats' : 'Stats unavailable',
 			detail: lines[1] ?? (model.loading ? 'Preparing this analyzer' : 'No data for this layout')
-		};
-	}
-
-	function getStatsItemView(model: LayoutStatsBlockModel) {
-		const fingerUsage =
-			showFingerUsageBars && model.lines && model.fingerUsage ? model.fingerUsage : null;
-		const fingerDistance =
-			showFingerUsageBars && showFingerDistanceBars && model.lines && model.fingerDistance
-				? model.fingerDistance
-				: null;
-		const baseLines = fingerUsage
-			? (model.lines?.slice(0, -FINGER_USAGE_TEXT_LINE_COUNT) ?? null)
-			: model.lines;
-		const lines =
-			showFingerUsageBars && model.fingerDistance
-				? (baseLines?.filter(
-						(line) => !line.some((segment) => segment.text.trim().startsWith('Distance'))
-					) ?? null)
-				: baseLines;
-		return {
-			lines,
-			lineCount: fingerUsage ? lines?.length : undefined,
-			fingerUsage,
-			fingerDistance
 		};
 	}
 </script>
@@ -107,20 +81,13 @@
 {/snippet}
 
 {#snippet statsItem(model: LayoutStatsBlockModel)}
-	{@const view = getStatsItemView(model)}
-	<div class="stats-stack-item">
-		<LayoutStatsBlock
-			lines={view.lines}
-			fallback={model.fallback}
-			unavailable={!model.loading}
-			mana2={model.mana2}
-			lineCount={view.lineCount}
-			shrink
-		/>
-		{#if view.fingerUsage}
-			{@render fingerUsageCharts(model, Boolean(view.fingerDistance))}
-		{/if}
-	</div>
+	<LayoutStatsBlock
+		lines={model.lines}
+		fallback={model.fallback}
+		unavailable={!model.loading}
+		mana2={model.mana2}
+		shrink
+	/>
 {/snippet}
 
 {#snippet focusedStatsItem(model: LayoutStatsBlockModel)}
@@ -213,19 +180,7 @@
 		{/if}
 
 		{#if model.fingerUsage}
-			{#if showFingerUsageBars}
-				{@render fingerUsageCharts(model, Boolean(showFingerDistanceBars && model.fingerDistance))}
-			{:else}
-				<div class="focused-finger-text">
-					<LayoutStatsBlock
-						lines={model.lines?.slice(-FINGER_USAGE_TEXT_LINE_COUNT) ?? null}
-						fallback={null}
-						unavailable={false}
-						lineCount={FINGER_USAGE_TEXT_LINE_COUNT}
-						shrink
-					/>
-				</div>
-			{/if}
+			{@render fingerUsageCharts(model, Boolean(showFingerDistanceBars && model.fingerDistance))}
 		{/if}
 	</section>
 {/snippet}
@@ -258,10 +213,6 @@
 	.stats-stack {
 		display: flex;
 		flex-direction: column;
-		min-width: 0;
-	}
-
-	.stats-stack-item {
 		min-width: 0;
 	}
 
@@ -522,11 +473,6 @@
 		}
 	}
 
-	.stats-stack-item .finger-chart-area {
-		margin-top: 0.5rem;
-	}
-
-	.core-stats .focused-finger-text,
 	.core-stats .finger-chart-area {
 		margin-top: 1rem;
 	}
