@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FingerUsageBars from '$lib/components/FingerUsageBars.svelte';
+	import { getLayoutCardStatsHeight } from '$lib/constants';
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import {
 		buildFocusedMetricSlots,
@@ -96,6 +97,7 @@
 	<section
 		class="core-stats core-stats--{model.analyzer}"
 		aria-label="{analyzerLabel} core statistics"
+		style:min-height={`${getLayoutCardStatsHeight(model.analyzer, 'focused')}px`}
 	>
 		{#if model.cardMetrics}
 			<dl class="core-stats-grid">

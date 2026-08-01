@@ -87,7 +87,8 @@ there are no metric-cell filter or sort targets.
   not currently displayed. The injected final cell should appear once that source data is
   available.
 - Missing or loading analyzer data uses the existing status presentation instead of partially
-  constructing metric cells.
+  constructing metric cells. In Highlights, the status presentation reserves the full stats-panel
+  height so action rows remain aligned between available and unavailable cards.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
 
