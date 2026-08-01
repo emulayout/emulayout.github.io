@@ -1,41 +1,52 @@
 <script lang="ts">
+	import { afterNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import type { PathnameWithSearchOrHash } from '$app/types';
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
-	import { compileLayoutInputRegistry } from '$lib/layoutInputBehaviors';
-	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { filterStore } from '$lib/filterStore.svelte';
+	import { decodeLayoutDetail } from '$lib/layoutDetails';
+	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
+	import { untrack } from 'svelte';
 
 	const { data } = $props();
-	const layout = $derived(data.layouts.find((candidate) => candidate.name === data.layoutName));
-	const authorById = $derived(
-		new Map<number, string>(
-			Object.entries(data.authorsData).map(([name, id]) => [id as number, name])
-		)
-	);
-	const inputProfiles = $derived(compileLayoutInputRegistry(data.inputBehaviors, data.layouts));
-	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
-	const returnTarget = $derived(`/${page.url.search}` as PathnameWithSearchOrHash);
+	const detail = $derived(data.detail ? decodeLayoutDetail(data.detail, data.layoutName) : null);
+	const layout = $derived(detail?.layout);
 	let disabledMappingIds = $state<string[]>([]);
 
-	const authorName = $derived(layout ? (authorById.get(layout.user) ?? 'Unknown') : 'Unknown');
-	const likeCount = $derived(layout ? (data.likesData[layout.name] ?? 0) : 0);
+	filterStore.enterLayoutDetailRoute();
+
+	afterNavigate(() => {
+		if (!page.url.search) return;
+		replaceState(resolve('/layouts/[name]', { name: data.layoutName }), page.state);
+	});
+
+	function backToLayouts(event: MouseEvent) {
+		if (!page.state.fromLayoutIndex) return;
+		event.preventDefault();
+		history.back();
+	}
+
+	$effect(() => {
+		const compact = data.detail;
+		const expectedName = data.layoutName;
+		if (compact) untrack(() => layoutDetailsStore.hydrate(compact, expectedName));
+	});
 </script>
 
 <svelte:head>
 	<title>{layout ? `${layout.name} · Emulayout` : 'Layout not found · Emulayout'}</title>
 </svelte:head>
 
-{#if layout}
+{#if detail}
 	<LayoutExpandedView
-		{layout}
-		{authorName}
-		{likeCount}
-		returnSearch={page.url.search}
-		compactCminiStats={statsMaps.cmini?.[layout.name]}
-		compactCyanophageStats={statsMaps.cyanophage?.[layout.name]}
-		compactMana2Stats={statsMaps.mana2?.[layout.name]}
-		inputProfile={inputProfiles.get(layout.name)}
+		layout={detail.layout}
+		authorName={detail.authorName}
+		likeCount={detail.likeCount}
+		onBackToLayouts={backToLayouts}
+		compactCminiStats={detail.stats.cmini}
+		compactCyanophageStats={detail.stats.cyanophage}
+		compactMana2Stats={detail.stats.mana2}
+		inputProfile={detail.inputProfile}
 		{disabledMappingIds}
 		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 	/>
@@ -43,7 +54,7 @@
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">
 		<h2 id="layout-not-found-title">Layout not found</h2>
 		<p>No layout named “{data.layoutName}” is in the current catalog.</p>
-		<a href={resolve(returnTarget)}>Back to layouts</a>
+		<a href={resolve('/')} onclick={backToLayouts}>Back to layouts</a>
 	</section>
 {/if}
 

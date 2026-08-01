@@ -54,6 +54,10 @@ The generated file is `static/layout-input-behaviors.json`. Repeat-key behavior 
 compact layout metadata rather than stored as a per-layout source profile. A layout may contain any
 combination of these features.
 
+`bin/layout-details.js` copies the matching source profile into each generated per-layout detail
+payload after the aggregate analyzer files are ready. This is a delivery optimization only; the
+feature-specific authoring files and merged aggregate sidecar remain the sources of truth.
+
 Pull-request validation requires every mapping profile to match a current Cmini layout. Production
 sync is deliberately more resilient: if Cmini later removes a layout, its mapping profile and any
 stale `adaptive-layouts.txt` presence entry produce warnings and are omitted rather than failing

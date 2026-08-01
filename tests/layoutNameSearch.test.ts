@@ -51,6 +51,13 @@ describe('layout name search', () => {
 		expect(findLayoutNameMatches(candidates, 'al', 0)).toEqual([]);
 		expect(findLayoutNameMatches([], 'al', 20)).toEqual([]);
 	});
+
+	test('searches a lightweight list of layout names', () => {
+		expect(findLayoutNameMatches(['Graphite', 'Colemak-DH', 'Colemak'], 'colemak', 20)).toEqual([
+			'Colemak',
+			'Colemak-DH'
+		]);
+	});
 });
 
 describe('search result selection', () => {

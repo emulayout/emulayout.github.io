@@ -11,7 +11,7 @@
 	import { onMount } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 
-	let { data, children } = $props();
+	let { children } = $props();
 
 	type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -24,16 +24,12 @@
 	let compareSession = $state(0);
 	let debugEnabled = $state(false);
 
-	const layouts = $derived(data.layouts);
-	const authorsData = $derived(data.authorsData);
-	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
+	const layouts = $derived(layoutsCatalog.layouts);
+	const authorsData = $derived(layoutsCatalog.authorsData);
+	const statsMaps = $derived(layoutStatsStore.maps);
 	const authorById = $derived(
 		new Map<number, string>(Object.entries(authorsData).map(([name, id]) => [id as number, name]))
 	);
-
-	$effect(() => {
-		layoutsCatalog.hydrate(layouts, authorsData, data.likesData);
-	});
 
 	function getAuthorName(userId: number): string {
 		return authorById.get(userId) ?? 'Unknown';
@@ -147,7 +143,7 @@
 	}
 
 	onMount(() => {
-		function handleOpenCompare(event: Event) {
+		async function handleOpenCompare(event: Event) {
 			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
 			const mode = detail?.mode ?? 'restore';
 
@@ -156,6 +152,9 @@
 				compareSession += 1;
 				return;
 			}
+
+			await layoutsCatalog.ensureLoaded();
+			if (!layoutsCatalog.fullCatalogLoaded) return;
 
 			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
 			compareSession += 1;

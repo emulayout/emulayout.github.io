@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 
 	interface Props {
@@ -11,7 +13,6 @@
 		cyanophageCompatible: boolean;
 		cyanophageTitle: string;
 		expandLayoutName?: string;
-		expandSearch?: string;
 		forceIncluded: boolean;
 		onFindSimilar: () => void;
 		onToggleAnglemod: () => void;
@@ -28,7 +29,6 @@
 		cyanophageCompatible,
 		cyanophageTitle,
 		expandLayoutName,
-		expandSearch = '',
 		forceIncluded,
 		onFindSimilar,
 		onToggleAnglemod,
@@ -44,11 +44,27 @@
 				: 'Find similar layouts'
 	);
 	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
-	const expandTarget = $derived(
-		`/layouts/[name]${expandSearch}` as '/layouts/[name]' | `/layouts/[name]?${string}`
-	);
+	const expandTarget = '/layouts/[name]';
 
 	let externalLinksOpen = $state(false);
+
+	function openLayoutDetails(event: MouseEvent) {
+		if (
+			!expandLayoutName ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		) {
+			return;
+		}
+
+		event.preventDefault();
+		void goto(resolve(expandTarget, { name: expandLayoutName }), {
+			state: { ...page.state, fromLayoutIndex: true }
+		});
+	}
 </script>
 
 <div class="card-action-divider shrink-0" aria-label="Layout actions">
@@ -162,6 +178,7 @@
 		{#if expandLayoutName}
 			<a
 				href={resolve(expandTarget, { name: expandLayoutName })}
+				onclick={openLayoutDetails}
 				class="card-action-button"
 				title="View layout details"
 				aria-label="View layout details"

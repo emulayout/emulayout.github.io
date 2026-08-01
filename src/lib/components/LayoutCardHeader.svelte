@@ -9,6 +9,7 @@
 		showLikes: boolean;
 		showNewIndicator: boolean;
 		showSimilarityMatch: boolean;
+		showSelection?: boolean;
 		similarMatchPercent?: number;
 		similarMirrored?: boolean;
 		onToggleSelection: () => void;
@@ -23,6 +24,7 @@
 		showLikes,
 		showNewIndicator,
 		showSimilarityMatch,
+		showSelection = true,
 		similarMatchPercent,
 		similarMirrored = false,
 		onToggleSelection,
@@ -38,44 +40,52 @@
 	);
 </script>
 
+{#snippet layoutTitle()}
+	<h2
+		class="text-lg font-semibold truncate min-w-0"
+		style="color: var(--text-primary);"
+		title={layout.name}
+	>
+		{layout.name}
+	</h2>
+{/snippet}
+
 <div class="shrink-0 flex flex-col gap-1">
 	<div class="flex items-center gap-2 min-w-0">
 		<div class="flex items-center gap-2 min-w-0 flex-1">
-			<label class="flex items-center gap-2 min-w-0 cursor-pointer">
-				<span class="relative shrink-0 flex items-center">
-					<input
-						type="checkbox"
-						checked={selected}
-						onchange={onToggleSelection}
-						class="size-4 rounded appearance-none cursor-pointer relative"
-						style="
-							background-color: {selected ? 'var(--accent)' : 'var(--bg-primary)'};
-							border: 1px solid var(--border);
-						"
-						aria-label={`Select ${layout.name}`}
-					/>
-					{#if selected}
-						<svg
-							class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-							style="color: white;"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="3"
-							aria-hidden="true"
-						>
-							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-						</svg>
-					{/if}
-				</span>
-				<h2
-					class="text-lg font-semibold truncate min-w-0"
-					style="color: var(--text-primary);"
-					title={layout.name}
-				>
-					{layout.name}
-				</h2>
-			</label>
+			{#if showSelection}
+				<label class="flex items-center gap-2 min-w-0 cursor-pointer">
+					<span class="relative shrink-0 flex items-center">
+						<input
+							type="checkbox"
+							checked={selected}
+							onchange={onToggleSelection}
+							class="size-4 rounded appearance-none cursor-pointer relative"
+							style="
+								background-color: {selected ? 'var(--accent)' : 'var(--bg-primary)'};
+								border: 1px solid var(--border);
+							"
+							aria-label={`Select ${layout.name}`}
+						/>
+						{#if selected}
+							<svg
+								class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
+								style="color: white;"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="3"
+								aria-hidden="true"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+							</svg>
+						{/if}
+					</span>
+					{@render layoutTitle()}
+				</label>
+			{:else}
+				{@render layoutTitle()}
+			{/if}
 			{#if showNewIndicator}
 				<span class="new-layout-dot shrink-0" title="New layout" aria-label="New layout"></span>
 			{/if}

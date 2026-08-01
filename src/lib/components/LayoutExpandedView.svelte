@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import type { PathnameWithSearchOrHash } from '$app/types';
 	import { onMount } from 'svelte';
 	import type {
 		CompactCyanophageStats,
@@ -34,7 +33,7 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		returnSearch?: string;
+		onBackToLayouts?: (event: MouseEvent) => void;
 		compactCminiStats?: CompactLayoutStats;
 		compactCyanophageStats?: CompactCyanophageStats;
 		compactMana2Stats?: CompactMana2Stats;
@@ -47,7 +46,7 @@
 		layout,
 		authorName,
 		likeCount,
-		returnSearch = '',
+		onBackToLayouts,
 		compactCminiStats,
 		compactCyanophageStats,
 		compactMana2Stats,
@@ -68,8 +67,6 @@
 	let showCmini = $state(false);
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
-	const returnTarget = $derived(`/${returnSearch}` as PathnameWithSearchOrHash);
-
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const analyzersTitleId = $derived(`${titleId}-analyzers`);
 	const analyzerCount = $derived(
@@ -127,16 +124,13 @@
 		if (analyzer === CMINI_ANALYZER) showCmini = checked;
 		else if (analyzer === CYANOPHAGE_ANALYZER) showCyanophage = checked;
 		else showMana2 = checked;
-		if (checked) void layoutStatsStore.ensureLoaded(analyzer);
+		if (checked && !hasAnalyzerData(analyzer)) void layoutStatsStore.ensureLoaded(analyzer);
 	}
 
 	onMount(() => {
 		showCmini = hasAnalyzerData(CMINI_ANALYZER);
 		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER);
 		showMana2 = hasAnalyzerData(MANA2_ANALYZER);
-		if (showCmini) void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
-		if (showCyanophage) void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
-		if (showMana2) void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
 	});
 </script>
 
@@ -197,7 +191,12 @@
 
 <article class="layout-detail-page" data-layout-detail aria-labelledby={titleId}>
 	<header class="layout-detail-header">
-		<a class="layout-detail-back" href={resolve(returnTarget)} aria-label="Back to layouts">
+		<a
+			class="layout-detail-back"
+			href={resolve('/')}
+			onclick={onBackToLayouts}
+			aria-label="Back to layouts"
+		>
 			<svg
 				class="size-4"
 				fill="none"

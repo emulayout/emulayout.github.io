@@ -110,6 +110,10 @@ Sync publishes curated Magic and Adaptive mappings in:
 static/layout-input-behaviors.json
 ```
 
+The detail-data generation step also copies the matching layout's source profile into its
+`static/layout-details/<id>.json` payload. The aggregate sidecar remains authoritative for the
+layout index; the per-layout copy lets direct detail and Quick Find views avoid downloading it.
+
 Repeat keys do not need per-layout source records. The client combines the optional sidecar with
 the authoritative compact layout metadata into one `LayoutInputProfile`:
 

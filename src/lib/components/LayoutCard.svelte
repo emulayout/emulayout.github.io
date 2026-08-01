@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -345,6 +344,7 @@
 		showLikes={filterStore.showLayoutLikes}
 		showNewIndicator={isNewLayout}
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
+		showSelection={catalogCard}
 		{similarMatchPercent}
 		{similarMirrored}
 		onToggleSelection={handleToggleSelection}
@@ -368,7 +368,9 @@
 			{adaptiveMappingsEnabled}
 			{magicMappingsEnabled}
 			onToggleRepeat={inputProfile?.repeatKey ? toggleRepeatKey : undefined}
-			onToggleMappings={catalogCard && inputMappingsAvailable ? toggleInputMappings : undefined}
+			onToggleMappings={catalogCard && inputMappingsAvailable && onToggleInputMappingsWindow
+				? toggleInputMappings
+				: undefined}
 		/>
 	</div>
 
@@ -381,7 +383,6 @@
 		cyanophageCompatible={layout.cyanophageCompatible}
 		cyanophageTitle={cyanophageLinkTitle}
 		expandLayoutName={catalogCard ? layout.name : undefined}
-		expandSearch={page.url.search}
 		{forceIncluded}
 		onFindSimilar={handleFindSimilarClick}
 		onToggleAnglemod={toggleAnglemod}
