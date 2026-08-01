@@ -8,7 +8,7 @@ const TARGET_MS = 1600;
 export function focusFilterControl(el: HTMLElement | null | undefined): void {
 	if (!el) return;
 	el.focus({ preventScroll: true });
-	el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
 	el.classList.add(TARGET_CLASS);
 	window.setTimeout(() => el.classList.remove(TARGET_CLASS), TARGET_MS);
 }

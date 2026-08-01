@@ -2,9 +2,10 @@
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
+	import type { LayoutCardMetric } from '$lib/layoutStatsBlockModel';
+	import type { StatLimitOperator } from '$lib/filterStore.svelte';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
 
@@ -20,6 +21,8 @@
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
 	let resultsList = $state<HTMLUListElement | undefined>(undefined);
 	let previewPane = $state<HTMLDivElement | undefined>(undefined);
+	let filterSnackbar = $state<string | null>(null);
+	let filterSnackbarTimer: number | undefined;
 
 	const MAX_RESULTS = 100;
 
@@ -50,6 +53,11 @@
 		if (!open) {
 			query = '';
 			requestedIndex = 0;
+			filterSnackbar = null;
+			if (filterSnackbarTimer !== undefined) {
+				window.clearTimeout(filterSnackbarTimer);
+				filterSnackbarTimer = undefined;
+			}
 			return;
 		}
 
@@ -94,6 +102,22 @@
 	function showLayout(name: string) {
 		filterStore.focusLayout(name);
 		onClose();
+	}
+
+	function showAppliedFilterSnackbar(
+		metric: LayoutCardMetric,
+		operator: StatLimitOperator,
+		_value: string,
+		enabled: boolean
+	) {
+		filterSnackbar = enabled
+			? `${metric.label} ${operator === 'gt' ? '>' : '<'} ${metric.value} filter set`
+			: `${metric.label} filter cleared`;
+		if (filterSnackbarTimer !== undefined) window.clearTimeout(filterSnackbarTimer);
+		filterSnackbarTimer = window.setTimeout(() => {
+			filterSnackbar = null;
+			filterSnackbarTimer = undefined;
+		}, 2600);
 	}
 
 	function handleSearchInput(event: Event) {
@@ -226,15 +250,12 @@
 						layout={highlightedLayout}
 						authorName={highlightedAuthorName}
 						likeCount={layoutsCatalog.likesData[highlightedLayout.name] ?? 0}
-						compactCminiStats={showsCminiStats(filterStore.statsAnalyzer)
-							? layoutStatsStore.maps.cmini?.[highlightedLayout.name]
-							: undefined}
-						compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
-							? layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]
-							: undefined}
-						compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
-							? layoutStatsStore.maps.mana2?.[highlightedLayout.name]
-							: undefined}
+						compactCminiStats={layoutStatsStore.maps.cmini?.[highlightedLayout.name]}
+						compactCyanophageStats={layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]}
+						compactMana2Stats={layoutStatsStore.maps.mana2?.[highlightedLayout.name]}
+						statFilterInteraction="apply-only"
+						allowStatSorting={false}
+						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>
 				{/key}
 			{:else}
@@ -247,4 +268,33 @@
 			{/if}
 		</div>
 	</div>
+
+	{#if filterSnackbar}
+		<div class="quick-find-snackbar" role="status" aria-live="polite">
+			{filterSnackbar}
+		</div>
+	{/if}
 </ModalShell>
+
+<style>
+	.quick-find-snackbar {
+		position: absolute;
+		inset-inline-start: 50%;
+		inset-block-end: 1rem;
+		z-index: 5;
+		max-width: calc(100% - 2rem);
+		transform: translateX(-50%);
+		padding: 0.55rem 0.8rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+		border-radius: 0.65rem;
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--bg-primary) 88%, var(--accent));
+		box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, black 30%, transparent);
+		font-size: 0.8rem;
+		font-weight: 600;
+		line-height: 1.2;
+		text-align: center;
+		white-space: nowrap;
+		pointer-events: none;
+	}
+</style>

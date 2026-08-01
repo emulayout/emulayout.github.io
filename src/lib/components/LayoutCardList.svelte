@@ -11,7 +11,7 @@
 	import { layoutListItemKey, layoutListItemName, type LayoutListItem } from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { showsCyanophageStats, showsMana2Stats, showsCminiStats } from '$lib/statsAnalyzers';
+	import { showsMana2Stats } from '$lib/statsAnalyzers';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
@@ -200,15 +200,9 @@
 		{layout}
 		authorName={getAuthorName(layout.user)}
 		likeCount={likesData[layout.name] ?? 0}
-		compactCminiStats={showsCminiStats(filterStore.statsAnalyzer)
-			? statsMaps.cmini?.[layout.name]
-			: undefined}
-		compactCyanophageStats={showsCyanophageStats(filterStore.statsAnalyzer)
-			? statsMaps.cyanophage?.[layout.name]
-			: undefined}
-		compactMana2Stats={showsMana2Stats(filterStore.statsAnalyzer)
-			? statsMaps.mana2?.[layout.name]
-			: undefined}
+		compactCminiStats={statsMaps.cmini?.[layout.name]}
+		compactCyanophageStats={statsMaps.cyanophage?.[layout.name]}
+		compactMana2Stats={statsMaps.mana2?.[layout.name]}
 		inputProfile={inputProfiles.get(layout.name)}
 		disabledMappingIds={disabledMappingsByLayout[layout.name] ?? []}
 		onDisabledMappingIdsChange={(ids) => setDisabledMappings(layout.name, ids)}

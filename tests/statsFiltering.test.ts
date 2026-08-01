@@ -19,6 +19,7 @@ import {
 	getStatFilterCatalogForAnalyzer,
 	getStatFilterFieldsForAnalyzer,
 	getStatFilterStatKey,
+	getStatMetricFilterTarget,
 	hasActiveStatFilterSection,
 	parseStatFilterThreshold
 } from '$lib/statsFiltering';
@@ -71,10 +72,38 @@ describe('stats filtering catalog', () => {
 	test('maps prefixed storage keys to their derived analyzer properties', () => {
 		expect(getStatFilterStatKey(field('sfb'))).toBe('sfb');
 		expect(getStatFilterStatKey(field('cyano-sfb'))).toBe('sfb');
+		expect(getStatFilterStatKey(field('cyano-roll-in'))).toBe('rollIn');
 		expect(getStatFilterStatKey(field('mana-sfb'))).toBe('sfb');
 		expect(getStatFilterStatKey(field('cyano-LI'))).toBe('LI');
 		expect(getStatFilterStatKey(field('mana-LI'))).toBe('LI');
 		expect(getStatFilterStatKey(LIKES_STAT_FILTER_FIELD)).toBe('likes');
+	});
+
+	test('routes displayed metrics to analyzer-specific filter controls', () => {
+		expect(getStatMetricFilterTarget(CMINI_ANALYZER, 'sfb')).toEqual({
+			section: 'general',
+			key: 'sfb'
+		});
+		expect(getStatMetricFilterTarget(CYANOPHAGE_ANALYZER, 'sfb')).toEqual({
+			section: 'general',
+			key: 'cyano-sfb'
+		});
+		expect(getStatMetricFilterTarget(CYANOPHAGE_ANALYZER, 'rollIn')).toEqual({
+			section: 'general',
+			key: 'cyano-roll-in'
+		});
+		expect(getStatMetricFilterTarget(CYANOPHAGE_ANALYZER, 'redirect')).toEqual({
+			section: 'general',
+			key: 'cyano-redirect'
+		});
+		expect(getStatMetricFilterTarget(MANA2_ANALYZER, 'LI')).toEqual({
+			section: 'finger-usage',
+			key: 'mana-LI'
+		});
+		expect(getStatMetricFilterTarget(MANA2_ANALYZER, 'lh')).toEqual({
+			section: 'hand-usage',
+			key: 'mana-lh'
+		});
 	});
 
 	test('parses percent fields as fractions and preserves raw units', () => {

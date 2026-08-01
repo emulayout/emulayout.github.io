@@ -17,7 +17,9 @@ describe('stats sorting catalog and normalization', () => {
 	test('resolves analyzer-owned fields and layout/stat sort types', () => {
 		expect(getStatSortAnalyzer('alternate')).toBe(CMINI_ANALYZER);
 		expect(getStatSortAnalyzer('cyano-effort')).toBe(CYANOPHAGE_ANALYZER);
+		expect(getStatSortAnalyzer('cyano-roll-in')).toBe(CYANOPHAGE_ANALYZER);
 		expect(getStatSortAnalyzer('mana-roll')).toBe(MANA2_ANALYZER);
+		expect(getStatSortAnalyzer('mana-roll-in')).toBe(MANA2_ANALYZER);
 		expect(getStatSortField('cyano-effort', CMINI_ANALYZER)).toBeUndefined();
 		expect(
 			getStatSortFieldsForAnalyzer(MANA2_ANALYZER).every(
@@ -44,7 +46,9 @@ describe('stats sorting catalog and normalization', () => {
 	test('accepts canonical sort values and rejects obsolete aliases', () => {
 		expect(normalizeSortBy('sfb')).toBe('sfb');
 		expect(normalizeSortBy('cyano-sfb')).toBe('cyano-sfb');
+		expect(normalizeSortBy('cyano-redirect')).toBe('cyano-redirect');
 		expect(normalizeSortBy('mana-sfb')).toBe('mana-sfb');
+		expect(normalizeSortBy('mana-roll-in')).toBe('mana-roll-in');
 		expect(normalizeSortBy('total-word-effort')).toBeUndefined();
 		expect(normalizeSortBy('sfs')).toBeUndefined();
 		expect(normalizeSortBy('rtl-desc')).toBeUndefined();

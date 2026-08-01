@@ -78,6 +78,34 @@ export const CYANOPHAGE_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGr
 				}
 			]
 		]
+	},
+	{
+		title: 'Trigrams',
+		rows: [
+			[
+				{
+					key: 'cyano-alt',
+					statKey: 'alternate',
+					label: 'Alt',
+					title: 'Alternation',
+					hint: 'Trigrams that switch hands on every key. Higher is usually preferred.'
+				},
+				{
+					key: 'cyano-roll-in',
+					statKey: 'rollIn',
+					label: 'In',
+					title: 'Roll in',
+					hint: 'Inward two- and three-key rolls, moving from the outer fingers toward the index. Higher is usually preferred.'
+				},
+				{
+					key: 'cyano-redirect',
+					statKey: 'redirect',
+					label: 'Red',
+					title: 'Redirect',
+					hint: 'Same-hand trigrams that change direction mid-sequence. Lower is usually preferred.'
+				}
+			]
+		]
 	}
 ];
 

@@ -5,7 +5,7 @@
 		CompactMana2Stats,
 		LayoutData
 	} from '$lib/layout';
-	import { filterStore } from '$lib/filterStore.svelte';
+	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -21,6 +21,7 @@
 		showsCminiStats
 	} from '$lib/statsAnalyzers';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
+	import { getStatMetricFilterTarget } from '$lib/statsFiltering';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
@@ -36,7 +37,13 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
-	import { buildLayoutStatsBlockModel } from '$lib/layoutStatsBlockModel';
+	import { buildLayoutStatsBlockModel, type LayoutCardMetric } from '$lib/layoutStatsBlockModel';
+	import {
+		getStatSortField,
+		getStatSortFieldsForAnalyzer,
+		type SortBy,
+		type SortOrder
+	} from '$lib/statsSorting';
 	import {
 		inputMappingsLabel,
 		inputProfileMappingsLabel,
@@ -72,6 +79,15 @@
 		similarDiffPositions?: Map<string, string>;
 		/** Shared filter/sort highlights; omit to compute from the filter store. */
 		statHighlights?: ReturnType<typeof getStatCardHighlightState>;
+		/** Quick Find applies filters without navigating to the covered sidebar. */
+		statFilterInteraction?: 'focus' | 'apply-only';
+		allowStatSorting?: boolean;
+		onStatFilterChanged?: (
+			metric: LayoutCardMetric,
+			operator: StatLimitOperator,
+			value: string,
+			enabled: boolean
+		) => void;
 	}
 
 	const {
@@ -90,7 +106,10 @@
 		similarMatchPercent,
 		similarMirrored = false,
 		similarDiffPositions,
-		statHighlights
+		statHighlights,
+		statFilterInteraction = 'focus',
+		allowStatSorting = true,
+		onStatFilterChanged
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
@@ -175,6 +194,28 @@
 	const sortFieldHighlight = $derived(
 		statHighlights ?? getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
 	);
+	const selectedSortMetric = $derived.by(() => {
+		const sortField = getStatSortField(filterStore.sortBy);
+		if (!sortField) return null;
+
+		const compactStats =
+			sortField.analyzer === CYANOPHAGE_ANALYZER
+				? compactCyanophageStats
+				: sortField.analyzer === MANA2_ANALYZER
+					? compactMana2Stats
+					: compactCminiStats;
+		const sourceModel = buildLayoutStatsBlockModel(sortField.analyzer, compactStats, {
+			loading: layoutStatsStore.isLoading(sortField.analyzer),
+			cyanophageCompatible: layout.cyanophageCompatible,
+			highlights: sortFieldHighlight,
+			sortOrder: filterStore.sortOrder
+		});
+		return (
+			sourceModel.cardMetrics?.find(
+				(metric) => metric.analyzer === sortField.analyzer && metric.key === sortField.key
+			) ?? null
+		);
+	});
 	const cminiStatsModel = $derived(
 		showCminiStats
 			? buildLayoutStatsBlockModel(CMINI_ANALYZER, compactCminiStats, {
@@ -203,6 +244,38 @@
 				})
 			: null
 	);
+
+	function handleSortMetric(metric: LayoutCardMetric, order: SortOrder) {
+		const field = getStatSortFieldsForAnalyzer(metric.analyzer).find(
+			(candidate) => candidate.key === metric.key
+		);
+		if (!field) return;
+		filterStore.setSort(field.value as SortBy, order);
+	}
+
+	function handleFilterMetric(metric: LayoutCardMetric, useMetricValue: boolean) {
+		const target = getStatMetricFilterTarget(metric.analyzer, metric.key);
+		if (!target) return;
+		if (useMetricValue) {
+			const operator: StatLimitOperator = metric.preferredSortOrder === 'desc' ? 'gt' : 'lt';
+			const value = metric.value.replace(/%$/, '');
+			if (statFilterInteraction === 'apply-only') {
+				const current = filterStore.statLimits[target.key];
+				const alreadySet = current.operator === operator && current.value.trim() === value;
+				if (alreadySet) {
+					filterStore.clearStatLimit(target.key);
+				} else {
+					filterStore.setStatLimitOperator(target.key, operator);
+					filterStore.setStatLimitValue(target.key, value);
+				}
+				onStatFilterChanged?.(metric, operator, value, !alreadySet);
+				return;
+			}
+			filterStore.setStatLimitOperator(target.key, operator);
+			filterStore.setStatLimitValue(target.key, value);
+		}
+		filterStore.requestFilterFocus({ target: 'stats', analyzer: metric.analyzer, ...target });
+	}
 
 	function openExpanded() {
 		expandModal?.open();
@@ -341,6 +414,10 @@
 					cmini={cminiStatsModel}
 					cyanophage={cyanophageStatsModel}
 					mana2={mana2StatsModel}
+					sortMetric={selectedSortMetric}
+					filterValueOnClick={statFilterInteraction === 'apply-only'}
+					onFilterMetric={handleFilterMetric}
+					onSortMetric={allowStatSorting ? handleSortMetric : undefined}
 					showFingerUsageBars={uiPrefs.fingerUsageBars}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 				/>

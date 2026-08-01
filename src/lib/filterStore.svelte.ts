@@ -766,6 +766,16 @@ export class FilterStore {
 		this.#saveToUrl();
 	}
 
+	/** Set a sort field and explicit direction as one UI action. */
+	setSort(value: SortBy, order: SortOrder) {
+		const nextSortBy = normalizeViewSortBy(value, this.similarReferenceName);
+		this.sortBy = nextSortBy;
+		this.sortOrder = order;
+		this.#sortOrderManual = true;
+		this.#syncSimilarExitSortRestore(nextSortBy);
+		this.#saveToUrl();
+	}
+
 	#snapshotSort(): SortSnapshot {
 		return {
 			sortBy: this.sortBy === 'similarity' ? 'date' : this.sortBy,

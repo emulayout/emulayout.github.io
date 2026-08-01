@@ -12,6 +12,7 @@ import {
 import { MANA2_STAT_FILTER_CATALOG, MANA2_STAT_FILTER_FIELDS } from '$lib/statFilters/mana2';
 import {
 	LIKES_STAT_FILTER_FIELD,
+	getStatFilterStatKey,
 	type AnalyzerStatFilterCatalog,
 	type GeneralStatFilterGroup,
 	type StatFilterField,
@@ -118,6 +119,30 @@ export function getStatFilterFieldsForAnalyzer(
 	analyzer: StatsAnalyzer
 ): readonly StatFilterField[] {
 	return getStatFilterCatalogForAnalyzer(analyzer).fields;
+}
+
+export interface StatMetricFilterTarget {
+	section: StatFilterSection;
+	key: StatLimitKey;
+}
+
+/** Resolve a displayed analyzer metric to the filter control for the same derived stat. */
+export function getStatMetricFilterTarget(
+	analyzer: StatsAnalyzer,
+	statKey: string
+): StatMetricFilterTarget | null {
+	const field = getStatFilterFieldsForAnalyzer(analyzer).find(
+		(candidate) => getStatFilterStatKey(candidate) === statKey
+	);
+	if (!field) return null;
+
+	if (getHandUsageStatFilterFieldsForAnalyzer(analyzer).some(({ key }) => key === field.key)) {
+		return { section: 'hand-usage', key: field.key };
+	}
+	if (getFingerUsageStatFilterFieldsForAnalyzer(analyzer).some(({ key }) => key === field.key)) {
+		return { section: 'finger-usage', key: field.key };
+	}
+	return { section: 'general', key: field.key };
 }
 
 type StatLimitValues = Partial<Record<StatLimitKey, { value: string }>>;

@@ -82,6 +82,30 @@ export const CYANOPHAGE_STAT_SORT_FIELDS = [
 		higherIsBetter: false
 	},
 	{
+		value: 'cyano-alternate',
+		label: 'Alternation',
+		key: 'alternate',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'cyano-roll-in',
+		label: 'Roll in',
+		key: 'rollIn',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'cyano-redirect',
+		label: 'Redirect',
+		key: 'redirect',
+		analyzer: CYANOPHAGE_ANALYZER,
+		defaultOrder: 'asc',
+		higherIsBetter: false
+	},
+	{
 		value: 'cyano-lh',
 		label: 'Left hand',
 		key: 'lh',
@@ -169,6 +193,14 @@ export const MANA2_STAT_SORT_FIELDS = [
 		value: 'mana-roll',
 		label: 'Roll',
 		key: 'roll',
+		analyzer: MANA2_ANALYZER,
+		defaultOrder: 'desc',
+		higherIsBetter: true
+	},
+	{
+		value: 'mana-roll-in',
+		label: 'Roll in',
+		key: 'inroll2',
 		analyzer: MANA2_ANALYZER,
 		defaultOrder: 'desc',
 		higherIsBetter: true

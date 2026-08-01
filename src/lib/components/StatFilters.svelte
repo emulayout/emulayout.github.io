@@ -70,7 +70,13 @@
 					keys: ['cyano-sfb', 'cyano-sfs', 'lsb', 'scissors']
 				}
 			],
-			trigram: [],
+			trigram: [
+				{
+					id: 'trigrams',
+					label: 'Trigrams',
+					keys: ['cyano-alt', 'cyano-roll-in', 'cyano-redirect']
+				}
+			],
 			other: [
 				{
 					id: 'effort',
