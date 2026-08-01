@@ -55,6 +55,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 					key: 'mana-lsb',
 					statKey: 'lsb',
 					label: 'Big',
+					chipLabel: 'Stretch big',
 					title: 'Stretch Bigrams',
 					hint: 'Weighted lateral stretch: same-hand keys that are horizontally far apart. Worse when the stretch is shared by fewer fingers. Lower is better.',
 					unit: 'raw'
@@ -63,6 +64,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 					key: 'mana-lss',
 					statKey: 'lss',
 					label: 'Skip',
+					chipLabel: 'Stretch skip',
 					title: 'Stretch Skipgrams',
 					hint: 'Same stretch rating applied to skipgrams (letters with one key between). Lower is better.',
 					unit: 'raw'
@@ -78,6 +80,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 					key: 'mana-vsb',
 					statKey: 'vsb',
 					label: 'Big',
+					chipLabel: 'Scissor big',
 					title: 'Scissor Bigrams',
 					hint: 'Weighted vertical scissor: adjacent fingers separated by row. Penalty depends on which finger is above/below. Lower is better.',
 					unit: 'raw'
@@ -86,6 +89,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 					key: 'mana-vss',
 					statKey: 'vss',
 					label: 'Skip',
+					chipLabel: 'Scissor skip',
 					title: 'Scissor Skipgrams',
 					hint: 'Same scissor rating on skipgrams. Lower is better.',
 					unit: 'raw'
@@ -107,12 +111,14 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'altNoThumbs',
 					label: 'NoT',
+					chipLabel: 'Alt NoT',
 					title: 'No thumbs',
 					hint: 'Alternation counted only on trigrams that do not use a thumb key.'
 				},
 				{
 					key: 'altSfs',
 					label: 'A&S',
+					chipLabel: 'Alt & SFS',
 					title: 'Alt & SFS',
 					hint: 'Alternation where the first and last keys use the same finger—an awkward alt. Lower is better.'
 				}
@@ -133,12 +139,14 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'redirectNoThumbs',
 					label: 'NoT',
+					chipLabel: 'Red NoT',
 					title: 'No thumbs',
 					hint: 'Redirects that do not involve a thumb key.'
 				},
 				{
 					key: 'redirectWeak',
 					label: 'Weak',
+					chipLabel: 'Weak red',
 					title: 'Weak redirect',
 					hint: 'Redirects using only middle/ring/pinky (no index or thumb). Especially awkward; lower is better.'
 				}
@@ -147,12 +155,14 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'redirectSfs',
 					label: 'R&S',
+					chipLabel: 'Red & SFS',
 					title: 'Redirect & SFS',
 					hint: 'Redirect where the first and last keys use the same finger. Lower is better.'
 				},
 				{
 					key: 'redirectSfsWeak',
 					label: 'W&S',
+					chipLabel: 'Weak red & SFS',
 					title: 'Weak redirect & SFS',
 					hint: 'Weak redirect that is also an SFS redirect. Lower is better.'
 				}
@@ -173,12 +183,14 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'inroll2',
 					label: 'In2',
+					chipLabel: 'Roll in 2',
 					title: 'Inroll 2',
 					hint: 'Two same-hand keys rolling inward (pinky → index), plus a hand switch. Example shape: QWERTY “oif”.'
 				},
 				{
 					key: 'outroll2',
 					label: 'Out2',
+					chipLabel: 'Roll out 2',
 					title: 'Outroll 2',
 					hint: 'Two same-hand keys rolling outward (index → pinky), plus a hand switch.'
 				}
@@ -187,18 +199,21 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'rollNoThumbs',
 					label: 'NoT',
+					chipLabel: 'Roll NoT',
 					title: 'No thumbs',
 					hint: 'Roll total excluding trigrams that use a thumb key.'
 				},
 				{
 					key: 'inroll3',
 					label: 'In3',
+					chipLabel: 'Roll in 3',
 					title: 'Inroll 3',
 					hint: 'Three same-hand keys rolling inward (pinky → index) with no same-finger use.'
 				},
 				{
 					key: 'outroll3',
 					label: 'Out3',
+					chipLabel: 'Roll out 3',
 					title: 'Outroll 3',
 					hint: 'Three same-hand keys rolling outward (index → pinky) with no same-finger use.'
 				}
@@ -207,6 +222,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'goodroll',
 					label: 'Good',
+					chipLabel: 'Good roll',
 					title: 'Good roll',
 					hint: 'Rolls that also have zero scissor rating on both bigrams—cleaner rolls. Higher is better.'
 				}
@@ -220,6 +236,7 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'offpinky',
 					label: 'OffP',
+					chipLabel: 'Off-pinky',
 					title: 'Off pinky',
 					hint: 'Pinky usage off the home row. Stretchy pinky work; lower is usually preferred.'
 				}

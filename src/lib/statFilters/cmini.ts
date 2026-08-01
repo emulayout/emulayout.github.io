@@ -30,18 +30,21 @@ export const CMINI_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'roll',
 					label: 'Rol',
+					chipLabel: 'Roll',
 					title: 'Roll',
 					hint: 'Two same-hand keys rolling in one direction, then the other hand. Comfortable “drumming” motions; higher is better.'
 				},
 				{
 					key: 'rollIn',
 					label: 'In',
+					chipLabel: 'Roll in',
 					title: 'Roll in',
 					hint: 'Rolls that move inward (pinky → index) on the rolling hand.'
 				},
 				{
 					key: 'rollOut',
 					label: 'Out',
+					chipLabel: 'Roll out',
 					title: 'Roll out',
 					hint: 'Rolls that move outward (index → pinky) on the rolling hand.'
 				}
@@ -55,18 +58,21 @@ export const CMINI_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'one',
 					label: 'One',
+					chipLabel: 'One-hand',
 					title: 'One-hand',
 					hint: 'Trigrams typed entirely on one hand (no hand switch). Often slower than rolls/alts.'
 				},
 				{
 					key: 'oneIn',
 					label: 'In',
+					chipLabel: 'One-hand in',
 					title: 'One-hand in',
 					hint: 'One-hand trigrams whose finger motion trends inward (pinky → index).'
 				},
 				{
 					key: 'oneOut',
 					label: 'Out',
+					chipLabel: 'One-hand out',
 					title: 'One-hand out',
 					hint: 'One-hand trigrams whose finger motion trends outward (index → pinky).'
 				}
@@ -80,18 +86,21 @@ export const CMINI_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'rtl',
 					label: 'Rtl',
+					chipLabel: 'Roll total',
 					title: 'Roll total',
 					hint: 'Combined roll rate (roll + related roll totals in cmini’s Rtl metric). Higher means more rolling flow.'
 				},
 				{
 					key: 'rtlIn',
 					label: 'In',
+					chipLabel: 'Roll total in',
 					title: 'Roll total in',
 					hint: 'Inward portion of the roll-total metric (pinky → index).'
 				},
 				{
 					key: 'rtlOut',
 					label: 'Out',
+					chipLabel: 'Roll total out',
 					title: 'Roll total out',
 					hint: 'Outward portion of the roll-total metric (index → pinky).'
 				}
@@ -111,6 +120,7 @@ export const CMINI_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'badRedirect',
 					label: 'Bad',
+					chipLabel: 'Bad red',
 					title: 'Bad redirect',
 					hint: 'Redirects that never use an index finger—awkward middle/ring/pinky-only redirects. Lower is better.'
 				}
@@ -138,12 +148,14 @@ export const CMINI_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 				{
 					key: 'dsfbRed',
 					label: 'Red',
+					chipLabel: 'SFS red',
 					title: 'Same-finger skip redirect',
 					hint: 'Same-finger skipgrams that also form a redirect pattern. Especially awkward; lower is better.'
 				},
 				{
 					key: 'dsfbAlt',
 					label: 'Alt',
+					chipLabel: 'SFS alt',
 					title: 'Same-finger skip alternate',
 					hint: 'Same-finger skipgrams that also form an alternation (hand switch in the middle). Lower is better.'
 				}

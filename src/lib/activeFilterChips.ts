@@ -389,7 +389,7 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 
 		for (const row of getGeneralStatFilterRowsForAnalyzer(analyzer)) {
 			for (const field of row) {
-				const part = formatActiveLimit(appliedLimits, field, field.label);
+				const part = formatActiveLimit(appliedLimits, field, field.chipLabel ?? field.label);
 				if (!part) continue;
 				pushChip(
 					chips,

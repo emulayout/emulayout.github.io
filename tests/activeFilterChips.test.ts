@@ -95,6 +95,41 @@ describe('active filter chips', () => {
 		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive: known mappings');
 	});
 
+	test('uses standalone labels for stats whose row abbreviations need group context', () => {
+		const snapshot = createDefaultViewSnapshot();
+		for (const key of [
+			'rollIn',
+			'oneIn',
+			'rtlIn',
+			'red',
+			'cyano-roll-in',
+			'cyano-redirect',
+			'mana-lsb',
+			'mana-redirect',
+			'altNoThumbs',
+			'redirectNoThumbs',
+			'inroll2'
+		] as const) {
+			snapshot.appliedStatLimits[key] = { operator: 'lt', value: '1' };
+		}
+
+		const labelsById = Object.fromEntries(
+			getActiveFilterChips(chipSourceFromViewSnapshot(snapshot)).map(({ id, label }) => [id, label])
+		);
+
+		expect(labelsById['stat-rollIn']).toBe('Roll in ≤ 1%');
+		expect(labelsById['stat-oneIn']).toBe('One-hand in ≤ 1%');
+		expect(labelsById['stat-rtlIn']).toBe('Roll total in ≤ 1%');
+		expect(labelsById['stat-red']).toBe('Red ≤ 1%');
+		expect(labelsById['stat-cyano-roll-in']).toBe('Roll in ≤ 1%');
+		expect(labelsById['stat-cyano-redirect']).toBe('Red ≤ 1%');
+		expect(labelsById['stat-mana-lsb']).toBe('Stretch big ≤ 1');
+		expect(labelsById['stat-mana-redirect']).toBe('Red ≤ 1%');
+		expect(labelsById['stat-altNoThumbs']).toBe('Alt NoT ≤ 1%');
+		expect(labelsById['stat-redirectNoThumbs']).toBe('Red NoT ≤ 1%');
+		expect(labelsById['stat-inroll2']).toBe('Roll in 2 ≤ 1%');
+	});
+
 	test('routes every clear action to its owning store mutation', () => {
 		const calls: string[] = [];
 		const target: ActiveFilterClearTarget = {

@@ -94,6 +94,7 @@ export const CYANOPHAGE_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGr
 					key: 'cyano-roll-in',
 					statKey: 'rollIn',
 					label: 'In',
+					chipLabel: 'Roll in',
 					title: 'Roll in',
 					hint: 'Inward two- and three-key rolls, moving from the outer fingers toward the index. Higher is usually preferred.'
 				},

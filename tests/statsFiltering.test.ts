@@ -69,6 +69,18 @@ describe('stats filtering catalog', () => {
 		}
 	});
 
+	test('keeps standalone general-stat chip labels unambiguous within each analyzer', () => {
+		for (const analyzer of [CMINI_ANALYZER, CYANOPHAGE_ANALYZER, MANA2_ANALYZER] as const) {
+			const labels = getGeneralStatFilterGroupsForAnalyzer(analyzer).flatMap((group) =>
+				group.rows.flatMap((row) => row.map((entry) => entry.chipLabel ?? entry.label))
+			);
+			expect(new Set(labels).size).toBe(labels.length);
+		}
+
+		expect(field('rollIn').chipLabel).toBe('Roll in');
+		expect(field('cyano-roll-in').chipLabel).toBe('Roll in');
+	});
+
 	test('maps prefixed storage keys to their derived analyzer properties', () => {
 		expect(getStatFilterStatKey(field('sfb'))).toBe('sfb');
 		expect(getStatFilterStatKey(field('cyano-sfb'))).toBe('sfb');

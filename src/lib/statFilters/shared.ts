@@ -63,6 +63,8 @@ export type StatLimitKey =
 export interface StatFilterField {
 	key: StatLimitKey;
 	label: string;
+	/** Concise standalone label for active-filter chips, which lack group context. */
+	chipLabel?: string;
 	/** Longer name for display labels when `label` is abbreviated. */
 	title?: string;
 	/** Short explanation shown next to the field in the general-stats modal. */
