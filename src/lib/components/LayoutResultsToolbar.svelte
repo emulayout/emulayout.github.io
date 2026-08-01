@@ -172,7 +172,7 @@
 				<select
 					value={filterStore.sortBy}
 					onchange={(e) => filterStore.setSortBy(e.currentTarget.value as SortBy)}
-					class="results-toolbar-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
+					class="results-toolbar-select results-toolbar-sort-select px-2 py-1.5 rounded-lg text-sm outline-none cursor-pointer focus:ring-2 transition-all"
 					style="
 					background-color: var(--input-bg);
 					color: var(--text-primary);
@@ -449,6 +449,11 @@
 		gap: 0.3rem;
 	}
 
+	.results-toolbar-sort-select {
+		field-sizing: content;
+		max-width: min(18rem, 50vw);
+	}
+
 	/* Narrow column (mobile / similarity results pane): denser layout */
 	@container (max-width: 36rem) {
 		.results-toolbar-filters-row {
@@ -507,6 +512,10 @@
 		.results-toolbar-select {
 			width: 100%;
 			min-width: 0;
+		}
+
+		.results-toolbar-sort-select {
+			max-width: none;
 		}
 	}
 </style>
