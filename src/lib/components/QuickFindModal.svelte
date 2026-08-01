@@ -8,6 +8,7 @@
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		open: boolean;
@@ -254,6 +255,7 @@
 						compactCyanophageStats={layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]}
 						compactMana2Stats={layoutStatsStore.maps.mana2?.[highlightedLayout.name]}
 						statFilterInteraction="apply-only"
+						statsMode={uiPrefs.layoutCardStatsMode}
 						allowStatSorting={false}
 						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>

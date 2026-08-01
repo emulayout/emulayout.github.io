@@ -11,11 +11,11 @@
 	import { layoutListItemKey, layoutListItemName, type LayoutListItem } from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { showsMana2Stats } from '$lib/statsAnalyzers';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import InputMappingsWindow from './InputMappingsWindow.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		items: LayoutListItem[];
@@ -96,9 +96,13 @@
 		return [{ kind: 'layout' as const, layout: similarReference }, ...items];
 	});
 
-	const mana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
 	const cardItemSize = $derived(
-		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea, mana2Stats)
+		getLayoutCardItemSize(
+			filterStore.showLayoutStats,
+			filterStore.showLayoutTestArea,
+			filterStore.statsAnalyzer,
+			uiPrefs.layoutCardStatsMode
+		)
 	);
 	const statHighlights = $derived(
 		getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
@@ -107,7 +111,7 @@
 	// Remount when similar mode toggles so virtua doesn't keep the old list height /
 	// scroll-jump state (which fights scroll restoration when the result set shrinks).
 	const virtualizerKey = $derived(
-		`${filterStore.similarReferenceName ?? ''}:${splitUp.current ? 'pane' : 'window'}:${stickyReference ? 'pin' : 'inline'}:${filterStore.stickySimilarityCard ? '1' : '0'}`
+		`${filterStore.similarReferenceName ?? ''}:${splitUp.current ? 'pane' : 'window'}:${stickyReference ? 'pin' : 'inline'}:${filterStore.stickySimilarityCard ? '1' : '0'}:${cardItemSize}`
 	);
 
 	// Group layouts into rows for grid virtualization
@@ -215,6 +219,7 @@
 			? (similarMirrorDiffPositions ?? similarDiffPositions)
 			: similarDiffPositions}
 		{statHighlights}
+		statsMode={uiPrefs.layoutCardStatsMode}
 	/>
 {/snippet}
 

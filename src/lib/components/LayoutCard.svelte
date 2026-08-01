@@ -6,7 +6,7 @@
 		LayoutData
 	} from '$lib/layout';
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import { uiPrefs, type LayoutCardStatsMode } from '$lib/uiPrefs.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
@@ -81,6 +81,7 @@
 		statHighlights?: ReturnType<typeof getStatCardHighlightState>;
 		/** Quick Find applies filters without navigating to the covered sidebar. */
 		statFilterInteraction?: 'focus' | 'apply-only';
+		statsMode?: LayoutCardStatsMode;
 		allowStatSorting?: boolean;
 		onStatFilterChanged?: (
 			metric: LayoutCardMetric,
@@ -108,6 +109,7 @@
 		similarDiffPositions,
 		statHighlights,
 		statFilterInteraction = 'focus',
+		statsMode = 'focused',
 		allowStatSorting = true,
 		onStatFilterChanged
 	}: Props = $props();
@@ -282,7 +284,12 @@
 	}
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea, showMana2Stats)
+		getLayoutCardHeight(
+			filterStore.showLayoutStats,
+			filterStore.showLayoutTestArea,
+			filterStore.statsAnalyzer,
+			statsMode
+		)
 	);
 
 	async function handleColemakCampClick() {
@@ -420,6 +427,7 @@
 					onSortMetric={allowStatSorting ? handleSortMetric : undefined}
 					showFingerUsageBars={uiPrefs.fingerUsageBars}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
+					mode={statsMode}
 				/>
 			{/if}
 			{#if filterStore.showLayoutTestArea}

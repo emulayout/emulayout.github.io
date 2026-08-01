@@ -1,31 +1,52 @@
+import type { StatsAnalyzer } from '$lib/statsAnalyzers';
+import type { LayoutCardStatsMode } from '$lib/uiPrefs.svelte';
+
 // LayoutCard dimensions constants
 /** Action toolbar between layout display and stats (`.card-action-divider`). */
 export const LAYOUT_CARD_ACTION_BAR_HEIGHT = 40;
-export const LAYOUT_CARD_HEIGHT = 524; // px — compact padding vs prior 548
+/** Baseline card height for cmini's detailed stats view. */
+export const LAYOUT_CARD_HEIGHT = 524;
 /** Min height for layout display area (~4.5 rows × 14px × 1.5 line-height). */
 export const LAYOUT_DISPLAY_MIN_HEIGHT = 94;
 export const LAYOUT_CARD_ROW_GAP = 12; // px (mb-3 = 0.75rem = 12px)
 export const LAYOUT_CARD_SECTION_GAP = 8; // px (gap-2 between main sections)
 export const LAYOUT_CARD_BOTTOM_SECTION_GAP = 12; // px (gap-3 between stats and test area)
-/** Matches `.stats-block` min-height in layout.css (14 × 1.35 × 11px). */
+/** Space removed when the stats section is hidden entirely. */
 export const LAYOUT_CARD_STATS_HEIGHT = 208;
-/**
- * Extra height when showing Mana2’s taller stats block (18 lines vs the default 14).
- * Keep in sync with MANA2_STATS_BLOCK_LINE_COUNT in statsBlockFormatting.ts.
- */
-export const LAYOUT_CARD_MANA2_STATS_EXTRA = 60;
 /** 2-row textarea with px-3 pt-3 pb-0 (bottom inset comes from card pb-2). */
 export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
+
+/** `.stats-block`: 11px font × 1.35 line height. */
+const STATS_TEXT_LINE_HEIGHT = 14.85;
+/** Two 44px highlight rows plus the grid's block borders. */
+const HIGHLIGHTS_STATS_HEIGHT = 90;
+/** Detailed text lines left above the shared finger visualization. */
+const DETAILED_STATS_LINE_COUNT: Readonly<Record<StatsAnalyzer, number>> = {
+	cmini: 8,
+	cyanophage: 7,
+	mana2: 12
+};
+const CMINI_DETAILED_STATS_HEIGHT = DETAILED_STATS_LINE_COUNT.cmini * STATS_TEXT_LINE_HEIGHT;
+
+export function getLayoutCardStatsHeight(
+	analyzer: StatsAnalyzer,
+	mode: LayoutCardStatsMode
+): number {
+	return mode === 'focused'
+		? HIGHLIGHTS_STATS_HEIGHT
+		: DETAILED_STATS_LINE_COUNT[analyzer] * STATS_TEXT_LINE_HEIGHT;
+}
 
 export function getLayoutCardHeight(
 	showStats = true,
 	showTestArea = true,
-	mana2Stats = false
+	analyzer: StatsAnalyzer = 'cmini',
+	statsMode: LayoutCardStatsMode = 'detailed'
 ): number {
 	let height = LAYOUT_CARD_HEIGHT;
 
-	if (showStats && mana2Stats) {
-		height += LAYOUT_CARD_MANA2_STATS_EXTRA;
+	if (showStats) {
+		height += getLayoutCardStatsHeight(analyzer, statsMode) - CMINI_DETAILED_STATS_HEIGHT;
 	}
 
 	if (!showStats) {
@@ -48,9 +69,10 @@ export function getLayoutCardHeight(
 export function getLayoutCardItemSize(
 	showStats = true,
 	showTestArea = true,
-	mana2Stats = false
+	analyzer: StatsAnalyzer = 'cmini',
+	statsMode: LayoutCardStatsMode = 'detailed'
 ): number {
-	return getLayoutCardHeight(showStats, showTestArea, mana2Stats) + LAYOUT_CARD_ROW_GAP;
+	return getLayoutCardHeight(showStats, showTestArea, analyzer, statsMode) + LAYOUT_CARD_ROW_GAP;
 }
 
 /** @deprecated Use getLayoutCardItemSize() when card sections may be hidden. */

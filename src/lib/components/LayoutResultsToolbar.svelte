@@ -6,11 +6,13 @@
 		type ActiveFilterChip
 	} from '$lib/activeFilterChips';
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
+	import StatsDisplayTabs from '$lib/components/StatsDisplayTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
 	import { getHiddenAnalyzerFilterCaution } from '$lib/statsUsage';
 	import { getStatSortFieldsForAnalyzer } from '$lib/statsSorting';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		filteredCount: number;
@@ -149,6 +151,13 @@
 					>
 				{/if}
 			</p>
+			<div class="results-toolbar-stats-display">
+				<span class="results-toolbar-stats-label">Stats</span>
+				<StatsDisplayTabs
+					value={uiPrefs.layoutCardStatsMode}
+					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
+				/>
+			</div>
 		</div>
 
 		<div class="results-toolbar-controls">
@@ -394,6 +403,20 @@
 		margin: 0;
 		line-height: 1.35;
 		min-width: 0;
+	}
+
+	.results-toolbar-stats-display {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		flex-shrink: 0;
+	}
+
+	.results-toolbar-stats-label {
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		line-height: 1.2;
+		white-space: nowrap;
 	}
 
 	.results-toolbar-controls {
