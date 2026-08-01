@@ -18,8 +18,8 @@ export const LAYOUT_CARD_TEST_AREA_HEIGHT = 56;
 
 /** `.stats-block`: 11px font × 1.35 line height. */
 const STATS_TEXT_LINE_HEIGHT = 14.85;
-/** Two 44px highlight rows plus the grid's block borders. */
-const HIGHLIGHTS_STATS_HEIGHT = 90;
+/** Two 44px rows plus the extra 8px gap Highlights adds over Detailed. */
+const HIGHLIGHTS_STATS_HEIGHT = 96;
 /** Detailed text lines left above the shared finger visualization. */
 const DETAILED_STATS_LINE_COUNT: Readonly<Record<StatsAnalyzer, number>> = {
 	cmini: 8,

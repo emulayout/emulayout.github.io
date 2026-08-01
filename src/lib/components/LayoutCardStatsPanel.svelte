@@ -135,6 +135,7 @@
 			<dl class="core-stats-grid">
 				{#each metricSlots as metric, slotIndex (slotIndex)}
 					{#if metric}
+						{@const foreignAnalyzer = metric.analyzer !== model.analyzer}
 						{@const actionSortOrder =
 							metric.sortOrder === 'asc'
 								? 'desc'
@@ -144,10 +145,15 @@
 						<div
 							class="core-stat"
 							class:core-stat--interactive={Boolean(onFilterMetric || onSortMetric)}
-							class:core-stat--filtered={metric.highlight === 'cmini' ||
+							class:core-stat--filtered={foreignAnalyzer ||
+								metric.highlight === 'cmini' ||
 								metric.highlight === 'cyanophage' ||
 								metric.highlight === 'mana2'}
-							class:core-stat--sorted={metric.highlight === 'sort'}
+							class:core-stat--sorted={!foreignAnalyzer && metric.highlight === 'sort'}
+							class:core-stat--foreign={foreignAnalyzer}
+							style={foreignAnalyzer
+								? `--core-stats-tone: var(--analyzer-${metric.analyzer})`
+								: undefined}
 							title={metric.description}
 						>
 							{#if onFilterMetric}
@@ -283,7 +289,6 @@
 		gap: 0;
 		min-width: 0;
 		margin: 0;
-		border-block: 1px solid var(--border);
 	}
 
 	.core-stat {
@@ -406,6 +411,10 @@
 		background: color-mix(in srgb, var(--stats-fg-highlight-sort) 16%, var(--bg-primary));
 	}
 
+	.core-stat--foreign .core-stat-sort-button--toggle {
+		background: color-mix(in srgb, var(--core-stats-tone) 16%, var(--bg-primary));
+	}
+
 	.core-stat-sort-button:focus-visible {
 		outline: 1px solid var(--stats-fg-highlight-sort);
 		outline-offset: -1px;
@@ -514,13 +523,13 @@
 		}
 	}
 
-	.focused-finger-text,
-	.core-stats .finger-chart-area {
+	.stats-stack-item .finger-chart-area {
 		margin-top: 0.5rem;
 	}
 
-	.finger-chart-area--cmini {
-		margin-top: 0.75rem;
+	.core-stats .focused-finger-text,
+	.core-stats .finger-chart-area {
+		margin-top: 1rem;
 	}
 
 	.finger-chart-area--split {

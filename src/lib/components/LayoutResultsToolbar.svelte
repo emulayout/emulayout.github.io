@@ -117,19 +117,29 @@
 			{/if}
 		</div>
 
-		<div class="results-toolbar-analyzer">
-			<span class="results-toolbar-analyzer-label" style="color: var(--text-secondary);">
-				Analyzer
-				{#if hiddenAnalyzerFilterCaution}
-					<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
-				{/if}
-			</span>
-			<AnalyzerTabs
-				variant="toolbar"
-				ariaLabel="Analyzer"
-				value={filterStore.statsAnalyzer}
-				onChange={(next) => filterStore.setStatsAnalyzer(next)}
-			/>
+		<div class="results-toolbar-view-modes">
+			<div class="results-toolbar-stats-display">
+				<span class="results-toolbar-stats-label">Stats</span>
+				<StatsDisplayTabs
+					value={uiPrefs.layoutCardStatsMode}
+					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
+				/>
+			</div>
+
+			<div class="results-toolbar-analyzer">
+				<span class="results-toolbar-analyzer-label" style="color: var(--text-secondary);">
+					Analyzer
+					{#if hiddenAnalyzerFilterCaution}
+						<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
+					{/if}
+				</span>
+				<AnalyzerTabs
+					variant="toolbar"
+					ariaLabel="Analyzer"
+					value={filterStore.statsAnalyzer}
+					onChange={(next) => filterStore.setStatsAnalyzer(next)}
+				/>
+			</div>
 		</div>
 	</div>
 
@@ -151,13 +161,6 @@
 					>
 				{/if}
 			</p>
-			<div class="results-toolbar-stats-display">
-				<span class="results-toolbar-stats-label">Stats</span>
-				<StatsDisplayTabs
-					value={uiPrefs.layoutCardStatsMode}
-					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
-				/>
-			</div>
 		</div>
 
 		<div class="results-toolbar-controls">
@@ -365,12 +368,19 @@
 		color: var(--analyzer-mana2);
 	}
 
+	.results-toolbar-view-modes {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		flex-shrink: 0;
+		margin-left: auto;
+	}
+
 	.results-toolbar-analyzer {
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
 		flex-shrink: 0;
-		margin-left: auto;
 	}
 
 	.results-toolbar-analyzer-label {
@@ -446,11 +456,21 @@
 			align-items: stretch;
 		}
 
-		.results-toolbar-analyzer {
+		.results-toolbar-view-modes {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.5rem;
+			width: 100%;
 			margin-left: 0;
+		}
+
+		.results-toolbar-stats-display,
+		.results-toolbar-analyzer {
 			justify-content: space-between;
 			width: 100%;
 		}
+
+		.results-toolbar-stats-display :global(.stats-display-tabs),
 
 		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar) {
 			flex: 1 1 auto;

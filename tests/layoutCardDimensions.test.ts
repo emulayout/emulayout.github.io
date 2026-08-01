@@ -14,17 +14,17 @@ describe('layout card dimensions', () => {
 		expect(getLayoutCardStatsHeight('mana2', 'detailed')).toBeCloseTo(178.2);
 
 		for (const analyzer of ['cmini', 'cyanophage', 'mana2'] as const) {
-			expect(getLayoutCardStatsHeight(analyzer, 'focused')).toBe(90);
+			expect(getLayoutCardStatsHeight(analyzer, 'focused')).toBe(96);
 		}
 	});
 
 	test('recovers compact-card space while preserving detailed analyzer differences', () => {
 		expect(getLayoutCardHeight(true, true, 'cmini', 'detailed')).toBe(LAYOUT_CARD_HEIGHT);
-		expect(getLayoutCardHeight(true, true, 'cmini', 'focused')).toBeCloseTo(495.2);
+		expect(getLayoutCardHeight(true, true, 'cmini', 'focused')).toBeCloseTo(501.2);
 		expect(getLayoutCardHeight(true, true, 'cyanophage', 'detailed')).toBeCloseTo(509.15);
-		expect(getLayoutCardHeight(true, true, 'cyanophage', 'focused')).toBeCloseTo(495.2);
+		expect(getLayoutCardHeight(true, true, 'cyanophage', 'focused')).toBeCloseTo(501.2);
 		expect(getLayoutCardHeight(true, true, 'mana2', 'detailed')).toBeCloseTo(583.4);
-		expect(getLayoutCardHeight(true, true, 'mana2', 'focused')).toBeCloseTo(495.2);
+		expect(getLayoutCardHeight(true, true, 'mana2', 'focused')).toBeCloseTo(501.2);
 	});
 
 	test('keeps hidden-stats cards mode-independent and includes the virtual row gap', () => {

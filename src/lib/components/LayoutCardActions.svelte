@@ -282,7 +282,7 @@
 
 	.card-action-toolbar {
 		position: relative;
-		z-index: 1;
+		z-index: 2;
 		display: flex;
 		align-items: center;
 		gap: 0.25rem;
