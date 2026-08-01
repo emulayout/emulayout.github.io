@@ -39,9 +39,11 @@
 
 - Unit tests use Bun's test runner and live in `tests/*.test.ts`. Import from `bun:test`; prefer focused tests of extracted domain logic and run one file with `bun test tests/<name>.test.ts` while iterating.
 - Browser tests use Playwright and live in `tests/e2e/**/*.e2e.ts`. Import the shared `test` and `expect` fixtures from `tests/e2e/fixtures/test.ts` so catalog requests stay deterministic.
+- Do not add integration or end-to-end coverage for every small change. Low-risk styling tweaks and other changes that are unlikely to regress do not need dedicated tests.
+- Reserve Playwright end-to-end tests for core user flows and behavior whose correctness depends on the rendered UI, browser APIs, routing, focus/keyboard handling, or interactions spanning multiple components.
 - Prefer role-, label-, and accessible-name-based Playwright locators. Assert user-visible behavior, URL persistence, keyboard/focus behavior, and accessibility state rather than component internals.
 - `bun run check` runs `svelte-check` and TypeScript validation. `bun run lint` runs Prettier in check mode followed by ESLint.
-- There is no separate DOM/component-test framework. Keep pure behavior in unit-testable modules and use Playwright when correctness depends on rendered Svelte behavior or browser APIs.
+- There is no separate DOM/component-test framework. Keep pure behavior in unit-testable modules.
 
 ## Required verification
 
