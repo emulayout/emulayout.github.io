@@ -83,7 +83,16 @@ Triggers need not be `*`. Multiple triggers, multi-character preceding sequences
 multi-character output are supported. Preceding sequences match case-insensitively. Output is
 emitted exactly as stored rather than inheriting case.
 
-A trigger can explicitly repeat the previous character when no rule matches:
+## Fallback behavior
+
+A press whose preceding output matches no rule is governed by the trigger's `fallback`:
+
+| `fallback`          | Behavior when no rule matches           |
+| ------------------- | --------------------------------------- |
+| `"repeat-last"`     | Emits the previous character again      |
+| `{ "emit": "the" }` | Emits that fixed letter or word         |
+| `"no-op"`           | Emits nothing; the keypress is consumed |
+| omitted             | Same as `"no-op"`                       |
 
 ```json
 {
@@ -98,18 +107,30 @@ A trigger can explicitly repeat the previous character when no rule matches:
 }
 ```
 
-Explicit rules take precedence over the fallback. Repeated output enters history, so `b@@` produces
-`bbb` in this example. Without history, the trigger is emitted literally. A fallback-only trigger
-may use an empty `rules` object. The inner key is `rules` rather than `mappings` so it does not
-collide with the feature-level `mappings` wrapper.
+Explicit rules take precedence over the fallback. Emitted output enters history, so `b@@` produces
+`bbb` in this example. `repeat-last` with no history has nothing to repeat and degrades to `no-op`;
+fixed text needs no history and always applies. A Magic key never types its own trigger symbol, so a
+consumed press adds nothing to history and leaves later matching undisturbed.
 
-The same extended form is available for `*` or any other Magic trigger. Repeat fallback is never
-injected into a curated Magic profile implicitly.
+Omitting `fallback` and writing `"no-op"` behave identically. The keyword exists so curated data can
+record that an author confirmed the behavior rather than leaving it unspecified. Because it produces
+no output, `no-op` gets no toggle in the mappings panel and cannot on its own justify a trigger: a
+trigger needs at least one rule or an emitting fallback. A trigger whose only behavior is its
+fallback may use an empty `rules` object.
 
-Validation rejects malformed or empty triggers, empty rule sets without a fallback, empty
-preceding sequences or outputs, and preceding sequences that collide after lowercase
-normalization. Sync also verifies that the layout and every configured trigger exist in Cmini. A
-mapped trigger is valid regardless of which symbol it uses.
+The inner key is `rules` rather than `mappings` so it does not collide with the feature-level
+`mappings` wrapper. The same extended form is available for `*` or any other Magic trigger. Repeat
+fallback is never injected into a curated Magic profile implicitly.
+
+Validation rejects malformed or empty triggers, rule sets that neither define a rule nor emit from a
+fallback, unrecognized fallback keywords or options, empty preceding sequences or outputs, and
+preceding sequences that collide after lowercase normalization. Sync also verifies that the layout
+and every configured trigger exist in Cmini. A mapped trigger is valid regardless of which symbol it
+uses.
+
+Mana2's extended adapter expands `repeat-last` and single-character `{ "emit": … }` fallbacks into
+bigram rules for every otherwise-unmapped key. A multi-character `emit` exceeds what that engine
+models, so the layout falls back to standard-engine stats with a `multi-character-output` reason.
 
 ## Runtime data and compilation
 
@@ -141,7 +162,7 @@ For one captured layout key, the resolver:
 
 1. applies at most one Adaptive swap to the base output;
 2. treats that output as a possible Magic trigger;
-3. if Magic matches, emits its rule, explicit fallback, or literal trigger;
+3. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
 4. otherwise, treats `@` as a possible Repeat trigger;
 5. inserts the final output and appends it once to bounded shared history.
 
@@ -219,6 +240,7 @@ Adaptive swaps are not currently included in Mana2 analysis.
 - Any curated trigger symbol establishes Magic behavior.
 - Explicit `@` Magic mappings override default Repeat behavior completely.
 - Repeat fallback inside a Magic profile is always explicit.
+- A Magic trigger never types its own symbol; an unmatched press emits nothing.
 - Compact metadata is authoritative for feature classification.
 - Mapping availability spans every variant; Repeat classification follows the first variant.
 - The first variant a layout lists is the one the runtime loads; ordering carries no quality ranking.

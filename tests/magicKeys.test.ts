@@ -11,6 +11,7 @@ import { compileAdaptiveSwapSource, validateAdaptiveSwapSource } from '$lib/adap
 import {
 	adaptiveRuleMappingId,
 	magicFallbackMappingId,
+	magicProfileMappingIds,
 	magicRuleMappingId,
 	repeatKeyMappingId
 } from '$lib/inputMappingControls';
@@ -180,11 +181,11 @@ describe('magic-key resolution through the unified engine', () => {
 		);
 
 		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ao');
-		expect(typeLogicalKeys(profile, ['b', '@', '@']).text).toBe('b@@');
+		expect(typeLogicalKeys(profile, ['b', '@', '@']).text).toBe('b');
 		expect(profile.repeatKey).toBeUndefined();
 		expect(resolveLayoutInput(profile, '', '@')).toMatchObject({
-			text: '@',
-			applied: []
+			text: '',
+			applied: ['magic-key']
 		});
 	});
 
@@ -208,14 +209,19 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(profile.repeatKey).toBeUndefined();
 	});
 
-	test('records unmatched triggers and matches preceding letters case-insensitively', () => {
+	test('consumes an unmatched trigger and matches preceding letters case-insensitively', () => {
 		const profile = compileLayoutInputProfile({
-			magicKeys: { mappings: { '*': { a: 'o', '*': 'z' } } }
+			magicKeys: { mappings: { '*': { a: 'o' } } }
 		});
 
-		expect(typeLogicalKeys(profile, ['x', '*', '*']).text).toBe('x*z');
 		expect(typeLogicalKeys(profile, ['A', '*']).text).toBe('Ao');
-		expect(resolveLayoutInput(profile, '', '*').text).toBe('*');
+		// The unmatched press types nothing and leaves history alone, so the
+		// following trigger still matches the letter typed after it.
+		expect(typeLogicalKeys(profile, ['x', '*', 'a', '*']).text).toBe('xao');
+		expect(resolveLayoutInput(profile, '', '*')).toMatchObject({
+			text: '',
+			applied: ['magic-key']
+		});
 	});
 
 	test('repeats the last emitted character when an extended trigger has no explicit rule', () => {
@@ -234,10 +240,49 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(typeLogicalKeys(profile, ['A', '*']).text).toBe('AA');
 		expect(typeLogicalKeys(profile, ['y', '*', '*']).text).toBe('y,,');
 		expect(typeLogicalKeys(profile, ['w', '*']).text).toBe('wh');
+		// Nothing to repeat yet, so the press is consumed.
 		expect(resolveLayoutInput(profile, '', '*')).toMatchObject({
-			text: '*',
-			applied: []
+			text: '',
+			applied: ['magic-key']
 		});
+	});
+
+	test('emits fixed text when a fallback is hard-coded to a letter or word', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: {
+				mappings: {
+					'*': {
+						rules: { w: 'h' },
+						fallback: { emit: 'the' }
+					}
+				}
+			}
+		});
+
+		expect(typeLogicalKeys(profile, ['w', '*']).text).toBe('wh');
+		expect(typeLogicalKeys(profile, ['q', '*']).text).toBe('qthe');
+		// Unlike repeat-last, fixed text does not need any history.
+		expect(resolveLayoutInput(profile, '', '*')).toMatchObject({
+			text: 'the',
+			applied: ['magic-key']
+		});
+	});
+
+	test('types nothing for an explicit no-op fallback and offers no toggle for it', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: {
+				mappings: {
+					'*': {
+						rules: { w: 'h' },
+						fallback: 'no-op'
+					}
+				}
+			}
+		});
+
+		expect(typeLogicalKeys(profile, ['w', '*']).text).toBe('wh');
+		expect(typeLogicalKeys(profile, ['q', '*']).text).toBe('q');
+		expect(magicProfileMappingIds(profile.magicKeys)).toEqual([magicRuleMappingId('*', 'w')]);
 	});
 
 	test('can disable individual rules and fallback behavior independently', () => {
@@ -259,7 +304,7 @@ describe('magic-key resolution through the unified engine', () => {
 			'ww'
 		);
 		expect(typeLogicalKeys(profile, ['q', '*'], new Set([magicFallbackMappingId('*')])).text).toBe(
-			'q*'
+			'q'
 		);
 	});
 
@@ -270,13 +315,28 @@ describe('magic-key resolution through the unified engine', () => {
 			'repeats preceding sequence'
 		);
 		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: 'unknown' } })).toThrow(
-			'fallback must be "repeat-last"'
+			'fallback must be "repeat-last", "no-op", or { "emit": "text" }'
 		);
 		expect(() => validateMagicKeyMappings({ '*': { fallback: 'repeat-last' } })).toThrow(
 			'rules must be an object'
 		);
 		expect(() =>
 			validateMagicKeyMappings({ '*': { rules: {}, fallback: 'repeat-last' } })
+		).not.toThrow();
+	});
+
+	test('rejects a fallback that cannot do anything or is misspelled', () => {
+		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: 'no-op' } })).toThrow(
+			'must have at least one rule or an emitting fallback'
+		);
+		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: { emit: '' } } })).toThrow(
+			'fallback must emit nonempty text'
+		);
+		expect(() =>
+			validateMagicKeyMappings({ '*': { rules: {}, fallback: { text: 'the' } } })
+		).toThrow('fallback has unknown option "text"');
+		expect(() =>
+			validateMagicKeyMappings({ '*': { rules: {}, fallback: { emit: 'the' } } })
 		).not.toThrow();
 	});
 });

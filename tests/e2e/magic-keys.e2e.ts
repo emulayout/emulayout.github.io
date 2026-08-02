@@ -60,6 +60,40 @@ test('shows mappings in a floating window', async ({ page }) => {
 	);
 });
 
+test('shows a toggle for an emitting fallback and a plain note for a no-op', async ({ page }) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
+		await route.fulfill({
+			json: {
+				[mappedLayoutName]: validateLayoutSupplemental({
+					schema: 1,
+					magicKeys: {
+						mappings: {
+							'*': { rules: { c: 'k' }, fallback: { emit: 'the' } },
+							'#': { rules: { c: 'v' }, fallback: 'no-op' }
+						}
+					}
+				})
+			}
+		});
+	});
+	await page.goto(mappedLayoutView);
+
+	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
+	await card.locator('button[data-input-feature="magic"]').click();
+	const mappingsWindow = page.getByRole('dialog', {
+		name: `${mappedLayoutName} magic key mappings`
+	});
+
+	const emitRow = mappingsWindow.getByRole('checkbox', { name: 'otherwise * the' });
+	await expect(emitRow).toBeChecked();
+	await emitRow.uncheck();
+	await expect(emitRow).not.toBeChecked();
+
+	// A no-op emits nothing, so it is described rather than made toggleable.
+	await expect(mappingsWindow.getByText(/otherwise\s*#\s*→\s*nothing/)).toBeVisible();
+	await expect(mappingsWindow.getByRole('checkbox', { name: /otherwise #/ })).toHaveCount(0);
+});
+
 test('keeps the mappings indicator noninteractive when the sidecar is unavailable', async ({
 	page
 }) => {

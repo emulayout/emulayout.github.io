@@ -4,13 +4,24 @@ import {
 	type DisabledInputMappingIds
 } from '$lib/inputMappingControls';
 
-export type MagicKeyFallback = 'repeat-last';
+/**
+ * What a Magic key does when the preceding output matches no rule. Authored as
+ * a keyword for the parameterless behaviors and as `{ "emit": "the" }` for
+ * fixed text. Omitting it means `no-op`, which is what an uncurated Magic key
+ * does; spelling `no-op` out records that an author confirmed it.
+ */
+export type MagicKeyFallbackSource = 'repeat-last' | 'no-op' | { emit: string };
+
+export type MagicKeyFallback =
+	| { kind: 'repeat-last' }
+	| { kind: 'no-op' }
+	| { kind: 'emit'; text: string };
 
 export type MagicKeyRules = Readonly<Record<string, string>>;
 
 export interface ExtendedMagicKeyTriggerSource {
 	rules: MagicKeyRules;
-	fallback?: MagicKeyFallback;
+	fallback?: MagicKeyFallbackSource;
 }
 
 /**
@@ -63,6 +74,38 @@ function isExtendedTriggerSource(
 	return isRecord(value.rules);
 }
 
+/** Whether a fallback produces output, as opposed to consuming the keypress. */
+export function magicFallbackEmits(fallback: MagicKeyFallback | undefined): boolean {
+	return fallback !== undefined && fallback.kind !== 'no-op';
+}
+
+function validateMagicKeyFallback(trigger: string, value: unknown): MagicKeyFallbackSource {
+	if (value === 'repeat-last' || value === 'no-op') return value;
+	if (isRecord(value)) {
+		for (const key of Object.keys(value)) {
+			if (key !== 'emit') {
+				throw new Error(`Magic key "${trigger}" fallback has unknown option "${key}"`);
+			}
+		}
+		if (typeof value.emit !== 'string' || !value.emit) {
+			throw new Error(`Magic key "${trigger}" fallback must emit nonempty text`);
+		}
+		return { emit: value.emit };
+	}
+	throw new Error(
+		`Magic key "${trigger}" fallback must be "repeat-last", "no-op", or { "emit": "text" }`
+	);
+}
+
+function compileMagicKeyFallback(
+	source: MagicKeyFallbackSource | undefined
+): MagicKeyFallback | undefined {
+	if (source === undefined) return undefined;
+	if (source === 'repeat-last') return { kind: 'repeat-last' };
+	if (source === 'no-op') return { kind: 'no-op' };
+	return { kind: 'emit', text: source.emit };
+}
+
 /**
  * Validate untrusted JSON and return a normalized profile with null-prototype
  * rule objects. Sync scripts use the same validator before publishing.
@@ -82,7 +125,7 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 
 		const extended = hasOwn(rawTrigger, 'rules') || hasOwn(rawTrigger, 'fallback');
 		let rawRules: Record<string, unknown> = rawTrigger;
-		let fallback: MagicKeyFallback | undefined;
+		let fallback: MagicKeyFallbackSource | undefined;
 		if (extended) {
 			if (!isRecord(rawTrigger.rules)) {
 				throw new Error(`Magic key "${trigger}" rules must be an object`);
@@ -94,10 +137,7 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 				}
 			}
 			if (hasOwn(rawTrigger, 'fallback')) {
-				if (rawTrigger.fallback !== 'repeat-last') {
-					throw new Error(`Magic key "${trigger}" fallback must be "repeat-last" when provided`);
-				}
-				fallback = rawTrigger.fallback;
+				fallback = validateMagicKeyFallback(trigger, rawTrigger.fallback);
 			}
 		}
 
@@ -119,8 +159,8 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 			rules[after] = emit;
 		}
 
-		if (Object.keys(rules).length === 0 && !fallback) {
-			throw new Error(`Magic key "${trigger}" must have at least one rule`);
+		if (Object.keys(rules).length === 0 && (fallback === undefined || fallback === 'no-op')) {
+			throw new Error(`Magic key "${trigger}" must have at least one rule or an emitting fallback`);
 		}
 		mappings[trigger] = extended ? { rules, ...(fallback ? { fallback } : {}) } : rules;
 	}
@@ -139,7 +179,7 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 	for (const [trigger, rawTrigger] of Object.entries(mappings)) {
 		const extended = isExtendedTriggerSource(rawTrigger);
 		const rawRules = extended ? rawTrigger.rules : rawTrigger;
-		const fallback: MagicKeyFallback | undefined = extended ? rawTrigger.fallback : undefined;
+		const fallback = compileMagicKeyFallback(extended ? rawTrigger.fallback : undefined);
 		const rules: CompiledMagicKeyRule[] = [];
 
 		for (const [after, emit] of Object.entries(rawRules)) {
@@ -150,7 +190,7 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 		// Longest suffix wins if both a one-key and multi-key rule could match.
 		rules.sort((a, b) => Array.from(b.after).length - Array.from(a.after).length);
 		triggers[trigger] = { rules, ...(fallback ? { fallback } : {}) };
-		if (fallback === 'repeat-last') maxHistoryLength = Math.max(maxHistoryLength, 1);
+		if (fallback?.kind === 'repeat-last') maxHistoryLength = Math.max(maxHistoryLength, 1);
 	}
 
 	return { triggers, maxHistoryLength };
@@ -174,15 +214,18 @@ export function resolveMagicKeyOutput(
 		);
 		if (rule) return { text: rule.emit, matched: true };
 
-		if (
-			trigger.fallback === 'repeat-last' &&
-			!disabledMappingIds?.has(magicFallbackMappingId(inputText))
-		) {
-			const lastCharacter = Array.from(inputHistory).at(-1);
-			if (lastCharacter !== undefined) return { text: lastCharacter, matched: true };
+		const fallback = trigger.fallback;
+		if (fallback && !disabledMappingIds?.has(magicFallbackMappingId(inputText))) {
+			if (fallback.kind === 'emit') return { text: fallback.text, matched: true };
+			if (fallback.kind === 'repeat-last') {
+				const lastCharacter = Array.from(inputHistory).at(-1);
+				if (lastCharacter !== undefined) return { text: lastCharacter, matched: true };
+			}
 		}
 
-		return { text: inputText, matched: false };
+		// Nothing to emit: a Magic key consumes the keypress rather than typing
+		// its own symbol, so this stays matched and contributes no history.
+		return { text: '', matched: true };
 	}
 
 	return { text: inputText, matched: false };

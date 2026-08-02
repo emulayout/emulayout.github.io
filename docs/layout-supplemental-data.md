@@ -52,6 +52,11 @@ kinds of information belong here rather than in a new top-level field.
 trigger. Adaptive swaps support labeled `groups`; magic-key groups are reserved and currently
 rejected, so an unsupported `groups` fails loudly instead of being silently dropped.
 
+A magic trigger written as `{ "rules": …, "fallback": … }` also says what an unmapped preceding key
+does: `"repeat-last"` repeats the previous character, `{ "emit": "the" }` types fixed text, and
+`"no-op"` types nothing. Omitting `fallback` behaves like `"no-op"`; see
+[`magic-keys-architecture.md`](./magic-keys-architecture.md) for the details.
+
 ## Alternatives
 
 A layout can offer more than one mapping set. Move the feature objects into `variants`:
