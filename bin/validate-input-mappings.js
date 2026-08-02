@@ -2,9 +2,8 @@
 
 import { access, readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadMagicKeyMappings } from './magic-key-data.js';
-import { loadAdaptiveSwapSources } from './adaptive-swap-data.js';
-import { validateInputMappingsForLayouts } from './input-mapping-validation.js';
+import { loadLayoutSupplementalData } from './layout-data.js';
+import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
 
 const CMINI_LAYOUTS_DIR =
 	process.env.CMINI_LAYOUTS_DIR ?? join(process.cwd(), '.cache', 'cmini-repo', 'layouts');
@@ -32,23 +31,21 @@ async function run() {
 		);
 	}
 
-	const [layoutFiles, blacklist, magicKeyMappings, adaptiveSwapSources] = await Promise.all([
+	const [layoutFiles, blacklist, supplementalByLayout] = await Promise.all([
 		readdir(CMINI_LAYOUTS_DIR).then((files) => files.filter((file) => file.endsWith('.json'))),
 		loadBlacklist(),
-		loadMagicKeyMappings(),
-		loadAdaptiveSwapSources()
+		loadLayoutSupplementalData()
 	]);
 
-	const result = await validateInputMappingsForLayouts({
+	const result = await validateSupplementalDataForLayouts({
 		layoutsDir: CMINI_LAYOUTS_DIR,
 		layoutFiles,
 		blacklist,
-		magicKeyMappings,
-		adaptiveSwapSources
+		supplementalByLayout
 	});
 
 	console.log(
-		`✓ Validated ${result.magicKeyProfileCount} magic-key and ${result.adaptiveSwapProfileCount} adaptive-swap mapping profiles`
+		`✓ Validated ${result.variantCount} mapping variants across ${result.layoutCount} layouts`
 	);
 }
 

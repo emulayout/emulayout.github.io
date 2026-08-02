@@ -144,15 +144,15 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 
 	let rawRuleMap = rawRules;
 	let fallback;
-	const extended = hasOwn(rawRules, 'mappings') || hasOwn(rawRules, 'fallback');
+	const extended = hasOwn(rawRules, 'rules') || hasOwn(rawRules, 'fallback');
 	if (extended) {
-		if (!isRecord(rawRules.mappings)) {
-			return excluded('invalid-profile', 'Extended magic-key mappings must be an object.');
+		if (!isRecord(rawRules.rules)) {
+			return excluded('invalid-profile', 'Extended magic-key rules must be an object.');
 		}
-		rawRuleMap = rawRules.mappings;
+		rawRuleMap = rawRules.rules;
 		fallback = rawRules.fallback;
 		const unknownOption = Object.keys(rawRules).find(
-			(key) => key !== 'mappings' && key !== 'fallback'
+			(key) => key !== 'rules' && key !== 'fallback'
 		);
 		if (unknownOption) {
 			return excluded(

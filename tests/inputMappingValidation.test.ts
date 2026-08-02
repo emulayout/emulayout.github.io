@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateInputMappingsForLayouts } from '../bin/input-mapping-validation.js';
+import { validateSupplementalDataForLayouts } from '../bin/input-mapping-validation.js';
+import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
 
 const temporaryDirectories: string[] = [];
 
@@ -17,14 +18,20 @@ async function createLayouts(layouts: Record<string, unknown>) {
 	return directory;
 }
 
+function supplementalMap(files: Record<string, unknown>) {
+	return new Map(
+		Object.entries(files).map(([name, file]) => [name, validateLayoutSupplemental(file)])
+	);
+}
+
 afterEach(async () => {
 	await Promise.all(
 		temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true }))
 	);
 });
 
-describe('input mapping file validation', () => {
-	test('accepts structurally valid profiles whose keys exist on their layouts', async () => {
+describe('supplemental data validation', () => {
+	test('accepts variants whose keys exist on their layouts', async () => {
 		const layoutsDir = await createLayouts({
 			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } },
 			'odd-symbol': { name: 'odd-symbol', keys: { '#': {}, a: {}, o: {} } },
@@ -32,72 +39,169 @@ describe('input mapping file validation', () => {
 		});
 
 		await expect(
-			validateInputMappingsForLayouts({
+			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['magic.json', 'odd-symbol.json', 'adaptive.json'],
 				blacklist: new Set(),
-				magicKeyMappings: new Map([
-					['magic', { '*': { a: 'o' } }],
-					['odd-symbol', { '#': { a: 'o' } }]
-				]),
-				adaptiveSwapSources: new Map([['adaptive', { mappings: { l: { y: 'j' } } }]])
+				supplementalByLayout: supplementalMap({
+					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } },
+					'odd-symbol': { schema: 1, magicKeys: { mappings: { '#': { a: 'o' } } } },
+					adaptive: { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
+				})
 			})
 		).resolves.toEqual({
-			magicKeyProfileCount: 2,
-			adaptiveSwapProfileCount: 1,
-			orphanedProfiles: []
+			layoutCount: 3,
+			variantCount: 3,
+			orphanedProfiles: [],
+			staleVariants: []
 		});
 	});
 
-	test('rejects a profile without a matching Cmini layout file', async () => {
-		const layoutsDir = await createLayouts({});
+	test('counts every variant of a layout that offers alternatives', async () => {
+		const layoutsDir = await createLayouts({
+			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } }
+		});
 
-		await expect(
-			validateInputMappingsForLayouts({
-				layoutsDir,
-				layoutFiles: [],
-				blacklist: new Set(),
-				magicKeyMappings: new Map([['missing', { '*': { a: 'o' } }]]),
-				adaptiveSwapSources: new Map()
+		const result = await validateSupplementalDataForLayouts({
+			layoutsDir,
+			layoutFiles: ['magic.json'],
+			blacklist: new Set(),
+			supplementalByLayout: supplementalMap({
+				magic: {
+					schema: 1,
+					variants: [
+						{ id: 'v2', label: 'Revised', magicKeys: { mappings: { '*': { a: 'o' } } } },
+						{ id: 'v1', label: 'Original', magicKeys: { mappings: { '*': { a: 'e' } } } }
+					]
+				}
 			})
-		).rejects.toThrow('Magic-key profile missing has no matching Cmini layout file');
+		});
+
+		expect(result).toMatchObject({ layoutCount: 1, variantCount: 2, staleVariants: [] });
 	});
 
-	test('can report and skip orphan profiles during production sync', async () => {
+	test('rejects supplemental data without a matching Cmini layout file', async () => {
 		const layoutsDir = await createLayouts({});
 
 		await expect(
-			validateInputMappingsForLayouts({
+			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: [],
 				blacklist: new Set(),
-				magicKeyMappings: new Map([['missing-magic', { '*': { a: 'o' } }]]),
-				adaptiveSwapSources: new Map([['missing-adaptive', { mappings: { l: { y: 'j' } } }]]),
+				supplementalByLayout: supplementalMap({
+					missing: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
+				})
+			})
+		).rejects.toThrow('Supplemental data missing has no matching Cmini layout file');
+	});
+
+	test('rejects data whose filename does not match the layout it points at', async () => {
+		const layoutsDir = await createLayouts({
+			magic: { name: 'renamed', keys: { '*': {}, a: {}, o: {} } }
+		});
+
+		await expect(
+			validateSupplementalDataForLayouts({
+				layoutsDir,
+				layoutFiles: ['magic.json'],
+				blacklist: new Set(),
+				supplementalByLayout: supplementalMap({
+					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
+				})
+			})
+		).rejects.toThrow('matched layout named "renamed"');
+	});
+
+	test('can report and skip orphans during production sync', async () => {
+		const layoutsDir = await createLayouts({});
+
+		await expect(
+			validateSupplementalDataForLayouts({
+				layoutsDir,
+				layoutFiles: [],
+				blacklist: new Set(),
+				supplementalByLayout: supplementalMap({
+					'missing-magic': { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } },
+					'missing-adaptive': { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
+				}),
 				allowOrphanedProfiles: true
 			})
 		).resolves.toEqual({
-			magicKeyProfileCount: 1,
-			adaptiveSwapProfileCount: 1,
-			orphanedProfiles: [
-				'Magic-key profile missing-magic',
-				'Adaptive-swap profile missing-adaptive'
-			]
+			layoutCount: 2,
+			variantCount: 0,
+			orphanedProfiles: ['missing-magic', 'missing-adaptive'],
+			staleVariants: []
 		});
 	});
 
-	test('rejects mappings that reference keys absent from their layout', async () => {
+	test('rejects a magic trigger the layout does not have', async () => {
+		const layoutsDir = await createLayouts({
+			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } }
+		});
+
+		await expect(
+			validateSupplementalDataForLayouts({
+				layoutsDir,
+				layoutFiles: ['magic.json'],
+				blacklist: new Set(),
+				supplementalByLayout: supplementalMap({
+					magic: { schema: 1, magicKeys: { mappings: { '@': { a: 'o' } } } }
+				})
+			})
+		).rejects.toThrow('uses "@", which is not on the layout');
+	});
+
+	test('rejects adaptive swaps that reference keys absent from their layout', async () => {
 		const layoutsDir = await createLayouts({
 			adaptive: { name: 'adaptive', keys: { l: {}, y: {} } }
 		});
 
 		await expect(
-			validateInputMappingsForLayouts({
+			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['adaptive.json'],
 				blacklist: new Set(),
-				magicKeyMappings: new Map(),
-				adaptiveSwapSources: new Map([['adaptive', { mappings: { l: { y: 'j' } } }]])
+				supplementalByLayout: supplementalMap({
+					adaptive: { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
+				})
 			})
 		).rejects.toThrow('uses "j", which is not on the layout');
+	});
+
+	test('marks a variant stale instead of failing when sync allows it', async () => {
+		const layoutsDir = await createLayouts({
+			adaptive: { name: 'adaptive', keys: { l: {}, y: {} } }
+		});
+
+		const result = await validateSupplementalDataForLayouts({
+			layoutsDir,
+			layoutFiles: ['adaptive.json'],
+			blacklist: new Set(),
+			supplementalByLayout: supplementalMap({
+				adaptive: { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
+			}),
+			allowStaleVariants: true
+		});
+
+		expect(result.staleVariants).toEqual([
+			{ layoutName: 'adaptive', variantId: 'default', missingKeys: ['j'] }
+		]);
+	});
+
+	test('rejects supplemental data for a blacklisted layout', async () => {
+		const layoutsDir = await createLayouts({
+			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } }
+		});
+
+		await expect(
+			validateSupplementalDataForLayouts({
+				layoutsDir,
+				layoutFiles: ['magic.json'],
+				blacklist: new Set(['magic']),
+				supplementalByLayout: supplementalMap({
+					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
+				})
+			})
+		).rejects.toThrow('belongs to a blacklisted layout');
 	});
 });

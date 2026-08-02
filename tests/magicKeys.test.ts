@@ -14,11 +14,10 @@ import {
 	magicRuleMappingId,
 	repeatKeyMappingId
 } from '$lib/inputMappingControls';
-import vyletMappings from '../data/magic-keys/vylet.json';
-import whirlMappings from '../data/magic-keys/whirl.json';
-import vyletV4Swaps from '../data/adaptive-swaps/vylet-v4.json';
-import { validateMagicKeyMappingsForLayout } from '../bin/magic-key-data.js';
-import { validateAdaptiveSwapSourceForLayout } from '../bin/adaptive-swap-data.js';
+import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
+import vyletData from '../data/layouts/vylet.json';
+import whirlData from '../data/layouts/whirl.json';
+import vyletV4Data from '../data/layouts/vylet-v4.json';
 
 function typeLogicalKeys(
 	profile: LayoutInputProfile,
@@ -40,10 +39,12 @@ function typeLogicalKeys(
 }
 
 describe('layout input registry', () => {
+	// Normalize first so the registry sees exactly what sync publishes, not the
+	// curated source shorthand.
 	const profiles = compileLayoutInputRegistry({
-		vylet: { magicKeys: vyletMappings },
-		whirl: { magicKeys: whirlMappings },
-		'vylet-v4': { adaptiveSwaps: vyletV4Swaps }
+		vylet: validateLayoutSupplemental(vyletData),
+		whirl: validateLayoutSupplemental(whirlData),
+		'vylet-v4': validateLayoutSupplemental(vyletV4Data)
 	});
 
 	test('loads each behavior by its Cmini layout name', () => {
@@ -95,16 +96,16 @@ describe('layout input registry', () => {
 
 		expect(compileLayoutInputRegistry({}, layouts).has('mapped-at')).toBe(false);
 
-		const profile = compileLayoutInputRegistry(
-			{ 'mapped-at': { magicKeys: { '@': { a: 'o' } } } },
-			layouts
-		).get('mapped-at')!;
+		const mappedAt = { schema: 1, magicKeys: { mappings: { '@': { a: 'o' } } } };
+		const profile = compileLayoutInputRegistry({ 'mapped-at': mappedAt }, layouts).get(
+			'mapped-at'
+		)!;
 		expect(profile.magicKeys).toBeDefined();
 		expect(profile.repeatKey).toBeUndefined();
 		expect(typeLogicalKeys(profile, ['a', '@']).text).toBe('ao');
 
 		const legacyProfile = compileLayoutInputRegistry(
-			{ 'mapped-at': { magicKeys: { '@': { a: 'o' } } } },
+			{ 'mapped-at': mappedAt },
 			layouts.map(({ name, keys }) => ({ name, keys }))
 		).get('mapped-at')!;
 		expect(legacyProfile.repeatKey).toBeUndefined();
@@ -112,16 +113,19 @@ describe('layout input registry', () => {
 
 	test('preserves authoritative Repeat metadata when an @ sidecar profile is malformed', () => {
 		const warning = spyOn(console, 'warn').mockImplementation(() => {});
-		const profile = compileLayoutInputRegistry({ 'repeat-layout': { magicKeys: { '@': null } } }, [
-			{
-				name: 'repeat-layout',
-				keys: {
-					a: { row: 0, col: 0 },
-					'@': { row: 0, col: 1 }
-				},
-				hasRepeatKey: true
-			}
-		]).get('repeat-layout')!;
+		const profile = compileLayoutInputRegistry(
+			{ 'repeat-layout': { schema: 1, magicKeys: { mappings: { '@': null } } } },
+			[
+				{
+					name: 'repeat-layout',
+					keys: {
+						a: { row: 0, col: 0 },
+						'@': { row: 0, col: 1 }
+					},
+					hasRepeatKey: true
+				}
+			]
+		).get('repeat-layout')!;
 
 		expect(profile.repeatKey).toEqual({ trigger: '@' });
 		expect(profile.magicKeys).toBeUndefined();
@@ -135,11 +139,13 @@ describe('magic-key resolution through the unified engine', () => {
 	test('supports multi-character output and longest-suffix matching', () => {
 		const profile = compileLayoutInputProfile({
 			magicKeys: {
-				'*': {
-					h: 'x',
-					th: 'e',
-					a: 'bc',
-					bc: 'd'
+				mappings: {
+					'*': {
+						h: 'x',
+						th: 'e',
+						a: 'bc',
+						bc: 'd'
+					}
 				}
 			}
 		});
@@ -152,8 +158,10 @@ describe('magic-key resolution through the unified engine', () => {
 	test('keeps separate mappings for separate magic keys', () => {
 		const profile = compileLayoutInputProfile({
 			magicKeys: {
-				'*': { a: 'o' },
-				'@': { a: 'e' }
+				mappings: {
+					'*': { a: 'o' },
+					'@': { a: 'e' }
+				}
 			}
 		});
 
@@ -165,7 +173,7 @@ describe('magic-key resolution through the unified engine', () => {
 		const profile = compileLayoutInputProfile(
 			{
 				magicKeys: {
-					'@': { a: 'o' }
+					mappings: { '@': { a: 'o' } }
 				}
 			},
 			{ a: {}, b: {}, '@': {} }
@@ -184,9 +192,11 @@ describe('magic-key resolution through the unified engine', () => {
 		const profile = compileLayoutInputProfile(
 			{
 				magicKeys: {
-					'@': {
-						mappings: { a: 'o' },
-						fallback: 'repeat-last'
+					mappings: {
+						'@': {
+							rules: { a: 'o' },
+							fallback: 'repeat-last'
+						}
 					}
 				}
 			},
@@ -200,7 +210,7 @@ describe('magic-key resolution through the unified engine', () => {
 
 	test('records unmatched triggers and matches preceding letters case-insensitively', () => {
 		const profile = compileLayoutInputProfile({
-			magicKeys: { '*': { a: 'o', '*': 'z' } }
+			magicKeys: { mappings: { '*': { a: 'o', '*': 'z' } } }
 		});
 
 		expect(typeLogicalKeys(profile, ['x', '*', '*']).text).toBe('x*z');
@@ -211,9 +221,11 @@ describe('magic-key resolution through the unified engine', () => {
 	test('repeats the last emitted character when an extended trigger has no explicit rule', () => {
 		const profile = compileLayoutInputProfile({
 			magicKeys: {
-				'*': {
-					mappings: { w: 'h', y: ',' },
-					fallback: 'repeat-last'
+				mappings: {
+					'*': {
+						rules: { w: 'h', y: ',' },
+						fallback: 'repeat-last'
+					}
 				}
 			}
 		});
@@ -231,9 +243,11 @@ describe('magic-key resolution through the unified engine', () => {
 	test('can disable individual rules and fallback behavior independently', () => {
 		const profile = compileLayoutInputProfile({
 			magicKeys: {
-				'*': {
-					mappings: { w: 'h', h: 'x', th: 'e' },
-					fallback: 'repeat-last'
+				mappings: {
+					'*': {
+						rules: { w: 'h', h: 'x', th: 'e' },
+						fallback: 'repeat-last'
+					}
 				}
 			}
 		});
@@ -255,41 +269,21 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(() => validateMagicKeyMappings({ '*': { A: 'x', a: 'y' } })).toThrow(
 			'repeats preceding sequence'
 		);
-		expect(() => validateMagicKeyMappings({ '*': { mappings: {}, fallback: 'unknown' } })).toThrow(
+		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: 'unknown' } })).toThrow(
 			'fallback must be "repeat-last"'
 		);
 		expect(() => validateMagicKeyMappings({ '*': { fallback: 'repeat-last' } })).toThrow(
-			'mappings must be an object'
+			'rules must be an object'
 		);
 		expect(() =>
-			validateMagicKeyMappings({ '*': { mappings: {}, fallback: 'repeat-last' } })
+			validateMagicKeyMappings({ '*': { rules: {}, fallback: 'repeat-last' } })
 		).not.toThrow();
-	});
-
-	test('validates profile identity and triggers against its Cmini layout', () => {
-		const layout = {
-			name: 'vylet',
-			keys: {
-				'*': { row: 2, col: 6 },
-				c: { row: 0, col: 1 }
-			}
-		};
-
-		expect(() =>
-			validateMagicKeyMappingsForLayout('vylet', { '*': { c: 'k' } }, layout)
-		).not.toThrow();
-		expect(() => validateMagicKeyMappingsForLayout('other', { '*': { c: 'k' } }, layout)).toThrow(
-			'matched layout named'
-		);
-		expect(() => validateMagicKeyMappingsForLayout('vylet', { '@': { c: 'k' } }, layout)).toThrow(
-			'trigger "@" that is not on the layout'
-		);
 	});
 });
 
 describe('adaptive-swap resolution through the unified engine', () => {
 	const profile = compileLayoutInputProfile({
-		adaptiveSwaps: validateAdaptiveSwapSource(vyletV4Swaps)
+		adaptiveSwaps: validateAdaptiveSwapSource(vyletV4Data.adaptiveSwaps)
 	});
 
 	test('compiles both directions and all stored groups', () => {
@@ -349,32 +343,12 @@ describe('adaptive-swap resolution through the unified engine', () => {
 			'assigns a key to multiple swaps'
 		);
 	});
-
-	test('validates adaptive keys against the matching Cmini layout', () => {
-		const layout = {
-			name: 'sample',
-			keys: {
-				l: { row: 0, col: 0 },
-				y: { row: 0, col: 1 },
-				j: { row: 0, col: 2 }
-			}
-		};
-		const source = { mappings: { l: { y: 'j' } } };
-
-		expect(() => validateAdaptiveSwapSourceForLayout('sample', source, layout)).not.toThrow();
-		expect(() => validateAdaptiveSwapSourceForLayout('other', source, layout)).toThrow(
-			'matched layout named'
-		);
-		expect(() =>
-			validateAdaptiveSwapSourceForLayout('sample', { mappings: { l: { y: 'x' } } }, layout)
-		).toThrow('which is not on the layout');
-	});
 });
 
 describe('combined layout input behaviors', () => {
 	test('lets magic-key output arm an adaptive swap on the next keypress', () => {
 		const profile = compileLayoutInputProfile({
-			magicKeys: { '*': { a: 'l' } },
+			magicKeys: { mappings: { '*': { a: 'l' } } },
 			adaptiveSwaps: { mappings: { l: { y: 'j' } } }
 		});
 
@@ -385,7 +359,7 @@ describe('combined layout input behaviors', () => {
 
 	test('lets an adaptive output become a magic trigger on the same keypress', () => {
 		const profile = compileLayoutInputProfile({
-			magicKeys: { '*': { a: 'o' } },
+			magicKeys: { mappings: { '*': { a: 'o' } } },
 			adaptiveSwaps: { mappings: { a: { y: '*' } } }
 		});
 

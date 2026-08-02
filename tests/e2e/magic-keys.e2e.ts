@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures/test';
+import { validateLayoutSupplemental } from '../../src/lib/layoutSupplemental';
 import {
 	combinedInputBehaviors,
 	magicSturdy,
@@ -62,7 +63,7 @@ test('shows mappings in a floating window', async ({ page }) => {
 test('keeps the mappings indicator noninteractive when the sidecar is unavailable', async ({
 	page
 }) => {
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({ json: {} });
 	});
 	await page.goto(mappedLayoutView);
@@ -141,13 +142,14 @@ test('uses one hover and off-state treatment for Repeat, Adaptive, and Magic', a
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [combinedInputBehaviors] });
 	});
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({
 			json: {
-				[combinedInputBehaviors[0]]: {
-					magicKeys: { '#': { v: 'm' } },
+				[combinedInputBehaviors[0]]: validateLayoutSupplemental({
+					schema: 1,
+					magicKeys: { mappings: { '#': { v: 'm' } } },
 					adaptiveSwaps: { mappings: { v: { m: 'l' } } }
-				}
+				})
 			}
 		});
 	});
@@ -239,7 +241,7 @@ test('uses uniform no-data styling for unavailable Magic and Adaptive mappings',
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [combinedInputBehaviors] });
 	});
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({ json: {} });
 	});
 	await page.goto(`/?name=${encodeURIComponent(combinedInputBehaviors[0])}&likes=0&newIndicator=0`);

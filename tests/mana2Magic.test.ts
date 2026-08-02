@@ -8,8 +8,11 @@ import {
 	mana2InputEngineFailure
 } from '../bin/mana2-magic.js';
 import { buildMana2LayoutHash } from '../bin/mana2-stats.js';
-import vyletMappings from '../data/magic-keys/vylet.json';
-import whirlMappings from '../data/magic-keys/whirl.json';
+import vyletData from '../data/layouts/vylet.json';
+import whirlData from '../data/layouts/whirl.json';
+
+const vyletMappings = vyletData.magicKeys.mappings;
+const whirlMappings = whirlData.magicKeys.mappings;
 
 const layoutKeys = Object.fromEntries(
 	[..."abcdefghijklmnopqrstuvwxyz*'"].map((key) => [key, { row: 0, col: 0 }])

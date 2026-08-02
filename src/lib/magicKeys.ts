@@ -9,7 +9,7 @@ export type MagicKeyFallback = 'repeat-last';
 export type MagicKeyRules = Readonly<Record<string, string>>;
 
 export interface ExtendedMagicKeyTriggerSource {
-	mappings: MagicKeyRules;
+	rules: MagicKeyRules;
 	fallback?: MagicKeyFallback;
 }
 
@@ -60,7 +60,7 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
 function isExtendedTriggerSource(
 	value: MagicKeyRules | ExtendedMagicKeyTriggerSource
 ): value is ExtendedMagicKeyTriggerSource {
-	return isRecord(value.mappings);
+	return isRecord(value.rules);
 }
 
 /**
@@ -80,16 +80,16 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 			throw new Error(`Magic key "${trigger}" rules must be an object`);
 		}
 
-		const extended = hasOwn(rawTrigger, 'mappings') || hasOwn(rawTrigger, 'fallback');
+		const extended = hasOwn(rawTrigger, 'rules') || hasOwn(rawTrigger, 'fallback');
 		let rawRules: Record<string, unknown> = rawTrigger;
 		let fallback: MagicKeyFallback | undefined;
 		if (extended) {
-			if (!isRecord(rawTrigger.mappings)) {
-				throw new Error(`Magic key "${trigger}" mappings must be an object`);
+			if (!isRecord(rawTrigger.rules)) {
+				throw new Error(`Magic key "${trigger}" rules must be an object`);
 			}
-			rawRules = rawTrigger.mappings;
+			rawRules = rawTrigger.rules;
 			for (const key of Object.keys(rawTrigger)) {
-				if (key !== 'mappings' && key !== 'fallback') {
+				if (key !== 'rules' && key !== 'fallback') {
 					throw new Error(`Magic key "${trigger}" has unknown option "${key}"`);
 				}
 			}
@@ -122,7 +122,7 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 		if (Object.keys(rules).length === 0 && !fallback) {
 			throw new Error(`Magic key "${trigger}" must have at least one rule`);
 		}
-		mappings[trigger] = extended ? { mappings: rules, ...(fallback ? { fallback } : {}) } : rules;
+		mappings[trigger] = extended ? { rules, ...(fallback ? { fallback } : {}) } : rules;
 	}
 
 	if (Object.keys(mappings).length === 0) {
@@ -138,7 +138,7 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 
 	for (const [trigger, rawTrigger] of Object.entries(mappings)) {
 		const extended = isExtendedTriggerSource(rawTrigger);
-		const rawRules = extended ? rawTrigger.mappings : rawTrigger;
+		const rawRules = extended ? rawTrigger.rules : rawTrigger;
 		const fallback: MagicKeyFallback | undefined = extended ? rawTrigger.fallback : undefined;
 		const rules: CompiledMagicKeyRule[] = [];
 

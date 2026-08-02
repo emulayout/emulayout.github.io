@@ -26,7 +26,7 @@
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
-	const inputProfiles = $derived(compileLayoutInputRegistry(data.inputBehaviors, layouts));
+	const inputProfiles = $derived(compileLayoutInputRegistry(data.supplemental, layouts));
 	/** `null` = not loaded yet; `{}` = loaded but empty/unavailable. */
 	let lazyLikesData: LayoutLikesMap | null = $state(null);
 	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);

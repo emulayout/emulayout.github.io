@@ -6,7 +6,7 @@ import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-import type { LayoutInputBehaviorsByLayout } from '$lib/layoutInputBehaviors';
+import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
 import type { PageLoad } from './$types';
 
 function getInitialStatsAnalyzerMode(url: URL): StatsAnalyzerMode {
@@ -29,11 +29,11 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		sortBy
 	});
 
-	const [layoutsResponse, authorsResponse, inputBehaviorsResponse, likesResponse, statsResults] =
+	const [layoutsResponse, authorsResponse, supplementalResponse, likesResponse, statsResults] =
 		await Promise.all([
 			fetch('/all-layouts.json'),
 			fetch('/authors.json'),
-			fetch('/layout-input-behaviors.json'),
+			fetch('/layout-supplemental.json'),
 			loadLikes ? fetch('/layout-likes.json') : Promise.resolve(null),
 			Promise.all(analyzersToPreload.map((analyzer) => loadAnalyzerStats(analyzer, { fetch })))
 		]);
@@ -41,8 +41,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
-	const inputBehaviors: LayoutInputBehaviorsByLayout = inputBehaviorsResponse.ok
-		? await inputBehaviorsResponse.json()
+	const supplemental: LayoutSupplementalByLayout = supplementalResponse.ok
+		? await supplementalResponse.json()
 		: {};
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
@@ -64,7 +64,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	return {
 		layouts,
 		authorsData,
-		inputBehaviors,
+		supplemental,
 		likesData,
 		/** True when the load function attempted to fetch likes (even if empty/404). */
 		likesAttempted: loadLikes,

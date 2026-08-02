@@ -6,9 +6,8 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
-import { loadMagicKeyMappings } from './magic-key-data.js';
-import { loadAdaptiveSwapSources } from './adaptive-swap-data.js';
-import { validateInputMappingsForLayouts } from './input-mapping-validation.js';
+import { loadLayoutSupplementalData } from './layout-data.js';
+import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
 import {
@@ -22,10 +21,16 @@ import {
 	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
 } from './cyanophage-stats.js';
-import { hasMagicKey, hasRepeatKey } from './layout-features.js';
+import {
+	defaultMagicMappings,
+	hasAdaptiveSwapMappings,
+	hasMagicKeyMappings,
+	hasMagicKeyMarker,
+	hasRepeatKey
+} from './layout-features.js';
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
-const INPUT_BEHAVIORS_FILE = 'static/layout-input-behaviors.json';
+const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const STATS_FILE = 'static/layout-stats.json';
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const LIKES_FILE = 'static/layout-likes.json';
@@ -87,6 +92,22 @@ async function loadAdaptiveLayoutNames() {
 			.map((line) => line.trim())
 			.filter((line) => line && !line.startsWith('#'))
 	);
+}
+
+/**
+ * Publish `stale` on variants whose referenced keys the layout no longer has.
+ *
+ * @param {import('../src/lib/layoutSupplemental.ts').LayoutSupplemental} supplemental
+ * @param {ReadonlySet<string> | undefined} staleIds
+ */
+function markStaleVariants(supplemental, staleIds) {
+	if (!staleIds?.size) return supplemental;
+	return {
+		...supplemental,
+		variants: supplemental.variants.map((variant) =>
+			staleIds.has(variant.id) ? { ...variant, stale: true } : variant
+		)
+	};
 }
 
 /**
@@ -188,10 +209,7 @@ async function run() {
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 	const layoutFileSet = new Set(layoutFiles);
-	const [magicKeyMappings, adaptiveSwapSources] = await Promise.all([
-		loadMagicKeyMappings(),
-		loadAdaptiveSwapSources()
-	]);
+	const supplementalByLayout = await loadLayoutSupplementalData();
 
 	for (const layoutName of adaptiveLayoutNames) {
 		const filename = `${layoutName}.json`;
@@ -212,16 +230,27 @@ async function run() {
 		}
 	}
 
-	const inputMappingValidation = await validateInputMappingsForLayouts({
+	const supplementalValidation = await validateSupplementalDataForLayouts({
 		layoutsDir: cacheLayoutsDir,
 		layoutFiles,
 		blacklist,
-		magicKeyMappings,
-		adaptiveSwapSources,
-		allowOrphanedProfiles: true
+		supplementalByLayout,
+		allowOrphanedProfiles: true,
+		allowStaleVariants: true
 	});
-	for (const orphanedProfile of inputMappingValidation.orphanedProfiles) {
-		console.warn(`  ⚠ ${orphanedProfile} has no matching Cmini layout file; skipping mapping`);
+	for (const orphanedProfile of supplementalValidation.orphanedProfiles) {
+		console.warn(
+			`  ⚠ Supplemental data ${orphanedProfile} has no matching Cmini layout file; skipping it`
+		);
+	}
+	/** @type {Map<string, Set<string>>} */
+	const staleVariantIds = new Map();
+	for (const { layoutName, variantId, missingKeys } of supplementalValidation.staleVariants) {
+		if (!staleVariantIds.has(layoutName)) staleVariantIds.set(layoutName, new Set());
+		staleVariantIds.get(layoutName).add(variantId);
+		console.warn(
+			`  ⚠ ${layoutName} variant ${variantId} references ${missingKeys.join(', ')}, no longer on the layout; marking it stale`
+		);
 	}
 
 	console.log('→ Resolving layout timestamps from git history...');
@@ -268,14 +297,15 @@ async function run() {
 		const originalContent = await readFile(cachePath, 'utf-8');
 		const rawLayout = JSON.parse(originalContent);
 		const transformedLayout = transformLayout(rawLayout);
-		const magicMappings = magicKeyMappings.get(rawLayout.name);
+		const variants = supplementalByLayout.get(rawLayout.name)?.variants ?? [];
 		transformedLayout.updatedAt = layoutTimestamps[filename];
-		transformedLayout.hasMagicKey = hasMagicKey(rawLayout.keys, magicMappings);
-		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, magicMappings);
-		transformedLayout.hasMagicKeyMappings = Boolean(magicMappings);
+		transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
+		transformedLayout.hasMagicKey =
+			hasMagicKeyMarker(rawLayout.keys) || transformedLayout.hasMagicKeyMappings;
+		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
+		transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
 		transformedLayout.hasAdaptiveSwap =
-			adaptiveLayoutNames.has(rawLayout.name) || adaptiveSwapSources.has(rawLayout.name);
-		transformedLayout.hasAdaptiveSwapMappings = adaptiveSwapSources.has(rawLayout.name);
+			adaptiveLayoutNames.has(rawLayout.name) || transformedLayout.hasAdaptiveSwapMappings;
 
 		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData, {
 			statsCache: statsCache ?? undefined,
@@ -327,23 +357,17 @@ async function run() {
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
 
 	const validLayoutNames = new Set(transformedLayouts.map((layout) => layout[0]));
-	const behaviorLayoutNames = new Set([...magicKeyMappings.keys(), ...adaptiveSwapSources.keys()]);
-	const publishedInputBehaviors = Object.fromEntries(
-		[...behaviorLayoutNames]
+	const publishedSupplemental = Object.fromEntries(
+		[...supplementalByLayout.keys()]
 			.filter((name) => validLayoutNames.has(name))
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [
 				name,
-				{
-					...(magicKeyMappings.has(name) ? { magicKeys: magicKeyMappings.get(name) } : {}),
-					...(adaptiveSwapSources.has(name) ? { adaptiveSwaps: adaptiveSwapSources.get(name) } : {})
-				}
+				markStaleVariants(supplementalByLayout.get(name), staleVariantIds.get(name))
 			])
 	);
-	await writeFile(INPUT_BEHAVIORS_FILE, JSON.stringify(publishedInputBehaviors) + '\n', 'utf-8');
-	console.log(
-		`  ✔ Input behavior mappings for ${Object.keys(publishedInputBehaviors).length} layouts`
-	);
+	await writeFile(SUPPLEMENTAL_FILE, JSON.stringify(publishedSupplemental) + '\n', 'utf-8');
+	console.log(`  ✔ Supplemental data for ${Object.keys(publishedSupplemental).length} layouts`);
 
 	console.log('→ Building layout likes...');
 	const layoutLikes = await loadLayoutLikes(new Set(transformedLayouts.map((layout) => layout[0])));

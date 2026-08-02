@@ -108,18 +108,18 @@ them for deployments and the daily catalog sync.
 | `bun run lint`              | Check formatting and lint the project              |
 | `bun test`                  | Run unit tests                                     |
 | `bun run test:e2e`          | Run Playwright integration tests in Chromium       |
-| `bun run validate:mappings` | Validate every Magic-key and Adaptive-swap profile |
+| `bun run validate:mappings` | Validate every curated supplemental layout file    |
 | `bun run audit:blacklist`   | Report stale entries in the local layout blacklist |
 
 ## Generated data
 
 `bin/cmini-sync.js` clones cmini into `.cache/cmini-repo` and generates the layout catalog, cmini
-stats, Cyanophage stats, likes, and input-behavior metadata under `static/`. Curated behavior
-profiles come from `data/magic-keys/` and `data/adaptive-swaps/`;
-`adaptive-layouts.txt` records layouts known to use Adaptive swaps even when their mappings have not
-yet been curated. A layout key named `@` repeats the previous uninterrupted emitted character by
-default, so that behavior does not require a per-layout profile. A curated Magic mapping whose
-trigger is `@` overrides the default and may opt back into repeat fallback explicitly.
+stats, Cyanophage stats, likes, and supplemental layout data under `static/`. Curated supplemental
+data comes from `data/layouts/`; `adaptive-layouts.txt` records layouts known to use Adaptive swaps
+even when their mappings have not yet been curated. A layout key named `@` repeats the previous
+uninterrupted emitted character by default, so that behavior does not require a curated file. A
+curated Magic mapping whose trigger is `@` overrides the default and may opt back into repeat
+fallback explicitly.
 
 `bin/mana2-sync.js` clones Mana2 into `.cache/mana2`, builds its CLI, and writes
 `static/layout-stats-mana2.json`. Supported Magic-key rules and standalone Repeat-key behavior use
@@ -128,12 +128,27 @@ explicit fallback reason in the generated data.
 Use `--offline` after the first sync to skip fetching the Mana2 repository. If Go is unavailable,
 the script skips outside CI rather than failing.
 
-## Contribute input mappings
+## Contribute supplemental layout data
 
-Add a profile at `data/magic-keys/<layout-name>.json` or
-`data/adaptive-swaps/<layout-name>.json`. The filename must exactly match its cmini layout name.
+Everything Emulayout knows about a layout beyond its key map, including Magic-key mappings, Adaptive
+swaps, a homepage, and other metadata, lives in one file at `data/layouts/<layout-name>.json`. The
+filename must exactly match its cmini layout name. The simplest useful file is:
 
-Run the cmini sync at least once to populate `.cache/cmini-repo`, then validate all profiles:
+```json
+{
+	"schema": 1,
+	"magicKeys": {
+		"mappings": {
+			"*": { "c": "k" }
+		}
+	}
+}
+```
+
+See [`docs/layout-supplemental-data.md`](docs/layout-supplemental-data.md) for the full format,
+including how to offer alternative mapping versions and what happens when a layout changes upstream.
+
+Run the cmini sync at least once to populate `.cache/cmini-repo`, then validate:
 
 ```sh
 bun run validate:mappings
@@ -141,16 +156,16 @@ bun run validate:mappings
 
 Validation checks:
 
-- the profile structure and permitted keys;
-- the mapping filename against the layout name and blacklist;
-- the Magic-key trigger against the corresponding layout;
-- every Adaptive trigger and swap key against the corresponding layout; and
-- orphan profiles whose layout is not present in the current cmini catalog.
+- the file structure and permitted fields, rejecting typos outside the open `meta` object;
+- the filename against the layout name and blacklist;
+- every Magic-key trigger and Adaptive swap key against the corresponding layout; and
+- orphan files whose layout is not present in the current cmini catalog.
 
 Pull requests run this validation automatically through the
-`Validate mappings / Validate mapping files` check and reject orphan profiles. Production syncs
-are deliberately more resilient: if cmini removes a layout after its mapping merges, the sync warns
-and omits the orphan instead of blocking deployment.
+`Validate mappings / Validate mapping files` check and reject orphan files. Production syncs are
+deliberately more resilient: if cmini removes a layout after its data merges, the sync warns and
+omits the orphan instead of blocking deployment, and a variant that references a key cmini has since
+removed is published as stale rather than dropped.
 
 For local blacklist maintenance, compare `layout-blacklist.txt` with the cached cmini catalog:
 
