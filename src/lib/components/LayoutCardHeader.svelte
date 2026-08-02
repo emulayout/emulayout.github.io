@@ -10,6 +10,7 @@
 		showNewIndicator: boolean;
 		showSimilarityMatch: boolean;
 		showSelection?: boolean;
+		authorInteractive?: boolean;
 		similarMatchPercent?: number;
 		similarMirrored?: boolean;
 		onToggleSelection: () => void;
@@ -25,6 +26,7 @@
 		showNewIndicator,
 		showSimilarityMatch,
 		showSelection = true,
+		authorInteractive = true,
 		similarMatchPercent,
 		similarMirrored = false,
 		onToggleSelection,
@@ -152,15 +154,19 @@
 		style="color: var(--text-secondary);"
 	>
 		<span class="shrink-0">{layout.board} · by</span>
-		<button
-			type="button"
-			onclick={onSelectAuthor}
-			class="hover:underline cursor-pointer truncate min-w-0"
-			style="color: var(--text-secondary);"
-			title={authorName}
-		>
-			{authorName}
-		</button>
+		{#if authorInteractive}
+			<button
+				type="button"
+				onclick={onSelectAuthor}
+				class="hover:underline cursor-pointer truncate min-w-0"
+				style="color: var(--text-secondary);"
+				title={authorName}
+			>
+				{authorName}
+			</button>
+		{:else}
+			<span class="truncate min-w-0" title={authorName}>{authorName}</span>
+		{/if}
 		<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
 	</p>
 </div>

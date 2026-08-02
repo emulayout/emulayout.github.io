@@ -54,6 +54,10 @@ panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA r
 consistent as the panel content changes. A successful view import resets the import form, restores
 focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
 
+The layout detail page uses `Tabs` for its Test area and Stats panels. Test area is first and is the
+default on every detail-page entry; the panels use layout-specific ids so their tab relationships
+remain unique for every route.
+
 ## Invariants
 
 - Interactive consumers pass state down and receive changes through callbacks; primitives do not

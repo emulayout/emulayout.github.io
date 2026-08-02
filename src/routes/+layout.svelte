@@ -1,6 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
@@ -25,6 +26,7 @@
 	let debugEnabled = $state(false);
 
 	const layouts = $derived(layoutsCatalog.layouts);
+	const usesDocumentScroll = $derived(page.route.id === '/layouts/[name]');
 	const authorsData = $derived(layoutsCatalog.authorsData);
 	const statsMaps = $derived(layoutStatsStore.maps);
 	const authorById = $derived(
@@ -184,7 +186,7 @@
 	<title>Emulayout</title>
 </svelte:head>
 
-<div class="app-shell">
+<div class="app-shell" class:app-shell--document-scroll={usesDocumentScroll}>
 	<header class="app-header px-3 py-3 md:px-6">
 		<div class="flex w-full items-center justify-between gap-3">
 			<div class="flex min-w-0 items-center gap-3">
@@ -363,7 +365,10 @@
 		</div>
 	</header>
 
-	<main class="app-main px-3 pb-3 md:px-6 md:pb-4">
+	<main
+		class="app-main px-3 pb-3 md:px-6 md:pb-4"
+		class:app-main--document-scroll={usesDocumentScroll}
+	>
 		{@render children()}
 	</main>
 </div>
@@ -399,9 +404,9 @@
 		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
 	}
 
-	/* Split view (md+): lock the shell to the viewport so columns scroll independently. */
+	/* Keep the index split view within the viewport; detail routes use document scrolling. */
 	@media (min-width: 768px) {
-		.app-shell {
+		.app-shell:not(.app-shell--document-scroll) {
 			height: 100dvh;
 			max-height: 100dvh;
 			display: flex;
@@ -409,11 +414,11 @@
 			overflow: hidden;
 		}
 
-		.app-header {
+		.app-shell:not(.app-shell--document-scroll) .app-header {
 			flex-shrink: 0;
 		}
 
-		.app-main {
+		.app-main:not(.app-main--document-scroll) {
 			flex: 1 1 0;
 			min-height: 0;
 			display: flex;

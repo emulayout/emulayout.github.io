@@ -28,6 +28,23 @@
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
+	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
+	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
+	import type { TabOption } from '$lib/tabs';
+	import {
+		applyAnglemodToDisplayRows,
+		computeDisplayRows,
+		displayRowsToString,
+		removeAnglemodFromDisplayRows,
+		type DisplayCell
+	} from '$lib/layoutDisplay';
+	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
+	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
+	import { repeatKeyMappingId } from '$lib/inputMappingControls';
+
+	type DetailSection = 'test' | 'stats';
 
 	interface Props {
 		layout: LayoutData;
@@ -67,7 +84,45 @@
 	let showCmini = $state(false);
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
+	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
+	let activeSection = $state<DetailSection>('test');
+	let anglemodTransformActive = $state(false);
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+	const testTabId = $derived(`${titleId}-tab-test`);
+	const statsTabId = $derived(`${titleId}-tab-stats`);
+	const testPanelId = $derived(`${titleId}-panel-test`);
+	const statsPanelId = $derived(`${titleId}-panel-stats`);
+	const sections = $derived<TabOption<DetailSection>[]>([
+		{ value: 'test', label: 'Test area', id: testTabId, controls: testPanelId },
+		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
+	]);
+	const isAngleBoard = $derived(layout.board === 'angle');
+	const baseDisplayRows = $derived(computeDisplayRows(layout));
+	const displayRows = $derived.by((): DisplayCell[][] => {
+		if (!anglemodTransformActive) return baseDisplayRows;
+		return isAngleBoard
+			? removeAnglemodFromDisplayRows(baseDisplayRows)
+			: applyAnglemodToDisplayRows(baseDisplayRows);
+	});
+	const displayValue = $derived(displayRowsToString(displayRows));
+	const testKeyMaps = $derived(createLayoutTestKeyMaps(displayValue));
+	const repeatMappingId = $derived(
+		inputProfile?.repeatKey ? repeatKeyMappingId(inputProfile.repeatKey.trigger) : undefined
+	);
+	const repeatKeyEnabled = $derived(
+		repeatMappingId === undefined || !disabledMappingIds.includes(repeatMappingId)
+	);
+	const repeatOptionLabel = $derived(repeatKeyEnabled ? 'Disable repeat key' : 'Enable repeat key');
+	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
+	const cyanophageUrl = $derived(
+		buildCyanophagePlaygroundUrl(
+			layout.keys,
+			layout.board,
+			displayValue,
+			layout.cyanophageThumb ?? 'l',
+			{ preferDisplay: anglemodTransformActive }
+		)
+	);
 	const analyzersTitleId = $derived(`${titleId}-analyzers`);
 	const analyzerCount = $derived(
 		(showCmini ? 1 : 0) + (showCyanophage ? 1 : 0) + (showMana2 ? 1 : 0)
@@ -125,6 +180,12 @@
 		else if (analyzer === CYANOPHAGE_ANALYZER) showCyanophage = checked;
 		else showMana2 = checked;
 		if (checked && !hasAnalyzerData(analyzer)) void layoutStatsStore.ensureLoaded(analyzer);
+	}
+
+	function toggleRepeatKey() {
+		if (!repeatMappingId || !onDisabledMappingIdsChange) return;
+		const retained = disabledMappingIds.filter((id) => id !== repeatMappingId);
+		onDisabledMappingIdsChange(repeatKeyEnabled ? [...retained, repeatMappingId] : retained);
 	}
 
 	onMount(() => {
@@ -189,7 +250,65 @@
 	{/if}
 {/snippet}
 
-<article class="layout-detail-page" data-layout-detail aria-labelledby={titleId}>
+{#snippet layoutSummary()}
+	<LayoutCard
+		{layout}
+		{authorName}
+		{likeCount}
+		{compactCminiStats}
+		{compactCyanophageStats}
+		{compactMana2Stats}
+		statsAnalyzer={summaryStatsAnalyzer}
+		onStatsAnalyzerChange={(analyzer) => (summaryStatsAnalyzer = analyzer)}
+		{inputProfile}
+		{disabledMappingIds}
+		{onDisabledMappingIdsChange}
+		{anglemodTransformActive}
+		showAnglemodAction
+		onAnglemodTransformChange={(active) => (anglemodTransformActive = active)}
+		variant="summary"
+	/>
+	<nav class="layout-detail-links" aria-label={`${layout.name} external links`}>
+		{#if cyanophageUrl}
+			<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href={cyanophageUrl} target="_blank" rel="noopener noreferrer">
+				View in Cyanophage
+				<span aria-hidden="true">↗</span>
+			</a>
+		{/if}
+		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
+			Type on Colemak Camp
+			<span aria-hidden="true">↗</span>
+		</a>
+	</nav>
+	{#if inputProfile?.repeatKey}
+		<div class="layout-detail-options" role="group" aria-label={`${layout.name} layout options`}>
+			<button type="button" onclick={toggleRepeatKey}>
+				<svg
+					class="size-4 shrink-0"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="m17 2 4 4-4 4" />
+					<path d="M3 11V9a3 3 0 0 1 3-3h15" />
+					<path d="m7 22-4-4 4-4" />
+					<path d="M21 13v2a3 3 0 0 1-3 3H3" />
+				</svg>
+				{repeatOptionLabel}
+			</button>
+		</div>
+	{/if}
+{/snippet}
+
+<article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
 	<header class="layout-detail-header">
 		<a
 			class="layout-detail-back"
@@ -211,187 +330,221 @@
 			</svg>
 			<span>Back to layouts</span>
 		</a>
-		<h2 id={titleId} class="layout-detail-title" title={layout.name}>{layout.name}</h2>
 	</header>
 
 	<div class="layout-detail-scroll">
 		<div class="detail-columns">
 			<div class="detail-side">
-				<LayoutCard
-					{layout}
-					{authorName}
-					{likeCount}
-					{compactCminiStats}
-					{compactCyanophageStats}
-					{compactMana2Stats}
-					{inputProfile}
-					{disabledMappingIds}
-					{onDisabledMappingIdsChange}
-					variant="summary"
-				/>
-
-				<section
-					class="flex min-w-0 flex-col gap-2 rounded-xl px-3 py-3"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-					aria-labelledby={analyzersTitleId}
-				>
-					<h3
-						id={analyzersTitleId}
-						class="text-sm font-semibold m-0"
-						style="color: var(--text-primary);"
-					>
-						Show analyzers
-					</h3>
-					<div class="flex flex-col gap-2 min-w-0">
-						{@render analyzerToggle(CMINI_ANALYZER, cminiLabel, showCmini, 'var(--analyzer-cmini)')}
-						{@render analyzerToggle(
-							CYANOPHAGE_ANALYZER,
-							cyanophageLabel,
-							showCyanophage,
-							'var(--analyzer-cyanophage)'
-						)}
-						{@render analyzerToggle(MANA2_ANALYZER, mana2Label, showMana2, 'var(--analyzer-mana2)')}
-					</div>
-				</section>
+				{@render layoutSummary()}
 			</div>
 
 			<div class="detail-main">
-				{#if inputProfile?.magicKeys || inputProfile?.adaptiveSwaps}
-					<InputMappingsPanel
-						profile={inputProfile}
-						{disabledMappingIds}
-						{onDisabledMappingIdsChange}
+				<div class="layout-detail-tabs-wrap">
+					<Tabs
+						value={activeSection}
+						onChange={(section) => (activeSection = section)}
+						options={sections}
+						ariaLabel="Layout detail sections"
+						class="layout-detail-tabs"
+						buttonClass="layout-detail-tab"
+						selectedClass="layout-detail-tab--selected"
 					/>
-				{/if}
+				</div>
 
-				{#if analyzerCount > 0}
-					<div class="unique-columns" style="--unique-cols: {analyzerCount};">
-						{#if showCmini}
-							<LayoutExpandUniqueStats
-								analyzer={CMINI_ANALYZER}
-								label={cminiLabel}
-								stats={botStats}
-								loading={cminiLoading}
-							/>
-						{/if}
-						{#if showCyanophage}
-							<LayoutExpandUniqueStats
-								analyzer={CYANOPHAGE_ANALYZER}
-								label={cyanophageLabel}
-								stats={cyanophageStats}
-								loading={cyanophageLoading}
-								cyanophageUnsupported={!layout.cyanophageCompatible}
-							/>
-						{/if}
-						{#if showMana2}
-							<LayoutExpandUniqueStats
-								analyzer={MANA2_ANALYZER}
-								label={mana2Label}
-								stats={mana2Stats}
-								loading={mana2Loading}
+				{#if activeSection === 'test'}
+					<div
+						id={testPanelId}
+						class="detail-test-panel detail-panel-content"
+						role="tabpanel"
+						aria-labelledby={testTabId}
+					>
+						<LayoutTestArea
+							{layout}
+							keyMaps={testKeyMaps}
+							{inputProfile}
+							{disabledMappingIds}
+							variant="page"
+						/>
+						<LayoutKeyboardPreview {layout} rows={displayRows} />
+
+						{#if inputProfile?.magicKeys || inputProfile?.adaptiveSwaps}
+							<InputMappingsPanel
+								profile={inputProfile}
+								{disabledMappingIds}
+								{onDisabledMappingIdsChange}
 							/>
 						{/if}
 					</div>
-
-					<section class="shared-stats" aria-labelledby={`${titleId}-shared`}>
-						<h3
-							id={`${titleId}-shared`}
-							class="shared-stats-title"
-							style="color: var(--text-primary);"
-						>
-							Shared stats
-						</h3>
-						<p class="shared-stats-note" style="color: var(--text-secondary);">
-							Metrics present in at least two analyzers. Values use each analyzer’s own definition
-							and units — not always directly comparable.
-						</p>
-						<div class="shared-stats-scroll">
-							<table class="shared-stats-table">
-								<thead>
-									<tr>
-										<th scope="col" class="shared-stats-metric">Stat</th>
-										{@render sharedHeaders()}
-									</tr>
-								</thead>
-								<tbody>
-									{#each statsTables.sharedRows as row (row.label)}
-										<tr>
-											<th scope="row" class="shared-stats-metric">{row.label}</th>
-											{@render sharedCellsRow(row)}
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-
-						<div class="shared-hand-grid">
-							<div>
-								<h3
-									id={`${titleId}-left-hand`}
-									class="shared-stats-title shared-stats-title--secondary"
-									style="color: var(--text-primary);"
-								>
-									Left hand
-								</h3>
-								<p class="shared-stats-note" style="color: var(--text-secondary);">
-									Left-hand balance and per-finger load.
-								</p>
-								<div class="shared-stats-scroll">
-									<table class="shared-stats-table">
-										<thead>
-											<tr>
-												<th scope="col" class="shared-stats-metric">Stat</th>
-												{@render sharedHeaders()}
-											</tr>
-										</thead>
-										<tbody>
-											{#each statsTables.leftHandRows as row (row.label)}
-												<tr>
-													<th scope="row" class="shared-stats-metric">{row.label}</th>
-													{@render sharedCellsRow(row)}
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</div>
-
-							<div>
-								<h3
-									id={`${titleId}-right-hand`}
-									class="shared-stats-title shared-stats-title--secondary"
-									style="color: var(--text-primary);"
-								>
-									Right hand
-								</h3>
-								<p class="shared-stats-note" style="color: var(--text-secondary);">
-									Right-hand balance and per-finger load.
-								</p>
-								<div class="shared-stats-scroll">
-									<table class="shared-stats-table">
-										<thead>
-											<tr>
-												<th scope="col" class="shared-stats-metric">Stat</th>
-												{@render sharedHeaders()}
-											</tr>
-										</thead>
-										<tbody>
-											{#each statsTables.rightHandRows as row (row.label)}
-												<tr>
-													<th scope="row" class="shared-stats-metric">{row.label}</th>
-													{@render sharedCellsRow(row)}
-												</tr>
-											{/each}
-										</tbody>
-									</table>
-								</div>
-							</div>
-						</div>
-					</section>
 				{:else}
-					<p class="m-0 text-sm" style="color: var(--text-secondary);">
-						Select one or more analyzers to show stats.
-					</p>
+					<div
+						id={statsPanelId}
+						class="detail-stats-panel detail-panel-content"
+						role="tabpanel"
+						aria-labelledby={statsTabId}
+					>
+						<section
+							class="detail-analyzer-controls flex min-w-0 flex-col gap-2 rounded-xl px-3 py-3"
+							style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+							aria-labelledby={analyzersTitleId}
+						>
+							<h3
+								id={analyzersTitleId}
+								class="text-sm font-semibold m-0"
+								style="color: var(--text-primary);"
+							>
+								Show analyzers
+							</h3>
+							<div class="detail-analyzer-options">
+								{@render analyzerToggle(
+									CMINI_ANALYZER,
+									cminiLabel,
+									showCmini,
+									'var(--analyzer-cmini)'
+								)}
+								{@render analyzerToggle(
+									CYANOPHAGE_ANALYZER,
+									cyanophageLabel,
+									showCyanophage,
+									'var(--analyzer-cyanophage)'
+								)}
+								{@render analyzerToggle(
+									MANA2_ANALYZER,
+									mana2Label,
+									showMana2,
+									'var(--analyzer-mana2)'
+								)}
+							</div>
+						</section>
+						{#if analyzerCount > 0}
+							<div class="unique-columns" style="--unique-cols: {analyzerCount};">
+								{#if showCmini}
+									<LayoutExpandUniqueStats
+										analyzer={CMINI_ANALYZER}
+										label={cminiLabel}
+										stats={botStats}
+										loading={cminiLoading}
+									/>
+								{/if}
+								{#if showCyanophage}
+									<LayoutExpandUniqueStats
+										analyzer={CYANOPHAGE_ANALYZER}
+										label={cyanophageLabel}
+										stats={cyanophageStats}
+										loading={cyanophageLoading}
+										cyanophageUnsupported={!layout.cyanophageCompatible}
+									/>
+								{/if}
+								{#if showMana2}
+									<LayoutExpandUniqueStats
+										analyzer={MANA2_ANALYZER}
+										label={mana2Label}
+										stats={mana2Stats}
+										loading={mana2Loading}
+									/>
+								{/if}
+							</div>
+
+							<section class="shared-stats" aria-labelledby={`${titleId}-shared`}>
+								<h3
+									id={`${titleId}-shared`}
+									class="shared-stats-title"
+									style="color: var(--text-primary);"
+								>
+									Shared stats
+								</h3>
+								<p class="shared-stats-note" style="color: var(--text-secondary);">
+									Metrics present in at least two analyzers. Values use each analyzer’s own
+									definition and units — not always directly comparable.
+								</p>
+								<div class="shared-stats-scroll">
+									<table class="shared-stats-table">
+										<thead>
+											<tr>
+												<th scope="col" class="shared-stats-metric">Stat</th>
+												{@render sharedHeaders()}
+											</tr>
+										</thead>
+										<tbody>
+											{#each statsTables.sharedRows as row (row.label)}
+												<tr>
+													<th scope="row" class="shared-stats-metric">{row.label}</th>
+													{@render sharedCellsRow(row)}
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+
+								<div class="shared-hand-grid">
+									<div>
+										<h3
+											id={`${titleId}-left-hand`}
+											class="shared-stats-title shared-stats-title--secondary"
+											style="color: var(--text-primary);"
+										>
+											Left hand
+										</h3>
+										<p class="shared-stats-note" style="color: var(--text-secondary);">
+											Left-hand balance and per-finger load.
+										</p>
+										<div class="shared-stats-scroll">
+											<table class="shared-stats-table">
+												<thead>
+													<tr>
+														<th scope="col" class="shared-stats-metric">Stat</th>
+														{@render sharedHeaders()}
+													</tr>
+												</thead>
+												<tbody>
+													{#each statsTables.leftHandRows as row (row.label)}
+														<tr>
+															<th scope="row" class="shared-stats-metric">{row.label}</th>
+															{@render sharedCellsRow(row)}
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									</div>
+
+									<div>
+										<h3
+											id={`${titleId}-right-hand`}
+											class="shared-stats-title shared-stats-title--secondary"
+											style="color: var(--text-primary);"
+										>
+											Right hand
+										</h3>
+										<p class="shared-stats-note" style="color: var(--text-secondary);">
+											Right-hand balance and per-finger load.
+										</p>
+										<div class="shared-stats-scroll">
+											<table class="shared-stats-table">
+												<thead>
+													<tr>
+														<th scope="col" class="shared-stats-metric">Stat</th>
+														{@render sharedHeaders()}
+													</tr>
+												</thead>
+												<tbody>
+													{#each statsTables.rightHandRows as row (row.label)}
+														<tr>
+															<th scope="row" class="shared-stats-metric">{row.label}</th>
+															{@render sharedCellsRow(row)}
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+							</section>
+						{:else}
+							<p class="m-0 text-sm" style="color: var(--text-secondary);">
+								Select one or more analyzers to show stats.
+							</p>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -410,10 +563,8 @@
 	.layout-detail-header {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 0.5rem;
 		flex-shrink: 0;
-		padding: 0.25rem 0.25rem 0.75rem;
-		border-bottom: 1px solid var(--border);
+		padding: 0.75rem 0.25rem 0.25rem;
 	}
 
 	.layout-detail-back {
@@ -439,21 +590,57 @@
 		border-radius: 0.25rem;
 	}
 
-	.layout-detail-title {
-		min-width: 0;
-		margin: 0;
-		overflow: hidden;
+	.layout-detail-tabs-wrap {
+		flex-shrink: 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tabs) {
+		display: flex;
+		align-items: stretch;
+		gap: 0.25rem;
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tab) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.625rem 0.875rem;
+		margin-bottom: -1px;
+		border: 0;
+		border-bottom: 2px solid transparent;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.25;
+		cursor: pointer;
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tab:hover) {
 		color: var(--text-primary);
-		font-size: 1.25rem;
-		font-weight: 700;
-		line-height: 1.5rem;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tab:focus-visible) {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+		border-radius: 0.25rem;
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tab--selected) {
+		border-bottom-color: var(--accent);
+		color: var(--text-primary);
+		font-weight: 600;
 	}
 
 	.layout-detail-scroll {
 		min-height: 0;
-		padding: 1rem 0.25rem 2rem;
+		padding: 0.5rem 0.25rem 2rem;
+	}
+
+	.detail-test-panel,
+	.detail-stats-panel {
+		min-width: 0;
 	}
 
 	.detail-columns {
@@ -470,10 +657,89 @@
 		min-width: 0;
 	}
 
+	.layout-detail-links {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.5rem;
+		padding-inline: 0.25rem;
+	}
+
+	.layout-detail-links a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		color: var(--accent);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+		text-decoration: none;
+	}
+
+	.layout-detail-links a:hover {
+		text-decoration: underline;
+	}
+
+	.layout-detail-links a:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+		outline-offset: 0.2rem;
+		border-radius: 0.2rem;
+	}
+
+	.layout-detail-options {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+		padding-inline: 0.25rem;
+	}
+
+	.layout-detail-options button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.5rem;
+		width: 100%;
+		min-height: 2rem;
+		padding: 0.35rem 0.65rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background-color: var(--bg-secondary);
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 600;
+		line-height: 1.25rem;
+		cursor: pointer;
+	}
+
+	.layout-detail-options button:hover {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		color: var(--text-primary);
+	}
+
+	.layout-detail-options button:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+		outline-offset: 0.15rem;
+	}
+
 	.detail-main {
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
+		min-width: 0;
+	}
+
+	.detail-panel-content {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 0;
+	}
+
+	.detail-analyzer-options {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+		gap: 0.75rem 1rem;
 		min-width: 0;
 	}
 
@@ -493,26 +759,10 @@
 		}
 	}
 
-	@media (min-width: 768px) {
-		.layout-detail-scroll {
-			flex: 1 1 0;
-			overflow-y: auto;
-			scrollbar-width: thin;
-			scrollbar-color: color-mix(in srgb, var(--text-caption) 70%, transparent) transparent;
-		}
-	}
-
 	@media (min-width: 960px) {
 		.detail-columns {
 			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
 			gap: 1.5rem;
-		}
-
-		.detail-side {
-			position: sticky;
-			top: 0;
-			align-self: start;
-			z-index: 1;
 		}
 	}
 

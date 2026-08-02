@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -18,8 +21,10 @@
 		MANA2_ANALYZER,
 		showsCyanophageStats,
 		showsMana2Stats,
-		showsCminiStats
+		showsCminiStats,
+		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
+	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import { getStatMetricFilterTarget } from '$lib/statsFiltering';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
@@ -81,6 +86,9 @@
 		/** Quick Find applies filters without navigating to the covered sidebar. */
 		statFilterInteraction?: 'focus' | 'apply-only';
 		statsMode?: LayoutCardStatsMode;
+		/** Controlled analyzer for a standalone card; catalog cards use the global analyzer. */
+		statsAnalyzer?: StatsAnalyzer;
+		onStatsAnalyzerChange?: (analyzer: StatsAnalyzer) => void;
 		allowStatSorting?: boolean;
 		onStatFilterChanged?: (
 			metric: LayoutCardMetric,
@@ -90,6 +98,11 @@
 		) => void;
 		/** Catalog cards link to details and may render stats/test UI; summaries stay compact. */
 		variant?: 'catalog' | 'summary';
+		/** Controlled transform used by the detail page's persistent angle-mod option. */
+		anglemodTransformActive?: boolean;
+		/** Render the catalog-style anglemod action as the summary card's only action. */
+		showAnglemodAction?: boolean;
+		onAnglemodTransformChange?: (active: boolean) => void;
 	}
 
 	const {
@@ -111,12 +124,29 @@
 		statHighlights,
 		statFilterInteraction = 'focus',
 		statsMode = 'focused',
+		statsAnalyzer,
+		onStatsAnalyzerChange,
 		allowStatSorting = true,
 		onStatFilterChanged,
-		variant = 'catalog'
+		variant = 'catalog',
+		anglemodTransformActive,
+		showAnglemodAction = false,
+		onAnglemodTransformChange
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
+	let keyboardLinkPointer:
+		| {
+				pointerId: number;
+				startX: number;
+				startY: number;
+				moved: boolean;
+		  }
+		| undefined;
+
+	const detailTarget = '/layouts/[name]';
+	const detailHref = $derived(resolve(detailTarget, { name: layout.name }));
+	const keyboardDragThreshold = 5;
 
 	const inputMappingsAvailable = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
@@ -150,9 +180,16 @@
 	const isAngleBoard = $derived(layout.board === 'angle');
 
 	// Similarity reference card shares anglemod with scoring; other cards keep local toggle state.
-	const anglemod = $derived(isSimilarActive ? filterStore.similarReferenceAnglemod : localAnglemod);
+	const anglemod = $derived(
+		anglemodTransformActive ??
+			(isSimilarActive ? filterStore.similarReferenceAnglemod : localAnglemod)
+	);
 
 	function toggleAnglemod() {
+		if (anglemodTransformActive !== undefined && onAnglemodTransformChange) {
+			onAnglemodTransformChange(!anglemodTransformActive);
+			return;
+		}
 		if (isSimilarActive) {
 			filterStore.setSimilarReferenceAnglemod(!filterStore.similarReferenceAnglemod);
 			return;
@@ -181,9 +218,10 @@
 			isNewSinceLastSync(layout, layoutsCatalog.latestLayoutDayKey)
 	);
 
-	const showCminiStats = $derived(showsCminiStats(filterStore.statsAnalyzer));
-	const showCyanophageStats = $derived(showsCyanophageStats(filterStore.statsAnalyzer));
-	const showMana2Stats = $derived(showsMana2Stats(filterStore.statsAnalyzer));
+	const displayedStatsAnalyzer = $derived(statsAnalyzer ?? filterStore.statsAnalyzer);
+	const showCminiStats = $derived(showsCminiStats(displayedStatsAnalyzer));
+	const showCyanophageStats = $derived(showsCyanophageStats(displayedStatsAnalyzer));
+	const showMana2Stats = $derived(showsMana2Stats(displayedStatsAnalyzer));
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
 	);
@@ -284,10 +322,12 @@
 		getLayoutCardHeight(
 			filterStore.showLayoutStats,
 			filterStore.showLayoutTestArea,
-			filterStore.statsAnalyzer,
+			displayedStatsAnalyzer,
 			statsMode
 		)
 	);
+	const renderStats = $derived(variant === 'summary' || filterStore.showLayoutStats);
+	const renderTestArea = $derived(variant === 'catalog' && filterStore.showLayoutTestArea);
 
 	async function handleColemakCampClick() {
 		const { createColemakCampURLFromKeyMap } = await import('$lib/colemakCamp');
@@ -315,6 +355,59 @@
 
 	function handleToggleSelection() {
 		filterStore.toggleSelectedLayout(layout.name);
+	}
+
+	function handleKeyboardLinkPointerDown(event: PointerEvent) {
+		if (event.button !== 0 || !event.isPrimary) return;
+		keyboardLinkPointer = {
+			pointerId: event.pointerId,
+			startX: event.clientX,
+			startY: event.clientY,
+			moved: false
+		};
+	}
+
+	function handleKeyboardLinkPointerMove(event: PointerEvent) {
+		if (!keyboardLinkPointer || keyboardLinkPointer.pointerId !== event.pointerId) return;
+		if (
+			Math.hypot(
+				event.clientX - keyboardLinkPointer.startX,
+				event.clientY - keyboardLinkPointer.startY
+			) >= keyboardDragThreshold
+		) {
+			keyboardLinkPointer.moved = true;
+		}
+	}
+
+	function handleKeyboardLinkPointerCancel(event: PointerEvent) {
+		if (keyboardLinkPointer?.pointerId === event.pointerId) keyboardLinkPointer = undefined;
+	}
+
+	function handleKeyboardLinkClick(event: MouseEvent) {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+			return;
+		}
+
+		const link = event.currentTarget as HTMLAnchorElement;
+		const selection = window.getSelection();
+		const selectionInsideLink = Boolean(
+			selection &&
+			!selection.isCollapsed &&
+			((selection.anchorNode && link.contains(selection.anchorNode)) ||
+				(selection.focusNode && link.contains(selection.focusNode)))
+		);
+		const dragged = event.detail > 0 && keyboardLinkPointer?.moved;
+		keyboardLinkPointer = undefined;
+
+		if (dragged || selectionInsideLink) {
+			event.preventDefault();
+			return;
+		}
+
+		event.preventDefault();
+		void goto(detailHref, {
+			state: { ...page.state, fromLayoutIndex: true }
+		});
 	}
 
 	function handleSelectAuthor() {
@@ -345,20 +438,43 @@
 		showNewIndicator={isNewLayout}
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
 		showSelection={catalogCard}
+		authorInteractive={catalogCard}
 		{similarMatchPercent}
 		{similarMirrored}
 		onToggleSelection={handleToggleSelection}
 		onSelectAuthor={handleSelectAuthor}
 	/>
 
-	<div class="layout-keyboard-row min-w-0" class:flex-1={catalogCard}>
-		<LayoutKeyDisplay
-			rows={transformedDisplayRows}
-			value={transformedDisplayValue}
-			highlightDifferences={showSimilarDiffs}
-			referencePositions={similarDiffPositions}
-			fillAvailableSpace={catalogCard}
-		/>
+	<div class="layout-keyboard-row min-w-0 flex-1">
+		{#if catalogCard}
+			<a
+				href={detailHref}
+				class="layout-keyboard-link min-w-0 flex-1"
+				aria-label={`View ${layout.name} layout details`}
+				title="View layout details"
+				draggable="false"
+				onpointerdown={handleKeyboardLinkPointerDown}
+				onpointermove={handleKeyboardLinkPointerMove}
+				onpointercancel={handleKeyboardLinkPointerCancel}
+				onclick={handleKeyboardLinkClick}
+			>
+				<LayoutKeyDisplay
+					rows={transformedDisplayRows}
+					value={transformedDisplayValue}
+					highlightDifferences={showSimilarDiffs}
+					referencePositions={similarDiffPositions}
+					fillAvailableSpace
+				/>
+			</a>
+		{:else}
+			<LayoutKeyDisplay
+				rows={transformedDisplayRows}
+				value={transformedDisplayValue}
+				highlightDifferences={showSimilarDiffs}
+				referencePositions={similarDiffPositions}
+				fillAvailableSpace
+			/>
+		{/if}
 		<LayoutInputMappingsIndicator
 			{layout}
 			{mappingsLabel}
@@ -367,28 +483,31 @@
 			{repeatKeyEnabled}
 			{adaptiveMappingsEnabled}
 			{magicMappingsEnabled}
-			onToggleRepeat={inputProfile?.repeatKey ? toggleRepeatKey : undefined}
+			onToggleRepeat={catalogCard && inputProfile?.repeatKey ? toggleRepeatKey : undefined}
 			onToggleMappings={catalogCard && inputMappingsAvailable && onToggleInputMappingsWindow
 				? toggleInputMappings
 				: undefined}
 		/>
 	</div>
 
-	<LayoutCardActions
-		{markFirstAction}
-		similarActive={isSimilarActive}
-		hasSimilarReference={filterStore.hasSimilarReference}
-		anglemodActive={anglemod}
-		angleBoard={isAngleBoard}
-		cyanophageCompatible={layout.cyanophageCompatible}
-		cyanophageTitle={cyanophageLinkTitle}
-		expandLayoutName={catalogCard ? layout.name : undefined}
-		{forceIncluded}
-		onFindSimilar={handleFindSimilarClick}
-		onToggleAnglemod={toggleAnglemod}
-		onPractice={handleColemakCampClick}
-		onOpenPlayground={handlePlaygroundClick}
-	/>
+	{#if catalogCard || showAnglemodAction}
+		<LayoutCardActions
+			{markFirstAction}
+			similarActive={isSimilarActive}
+			hasSimilarReference={filterStore.hasSimilarReference}
+			anglemodActive={anglemod}
+			angleBoard={isAngleBoard}
+			cyanophageCompatible={layout.cyanophageCompatible}
+			cyanophageTitle={cyanophageLinkTitle}
+			expandLayoutName={catalogCard ? layout.name : undefined}
+			{forceIncluded}
+			onFindSimilar={handleFindSimilarClick}
+			onToggleAnglemod={toggleAnglemod}
+			onPractice={handleColemakCampClick}
+			onOpenPlayground={handlePlaygroundClick}
+			angleOnly={!catalogCard}
+		/>
+	{/if}
 {/snippet}
 
 <div
@@ -413,22 +532,33 @@
 	{/if}
 	{@render layoutCardMain(variant === 'catalog', variant === 'catalog')}
 
-	{#if variant === 'catalog' && (filterStore.showLayoutStats || filterStore.showLayoutTestArea)}
+	{#if renderStats || renderTestArea}
 		<div class="card-footer shrink-0 pt-1 flex flex-col gap-3">
-			{#if filterStore.showLayoutStats}
+			{#if renderStats}
 				<LayoutCardStatsPanel
 					cmini={cminiStatsModel}
 					cyanophage={cyanophageStatsModel}
 					mana2={mana2StatsModel}
 					sortMetric={selectedSortMetric}
 					filterValueOnClick={statFilterInteraction === 'apply-only'}
-					onFilterMetric={handleFilterMetric}
-					onSortMetric={allowStatSorting ? handleSortMetric : undefined}
+					onFilterMetric={variant === 'catalog' ? handleFilterMetric : undefined}
+					onSortMetric={variant === 'catalog' && allowStatSorting ? handleSortMetric : undefined}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}
 				/>
+				{#if variant === 'summary' && onStatsAnalyzerChange}
+					<div class="layout-card-analyzer-switch">
+						<AnalyzerTabs
+							variant="toolbar"
+							ariaLabel={`Stats analyzer for ${layout.name}`}
+							value={displayedStatsAnalyzer}
+							onChange={onStatsAnalyzerChange}
+							class="layout-card-analyzer-tabs"
+						/>
+					</div>
+				{/if}
 			{/if}
-			{#if filterStore.showLayoutTestArea}
+			{#if renderTestArea}
 				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {inputProfile} {disabledMappingIds} />
 			{/if}
 		</div>
@@ -452,6 +582,35 @@
 	.layout-keyboard-row {
 		display: flex;
 		align-items: center;
+	}
+
+	.layout-keyboard-link {
+		display: flex;
+		border-radius: 0.5rem;
+		color: inherit;
+		text-decoration: none;
+		cursor: pointer;
+		-webkit-user-select: text;
+		user-select: text;
+	}
+
+	.layout-keyboard-link:hover {
+		background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+	}
+
+	.layout-keyboard-link:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+		outline-offset: 1px;
+	}
+
+	.layout-card-analyzer-switch {
+		display: flex;
+		width: 100%;
+		padding-top: 0.125rem;
+	}
+
+	.layout-card-analyzer-switch :global(.layout-card-analyzer-tabs) {
+		width: 100%;
 	}
 
 	/*

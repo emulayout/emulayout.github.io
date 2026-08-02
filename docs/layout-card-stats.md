@@ -10,6 +10,9 @@ AI implementation context for the Highlights and Detailed statistics shown on la
 - The selection applies to every layout card, including the card preview in Quick Find.
 - The selection is a presentation preference, not a filter or analyzer setting. Changing it must not
   alter the active analyzer, sort, filters, or result set.
+- Analyzer choice normally comes from the results toolbar. The detail-page summary card instead owns
+  a local analyzer selector below finger usage so readers can inspect each analyzer without changing
+  the index's analyzer preference.
 - The preference is stored as `layoutCardStatsDisplay`; any value other than `detailed` resolves to
   `focused`/Highlights.
 - Highlights always renders visual finger usage. Detailed always renders finger usage as part of the
@@ -117,6 +120,7 @@ there are no metric-cell filter or sort targets.
 - Regular click focuses a filter without overwriting it; regular Shift-click sets and focuses it.
 - Quick Find click and Shift-click both toggle the value and never focus the covered sidebar.
 - Quick Find never exposes stat sorting.
+- The detail-page summary analyzer selector changes only that card's analyzer.
 - Filter values set from cells use inclusive `≤` or `≥` semantics according to the metric's
   preferred direction.
 - Highlights owns visual finger usage; Detailed owns text finger usage.

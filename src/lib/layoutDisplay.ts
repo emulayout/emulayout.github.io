@@ -66,7 +66,7 @@ function splitThumbEntries(entries: DisplayKeyEntry[], splitCol: number) {
  * Left: 1 key → col 3; 2 keys → cols 3–4; 3 keys → cols 2–4; …
  * Right: 1 key → col 6; 2 keys → cols 6–7; 3 keys → cols 6–8; …
  */
-function thumbTargetCols(hand: 'left' | 'right', count: number): number[] {
+export function thumbTargetColumns(hand: 'left' | 'right', count: number): number[] {
 	if (count === 0) return [];
 
 	if (hand === 'left') {
@@ -128,8 +128,8 @@ function formatThumbRowCells(
 		() => undefined
 	);
 
-	const leftCols = thumbTargetCols('left', left.length);
-	const rightCols = thumbTargetCols('right', right.length);
+	const leftCols = thumbTargetColumns('left', left.length);
+	const rightCols = thumbTargetColumns('right', right.length);
 
 	for (let i = 0; i < left.length; i++) {
 		const entry = left[i];

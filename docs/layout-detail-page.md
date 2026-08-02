@@ -5,6 +5,9 @@ AI implementation context for the dedicated page that replaces the former expand
 ## Product model
 
 - `/` is the layout index. Catalog cards link to `/layouts/[name]` for expanded layout details.
+- A catalog card's keyboard visualization is a prominent detail link. A clean click or keyboard
+  activation opens the detail page, while dragging across its characters preserves native text
+  selection and does not navigate. The separate action-toolbar link remains available.
 - The detail route replaces the index content while preserving the shared app bar, including Quick
   Find, Compare, help hints, theme controls, and the home link.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
@@ -15,6 +18,8 @@ AI implementation context for the dedicated page that replaces the former expand
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
+- The show page has two accessible sections: `Test area` and `Stats`. Test area is always the
+  default when a detail page opens.
 
 ## Data loading
 
@@ -36,15 +41,41 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
 
 ## Detail content and state
 
-- The page title and document title use the exact canonical layout name.
+- A detail-rich layout card and its external links persist in the left column outside the tab
+  panels. The card includes metadata, the layout display, likes, and compact analyzer stats, but
+  deliberately omits selection, author-filter, metric-filter/sort, and action-toolbar buttons.
+- The layout display uses the same full-width keyboard row as a catalog card, keeping its Magic,
+  Adaptive, and Repeat indicators aligned in the same right-hand rail.
+- The summary card includes its own analyzer selector directly below finger usage. It switches the
+  card among cmini, Cyanophage, and Mana2 without changing the index analyzer preference or the
+  analyzer visibility controls in the detail page's `Stats` section.
+- Ordinary external links below the card open the layout in Cyanophage when compatible and open a
+  custom typing lesson on Colemak Camp. These are semantic links rather than button-driven menus.
+- A persistent option below those links disables or re-enables a Repeat key when present. The
+  summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
+  update the card, typing emulator, and generated external links together.
+- The `Test area` and `Stats` tabs sit at the top of the right column and control only that main
+  content. The persistent layout card is not part of either tab panel.
+- `Test area` begins with the standalone keyboard emulator, followed by a full-width, transparent
+  keyboard-preview region whose key group remains centered without an outer card treatment. Ortho
+  and mini boards use aligned split geometry, retaining empty physical key slots so the center seam
+  stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets. Thumb
+  keys remain on their assigned left or right half in either geometry. Ortho thumbs align below
+  their hand's index-finger column; angle and stagger thumbs align between their hand's adjacent
+  bottom-row index positions. Both follow the card's anglemod state. Magic and Adaptive mapping
+  controls remain below the emulator because they change its behavior.
+- `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison
+  tables in the right column.
+- The card is the page's visible layout-name heading; the redundant detail-page heading is omitted.
+  The document title and the detail article's accessible name use the exact canonical layout name.
 - The compact summary card omits selection and the recursive detail link, along with card stats and
   the layout test area. Its layout-local and external-link actions remain available.
 - Analyzer checkboxes initially select every analyzer included in the detail file. If an analyzer
   result is absent, enabling it may fall back to the analyzer-wide static map.
 - Magic and Adaptive mapping controls remain above analyzer stats. Their disabled-mapping state is
   page-session-only and resets on navigation or reload, matching the previous expanded-view model.
-- Desktop uses an independently scrolling detail pane below the fixed app bar. Narrow viewports use
-  normal document scrolling.
+- Detail pages use normal document scrolling at every viewport width. The Back to layouts header,
+  summary card, and active detail panel all move together with the page.
 
 ## Code map
 
@@ -58,6 +89,8 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
 - Generated detail files and name index: `bin/layout-details.js`
 - Quick Find name search and debounced detail loading: `src/lib/components/QuickFindModal.svelte`
 - Expanded layout content and analyzer controls: `src/lib/components/LayoutExpandedView.svelte`
+- Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
+- Detail section semantics and keyboard navigation: `src/lib/components/Tabs.svelte`
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
 - Semantic detail link in the action toolbar: `src/lib/components/LayoutCardActions.svelte`
 - Route browser coverage: `tests/e2e/layout-detail.e2e.ts`
@@ -71,6 +104,10 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
   is active. Browser history, rather than copied query parameters, restores the index state.
 - Navigating between index and detail pages never hides or disables app-bar features.
+- Detail routes never create a viewport-height internal vertical scroll container; the document
+  owns vertical scrolling at every breakpoint.
+- Test area is the initial detail section. Test area and Stats are linked tab/tabpanel pairs with
+  automatic Arrow/Home/End keyboard activation; the persistent left card is outside both panels.
 - A summary card cannot link recursively to its own detail page.
 - Detail URLs preserve canonical layout-name casing and encoding.
 - Missing layouts always provide a path back to the index.
