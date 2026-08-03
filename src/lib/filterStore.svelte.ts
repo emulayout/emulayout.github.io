@@ -180,7 +180,6 @@ export class FilterStore {
 	 * list even if they fail other filters.
 	 */
 	includeSelectedInResults: boolean = $state(false);
-	focusLayoutName: string | null = $state(null);
 	scrollToSelectedLayout = $state(false);
 	/** Latest request to open/focus a filter control (chips, deep links). */
 	filterFocusRequest: FilterFocusRequest | null = $state(null);
@@ -1613,34 +1612,6 @@ export class FilterStore {
 	requestFilterFocus(request: FilterFocusRequest) {
 		this.filterFocusRequest = request;
 		this.filterFocusRequestSeq += 1;
-	}
-
-	focusLayout(name: string) {
-		this.includeGrid = createEmptyFilterGrid();
-		this.excludeGrid = createEmptyFilterGrid();
-		this.includeOrGrid = createEmptyFilterGrid();
-		this.includeOrLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.includeOrRightThumbKeys = createEmptyThumbKeyFilters();
-		this.includeLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.includeRightThumbKeys = createEmptyThumbKeyFilters();
-		this.excludeLeftThumbKeys = createEmptyThumbKeyFilters();
-		this.excludeRightThumbKeys = createEmptyThumbKeyFilters();
-		this.selectedAuthors.clear();
-		this.thumbKeyFilter = 'optional';
-		this.repeatKeyFilter = 'optional';
-		this.magicKeyFilter = 'optional';
-		this.adaptiveSwapFilter = 'optional';
-		this.characterSetFilter = 'all';
-		this.boardTypeFilter = 'all';
-		this.showUnfinished = true;
-		this.nameFilterInput = name;
-		this.#applyFiltersNow();
-		this.focusLayoutName = name;
-		this.#saveToUrl();
-	}
-
-	clearFocusLayout() {
-		this.focusLayoutName = null;
 	}
 
 	toggleSimilarReference(name: string, anglemod = false) {

@@ -6,9 +6,9 @@
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
-	import { filterStore } from '$lib/filterStore.svelte';
 	import type { LayoutCardMetric } from '$lib/layoutStatsBlockModel';
 	import type { StatLimitOperator } from '$lib/filterStore.svelte';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
@@ -133,12 +133,14 @@
 		searchInput?.focus();
 	}
 
-	async function showLayout(name: string) {
+	function showLayout(name: string) {
 		onClose();
-		if (page.route.id !== '/') {
-			await goto(resolve('/'));
-		}
-		filterStore.focusLayout(name);
+		const href = layoutDetailPageHref(resolve('/layouts/[name]', { name }));
+		// href starts with route-aware resolve(); the helper appends only the canonical query.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		void goto(href, {
+			state: { ...page.state, fromLayoutIndex: true }
+		});
 	}
 
 	function showAppliedFilterSnackbar(

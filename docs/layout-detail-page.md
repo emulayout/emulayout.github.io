@@ -42,11 +42,11 @@ whenever that catalog is already hydrated — typically on the index, or after
 Compare has loaded aggregates from a detail visit. Those previews update instantly as
 the highlight moves. On a fresh detail-page load it searches `layout-names.json` and
 loads the highlighted layout's detail file only after a short debounce, so typing or
-arrowing through results does not fire a request per step. Choosing a preview's
-layout-details link (keyboard visualization or toolbar action) navigates to the show
-page and dismisses the modal. Compare still needs the full catalog and analyzer-wide
-maps, so opening it from a direct detail visit loads those aggregates on demand. This
-keeps ordinary direct visits small without weakening app-bar functionality.
+arrowing through results does not fire a request per step. Choosing a result (Enter,
+list click, or a preview details link) opens that layout's show page and dismisses the
+modal. Compare still needs the full catalog and analyzer-wide maps, so opening it from a
+direct detail visit loads those aggregates on demand. This keeps ordinary direct visits
+small without weakening app-bar functionality.
 
 ## Detail content and state
 
@@ -133,7 +133,8 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   catalog is already in memory; those requests are only for cold detail-page visits.
 - On cold detail-page visits, Quick Find debounces on-demand detail loads while the highlight
   moves; catalog-backed previews stay immediate.
-- Navigating to a layout detail page from a Quick Find preview dismisses the modal.
+- Navigating to a layout detail page from Quick Find (result selection or preview details
+  links) dismisses the modal.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
   is active. Browser history, rather than copied query parameters, restores the index state.
 - Navigating between index and detail pages never hides or disables app-bar features.

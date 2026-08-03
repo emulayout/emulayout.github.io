@@ -521,6 +521,20 @@ test('reuses the loaded index catalog for Quick Find without detail fetches', as
 	expect(requestedPaths.filter((path) => path.startsWith('/layout-details/'))).toEqual([]);
 });
 
+test('opens the layout show page from Quick Find with Enter', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('lela');
+	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
+
+	await expect(page).toHaveURL('/layouts/lela?tab=test');
+	await expect(quickFind).toHaveCount(0);
+});
+
 test('dismisses Quick Find when opening layout details from the preview', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();

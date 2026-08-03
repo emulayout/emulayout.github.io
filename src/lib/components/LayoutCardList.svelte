@@ -8,7 +8,7 @@
 		TAILWIND_BREAKPOINTS
 	} from '$lib/constants';
 	import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
-	import { layoutListItemKey, layoutListItemName, type LayoutListItem } from '$lib/layoutList';
+	import { layoutListItemKey, type LayoutListItem } from '$lib/layoutList';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
@@ -151,26 +151,6 @@
 			cancelled = true;
 			window.clearTimeout(timeoutId);
 		};
-	});
-
-	$effect(() => {
-		const name = filterStore.focusLayoutName;
-		if (!name) return;
-
-		const layoutIndex = listItems.findIndex((item) => layoutListItemName(item) === name);
-		if (layoutIndex === -1) {
-			filterStore.clearFocusLayout();
-			return;
-		}
-
-		const rowIndex = Math.floor(layoutIndex / columns);
-
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				virtualizer?.scrollToIndex(rowIndex, { align: 'start' });
-				filterStore.clearFocusLayout();
-			});
-		});
 	});
 
 	// Include the first layout name so sort/filter reorders change keys. Index-only keys
