@@ -25,10 +25,10 @@ test('opens a layout on its own route and returns to the preserved index view', 
 	const keyboardDetailsLink = card.getByRole('link', {
 		name: 'View Colemak-DH layout details'
 	});
-	await expect(keyboardDetailsLink).toHaveAttribute('href', '/layouts/Colemak-DH');
+	await expect(keyboardDetailsLink).toHaveAttribute('href', '/layouts/Colemak-DH?tab=test');
 	await keyboardDetailsLink.click();
 
-	await expect(page).toHaveURL('/layouts/Colemak-DH');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
 	await expect(page.getByRole('heading', { name: 'Emulayout', exact: true })).toBeVisible();
 	await expect(page.getByRole('article', { name: 'Colemak-DH details' })).toBeVisible();
 	await expect(page.locator('.layout-detail-title')).toHaveCount(0);
@@ -73,7 +73,7 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
 	await page.goto('/layouts/QWERTY?selected=lela&likes=0');
 
-	await expect(page).toHaveURL('/layouts/QWERTY');
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=test');
 	await expect(page.locator('[data-layout-detail]')).toBeVisible();
 	await expect(page.getByRole('article', { name: 'QWERTY details' })).toBeVisible();
 	const ansiPreview = page.getByRole('img', { name: 'QWERTY keyboard preview' });
@@ -104,6 +104,7 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	const testTab = page.getByRole('tab', { name: 'Test area' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(testTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
 	const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
 	await expect(testPanel).toBeVisible();
 
@@ -174,6 +175,7 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	await testTab.press('ArrowRight');
 	await expect(statsTab).toBeFocused();
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
 	const statsPanel = page.getByRole('tabpanel', { name: 'Stats' });
 	await expect(statsPanel).toBeVisible();
 	await expect(page.getByText('Show analyzers', { exact: true })).toBeVisible();
@@ -188,11 +190,33 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	await statsTab.press('ArrowLeft');
 	await expect(testTab).toBeFocused();
 	await expect(testTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
 
 	await page.getByRole('link', { name: 'All layouts' }).click();
 	await expect(
 		page.getByRole('radiogroup', { name: 'Analyzer' }).getByRole('radio', { name: 'cmini' })
 	).toHaveAttribute('aria-checked', 'true');
+});
+
+test('uses the detail tab query as the selected-section source of truth', async ({ page }) => {
+	await page.goto('/layouts/Colemak-DH?tab=stats&selected=lela');
+
+	const testTab = page.getByRole('tab', { name: 'Test area' });
+	const statsTab = page.getByRole('tab', { name: 'Stats' });
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
+	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page.getByRole('tabpanel', { name: 'Stats' })).toBeVisible();
+
+	await page.reload();
+	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
+
+	await testTab.click();
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
+	await expect(testTab).toHaveAttribute('aria-selected', 'true');
+
+	await page.goto('/layouts/Colemak-DH?tab=unknown');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
+	await expect(testTab).toHaveAttribute('aria-selected', 'true');
 });
 
 test('uses one document scrollbar for detail content at every responsive width', async ({

@@ -12,14 +12,16 @@ AI implementation context for the dedicated page that replaces the former expand
   Find, Compare, help hints, theme controls, and the home link.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
-- Detail URLs are canonical layout paths with no index query parameters. Index filters, selections,
-  and display state are reset while the detail route is active and cannot rewrite its URL.
+- Detail URLs are canonical layout paths whose only query state is `tab=test` or `tab=stats`. Index
+  filters, selections, and display state are reset while the detail route is active and cannot
+  rewrite its URL. Missing, invalid, or mixed query state is canonicalized to one valid `tab` value.
 - When a detail page was opened from the catalog, `All layouts` uses browser history to restore
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
-- The show page has two accessible sections: `Test area` and `Stats`. Test area is always the
-  default when a detail page opens.
+- The show page has two accessible sections: `Test area` and `Stats`. The `tab` query parameter is
+  their source of truth, including for direct links and reloads; missing or invalid values default
+  to Test area.
 
 ## Data loading
 
@@ -55,7 +57,9 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
   update the card, typing emulator, and generated external links together.
 - The `Test area` and `Stats` tabs sit at the top of the right column and control only that main
-  content. The persistent layout card is not part of either tab panel.
+  content. The persistent layout card is not part of either tab panel. Selecting a tab replaces the
+  current detail history entry with its canonical query URL, preserving the existing All layouts
+  back-navigation behavior.
 - `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
   controls share that first row on the right while the emulator occupies the larger left portion;
   narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
@@ -99,6 +103,7 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/layoutsCatalog.svelte.ts`
 - Dynamic route and layout-name resolution: `src/routes/layouts/[name]/+page.ts`,
   `src/routes/layouts/[name]/+page.svelte`
+- Detail tab URL parsing and canonical URLs: `src/lib/layoutDetailTabs.ts`
 - Detail wire format, decoding, URLs, and cache: `src/lib/layoutDetails.ts`,
   `src/lib/layoutDetailsStore.svelte.ts`
 - Generated detail files and name index: `bin/layout-details.js`
@@ -121,8 +126,9 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.
-- Test area is the initial detail section. Test area and Stats are linked tab/tabpanel pairs with
-  automatic Arrow/Home/End keyboard activation; the persistent left card is outside both panels.
+- Test area is the fallback detail section when `tab` is absent or invalid. Test area and Stats are
+  linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard activation; the URL follows each
+  activation, and the persistent left card is outside both panels.
 - A summary card cannot link recursively to its own detail page.
 - Detail URLs preserve canonical layout-name casing and encoding.
 - Missing layouts always provide a path back to the index.

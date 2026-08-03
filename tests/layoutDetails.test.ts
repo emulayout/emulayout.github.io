@@ -8,6 +8,7 @@ import {
 	type CompactLayoutDetail
 } from '$lib/layoutDetails';
 import type { CompactLayout } from '$lib/layoutCodec';
+import { layoutDetailPageHref, parseLayoutDetailSection } from '$lib/layoutDetailTabs';
 import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
 
 const compactLayout: CompactLayout = [
@@ -22,6 +23,17 @@ const compactLayout: CompactLayout = [
 ];
 
 describe('per-layout detail data', () => {
+	test('builds and parses canonical detail-tab URLs', () => {
+		expect(layoutDetailPageHref('/layouts/Colemak-DH')).toBe('/layouts/Colemak-DH?tab=test');
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'stats')).toBe(
+			'/layouts/Colemak-DH?tab=stats'
+		);
+		expect(parseLayoutDetailSection('stats')).toBe('stats');
+		expect(parseLayoutDetailSection('test')).toBe('test');
+		expect(parseLayoutDetailSection('unknown')).toBe('test');
+		expect(parseLayoutDetailSection(null)).toBe('test');
+	});
+
 	test('uses the same filesystem-safe id in the generator and browser', () => {
 		const name = compactLayout[0];
 		expect(layoutDetailFileId(name)).toBe(clientLayoutDetailFileId(name));

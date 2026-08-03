@@ -1,24 +1,58 @@
 <script lang="ts">
-	import { afterNavigate, replaceState } from '$app/navigation';
+	import { afterNavigate, goto, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { decodeLayoutDetail } from '$lib/layoutDetails';
+	import {
+		layoutDetailPageHref,
+		LAYOUT_DETAIL_TAB_PARAM,
+		parseLayoutDetailSection,
+		type LayoutDetailSection
+	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
 	import { untrack } from 'svelte';
 
 	const { data } = $props();
 	const detail = $derived(data.detail ? decodeLayoutDetail(data.detail, data.layoutName) : null);
 	const layout = $derived(detail?.layout);
+	const activeSection = $derived(
+		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
+	);
 	let disabledMappingIds = $state<string[]>([]);
 
 	filterStore.enterLayoutDetailRoute();
 
 	afterNavigate(() => {
-		if (!page.url.search) return;
-		replaceState(resolve('/layouts/[name]', { name: data.layoutName }), page.state);
+		const pathname = resolve('/layouts/[name]', { name: data.layoutName });
+		const canonicalHref = data.detail
+			? layoutDetailPageHref(
+					pathname,
+					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
+				)
+			: pathname;
+		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;
+		// canonicalHref starts with route-aware resolve(); the helper appends only the tab query.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		replaceState(canonicalHref, page.state);
 	});
+
+	function setActiveSection(section: LayoutDetailSection) {
+		if (section === activeSection) return;
+		// The route is resolved before layoutDetailPageHref appends its canonical tab query.
+		/* eslint-disable svelte/no-navigation-without-resolve */
+		void goto(
+			layoutDetailPageHref(resolve('/layouts/[name]', { name: data.layoutName }), section),
+			{
+				replaceState: true,
+				noScroll: true,
+				keepFocus: true,
+				state: page.state
+			}
+		);
+		/* eslint-enable svelte/no-navigation-without-resolve */
+	}
 
 	function backToLayouts(event: MouseEvent) {
 		if (!page.state.fromLayoutIndex) return;
@@ -49,6 +83,8 @@
 		inputProfile={detail.inputProfile}
 		{disabledMappingIds}
 		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+		{activeSection}
+		onActiveSectionChange={setActiveSection}
 	/>
 {:else}
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">

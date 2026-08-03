@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 
 	interface Props {
 		markFirstAction: boolean;
@@ -47,6 +48,11 @@
 	);
 	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
 	const expandTarget = '/layouts/[name]';
+	const expandHref = $derived(
+		expandLayoutName
+			? layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName }))
+			: undefined
+	);
 
 	let externalLinksOpen = $state(false);
 
@@ -63,7 +69,9 @@
 		}
 
 		event.preventDefault();
-		void goto(resolve(expandTarget, { name: expandLayoutName }), {
+		// The route is resolved before layoutDetailPageHref appends its canonical query.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		void goto(layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName })), {
 			state: { ...page.state, fromLayoutIndex: true }
 		});
 	}
@@ -181,8 +189,10 @@
 				{/snippet}
 			</DropdownMenu>
 			{#if expandLayoutName}
+				<!-- expandHref starts with route-aware resolve(); the helper appends only the canonical query. -->
+				<!-- eslint-disable svelte/no-navigation-without-resolve -->
 				<a
-					href={resolve(expandTarget, { name: expandLayoutName })}
+					href={expandHref}
 					onclick={openLayoutDetails}
 					class="card-action-button"
 					title="View layout details"
@@ -204,6 +214,7 @@
 						<path d="M3 21l7-7" />
 					</svg>
 				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{/if}
 		{/if}
 	</div>

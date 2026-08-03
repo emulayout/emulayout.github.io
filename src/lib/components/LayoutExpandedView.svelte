@@ -48,8 +48,7 @@
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import { repeatKeyMappingId } from '$lib/inputMappingControls';
-
-	type DetailSection = 'test' | 'stats';
+	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 
 	interface Props {
 		layout: LayoutData;
@@ -62,6 +61,8 @@
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
+		activeSection: LayoutDetailSection;
+		onActiveSectionChange: (section: LayoutDetailSection) => void;
 	}
 
 	const {
@@ -74,7 +75,9 @@
 		compactMana2Stats,
 		inputProfile,
 		disabledMappingIds = [],
-		onDisabledMappingIdsChange
+		onDisabledMappingIdsChange,
+		activeSection,
+		onActiveSectionChange
 	}: Props = $props();
 
 	const cminiLabel =
@@ -90,7 +93,6 @@
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
-	let activeSection = $state<DetailSection>('test');
 	let anglemodTransformActive = $state(false);
 	let previewContextualKeyOutput = $state(true);
 	let showAdaptiveSwapPaths = $state(false);
@@ -100,7 +102,7 @@
 	const statsTabId = $derived(`${titleId}-tab-stats`);
 	const testPanelId = $derived(`${titleId}-panel-test`);
 	const statsPanelId = $derived(`${titleId}-panel-stats`);
-	const sections = $derived<TabOption<DetailSection>[]>([
+	const sections = $derived<TabOption<LayoutDetailSection>[]>([
 		{ value: 'test', label: 'Test area', id: testTabId, controls: testPanelId },
 		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
 	]);
@@ -386,7 +388,7 @@
 				<div class="layout-detail-tabs-wrap">
 					<Tabs
 						value={activeSection}
-						onChange={(section) => (activeSection = section)}
+						onChange={onActiveSectionChange}
 						options={sections}
 						ariaLabel="Layout detail sections"
 						class="layout-detail-tabs"

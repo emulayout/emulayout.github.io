@@ -54,6 +54,7 @@
 		inputProfileMappingsLabel,
 		type LayoutInputProfile
 	} from '$lib/layoutInputBehaviors';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 	import {
 		adaptiveProfileMappingIds,
 		magicProfileMappingIds,
@@ -146,7 +147,7 @@
 		| undefined;
 
 	const detailTarget = '/layouts/[name]';
-	const detailHref = $derived(resolve(detailTarget, { name: layout.name }));
+	const detailHref = $derived(layoutDetailPageHref(resolve(detailTarget, { name: layout.name })));
 	const keyboardDragThreshold = 5;
 
 	const inputMappingsAvailable = $derived(
@@ -406,6 +407,8 @@
 		}
 
 		event.preventDefault();
+		// detailHref starts with route-aware resolve(); the helper appends only the canonical query.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		void goto(detailHref, {
 			state: { ...page.state, fromLayoutIndex: true }
 		});
@@ -448,6 +451,8 @@
 
 	<div class="layout-keyboard-row min-w-0 flex-1">
 		{#if catalogCard}
+			<!-- detailHref starts with route-aware resolve(); the helper appends only the canonical query. -->
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href={detailHref}
 				class="layout-keyboard-link min-w-0 flex-1"
@@ -467,6 +472,7 @@
 					fillAvailableSpace
 				/>
 			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{:else}
 			<LayoutKeyDisplay
 				rows={transformedDisplayRows}
