@@ -35,7 +35,7 @@ test('opens a layout on its own route and returns to the preserved index view', 
 	await expect(page.getByRole('checkbox', { name: 'Select Colemak-DH' })).toHaveCount(0);
 	await expect(page.getByRole('tabpanel', { name: 'Layout results' })).toHaveCount(0);
 
-	await page.getByRole('link', { name: 'Back to layouts' }).click();
+	await page.getByRole('link', { name: 'All layouts' }).click();
 
 	await expect(page).toHaveURL(indexUrl);
 	await expect(colemakSelection).toBeChecked();
@@ -162,10 +162,9 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 		'href',
 		/^https:\/\/cyanophage\.github\.io\//
 	);
-	await expect(detailPage.getByRole('link', { name: 'Type on Colemak Camp' })).toHaveAttribute(
-		'href',
-		/^https:\/\/emulayout\.github\.io\/colemakcamp\//
-	);
+	await expect(
+		detailPage.getByRole('link', { name: 'Practice typing on Colemak Camp' })
+	).toHaveAttribute('href', /^https:\/\/emulayout\.github\.io\/colemakcamp\//);
 
 	await testArea.focus();
 	await page.keyboard.press('a');
@@ -181,14 +180,16 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	await expect(statsPanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
 	await expect(summaryCard).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toBeVisible();
-	await expect(detailPage.getByRole('link', { name: 'Type on Colemak Camp' })).toBeVisible();
+	await expect(
+		detailPage.getByRole('link', { name: 'Practice typing on Colemak Camp' })
+	).toBeVisible();
 	await expect(testArea).toHaveCount(0);
 
 	await statsTab.press('ArrowLeft');
 	await expect(testTab).toBeFocused();
 	await expect(testTab).toHaveAttribute('aria-selected', 'true');
 
-	await page.getByRole('link', { name: 'Back to layouts' }).click();
+	await page.getByRole('link', { name: 'All layouts' }).click();
 	await expect(
 		page.getByRole('radiogroup', { name: 'Analyzer' }).getByRole('radio', { name: 'cmini' })
 	).toHaveAttribute('aria-checked', 'true');

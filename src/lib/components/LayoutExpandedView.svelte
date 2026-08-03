@@ -311,7 +311,7 @@
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
-			Type on Colemak Camp
+			Practice typing on Colemak Camp
 			<span aria-hidden="true">↗</span>
 		</a>
 	</nav>
@@ -345,7 +345,7 @@
 			class="layout-detail-back"
 			href={resolve('/')}
 			onclick={onBackToLayouts}
-			aria-label="Back to layouts"
+			aria-label="All layouts"
 		>
 			<svg
 				class="size-4"
@@ -359,7 +359,7 @@
 			>
 				<path d="m15 18-6-6 6-6" />
 			</svg>
-			<span>Back to layouts</span>
+			<span>All layouts</span>
 		</a>
 	</header>
 

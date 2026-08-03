@@ -14,7 +14,7 @@ AI implementation context for the dedicated page that replaces the former expand
   names are encoded correctly.
 - Detail URLs are canonical layout paths with no index query parameters. Index filters, selections,
   and display state are reset while the detail route is active and cannot rewrite its URL.
-- When a detail page was opened from the catalog, `Back to layouts` uses browser history to restore
+- When a detail page was opened from the catalog, `All layouts` uses browser history to restore
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
@@ -87,7 +87,7 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   current disabled mappings. A no-op Magic trigger has no active background, while each armed
   Adaptive swap colors both affected keys. Resetting emulator history immediately restores the base
   keyboard state.
-- Detail pages use normal document scrolling at every viewport width. The Back to layouts header,
+- Detail pages use normal document scrolling at every viewport width. The All layouts header,
   summary card, and active detail panel all move together with the page.
 
 ## Code map
