@@ -12,14 +12,9 @@ html {
 }
 
 @media (min-width: 768px) {
-	/* Split view uses pane scrollers inside a locked shell — don't reserve a page gutter. */
+	/* The index shell owns its pane scrolling; detail routes keep normal document scrolling. */
 	html {
 		scrollbar-gutter: auto;
-		overflow: hidden;
-	}
-
-	body {
-		overflow: hidden;
 	}
 }
 

@@ -1,8 +1,12 @@
 <script lang="ts">
 	import './layout.css';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
+	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
+	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { hasOpenModal } from '$lib/modalScrollLock';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { onMount } from 'svelte';
@@ -15,7 +19,23 @@
 	let themeMode: ThemeMode = $state('system');
 	let systemPrefersDark = $state(false);
 	let showQuickFind = $state(false);
+	let showCompareModal = $state(false);
+	/** How to seed the compare modal on the next open/session bump. */
+	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
+	let compareSession = $state(0);
 	let debugEnabled = $state(false);
+
+	const layouts = $derived(layoutsCatalog.layouts);
+	const usesDocumentScroll = $derived(page.route.id === '/layouts/[name]');
+	const authorsData = $derived(layoutsCatalog.authorsData);
+	const statsMaps = $derived(layoutStatsStore.maps);
+	const authorById = $derived(
+		new Map<number, string>(Object.entries(authorsData).map(([name, id]) => [id as number, name]))
+	);
+
+	function getAuthorName(userId: number): string {
+		return authorById.get(userId) ?? 'Unknown';
+	}
 
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
@@ -124,6 +144,29 @@
 		window.dispatchEvent(new CustomEvent('emulayout:open-compare', { detail: { mode: 'hotkey' } }));
 	}
 
+	onMount(() => {
+		async function handleOpenCompare(event: Event) {
+			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
+			const mode = detail?.mode ?? 'restore';
+
+			if (mode === 'hotkey' && showCompareModal) {
+				compareSeedMode = 'reset';
+				compareSession += 1;
+				return;
+			}
+
+			await layoutsCatalog.ensureLoaded();
+			if (!layoutsCatalog.fullCatalogLoaded) return;
+
+			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
+			compareSession += 1;
+			showCompareModal = true;
+		}
+
+		window.addEventListener('emulayout:open-compare', handleOpenCompare);
+		return () => window.removeEventListener('emulayout:open-compare', handleOpenCompare);
+	});
+
 	function toggleTheme() {
 		themeMode = themeMode === 'system' ? 'light' : themeMode === 'light' ? 'dark' : 'system';
 	}
@@ -143,7 +186,7 @@
 	<title>Emulayout</title>
 </svelte:head>
 
-<div class="app-shell">
+<div class="app-shell" class:app-shell--document-scroll={usesDocumentScroll}>
 	<header class="app-header px-3 py-3 md:px-6">
 		<div class="flex w-full items-center justify-between gap-3">
 			<div class="flex min-w-0 items-center gap-3">
@@ -322,12 +365,26 @@
 		</div>
 	</header>
 
-	<main class="app-main px-3 pb-3 md:px-6 md:pb-4">
+	<main
+		class="app-main px-3 pb-3 md:px-6 md:pb-4"
+		class:app-main--document-scroll={usesDocumentScroll}
+	>
 		{@render children()}
 	</main>
 </div>
 
 <QuickFindModal open={showQuickFind} onClose={() => (showQuickFind = false)} />
+
+<CompareLayoutsModal
+	open={showCompareModal}
+	onClose={() => (showCompareModal = false)}
+	seedMode={compareSeedMode}
+	session={compareSession}
+	{layouts}
+	{getAuthorName}
+	likesData={layoutsCatalog.likesData}
+	{statsMaps}
+/>
 
 <style>
 	.app-shell {
@@ -347,9 +404,9 @@
 		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
 	}
 
-	/* Split view (md+): lock the shell to the viewport so columns scroll independently. */
+	/* Keep the index split view within the viewport; detail routes use document scrolling. */
 	@media (min-width: 768px) {
-		.app-shell {
+		.app-shell:not(.app-shell--document-scroll) {
 			height: 100dvh;
 			max-height: 100dvh;
 			display: flex;
@@ -357,11 +414,11 @@
 			overflow: hidden;
 		}
 
-		.app-header {
+		.app-shell:not(.app-shell--document-scroll) .app-header {
 			flex-shrink: 0;
 		}
 
-		.app-main {
+		.app-main:not(.app-main--document-scroll) {
 			flex: 1 1 0;
 			min-height: 0;
 			display: flex;

@@ -7,7 +7,9 @@ const REQUIRED_FILES = [
 	'static/all-layouts.json',
 	'static/layout-supplemental.json',
 	'static/authors.json',
-	'static/layout-stats.json'
+	'static/layout-likes.json',
+	'static/layout-stats.json',
+	'static/layout-stats-cyanophage.json'
 ];
 
 async function exists(path) {

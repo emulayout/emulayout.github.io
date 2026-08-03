@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 
 	interface Props {
 		markFirstAction: boolean;
@@ -9,13 +13,13 @@
 		angleBoard: boolean;
 		cyanophageCompatible: boolean;
 		cyanophageTitle: string;
-		showExpand: boolean;
+		expandLayoutName?: string;
 		forceIncluded: boolean;
 		onFindSimilar: () => void;
 		onToggleAnglemod: () => void;
 		onPractice: () => void | Promise<void>;
 		onOpenPlayground: () => void | Promise<void>;
-		onExpand: () => void;
+		angleOnly?: boolean;
 	}
 
 	const {
@@ -26,13 +30,13 @@
 		angleBoard,
 		cyanophageCompatible,
 		cyanophageTitle,
-		showExpand,
+		expandLayoutName,
 		forceIncluded,
 		onFindSimilar,
 		onToggleAnglemod,
 		onPractice,
 		onOpenPlayground,
-		onExpand
+		angleOnly = false
 	}: Props = $props();
 
 	const similarityTitle = $derived(
@@ -43,38 +47,66 @@
 				: 'Find similar layouts'
 	);
 	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
+	const expandTarget = '/layouts/[name]';
+	const expandHref = $derived(
+		expandLayoutName
+			? layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName }))
+			: undefined
+	);
 
 	let externalLinksOpen = $state(false);
+
+	function openLayoutDetails(event: MouseEvent) {
+		if (
+			!expandLayoutName ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		) {
+			return;
+		}
+
+		event.preventDefault();
+		// The route is resolved before layoutDetailPageHref appends its canonical query.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		void goto(layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName })), {
+			state: { ...page.state, fromLayoutIndex: true }
+		});
+	}
 </script>
 
 <div class="card-action-divider shrink-0" aria-label="Layout actions">
 	<div class="card-action-toolbar" class:card-action-toolbar--force-included={forceIncluded}>
-		<button
-			type="button"
-			onclick={onFindSimilar}
-			data-layout-card-first-action={markFirstAction ? true : undefined}
-			class="card-action-button"
-			class:card-action-button--similar={similarActive}
-			title={similarityTitle}
-			aria-label={similarityTitle}
-			aria-pressed={similarActive}
-		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
+		{#if !angleOnly}
+			<button
+				type="button"
+				onclick={onFindSimilar}
+				data-layout-card-first-action={markFirstAction ? true : undefined}
+				class="card-action-button"
+				class:card-action-button--similar={similarActive}
+				title={similarityTitle}
+				aria-label={similarityTitle}
+				aria-pressed={similarActive}
 			>
-				<rect x="3" y="3" width="7" height="7" rx="1" />
-				<rect x="14" y="3" width="7" height="7" rx="1" />
-				<rect x="3" y="14" width="7" height="7" rx="1" />
-				<rect x="14" y="14" width="7" height="7" rx="1" />
-			</svg>
-		</button>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<rect x="3" y="3" width="7" height="7" rx="1" />
+					<rect x="14" y="3" width="7" height="7" rx="1" />
+					<rect x="3" y="14" width="7" height="7" rx="1" />
+					<rect x="14" y="14" width="7" height="7" rx="1" />
+				</svg>
+			</button>
+		{/if}
 		<button
 			type="button"
 			onclick={onToggleAnglemod}
@@ -100,16 +132,71 @@
 				<path d="M3 21v-5h5" />
 			</svg>
 		</button>
-		<DropdownMenu bind:open={externalLinksOpen} menuLabel="External links">
-			{#snippet trigger({ open, toggle, triggerProps })}
-				<button
-					type="button"
-					onclick={toggle}
+		{#if !angleOnly}
+			<DropdownMenu bind:open={externalLinksOpen} menuLabel="External links">
+				{#snippet trigger({ open, toggle, triggerProps })}
+					<button
+						type="button"
+						onclick={toggle}
+						class="card-action-button"
+						class:card-action-button--accent={open}
+						title="External links"
+						aria-label="External links"
+						{...triggerProps}
+					>
+						<svg
+							class="size-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+							/>
+						</svg>
+					</button>
+				{/snippet}
+				{#snippet children({ close })}
+					<button
+						type="button"
+						role="menuitem"
+						class="external-links-menu-item"
+						disabled={!cyanophageCompatible}
+						title={cyanophageCompatible ? undefined : cyanophageTitle}
+						aria-disabled={!cyanophageCompatible}
+						onclick={() => {
+							close();
+							void onOpenPlayground();
+						}}
+					>
+						View in Cyanophage playground
+					</button>
+					<button
+						type="button"
+						role="menuitem"
+						class="external-links-menu-item"
+						onclick={() => {
+							close();
+							void onPractice();
+						}}
+					>
+						Practice typing on Colemak Camp
+					</button>
+				{/snippet}
+			</DropdownMenu>
+			{#if expandLayoutName}
+				<!-- expandHref starts with route-aware resolve(); the helper appends only the canonical query. -->
+				<!-- eslint-disable svelte/no-navigation-without-resolve -->
+				<a
+					href={expandHref}
+					onclick={openLayoutDetails}
 					class="card-action-button"
-					class:card-action-button--accent={open}
-					title="External links"
-					aria-label="External links"
-					{...triggerProps}
+					title="View layout details"
+					aria-label="View layout details"
 				>
 					<svg
 						class="size-4"
@@ -117,68 +204,18 @@
 						viewBox="0 0 24 24"
 						stroke="currentColor"
 						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
 						aria-hidden="true"
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-						/>
+						<path d="M15 3h6v6" />
+						<path d="M9 21H3v-6" />
+						<path d="M21 3l-7 7" />
+						<path d="M3 21l7-7" />
 					</svg>
-				</button>
-			{/snippet}
-			{#snippet children({ close })}
-				<button
-					type="button"
-					role="menuitem"
-					class="external-links-menu-item"
-					disabled={!cyanophageCompatible}
-					title={cyanophageCompatible ? undefined : cyanophageTitle}
-					aria-disabled={!cyanophageCompatible}
-					onclick={() => {
-						close();
-						void onOpenPlayground();
-					}}
-				>
-					View in Cyanophage playground
-				</button>
-				<button
-					type="button"
-					role="menuitem"
-					class="external-links-menu-item"
-					onclick={() => {
-						close();
-						void onPractice();
-					}}
-				>
-					Practice typing on Colemak Camp
-				</button>
-			{/snippet}
-		</DropdownMenu>
-		{#if showExpand}
-			<button
-				type="button"
-				onclick={onExpand}
-				class="card-action-button"
-				title="Expand layout"
-				aria-label="Expand layout"
-			>
-				<svg
-					class="size-4"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M15 3h6v6" />
-					<path d="M9 21H3v-6" />
-					<path d="M21 3l-7 7" />
-					<path d="M3 21l7-7" />
-				</svg>
-			</button>
+				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
+			{/if}
 		{/if}
 	</div>
 </div>
@@ -225,6 +262,7 @@
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		cursor: pointer;
+		text-decoration: none;
 		color: var(--text-primary);
 		background-color: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
 		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));

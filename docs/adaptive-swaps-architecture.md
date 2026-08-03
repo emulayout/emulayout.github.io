@@ -62,6 +62,11 @@ The generated file is `static/layout-supplemental.json`. Repeat-key behavior is 
 layout metadata rather than stored as a per-layout source profile. A layout may contain any
 combination of these features, and the runtime loads the first variant.
 
+`bin/layout-details.js` copies the matching normalized supplemental record, including every variant,
+into each generated per-layout detail payload after the aggregate analyzer files are ready. This is
+a delivery optimization only; the curated layout file and aggregate supplemental payload remain the
+sources of truth.
+
 Pull-request validation requires every curated file to match a current Cmini layout and to reference
 only keys that layout has. Production sync is deliberately more resilient: if Cmini later removes a
 layout, its file and any stale `adaptive-layouts.txt` presence entry produce warnings and are omitted
@@ -215,14 +220,23 @@ in the swapped output.
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
   or Adaptive mapping updates that feature's control.
-- The expanded stats modal also renders the mappings panel above analyzer stats.
+- On the layout detail page, mappings sit to the right of the emulator in the first Test-area row at
+  wider viewports and stack below it on narrow screens.
+- The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
+  history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
+  with the values they would emit and gain the active accent background. The shared preview switch
+  disables this presentation alongside prospective Magic output. A second, default-off switch draws
+  measured SVG connectors between every armed pair. Connector state follows the same history and
+  disabled mappings but remains independent of the label-preview switch. The formatted text board
+  never changes.
 
-The resolver returns which behaviors were applied to a keypress. The layout test area does not
-currently display this, but a dedicated typing page may use it later.
+The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
+prospective outputs from the same profile and history, but the layout test area does not display an
+applied-keypress event directly. A dedicated typing page may use that result later.
 
-Disabled mapping state is owned by the current layout-results view, shared by the floating window,
-expanded modal, and layout test area, and is intentionally not persisted. All mappings return to
-enabled after a page reload.
+Disabled mapping state is owned by the current page, shared by the floating window and layout test
+area on the index or by the mappings panel and keyboard summary on the detail route. It is
+intentionally not persisted, and all mappings return to enabled after navigation or a page reload.
 
 ## Deferred work
 

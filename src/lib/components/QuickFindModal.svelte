@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import Listbox from '$lib/components/Listbox.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
@@ -8,8 +11,7 @@
 	import type { StatLimitOperator } from '$lib/filterStore.svelte';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-	import type { LayoutData } from '$lib/layout';
+	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
@@ -29,27 +31,11 @@
 
 	const MAX_RESULTS = 100;
 
-	const layoutByName = $derived(
-		new Map<string, LayoutData>(layoutsCatalog.layouts.map((layout) => [layout.name, layout]))
-	);
-
-	const authorById = $derived(
-		new Map<number, string>(
-			Object.entries(layoutsCatalog.authorsData).map(([name, id]) => [id as number, name])
-		)
-	);
-
-	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layouts, query, MAX_RESULTS));
+	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layoutNames, query, MAX_RESULTS));
 	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
-
-	const highlightedLayout = $derived.by((): LayoutData | null => {
-		const name = matches[activeIndex];
-		if (!name) return null;
-		return layoutByName.get(name) ?? null;
-	});
-
-	const highlightedAuthorName = $derived(
-		highlightedLayout ? (authorById.get(highlightedLayout.user) ?? 'Unknown') : ''
+	const highlightedName = $derived(matches[activeIndex] ?? null);
+	const highlightedDetail = $derived(
+		highlightedName ? (layoutDetailsStore.get(highlightedName) ?? null) : null
 	);
 
 	$effect(() => {
@@ -63,6 +49,7 @@
 			}
 			return;
 		}
+		void layoutsCatalog.ensureNamesLoaded();
 
 		// Focus after the input mounts
 		requestAnimationFrame(() => searchInput?.focus());
@@ -84,6 +71,14 @@
 		};
 	});
 
+	$effect(() => {
+		if (!open || !highlightedName || highlightedDetail) return;
+		const timeoutId = window.setTimeout(() => {
+			void layoutDetailsStore.load(highlightedName);
+		}, 100);
+		return () => window.clearTimeout(timeoutId);
+	});
+
 	function focusPreviewFirstAction() {
 		const firstAction = previewPane?.querySelector(
 			'[data-layout-card-first-action]'
@@ -95,9 +90,12 @@
 		searchInput?.focus();
 	}
 
-	function showLayout(name: string) {
-		filterStore.focusLayout(name);
+	async function showLayout(name: string) {
 		onClose();
+		if (page.route.id !== '/') {
+			await goto(resolve('/'));
+		}
+		filterStore.focusLayout(name);
 	}
 
 	function showAppliedFilterSnackbar(
@@ -134,7 +132,7 @@
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			const name = matches[activeIndex];
-			if (name) showLayout(name);
+			if (name) void showLayout(name);
 		}
 	}
 </script>
@@ -178,8 +176,12 @@
 			class="min-h-0 flex-1 overflow-y-auto px-5 py-4 md:max-w-sm md:border-r"
 			style="border-color: var(--border);"
 		>
-			{#if layoutsCatalog.layouts.length === 0}
+			{#if layoutsCatalog.layoutNames.length === 0 && !layoutsCatalog.loadError}
 				<p class="text-sm" style="color: var(--text-secondary);">Loading…</p>
+			{:else if layoutsCatalog.loadError}
+				<p class="text-sm" role="alert" style="color: var(--text-secondary);">
+					Layout names could not be loaded.
+				</p>
 			{:else if !query.trim()}
 				<p class="text-sm" style="color: var(--text-secondary);">Type to search layout names.</p>
 			{:else if matches.length === 0}
@@ -219,21 +221,38 @@
 		</div>
 
 		<div bind:this={previewPane} class="hidden min-h-0 flex-1 overflow-y-auto p-5 md:block">
-			{#if highlightedLayout}
-				{#key highlightedLayout.name}
+			{#if highlightedDetail}
+				{#key highlightedDetail.layout.name}
 					<LayoutCard
-						layout={highlightedLayout}
-						authorName={highlightedAuthorName}
-						likeCount={layoutsCatalog.likesData[highlightedLayout.name] ?? 0}
-						compactCminiStats={layoutStatsStore.maps.cmini?.[highlightedLayout.name]}
-						compactCyanophageStats={layoutStatsStore.maps.cyanophage?.[highlightedLayout.name]}
-						compactMana2Stats={layoutStatsStore.maps.mana2?.[highlightedLayout.name]}
+						layout={highlightedDetail.layout}
+						authorName={highlightedDetail.authorName}
+						likeCount={highlightedDetail.likeCount}
+						compactCminiStats={highlightedDetail.stats.cmini}
+						compactCyanophageStats={highlightedDetail.stats.cyanophage}
+						compactMana2Stats={highlightedDetail.stats.mana2}
+						inputProfile={highlightedDetail.inputProfile}
 						statFilterInteraction="apply-only"
 						statsMode={uiPrefs.layoutCardStatsMode}
 						allowStatSorting={false}
 						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>
 				{/key}
+			{:else if highlightedName && layoutDetailsStore.loadingNames[highlightedName]}
+				<div
+					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
+					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
+					role="status"
+				>
+					Loading layout…
+				</div>
+			{:else if highlightedName && layoutDetailsStore.loadErrors[highlightedName]}
+				<div
+					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
+					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
+					role="alert"
+				>
+					Layout details could not be loaded.
+				</div>
 			{:else}
 				<div
 					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"

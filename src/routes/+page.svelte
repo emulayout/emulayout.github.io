@@ -1,5 +1,4 @@
 <script lang="ts">
-	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
@@ -20,7 +19,6 @@
 		buildSimilarityMatchMap,
 		withSimilarReferenceAnglemod
 	} from '$lib/layoutSimilarity';
-	import { onMount } from 'svelte';
 	import { compileLayoutInputRegistry } from '$lib/layoutInputBehaviors';
 
 	const { data } = $props();
@@ -31,10 +29,6 @@
 	let lazyLikesData: LayoutLikesMap | null = $state(null);
 	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);
 	const likesData = $derived(lazyLikesData ?? pageLikesData);
-	let showCompareModal = $state(false);
-	/** How to seed the compare modal on the next open/session bump. */
-	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
-	let compareSession = $state(0);
 	const showSharedViewModal = $derived(Boolean(filterStore.pendingSharedView));
 	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
 	let likesLoading = $state(false);
@@ -196,26 +190,6 @@
 	const resultsViewKey = $derived(
 		`${filterStore.layoutSource}:${filterStore.activeSavedFilterId ?? ''}`
 	);
-
-	onMount(() => {
-		function handleOpenCompare(event: Event) {
-			const detail = (event as CustomEvent<{ mode?: 'restore' | 'selection' | 'hotkey' }>).detail;
-			const mode = detail?.mode ?? 'restore';
-
-			if (mode === 'hotkey' && showCompareModal) {
-				compareSeedMode = 'reset';
-				compareSession += 1;
-				return;
-			}
-
-			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
-			compareSession += 1;
-			showCompareModal = true;
-		}
-
-		window.addEventListener('emulayout:open-compare', handleOpenCompare);
-		return () => window.removeEventListener('emulayout:open-compare', handleOpenCompare);
-	});
 </script>
 
 <div class="page-root">
@@ -294,17 +268,6 @@
 		</div>
 	{/key}
 </div>
-
-<CompareLayoutsModal
-	open={showCompareModal}
-	onClose={() => (showCompareModal = false)}
-	seedMode={compareSeedMode}
-	session={compareSession}
-	{layouts}
-	{getAuthorName}
-	likesData={resolvedLikesData}
-	{statsMaps}
-/>
 
 <SharedViewModal open={showSharedViewModal} onClose={() => filterStore.clearPendingSharedView()} />
 

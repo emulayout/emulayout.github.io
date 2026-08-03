@@ -15,15 +15,29 @@
 		keyMaps: LayoutTestKeyMaps;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
+		variant?: 'card' | 'page';
+		onInputHistoryChange?: (history: string) => void;
 	}
 
-	const { layout, keyMaps, inputProfile, disabledMappingIds = [] }: Props = $props();
+	const {
+		layout,
+		keyMaps,
+		inputProfile,
+		disabledMappingIds = [],
+		variant = 'card',
+		onInputHistoryChange
+	}: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let inputHistory = '';
 	const disabledMappings = $derived(new Set(disabledMappingIds));
 
+	function setInputHistory(history: string) {
+		inputHistory = history;
+		onInputHistoryChange?.(history);
+	}
+
 	function resetInputHistory() {
-		inputHistory = '';
+		setInputHistory('');
 	}
 
 	function isModifierKey(key: string) {
@@ -45,7 +59,7 @@
 	function processLayoutText(text: string) {
 		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
 		insertText(result.text);
-		inputHistory = result.nextHistory;
+		setInputHistory(result.nextHistory);
 	}
 
 	$effect(() => {
@@ -94,8 +108,9 @@
 -->
 <div
 	class="layout-test-area"
+	class:layout-test-area--page={variant === 'page'}
 	style="
-		height: {LAYOUT_CARD_TEST_AREA_HEIGHT}px;
+		height: {variant === 'page' ? 'clamp(12rem, 32vh, 22rem)' : `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
 		background-color: var(--input-bg);
 		border: 1px solid var(--border);
 		--tw-ring-color: var(--accent);
@@ -142,5 +157,11 @@
 		background: transparent;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
+	}
+
+	.layout-test-area--page .layout-test-area-input {
+		padding: 1rem;
+		font-size: 1rem;
+		line-height: 1.5;
 	}
 </style>

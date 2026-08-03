@@ -141,6 +141,11 @@ Sync publishes curated Magic and Adaptive mappings in:
 static/layout-supplemental.json
 ```
 
+The detail-data generation step also copies the matching layout's normalized supplemental record,
+including every variant, into its `static/layout-details/<id>.json` payload. The aggregate payload
+remains authoritative for the layout index; the per-layout copy lets direct detail and Quick Find
+views avoid downloading it.
+
 Repeat keys do not need per-layout source records. The client combines the first variant of the
 optional sidecar with the authoritative compact layout metadata into one `LayoutInputProfile`:
 
@@ -213,8 +218,26 @@ Filters are also independent:
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
-The expanded stats modal may show Magic and Adaptive controls, while Repeat remains controlled by
-the icon beside the keyboard.
+The layout detail page may show Magic and Adaptive controls, while Repeat remains controlled by the
+icon beside the keyboard summary.
+
+The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
+default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
+cards instead of its literal marker. This includes a conventional `*` whose mappings are
+unavailable. The preview resolves mapped triggers against the test area's current uninterrupted
+emitted history and disabled-mapping set:
+
+- when pressing the trigger would emit a value, the keycap displays that value and gains the active
+  accent background;
+- when no rule or emitting fallback applies, the Magic symbol remains on the ordinary neutral
+  keycap;
+- turning the preview off restores literal trigger characters and ordinary key styling.
+
+This is prospective state, not a second input resolver: the keyboard derives it with the same pure
+Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback and combines
+it with currently armed Adaptive swaps without changing the formatted text board. When a physical
+key is both a Magic trigger and part of an armed Adaptive swap, the Adaptive presentation wins
+because Adaptive changes that physical key before Magic behavior is considered.
 
 ## Analyzer boundaries
 

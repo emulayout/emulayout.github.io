@@ -355,6 +355,8 @@ export class FilterStore {
 	}
 
 	#loadFromUrl() {
+		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+
 		const url = new SvelteURL(window.location.href);
 		let shouldReadViewUrlState = true;
 
@@ -453,6 +455,10 @@ export class FilterStore {
 	}
 
 	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
+		// Filter and selection state belongs to the layout index. Detail routes have
+		// independent, canonical URLs and must never be rewritten by this store.
+		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+
 		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
 		url.search = '';
@@ -484,6 +490,14 @@ export class FilterStore {
 
 		this.#writeGlobalUrlState(url.searchParams);
 		this.#writeHistory(url, historyMode);
+	}
+
+	/** Clear index-only URL state without touching the index's browser-history entry. */
+	enterLayoutDetailRoute() {
+		this.#cancelFilterApply();
+		this.#viewFilterSnapshots.clear();
+		this.#resetUrlControlledState();
+		this.#applyFiltersNow();
 	}
 
 	/**

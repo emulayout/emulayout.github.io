@@ -22,6 +22,14 @@ test('shows mappings in a floating window', async ({ page }) => {
 	await expect(mappingsToggle).toHaveAccessibleName('Show magic key mappings');
 	await expect(mappingsToggle).toHaveCSS('width', '32px');
 	await expect(mappingsToggle).toHaveCSS('height', '32px');
+	const catalogCardBox = await card.boundingBox();
+	const catalogIndicatorBox = await indicatorRail.boundingBox();
+	expect(catalogCardBox).not.toBeNull();
+	expect(catalogIndicatorBox).not.toBeNull();
+	const catalogIndicatorRightInset =
+		catalogCardBox!.x +
+		catalogCardBox!.width -
+		(catalogIndicatorBox!.x + catalogIndicatorBox!.width);
 	await mappingsToggle.click();
 	await expect(mappingsToggle).toHaveAttribute('aria-pressed', 'true');
 	await expect(mappingsToggle).toHaveAccessibleName('Close magic key mappings');
@@ -50,14 +58,29 @@ test('shows mappings in a floating window', async ({ page }) => {
 	expect(afterDrag!.y).toBeGreaterThan(beforeDrag!.y + 20);
 
 	await mappingsWindow.getByRole('button', { name: 'Close magic key mappings' }).click();
-	await card.getByRole('button', { name: 'Expand layout' }).click();
-	const expandedLayout = page.getByRole('dialog', { name: mappedLayoutName, exact: true });
+	await card.getByRole('link', { name: 'View layout details' }).click();
+	const expandedLayout = page.locator('[data-layout-detail]');
+	await expect(page).toHaveURL(
+		new RegExp(`/layouts/${encodeURIComponent(mappedLayoutName)}(?:\\?|$)`)
+	);
+	await expect(page.getByRole('article', { name: `${mappedLayoutName} details` })).toBeVisible();
 	const expandedMagicStatus = expandedLayout.locator('[data-input-feature="magic"]');
 	await expect(expandedMagicStatus).toHaveAttribute('role', 'img');
 	await expect(expandedMagicStatus).toHaveAccessibleName('Magic key mappings enabled');
 	await expect(expandedLayout.getByRole('button', { name: 'Show magic key mappings' })).toHaveCount(
 		0
 	);
+	const summaryCard = expandedLayout.locator(`[data-layout-name="${mappedLayoutName}"]`);
+	const summaryIndicatorRail = summaryCard.locator('.input-mappings-indicators');
+	const summaryCardBox = await summaryCard.boundingBox();
+	const summaryIndicatorBox = await summaryIndicatorRail.boundingBox();
+	expect(summaryCardBox).not.toBeNull();
+	expect(summaryIndicatorBox).not.toBeNull();
+	const summaryIndicatorRightInset =
+		summaryCardBox!.x +
+		summaryCardBox!.width -
+		(summaryIndicatorBox!.x + summaryIndicatorBox!.width);
+	expect(Math.abs(summaryIndicatorRightInset - catalogIndicatorRightInset)).toBeLessThanOrEqual(1);
 });
 
 test('shows a toggle for an emitting fallback and a plain note for a no-op', async ({ page }) => {

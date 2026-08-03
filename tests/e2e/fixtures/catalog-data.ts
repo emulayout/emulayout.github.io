@@ -114,6 +114,34 @@ export const turnip = compactLayout({
 	thumbHands: 'r'
 });
 
+export const angleLeftThumb = compactLayout({
+	name: 'angle-left-thumb',
+	user: STRAWBERRYTURTLE_USER_ID,
+	board: 0,
+	updatedAt: '2026-08-02T00:00:01+00:00',
+	flags: 19,
+	rows: [
+		['x', 'l', 'y', 'w', 'z', "'", 'f', 'o', 'u', '.'],
+		['n', 'r', 's', 'd', 'g', 'k', 'h', 'a', 'e', 'i'],
+		['j', 'v', 'c', 'm', 'q', 'p', 'b', ';', '/', ','],
+		['t']
+	],
+	thumbHands: 'l'
+});
+
+export const missingOrthoColumn = compactLayout({
+	name: 'missing-ortho-column',
+	user: CMINI_USER_ID,
+	board: 2,
+	updatedAt: '2026-08-02T00:00:01+00:00',
+	flags: 18,
+	rows: [
+		['b', 'z', 'd', 'g', 'q', 'f', 'o', 'y', 'w'],
+		['n', 'r', 't', 's', 'l', 'h', 'a', 'e', 'i', 'u'],
+		['@', 'x', 'm', 'c', 'v', 'k', 'p', ',', '.', '/']
+	]
+});
+
 export const graphite = compactLayout({
 	name: 'graphite',
 	user: STRONGLYTYPED_USER_ID,
@@ -137,6 +165,19 @@ export const vylet = compactLayout({
 		['w', 'c', 'm', 'p', 'b', 'x', 'l', 'o', 'u', 'j', '-'],
 		['r', 's', 't', 'h', 'f', 'y', 'n', 'a', 'e', 'i', ','],
 		['q', 'v', 'g', 'd', 'k', 'z', '*', "'", ';', '.']
+	]
+});
+
+export const adaptivePreview = compactLayout({
+	name: 'adaptive-preview',
+	user: ACAS_USER_ID,
+	board: 2,
+	updatedAt: '2026-08-03T00:00:01+00:00',
+	flags: 402,
+	rows: [
+		['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+		['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+		['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
 	]
 });
 

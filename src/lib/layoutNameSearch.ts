@@ -1,6 +1,6 @@
 import type { LayoutData } from '$lib/layout';
 
-type LayoutNameCandidate = Pick<LayoutData, 'name'>;
+type LayoutNameCandidate = string | Pick<LayoutData, 'name'>;
 
 /**
  * Find layout names using the shared exact → prefix → substring ranking contract.
@@ -16,7 +16,7 @@ export function findLayoutNameMatches(
 
 	const ranked: Array<{ name: string; rank: number }> = [];
 	for (const layout of layouts) {
-		const name = layout.name;
+		const name = typeof layout === 'string' ? layout : layout.name;
 		const lower = name.toLowerCase();
 		if (!lower.includes(term)) continue;
 		const rank = lower === term ? 0 : lower.startsWith(term) ? 1 : 2;
