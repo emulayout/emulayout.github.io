@@ -88,7 +88,9 @@
 		/** Shared filter/sort highlights; omit to compute from the filter store. */
 		statHighlights?: ReturnType<typeof getStatCardHighlightState>;
 		/** Quick Find applies filters without navigating to the covered sidebar. */
-		statFilterInteraction?: 'focus' | 'apply-only';
+		statFilterInteraction?: 'focus' | 'apply-only' | 'disabled';
+		/** Whether this catalog-style card exposes layout selection. */
+		allowSelection?: boolean;
 		statsMode?: LayoutCardStatsMode;
 		/** Controlled analyzer for a standalone card; catalog cards use the global analyzer. */
 		statsAnalyzer?: StatsAnalyzer;
@@ -127,6 +129,7 @@
 		similarDiffPositions,
 		statHighlights,
 		statFilterInteraction = 'focus',
+		allowSelection = true,
 		statsMode = 'focused',
 		statsAnalyzer,
 		onStatsAnalyzerChange,
@@ -299,6 +302,7 @@
 	}
 
 	function handleFilterMetric(metric: LayoutCardMetric, useMetricValue: boolean) {
+		if (statFilterInteraction === 'disabled') return;
 		const target = getStatMetricFilterTarget(metric.analyzer, metric.key);
 		if (!target) return;
 		if (useMetricValue) {
@@ -463,7 +467,7 @@
 		showLikes={filterStore.showLayoutLikes}
 		showNewIndicator={isNewLayout}
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
-		showSelection={catalogCard}
+		showSelection={catalogCard && allowSelection}
 		authorInteractive={catalogCard}
 		{similarMatchPercent}
 		{similarMirrored}
@@ -570,8 +574,12 @@
 					mana2={mana2StatsModel}
 					sortMetric={selectedSortMetric}
 					filterValueOnClick={statFilterInteraction === 'apply-only'}
-					onFilterMetric={variant === 'catalog' ? handleFilterMetric : undefined}
-					onFilterFingerUsage={variant === 'catalog' ? handleFilterFingerUsage : undefined}
+					onFilterMetric={variant === 'catalog' && statFilterInteraction !== 'disabled'
+						? handleFilterMetric
+						: undefined}
+					onFilterFingerUsage={variant === 'catalog' && statFilterInteraction !== 'disabled'
+						? handleFilterFingerUsage
+						: undefined}
 					onSortMetric={variant === 'catalog' && allowStatSorting ? handleSortMetric : undefined}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}

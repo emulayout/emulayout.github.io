@@ -1,8 +1,9 @@
 import { expect, test } from './fixtures/test';
-import { LAYOUT_DETAIL_VERSION } from '../../src/lib/layoutDetails';
+import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../src/lib/layoutDetails';
 import {
 	adaptivePreview,
 	angleLeftThumb,
+	lela,
 	missingOrthoColumn,
 	repeatKey
 } from './fixtures/catalog-data';
@@ -437,6 +438,22 @@ test('preserves ortho columns when a row has a missing key', async ({ page }) =>
 });
 
 test('loads Quick Find names and highlighted layout details on demand', async ({ page }) => {
+	await page.route(`**/layout-details/${layoutDetailFileId('lela')}.json`, async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: lela,
+				authorName: 'lelazsq',
+				likeCount: 0,
+				stats: {
+					cmini: [
+						1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792,
+						2041, 948, 1331, 275, 0, 0, 0
+					]
+				}
+			}
+		});
+	});
 	const requestedPaths: string[] = [];
 	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
 	await page.goto('/layouts/QWERTY');
@@ -445,7 +462,17 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
 	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('lela');
 
-	await expect(quickFind.locator('[data-layout-name="lela"]')).toBeVisible();
+	const previewCard = quickFind.locator('[data-layout-name="lela"]');
+	await expect(previewCard).toBeVisible();
+	await expect(previewCard.getByText('SFB', { exact: true })).toBeVisible();
+	await expect(previewCard.getByRole('checkbox', { name: 'Select lela' })).toHaveCount(0);
+	await expect(
+		previewCard.getByRole('button', { name: /Open .*Same-finger bigrams filter/ })
+	).toHaveCount(0);
+	await expect(
+		previewCard.getByRole('button', { name: /Open Left pinky usage filter/ })
+	).toHaveCount(0);
+	await expect(previewCard.getByRole('button', { name: /Left pinky:/ })).toBeVisible();
 	expect(requestedPaths).toContain('/layout-names.json');
 	expect(requestedPaths.filter((path) => path.startsWith('/layout-details/')).length).toBe(2);
 	expect(requestedPaths).not.toContain('/all-layouts.json');

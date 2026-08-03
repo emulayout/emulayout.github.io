@@ -37,6 +37,7 @@
 	const highlightedDetail = $derived(
 		highlightedName ? (layoutDetailsStore.get(highlightedName) ?? null) : null
 	);
+	const openedFromDetailPage = $derived(page.route.id === '/layouts/[name]');
 
 	$effect(() => {
 		if (!open) {
@@ -231,7 +232,8 @@
 						compactCyanophageStats={highlightedDetail.stats.cyanophage}
 						compactMana2Stats={highlightedDetail.stats.mana2}
 						inputProfile={highlightedDetail.inputProfile}
-						statFilterInteraction="apply-only"
+						statFilterInteraction={openedFromDetailPage ? 'disabled' : 'apply-only'}
+						allowSelection={!openedFromDetailPage}
 						statsMode={uiPrefs.layoutCardStatsMode}
 						allowStatSorting={false}
 						onStatFilterChanged={showAppliedFilterSnackbar}
