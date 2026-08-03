@@ -44,7 +44,7 @@
 	);
 
 	$effect(() => {
-		layoutsCatalog.hydrate(layouts, authorsData, resolvedLikesData);
+		layoutsCatalog.hydrate(layouts, authorsData, resolvedLikesData, inputProfiles);
 	});
 
 	const analyzersToLoad = $derived(

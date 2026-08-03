@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildCompactLayoutDetails, layoutDetailFileId } from '../bin/layout-details.js';
 import {
 	LAYOUT_DETAIL_VERSION,
+	buildCatalogLayoutDetail,
 	decodeLayoutDetail,
 	layoutDetailFileId as clientLayoutDetailFileId,
 	layoutDetailUrl,
@@ -99,5 +100,48 @@ describe('per-layout detail data', () => {
 			layout: { name: compactLayout[0], user: 42 }
 		});
 		expect(decodeLayoutDetail(payload, 'another-layout')).toBeNull();
+	});
+
+	test('builds a preview from an already-loaded catalog without a detail file', () => {
+		const decoded = decodeLayoutDetail({
+			version: LAYOUT_DETAIL_VERSION,
+			layout: compactLayout,
+			authorName: 'derek',
+			likeCount: 0,
+			stats: {}
+		});
+		expect(decoded).not.toBeNull();
+		const layout = decoded!.layout;
+		const name = layout.name;
+
+		expect(
+			buildCatalogLayoutDetail(
+				name,
+				{
+					layouts: [layout],
+					authorsData: { derek: 42 },
+					likesData: { [name]: 11 },
+					inputProfiles: new Map()
+				},
+				{
+					cmini: { [name]: [9, 8, 7] },
+					mana2: { [name]: [1] }
+				}
+			)
+		).toMatchObject({
+			layout,
+			authorName: 'derek',
+			likeCount: 11,
+			stats: { cmini: [9, 8, 7], mana2: [1] }
+		});
+
+		expect(
+			buildCatalogLayoutDetail('missing', {
+				layouts: [layout],
+				authorsData: { derek: 42 },
+				likesData: {},
+				inputProfiles: new Map()
+			})
+		).toBeNull();
 	});
 });

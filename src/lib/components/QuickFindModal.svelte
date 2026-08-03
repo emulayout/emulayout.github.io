@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Listbox from '$lib/components/Listbox.svelte';
@@ -12,6 +12,7 @@
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
+	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
@@ -34,10 +35,19 @@
 	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layoutNames, query, MAX_RESULTS));
 	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
 	const highlightedName = $derived(matches[activeIndex] ?? null);
-	const highlightedDetail = $derived(
+	const catalogDetail = $derived(
+		highlightedName ? layoutsCatalog.getLayoutDetail(highlightedName, layoutStatsStore.maps) : null
+	);
+	const fetchedDetail = $derived(
 		highlightedName ? (layoutDetailsStore.get(highlightedName) ?? null) : null
 	);
+	const highlightedDetail = $derived(catalogDetail ?? fetchedDetail);
 	const openedFromDetailPage = $derived(page.route.id === '/layouts/[name]');
+
+	// Detail links in the preview navigate in-app; dismiss so the show page is not covered.
+	afterNavigate(() => {
+		if (open) onClose();
+	});
 
 	$effect(() => {
 		if (!open) {
@@ -73,7 +83,9 @@
 	});
 
 	$effect(() => {
-		if (!open || !highlightedName || highlightedDetail) return;
+		// Index (and Compare) already hold the aggregate catalog — only fetch
+		// per-layout detail files on a cold show-page visit.
+		if (!open || !highlightedName || highlightedDetail || layoutsCatalog.fullCatalogLoaded) return;
 		const timeoutId = window.setTimeout(() => {
 			void layoutDetailsStore.load(highlightedName);
 		}, 100);

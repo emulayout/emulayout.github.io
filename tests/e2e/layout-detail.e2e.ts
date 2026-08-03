@@ -478,6 +478,41 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 	expect(requestedPaths).not.toContain('/all-layouts.json');
 });
 
+test('reuses the loaded index catalog for Quick Find without detail fetches', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
+
+	const requestedPaths: string[] = [];
+	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('l');
+
+	await expect(quickFind.locator('[data-layout-name="lela"]')).toBeVisible();
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('ArrowDown');
+	await expect(quickFind.locator('[data-layout-name="Colemak-DH"]')).toBeVisible();
+
+	expect(requestedPaths).not.toContain('/layout-names.json');
+	expect(requestedPaths.filter((path) => path.startsWith('/layout-details/'))).toEqual([]);
+});
+
+test('dismisses Quick Find when opening layout details from the preview', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('lela');
+
+	const previewCard = quickFind.locator('[data-layout-name="lela"]');
+	await expect(previewCard).toBeVisible();
+	await previewCard.getByRole('link', { name: 'View lela layout details' }).click();
+
+	await expect(page).toHaveURL('/layouts/lela?tab=test');
+	await expect(quickFind).toHaveCount(0);
+});
+
 test('shows a recoverable not-found page for an unknown layout URL', async ({ page }) => {
 	await page.goto('/layouts/does-not-exist?selected=lela');
 

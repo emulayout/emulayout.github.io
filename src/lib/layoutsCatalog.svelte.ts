@@ -1,5 +1,7 @@
-import type { LayoutData, LayoutLikesMap } from '$lib/layout';
+import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
+import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
+import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -12,6 +14,7 @@ class LayoutsCatalog {
 	layouts: LayoutData[] = $state([]);
 	authorsData: Record<string, number> = $state({});
 	likesData: LayoutLikesMap = $state({});
+	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
 	layoutNames: string[] = $state([]);
 	fullCatalogLoaded = $state(false);
 	namesLoaded = $state(false);
@@ -22,14 +25,39 @@ class LayoutsCatalog {
 	#catalogRequest: Promise<void> | null = null;
 	#namesRequest: Promise<void> | null = null;
 
-	hydrate(layouts: LayoutData[], authorsData: Record<string, number>, likesData: LayoutLikesMap) {
+	hydrate(
+		layouts: LayoutData[],
+		authorsData: Record<string, number>,
+		likesData: LayoutLikesMap,
+		inputProfiles: ReadonlyMap<string, LayoutInputProfile> = new Map()
+	) {
 		this.layouts = layouts;
 		this.authorsData = authorsData;
 		this.likesData = likesData;
+		this.inputProfiles = inputProfiles;
 		this.layoutNames = layouts.map((layout) => layout.name);
 		this.fullCatalogLoaded = true;
 		this.namesLoaded = true;
 		this.loadError = null;
+	}
+
+	getAuthorName(userId: number): string {
+		return resolveAuthorName(this.authorsData, userId);
+	}
+
+	/** Preview payload when the aggregate catalog is already in memory. */
+	getLayoutDetail(name: string, statsMaps: StatsMaps = {}): LayoutDetail | null {
+		if (!this.fullCatalogLoaded) return null;
+		return buildCatalogLayoutDetail(
+			name,
+			{
+				layouts: this.layouts,
+				authorsData: this.authorsData,
+				likesData: this.likesData,
+				inputProfiles: this.inputProfiles
+			},
+			statsMaps
+		);
 	}
 
 	async ensureNamesLoaded(fetcher: Fetcher = fetch): Promise<void> {

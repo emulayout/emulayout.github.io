@@ -36,10 +36,16 @@ ambiguity for punctuation and international names. `bin/layout-details.js` gener
 from the existing aggregate artifacts, writes only byte-changed files, and removes stale generated
 JSON files. It also publishes `static/layout-names.json`.
 
-Quick Find searches `layout-names.json` when the aggregate catalog is not already in memory and
-loads the highlighted layout's detail file after a short debounce. Compare still needs the full
-catalog and analyzer-wide maps, so opening it from a direct detail visit loads those aggregates on
-demand. This keeps ordinary direct visits small without weakening app-bar functionality.
+Quick Find uses the in-memory aggregate catalog (layouts, authors, likes, input
+profiles, and any already-loaded analyzer maps) for name search and card previews
+whenever that catalog is already hydrated — typically on the index, or after
+Compare has loaded aggregates from a detail visit. On a fresh detail-page load it
+searches `layout-names.json` and loads the highlighted layout's detail file after
+a short debounce. Choosing a preview's layout-details link (keyboard visualization
+or toolbar action) navigates to the show page and dismisses the modal. Compare still
+needs the full catalog and analyzer-wide maps, so opening it from a direct detail
+visit loads those aggregates on demand. This keeps ordinary direct visits small
+without weakening app-bar functionality.
 
 ## Detail content and state
 
@@ -104,10 +110,11 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - Dynamic route and layout-name resolution: `src/routes/layouts/[name]/+page.ts`,
   `src/routes/layouts/[name]/+page.svelte`
 - Detail tab URL parsing and canonical URLs: `src/lib/layoutDetailTabs.ts`
-- Detail wire format, decoding, URLs, and cache: `src/lib/layoutDetails.ts`,
-  `src/lib/layoutDetailsStore.svelte.ts`
+- Detail wire format, decoding, catalog-backed previews, URLs, and cache:
+  `src/lib/layoutDetails.ts`, `src/lib/layoutDetailsStore.svelte.ts`
 - Generated detail files and name index: `bin/layout-details.js`
-- Quick Find name search and debounced detail loading: `src/lib/components/QuickFindModal.svelte`
+- Quick Find name search, catalog reuse, and debounced detail loading:
+  `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content and analyzer controls: `src/lib/components/LayoutExpandedView.svelte`
 - Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
 - Detail section semantics and keyboard navigation: `src/lib/components/Tabs.svelte`
@@ -121,6 +128,9 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   static adapter emits `404.html` so GitHub Pages can bootstrap direct client-side route requests.
 - A direct detail link loads one generated layout-detail file and does not fetch the aggregate
   catalog unless an aggregate-dependent feature such as Compare is opened.
+- Quick Find does not fetch `layout-names.json` or `/layout-details/*.json` when the aggregate
+  catalog is already in memory; those requests are only for cold detail-page visits.
+- Navigating to a layout detail page from a Quick Find preview dismisses the modal.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
   is active. Browser history, rather than copied query parameters, restores the index state.
 - Navigating between index and detail pages never hides or disables app-bar features.
