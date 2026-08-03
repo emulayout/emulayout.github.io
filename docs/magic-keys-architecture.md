@@ -234,9 +234,10 @@ emitted history and disabled-mapping set:
 - turning the preview off restores literal trigger characters and ordinary key styling.
 
 This is prospective state, not a second input resolver: the keyboard derives it with the same pure
-Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback so Adaptive
-keyswap indication can use the same styled-keyboard path later without changing the formatted text
-board.
+Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback and combines
+it with currently armed Adaptive swaps without changing the formatted text board. When a physical
+key is both a Magic trigger and part of an armed Adaptive swap, the Adaptive presentation wins
+because Adaptive changes that physical key before Magic behavior is considered.
 
 ## Analyzer boundaries
 

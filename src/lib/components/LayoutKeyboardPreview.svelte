@@ -142,11 +142,11 @@
 									<span
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-										class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
-										data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -166,11 +166,11 @@
 									<span
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-										class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
-										data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -194,11 +194,11 @@
 							<span
 								class="keyboard-preview__key keyboard-preview__key--ansi-thumb"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-								class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 								data-key-char={thumb.key.char}
 								data-thumb-column={thumb.column}
 								data-key-feedback={keyFeedback?.kind}
-								data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 								title={keyFeedback?.value
 									? `${thumb.key.char} emits ${keyFeedback.value}`
 									: undefined}
@@ -218,10 +218,10 @@
 							<span
 								class="keyboard-preview__key"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-								class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 								data-key-char={key.char}
 								data-key-feedback={keyFeedback?.kind}
-								data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 								title={keyFeedback?.value ? `${key.char} emits ${keyFeedback.value}` : undefined}
 							>
 								{@render keyContent(key, keyFeedback)}

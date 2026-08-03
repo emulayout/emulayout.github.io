@@ -168,6 +168,19 @@ export const vylet = compactLayout({
 	]
 });
 
+export const adaptivePreview = compactLayout({
+	name: 'adaptive-preview',
+	user: ACAS_USER_ID,
+	board: 2,
+	updatedAt: '2026-08-03T00:00:01+00:00',
+	flags: 402,
+	rows: [
+		['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+		['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'],
+		['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
+	]
+});
+
 export const magicSturdy = compactLayout({
 	name: 'magic_sturdy',
 	user: IKCELAKS_USER_ID,

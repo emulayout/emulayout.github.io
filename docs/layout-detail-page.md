@@ -65,6 +65,9 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   an output, then shows that next output on an accent-colored keycap. A local switch restores the
   literal trigger characters and ordinary key styling. An unmapped conventional `*` still gets the
   neutral Magic symbol but cannot show a prospective output.
+  Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both
+  affected keycaps replace their base letters with their swapped outputs and use the active accent
+  background until the uninterrupted context changes or resets.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
   Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
@@ -80,9 +83,10 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   result is absent, enabling it may fall back to the analyzer-wide static map.
 - Magic and Adaptive mapping controls remain above analyzer stats. Their disabled-mapping state is
   page-session-only and resets on navigation or reload, matching the previous expanded-view model.
-- The styled keyboard's prospective Magic output uses the emulator's exact history and current
-  disabled mappings. A no-op trigger has no active background, and resetting emulator history
-  immediately returns the keycap to its neutral Magic-symbol state.
+- The styled keyboard's prospective Magic and Adaptive output uses the emulator's exact history and
+  current disabled mappings. A no-op Magic trigger has no active background, while each armed
+  Adaptive swap colors both affected keys. Resetting emulator history immediately restores the base
+  keyboard state.
 - Detail pages use normal document scrolling at every viewport width. The Back to layouts header,
   summary card, and active detail panel all move together with the page.
 

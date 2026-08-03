@@ -222,12 +222,15 @@ in the swapped output.
   or Adaptive mapping updates that feature's control.
 - On the layout detail page, mappings sit to the right of the emulator in the first Test-area row at
   wider viewports and stack below it on narrow screens.
-- The detail page's styled keyboard accepts feature-neutral per-key feedback. Magic uses that path
-  for prospective output today; Adaptive/keyswap activation can be added there later without
-  changing the formatted text board or the keyboard renderer's state model.
+- The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
+  history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
+  with the values they would emit and gain the active accent background. The shared preview switch
+  disables this presentation alongside prospective Magic output. The formatted text board never
+  changes.
 
-The resolver returns which behaviors were applied to a keypress. The layout test area does not
-currently display this, but a dedicated typing page may use it later.
+The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
+prospective outputs from the same profile and history, but the layout test area does not display an
+applied-keypress event directly. A dedicated typing page may use that result later.
 
 Disabled mapping state is owned by the current page, shared by the floating window and layout test
 area on the index or by the mappings panel and keyboard summary on the detail route. It is

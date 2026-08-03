@@ -1,6 +1,11 @@
 import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION } from '../../src/lib/layoutDetails';
-import { angleLeftThumb, missingOrthoColumn, repeatKey } from './fixtures/catalog-data';
+import {
+	adaptivePreview,
+	angleLeftThumb,
+	missingOrthoColumn,
+	repeatKey
+} from './fixtures/catalog-data';
 
 test.use({ catalogVariant: 'core' });
 
@@ -294,6 +299,71 @@ test('removes and reapplies angle mod from the summary card action', async ({ pa
 	await expect(angleTestArea).toHaveValue('z');
 	await angleOption.click();
 	await expect(angleOption).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) => {
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: adaptivePreview,
+				authorName: 'acas',
+				likeCount: 0,
+				supplemental: {
+					schema: 1,
+					variants: [
+						{
+							id: 'default',
+							adaptiveSwaps: { mappings: { l: { y: 'j' } } }
+						}
+					]
+				},
+				stats: {}
+			}
+		});
+	});
+	await page.goto('/layouts/adaptive-preview');
+
+	const testArea = page.getByPlaceholder('Layout test area');
+	const preview = page.getByRole('img', { name: 'adaptive-preview keyboard preview' });
+	const yKey = preview.locator('[data-key-char="y"]');
+	const jKey = preview.locator('[data-key-char="j"]');
+	const previewToggle = page.getByRole('switch', { name: 'Preview Adaptive swaps' });
+	const baseBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
+
+	await expect(previewToggle).toBeChecked();
+	await previewToggle.focus();
+	await previewToggle.press('Space');
+	await expect(previewToggle).not.toBeChecked();
+	await testArea.focus();
+	await page.keyboard.press('l');
+	await expect(testArea).toHaveValue('l');
+	await expect(yKey).toHaveText('y');
+	await expect(jKey).toHaveText('j');
+
+	await page.keyboard.press('Escape');
+	await previewToggle.focus();
+	await previewToggle.press('Space');
+	await expect(previewToggle).toBeChecked();
+	await testArea.focus();
+	await page.keyboard.press('l');
+	await expect(yKey).toHaveText('j');
+	await expect(jKey).toHaveText('y');
+	await expect(yKey).toHaveAttribute('data-key-feedback-active', 'true');
+	await expect(jKey).toHaveAttribute('data-key-feedback-active', 'true');
+	const activeBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
+	expect(activeBackground).not.toBe(baseBackground);
+
+	await page.keyboard.press('Escape');
+	await expect(yKey).toHaveText('y');
+	await expect(jKey).toHaveText('j');
+	await expect(yKey).not.toHaveAttribute('data-key-feedback-active', 'true');
+
+	await page.getByRole('checkbox', { name: 'Adaptive swap mappings' }).uncheck();
+	await testArea.focus();
+	await page.keyboard.press('l');
+	await expect(yKey).toHaveText('y');
+	await expect(jKey).toHaveText('j');
 });
 
 test('preserves ortho columns when a row has a missing key', async ({ page }) => {

@@ -41,7 +41,7 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
-	import { buildMagicKeyboardFeedback } from '$lib/layoutKeyboardFeedback';
+	import { buildLayoutKeyboardFeedback } from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import { repeatKeyMappingId } from '$lib/inputMappingControls';
@@ -89,7 +89,7 @@
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let activeSection = $state<DetailSection>('test');
 	let anglemodTransformActive = $state(false);
-	let previewMagicKeyOutput = $state(true);
+	let previewContextualKeyOutput = $state(true);
 	let layoutInputHistory = $state('');
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const testTabId = $derived(`${titleId}-tab-test`);
@@ -126,13 +126,23 @@
 	const hasMagicKeyPreview = $derived(
 		conventionalMagicTriggers.length > 0 || Boolean(inputProfile?.magicKeys)
 	);
+	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
+	const hasContextualKeyPreview = $derived(hasMagicKeyPreview || hasAdaptiveSwapPreview);
+	const contextualKeyPreviewLabel = $derived(
+		hasMagicKeyPreview && hasAdaptiveSwapPreview
+			? 'Preview Magic and Adaptive output'
+			: hasAdaptiveSwapPreview
+				? 'Preview Adaptive swaps'
+				: 'Preview Magic key output'
+	);
 	const keyboardFeedback = $derived(
-		buildMagicKeyboardFeedback(
-			previewMagicKeyOutput ? inputProfile?.magicKeys : undefined,
-			layoutInputHistory,
+		buildLayoutKeyboardFeedback({
+			magicKeys: previewContextualKeyOutput ? inputProfile?.magicKeys : undefined,
+			adaptiveSwaps: previewContextualKeyOutput ? inputProfile?.adaptiveSwaps : undefined,
+			inputHistory: layoutInputHistory,
 			disabledMappingIds,
-			previewMagicKeyOutput ? conventionalMagicTriggers : []
-		)
+			knownMagicTriggers: previewContextualKeyOutput ? conventionalMagicTriggers : []
+		})
 	);
 	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
 	const cyanophageUrl = $derived(
@@ -406,13 +416,13 @@
 						</div>
 
 						<div class="detail-keyboard-preview">
-							{#if hasMagicKeyPreview}
+							{#if hasContextualKeyPreview}
 								<label class="detail-keyboard-preview-toggle">
-									<input type="checkbox" role="switch" bind:checked={previewMagicKeyOutput} />
+									<input type="checkbox" role="switch" bind:checked={previewContextualKeyOutput} />
 									<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
 										<span></span>
 									</span>
-									<span>Preview Magic key output</span>
+									<span>{contextualKeyPreviewLabel}</span>
 								</label>
 							{/if}
 							<LayoutKeyboardPreview {layout} rows={displayRows} feedback={keyboardFeedback} />
