@@ -16,6 +16,7 @@
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		variant?: 'card' | 'page';
+		onInputHistoryChange?: (history: string) => void;
 	}
 
 	const {
@@ -23,14 +24,20 @@
 		keyMaps,
 		inputProfile,
 		disabledMappingIds = [],
-		variant = 'card'
+		variant = 'card',
+		onInputHistoryChange
 	}: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
 	let inputHistory = '';
 	const disabledMappings = $derived(new Set(disabledMappingIds));
 
+	function setInputHistory(history: string) {
+		inputHistory = history;
+		onInputHistoryChange?.(history);
+	}
+
 	function resetInputHistory() {
-		inputHistory = '';
+		setInputHistory('');
 	}
 
 	function isModifierKey(key: string) {
@@ -52,7 +59,7 @@
 	function processLayoutText(text: string) {
 		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
 		insertText(result.text);
-		inputHistory = result.nextHistory;
+		setInputHistory(result.nextHistory);
 	}
 
 	$effect(() => {

@@ -221,6 +221,23 @@ Filters are also independent:
 The layout detail page may show Magic and Adaptive controls, while Repeat remains controlled by the
 icon beside the keyboard summary.
 
+The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
+default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
+cards instead of its literal marker. This includes a conventional `*` whose mappings are
+unavailable. The preview resolves mapped triggers against the test area's current uninterrupted
+emitted history and disabled-mapping set:
+
+- when pressing the trigger would emit a value, the keycap displays that value and gains the active
+  accent background;
+- when no rule or emitting fallback applies, the Magic symbol remains on the ordinary neutral
+  keycap;
+- turning the preview off restores literal trigger characters and ordinary key styling.
+
+This is prospective state, not a second input resolver: the keyboard derives it with the same pure
+Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback so Adaptive
+keyswap indication can use the same styled-keyboard path later without changing the formatted text
+board.
+
 ## Analyzer boundaries
 
 Cmini stats describe the base layout and do not incorporate contextual behavior.

@@ -60,6 +60,11 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   controls share that first row on the right while the emulator occupies the larger left portion;
   narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
   keyboard-preview region follows, with its key group centered without an outer card treatment.
+  For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
+  trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
+  an output, then shows that next output on an accent-colored keycap. A local switch restores the
+  literal trigger characters and ordinary key styling. An unmapped conventional `*` still gets the
+  neutral Magic symbol but cannot show a prospective output.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
   Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
@@ -75,6 +80,9 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   result is absent, enabling it may fall back to the analyzer-wide static map.
 - Magic and Adaptive mapping controls remain above analyzer stats. Their disabled-mapping state is
   page-session-only and resets on navigation or reload, matching the previous expanded-view model.
+- The styled keyboard's prospective Magic output uses the emulator's exact history and current
+  disabled mappings. A no-op trigger has no active background, and resetting emulator history
+  immediately returns the keycap to its neutral Magic-symbol state.
 - Detail pages use normal document scrolling at every viewport width. The Back to layouts header,
   summary card, and active detail panel all move together with the page.
 

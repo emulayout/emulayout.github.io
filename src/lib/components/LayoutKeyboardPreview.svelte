@@ -1,10 +1,18 @@
 <script lang="ts">
+	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
+	import type {
+		LayoutKeyboardFeedback,
+		LayoutKeyboardKeyFeedback
+	} from '$lib/layoutKeyboardFeedback';
+
+	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
 
 	interface Props {
 		layout: LayoutData;
 		rows: DisplayCell[][];
+		feedback?: LayoutKeyboardFeedback;
 	}
 
 	type PreviewKey = DisplayCell & { slot: string };
@@ -27,7 +35,7 @@
 		thumbs: boolean;
 	};
 
-	const { layout, rows }: Props = $props();
+	const { layout, rows, feedback = EMPTY_FEEDBACK }: Props = $props();
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
 	const rightThumbKeys = $derived(
 		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
@@ -101,6 +109,16 @@
 	}
 </script>
 
+{#snippet keyContent(key: PreviewKey, keyFeedback: LayoutKeyboardKeyFeedback | undefined)}
+	{#if keyFeedback?.kind === 'magic' && !keyFeedback.value}
+		<span class="keyboard-preview__magic-icon">
+			<LayoutInputFeatureIcon feature="magic" />
+		</span>
+	{:else}
+		{keyFeedback?.value ?? key.char}
+	{/if}
+{/snippet}
+
 <div
 	class="keyboard-preview"
 	role="img"
@@ -120,9 +138,21 @@
 						<div class="keyboard-preview__half keyboard-preview__half--left">
 							{#each row.leftSlots as slot (slot.column)}
 								{#if slot.key}
-									<span class="keyboard-preview__key" data-key-column={slot.column}
-										>{slot.key.char}</span
+									{@const keyFeedback = feedback.get(slot.key.char)}
+									<span
+										class="keyboard-preview__key"
+										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+										class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+										data-key-char={slot.key.char}
+										data-key-column={slot.column}
+										data-key-feedback={keyFeedback?.kind}
+										data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+										title={keyFeedback?.value
+											? `${slot.key.char} emits ${keyFeedback.value}`
+											: undefined}
 									>
+										{@render keyContent(slot.key, keyFeedback)}
+									</span>
 								{:else}
 									<span class="keyboard-preview__key-placeholder" data-key-column={slot.column}
 									></span>
@@ -132,9 +162,21 @@
 						<div class="keyboard-preview__half keyboard-preview__half--right">
 							{#each row.rightSlots as slot (slot.column)}
 								{#if slot.key}
-									<span class="keyboard-preview__key" data-key-column={slot.column}
-										>{slot.key.char}</span
+									{@const keyFeedback = feedback.get(slot.key.char)}
+									<span
+										class="keyboard-preview__key"
+										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+										class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+										data-key-char={slot.key.char}
+										data-key-column={slot.column}
+										data-key-feedback={keyFeedback?.kind}
+										data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+										title={keyFeedback?.value
+											? `${slot.key.char} emits ${keyFeedback.value}`
+											: undefined}
 									>
+										{@render keyContent(slot.key, keyFeedback)}
+									</span>
 								{:else}
 									<span class="keyboard-preview__key-placeholder" data-key-column={slot.column}
 									></span>
@@ -148,10 +190,20 @@
 						data-keyboard-row={row.rowNumber}
 					>
 						{#each row.ansiThumbKeys as thumb (thumb.key.slot)}
+							{@const keyFeedback = feedback.get(thumb.key.char)}
 							<span
 								class="keyboard-preview__key keyboard-preview__key--ansi-thumb"
+								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+								class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+								data-key-char={thumb.key.char}
 								data-thumb-column={thumb.column}
-								style={`left: ${ansiThumbOffset(thumb.column)};`}>{thumb.key.char}</span
+								data-key-feedback={keyFeedback?.kind}
+								data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+								title={keyFeedback?.value
+									? `${thumb.key.char} emits ${keyFeedback.value}`
+									: undefined}
+								style={`left: ${ansiThumbOffset(thumb.column)};`}
+								>{@render keyContent(thumb.key, keyFeedback)}</span
 							>
 						{/each}
 					</div>
@@ -162,7 +214,18 @@
 						style={`--preview-row-offset: ${ansiRowOffset(row.rowNumber)};`}
 					>
 						{#each row.keys as key (key.slot)}
-							<span class="keyboard-preview__key">{key.char}</span>
+							{@const keyFeedback = feedback.get(key.char)}
+							<span
+								class="keyboard-preview__key"
+								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+								class:keyboard-preview__key--active={Boolean(keyFeedback?.value)}
+								data-key-char={key.char}
+								data-key-feedback={keyFeedback?.kind}
+								data-key-feedback-active={keyFeedback?.value ? 'true' : undefined}
+								title={keyFeedback?.value ? `${key.char} emits ${keyFeedback.value}` : undefined}
+							>
+								{@render keyContent(key, keyFeedback)}
+							</span>
 						{/each}
 					</div>
 				{/if}
@@ -266,5 +329,35 @@
 		font-weight: 600;
 		line-height: 1;
 		text-transform: none;
+	}
+
+	.keyboard-preview__magic-icon {
+		display: inline-flex;
+		width: clamp(1.05rem, 2.2vw, 1.35rem);
+		height: clamp(1.05rem, 2.2vw, 1.35rem);
+		align-items: center;
+		justify-content: center;
+		color: var(--accent);
+	}
+
+	.keyboard-preview__magic-icon :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
+
+	.keyboard-preview__key--active {
+		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--accent) 35%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--accent) 20%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
+			0 2px 0 color-mix(in srgb, var(--accent) 42%, black),
+			0 0 0.5rem color-mix(in srgb, var(--accent) 22%, transparent);
+		font-size: clamp(0.65rem, 1.45vw, 1rem);
+		letter-spacing: -0.02em;
+		white-space: nowrap;
 	}
 </style>
