@@ -330,9 +330,13 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	const yKey = preview.locator('[data-key-char="y"]');
 	const jKey = preview.locator('[data-key-char="j"]');
 	const previewToggle = page.getByRole('switch', { name: 'Preview Adaptive swaps' });
+	const pathToggle = page.getByRole('switch', { name: 'Show swap paths' });
+	const swapPath = preview.locator('[data-swap-path="j:y"]');
 	const baseBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
 
 	await expect(previewToggle).toBeChecked();
+	await expect(pathToggle).not.toBeChecked();
+	await expect(swapPath).toHaveCount(0);
 	await previewToggle.focus();
 	await previewToggle.press('Space');
 	await expect(previewToggle).not.toBeChecked();
@@ -346,12 +350,16 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	await previewToggle.focus();
 	await previewToggle.press('Space');
 	await expect(previewToggle).toBeChecked();
+	await pathToggle.focus();
+	await pathToggle.press('Space');
+	await expect(pathToggle).toBeChecked();
 	await testArea.focus();
 	await page.keyboard.press('l');
 	await expect(yKey).toHaveText('j');
 	await expect(jKey).toHaveText('y');
 	await expect(yKey).toHaveAttribute('data-key-feedback-active', 'true');
 	await expect(jKey).toHaveAttribute('data-key-feedback-active', 'true');
+	await expect(swapPath).toHaveCount(1);
 	const activeBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
 	expect(activeBackground).not.toBe(baseBackground);
 
@@ -359,12 +367,14 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	await expect(yKey).toHaveText('y');
 	await expect(jKey).toHaveText('j');
 	await expect(yKey).not.toHaveAttribute('data-key-feedback-active', 'true');
+	await expect(swapPath).toHaveCount(0);
 
 	await page.getByRole('checkbox', { name: 'Adaptive swap mappings' }).uncheck();
 	await testArea.focus();
 	await page.keyboard.press('l');
 	await expect(yKey).toHaveText('y');
 	await expect(jKey).toHaveText('j');
+	await expect(swapPath).toHaveCount(0);
 });
 
 test('preserves ortho columns when a row has a missing key', async ({ page }) => {

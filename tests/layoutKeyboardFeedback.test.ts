@@ -3,6 +3,7 @@ import { adaptiveRuleMappingId } from '$lib/inputMappingControls';
 import { compileLayoutInputProfile } from '$lib/layoutInputBehaviors';
 import {
 	buildAdaptiveKeyboardFeedback,
+	buildAdaptiveKeyboardSwapPaths,
 	buildLayoutKeyboardFeedback,
 	buildMagicKeyboardFeedback
 } from '$lib/layoutKeyboardFeedback';
@@ -19,6 +20,10 @@ describe('layout keyboard feedback', () => {
 		expect(feedback.get('j')).toEqual({ kind: 'adaptive', value: 'y', active: true });
 		expect(buildAdaptiveKeyboardFeedback(adaptiveProfile.adaptiveSwaps, '')).toEqual(new Map());
 		expect(buildAdaptiveKeyboardFeedback(adaptiveProfile.adaptiveSwaps, 'x')).toEqual(new Map());
+		expect(buildAdaptiveKeyboardSwapPaths(adaptiveProfile.adaptiveSwaps, 'l')).toEqual([
+			{ from: 'j', to: 'y' }
+		]);
+		expect(buildAdaptiveKeyboardSwapPaths(adaptiveProfile.adaptiveSwaps, '')).toEqual([]);
 	});
 
 	test('omits disabled Adaptive swaps', () => {
@@ -27,6 +32,9 @@ describe('layout keyboard feedback', () => {
 
 		expect(buildAdaptiveKeyboardFeedback(adaptiveProfile.adaptiveSwaps, 'l', [mappingId])).toEqual(
 			new Map()
+		);
+		expect(buildAdaptiveKeyboardSwapPaths(adaptiveProfile.adaptiveSwaps, 'l', [mappingId])).toEqual(
+			[]
 		);
 	});
 

@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
 	import type {
 		LayoutKeyboardFeedback,
-		LayoutKeyboardKeyFeedback
+		LayoutKeyboardKeyFeedback,
+		LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
@@ -13,6 +15,7 @@
 		layout: LayoutData;
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
+		swapPaths?: readonly LayoutKeyboardSwapPath[];
 	}
 
 	type PreviewKey = DisplayCell & { slot: string };
@@ -34,8 +37,22 @@
 		ansiThumbKeys: PreviewThumbKey[];
 		thumbs: boolean;
 	};
+	type RenderedSwapPath = LayoutKeyboardSwapPath & {
+		id: string;
+		x1: number;
+		y1: number;
+		x2: number;
+		y2: number;
+	};
+	type SwapPathLayer = {
+		width: number;
+		height: number;
+		paths: RenderedSwapPath[];
+	};
 
-	const { layout, rows, feedback = EMPTY_FEEDBACK }: Props = $props();
+	const { layout, rows, feedback = EMPTY_FEEDBACK, swapPaths = [] }: Props = $props();
+	let keysElement: HTMLDivElement | null = $state(null);
+	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
 	const rightThumbKeys = $derived(
 		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
@@ -107,6 +124,88 @@
 	function ansiThumbOffset(column: number): string {
 		return `calc(var(--preview-key-size) * ${column + 0.68} + var(--preview-key-gap) * ${column})`;
 	}
+
+	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
+		const horizontal = unitX === 0 ? Number.POSITIVE_INFINITY : rect.width / 2 / Math.abs(unitX);
+		const vertical = unitY === 0 ? Number.POSITIVE_INFINITY : rect.height / 2 / Math.abs(unitY);
+		return Math.min(horizontal, vertical);
+	}
+
+	function measureSwapPaths(
+		container: HTMLDivElement,
+		paths: readonly LayoutKeyboardSwapPath[]
+	): SwapPathLayer {
+		const containerRect = container.getBoundingClientRect();
+		const keyByChar = new Map(
+			Array.from(container.querySelectorAll<HTMLElement>('[data-key-char]')).map((key) => [
+				key.dataset.keyChar ?? '',
+				key
+			])
+		);
+		const renderedPaths = paths.flatMap((path): RenderedSwapPath[] => {
+			const fromKey = keyByChar.get(path.from);
+			const toKey = keyByChar.get(path.to);
+			if (!fromKey || !toKey) return [];
+
+			const fromRect = fromKey.getBoundingClientRect();
+			const toRect = toKey.getBoundingClientRect();
+			const fromCenterX = fromRect.left + fromRect.width / 2;
+			const fromCenterY = fromRect.top + fromRect.height / 2;
+			const toCenterX = toRect.left + toRect.width / 2;
+			const toCenterY = toRect.top + toRect.height / 2;
+			const deltaX = toCenterX - fromCenterX;
+			const deltaY = toCenterY - fromCenterY;
+			const distance = Math.hypot(deltaX, deltaY);
+			if (distance === 0) return [];
+
+			const unitX = deltaX / distance;
+			const unitY = deltaY / distance;
+			const fromEdge = edgeDistance(fromRect, unitX, unitY);
+			const toEdge = edgeDistance(toRect, unitX, unitY);
+
+			return [
+				{
+					...path,
+					id: `${path.from}:${path.to}`,
+					x1: fromCenterX - containerRect.left + unitX * fromEdge,
+					y1: fromCenterY - containerRect.top + unitY * fromEdge,
+					x2: toCenterX - containerRect.left - unitX * toEdge,
+					y2: toCenterY - containerRect.top - unitY * toEdge
+				}
+			];
+		});
+
+		return {
+			width: containerRect.width,
+			height: containerRect.height,
+			paths: renderedPaths
+		};
+	}
+
+	$effect(() => {
+		const container = keysElement;
+		const paths = swapPaths;
+		void rows;
+		if (!container || paths.length === 0) {
+			swapPathLayer = { width: 0, height: 0, paths: [] };
+			return;
+		}
+
+		let disposed = false;
+		const update = () => {
+			if (!disposed) swapPathLayer = measureSwapPaths(container, paths);
+		};
+		void tick().then(update);
+		const resizeObserver = new ResizeObserver(update);
+		resizeObserver.observe(container);
+		window.addEventListener('resize', update);
+
+		return () => {
+			disposed = true;
+			resizeObserver.disconnect();
+			window.removeEventListener('resize', update);
+		};
+	});
 </script>
 
 {#snippet keyContent(key: PreviewKey, keyFeedback: LayoutKeyboardKeyFeedback | undefined)}
@@ -127,7 +226,26 @@
 	data-geometry={orthoGeometry ? 'ortho' : 'ansi'}
 >
 	<div class="keyboard-preview__board" aria-hidden="true">
-		<div class="keyboard-preview__keys">
+		<div class="keyboard-preview__keys" bind:this={keysElement}>
+			{#if swapPathLayer.paths.length > 0}
+				<svg
+					class="keyboard-preview__swap-paths"
+					viewBox={`0 0 ${swapPathLayer.width} ${swapPathLayer.height}`}
+					preserveAspectRatio="none"
+					aria-hidden="true"
+				>
+					{#each swapPathLayer.paths as path (path.id)}
+						<line
+							class="keyboard-preview__swap-path"
+							data-swap-path={path.id}
+							x1={path.x1}
+							y1={path.y1}
+							x2={path.x2}
+							y2={path.y2}
+						/>
+					{/each}
+				</svg>
+			{/if}
 			{#each previewRows as row (row.rowNumber)}
 				{#if orthoGeometry}
 					<div
@@ -252,9 +370,29 @@
 	}
 
 	.keyboard-preview__keys {
+		position: relative;
 		width: max-content;
 		margin-inline: auto;
 		padding-block: 0.125rem 0.3rem;
+	}
+
+	.keyboard-preview__swap-paths {
+		position: absolute;
+		z-index: 2;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+		pointer-events: none;
+	}
+
+	.keyboard-preview__swap-path {
+		stroke: var(--accent);
+		stroke-width: 3;
+		stroke-linecap: round;
+		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--accent) 52%, transparent));
+		opacity: 0.82;
+		vector-effect: non-scaling-stroke;
 	}
 
 	.keyboard-preview__row,

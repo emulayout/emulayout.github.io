@@ -67,7 +67,9 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   neutral Magic symbol but cannot show a prospective output.
   Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both
   affected keycaps replace their base letters with their swapped outputs and use the active accent
-  background until the uninterrupted context changes or resets.
+  background until the uninterrupted context changes or resets. A separate, default-off `Show swap
+paths` switch draws accent connectors between each currently active pair. Paths can be shown
+  independently of the label preview and disappear with the same history and mapping resets.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
   Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
@@ -85,8 +87,8 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   page-session-only and resets on navigation or reload, matching the previous expanded-view model.
 - The styled keyboard's prospective Magic and Adaptive output uses the emulator's exact history and
   current disabled mappings. A no-op Magic trigger has no active background, while each armed
-  Adaptive swap colors both affected keys. Resetting emulator history immediately restores the base
-  keyboard state.
+  Adaptive swap colors both affected keys and optionally connects them. Resetting emulator history
+  immediately restores the base keyboard state and removes every connector.
 - Detail pages use normal document scrolling at every viewport width. The All layouts header,
   summary card, and active detail panel all move together with the page.
 

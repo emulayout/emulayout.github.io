@@ -41,7 +41,10 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
-	import { buildLayoutKeyboardFeedback } from '$lib/layoutKeyboardFeedback';
+	import {
+		buildAdaptiveKeyboardSwapPaths,
+		buildLayoutKeyboardFeedback
+	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import { repeatKeyMappingId } from '$lib/inputMappingControls';
@@ -90,6 +93,7 @@
 	let activeSection = $state<DetailSection>('test');
 	let anglemodTransformActive = $state(false);
 	let previewContextualKeyOutput = $state(true);
+	let showAdaptiveSwapPaths = $state(false);
 	let layoutInputHistory = $state('');
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const testTabId = $derived(`${titleId}-tab-test`);
@@ -143,6 +147,15 @@
 			disabledMappingIds,
 			knownMagicTriggers: previewContextualKeyOutput ? conventionalMagicTriggers : []
 		})
+	);
+	const keyboardSwapPaths = $derived(
+		showAdaptiveSwapPaths
+			? buildAdaptiveKeyboardSwapPaths(
+					inputProfile?.adaptiveSwaps,
+					layoutInputHistory,
+					disabledMappingIds
+				)
+			: []
 	);
 	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
 	const cyanophageUrl = $derived(
@@ -417,15 +430,35 @@
 
 						<div class="detail-keyboard-preview">
 							{#if hasContextualKeyPreview}
-								<label class="detail-keyboard-preview-toggle">
-									<input type="checkbox" role="switch" bind:checked={previewContextualKeyOutput} />
-									<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
-										<span></span>
-									</span>
-									<span>{contextualKeyPreviewLabel}</span>
-								</label>
+								<div class="detail-keyboard-preview-controls">
+									<label class="detail-keyboard-preview-toggle">
+										<input
+											type="checkbox"
+											role="switch"
+											bind:checked={previewContextualKeyOutput}
+										/>
+										<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
+											<span></span>
+										</span>
+										<span>{contextualKeyPreviewLabel}</span>
+									</label>
+									{#if hasAdaptiveSwapPreview}
+										<label class="detail-keyboard-preview-toggle">
+											<input type="checkbox" role="switch" bind:checked={showAdaptiveSwapPaths} />
+											<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
+												<span></span>
+											</span>
+											<span>Show swap paths</span>
+										</label>
+									{/if}
+								</div>
 							{/if}
-							<LayoutKeyboardPreview {layout} rows={displayRows} feedback={keyboardFeedback} />
+							<LayoutKeyboardPreview
+								{layout}
+								rows={displayRows}
+								feedback={keyboardFeedback}
+								swapPaths={keyboardSwapPaths}
+							/>
 						</div>
 					</div>
 				{:else}
@@ -811,13 +844,19 @@
 	.detail-keyboard-preview-toggle {
 		display: inline-flex;
 		align-items: center;
-		align-self: flex-end;
 		gap: 0.5rem;
 		color: var(--text-secondary);
 		font-size: 0.75rem;
 		font-weight: 600;
 		line-height: 1rem;
 		cursor: pointer;
+	}
+
+	.detail-keyboard-preview-controls {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0.625rem 1rem;
 	}
 
 	.detail-keyboard-preview-toggle input {

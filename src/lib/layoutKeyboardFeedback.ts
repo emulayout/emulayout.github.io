@@ -13,6 +13,11 @@ export interface LayoutKeyboardKeyFeedback {
 
 export type LayoutKeyboardFeedback = ReadonlyMap<string, LayoutKeyboardKeyFeedback>;
 
+export interface LayoutKeyboardSwapPath {
+	from: string;
+	to: string;
+}
+
 /**
  * Build the current styled-keyboard presentation for every Magic trigger.
  * This remains independently composable with Adaptive/keyswap feedback.
@@ -59,6 +64,28 @@ export function buildAdaptiveKeyboardFeedback(
 	}
 
 	return feedback;
+}
+
+/** Build one undirected connector for each currently armed Adaptive pair. */
+export function buildAdaptiveKeyboardSwapPaths(
+	profile: AdaptiveSwapProfile | undefined,
+	inputHistory: string,
+	disabledMappingIds: readonly string[] = []
+): readonly LayoutKeyboardSwapPath[] {
+	const feedback = buildAdaptiveKeyboardFeedback(profile, inputHistory, disabledMappingIds);
+	const paths: LayoutKeyboardSwapPath[] = [];
+	const seen = new Set<string>();
+
+	for (const [from, state] of feedback) {
+		if (state.kind !== 'adaptive' || !state.active || !state.value) continue;
+		const pair = [from, state.value].sort();
+		const id = `${pair[0]}\0${pair[1]}`;
+		if (seen.has(id)) continue;
+		seen.add(id);
+		paths.push({ from: pair[0], to: pair[1] });
+	}
+
+	return paths;
 }
 
 export interface LayoutKeyboardFeedbackOptions {
