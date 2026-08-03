@@ -1,15 +1,36 @@
 import { expect, test } from '../fixtures/test';
+import { MANA2_STAT_KEYS } from '$lib/statsDerivation';
+
+function mana2Stats(values: Partial<Record<(typeof MANA2_STAT_KEYS)[number], number>>): number[] {
+	return MANA2_STAT_KEYS.map((key) => Math.round((values[key] ?? 0) * 10_000));
+}
 
 test('opens the selected analyzer finger filter and Shift-click sets its maximum', async ({
 	page
 }) => {
+	await page.route('**/layout-stats-mana2.json', async (route) => {
+		await route.fulfill({
+			json: {
+				QWERTY: mana2Stats({
+					'finger-usage-LP': 5.3,
+					'finger-usage-LR': 7,
+					'finger-usage-LM': 15,
+					'finger-usage-LI': 18,
+					'finger-usage-RI': 18,
+					'finger-usage-RM': 15,
+					'finger-usage-RR': 7,
+					'finger-usage-RP': 5.3,
+					sfb: 1
+				})
+			}
+		});
+	});
 	await page.goto('/?name=QWERTY&analyzer=mana2&stats=1&testArea=0&likes=0&newIndicator=0');
 
 	const qwertyCard = page.locator('[data-layout-name="QWERTY"]');
 	const leftPinkyBar = qwertyCard.getByRole('button', {
 		name: /Open Left pinky usage filter/
 	});
-	await leftPinkyBar.scrollIntoViewIfNeeded();
 	await expect(leftPinkyBar).toBeVisible();
 
 	const accessibleName = await leftPinkyBar.getAttribute('aria-label');
