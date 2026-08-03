@@ -41,6 +41,7 @@ Compact layout metadata keeps these facts separate:
 - `hasMagicKey`: the layout contains `*`, or any curated variant defines a trigger;
 - `hasRepeatKey`: the layout contains `@` and the first variant does not define `@`;
 - `hasMagicKeyMappings`: any curated variant carries Magic mappings;
+- `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage;
 - Adaptive-swap presence and mapping availability use their own flags.
 
 `hasRepeatKey` has a dedicated compact wire flag. The generated metadata, rather than the client
@@ -217,7 +218,20 @@ the icon beside the keyboard.
 
 ## Analyzer boundaries
 
-Cmini and Cyanophage stats describe the base layout and do not incorporate contextual behavior.
+Cmini stats describe the base layout and do not incorporate contextual behavior.
+
+Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when the first
+curated variant has a supported Magic profile (and optionally a default Repeat key):
+
+- corpus words are rewritten before scoring (`letter + expansion` → `letter + magic key`,
+  and doubled letters → `letter + @` for Repeat);
+- only single-character preceding Magic contexts are applied; multi-character contexts and
+  Emulayout fallbacks are ignored so results stay comparable to Cyanophage's Magic page;
+- profiles with multiple Magic triggers are not measured, because Cyanophage models only one;
+- a layout that contains `*` is measured only when curated Magic mappings are available;
+  otherwise Cyanophage stats stay unavailable with an explicit card explanation;
+- layouts measured this way may still be playground-incompatible for deep-links;
+- Adaptive swaps are not included.
 
 Mana2 records Magic and Repeat analysis independently:
 

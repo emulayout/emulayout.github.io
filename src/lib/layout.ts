@@ -30,6 +30,8 @@ export interface LayoutData {
 	hasRepeatKey: boolean;
 	/** A curated profile is available in the separately loaded mappings payload. */
 	hasMagicKeyMappings: boolean;
+	/** The default Magic profile cannot currently be modeled by Cyanophage. */
+	cyanophageStatsNeedMagicMappings: boolean;
 	/** The layout is known to use adaptive swaps, whether or not mappings are available. */
 	hasAdaptiveSwap: boolean;
 	/** Curated adaptive-swap mappings are available in the input-behavior payload. */

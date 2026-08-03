@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { StatsAnalyzer } from '$lib/statsAnalyzers';
+	import { getCyanophageStatsUnavailableReason, type StatsAnalyzer } from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
@@ -50,7 +50,7 @@
 	const statsModel = $derived(
 		buildLayoutStatsBlockModel(analyzer, compactStats, {
 			loading: statsLoading,
-			cyanophageCompatible: layout.cyanophageCompatible
+			cyanophageUnavailableReason: getCyanophageStatsUnavailableReason(layout)
 		})
 	);
 </script>

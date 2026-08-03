@@ -16,6 +16,7 @@
 		CYANOPHAGE_UNSUPPORTED_LABEL,
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
+		getCyanophageStatsUnavailableReason,
 		showsCyanophageStats,
 		showsMana2Stats,
 		showsCminiStats
@@ -208,7 +209,7 @@
 					: compactCminiStats;
 		const sourceModel = buildLayoutStatsBlockModel(sortField.analyzer, compactStats, {
 			loading: layoutStatsStore.isLoading(sortField.analyzer),
-			cyanophageCompatible: layout.cyanophageCompatible,
+			cyanophageUnavailableReason: getCyanophageStatsUnavailableReason(layout),
 			highlights: sortFieldHighlight,
 			sortOrder: filterStore.sortOrder
 		});
@@ -231,7 +232,7 @@
 		showCyanophageStats
 			? buildLayoutStatsBlockModel(CYANOPHAGE_ANALYZER, compactCyanophageStats, {
 					loading: cyanophageLoading,
-					cyanophageCompatible: layout.cyanophageCompatible,
+					cyanophageUnavailableReason: getCyanophageStatsUnavailableReason(layout),
 					highlights: sortFieldHighlight,
 					sortOrder: filterStore.sortOrder
 				})

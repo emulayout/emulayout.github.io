@@ -38,11 +38,8 @@ describe('layout stats access', () => {
 		expect(getLayoutMana2Stats(statsMaps, layout.name)?.sfb).toBe(0.01);
 	});
 
-	test('respects Cyanophage compatibility before exposing its stats', () => {
-		expect(
-			getLayoutAnalyzerStats(statsMaps, layout.name, CYANOPHAGE_ANALYZER, false)
-		).toBeUndefined();
-		expect(getLayoutAnalyzerStats(statsMaps, layout.name, CYANOPHAGE_ANALYZER, true)).toBeDefined();
+	test('exposes Cyanophage stats whenever compact data exists', () => {
+		expect(getLayoutAnalyzerStats(statsMaps, layout.name, CYANOPHAGE_ANALYZER)).toBeDefined();
 	});
 
 	test('treats an empty loaded map as ready and an absent map as pending', () => {
@@ -58,6 +55,6 @@ describe('layout stats access', () => {
 		expect(getStatSortValue(statsMaps, layout, 'cyano-effort', CMINI_ANALYZER)).toBeNull();
 		expect(
 			getStatSortValue(statsMaps, { ...layout, cyanophageCompatible: false }, 'cyano-effort')
-		).toBeNull();
+		).toBe(1);
 	});
 });

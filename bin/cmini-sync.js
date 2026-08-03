@@ -21,6 +21,7 @@ import {
 	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
 } from './cyanophage-stats.js';
+import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
 import {
 	defaultMagicMappings,
 	hasAdaptiveSwapMappings,
@@ -303,6 +304,10 @@ async function run() {
 		transformedLayout.hasMagicKey =
 			hasMagicKeyMarker(rawLayout.keys) || transformedLayout.hasMagicKeyMappings;
 		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
+		transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
+			defaultMagicMappings(variants),
+			rawLayout.keys
+		);
 		transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
 		transformedLayout.hasAdaptiveSwap =
 			adaptiveLayoutNames.has(rawLayout.name) || transformedLayout.hasAdaptiveSwapMappings;
@@ -311,7 +316,9 @@ async function run() {
 			statsCache: statsCache ?? undefined,
 			layoutContent: originalContent
 		});
-		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData);
+		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
+			magicMappings: defaultMagicMappings(variants)
+		});
 
 		return {
 			encoded: encodeLayout(transformedLayout),

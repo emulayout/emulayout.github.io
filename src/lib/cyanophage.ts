@@ -353,6 +353,13 @@ export function formatLayoutForCyanophage(
 	return layout;
 }
 
+/**
+ * Contextual-input markers Emulayout can place on a board for offline
+ * Cyanophage measurement even though the playground import charset rejects
+ * them (`*` Magic, `@` Repeat). Playground deep-links stay stricter.
+ */
+export const CYANOPHAGE_MEASURABLE_EXTRA_CHARS: ReadonlySet<string> = new Set(['*', '@']);
+
 /** Unsupported key labels for cyanophage import and effort measurement. */
 export function getUnsupportedCyanophageChars(keys: Record<string, KeyInfo>): string[] {
 	const unsupported = new Set<string>();
@@ -366,10 +373,36 @@ export function getUnsupportedCyanophageChars(keys: Record<string, KeyInfo>): st
 	return [...unsupported].sort();
 }
 
+/**
+ * Characters that block playground import but still have a board position we
+ * can score offline (Magic / Repeat markers).
+ */
+export function getCyanophageMeasurementOnlyChars(keys: Record<string, KeyInfo>): string[] {
+	return getUnsupportedCyanophageChars(keys).filter((char) =>
+		CYANOPHAGE_MEASURABLE_EXTRA_CHARS.has(char)
+	);
+}
+
 /** True when the layout can be imported and measured faithfully in cyanophage. */
 export function isCyanophageCompatible(keys: Record<string, KeyInfo>): boolean {
 	if (!keys || Object.keys(keys).length === 0) return false;
 	return getCyanophageIncompatibilities(keys).length === 0;
+}
+
+/**
+ * True when Emulayout can compute Cyanophage effort stats offline.
+ * Allows `*` / `@` markers that the playground cannot deep-link.
+ */
+export function isCyanophageMeasurable(keys: Record<string, KeyInfo>): boolean {
+	if (!keys || Object.keys(keys).length === 0) return false;
+
+	const unsupported = getUnsupportedCyanophageChars(keys);
+	if (unsupported.some((char) => !CYANOPHAGE_MEASURABLE_EXTRA_CHARS.has(char))) {
+		return false;
+	}
+
+	const thumbKeyCount = countCyanophageThumbKeys(keys);
+	return thumbKeyCount <= 1;
 }
 
 export function formatUnsupportedCyanophageChars(chars: string[]): string {

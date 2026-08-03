@@ -4,6 +4,7 @@ import {
 	LAYOUT_FLAG_ADAPTIVE_SWAP,
 	LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS,
 	LAYOUT_FLAG_ALL_LETTERS,
+	LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED,
 	LAYOUT_FLAG_MAGIC_KEY,
 	LAYOUT_FLAG_MAGIC_KEY_MAPPINGS,
 	LAYOUT_FLAG_REPEAT_KEY
@@ -28,6 +29,16 @@ describe('layout codec flags', () => {
 		expect(knownMagic.hasMagicKeyMappings).toBe(false);
 		expect(mappedMagic.hasMagicKey).toBe(true);
 		expect(mappedMagic.hasMagicKeyMappings).toBe(true);
+		expect(mappedMagic.cyanophageStatsNeedMagicMappings).toBe(false);
+
+		const cyanophageMappingsRequired = decodeLayout([
+			...base.slice(0, 4),
+			LAYOUT_FLAG_ALL_LETTERS |
+				LAYOUT_FLAG_MAGIC_KEY |
+				LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED,
+			...base.slice(5)
+		]);
+		expect(cyanophageMappingsRequired.cyanophageStatsNeedMagicMappings).toBe(true);
 	});
 
 	test('decodes repeat-key presence independently from the @ character', () => {

@@ -26,6 +26,7 @@ export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
 export const LAYOUT_FLAG_REPEAT_KEY = 512;
+export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
 
 /** Current wire format field count (no displayValue). */
 export const COMPACT_LAYOUT_FIELD_COUNT = 9;
@@ -123,6 +124,8 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		hasMagicKey: (flags & LAYOUT_FLAG_MAGIC_KEY) !== 0,
 		hasRepeatKey: (flags & LAYOUT_FLAG_REPEAT_KEY) !== 0,
 		hasMagicKeyMappings: (flags & LAYOUT_FLAG_MAGIC_KEY_MAPPINGS) !== 0,
+		cyanophageStatsNeedMagicMappings:
+			(flags & LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED) !== 0,
 		hasAdaptiveSwap: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP) !== 0,
 		hasAdaptiveSwapMappings: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS) !== 0,
 		characterSet: (flags & LAYOUT_FLAG_INTERNATIONAL) !== 0 ? 'international' : 'english',

@@ -6,7 +6,6 @@
 	} from '$lib/statsDerivation';
 	import {
 		CYANOPHAGE_ANALYZER,
-		CYANOPHAGE_UNSUPPORTED_LABEL,
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		type StatsAnalyzer
@@ -19,17 +18,11 @@
 		label: string;
 		stats: DerivedBotStats | DerivedCyanophageStats | DerivedMana2Stats | null;
 		loading?: boolean;
-		/** When cyanophage stats are missing because the layout is incompatible. */
-		cyanophageUnsupported?: boolean;
+		/** When cyanophage stats are missing, the specific reason to show. */
+		cyanophageUnavailableReason?: string;
 	}
 
-	const {
-		analyzer,
-		label,
-		stats,
-		loading = false,
-		cyanophageUnsupported = false
-	}: Props = $props();
+	const { analyzer, label, stats, loading = false, cyanophageUnavailableReason }: Props = $props();
 
 	const toneClass = $derived(
 		analyzer === CYANOPHAGE_ANALYZER
@@ -110,8 +103,8 @@
 	const statusText = $derived.by(() => {
 		if (loading) return 'Loading…';
 		if (stats) return null;
-		if (analyzer === CYANOPHAGE_ANALYZER && cyanophageUnsupported) {
-			return CYANOPHAGE_UNSUPPORTED_LABEL;
+		if (analyzer === CYANOPHAGE_ANALYZER && cyanophageUnavailableReason) {
+			return cyanophageUnavailableReason;
 		}
 		return 'Stats unavailable';
 	});

@@ -19,6 +19,7 @@
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		STAT_ANALYZERS,
+		getCyanophageStatsUnavailableReason,
 		type StatsAnalyzer
 	} from '$lib/statsAnalyzers';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
@@ -93,7 +94,7 @@
 		return decoded ? deriveBotStats(decoded) : null;
 	});
 	const cyanophageStats = $derived.by(() => {
-		if (!cyanophageCompact || !layout.cyanophageCompatible) return null;
+		if (!cyanophageCompact) return null;
 		const decoded = decodeCyanophageStats(cyanophageCompact);
 		return decoded ? deriveCyanophageStats(decoded) : null;
 	});
@@ -117,7 +118,7 @@
 	function hasAnalyzerData(analyzer: StatsAnalyzer): boolean {
 		if (analyzer === CMINI_ANALYZER) return Boolean(cminiCompact);
 		if (analyzer === CYANOPHAGE_ANALYZER) {
-			return layout.cyanophageCompatible && Boolean(cyanophageCompact);
+			return Boolean(cyanophageCompact);
 		}
 		return Boolean(mana2Compact);
 	}
@@ -276,7 +277,7 @@
 								label={cyanophageLabel}
 								stats={cyanophageStats}
 								loading={cyanophageLoading}
-								cyanophageUnsupported={!layout.cyanophageCompatible}
+								cyanophageUnavailableReason={getCyanophageStatsUnavailableReason(layout)}
 							/>
 						{/if}
 						{#if showMana2}

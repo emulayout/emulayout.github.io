@@ -75,6 +75,7 @@ The compact layout tuple keeps presence independent from mapping availability:
 - `hasMagicKey`: the base layout contains `*`, or any variant defines a Magic trigger.
 - `hasRepeatKey`: the base layout contains `@` and the first variant does not claim `@`.
 - `hasMagicKeyMappings`: any variant carries curated magic-key mappings.
+- `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage.
 - `hasAdaptiveSwap`: the layout is in the curated presence list or any variant carries adaptive swaps.
 - `hasAdaptiveSwapMappings`: any variant carries curated adaptive-swap mappings.
 
@@ -246,7 +247,10 @@ carry the physical key code into the resolver and compile adaptive rules against
 
 ### Analyzer accuracy
 
-Cmini and Cyanophage stats currently describe the base layout. Adaptive swaps are not included.
+Cmini stats currently describe the base layout. Adaptive swaps are not included.
+
+Cyanophage stats incorporate curated Magic / Repeat corpus rewrites when present; Adaptive
+swaps are not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md).
 
 Mana2 support needs an explicit experiment for two-way swaps, overlapping rules, shared triggers,
 and layouts combining Adaptive swaps with other contextual behavior. Result metadata reports Magic

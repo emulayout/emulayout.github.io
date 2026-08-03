@@ -20,6 +20,7 @@ function makeLayout(name: string): LayoutData {
 		hasMagicKey: false,
 		hasRepeatKey: false,
 		hasMagicKeyMappings: false,
+		cyanophageStatsNeedMagicMappings: false,
 		hasAdaptiveSwap: false,
 		hasAdaptiveSwapMappings: false,
 		cyanophageCompatible: true,
