@@ -56,6 +56,7 @@ function makeLayout(
 		hasMagicKey,
 		hasRepeatKey,
 		hasMagicKeyMappings,
+		cyanophageStatsNeedMagicMappings: false,
 		hasAdaptiveSwap,
 		hasAdaptiveSwapMappings,
 		cyanophageCompatible: true,

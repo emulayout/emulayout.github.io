@@ -328,12 +328,7 @@ function matchesStatLimits(
 	if (activeFilters.length === 0 && !likesCheck) return true;
 
 	for (const { analyzer, checks, fingerWorkload } of activeFilters) {
-		const analyzerStats = getLayoutAnalyzerStats(
-			statsMaps,
-			layout.name,
-			analyzer,
-			layout.cyanophageCompatible
-		);
+		const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, analyzer);
 		if (!analyzerStats) return false;
 
 		const stats =

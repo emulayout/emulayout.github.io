@@ -78,7 +78,7 @@ jobs:
             .cache/cmini-repo
             .cache/layout-timestamps.json
             .cache/layout-stats-monkeyracer.json
-          key: ${{ runner.os }}-cmini-v6-${{ hashFiles('bin/cmini-sync.js', 'bin/magic-key-data.js', 'bin/adaptive-swap-data.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/magic-keys/**', 'data/adaptive-swaps/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+          key: ${{ runner.os }}-cmini-v7-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
@@ -88,7 +88,7 @@ jobs:
           path: |
             .cache/mana2
             .cache/layout-stats-mana2.json
-          key: ${{ runner.os }}-mana2-v1-${{ hashFiles('bin/mana2-sync.js', 'bin/magic-key-data.js', 'bin/layout-features.js', 'bin/mana2-magic.js', 'bin/mana2-layout.js', 'bin/mana2-stats.js', 'bin/mana2-go/**', 'data/magic-keys/**') }}
+          key: ${{ runner.os }}-mana2-v2-${{ hashFiles('bin/mana2-sync.js', 'bin/layout-data.js', 'bin/layout-features.js', 'bin/mana2-magic.js', 'bin/mana2-layout.js', 'bin/mana2-stats.js', 'bin/mana2-go/**', 'data/layouts/**') }}
           restore-keys: |
             ${{ runner.os }}-mana2-
 

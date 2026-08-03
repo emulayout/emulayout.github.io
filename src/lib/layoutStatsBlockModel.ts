@@ -22,12 +22,7 @@ import {
 	formatStatsLoadingBlock,
 	formatStatsUnavailableBlock
 } from '$lib/statsCardFormatting';
-import {
-	CYANOPHAGE_ANALYZER,
-	CYANOPHAGE_UNSUPPORTED_LABEL,
-	MANA2_ANALYZER,
-	type StatsAnalyzer
-} from '$lib/statsAnalyzers';
+import { CYANOPHAGE_ANALYZER, MANA2_ANALYZER, type StatsAnalyzer } from '$lib/statsAnalyzers';
 import type { getStatCardHighlightState } from '$lib/statsUsage';
 import {
 	formatStatPercent,
@@ -81,7 +76,8 @@ type StatCardHighlightState = ReturnType<typeof getStatCardHighlightState>;
 
 interface LayoutStatsBlockModelOptions {
 	loading?: boolean;
-	cyanophageCompatible?: boolean;
+	/** When Cyanophage compact stats are missing, explain why on the card. */
+	cyanophageUnavailableReason?: string;
 	highlights?: StatCardHighlightState;
 	sortOrder?: SortOrder | null;
 }
@@ -233,14 +229,13 @@ export function buildLayoutStatsBlockModel(
 	options: LayoutStatsBlockModelOptions = {}
 ): LayoutStatsBlockModel {
 	const loading = options.loading ?? false;
-	const cyanophageCompatible = options.cyanophageCompatible ?? true;
+	const cyanophageUnavailableReason = options.cyanophageUnavailableReason;
 	const { highlights, sortOrder } = options;
 
 	if (analyzer === CYANOPHAGE_ANALYZER) {
-		const decoded =
-			cyanophageCompatible && compactStats
-				? decodeCyanophageStats(compactStats as CompactCyanophageStats)
-				: undefined;
+		const decoded = compactStats
+			? decodeCyanophageStats(compactStats as CompactCyanophageStats)
+			: undefined;
 		const stats = decoded ? deriveCyanophageStats(decoded) : null;
 		return {
 			analyzer,
@@ -320,9 +315,7 @@ export function buildLayoutStatsBlockModel(
 			fingerDistance: stats ? buildFingerDistanceModel(stats) : null,
 			fallback: loading
 				? formatCyanophageStatsLoadingBlock()
-				: formatCyanophageStatsUnavailableBlock(
-						cyanophageCompatible ? undefined : CYANOPHAGE_UNSUPPORTED_LABEL
-					),
+				: formatCyanophageStatsUnavailableBlock(stats ? undefined : cyanophageUnavailableReason),
 			loading,
 			mana2: false
 		};

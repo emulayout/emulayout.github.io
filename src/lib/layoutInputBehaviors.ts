@@ -1,13 +1,11 @@
 import {
 	compileAdaptiveSwapSource,
 	resolveAdaptiveSwap,
-	type AdaptiveSwapProfile,
-	type AdaptiveSwapSource
+	type AdaptiveSwapProfile
 } from '$lib/adaptiveSwaps';
 import {
 	compileMagicKeyMappings,
 	resolveMagicKeyOutput,
-	type MagicKeyMappings,
 	type MagicKeyProfile
 } from '$lib/magicKeys';
 import {
@@ -16,21 +14,44 @@ import {
 	resolveRepeatKeyOutput,
 	type RepeatKeyProfile
 } from '$lib/repeatKeys';
+import {
+	validateLayoutSupplemental,
+	type LayoutSupplementalMeta,
+	type LayoutSupplementalVariant
+} from '$lib/layoutSupplemental';
 import type { DisabledInputMappingIds } from '$lib/inputMappingControls';
 import type { LayoutData } from '$lib/layout';
 
-export interface LayoutInputBehaviorSource {
-	magicKeys?: MagicKeyMappings;
-	adaptiveSwaps?: AdaptiveSwapSource;
-}
+export type LayoutInputVariantSource = Partial<LayoutSupplementalVariant>;
 
-export type LayoutInputBehaviorsByLayout = Readonly<Record<string, LayoutInputBehaviorSource>>;
+type LayoutInputLayout = Pick<LayoutData, 'name' | 'keys'> &
+	Partial<Pick<LayoutData, 'hasRepeatKey'>>;
 
 export interface LayoutInputProfile {
 	magicKeys?: MagicKeyProfile;
 	repeatKey?: RepeatKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
 	maxHistoryLength: number;
+	variantId?: string;
+	variantLabel?: string;
+	/** Author-declared: superseded by a newer set but still usable. */
+	outdated?: boolean;
+	/** Sync-derived: references a key the layout no longer has. */
+	stale?: boolean;
+}
+
+export interface CompiledSupplementalVariant {
+	id: string;
+	label?: string;
+	description?: string;
+	outdated?: boolean;
+	stale?: boolean;
+	profile: LayoutInputProfile;
+}
+
+export interface CompiledLayoutSupplemental {
+	meta?: LayoutSupplementalMeta;
+	variants: readonly CompiledSupplementalVariant[];
 }
 
 export type AppliedLayoutInputBehavior = 'adaptive-swap' | 'magic-key' | 'repeat-key';
@@ -47,17 +68,19 @@ function trimContext(context: string, maxLength: number): string {
 }
 
 export function compileLayoutInputProfile(
-	value: LayoutInputBehaviorSource,
+	variant: LayoutInputVariantSource,
 	rawLayoutKeys?: unknown,
-	repeatKeyEnabled = Boolean(compileRepeatKeyProfile(rawLayoutKeys, value.magicKeys))
+	repeatKeyEnabled = Boolean(compileRepeatKeyProfile(rawLayoutKeys, variant.magicKeys?.mappings))
 ): LayoutInputProfile {
-	const magicKeys = value.magicKeys ? compileMagicKeyMappings(value.magicKeys) : undefined;
+	const magicKeys = variant.magicKeys
+		? compileMagicKeyMappings(variant.magicKeys.mappings)
+		: undefined;
 	const repeatKey =
 		repeatKeyEnabled && !magicKeys?.triggers[DEFAULT_REPEAT_KEY]
 			? compileRepeatKeyProfile(rawLayoutKeys)
 			: undefined;
-	const adaptiveSwaps = value.adaptiveSwaps
-		? compileAdaptiveSwapSource(value.adaptiveSwaps)
+	const adaptiveSwaps = variant.adaptiveSwaps
+		? compileAdaptiveSwapSource(variant.adaptiveSwaps)
 		: undefined;
 	if (!magicKeys && !repeatKey && !adaptiveSwaps) {
 		throw new Error('Layout input profile must contain at least one behavior');
@@ -71,55 +94,88 @@ export function compileLayoutInputProfile(
 			magicKeys?.maxHistoryLength ?? 0,
 			repeatKey ? 1 : 0,
 			adaptiveSwaps ? 1 : 0
-		)
+		),
+		...(variant.id ? { variantId: variant.id } : {}),
+		...(variant.label ? { variantLabel: variant.label } : {}),
+		...(variant.outdated ? { outdated: true } : {}),
+		...(variant.stale ? { stale: true } : {})
 	};
 }
 
-export function compileLayoutInputRegistry(
+/**
+ * Compact metadata is authoritative for the variant the runtime loads first.
+ * Later variants re-derive because that flag is scoped to the default one and
+ * an alternative may claim `@` as a magic trigger while the default does not.
+ */
+function repeatEnabledForVariant(
+	layout: LayoutInputLayout | undefined,
+	variant: LayoutSupplementalVariant,
+	isDefault: boolean
+): boolean {
+	const derived = Boolean(compileRepeatKeyProfile(layout?.keys, variant.magicKeys?.mappings));
+	return isDefault ? (layout?.hasRepeatKey ?? derived) : derived;
+}
+
+/**
+ * Compile the published supplemental payload. Entries that fail validation are
+ * dropped with a warning so one bad record cannot break the whole catalog.
+ */
+export function compileLayoutSupplementalRegistry(
 	value: unknown,
-	layouts: readonly (Pick<LayoutData, 'name' | 'keys'> &
-		Partial<Pick<LayoutData, 'hasRepeatKey'>>)[] = []
-): ReadonlyMap<string, LayoutInputProfile> {
-	const profiles = new Map<string, LayoutInputProfile>();
+	layouts: readonly LayoutInputLayout[] = []
+): ReadonlyMap<string, CompiledLayoutSupplemental> {
+	const entries = new Map<string, CompiledLayoutSupplemental>();
 	const sources =
 		value && typeof value === 'object' && !Array.isArray(value)
 			? (value as Record<string, unknown>)
 			: {};
 	const layoutByName = new Map(layouts.map((layout) => [layout.name, layout]));
-	const layoutNames = new Set([...Object.keys(sources), ...layoutByName.keys()]);
 
-	for (const layoutName of layoutNames) {
-		const source = sources[layoutName];
+	for (const [layoutName, rawEntry] of Object.entries(sources)) {
 		const layout = layoutByName.get(layoutName);
-		const rawMagicMappings =
-			source && typeof source === 'object' && !Array.isArray(source)
-				? (source as LayoutInputBehaviorSource).magicKeys
-				: undefined;
-		const hasDefaultRepeat =
-			layout?.hasRepeatKey ?? Boolean(compileRepeatKeyProfile(layout?.keys, rawMagicMappings));
-		if (source === undefined && !hasDefaultRepeat) continue;
-		if (source !== undefined && (!source || typeof source !== 'object' || Array.isArray(source))) {
-			console.warn(`Ignoring invalid input-behavior profile ${layoutName}`);
-			if (hasDefaultRepeat) {
-				profiles.set(layoutName, compileLayoutInputProfile({}, layout?.keys, true));
-			}
-			continue;
-		}
 		try {
-			profiles.set(
-				layoutName,
-				compileLayoutInputProfile(
-					(source ?? {}) as LayoutInputBehaviorSource,
-					layout?.keys,
-					hasDefaultRepeat
-				)
-			);
+			const supplemental = validateLayoutSupplemental(rawEntry, { derived: true });
+			entries.set(layoutName, {
+				...(supplemental.meta ? { meta: supplemental.meta } : {}),
+				variants: supplemental.variants.map((variant, index) => ({
+					id: variant.id,
+					...(variant.label ? { label: variant.label } : {}),
+					...(variant.description ? { description: variant.description } : {}),
+					...(variant.outdated ? { outdated: true } : {}),
+					...(variant.stale ? { stale: true } : {}),
+					profile: compileLayoutInputProfile(
+						variant,
+						layout?.keys,
+						repeatEnabledForVariant(layout, variant, index === 0)
+					)
+				}))
+			});
 		} catch (error) {
-			console.warn(`Ignoring invalid input-behavior profile ${layoutName}:`, error);
-			if (hasDefaultRepeat) {
-				profiles.set(layoutName, compileLayoutInputProfile({}, layout?.keys, true));
-			}
+			console.warn(`Ignoring invalid supplemental data for ${layoutName}:`, error);
 		}
+	}
+	return entries;
+}
+
+/**
+ * The profile each layout loads by default: its first variant, or a repeat-only
+ * profile for a layout whose `@` needs no curated data.
+ */
+export function compileLayoutInputRegistry(
+	value: unknown,
+	layouts: readonly LayoutInputLayout[] = []
+): ReadonlyMap<string, LayoutInputProfile> {
+	const profiles = new Map<string, LayoutInputProfile>();
+	for (const [layoutName, entry] of compileLayoutSupplementalRegistry(value, layouts)) {
+		const defaultVariant = entry.variants[0];
+		if (defaultVariant) profiles.set(layoutName, defaultVariant.profile);
+	}
+
+	for (const layout of layouts) {
+		if (profiles.has(layout.name)) continue;
+		const hasDefaultRepeat = layout.hasRepeatKey ?? Boolean(compileRepeatKeyProfile(layout.keys));
+		if (hasDefaultRepeat)
+			profiles.set(layout.name, compileLayoutInputProfile({}, layout.keys, true));
 	}
 	return profiles;
 }

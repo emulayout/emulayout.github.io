@@ -2,14 +2,17 @@ import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-	isCyanophageCompatible,
+	isCyanophageMeasurable,
 	buildCyanophageCharPositionMap,
 	resolveCyanophageThumb
 } from '../src/lib/cyanophage.ts';
+import { hasMagicKey } from './layout-features.js';
+import { prepareCyanophageContextualRewrite } from './cyanophage-magic.js';
 
 /**
  * Cyanophage stats (English word-frequency input).
- * Ported from cyanophage keyboard_svg.js measureDictionary / measureWords.
+ * Ported from cyanophage keyboard_svg.js / keyboard_svg_magic.js
+ * measureDictionary / measureWords.
  */
 
 /** Analyzer id exported to the site (separate from cmini monkeyracer). */
@@ -452,9 +455,17 @@ function classifyTrigram(ppFinger, prevFinger, finger, ppChar, char) {
  * @param {Record<string, number>} wordEffort
  * @param {number[][]} effortGrid
  * @param {import('../src/lib/layout.js').BoardType} [board]
+ * @param {(word: string) => string} [rewriteWord] Cyanophage `modWord` rewrite
  * @returns {CyanophageStats | null}
  */
-export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board = 'ortho') {
+export function measureLayoutStats(
+	charMap,
+	words,
+	wordEffort,
+	effortGrid,
+	board = 'ortho',
+	rewriteWord
+) {
 	let inputLength = 0;
 	let totalWordEffort = 0;
 	let effortSum = 0;
@@ -489,11 +500,14 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board
 		wordCount += 1;
 
 		const count = words[word];
-		const wordLen = word.length;
-		inputLength += count * (wordLen + 1);
+		// Cyanophage accumulates input length from the original word, then scores
+		// the Magic/Repeat-rewritten form (`keyboard_svg_magic.js` measureWords).
+		inputLength += count * (word.length + 1);
+		const typedWord = rewriteWord ? rewriteWord(word) : word;
+		const wordLen = typedWord.length;
 
-		if (wordEffort[word]) {
-			totalWordEffort += wordEffort[word] * count;
+		if (wordEffort[typedWord]) {
+			totalWordEffort += wordEffort[typedWord] * count;
 		}
 
 		const fingerPositions = FINGER_HOME_POSITIONS.map(([row, col]) => ({ row, col }));
@@ -505,8 +519,8 @@ export function measureLayoutStats(charMap, words, wordEffort, effortGrid, board
 		let ppChar = '';
 
 		for (let i = 0; i < wordLen; i++) {
-			const char = word.charAt(i);
-			if (i > 0) prevChar = word.charAt(i - 1);
+			const char = typedWord.charAt(i);
+			if (i > 0) prevChar = typedWord.charAt(i - 1);
 
 			const pos = getPosition(charMap, char);
 			if (!pos) continue;
@@ -682,11 +696,17 @@ export function encodeCyanophageStats(stats) {
  *   cyanophageThumb?: 'l' | 'r'
  * }} rawLayout
  * @param {CyanophageData | null} data
+ * @param {{ magicMappings?: unknown }} [options]
  * @returns {CompactCyanophageStats | null}
  */
-export function buildCyanophageStats(rawLayout, data) {
+export function buildCyanophageStats(rawLayout, data, options = {}) {
 	if (!data?.words || !rawLayout?.keys) return null;
-	if (!isCyanophageCompatible(rawLayout.keys)) return null;
+	if (!isCyanophageMeasurable(rawLayout.keys)) return null;
+
+	const contextual = prepareCyanophageContextualRewrite(options.magicMappings, rawLayout.keys);
+	// Never publish base or partially contextual stats for a Magic layout whose
+	// default profile Cyanophage cannot model faithfully.
+	if (hasMagicKey(rawLayout.keys, options.magicMappings) && !contextual?.magicKey) return null;
 
 	const board = rawLayout.board ?? 'ortho';
 	const thumb = rawLayout.cyanophageThumb ?? resolveCyanophageThumb(rawLayout.keys) ?? 'l';
@@ -694,7 +714,14 @@ export function buildCyanophageStats(rawLayout, data) {
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.effortWords, data.bigramEffort);
-	const stats = measureLayoutStats(charMap, data.words, wordEffort, data.effortGrid, board);
+	const stats = measureLayoutStats(
+		charMap,
+		data.words,
+		wordEffort,
+		data.effortGrid,
+		board,
+		contextual?.rewrite
+	);
 	if (!stats) return null;
 
 	return encodeCyanophageStats(stats);

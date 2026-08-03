@@ -1,27 +1,33 @@
 import { expect, test as base } from '@playwright/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../../src/lib/layoutDetails';
+import { validateLayoutSupplemental } from '../../../src/lib/layoutSupplemental';
 import { authors, catalog, coreCatalog } from './catalog-data';
 
-const vyletMappings = {
-	'*': {
-		c: 'k',
-		"'": 'l',
-		l: 'l',
-		g: 'h',
-		p: 't',
-		r: 'k',
-		s: 'c',
-		w: 'r',
-		f: 't',
-		m: 'b',
-		b: 't',
-		a: 'x',
-		e: 'x',
-		i: 'x'
+const vyletSupplemental = validateLayoutSupplemental({
+	schema: 1,
+	magicKeys: {
+		mappings: {
+			'*': {
+				c: 'k',
+				"'": 'l',
+				l: 'l',
+				g: 'h',
+				p: 't',
+				r: 'k',
+				s: 'c',
+				w: 'r',
+				f: 't',
+				m: 'b',
+				b: 't',
+				a: 'x',
+				e: 'x',
+				i: 'x'
+			}
+		}
 	}
-};
+});
 
-const inputBehaviors = { vylet: { magicKeys: vyletMappings } };
+const supplemental = { vylet: vyletSupplemental };
 
 type CatalogFixtures = {
 	catalogVariant: 'full' | 'core';
@@ -43,8 +49,8 @@ export const test = base.extend<CatalogFixtures>({
 			await page.route('**/authors.json', async (route) => {
 				await route.fulfill({ json: authors });
 			});
-			await page.route('**/layout-input-behaviors.json', async (route) => {
-				await route.fulfill({ json: inputBehaviors });
+			await page.route('**/layout-supplemental.json', async (route) => {
+				await route.fulfill({ json: supplemental });
 			});
 			await page.route('**/layout-names.json', async (route) => {
 				await route.fulfill({ json: layouts.map((layout) => layout[0]) });
@@ -65,8 +71,8 @@ export const test = base.extend<CatalogFixtures>({
 						layout,
 						authorName: authorById.get(layout[1]) ?? 'Unknown',
 						likeCount: 0,
-						...(name in inputBehaviors
-							? { inputBehavior: inputBehaviors[name as keyof typeof inputBehaviors] }
+						...(name in supplemental
+							? { supplemental: supplemental[name as keyof typeof supplemental] }
 							: {}),
 						stats: {}
 					}

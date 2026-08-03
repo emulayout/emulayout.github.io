@@ -144,15 +144,15 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 
 	let rawRuleMap = rawRules;
 	let fallback;
-	const extended = hasOwn(rawRules, 'mappings') || hasOwn(rawRules, 'fallback');
+	const extended = hasOwn(rawRules, 'rules') || hasOwn(rawRules, 'fallback');
 	if (extended) {
-		if (!isRecord(rawRules.mappings)) {
-			return excluded('invalid-profile', 'Extended magic-key mappings must be an object.');
+		if (!isRecord(rawRules.rules)) {
+			return excluded('invalid-profile', 'Extended magic-key rules must be an object.');
 		}
-		rawRuleMap = rawRules.mappings;
+		rawRuleMap = rawRules.rules;
 		fallback = rawRules.fallback;
 		const unknownOption = Object.keys(rawRules).find(
-			(key) => key !== 'mappings' && key !== 'fallback'
+			(key) => key !== 'rules' && key !== 'fallback'
 		);
 		if (unknownOption) {
 			return excluded(
@@ -161,11 +161,22 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 			);
 		}
 	}
-	if (fallback !== undefined && fallback !== 'repeat-last') {
-		return excluded(
-			'invalid-profile',
-			`Mana2 does not recognize the magic-key fallback ${JSON.stringify(fallback)}.`
-		);
+	/** Fixed text a no-rule press emits, when the fallback emits one at all. */
+	let fallbackEmit;
+	if (fallback !== undefined && fallback !== 'repeat-last' && fallback !== 'no-op') {
+		if (!isRecord(fallback) || typeof fallback.emit !== 'string') {
+			return excluded(
+				'invalid-profile',
+				`Mana2 does not recognize the magic-key fallback ${JSON.stringify(fallback)}.`
+			);
+		}
+		if (runeLength(fallback.emit) !== 1) {
+			return excluded(
+				'multi-character-output',
+				`Mana2 does not support the fallback output ${JSON.stringify(fallback.emit)} for ${JSON.stringify(trigger)}.`
+			);
+		}
+		fallbackEmit = fallback.emit;
 	}
 	const entries = Object.entries(rawRuleMap);
 
@@ -205,12 +216,12 @@ export function prepareMana2Magic(rawMappings, layoutKeys) {
 		explicitInputs.add(after);
 	}
 
-	if (fallback === 'repeat-last') {
+	if (fallback === 'repeat-last' || fallbackEmit !== undefined) {
 		for (const key of Object.keys(layoutKeys)) {
 			if (key === trigger || runeLength(key) !== 1 || explicitInputs.has(key)) continue;
 			rules.push({
 				inputs: key + trigger,
-				output: key + key
+				output: key + (fallbackEmit ?? key)
 			});
 		}
 	}

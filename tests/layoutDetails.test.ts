@@ -8,6 +8,7 @@ import {
 	type CompactLayoutDetail
 } from '$lib/layoutDetails';
 import type { CompactLayout } from '$lib/layoutCodec';
+import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
 
 const compactLayout: CompactLayout = [
 	"dave's_layout:1",
@@ -29,10 +30,26 @@ describe('per-layout detail data', () => {
 	});
 
 	test('merges layout metadata, mappings, and every analyzer into one payload', () => {
+		const supplemental = validateLayoutSupplemental({
+			schema: 1,
+			variants: [
+				{
+					id: 'current',
+					label: 'Current',
+					magicKeys: { mappings: { '*': { a: 'b' } } }
+				},
+				{
+					id: 'original',
+					label: 'Original',
+					outdated: true,
+					adaptiveSwaps: { mappings: { a: { b: 'c' } } }
+				}
+			]
+		});
 		const [detail] = buildCompactLayoutDetails(
 			[compactLayout],
 			{ derek: 42 },
-			{ [compactLayout[0]]: { magicKeys: { '*': { a: 'b' } } } },
+			{ [compactLayout[0]]: supplemental },
 			{ [compactLayout[0]]: 7 },
 			{
 				cmini: { [compactLayout[0]]: [1] },
@@ -48,7 +65,7 @@ describe('per-layout detail data', () => {
 				layout: compactLayout,
 				authorName: 'derek',
 				likeCount: 7,
-				inputBehavior: { magicKeys: { '*': { a: 'b' } } },
+				supplemental,
 				stats: { cmini: [1], cyanophage: [2], mana2: [3] }
 			}
 		});

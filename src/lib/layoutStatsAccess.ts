@@ -39,11 +39,11 @@ export function getLayoutMana2Stats(
 export function getLayoutAnalyzerStats(
 	statsMaps: StatsMaps,
 	layoutName: string,
-	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER,
-	cyanophageCompatible = true
+	analyzer: StatsAnalyzer = DEFAULT_STATS_ANALYZER
 ): CminiStats | CyanophageStats | Mana2Stats | undefined {
 	if (analyzer === CYANOPHAGE_ANALYZER) {
-		if (!cyanophageCompatible) return undefined;
+		// Playground deep-link compatibility is separate from offline measurement.
+		// Magic/Repeat layouts may have Cyanophage stats even when the link is disabled.
 		return getLayoutCyanophageStats(statsMaps, layoutName);
 	}
 	if (analyzer === MANA2_ANALYZER) {
@@ -68,12 +68,7 @@ export function getStatSortValue(
 	const field = getStatSortField(sortBy, analyzer);
 	if (!field) return null;
 
-	const analyzerStats = getLayoutAnalyzerStats(
-		statsMaps,
-		layout.name,
-		field.analyzer,
-		layout.cyanophageCompatible
-	);
+	const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, field.analyzer);
 	if (!analyzerStats) return null;
 
 	if (field.analyzer === CYANOPHAGE_ANALYZER) {

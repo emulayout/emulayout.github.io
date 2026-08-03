@@ -1,5 +1,5 @@
 import type { AdaptiveSwapProfile, AdaptiveSwapRule } from '$lib/adaptiveSwaps';
-import type { MagicKeyProfile } from '$lib/magicKeys';
+import { magicFallbackEmits, type MagicKeyProfile } from '$lib/magicKeys';
 
 export type DisabledInputMappingIds = ReadonlySet<string>;
 
@@ -29,7 +29,7 @@ export function adaptiveRuleMappingId(
 export function magicProfileMappingIds(profile: MagicKeyProfile | undefined): string[] {
 	return Object.entries(profile?.triggers ?? {}).flatMap(([trigger, definition]) => [
 		...definition.rules.map((rule) => magicRuleMappingId(trigger, rule.after)),
-		...(definition.fallback === 'repeat-last' ? [magicFallbackMappingId(trigger)] : [])
+		...(magicFallbackEmits(definition.fallback) ? [magicFallbackMappingId(trigger)] : [])
 	]);
 }
 

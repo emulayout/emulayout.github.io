@@ -5,20 +5,17 @@ import type {
 	LayoutData
 } from '$lib/layout';
 import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
-import {
-	compileLayoutInputRegistry,
-	type LayoutInputBehaviorSource,
-	type LayoutInputProfile
-} from '$lib/layoutInputBehaviors';
+import { compileLayoutInputRegistry, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
+import type { LayoutSupplemental } from '$lib/layoutSupplemental';
 
-export const LAYOUT_DETAIL_VERSION = 1;
+export const LAYOUT_DETAIL_VERSION = 2;
 
 export interface CompactLayoutDetail {
 	version: typeof LAYOUT_DETAIL_VERSION;
 	layout: CompactLayout;
 	authorName: string;
 	likeCount: number;
-	inputBehavior?: LayoutInputBehaviorSource;
+	supplemental?: LayoutSupplemental;
 	stats: {
 		cmini?: CompactLayoutStats;
 		cyanophage?: CompactCyanophageStats;
@@ -53,7 +50,7 @@ export function decodeLayoutDetail(value: unknown, expectedName?: string): Layou
 	const layout = decodeLayout(compact.layout);
 	if (!layout.name || (expectedName !== undefined && layout.name !== expectedName)) return null;
 
-	const sources = compact.inputBehavior ? { [layout.name]: compact.inputBehavior } : {};
+	const sources = compact.supplemental ? { [layout.name]: compact.supplemental } : {};
 	const inputProfile = compileLayoutInputRegistry(sources, [layout]).get(layout.name);
 	return {
 		layout,

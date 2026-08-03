@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	CYANOPHAGE_ANALYZER,
+	CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL,
 	CYANOPHAGE_UNSUPPORTED_LABEL,
 	CMINI_ANALYZER,
 	MANA2_ANALYZER
@@ -103,12 +104,30 @@ describe('layout stats block model', () => {
 		});
 	});
 
-	test('explains Cyanophage incompatibility without decoding compact stats', () => {
+	test('shows offline Cyanophage stats even when the playground link is incompatible', () => {
 		const model = buildLayoutStatsBlockModel(
 			CYANOPHAGE_ANALYZER,
 			Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(10_000),
-			{ cyanophageCompatible: false }
+			{ cyanophageUnavailableReason: CYANOPHAGE_UNSUPPORTED_LABEL }
 		);
+
+		expect(model.lines).not.toBeNull();
+		expect(model.cardMetrics?.length).toBeGreaterThan(0);
+	});
+
+	test('explains missing Magic mappings when Cyanophage stats are absent', () => {
+		const model = buildLayoutStatsBlockModel(CYANOPHAGE_ANALYZER, null, {
+			cyanophageUnavailableReason: CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL
+		});
+
+		expect(model.lines).toBeNull();
+		expect(model.fallback).toContain(CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL);
+	});
+
+	test('explains Cyanophage incompatibility when no compact stats exist', () => {
+		const model = buildLayoutStatsBlockModel(CYANOPHAGE_ANALYZER, null, {
+			cyanophageUnavailableReason: CYANOPHAGE_UNSUPPORTED_LABEL
+		});
 
 		expect(model.lines).toBeNull();
 		expect(model.fallback).toContain(CYANOPHAGE_UNSUPPORTED_LABEL);

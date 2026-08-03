@@ -18,7 +18,8 @@ import {
 	mana2InputEngineFailure,
 	prepareMana2InputBehaviors
 } from './mana2-magic.js';
-import { loadMagicKeyMappings } from './magic-key-data.js';
+import { loadLayoutSupplementalData } from './layout-data.js';
+import { defaultVariant } from '../src/lib/layoutSupplemental.ts';
 import {
 	buildMana2AnalyzerFingerprint,
 	buildMana2LayoutHash,
@@ -251,7 +252,7 @@ async function run() {
 	const mana2Commit = await ensureMana2Binary();
 
 	const blacklist = await loadBlacklist();
-	const magicKeyMappings = await loadMagicKeyMappings();
+	const supplementalByLayout = await loadLayoutSupplementalData();
 	const analyzerFingerprint = await buildMana2AnalyzerFingerprint(mana2Commit);
 	const statsCache = await createMana2StatsCacheContext(analyzerFingerprint);
 
@@ -306,7 +307,8 @@ async function run() {
 			continue;
 		}
 
-		const rawMagicMappings = magicKeyMappings.get(layoutName);
+		const rawMagicMappings = defaultVariant(supplementalByLayout.get(layoutName))?.magicKeys
+			?.mappings;
 		const preparedInput = prepareMana2InputBehaviors(rawMagicMappings, raw.keys);
 		let engine = /** @type {'standard' | 'extended'} */ ('standard');
 		let inputAnalyses = null;
@@ -346,15 +348,13 @@ async function run() {
 			console.log(`    · ${count}× ${reason}`);
 		}
 	}
-	for (const [layoutName, mappings] of magicKeyMappings) {
+	for (const layoutName of supplementalByLayout.keys()) {
 		if (
 			!work.some(
 				(item) => item.layoutName === layoutName || item.cminiFilename === `${layoutName}.json`
 			)
 		) {
-			console.warn(
-				`  ⚠ Magic-key profile ${layoutName} did not match a converted cmini layout (${typeof mappings})`
-			);
+			console.warn(`  ⚠ Supplemental data ${layoutName} did not match a converted cmini layout`);
 		}
 	}
 

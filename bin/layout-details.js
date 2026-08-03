@@ -3,7 +3,7 @@
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export const LAYOUT_DETAIL_VERSION = 1;
+export const LAYOUT_DETAIL_VERSION = 2;
 
 const STATIC_DIR = join(process.cwd(), 'static');
 const DETAILS_DIR = join(STATIC_DIR, 'layout-details');
@@ -12,7 +12,7 @@ const NAMES_FILE = join(STATIC_DIR, 'layout-names.json');
 const REQUIRED_FILES = {
 	layouts: join(STATIC_DIR, 'all-layouts.json'),
 	authors: join(STATIC_DIR, 'authors.json'),
-	inputBehaviors: join(STATIC_DIR, 'layout-input-behaviors.json'),
+	supplemental: join(STATIC_DIR, 'layout-supplemental.json'),
 	likes: join(STATIC_DIR, 'layout-likes.json'),
 	cmini: join(STATIC_DIR, 'layout-stats.json'),
 	cyanophage: join(STATIC_DIR, 'layout-stats-cyanophage.json')
@@ -59,11 +59,11 @@ async function writeIfChanged(path, body) {
 /**
  * @param {unknown[]} layouts
  * @param {Record<string, number>} authors
- * @param {Record<string, unknown>} inputBehaviors
+ * @param {Record<string, unknown>} supplemental
  * @param {Record<string, number>} likes
  * @param {{cmini: Record<string, unknown>, cyanophage: Record<string, unknown>, mana2: Record<string, unknown>}} stats
  */
-export function buildCompactLayoutDetails(layouts, authors, inputBehaviors, likes, stats) {
+export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
 	const authorById = new Map(Object.entries(authors).map(([name, id]) => [id, name]));
 	return layouts.map((layout) => {
 		if (!Array.isArray(layout) || typeof layout[0] !== 'string') {
@@ -78,7 +78,7 @@ export function buildCompactLayoutDetails(layouts, authors, inputBehaviors, like
 				layout,
 				authorName: authorById.get(userId) ?? 'Unknown',
 				likeCount: likes[name] ?? 0,
-				...(inputBehaviors[name] ? { inputBehavior: inputBehaviors[name] } : {}),
+				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
 				stats: {
 					...(stats.cmini[name] ? { cmini: stats.cmini[name] } : {}),
 					...(stats.cyanophage[name] ? { cyanophage: stats.cyanophage[name] } : {}),
@@ -90,17 +90,17 @@ export function buildCompactLayoutDetails(layouts, authors, inputBehaviors, like
 }
 
 export async function generateLayoutDetails() {
-	const [layouts, authors, inputBehaviors, likes, cmini, cyanophage, mana2] = await Promise.all([
+	const [layouts, authors, supplemental, likes, cmini, cyanophage, mana2] = await Promise.all([
 		readJson(REQUIRED_FILES.layouts),
 		readJson(REQUIRED_FILES.authors),
-		readJson(REQUIRED_FILES.inputBehaviors),
+		readJson(REQUIRED_FILES.supplemental),
 		readJson(REQUIRED_FILES.likes),
 		readJson(REQUIRED_FILES.cmini),
 		readJson(REQUIRED_FILES.cyanophage),
 		readOptionalJson(OPTIONAL_FILES.mana2)
 	]);
 
-	const details = buildCompactLayoutDetails(layouts, authors, inputBehaviors, likes, {
+	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {
 		cmini,
 		cyanophage,
 		mana2

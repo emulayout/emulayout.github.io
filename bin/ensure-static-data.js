@@ -5,7 +5,7 @@ import { $ } from 'bun';
 
 const REQUIRED_FILES = [
 	'static/all-layouts.json',
-	'static/layout-input-behaviors.json',
+	'static/layout-supplemental.json',
 	'static/authors.json',
 	'static/layout-likes.json',
 	'static/layout-stats.json',

@@ -8,8 +8,11 @@ import {
 	mana2InputEngineFailure
 } from '../bin/mana2-magic.js';
 import { buildMana2LayoutHash } from '../bin/mana2-stats.js';
-import vyletMappings from '../data/magic-keys/vylet.json';
-import whirlMappings from '../data/magic-keys/whirl.json';
+import vyletData from '../data/layouts/vylet.json';
+import whirlData from '../data/layouts/whirl.json';
+
+const vyletMappings = vyletData.magicKeys.mappings;
+const whirlMappings = whirlData.magicKeys.mappings;
 
 const layoutKeys = Object.fromEntries(
 	[..."abcdefghijklmnopqrstuvwxyz*'"].map((key) => [key, { row: 0, col: 0 }])
@@ -40,6 +43,29 @@ describe('Mana2 magic-key adaptation', () => {
 		expect(prepared.rules).not.toContainEqual({ inputs: 'w*', output: 'ww' });
 		expect(prepared.rules).toContainEqual({ inputs: 'a*', output: 'aa' });
 		expect(prepared.rules).toContainEqual({ inputs: ',*', output: ',,' });
+	});
+
+	test('expands a fixed-text fallback to every unmapped key', () => {
+		const prepared = prepareMana2Magic(
+			{ '*': { rules: { a: 'o' }, fallback: { emit: 'z' } } },
+			layoutKeys
+		);
+
+		expect(prepared).toMatchObject({
+			engine: 'extended',
+			analysis: { status: 'included', engine: 'extended' }
+		});
+		expect(prepared.rules).toContainEqual({ inputs: 'a*', output: 'ao' });
+		expect(prepared.rules).toContainEqual({ inputs: 'c*', output: 'cz' });
+	});
+
+	test('leaves a no-op fallback unexpanded', () => {
+		const prepared = prepareMana2Magic(
+			{ '*': { rules: { a: 'o' }, fallback: 'no-op' } },
+			layoutKeys
+		);
+
+		expect(prepared.rules).toEqual([{ inputs: 'a*', output: 'ao' }]);
 	});
 
 	test('includes default @ repeat behavior for standalone Repeat-key layouts', () => {
@@ -101,7 +127,12 @@ describe('Mana2 magic-key adaptation', () => {
 		[{ '*': { t: ['i', 'o'] } }, 'multiple-outputs-per-input', layoutKeys],
 		[{ '@': { a: 'o' } }, 'magic-key-not-on-layout', layoutKeys],
 		[{ '*': { '?': 'l' } }, 'input-key-not-on-layout', layoutKeys],
-		[{ '*': { fallback: 'repeat-last' } }, 'invalid-profile', layoutKeys]
+		[{ '*': { fallback: 'repeat-last' } }, 'invalid-profile', layoutKeys],
+		[
+			{ '*': { rules: { a: 'o' }, fallback: { emit: 'the' } } },
+			'multi-character-output',
+			layoutKeys
+		]
 	] as const;
 
 	for (const [mappings, reason, keys] of unsupportedCases) {

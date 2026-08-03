@@ -23,6 +23,7 @@ export const LAYOUT_FLAG_MAGIC_KEY_MAPPINGS = 64;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
 export const LAYOUT_FLAG_REPEAT_KEY = 512;
+export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
 
 /** @typedef {[
  *   string,
@@ -54,6 +55,9 @@ export function encodeLayout(layout) {
 	if (layout.hasAdaptiveSwapMappings) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS;
 	if (layout.hasAdaptiveSwap) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP;
 	if (layout.hasRepeatKey) flags |= LAYOUT_FLAG_REPEAT_KEY;
+	if (layout.cyanophageStatsNeedMagicMappings) {
+		flags |= LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED;
+	}
 
 	return [
 		layout.name,

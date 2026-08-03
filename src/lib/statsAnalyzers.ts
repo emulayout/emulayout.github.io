@@ -10,6 +10,28 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 /** Shown when a layout cannot be linked or measured faithfully in Cyanophage. */
 export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
 
+/**
+ * Shown when a layout has a Magic key but Cyanophage stats need curated mappings
+ * before Emulayout will measure it.
+ */
+export const CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL = 'Cyanophage stats need Magic key mappings';
+
+/**
+ * Prefer a Magic-mappings explanation over the generic unsupported-characters
+ * label when both apply (layouts with `*` are also playground-incompatible).
+ */
+export function getCyanophageStatsUnavailableReason(layout: {
+	cyanophageCompatible: boolean;
+	cyanophageStatsNeedMagicMappings: boolean;
+}): string | undefined {
+	if (layout.cyanophageStatsNeedMagicMappings) {
+		return CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL;
+	}
+	if (!layout.cyanophageCompatible) {
+		return CYANOPHAGE_UNSUPPORTED_LABEL;
+	}
+	return undefined;
+}
 /** Mana2 stats analyzer. */
 export const MANA2_ANALYZER = 'mana2';
 

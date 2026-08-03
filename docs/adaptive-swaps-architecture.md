@@ -10,68 +10,83 @@ For magic-specific authoring and analyzer details, see
 
 ## Data ownership
 
-Curated authoring data stays feature-specific:
+All curated authoring data for one layout lives in one file:
 
 ```text
-data/magic-keys/<layout-name>.json
-data/adaptive-swaps/<layout-name>.json
+data/layouts/<layout-name>.json
 adaptive-layouts.txt
 ```
 
 The JSON filename must exactly match the Cmini filename and `layout.name`.
+[`layout-supplemental-data.md`](./layout-supplemental-data.md) is the reference for that file,
+covering metadata, mapping variants, and staleness. This document covers what the mappings mean once
+they are loaded.
 
 `adaptive-layouts.txt` is the manually maintained presence list. It includes layouts known to use
-adaptive swaps even when their mappings have not been curated. A layout with an adaptive mapping
-file is automatically considered adaptive and does not also need to appear in this list.
+adaptive swaps even when their mappings have not been curated. A layout whose supplemental data
+defines adaptive swaps is automatically considered adaptive and does not also need to appear in this
+list.
 
-The Cmini sync validates the source data and publishes one merged runtime payload:
+The Cmini sync validates the source data and publishes one runtime payload:
 
 ```json
 {
 	"example": {
-		"magicKeys": {
-			"*": { "c": "k" }
-		},
-		"adaptiveSwaps": {
-			"mappings": {
-				"l": { "y": "j" }
-			},
-			"groups": [
-				{
-					"id": "comfort",
-					"label": "Comfort",
+		"variants": [
+			{
+				"id": "default",
+				"magicKeys": {
+					"mappings": { "*": { "c": "k" } }
+				},
+				"adaptiveSwaps": {
 					"mappings": {
-						"w": { "s": "m" }
-					}
+						"l": { "y": "j" }
+					},
+					"groups": [
+						{
+							"id": "comfort",
+							"label": "Comfort",
+							"mappings": {
+								"w": { "s": "m" }
+							}
+						}
+					]
 				}
-			]
-		}
+			}
+		]
 	}
 }
 ```
 
-The generated file is `static/layout-input-behaviors.json`. Repeat-key behavior is derived from
-compact layout metadata rather than stored as a per-layout source profile. A layout may contain any
-combination of these features.
+The generated file is `static/layout-supplemental.json`. Repeat-key behavior is derived from compact
+layout metadata rather than stored as a per-layout source profile. A layout may contain any
+combination of these features, and the runtime loads the first variant.
 
-`bin/layout-details.js` copies the matching source profile into each generated per-layout detail
-payload after the aggregate analyzer files are ready. This is a delivery optimization only; the
-feature-specific authoring files and merged aggregate sidecar remain the sources of truth.
+`bin/layout-details.js` copies the matching normalized supplemental record, including every variant,
+into each generated per-layout detail payload after the aggregate analyzer files are ready. This is
+a delivery optimization only; the curated layout file and aggregate supplemental payload remain the
+sources of truth.
 
-Pull-request validation requires every mapping profile to match a current Cmini layout. Production
-sync is deliberately more resilient: if Cmini later removes a layout, its mapping profile and any
-stale `adaptive-layouts.txt` presence entry produce warnings and are omitted rather than failing
-the entire sync.
+Pull-request validation requires every curated file to match a current Cmini layout and to reference
+only keys that layout has. Production sync is deliberately more resilient: if Cmini later removes a
+layout, its file and any stale `adaptive-layouts.txt` presence entry produce warnings and are omitted
+rather than failing the entire sync. If Cmini removes only a key one variant depends on, that variant
+is published with `stale` instead of being dropped.
 
 ## Compact layout metadata
 
 The compact layout tuple keeps presence independent from mapping availability:
 
-- `hasMagicKey`: the base layout contains `*`, or a curated mapping defines any Magic trigger.
-- `hasRepeatKey`: the base layout contains `@` and no curated Magic mapping claims `@`.
-- `hasMagicKeyMappings`: curated magic-key mappings are available.
-- `hasAdaptiveSwap`: the layout is in the curated presence list or has an adaptive mapping file.
-- `hasAdaptiveSwapMappings`: curated adaptive-swap mappings are available.
+- `hasMagicKey`: the base layout contains `*`, or any variant defines a Magic trigger.
+- `hasRepeatKey`: the base layout contains `@` and the first variant does not claim `@`.
+- `hasMagicKeyMappings`: any variant carries curated magic-key mappings.
+- `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage.
+- `hasAdaptiveSwap`: the layout is in the curated presence list or any variant carries adaptive swaps.
+- `hasAdaptiveSwapMappings`: any variant carries curated adaptive-swap mappings.
+
+Mapping availability spans every variant so `Require with known mappings` still matches a layout
+whose alternatives carry the feature. Repeat classification is scoped to the first variant instead,
+because that is the profile the runtime compiles by default.
 
 Filters use the presence flags for `Required` and the curated mapping flags for
 `Require with known mappings`. Repeat has its own filter. The compact Repeat flag is authoritative,
@@ -81,14 +96,16 @@ indicator.
 
 ## Magic-key source format
 
-The outer key identifies a dedicated magic key. Each inner key is the preceding emitted sequence;
-its value is the text emitted by the magic key.
+Under `magicKeys.mappings`, the outer key identifies a dedicated magic key. Each inner key is the
+preceding emitted sequence; its value is the text emitted by the magic key.
 
 ```json
 {
-	"*": {
-		"c": "k",
-		"th": "e"
+	"mappings": {
+		"*": {
+			"c": "k",
+			"th": "e"
+		}
 	}
 }
 ```
@@ -96,9 +113,9 @@ its value is the text emitted by the magic key.
 Preceding sequences and emitted values may contain multiple characters. Multiple dedicated magic
 keys are supported.
 
-Triggers normally use the compact form above. An extended trigger can wrap its rules in
-`mappings` and set `"fallback": "repeat-last"`. Explicit rules take precedence; otherwise the
-trigger repeats the final character of uninterrupted emitted history.
+Triggers normally use the compact form above. An extended trigger can wrap its rules in `rules` and
+set `"fallback": "repeat-last"`. Explicit rules take precedence; otherwise the trigger repeats the
+final character of uninterrupted emitted history.
 
 A curated `@` trigger is Magic behavior and completely overrides the default Repeat-key
 classification. If the author wants unmatched `@` inputs to repeat, the profile must explicitly use
@@ -129,8 +146,8 @@ after l: base y emits j
 after l: base j emits y
 ```
 
-The top-level `mappings` object is the unconditional baseline. Optional labeled groups preserve
-source organization:
+The `mappings` object is the unconditional baseline. Optional labeled groups preserve source
+organization:
 
 ```json
 {
@@ -155,13 +172,18 @@ its group, while `label` remains presentation text.
 
 Validation rejects empty profiles, malformed keys, self-swaps, reversed duplicates, and any trigger
 that assigns the same base key to more than one swap. Sync also verifies that every trigger and
-swapped key exists on the Cmini layout.
+swapped key exists on the Cmini layout, failing the pull-request gate and marking the variant stale
+during production sync.
 
 ## Runtime resolution
 
 `LayoutInputProfile` is the single compiled runtime model. It can independently contain
 `magicKeys`, `repeatKey`, and `adaptiveSwaps`. The client compiles the generated payload and compact
 layout metadata once into a map keyed by layout name.
+
+`compileLayoutSupplementalRegistry` compiles every variant a layout publishes; the profile registry
+the UI consumes takes the first one. A profile carries `variantId`, `variantLabel`, `outdated`, and
+`stale` so a picker can be added without another format change.
 
 For each captured layout key:
 
@@ -209,6 +231,13 @@ intentionally not persisted, and all mappings return to enabled after navigation
 
 ## Deferred work
 
+### Variant selection
+
+Curated data can publish several labeled mapping variants per layout, but the UI always loads the
+first. A picker needs a place in the mappings window, a way to show `outdated` and `stale` without
+implying a quality ranking, and a decision about whether the choice is session-only like the
+enable/disable state or belongs in the URL.
+
 ### Persistent mapping preferences
 
 If enable/disable preferences become persistent, store stable mapping identities rather than
@@ -223,7 +252,10 @@ carry the physical key code into the resolver and compile adaptive rules against
 
 ### Analyzer accuracy
 
-Cmini and Cyanophage stats currently describe the base layout. Adaptive swaps are not included.
+Cmini stats currently describe the base layout. Adaptive swaps are not included.
+
+Cyanophage stats incorporate curated Magic / Repeat corpus rewrites when present; Adaptive
+swaps are not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md).
 
 Mana2 support needs an explicit experiment for two-way swaps, overlapping rules, shared triggers,
 and layouts combining Adaptive swaps with other contextual behavior. Result metadata reports Magic

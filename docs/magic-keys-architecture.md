@@ -38,9 +38,10 @@ Magic trigger.
 
 Compact layout metadata keeps these facts separate:
 
-- `hasMagicKey`: the layout contains `*`, or a curated Magic profile defines any trigger;
-- `hasRepeatKey`: the layout contains `@` and no curated Magic profile defines `@`;
-- `hasMagicKeyMappings`: curated Magic mappings are available;
+- `hasMagicKey`: the layout contains `*`, or any curated variant defines a trigger;
+- `hasRepeatKey`: the layout contains `@` and the first variant does not define `@`;
+- `hasMagicKeyMappings`: any curated variant carries Magic mappings;
+- `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage;
 - Adaptive-swap presence and mapping availability use their own flags.
 
 `hasRepeatKey` has a dedicated compact wire flag. The generated metadata, rather than the client
@@ -52,23 +53,29 @@ Names are never used to infer either behavior.
 
 ## Curated Magic format
 
-Magic mappings are stored by exact Cmini layout name:
+Magic mappings live under `magicKeys` in the layout's supplemental file, stored by exact Cmini layout
+name:
 
 ```text
-data/magic-keys/<layout-name>.json
+data/layouts/<layout-name>.json
 ```
 
-The top-level object maps each Magic trigger to its rules. Each rule maps preceding emitted text to
-the text emitted by the trigger:
+See [`layout-supplemental-data.md`](./layout-supplemental-data.md) for the surrounding file,
+including metadata and mapping variants.
+
+Inside `mappings`, each key is a Magic trigger and each rule maps preceding emitted text to the text
+emitted by the trigger:
 
 ```json
 {
-	"*": {
-		"c": "k",
-		"t": "ion"
-	},
-	"#": {
-		"a": "o"
+	"mappings": {
+		"*": {
+			"c": "k",
+			"t": "ion"
+		},
+		"#": {
+			"a": "o"
+		}
 	}
 }
 ```
@@ -77,45 +84,70 @@ Triggers need not be `*`. Multiple triggers, multi-character preceding sequences
 multi-character output are supported. Preceding sequences match case-insensitively. Output is
 emitted exactly as stored rather than inheriting case.
 
-A trigger can explicitly repeat the previous character when no rule matches:
+## Fallback behavior
+
+A press whose preceding output matches no rule is governed by the trigger's `fallback`:
+
+| `fallback`          | Behavior when no rule matches           |
+| ------------------- | --------------------------------------- |
+| `"repeat-last"`     | Emits the previous character again      |
+| `{ "emit": "the" }` | Emits that fixed letter or word         |
+| `"no-op"`           | Emits nothing; the keypress is consumed |
+| omitted             | Same as `"no-op"`                       |
 
 ```json
 {
-	"@": {
-		"mappings": {
-			"a": "o"
-		},
-		"fallback": "repeat-last"
+	"mappings": {
+		"@": {
+			"rules": {
+				"a": "o"
+			},
+			"fallback": "repeat-last"
+		}
 	}
 }
 ```
 
-Explicit rules take precedence over the fallback. Repeated output enters history, so `b@@` produces
-`bbb` in this example. Without history, the trigger is emitted literally. A fallback-only trigger
-may use an empty `mappings` object.
+Explicit rules take precedence over the fallback. Emitted output enters history, so `b@@` produces
+`bbb` in this example. `repeat-last` with no history has nothing to repeat and degrades to `no-op`;
+fixed text needs no history and always applies. A Magic key never types its own trigger symbol, so a
+consumed press adds nothing to history and leaves later matching undisturbed.
 
-The same extended form is available for `*` or any other Magic trigger. Repeat fallback is never
-injected into a curated Magic profile implicitly.
+Omitting `fallback` and writing `"no-op"` behave identically. The keyword exists so curated data can
+record that an author confirmed the behavior rather than leaving it unspecified. Because it produces
+no output, `no-op` gets no toggle in the mappings panel and cannot on its own justify a trigger: a
+trigger needs at least one rule or an emitting fallback. A trigger whose only behavior is its
+fallback may use an empty `rules` object.
 
-Validation rejects malformed or empty triggers, empty rule sets without a fallback, empty
-preceding sequences or outputs, and preceding sequences that collide after lowercase
-normalization. Sync also verifies that the layout and every configured trigger and preceding input
-exist in Cmini. A mapped trigger is valid regardless of which symbol it uses.
+The inner key is `rules` rather than `mappings` so it does not collide with the feature-level
+`mappings` wrapper. The same extended form is available for `*` or any other Magic trigger. Repeat
+fallback is never injected into a curated Magic profile implicitly.
+
+Validation rejects malformed or empty triggers, rule sets that neither define a rule nor emit from a
+fallback, unrecognized fallback keywords or options, empty preceding sequences or outputs, and
+preceding sequences that collide after lowercase normalization. Sync also verifies that the layout
+and every configured trigger exist in Cmini. A mapped trigger is valid regardless of which symbol it
+uses.
+
+Mana2's extended adapter expands `repeat-last` and single-character `{ "emit": … }` fallbacks into
+bigram rules for every otherwise-unmapped key. A multi-character `emit` exceeds what that engine
+models, so the layout falls back to standard-engine stats with a `multi-character-output` reason.
 
 ## Runtime data and compilation
 
 Sync publishes curated Magic and Adaptive mappings in:
 
 ```text
-static/layout-input-behaviors.json
+static/layout-supplemental.json
 ```
 
-The detail-data generation step also copies the matching layout's source profile into its
-`static/layout-details/<id>.json` payload. The aggregate sidecar remains authoritative for the
-layout index; the per-layout copy lets direct detail and Quick Find views avoid downloading it.
+The detail-data generation step also copies the matching layout's normalized supplemental record,
+including every variant, into its `static/layout-details/<id>.json` payload. The aggregate payload
+remains authoritative for the layout index; the per-layout copy lets direct detail and Quick Find
+views avoid downloading it.
 
-Repeat keys do not need per-layout source records. The client combines the optional sidecar with
-the authoritative compact layout metadata into one `LayoutInputProfile`:
+Repeat keys do not need per-layout source records. The client combines the first variant of the
+optional sidecar with the authoritative compact layout metadata into one `LayoutInputProfile`:
 
 ```text
 magicKeys? + repeatKey? + adaptiveSwaps?
@@ -127,7 +159,8 @@ curated Magic behavior is reported as unavailable.
 
 Pull-request validation rejects mapping files without a current Cmini layout. If Cmini removes a
 layout after a mapping has merged, production sync warns and omits the orphan profile instead of
-failing deployment.
+failing deployment. If Cmini removes only a trigger a variant uses, sync publishes that variant with
+`stale` so it stays usable.
 
 ## Resolution and history
 
@@ -135,7 +168,7 @@ For one captured layout key, the resolver:
 
 1. applies at most one Adaptive swap to the base output;
 2. treats that output as a possible Magic trigger;
-3. if Magic matches, emits its rule, explicit fallback, or literal trigger;
+3. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
 4. otherwise, treats `@` as a possible Repeat trigger;
 5. inserts the final output and appends it once to bounded shared history.
 
@@ -190,7 +223,20 @@ icon beside the keyboard summary.
 
 ## Analyzer boundaries
 
-Cmini and Cyanophage stats describe the base layout and do not incorporate contextual behavior.
+Cmini stats describe the base layout and do not incorporate contextual behavior.
+
+Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when the first
+curated variant has a supported Magic profile (and optionally a default Repeat key):
+
+- corpus words are rewritten before scoring (`letter + expansion` → `letter + magic key`,
+  and doubled letters → `letter + @` for Repeat);
+- only single-character preceding Magic contexts are applied; multi-character contexts and
+  Emulayout fallbacks are ignored so results stay comparable to Cyanophage's Magic page;
+- profiles with multiple Magic triggers are not measured, because Cyanophage models only one;
+- a layout that contains `*` is measured only when curated Magic mappings are available;
+  otherwise Cyanophage stats stay unavailable with an explicit card explanation;
+- layouts measured this way may still be playground-incompatible for deep-links;
+- Adaptive swaps are not included.
 
 Mana2 records Magic and Repeat analysis independently:
 
@@ -201,18 +247,22 @@ Mana2 records Magic and Repeat analysis independently:
 - unsupported or unavailable Magic mappings use standard-engine stats with an explicit reason;
 - an explicit `@` Magic mapping is analyzed as Magic, not Repeat.
 
+Mana2 analyzes the first variant, matching what the runtime loads by default.
+
 Adaptive swaps are not currently included in Mana2 analysis.
 
 ## Architectural invariants
 
 - Magic and Repeat are separate domain concepts, metadata flags, controls, filters, and analysis
   results.
-- `*` implies Magic presence; `@` implies Repeat only when no curated `@` Magic mapping exists.
+- `*` implies Magic presence; `@` implies Repeat only when the first variant does not claim `@`.
 - Any curated trigger symbol establishes Magic behavior.
 - Explicit `@` Magic mappings override default Repeat behavior completely.
 - Repeat fallback inside a Magic profile is always explicit.
+- A Magic trigger never types its own symbol; an unmatched press emits nothing.
 - Compact metadata is authoritative for feature classification.
-- Feature-specific source files are combined only in generated runtime data.
+- Mapping availability spans every variant; Repeat classification follows the first variant.
+- The first variant a layout lists is the one the runtime loads; ordering carries no quality ranking.
 - Matching uses uninterrupted emitted history, never text near the caret.
 - The longest matching Magic preceding sequence wins.
 - Adaptive swaps run before Magic, which runs before Repeat.

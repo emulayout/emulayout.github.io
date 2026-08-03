@@ -1,0 +1,41 @@
+{
+	"schema": 1,
+	"adaptiveSwaps": {
+		"groups": [
+			{
+				"id": "sfb",
+				"label": "SFB",
+				"mappings": {
+					"s": {
+						"c": "d",
+						"w": "r"
+					},
+					"c": {
+						"s": "x"
+					},
+					"r": {
+						"l": "z"
+					},
+					"u": {
+						"e": "o"
+					},
+					"p": {
+						"h": "n"
+					}
+				}
+			},
+			{
+				"id": "scissor",
+				"label": "Scissor",
+				"mappings": {
+					"b": {
+						"r": "d"
+					},
+					"m": {
+						"b": "c"
+					}
+				}
+			}
+		]
+	}
+}

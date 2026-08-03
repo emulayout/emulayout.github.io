@@ -1,4 +1,5 @@
 import { expect, test } from './fixtures/test';
+import { validateLayoutSupplemental } from '../../src/lib/layoutSupplemental';
 import {
 	combinedInputBehaviors,
 	magicSturdy,
@@ -82,10 +83,44 @@ test('shows mappings in a floating window', async ({ page }) => {
 	expect(Math.abs(summaryIndicatorRightInset - catalogIndicatorRightInset)).toBeLessThanOrEqual(1);
 });
 
+test('shows a toggle for an emitting fallback and a plain note for a no-op', async ({ page }) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
+		await route.fulfill({
+			json: {
+				[mappedLayoutName]: validateLayoutSupplemental({
+					schema: 1,
+					magicKeys: {
+						mappings: {
+							'*': { rules: { c: 'k' }, fallback: { emit: 'the' } },
+							'#': { rules: { c: 'v' }, fallback: 'no-op' }
+						}
+					}
+				})
+			}
+		});
+	});
+	await page.goto(mappedLayoutView);
+
+	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
+	await card.locator('button[data-input-feature="magic"]').click();
+	const mappingsWindow = page.getByRole('dialog', {
+		name: `${mappedLayoutName} magic key mappings`
+	});
+
+	const emitRow = mappingsWindow.getByRole('checkbox', { name: 'otherwise * the' });
+	await expect(emitRow).toBeChecked();
+	await emitRow.uncheck();
+	await expect(emitRow).not.toBeChecked();
+
+	// A no-op emits nothing, so it is described rather than made toggleable.
+	await expect(mappingsWindow.getByText(/otherwise\s*#\s*→\s*nothing/)).toBeVisible();
+	await expect(mappingsWindow.getByRole('checkbox', { name: /otherwise #/ })).toHaveCount(0);
+});
+
 test('keeps the mappings indicator noninteractive when the sidecar is unavailable', async ({
 	page
 }) => {
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({ json: {} });
 	});
 	await page.goto(mappedLayoutView);
@@ -164,13 +199,14 @@ test('uses one hover and off-state treatment for Repeat, Adaptive, and Magic', a
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [combinedInputBehaviors] });
 	});
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({
 			json: {
-				[combinedInputBehaviors[0]]: {
-					magicKeys: { '#': { v: 'm' } },
+				[combinedInputBehaviors[0]]: validateLayoutSupplemental({
+					schema: 1,
+					magicKeys: { mappings: { '#': { v: 'm' } } },
 					adaptiveSwaps: { mappings: { v: { m: 'l' } } }
-				}
+				})
 			}
 		});
 	});
@@ -262,7 +298,7 @@ test('uses uniform no-data styling for unavailable Magic and Adaptive mappings',
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [combinedInputBehaviors] });
 	});
-	await page.route('**/layout-input-behaviors.json', async (route) => {
+	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({ json: {} });
 	});
 	await page.goto(`/?name=${encodeURIComponent(combinedInputBehaviors[0])}&likes=0&newIndicator=0`);

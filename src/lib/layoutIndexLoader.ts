@@ -6,7 +6,7 @@ import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-import type { LayoutInputBehaviorsByLayout } from '$lib/layoutInputBehaviors';
+import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -26,11 +26,11 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 		sortBy
 	});
 
-	const [layoutsResponse, authorsResponse, inputBehaviorsResponse, likesResponse, statsResults] =
+	const [layoutsResponse, authorsResponse, supplementalResponse, likesResponse, statsResults] =
 		await Promise.all([
 			fetcher('/all-layouts.json'),
 			fetcher('/authors.json'),
-			fetcher('/layout-input-behaviors.json'),
+			fetcher('/layout-supplemental.json'),
 			loadLikes ? fetcher('/layout-likes.json') : Promise.resolve(null),
 			Promise.all(
 				analyzersToPreload.map((analyzer) => loadAnalyzerStats(analyzer, { fetch: fetcher }))
@@ -40,8 +40,8 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData: Record<string, number> = await authorsResponse.json();
-	const inputBehaviors: LayoutInputBehaviorsByLayout = inputBehaviorsResponse.ok
-		? await inputBehaviorsResponse.json()
+	const supplemental: LayoutSupplementalByLayout = supplementalResponse.ok
+		? await supplementalResponse.json()
 		: {};
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
@@ -63,7 +63,7 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	return {
 		layouts,
 		authorsData,
-		inputBehaviors,
+		supplemental,
 		likesData,
 		/** True when the load function attempted to fetch likes (even if empty/404). */
 		likesAttempted: loadLikes,

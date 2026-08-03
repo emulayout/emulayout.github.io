@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
 	CMINI_ANALYZER,
 	CYANOPHAGE_ANALYZER,
+	CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL,
+	CYANOPHAGE_UNSUPPORTED_LABEL,
 	DEFAULT_STATS_ANALYZER,
 	MANA2_ANALYZER,
 	MONKEYRACER_CORPUS,
@@ -9,6 +11,7 @@ import {
 	STATS_DATASETS,
 	analyzerShortLabel,
 	getAnalyzerStatsUrl,
+	getCyanophageStatsUnavailableReason,
 	getStatsDataset,
 	isStatsAnalyzer,
 	parseStatsAnalyzerMode,
@@ -71,5 +74,26 @@ describe('stats analyzer catalog', () => {
 		expect(showsCyanophageStats(CYANOPHAGE_ANALYZER)).toBe(true);
 		expect(showsMana2Stats(MANA2_ANALYZER)).toBe(true);
 		expect(showsMana2Stats(DEFAULT_STATS_ANALYZER)).toBe(false);
+	});
+
+	test('prefers Magic-mappings explanation over unsupported characters', () => {
+		expect(
+			getCyanophageStatsUnavailableReason({
+				cyanophageCompatible: false,
+				cyanophageStatsNeedMagicMappings: true
+			})
+		).toBe(CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL);
+		expect(
+			getCyanophageStatsUnavailableReason({
+				cyanophageCompatible: false,
+				cyanophageStatsNeedMagicMappings: false
+			})
+		).toBe(CYANOPHAGE_UNSUPPORTED_LABEL);
+		expect(
+			getCyanophageStatsUnavailableReason({
+				cyanophageCompatible: true,
+				cyanophageStatsNeedMagicMappings: false
+			})
+		).toBeUndefined();
 	});
 });

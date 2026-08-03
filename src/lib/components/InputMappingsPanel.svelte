@@ -106,7 +106,16 @@
 						</span>
 					</label>
 				{/each}
-				{#if definition.fallback === 'repeat-last'}
+				{#if definition.fallback?.kind === 'no-op'}
+					<p class="mapping-row mapping-row--full mapping-row--static">
+						<span class="magic-key-mapping magic-key-mapping--fallback">
+							<span>otherwise</span>
+							<span class="mapping-trigger">{trigger}</span>
+							<span class="mapping-arrow" aria-hidden="true">→</span>
+							<span>nothing</span>
+						</span>
+					</p>
+				{:else if definition.fallback}
 					{@const mappingId = magicFallbackMappingId(trigger)}
 					<label
 						class="mapping-row mapping-row--full"
@@ -121,7 +130,11 @@
 							<span>otherwise</span>
 							<span class="mapping-trigger">{trigger}</span>
 							<span class="mapping-arrow" aria-hidden="true">→</span>
-							<span>repeat previous</span>
+							<span>
+								{definition.fallback.kind === 'repeat-last'
+									? 'repeat previous'
+									: definition.fallback.text}
+							</span>
 						</span>
 					</label>
 				{/if}
@@ -235,6 +248,13 @@
 
 	.mapping-row--full {
 		grid-column: 1 / -1;
+	}
+
+	/* Indent past the checkbox column so the row still lines up with the rest. */
+	.mapping-row--static {
+		margin: 0;
+		padding-inline-start: 1.5rem;
+		cursor: default;
 	}
 
 	.mapping-row--disabled > span {
