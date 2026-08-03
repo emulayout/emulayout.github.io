@@ -29,17 +29,21 @@
 	let previewPane = $state<HTMLDivElement | undefined>(undefined);
 	let filterSnackbar = $state<string | null>(null);
 	let filterSnackbarTimer: number | undefined;
+	/** Preview target; debounced when detail files must be fetched on demand. */
+	let previewName = $state<string | null>(null);
 
 	const MAX_RESULTS = 100;
+	/** Same cadence as filter typing — avoid a detail request per keystroke/arrow. */
+	const DETAIL_LOAD_DEBOUNCE_MS = 300;
 
 	const matches = $derived(findLayoutNameMatches(layoutsCatalog.layoutNames, query, MAX_RESULTS));
 	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
 	const highlightedName = $derived(matches[activeIndex] ?? null);
 	const catalogDetail = $derived(
-		highlightedName ? layoutsCatalog.getLayoutDetail(highlightedName, layoutStatsStore.maps) : null
+		previewName ? layoutsCatalog.getLayoutDetail(previewName, layoutStatsStore.maps) : null
 	);
 	const fetchedDetail = $derived(
-		highlightedName ? (layoutDetailsStore.get(highlightedName) ?? null) : null
+		previewName ? (layoutDetailsStore.get(previewName) ?? null) : null
 	);
 	const highlightedDetail = $derived(catalogDetail ?? fetchedDetail);
 	const openedFromDetailPage = $derived(page.route.id === '/layouts/[name]');
@@ -53,6 +57,7 @@
 		if (!open) {
 			query = '';
 			requestedIndex = 0;
+			previewName = null;
 			filterSnackbar = null;
 			if (filterSnackbarTimer !== undefined) {
 				window.clearTimeout(filterSnackbarTimer);
@@ -83,13 +88,38 @@
 	});
 
 	$effect(() => {
-		// Index (and Compare) already hold the aggregate catalog — only fetch
-		// per-layout detail files on a cold show-page visit.
-		if (!open || !highlightedName || highlightedDetail || layoutsCatalog.fullCatalogLoaded) return;
+		if (!open) return;
+
+		// Aggregate catalog already in memory — preview tracks the highlight immediately.
+		if (layoutsCatalog.fullCatalogLoaded) {
+			previewName = highlightedName;
+			return;
+		}
+
+		if (!highlightedName) {
+			previewName = null;
+			return;
+		}
+
+		// Already fetched or currently loading this layout — show it without waiting.
+		if (
+			layoutDetailsStore.get(highlightedName) ||
+			layoutDetailsStore.loadingNames[highlightedName]
+		) {
+			previewName = highlightedName;
+			return;
+		}
+
+		const name = highlightedName;
 		const timeoutId = window.setTimeout(() => {
-			void layoutDetailsStore.load(highlightedName);
-		}, 100);
+			previewName = name;
+		}, DETAIL_LOAD_DEBOUNCE_MS);
 		return () => window.clearTimeout(timeoutId);
+	});
+
+	$effect(() => {
+		if (!open || !previewName || highlightedDetail || layoutsCatalog.fullCatalogLoaded) return;
+		void layoutDetailsStore.load(previewName);
 	});
 
 	function focusPreviewFirstAction() {
@@ -251,7 +281,7 @@
 						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>
 				{/key}
-			{:else if highlightedName && layoutDetailsStore.loadingNames[highlightedName]}
+			{:else if previewName && layoutDetailsStore.loadingNames[previewName]}
 				<div
 					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
 					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
@@ -259,7 +289,7 @@
 				>
 					Loading layout…
 				</div>
-			{:else if highlightedName && layoutDetailsStore.loadErrors[highlightedName]}
+			{:else if previewName && layoutDetailsStore.loadErrors[previewName]}
 				<div
 					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
 					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"

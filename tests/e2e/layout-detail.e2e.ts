@@ -478,6 +478,30 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 	expect(requestedPaths).not.toContain('/all-layouts.json');
 });
 
+test('debounces Quick Find detail fetches while the highlight moves', async ({ page }) => {
+	const requestedDetails: string[] = [];
+	page.on('request', (request) => {
+		const path = new URL(request.url()).pathname;
+		if (path.startsWith('/layout-details/')) requestedDetails.push(path);
+	});
+	await page.goto('/layouts/QWERTY');
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	const search = quickFind.getByRole('combobox', { name: 'Search layout names' });
+	await search.fill('l');
+	await search.press('ArrowDown');
+	await search.press('ArrowUp');
+
+	await expect(quickFind.locator('[data-layout-name="lela"]')).toBeVisible();
+	expect(requestedDetails.filter((path) => path.includes(layoutDetailFileId('lela')))).toHaveLength(
+		1
+	);
+	expect(
+		requestedDetails.filter((path) => path.includes(layoutDetailFileId('Colemak-DH')))
+	).toHaveLength(0);
+});
+
 test('reuses the loaded index catalog for Quick Find without detail fetches', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();

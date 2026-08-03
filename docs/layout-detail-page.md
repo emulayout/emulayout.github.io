@@ -39,13 +39,14 @@ JSON files. It also publishes `static/layout-names.json`.
 Quick Find uses the in-memory aggregate catalog (layouts, authors, likes, input
 profiles, and any already-loaded analyzer maps) for name search and card previews
 whenever that catalog is already hydrated — typically on the index, or after
-Compare has loaded aggregates from a detail visit. On a fresh detail-page load it
-searches `layout-names.json` and loads the highlighted layout's detail file after
-a short debounce. Choosing a preview's layout-details link (keyboard visualization
-or toolbar action) navigates to the show page and dismisses the modal. Compare still
-needs the full catalog and analyzer-wide maps, so opening it from a direct detail
-visit loads those aggregates on demand. This keeps ordinary direct visits small
-without weakening app-bar functionality.
+Compare has loaded aggregates from a detail visit. Those previews update instantly as
+the highlight moves. On a fresh detail-page load it searches `layout-names.json` and
+loads the highlighted layout's detail file only after a short debounce, so typing or
+arrowing through results does not fire a request per step. Choosing a preview's
+layout-details link (keyboard visualization or toolbar action) navigates to the show
+page and dismisses the modal. Compare still needs the full catalog and analyzer-wide
+maps, so opening it from a direct detail visit loads those aggregates on demand. This
+keeps ordinary direct visits small without weakening app-bar functionality.
 
 ## Detail content and state
 
@@ -130,6 +131,8 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   catalog unless an aggregate-dependent feature such as Compare is opened.
 - Quick Find does not fetch `layout-names.json` or `/layout-details/*.json` when the aggregate
   catalog is already in memory; those requests are only for cold detail-page visits.
+- On cold detail-page visits, Quick Find debounces on-demand detail loads while the highlight
+  moves; catalog-backed previews stay immediate.
 - Navigating to a layout detail page from a Quick Find preview dismisses the modal.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
   is active. Browser history, rather than copied query parameters, restores the index state.
