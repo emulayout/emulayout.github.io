@@ -687,6 +687,7 @@
 
 	.stat-limit-operator {
 		flex: 1 1 0;
+		width: 0;
 		min-width: 0;
 		padding: 0.25rem 0.375rem;
 		border-radius: 0.5rem;
@@ -748,6 +749,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--stat-field-gap);
+		min-width: 0;
 	}
 
 	.finger-workload {

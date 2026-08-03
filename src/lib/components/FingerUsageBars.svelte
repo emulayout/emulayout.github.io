@@ -3,8 +3,9 @@
 	import { FINGER_USAGE_BARS_HEIGHT } from '$lib/constants';
 	import { formatStatPercent } from '$lib/statsBlockFormatting';
 	import type { StatsAnalyzer } from '$lib/statsAnalyzers';
+	import type { CyanophageFingerUsageKey } from '$lib/statsDerivation';
 
-	type FingerUsageBarKey = 'LP' | 'LR' | 'LM' | 'LI' | 'LT' | 'RT' | 'RI' | 'RM' | 'RR' | 'RP';
+	type FingerUsageBarKey = CyanophageFingerUsageKey;
 	type FingerUsageBarValues = Partial<Record<FingerUsageBarKey, number>>;
 
 	interface Props {
@@ -26,6 +27,15 @@
 		/** Format bar tooltips as normalized raw values rather than percentages. */
 		valueUnit?: 'percent' | 'raw';
 		height?: number;
+		/** Make usage bars open their matching analyzer filter. */
+		onFilterFinger?: (
+			key: FingerUsageBarKey,
+			name: string,
+			value: number,
+			useValue: boolean
+		) => void;
+		/** Apply the displayed value on an ordinary click (used by Quick Find). */
+		filterValueOnClick?: boolean;
 	}
 
 	const {
@@ -39,7 +49,9 @@
 		showLabel = false,
 		labelDetail,
 		valueUnit = 'percent',
-		height = FINGER_USAGE_BARS_HEIGHT
+		height = FINGER_USAGE_BARS_HEIGHT,
+		onFilterFinger,
+		filterValueOnClick = false
 	}: Props = $props();
 
 	let tipOpen = $state(false);
@@ -107,6 +119,13 @@
 	function hideTip() {
 		tipOpen = false;
 	}
+
+	function handleBarClick(
+		event: MouseEvent,
+		finger: { key: FingerUsageBarKey; name: string; value: number }
+	) {
+		onFilterFinger?.(finger.key, finger.name, finger.value, filterValueOnClick || event.shiftKey);
+	}
 </script>
 
 <figure
@@ -136,12 +155,21 @@
 						<button
 							type="button"
 							class="bar"
-							aria-label={`${finger.name}: ${finger.tip}`}
+							class:bar--interactive={Boolean(onFilterFinger)}
+							aria-label={onFilterFinger
+								? `Open ${finger.name} usage filter (${finger.tip})`
+								: `${finger.name}: ${finger.tip}`}
+							title={onFilterFinger
+								? filterValueOnClick
+									? `Set filter from ${finger.tip}`
+									: `Filter by ${finger.name} usage. Shift-click to use ${finger.tip}`
+								: undefined}
 							style={`--bar-height: ${finger.height}%`}
 							onmouseenter={(event) => showTip(event, finger.tip)}
 							onmouseleave={hideTip}
 							onfocus={(event) => showTip(event, finger.tip)}
 							onblur={hideTip}
+							onclick={(event) => handleBarClick(event, finger)}
 						></button>
 					{/if}
 				</div>
@@ -155,12 +183,21 @@
 						<button
 							type="button"
 							class="bar"
-							aria-label={`${finger.name}: ${finger.tip}`}
+							class:bar--interactive={Boolean(onFilterFinger)}
+							aria-label={onFilterFinger
+								? `Open ${finger.name} usage filter (${finger.tip})`
+								: `${finger.name}: ${finger.tip}`}
+							title={onFilterFinger
+								? filterValueOnClick
+									? `Set filter from ${finger.tip}`
+									: `Filter by ${finger.name} usage. Shift-click to use ${finger.tip}`
+								: undefined}
 							style={`--bar-height: ${finger.height}%`}
 							onmouseenter={(event) => showTip(event, finger.tip)}
 							onmouseleave={hideTip}
 							onfocus={(event) => showTip(event, finger.tip)}
 							onblur={hideTip}
+							onclick={(event) => handleBarClick(event, finger)}
 						></button>
 					{/if}
 				</div>
@@ -308,6 +345,10 @@
 		outline: none;
 		appearance: none;
 		-webkit-appearance: none;
+	}
+
+	.bar--interactive {
+		cursor: pointer;
 	}
 
 	.bar:focus-visible {

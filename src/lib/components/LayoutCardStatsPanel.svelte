@@ -7,7 +7,8 @@
 		type LayoutCardMetric,
 		type LayoutStatsBlockModel
 	} from '$lib/layoutStatsBlockModel';
-	import { analyzerShortLabel } from '$lib/statsAnalyzers';
+	import { analyzerShortLabel, type StatsAnalyzer } from '$lib/statsAnalyzers';
+	import type { CyanophageFingerUsageKey } from '$lib/statsDerivation';
 	import type { SortOrder } from '$lib/statsSorting';
 
 	interface Props {
@@ -19,6 +20,13 @@
 		sortMetric?: LayoutCardMetric | null;
 		filterValueOnClick?: boolean;
 		onFilterMetric?: (metric: LayoutCardMetric, useMetricValue: boolean) => void;
+		onFilterFingerUsage?: (
+			analyzer: StatsAnalyzer,
+			key: CyanophageFingerUsageKey,
+			name: string,
+			value: number,
+			useValue: boolean
+		) => void;
 		onSortMetric?: (metric: LayoutCardMetric, order: SortOrder) => void;
 		/** Highlights uses visual finger usage; Detailed uses the text stat block. */
 		mode?: 'focused' | 'detailed';
@@ -32,6 +40,7 @@
 		sortMetric = null,
 		filterValueOnClick = false,
 		onFilterMetric,
+		onFilterFingerUsage,
 		onSortMetric,
 		mode = 'focused'
 	}: Props = $props();
@@ -62,6 +71,11 @@
 				tone={model.analyzer}
 				compact={Boolean(showDistance && model.fingerDistance)}
 				showLabel
+				{filterValueOnClick}
+				onFilterFinger={onFilterFingerUsage
+					? (key, name, value, useValue) =>
+							onFilterFingerUsage(model.analyzer, key, name, value, useValue)
+					: undefined}
 			/>
 			{#if showDistance && model.fingerDistance}
 				<FingerUsageBars

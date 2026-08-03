@@ -57,6 +57,11 @@ Highlights metric cells have separate filter and sort targets:
 The sort control is a thin, full-height target on the right edge of the cell and appears on hover or
 keyboard focus. Its click must not also trigger the cell's filter action.
 
+The visual finger-usage bars are filter targets too. Clicking a bar opens and focuses that finger's
+usage limit for the analyzer shown on the card without changing its current value. Shift-clicking
+sets the limit to the bar's displayed percentage with inclusive `≤` semantics, then opens and
+focuses the field. Finger-distance bars are informational and do not target usage filters.
+
 Filtering and sorting highlights are analyzer-aware. The active sort direction is shown in the
 cell, and analyzer tones identify active filter state and cross-analyzer provenance.
 
@@ -69,6 +74,7 @@ When Quick Find is showing Highlights:
 
 - sort controls are omitted; the preview card cannot change sorting;
 - click and Shift-click on a metric cell are equivalent;
+- click and Shift-click on a finger-usage bar are equivalent;
 - either action toggles the card's value as an active filter;
 - applying a value uses the same inclusive `this or better` operator as normal-card Shift-click;
 - clicking again clears the filter only when the same operator and value are already set;
@@ -118,6 +124,8 @@ there are no metric-cell filter or sort targets.
 - A sort metric already present in the base five is never duplicated in the sixth slot.
 - A cross-analyzer sort metric retains its source analyzer, value formatting, and color.
 - Regular click focuses a filter without overwriting it; regular Shift-click sets and focuses it.
+- Finger-usage bars target the displayed analyzer's matching finger limit and always use inclusive
+  `≤` when setting their value.
 - Quick Find click and Shift-click both toggle the value and never focus the covered sidebar.
 - Quick Find never exposes stat sorting.
 - The detail-page summary analyzer selector changes only that card's analyzer.

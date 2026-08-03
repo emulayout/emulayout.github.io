@@ -28,6 +28,8 @@
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import { getStatCardHighlightState } from '$lib/statsUsage';
 	import { getStatMetricFilterTarget } from '$lib/statsFiltering';
+	import { formatStatPercent } from '$lib/statsBlockFormatting';
+	import type { CyanophageFingerUsageKey } from '$lib/statsDerivation';
 	import LayoutCardActions from '$lib/components/LayoutCardActions.svelte';
 	import LayoutCardHeader from '$lib/components/LayoutCardHeader.svelte';
 	import LayoutCardStatsPanel from '$lib/components/LayoutCardStatsPanel.svelte';
@@ -320,6 +322,26 @@
 		filterStore.requestFilterFocus({ target: 'stats', analyzer: metric.analyzer, ...target });
 	}
 
+	function handleFilterFingerUsage(
+		analyzer: StatsAnalyzer,
+		key: CyanophageFingerUsageKey,
+		name: string,
+		value: number,
+		useValue: boolean
+	) {
+		handleFilterMetric(
+			{
+				analyzer,
+				key,
+				label: name,
+				description: `${name} usage`,
+				value: formatStatPercent(value),
+				preferredSortOrder: 'asc'
+			},
+			useValue
+		);
+	}
+
 	const cardHeight = $derived(
 		getLayoutCardHeight(
 			filterStore.showLayoutStats,
@@ -549,6 +571,7 @@
 					sortMetric={selectedSortMetric}
 					filterValueOnClick={statFilterInteraction === 'apply-only'}
 					onFilterMetric={variant === 'catalog' ? handleFilterMetric : undefined}
+					onFilterFingerUsage={variant === 'catalog' ? handleFilterFingerUsage : undefined}
 					onSortMetric={variant === 'catalog' && allowStatSorting ? handleSortMetric : undefined}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}

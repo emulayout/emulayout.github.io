@@ -112,6 +112,14 @@ describe('stats filtering catalog', () => {
 			section: 'finger-usage',
 			key: 'mana-LI'
 		});
+		expect(getStatMetricFilterTarget(CMINI_ANALYZER, 'LP')).toEqual({
+			section: 'finger-usage',
+			key: 'LP'
+		});
+		expect(getStatMetricFilterTarget(CYANOPHAGE_ANALYZER, 'LP')).toEqual({
+			section: 'finger-usage',
+			key: 'cyano-LP'
+		});
 		expect(getStatMetricFilterTarget(MANA2_ANALYZER, 'lh')).toEqual({
 			section: 'hand-usage',
 			key: 'mana-lh'
