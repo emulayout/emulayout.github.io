@@ -360,6 +360,33 @@ test('shows a recoverable not-found page for an unknown layout URL', async ({ pa
 test.describe('full-catalog keyboard previews', () => {
 	test.use({ catalogVariant: 'full' });
 
+	test('places special mappings beside the test area', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 800 });
+		await page.goto('/layouts/vylet');
+
+		const row = page.locator('.detail-test-input-row--with-mappings');
+		const mappings = row.locator('.detail-test-mappings');
+		const testArea = row.locator('.layout-test-area');
+		const preview = page.getByRole('img', { name: 'vylet keyboard preview' });
+		const [rowBox, mappingsBox, testAreaBox, previewBox] = await Promise.all([
+			row.boundingBox(),
+			mappings.boundingBox(),
+			testArea.boundingBox(),
+			preview.boundingBox()
+		]);
+
+		expect(rowBox).not.toBeNull();
+		expect(mappingsBox).not.toBeNull();
+		expect(testAreaBox).not.toBeNull();
+		expect(previewBox).not.toBeNull();
+		expect(testAreaBox!.x).toBeLessThan(mappingsBox!.x);
+		expect(Math.abs(mappingsBox!.y - testAreaBox!.y)).toBeLessThanOrEqual(1);
+		expect(testAreaBox!.width).toBeLessThan(rowBox!.width);
+		expect(previewBox!.y).toBeGreaterThanOrEqual(
+			Math.max(mappingsBox!.y + mappingsBox!.height, testAreaBox!.y + testAreaBox!.height)
+		);
+	});
+
 	test('places Turnip’s right thumb between k and p', async ({ page }) => {
 		await page.goto('/layouts/turnip');
 

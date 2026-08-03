@@ -220,7 +220,8 @@ in the swapped output.
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
   or Adaptive mapping updates that feature's control.
-- The layout detail page also renders the mappings panel above analyzer stats.
+- On the layout detail page, mappings sit to the right of the emulator in the first Test-area row at
+  wider viewports and stack below it on narrow screens.
 
 The resolver returns which behaviors were applied to a keypress. The layout test area does not
 currently display this, but a dedicated typing page may use it later.

@@ -56,14 +56,15 @@ demand. This keeps ordinary direct visits small without weakening app-bar functi
   update the card, typing emulator, and generated external links together.
 - The `Test area` and `Stats` tabs sit at the top of the right column and control only that main
   content. The persistent layout card is not part of either tab panel.
-- `Test area` begins with the standalone keyboard emulator, followed by a full-width, transparent
-  keyboard-preview region whose key group remains centered without an outer card treatment. Ortho
-  and mini boards use aligned split geometry, retaining empty physical key slots so the center seam
-  stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets. Thumb
-  keys remain on their assigned left or right half in either geometry. Ortho thumbs align below
-  their hand's index-finger column; angle and stagger thumbs align between their hand's adjacent
-  bottom-row index positions. Both follow the card's anglemod state. Magic and Adaptive mapping
-  controls remain below the emulator because they change its behavior.
+- `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
+  controls share that first row on the right while the emulator occupies the larger left portion;
+  narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
+  keyboard-preview region follows, with its key group centered without an outer card treatment.
+  Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
+  seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
+  Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
+  below their hand's index-finger column; angle and stagger thumbs align between their hand's
+  adjacent bottom-row index positions. Both follow the card's anglemod state.
 - `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison
   tables in the right column.
 - The card is the page's visible layout-name heading; the redundant detail-page heading is omitted.

@@ -114,6 +114,9 @@
 		repeatMappingId === undefined || !disabledMappingIds.includes(repeatMappingId)
 	);
 	const repeatOptionLabel = $derived(repeatKeyEnabled ? 'Disable repeat key' : 'Enable repeat key');
+	const hasSpecialMappings = $derived(
+		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
 	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
 	const cyanophageUrl = $derived(
 		buildCyanophagePlaygroundUrl(
@@ -359,22 +362,32 @@
 						role="tabpanel"
 						aria-labelledby={testTabId}
 					>
-						<LayoutTestArea
-							{layout}
-							keyMaps={testKeyMaps}
-							{inputProfile}
-							{disabledMappingIds}
-							variant="page"
-						/>
-						<LayoutKeyboardPreview {layout} rows={displayRows} />
+						<div
+							class="detail-test-input-row"
+							class:detail-test-input-row--with-mappings={hasSpecialMappings}
+						>
+							<div class="detail-test-area-wrap">
+								<LayoutTestArea
+									{layout}
+									keyMaps={testKeyMaps}
+									{inputProfile}
+									{disabledMappingIds}
+									variant="page"
+								/>
+							</div>
 
-						{#if inputProfile?.magicKeys || inputProfile?.adaptiveSwaps}
-							<InputMappingsPanel
-								profile={inputProfile}
-								{disabledMappingIds}
-								{onDisabledMappingIdsChange}
-							/>
-						{/if}
+							{#if hasSpecialMappings && inputProfile}
+								<div class="detail-test-mappings">
+									<InputMappingsPanel
+										profile={inputProfile}
+										{disabledMappingIds}
+										{onDisabledMappingIdsChange}
+									/>
+								</div>
+							{/if}
+						</div>
+
+						<LayoutKeyboardPreview {layout} rows={displayRows} />
 					</div>
 				{:else}
 					<div
@@ -735,6 +748,36 @@
 		flex-direction: column;
 		gap: 1.25rem;
 		min-width: 0;
+	}
+
+	.detail-test-input-row {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 0;
+	}
+
+	.detail-test-area-wrap,
+	.detail-test-mappings {
+		min-width: 0;
+	}
+
+	@media (min-width: 768px) {
+		.detail-test-input-row--with-mappings {
+			display: grid;
+			grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+			align-items: start;
+		}
+
+		.detail-test-input-row--with-mappings .detail-test-mappings {
+			grid-row: 1;
+			grid-column: 2;
+		}
+
+		.detail-test-input-row--with-mappings .detail-test-area-wrap {
+			grid-row: 1;
+			grid-column: 1;
+		}
 	}
 
 	.detail-analyzer-options {
