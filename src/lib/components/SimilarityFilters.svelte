@@ -3,7 +3,7 @@
 	import SimilarityFiltersBody from '$lib/components/SimilarityFiltersBody.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
+	import { afterPaint, focusFilterControl, peekFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
 
 	interface Props {
@@ -30,8 +30,9 @@
 	}
 
 	$effect(() => {
-		const req = takeFilterFocusRequest('sidebar');
+		const req = peekFilterFocusRequest('sidebar');
 		if (!req || req.field !== 'similarity') return;
+		filterStore.clearFilterFocusRequest(req.seq);
 		open = true;
 		focusToken = req.seq;
 	});

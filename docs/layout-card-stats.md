@@ -124,6 +124,8 @@ there are no metric-cell filter or sort targets.
 - A sort metric already present in the base five is never duplicated in the sixth slot.
 - A cross-analyzer sort metric retains its source analyzer, value formatting, and color.
 - Regular click focuses a filter without overwriting it; regular Shift-click sets and focuses it.
+- Opening or scrolling to a filter from a card click is one-shot: switching layout view tabs must
+  not re-open or re-scroll to that filter just because it remains active.
 - Finger-usage bars target the displayed analyzer's matching finger limit and always use inclusive
   `≤` when setting their value.
 - Quick Find click and Shift-click both toggle the value and never focus the covered sidebar.

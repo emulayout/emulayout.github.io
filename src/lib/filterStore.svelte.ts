@@ -1614,6 +1614,12 @@ export class FilterStore {
 		this.filterFocusRequestSeq += 1;
 	}
 
+	/** Drop a pending focus request so remounts (e.g. view tabs) do not re-scroll. */
+	clearFilterFocusRequest(seq?: number) {
+		if (seq !== undefined && this.filterFocusRequestSeq !== seq) return;
+		this.filterFocusRequest = null;
+	}
+
 	toggleSimilarReference(name: string, anglemod = false) {
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;

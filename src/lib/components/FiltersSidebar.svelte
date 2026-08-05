@@ -9,7 +9,7 @@
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { afterPaint, focusFilterControl, takeFilterFocusRequest } from '$lib/focusFilterControl';
+	import { afterPaint, focusFilterControl, peekFilterFocusRequest } from '$lib/focusFilterControl';
 	import type { LayoutData } from '$lib/layout';
 
 	interface Props {
@@ -50,12 +50,14 @@
 	});
 
 	$effect(() => {
-		const sidebarReq = takeFilterFocusRequest('sidebar');
+		// Peek so SimilarityFilters can still take similarity; consume name/authors here.
+		const sidebarReq = peekFilterFocusRequest('sidebar');
 		if (!sidebarReq) return;
 
 		exitAdjustMode();
 		if (sidebarReq.field === 'similarity') return;
 
+		filterStore.clearFilterFocusRequest(sidebarReq.seq);
 		afterPaint(() => {
 			if (sidebarReq.field === 'name') {
 				focusFilterControl(document.getElementById('name-filter'));
@@ -69,18 +71,19 @@
 	});
 
 	// Chip focus opens section components; exit adjust so controls can show.
+	// Peek only — primary handlers in those sections take and clear the request.
 	$effect(() => {
-		const keyboardReq = takeFilterFocusRequest('keyboard');
+		const keyboardReq = peekFilterFocusRequest('keyboard');
 		if (keyboardReq) {
 			exitAdjustMode();
 			return;
 		}
-		const keysReq = takeFilterFocusRequest('keys');
+		const keysReq = peekFilterFocusRequest('keys');
 		if (keysReq) {
 			exitAdjustMode();
 			return;
 		}
-		const statsReq = takeFilterFocusRequest('stats');
+		const statsReq = peekFilterFocusRequest('stats');
 		if (statsReq) exitAdjustMode();
 	});
 </script>

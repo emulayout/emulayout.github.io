@@ -26,14 +26,29 @@ type FocusRequestFor<T extends FilterFocusRequest['target']> = Extract<
 > & { seq: number };
 
 /**
- * Read the current filter-focus request when it targets `target`.
- * Use inside `$effect` so `filterFocusRequestSeq` is tracked.
+ * Read the current filter-focus request when it targets `target`, without consuming it.
+ * Use for side effects that must not claim the request (e.g. exiting adjust mode so the
+ * primary handler can mount and take it).
  */
-export function takeFilterFocusRequest<T extends FilterFocusRequest['target']>(
+export function peekFilterFocusRequest<T extends FilterFocusRequest['target']>(
 	target: T
 ): FocusRequestFor<T> | null {
 	const seq = filterStore.filterFocusRequestSeq;
 	const req = filterStore.filterFocusRequest;
 	if (!seq || !req || req.target !== target) return null;
 	return { ...req, seq } as FocusRequestFor<T>;
+}
+
+/**
+ * Read and consume the current filter-focus request when it targets `target`.
+ * Use inside `$effect` so `filterFocusRequestSeq` is tracked. Consuming prevents
+ * remounts (layout view tabs) from re-opening and scrolling to the same control.
+ */
+export function takeFilterFocusRequest<T extends FilterFocusRequest['target']>(
+	target: T
+): FocusRequestFor<T> | null {
+	const req = peekFilterFocusRequest(target);
+	if (!req) return null;
+	filterStore.clearFilterFocusRequest(req.seq);
+	return req;
 }
