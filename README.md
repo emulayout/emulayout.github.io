@@ -121,12 +121,11 @@ uninterrupted emitted character by default, so that behavior does not require a 
 curated Magic mapping whose trigger is `@` overrides the default and may opt back into repeat
 fallback explicitly.
 
-`bin/mana2-sync.js` clones Mana2 into `.cache/mana2`, builds its CLI, and writes
-`static/layout-stats-mana2-monkeyracer.json` (corpus is part of the filename). Supported Magic-key
-rules and standalone Repeat-key behavior use Mana2's extended engine. Unsupported or combined
-profiles use the standard engine and carry an explicit fallback reason in the generated data.
-Use `--offline` after the first sync to skip fetching the Mana2 repository. If Go is unavailable,
-the script skips outside CI rather than failing.
+`bin/mana2-sync.js` downloads cminibrowser Mana2 named dumps and writes
+`static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults:
+`monkeyracer.rowstag.none`). Extended dump fields are written alongside for
+show-page detail payloads only. Use `--offline` after the first download to
+reuse `.cache/cminibrowser/`.
 
 ## Contribute supplemental layout data
 

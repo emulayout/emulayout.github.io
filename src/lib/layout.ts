@@ -188,7 +188,7 @@ export type CompactMana2Stats =
 			repeatKey?: Mana2RepeatKeyAnalysis;
 	  };
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats-mana2-{corpus}.json. */
+/** Layout stats keyed by layout name. Loaded from /layout-stats-mana2-{corpus}-{board}-{space}.json. */
 export type Mana2StatsMap = Record<string, CompactMana2Stats>;
 
 /** Loaded stat payloads keyed by analyzer id. */

@@ -31,7 +31,9 @@ describe('stats analyzer catalog', () => {
 		expect(DEFAULT_STATS_ANALYZER).toBe(CMINI_ANALYZER);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe('/layout-stats-cmini-monkeyracer.json');
 		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe('/layout-stats-cyanophage.json');
-		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe('/layout-stats-mana2-monkeyracer.json');
+		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe(
+			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
+		);
 		expect(analyzerShortLabel(CMINI_ANALYZER)).toBe('cmini');
 	});
 
@@ -55,7 +57,7 @@ describe('stats analyzer catalog', () => {
 			'/layout-stats-cmini-monkeyracer.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, MONKEYRACER_CORPUS)).toBe(
-			'/layout-stats-mana2-monkeyracer.json'
+			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
 		);
 		expect(() => getStatsDataset(CYANOPHAGE_ANALYZER, MONKEYRACER_CORPUS)).toThrow();
 	});

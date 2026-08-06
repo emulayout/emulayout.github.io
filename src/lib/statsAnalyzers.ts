@@ -68,6 +68,10 @@ export const MONKEYRACER_CORPUS = 'monkeyracer';
 /** Default corpus when the UI / loader does not select one explicitly. */
 export const DEFAULT_STATS_CORPUS = MONKEYRACER_CORPUS;
 
+/** Default Mana2 board / spacegrams context for published dumps. */
+export const DEFAULT_MANA2_BOARD = 'rowstag';
+export const DEFAULT_MANA2_SPACE = 'none';
+
 /** Corpora with an explicit frontend identity. */
 export const STAT_CORPORA = [
 	{
@@ -84,9 +88,13 @@ export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): strin
 	return `/layout-stats-cmini-${corpus}.json`;
 }
 
-/** Published Mana2 stats for a corpus. */
-export function mana2StatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
-	return `/layout-stats-mana2-${corpus}.json`;
+/** Published Mana2 stats for a corpus / board / space context. */
+export function mana2StatsUrl(
+	corpus: StatsCorpus = DEFAULT_STATS_CORPUS,
+	board: string = DEFAULT_MANA2_BOARD,
+	space: string = DEFAULT_MANA2_SPACE
+): string {
+	return `/layout-stats-mana2-${corpus}-${board}-${space}.json`;
 }
 
 /**
@@ -110,7 +118,7 @@ export const STATS_DATASETS = [
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS)
+		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
 	}
 ] as const satisfies readonly {
 	analyzer: StatsAnalyzer;

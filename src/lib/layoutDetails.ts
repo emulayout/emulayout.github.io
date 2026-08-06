@@ -20,10 +20,12 @@ export interface CompactLayoutDetail {
 	supplemental?: LayoutSupplemental;
 	stats: {
 		cmini?: CompactLayoutStats;
-		/** Full cminibrowser dump fields; show pages only (not catalog). */
+		/** Full cminibrowser cmini dump fields; show pages only (not catalog). */
 		cminiExtended?: Record<string, unknown>;
 		cyanophage?: CompactCyanophageStats;
 		mana2?: CompactMana2Stats;
+		/** Full cminibrowser mana2 dump fields; show pages only (not catalog). */
+		mana2Extended?: Record<string, unknown>;
 	};
 }
 

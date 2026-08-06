@@ -8,7 +8,7 @@ function mana2Stats(values: Partial<Record<(typeof MANA2_STAT_KEYS)[number], num
 test('opens the selected analyzer finger filter and Shift-click sets its maximum', async ({
 	page
 }) => {
-	await page.route('**/layout-stats-mana2-monkeyracer.json', async (route) => {
+	await page.route('**/layout-stats-mana2-monkeyracer-rowstag-none.json', async (route) => {
 		await route.fulfill({
 			json: {
 				QWERTY: mana2Stats({
