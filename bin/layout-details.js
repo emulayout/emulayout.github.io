@@ -2,8 +2,16 @@
 
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+	cminiCompactStatsRelPath,
+	cminiExtendedStatsRelPath,
+	mana2StatsRelPath
+} from './stats-artifact-paths.js';
 
 export const LAYOUT_DETAIL_VERSION = 2;
+
+/** Corpus used for cmini / Mana2 detail payloads until the UI selects corpora. */
+const DETAIL_STATS_CORPUS = process.env.CMINIBROWSER_CMINI_CORPUS ?? 'monkeyracer';
 
 const STATIC_DIR = join(process.cwd(), 'static');
 const DETAILS_DIR = join(STATIC_DIR, 'layout-details');
@@ -14,11 +22,12 @@ const REQUIRED_FILES = {
 	authors: join(STATIC_DIR, 'authors.json'),
 	supplemental: join(STATIC_DIR, 'layout-supplemental.json'),
 	likes: join(STATIC_DIR, 'layout-likes.json'),
-	cmini: join(STATIC_DIR, 'layout-stats.json'),
+	cmini: join(process.cwd(), cminiCompactStatsRelPath(DETAIL_STATS_CORPUS)),
 	cyanophage: join(STATIC_DIR, 'layout-stats-cyanophage.json')
 };
 const OPTIONAL_FILES = {
-	mana2: join(STATIC_DIR, 'layout-stats-mana2.json')
+	mana2: join(process.cwd(), mana2StatsRelPath(DETAIL_STATS_CORPUS)),
+	cminiExtended: join(process.cwd(), cminiExtendedStatsRelPath(DETAIL_STATS_CORPUS))
 };
 
 /** @param {string} name */
@@ -61,10 +70,16 @@ async function writeIfChanged(path, body) {
  * @param {Record<string, number>} authors
  * @param {Record<string, unknown>} supplemental
  * @param {Record<string, number>} likes
- * @param {{cmini: Record<string, unknown>, cyanophage: Record<string, unknown>, mana2: Record<string, unknown>}} stats
+ * @param {{
+ *   cmini: Record<string, unknown>,
+ *   cminiExtended?: Record<string, unknown>,
+ *   cyanophage: Record<string, unknown>,
+ *   mana2: Record<string, unknown>
+ * }} stats
  */
 export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
 	const authorById = new Map(Object.entries(authors).map(([name, id]) => [id, name]));
+	const cminiExtended = stats.cminiExtended ?? {};
 	return layouts.map((layout) => {
 		if (!Array.isArray(layout) || typeof layout[0] !== 'string') {
 			throw new Error('all-layouts.json contains an invalid compact layout');
@@ -81,6 +96,7 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
 				stats: {
 					...(stats.cmini[name] ? { cmini: stats.cmini[name] } : {}),
+					...(cminiExtended[name] ? { cminiExtended: cminiExtended[name] } : {}),
 					...(stats.cyanophage[name] ? { cyanophage: stats.cyanophage[name] } : {}),
 					...(stats.mana2[name] ? { mana2: stats.mana2[name] } : {})
 				}
@@ -90,18 +106,21 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 }
 
 export async function generateLayoutDetails() {
-	const [layouts, authors, supplemental, likes, cmini, cyanophage, mana2] = await Promise.all([
-		readJson(REQUIRED_FILES.layouts),
-		readJson(REQUIRED_FILES.authors),
-		readJson(REQUIRED_FILES.supplemental),
-		readJson(REQUIRED_FILES.likes),
-		readJson(REQUIRED_FILES.cmini),
-		readJson(REQUIRED_FILES.cyanophage),
-		readOptionalJson(OPTIONAL_FILES.mana2)
-	]);
+	const [layouts, authors, supplemental, likes, cmini, cyanophage, mana2, cminiExtended] =
+		await Promise.all([
+			readJson(REQUIRED_FILES.layouts),
+			readJson(REQUIRED_FILES.authors),
+			readJson(REQUIRED_FILES.supplemental),
+			readJson(REQUIRED_FILES.likes),
+			readJson(REQUIRED_FILES.cmini),
+			readJson(REQUIRED_FILES.cyanophage),
+			readOptionalJson(OPTIONAL_FILES.mana2),
+			readOptionalJson(OPTIONAL_FILES.cminiExtended)
+		]);
 
 	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {
 		cmini,
+		cminiExtended,
 		cyanophage,
 		mana2
 	});

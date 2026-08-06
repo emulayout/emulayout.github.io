@@ -75,7 +75,7 @@ export interface CminiStats {
  */
 export type CompactLayoutStats = number[];
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats.json. */
+/** Layout stats keyed by layout name. Loaded from /layout-stats-cmini-{corpus}.json. */
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
 export type LayoutLikesMap = Record<string, number>;
 
@@ -188,7 +188,7 @@ export type CompactMana2Stats =
 			repeatKey?: Mana2RepeatKeyAnalysis;
 	  };
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats-mana2.json. */
+/** Layout stats keyed by layout name. Loaded from /layout-stats-mana2-{corpus}.json. */
 export type Mana2StatsMap = Record<string, CompactMana2Stats>;
 
 /** Loaded stat payloads keyed by analyzer id. */

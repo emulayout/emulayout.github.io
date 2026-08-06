@@ -29,9 +29,9 @@ describe('stats analyzer catalog', () => {
 			MANA2_ANALYZER
 		]);
 		expect(DEFAULT_STATS_ANALYZER).toBe(CMINI_ANALYZER);
-		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe('/layout-stats.json');
+		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe('/layout-stats-cmini-monkeyracer.json');
 		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe('/layout-stats-cyanophage.json');
-		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe('/layout-stats-mana2.json');
+		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe('/layout-stats-mana2-monkeyracer.json');
 		expect(analyzerShortLabel(CMINI_ANALYZER)).toBe('cmini');
 	});
 
@@ -40,7 +40,7 @@ describe('stats analyzer catalog', () => {
 			analyzer: CMINI_ANALYZER,
 			corpus: MONKEYRACER_CORPUS,
 			isDefault: true,
-			statsUrl: '/layout-stats.json'
+			statsUrl: '/layout-stats-cmini-monkeyracer.json'
 		});
 		expect(
 			STAT_ANALYZERS.every(
@@ -51,7 +51,12 @@ describe('stats analyzer catalog', () => {
 		).toBe(true);
 		expect(getStatsDataset(MANA2_ANALYZER).corpus).toBe(MONKEYRACER_CORPUS);
 		expect(getStatsDataset(CYANOPHAGE_ANALYZER).corpus).toBeNull();
-		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, MONKEYRACER_CORPUS)).toBe('/layout-stats.json');
+		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, MONKEYRACER_CORPUS)).toBe(
+			'/layout-stats-cmini-monkeyracer.json'
+		);
+		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, MONKEYRACER_CORPUS)).toBe(
+			'/layout-stats-mana2-monkeyracer.json'
+		);
 		expect(() => getStatsDataset(CYANOPHAGE_ANALYZER, MONKEYRACER_CORPUS)).toThrow();
 	});
 

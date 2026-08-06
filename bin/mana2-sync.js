@@ -2,7 +2,7 @@
 
 /**
  * Clone Mana2 (Codeberg), build the CLI, convert cmini layouts, and write
- * gitignored static/layout-stats-mana2.json.
+ * gitignored static/layout-stats-mana2-{corpus}.json.
  *
  * Requires Go ≥ 1.26.4 and a prior cmini-sync (layouts in .cache/cmini-repo).
  * Use --offline to skip git fetch when caches already exist.
@@ -32,10 +32,12 @@ import {
 	saveMana2StatsCache,
 	setCachedMana2Stats
 } from './mana2-stats.js';
+import { mana2StatsRelPath } from './stats-artifact-paths.js';
 
 const CMINI_CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const MANA2_CACHE_DIR = join(process.cwd(), '.cache', 'mana2');
-const MANA2_STATS_FILE = 'static/layout-stats-mana2.json';
+const MANA2_STATS_CORPUS = process.env.MANA2_STATS_CORPUS ?? 'monkeyracer';
+const MANA2_STATS_FILE = mana2StatsRelPath(MANA2_STATS_CORPUS);
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const MANA2_REPO = 'https://codeberg.org/Zakkkk/mana2.git';
 /**

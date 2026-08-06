@@ -8,7 +8,7 @@ const REQUIRED_FILES = [
 	'static/layout-supplemental.json',
 	'static/authors.json',
 	'static/layout-likes.json',
-	'static/layout-stats.json',
+	'static/layout-stats-cmini-monkeyracer.json',
 	'static/layout-stats-cyanophage.json'
 ];
 

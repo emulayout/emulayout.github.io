@@ -18,11 +18,10 @@ import {
 /**
  * Layout stats for the site (monkeyracer analyzer).
  *
- * Trigram stats (Alt, Rol, Red, SFS, …), SFB, LH/RH, and per-finger usage are
- * always computed at sync time from the monkeyracer corpus. cmini cache files
- * are only used by verify-monkeyracer-stats as a drift canary — when a few
- * layouts disagree, our computation wins (bad upstream caches are more likely
- * than a layout-specific analyzer bug).
+ * Published catalog stats are imported from cminibrowser dumps (see
+ * `bin/cminibrowser-cmini-stats.js` / `bin/cmini-sync.js`). This module still
+ * hosts the local analyzer port used by `verify-monkeyracer-stats` and the
+ * shared compact key/scale contract with the frontend.
  */
 
 /** Analyzer id exported to the site (matches cmini Discord bot default). */

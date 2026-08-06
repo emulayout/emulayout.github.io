@@ -31,9 +31,9 @@ vite.config.ts.timestamp-*
 static/all-layouts.json
 static/layout-supplemental.json
 static/authors.json
-static/layout-stats.json
 static/layout-stats-cyanophage.json
-static/layout-stats-mana2.json
+static/layout-stats-mana2-*.json
+static/layout-stats-cmini-*.json
 static/layout-likes.json
 static/layout-names.json
 static/layout-details/

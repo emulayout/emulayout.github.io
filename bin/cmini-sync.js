@@ -9,13 +9,13 @@ import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { loadLayoutSupplementalData } from './layout-data.js';
 import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
-import { buildLayoutStats, DEFAULT_STATS_ANALYZER, loadCorpusData } from './layout-stats.js';
+import { readCminibrowserJson } from './cminibrowser-cache.js';
 import {
-	buildAnalyzerFingerprint,
-	createStatsCacheContext,
-	pruneStatsCache,
-	saveStatsCache
-} from './layout-stats-cache.js';
+	CMINIBROWSER_CMINI_DEFAULT_CORPUS,
+	indexCminibrowserCminiDump,
+	lookupCminibrowserCminiStats
+} from './cminibrowser-cmini-stats.js';
+import { cminiCompactStatsRelPath, cminiExtendedStatsRelPath } from './stats-artifact-paths.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -32,7 +32,6 @@ import {
 
 const LAYOUTS_FILE = 'static/all-layouts.json';
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
-const STATS_FILE = 'static/layout-stats.json';
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const LIKES_FILE = 'static/layout-likes.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
@@ -52,6 +51,8 @@ const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\/
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 const SYNC_CONCURRENCY = Number(process.env.CMINI_SYNC_CONCURRENCY ?? 16);
+const CMINI_STATS_CORPUS =
+	process.env.CMINIBROWSER_CMINI_CORPUS ?? CMINIBROWSER_CMINI_DEFAULT_CORPUS;
 
 async function resolveDefaultBranch() {
 	try {
@@ -257,16 +258,12 @@ async function run() {
 	console.log('→ Resolving layout timestamps from git history...');
 	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
 
-	let corpusData = null;
-	let statsCache = null;
-	try {
-		corpusData = await loadCorpusData(CACHE_DIR, DEFAULT_STATS_ANALYZER);
-		const analyzerFingerprint = await buildAnalyzerFingerprint();
-		statsCache = await createStatsCacheContext(corpusData.fingerprint, analyzerFingerprint);
-		console.log(`→ Loaded ${DEFAULT_STATS_ANALYZER} analyzer data for SFB / LH-RH`);
-	} catch (err) {
-		console.warn(`  ⚠ Could not load analyzer data (${err.message}); SFB/LH-RH will be zero`);
-	}
+	console.log(`→ Loading cminibrowser cmini stats (${CMINI_STATS_CORPUS})...`);
+	const cminiDump = await readCminibrowserJson(`stats/${CMINI_STATS_CORPUS}.json`, {
+		offline
+	});
+	const cminiStatsIndex = indexCminibrowserCminiDump(cminiDump);
+	console.log(`  ✔ Indexed ${cminiStatsIndex.size} layouts from cminibrowser dump`);
 
 	let cyanophageData = null;
 	try {
@@ -281,6 +278,8 @@ async function run() {
 	// Transform all layouts
 	const transformedLayouts = [];
 	const layoutStats = {};
+	/** @type {Record<string, import('./cminibrowser-cmini-stats.js').CminibrowserCminiExtendedStats>} */
+	const layoutStatsExtended = {};
 	const cyanophageStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
@@ -312,10 +311,7 @@ async function run() {
 		transformedLayout.hasAdaptiveSwap =
 			adaptiveLayoutNames.has(rawLayout.name) || transformedLayout.hasAdaptiveSwapMappings;
 
-		const stats = await buildLayoutStats(CACHE_DIR, filename, rawLayout, corpusData, {
-			statsCache: statsCache ?? undefined,
-			layoutContent: originalContent
-		});
+		const cminiHit = lookupCminibrowserCminiStats(cminiStatsIndex, rawLayout.name);
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
 			magicMappings: defaultMagicMappings(variants)
 		});
@@ -323,7 +319,8 @@ async function run() {
 		return {
 			encoded: encodeLayout(transformedLayout),
 			name: rawLayout.name,
-			stats,
+			stats: cminiHit?.compact ?? null,
+			extended: cminiHit?.extended ?? null,
 			cyanStats
 		};
 	}
@@ -344,6 +341,7 @@ async function run() {
 			transformedLayouts.push(result.encoded);
 			if (result.stats) {
 				layoutStats[result.name] = result.stats;
+				if (result.extended) layoutStatsExtended[result.name] = result.extended;
 				statsLoaded++;
 			} else {
 				statsMissing++;
@@ -381,22 +379,26 @@ async function run() {
 	await writeFile(LIKES_FILE, JSON.stringify(layoutLikes) + '\n', 'utf-8');
 	console.log(`  ✔ Likes for ${Object.keys(layoutLikes).length} layouts\n`);
 
-	console.log('→ Merging layout stats (cache trigrams + computed SFB/LH-RH)...');
+	console.log('→ Merging layout stats from cminibrowser dump...');
+	const statsFile = cminiCompactStatsRelPath(CMINI_STATS_CORPUS);
+	const extendedStatsFile = cminiExtendedStatsRelPath(CMINI_STATS_CORPUS);
 	const sortedStats = Object.fromEntries(
 		Object.keys(layoutStats)
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, layoutStats[name]])
 	);
-	await writeFile(STATS_FILE, JSON.stringify(sortedStats) + '\n', 'utf-8');
-	if (statsCache) {
-		pruneStatsCache(statsCache, new Set(layoutFiles));
-		await saveStatsCache(statsCache);
-		console.log(
-			`  ✔ Stats cache: ${statsCache.hits} hits, ${statsCache.misses} rebuilt (${Object.keys(statsCache.layouts).length} stored)`
-		);
-	}
+	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
+	const sortedExtended = Object.fromEntries(
+		Object.keys(layoutStatsExtended)
+			.sort((a, b) => a.localeCompare(b))
+			.map((name) => [name, layoutStatsExtended[name]])
+	);
+	await writeFile(extendedStatsFile, JSON.stringify(sortedExtended) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} unavailable, ${DEFAULT_STATS_ANALYZER} analyzer)\n`
+		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing from dump, corpus=${CMINI_STATS_CORPUS}) → ${statsFile}`
+	);
+	console.log(
+		`  ✔ Extended cmini stats for ${Object.keys(sortedExtended).length} layouts (show-page detail only) → ${extendedStatsFile}\n`
 	);
 
 	console.log('→ Building cyanophage effort stats...');

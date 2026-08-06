@@ -20,6 +20,7 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"verify:monkeyracer-stats": "bun run ./bin/verify-monkeyracer-stats.js",
+		"verify:cminibrowser-cmini-stats": "bun run ./bin/verify-cminibrowser-cmini-stats.js",
 		"mana2-sync": "bun run ./bin/mana2-sync.js",
 		"generate:layout-details": "bun run ./bin/layout-details.js"
 	},

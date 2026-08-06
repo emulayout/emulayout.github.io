@@ -65,6 +65,9 @@ export type StatsAnalyzerMode = StatsAnalyzer;
 /** Corpus currently used for cmini and Mana2 generated stats. */
 export const MONKEYRACER_CORPUS = 'monkeyracer';
 
+/** Default corpus when the UI / loader does not select one explicitly. */
+export const DEFAULT_STATS_CORPUS = MONKEYRACER_CORPUS;
+
 /** Corpora with an explicit frontend identity. */
 export const STAT_CORPORA = [
 	{
@@ -76,6 +79,16 @@ export const STAT_CORPORA = [
 export type StatsCorpusDefinition = (typeof STAT_CORPORA)[number];
 export type StatsCorpus = StatsCorpusDefinition['value'];
 
+/** Published compact cmini stats for a corpus. */
+export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
+	return `/layout-stats-cmini-${corpus}.json`;
+}
+
+/** Published Mana2 stats for a corpus. */
+export function mana2StatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
+	return `/layout-stats-mana2-${corpus}.json`;
+}
+
 /**
  * A generated stats artifact is analyzer output for a particular corpus.
  * Cyanophage's current bundled word-frequency input has no selectable corpus id yet.
@@ -85,7 +98,7 @@ export const STATS_DATASETS = [
 		analyzer: CMINI_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: '/layout-stats.json'
+		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS)
 	},
 	{
 		analyzer: CYANOPHAGE_ANALYZER,
@@ -97,7 +110,7 @@ export const STATS_DATASETS = [
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: '/layout-stats-mana2.json'
+		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS)
 	}
 ] as const satisfies readonly {
 	analyzer: StatsAnalyzer;
