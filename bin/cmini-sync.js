@@ -37,15 +37,7 @@ const LIKES_FILE = 'static/layout-likes.json';
 const BLACKLIST_FILE = 'layout-blacklist.txt';
 const ADAPTIVE_LAYOUTS_FILE = 'adaptive-layouts.txt';
 const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
-const SPARSE_CHECKOUT = [
-	'layouts',
-	'/authors.json',
-	'/likes.json',
-	'cache',
-	'/corpora/monkeyracer/bigrams.json',
-	'/corpora/monkeyracer/monograms.json',
-	'/corpora/monkeyracer/trigrams.json'
-];
+const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json'];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
 const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
 // Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
@@ -146,7 +138,7 @@ async function loadLayoutLikes(validLayoutNames) {
 async function applySparseCheckout() {
 	await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
 	// sparse-checkout set updates patterns but does not materialize newly added paths in an
-	// existing partial clone (e.g. CI cache from before cache/ was in SPARSE_CHECKOUT).
+	// existing partial clone (e.g. CI cache from before likes.json was in SPARSE_CHECKOUT).
 	await $`git -C ${CACHE_DIR} checkout HEAD -- ${SPARSE_CHECKOUT_WORKTREE}`;
 }
 

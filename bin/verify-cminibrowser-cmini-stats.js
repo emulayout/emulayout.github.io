@@ -2,6 +2,7 @@
 
 /**
  * Compare cminibrowser cmini stats dumps to the published corpus artifact.
+ * Optional diagnostic only — not required in CI.
  *
  * Usage:
  *   bun run ./bin/verify-cminibrowser-cmini-stats.js

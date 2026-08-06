@@ -19,9 +19,9 @@ import {
  * Layout stats for the site (monkeyracer analyzer).
  *
  * Published catalog stats are imported from cminibrowser dumps (see
- * `bin/cminibrowser-cmini-stats.js` / `bin/cmini-sync.js`). This module still
- * hosts the local analyzer port used by `verify-monkeyracer-stats` and the
- * shared compact key/scale contract with the frontend.
+ * `bin/cminibrowser-cmini-stats.js` / `bin/cmini-sync.js`). This module keeps the
+ * shared compact key/scale contract and a local analyzer port used by tests and
+ * diagnostics — not by the publish path.
  */
 
 /** Analyzer id exported to the site (matches cmini Discord bot default). */

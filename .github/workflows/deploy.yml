@@ -72,8 +72,7 @@ jobs:
             .cache/cmini-repo
             .cache/cminibrowser
             .cache/layout-timestamps.json
-            .cache/layout-stats-monkeyracer.json
-          key: ${{ runner.os }}-cmini-v8-${{ hashFiles('bin/cmini-sync.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+          key: ${{ runner.os }}-cmini-v9-${{ hashFiles('bin/cmini-sync.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
@@ -81,9 +80,6 @@ jobs:
         run: bun run ./bin/cmini-sync.js
         env:
           CI: true
-
-      - name: Verify monkeyracer stats match cmini cache
-        run: bun run verify:monkeyracer-stats
 
       - name: Run mana2-sync
         run: bun run ./bin/mana2-sync.js
