@@ -4,8 +4,7 @@
  * entry for per-layout detail payloads (show pages).
  *
  * Dump URL: `/data/mana2/named/{corpus}.{board}.{space}.json`
- * Key order/scale must stay aligned with `bin/mana2-stats.js` /
- * `src/lib/statsDerivation.ts`.
+ * Key order/scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
 
 /** Default corpus / board / space for published Mana2 catalog stats. */
@@ -17,7 +16,7 @@ export const CMINIBROWSER_MANA2_DEFAULT_SPACE = 'none';
 export const CMINIBROWSER_MANA2_STAT_VALUE_SCALE = 10_000;
 
 /**
- * Compact field order — keep in sync with MANA2_STAT_KEYS in mana2-stats.js.
+ * Compact field order — keep in sync with MANA2_STAT_KEYS in statsDerivation.ts.
  * @type {readonly string[]}
  */
 export const CMINIBROWSER_MANA2_STAT_KEYS = [

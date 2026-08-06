@@ -28,15 +28,15 @@ directly in the browser.
 - Compare two layouts side by side, including per-metric differences.
 - Expand a layout for a cross-analyzer view of its statistics.
 
-| Analyzer                                                   | Emulayout integration                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics using the Monkeyracer corpus            |
-| [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground   |
-| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Monkeyracer statistics with supported Magic-key mappings included |
+| Analyzer                                                   | Emulayout integration                                           |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics using the Monkeyracer corpus          |
+| [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground |
+| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from cminibrowser corpus dumps           |
 
-Each analyzer retains its own metric definitions and units. cmini and Cyanophage describe the base
-layout. Mana2 can include supported Magic-key profiles; Adaptive swaps are not currently included
-in analyzer results.
+Each analyzer retains its own metric definitions and units. cmini and Mana2 stats are imported from
+[cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer by default). Cyanophage is computed
+locally. Adaptive swaps are not currently included in analyzer results.
 
 ## Try layouts in place
 
@@ -94,8 +94,8 @@ bun run ./bin/mana2-sync.js  # generate Mana2 stats
 ```
 
 The cmini sync currently creates its catalog and analyzer outputs together. Mana2 generation is
-independent and requires Go. All generated `static/*.json` files are gitignored; CI regenerates
-them for deployments and the daily catalog sync.
+independent and imports cminibrowser dumps (no local Go toolchain). All generated `static/*.json`
+files are gitignored; CI regenerates them for deployments and the daily catalog sync.
 
 ### Common commands
 

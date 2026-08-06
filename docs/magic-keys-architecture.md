@@ -129,9 +129,9 @@ preceding sequences that collide after lowercase normalization. Sync also verifi
 and every configured trigger exist in Cmini. A mapped trigger is valid regardless of which symbol it
 uses.
 
-Mana2's extended adapter expands `repeat-last` and single-character `{ "emit": … }` fallbacks into
-bigram rules for every otherwise-unmapped key. A multi-character `emit` exceeds what that engine
-models, so the layout falls back to standard-engine stats with a `multi-character-output` reason.
+Mana2's historical extended CLI adapter expanded `repeat-last` and single-character `{ "emit": … }`
+fallbacks into bigram rules. Emulayout no longer runs that adapter; published Mana2 stats come from
+cminibrowser dumps of the base layout.
 
 ## Runtime data and compilation
 
@@ -256,18 +256,8 @@ curated variant has a supported Magic profile (and optionally a default Repeat k
 - layouts measured this way may still be playground-incompatible for deep-links;
 - Adaptive swaps are not included.
 
-Mana2 records Magic and Repeat analysis independently:
-
-- a standalone supported Magic profile can use the extended engine;
-- a standalone Repeat key expands to per-key `x@ -> xx` rules in the extended engine;
-- a layout with both Magic and Repeat behavior stays on the standard engine because the current
-  adapter supports only one contextual feature at a time;
-- unsupported or unavailable Magic mappings use standard-engine stats with an explicit reason;
-- an explicit `@` Magic mapping is analyzed as Magic, not Repeat.
-
-Mana2 analyzes the first variant, matching what the runtime loads by default.
-
-Adaptive swaps are not currently included in Mana2 analysis.
+Mana2 stats are imported from cminibrowser corpus dumps and describe the base layout only.
+Magic and Repeat profiles are not folded into published Mana2 metrics.
 
 ## Architectural invariants
 
@@ -287,3 +277,4 @@ Adaptive swaps are not currently included in Mana2 analysis.
 - Final output is inserted and added to history exactly once.
 - Filtering uses compact metadata rather than mapping details.
 - Analyzer metadata states independently which contextual behavior affected the result.
+  Cyanophage may rewrite corpus words for Magic/Repeat; Mana2 dump stats describe the base layout.

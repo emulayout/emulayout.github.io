@@ -138,55 +138,11 @@ export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
  */
 export type Mana2Stats = Record<string, number>;
 
-export type Mana2MagicKeyExclusionReason =
-	| 'mappings-unavailable'
-	| 'multiple-magic-keys'
-	| 'invalid-magic-key'
-	| 'no-rules'
-	| 'multi-key-input'
-	| 'multiple-outputs-per-input'
-	| 'multi-character-output'
-	| 'magic-key-not-on-layout'
-	| 'input-key-not-on-layout'
-	| 'invalid-profile'
-	| 'combined-input-behaviors'
-	| 'extended-engine-failed';
-
-/**
- * Records whether a configured magic-key profile was included in Mana2's
- * result, or why the result fell back to ordinary standard-engine analysis.
- */
-export type Mana2MagicKeyAnalysis =
-	| { status: 'included'; engine: 'extended' }
-	| {
-			status: 'excluded';
-			engine: 'standard';
-			reason: Mana2MagicKeyExclusionReason;
-			detail: string;
-	  };
-
-export type Mana2RepeatKeyAnalysis =
-	| { status: 'included'; engine: 'extended' }
-	| {
-			status: 'excluded';
-			engine: 'standard';
-			reason: 'combined-input-behaviors' | 'extended-engine-failed';
-			detail: string;
-	  };
-
 /**
  * Compact mana2 stats: fixed-point values (×10_000) in MANA2_STAT_KEYS order.
- * Ordinary layouts remain bare arrays. Layouts with contextual behavior carry
- * their stats and feature-specific analysis results together.
- * @see MANA2_STAT_KEYS in statsDerivation.ts / bin/mana2-stats.js
+ * @see MANA2_STAT_KEYS in statsDerivation.ts
  */
-export type CompactMana2Stats =
-	| number[]
-	| {
-			stats: number[];
-			magicKeys?: Mana2MagicKeyAnalysis;
-			repeatKey?: Mana2RepeatKeyAnalysis;
-	  };
+export type CompactMana2Stats = number[];
 
 /** Layout stats keyed by layout name. Loaded from /layout-stats-mana2-{corpus}-{board}-{space}.json. */
 export type Mana2StatsMap = Record<string, CompactMana2Stats>;

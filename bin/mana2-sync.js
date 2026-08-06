@@ -2,8 +2,7 @@
 
 /**
  * Import Mana2 stats from cminibrowser named dumps into corpus/board/space-labeled
- * static artifacts. The local Go Mana2 CLI path is retained in-repo for a follow-up
- * removal commit; this sync no longer invokes it.
+ * static artifacts.
  *
  * Requires a prior cmini-sync (`static/all-layouts.json`).
  * Use --offline to reuse a cached dump under `.cache/cminibrowser/`.
