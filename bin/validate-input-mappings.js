@@ -27,7 +27,7 @@ async function run() {
 		await access(CMINI_LAYOUTS_DIR);
 	} catch {
 		throw new Error(
-			`Cmini layouts not found at ${CMINI_LAYOUTS_DIR}. Run bun run ./bin/cmini-sync.js once, or set CMINI_LAYOUTS_DIR.`
+			`Cmini layouts not found at ${CMINI_LAYOUTS_DIR}. Run bun run ./bin/catalog-sync.js once, or set CMINI_LAYOUTS_DIR.`
 		);
 	}
 

@@ -5,7 +5,8 @@ on:
     branches:
       - master
   schedule:
-    - cron: '15 0 * * *'
+    # After cmini (~5pm PT) and cminibrowser (~7pm PT). 04:15 UTC is 8:15pm PST / 9:15pm PDT.
+    - cron: '15 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -72,17 +73,27 @@ jobs:
             .cache/cmini-repo
             .cache/cminibrowser
             .cache/layout-timestamps.json
-          key: ${{ runner.os }}-cmini-v9-${{ hashFiles('bin/cmini-sync.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+          key: ${{ runner.os }}-cmini-v10-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
-      - name: Run cmini-sync
-        run: bun run ./bin/cmini-sync.js
+      - name: Sync catalog
+        run: bun run ./bin/catalog-sync.js
         env:
           CI: true
 
-      - name: Run mana2-sync
-        run: bun run ./bin/mana2-sync.js
+      - name: Sync cmini stats
+        run: bun run ./bin/cmini-stats-sync.js --force
+        env:
+          CI: true
+
+      - name: Sync Cyanophage stats
+        run: bun run ./bin/cyanophage-stats-sync.js
+        env:
+          CI: true
+
+      - name: Sync Mana2 stats
+        run: bun run ./bin/mana2-stats-sync.js --force
         env:
           CI: true
 

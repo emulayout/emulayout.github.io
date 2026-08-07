@@ -159,6 +159,6 @@ file that declares nothing.
   errors.
 - `bin/input-mapping-validation.js` — checks each variant's keys against the Cmini layout, fatally
   for the pull-request gate and as staleness for sync.
-- `bin/cmini-sync.js` — derives the compact feature flags and publishes
+- `bin/catalog-sync.js` — derives the compact feature flags and publishes
   `static/layout-supplemental.json`.
 - `src/lib/layoutInputBehaviors.ts` — compiles the published payload into runtime profiles.

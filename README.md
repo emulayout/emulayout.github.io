@@ -77,27 +77,39 @@ The layout catalog, authors, and input-behavior metadata under `static/` are req
 checkout, populate them once before starting the development server:
 
 ```sh
-bun run ./bin/cmini-sync.js
+bun run sync                   # or: bun run ./bin/catalog-sync.js
 bun run dev
 ```
 
 Analyzer stats are optional at runtime. Without them, catalog browsing, non-stat filters, layout
 testing, selections, and saved views still work; analyzer displays, stat filters, and stat sorting
-remain unavailable. In the normal local workflow, cmini stats are imported from cminibrowser dumps
-alongside the required catalog during `cmini-sync`.
+remain unavailable. Import cmini/Mana2 stats and compute Cyanophage via `bun run sync` (or the
+individual `*-stats-sync` scripts) after the catalog exists.
 
 ### Generate analyzer data
 
 ```sh
-bun run ./bin/cmini-sync.js  # refresh catalog; import cmini stats; compute Cyanophage
-bun run ./bin/mana2-sync.js  # import Mana2 stats from cminibrowser dumps
+bun run sync                              # interactive: choose targets + refresh mode
+bun run ./bin/catalog-sync.js             # cmini repo → catalog artifacts
+bun run ./bin/cmini-stats-sync.js         # cminibrowser → cmini stats
+bun run ./bin/mana2-stats-sync.js         # cminibrowser → Mana2 stats
+bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
 ```
 
-`cmini-sync` builds the catalog from the cmini repo and imports cmini stats from
-[cminibrowser](https://cminibrowser.com/api/) dumps (default corpus: Monkeyracer). Cyanophage stats
-are still computed locally in that same pass. Mana2 is a separate sync that imports named
-cminibrowser dumps (no local Go toolchain). All generated `static/*.json` files are gitignored; CI
-regenerates them for deployments and the daily catalog sync.
+`bun run sync` opens a TUI to pick independent tasks (catalog, cmini stats, Mana2 stats, Cyanophage,
+layout details) and whether to reuse caches (normal), re-download dumps (force), or stay offline.
+For scripts:
+
+```sh
+bun run sync -- --all --force
+bun run sync -- --catalog --cmini-stats --mana2-stats --cyanophage --details
+bun run sync -- --all --offline
+```
+
+Catalog sync clones/updates cmini and writes layout metadata under `static/`. cmini and Mana2 stats
+are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer by default).
+Cyanophage stats are computed locally from the catalog cache. All generated `static/*.json` files
+are gitignored; CI regenerates them for deployments and the daily catalog sync.
 
 Optional diagnostic (not run in CI):
 
@@ -112,6 +124,7 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 | `bun run dev`               | Start the development server                       |
 | `bun run build`             | Create a production build                          |
 | `bun run preview`           | Preview the production build                       |
+| `bun run sync`              | Interactive catalog + analyzer data sync           |
 | `bun run check`             | Run Svelte and TypeScript checks                   |
 | `bun run lint`              | Check formatting and lint the project              |
 | `bun test`                  | Run unit tests                                     |
@@ -121,21 +134,23 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 
 ## Generated data
 
-`bin/cmini-sync.js` clones cmini into `.cache/cmini-repo` (layouts, authors, likes) and writes the
-layout catalog, likes, and supplemental layout data under `static/`. It imports compact cmini stats
-from cminibrowser (`static/layout-stats-cmini-{corpus}.json`, default corpus Monkeyracer) and
-computes Cyanophage stats locally. Extended cmini dump fields are written alongside for show-page
-detail payloads only. Curated supplemental data comes from `data/layouts/`; `adaptive-layouts.txt`
-records layouts known to use Adaptive swaps even when their mappings have not yet been curated. A
-layout key named `@` repeats the previous uninterrupted emitted character by default, so that
-behavior does not require a curated file. A curated Magic mapping whose trigger is `@` overrides
-the default and may opt back into repeat fallback explicitly.
+`bin/catalog-sync.js` clones cmini into `.cache/cmini-repo` (layouts, authors, likes) and writes the
+layout catalog, likes, and supplemental layout data under `static/`. Curated supplemental data comes
+from `data/layouts/`; `adaptive-layouts.txt` records layouts known to use Adaptive swaps even when
+their mappings have not yet been curated. A layout key named `@` repeats the previous uninterrupted
+emitted character by default, so that behavior does not require a curated file. A curated Magic
+mapping whose trigger is `@` overrides the default and may opt back into repeat fallback explicitly.
 
-`bin/mana2-sync.js` downloads cminibrowser Mana2 named dumps and writes
-`static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults:
-`monkeyracer.rowstag.none`). Extended dump fields are written alongside for
-show-page detail payloads only. Use `--offline` after the first download to
-reuse `.cache/cminibrowser/`.
+Analyzer artifacts are produced by separate scripts:
+
+- `bin/cmini-stats-sync.js` — cminibrowser cmini dumps → `static/layout-stats-cmini-{corpus}.json`
+  (plus extended show-page sibling)
+- `bin/mana2-stats-sync.js` — cminibrowser Mana2 named dumps →
+  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: `monkeyracer.rowstag.none`)
+- `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
+
+Dump-based syncs accept `--force` (re-download) or `--offline` (reuse `.cache/cminibrowser/`).
+`bun run sync` prompts for targets and refresh mode, or accepts the same flags non-interactively.
 
 ## Contribute supplemental layout data
 
@@ -157,7 +172,7 @@ filename must exactly match its cmini layout name. The simplest useful file is:
 See [`docs/layout-supplemental-data.md`](docs/layout-supplemental-data.md) for the full format,
 including how to offer alternative mapping versions and what happens when a layout changes upstream.
 
-Run the cmini sync at least once to populate `.cache/cmini-repo`, then validate:
+Run the catalog sync at least once to populate `.cache/cmini-repo`, then validate:
 
 ```sh
 bun run validate:mappings

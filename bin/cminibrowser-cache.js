@@ -42,6 +42,7 @@ async function pathExists(cachePath) {
 
 /**
  * Ensure a dump is on disk; download unless `offline` and already cached.
+ * Pass `force: true` to re-download even when a cache file exists.
  *
  * @param {string} dataPath path under /data, e.g. `stats/monkeyracer.json`
  * @param {{ offline?: boolean, force?: boolean }} [options]

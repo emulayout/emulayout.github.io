@@ -31,6 +31,8 @@ console.log('→ Layout data missing for local dev:');
 for (const file of missing) {
 	console.log(`  - ${file}`);
 }
-console.log('→ Generating from cmini cache...');
+console.log('→ Generating from cached sources...');
 
-await $`bun run ./bin/cmini-sync.js --offline`;
+await $`bun run ./bin/catalog-sync.js --offline`;
+await $`bun run ./bin/cmini-stats-sync.js --offline`;
+await $`bun run ./bin/cyanophage-stats-sync.js`;

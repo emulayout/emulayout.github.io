@@ -4,8 +4,9 @@
  * Import Mana2 stats from cminibrowser named dumps into corpus/board/space-labeled
  * static artifacts.
  *
- * Requires a prior cmini-sync (`static/all-layouts.json`).
+ * Requires a prior catalog-sync (`static/all-layouts.json`).
  * Use --offline to reuse a cached dump under `.cache/cminibrowser/`.
+ * Use --force to re-download the dump even when a cache file exists.
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -20,34 +21,17 @@ import {
 } from './cminibrowser-mana2-stats.js';
 import { layoutEntryName } from './layout-codec.js';
 import { mana2ExtendedStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
-
-const LAYOUTS_FILE = 'static/all-layouts.json';
-const BLACKLIST_FILE = 'layout-blacklist.txt';
+import { LAYOUTS_FILE, loadBlacklist, parseOfflineForceArgs } from './sync-shared.js';
 
 const MANA2_STATS_CORPUS = process.env.MANA2_STATS_CORPUS ?? CMINIBROWSER_MANA2_DEFAULT_CORPUS;
 const MANA2_STATS_BOARD = process.env.MANA2_STATS_BOARD ?? CMINIBROWSER_MANA2_DEFAULT_BOARD;
 const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DEFAULT_SPACE;
 
-async function loadBlacklist() {
-	try {
-		const content = await readFile(BLACKLIST_FILE, 'utf-8');
-		/** @type {Set<string>} */
-		const blacklist = new Set();
-		for (const line of content.split('\n')) {
-			const entry = line.trim();
-			if (!entry || entry.startsWith('#')) continue;
-			blacklist.add(entry);
-			blacklist.add(entry.replace(/\.json$/i, ''));
-			if (!entry.endsWith('.json')) blacklist.add(`${entry}.json`);
-		}
-		return blacklist;
-	} catch {
-		return new Set();
-	}
-}
-
 async function run() {
-	const offline = process.argv.includes('--offline') || process.env.MANA2_SYNC_OFFLINE === '1';
+	const { offline, force } = parseOfflineForceArgs(process.argv.slice(2), {
+		offlineEnv: 'MANA2_STATS_SYNC_OFFLINE',
+		forceEnv: 'MANA2_STATS_SYNC_FORCE'
+	});
 
 	console.log(`→ Loading layouts from ${LAYOUTS_FILE}`);
 	/** @type {unknown[]} */
@@ -60,7 +44,7 @@ async function run() {
 		MANA2_STATS_SPACE
 	);
 	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
-	const dump = await readCminibrowserJson(dumpPath, { offline });
+	const dump = await readCminibrowserJson(dumpPath, { offline, force });
 	const index = indexCminibrowserMana2Dump(dump);
 	console.log(`  ✔ Indexed ${index.size} layouts from dump`);
 
@@ -121,6 +105,6 @@ async function run() {
 }
 
 run().catch((err) => {
-	console.error('❌ mana2-sync failed:', err);
+	console.error('❌ mana2-stats-sync failed:', err);
 	process.exit(1);
 });

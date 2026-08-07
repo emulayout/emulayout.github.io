@@ -1,5 +1,13 @@
 #!/usr/bin/env bun
 
+/**
+ * Sync the cmini catalog clone and publish layout catalog artifacts:
+ * all-layouts, supplemental, likes, authors.
+ *
+ * Does not import analyzer stats or compute Cyanophage metrics.
+ * Use --offline to skip git fetch and reuse `.cache/cmini-repo`.
+ */
+
 import { readFile, mkdir, access, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -9,18 +17,6 @@ import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { loadLayoutSupplementalData } from './layout-data.js';
 import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
-import { readCminibrowserJson } from './cminibrowser-cache.js';
-import {
-	CMINIBROWSER_CMINI_DEFAULT_CORPUS,
-	indexCminibrowserCminiDump,
-	lookupCminibrowserCminiStats
-} from './cminibrowser-cmini-stats.js';
-import { cminiCompactStatsRelPath, cminiExtendedStatsRelPath } from './stats-artifact-paths.js';
-import {
-	buildCyanophageStats,
-	CYANOPHAGE_ANALYZER,
-	loadCyanophageData
-} from './cyanophage-stats.js';
 import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
 import {
 	defaultMagicMappings,
@@ -29,52 +25,30 @@ import {
 	hasMagicKeyMarker,
 	hasRepeatKey
 } from './layout-features.js';
+import {
+	CMINI_CACHE_DIR,
+	LAYOUTS_FILE,
+	loadBlacklist,
+	parseOfflineForceArgs
+} from './sync-shared.js';
 
-const LAYOUTS_FILE = 'static/all-layouts.json';
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
-const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const LIKES_FILE = 'static/layout-likes.json';
-const BLACKLIST_FILE = 'layout-blacklist.txt';
 const ADAPTIVE_LAYOUTS_FILE = 'adaptive-layouts.txt';
-const CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json'];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
 const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
-// Use HTTPS in CI environments (GitHub Actions, etc.) for public repos
 const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
 const SYNC_CONCURRENCY = Number(process.env.CMINI_SYNC_CONCURRENCY ?? 16);
-const CMINI_STATS_CORPUS =
-	process.env.CMINIBROWSER_CMINI_CORPUS ?? CMINIBROWSER_CMINI_DEFAULT_CORPUS;
 
 async function resolveDefaultBranch() {
 	try {
-		const branch = await $`git -C ${CACHE_DIR} rev-parse --abbrev-ref origin/HEAD`.text();
+		const branch = await $`git -C ${CMINI_CACHE_DIR} rev-parse --abbrev-ref origin/HEAD`.text();
 		return branch.trim().replace('origin/', '');
 	} catch {
-		const main = await $`git -C ${CACHE_DIR} rev-parse origin/main`.quiet().nothrow();
+		const main = await $`git -C ${CMINI_CACHE_DIR} rev-parse origin/main`.quiet().nothrow();
 		if (main.exitCode === 0) return 'main';
 		return 'master';
-	}
-}
-
-async function loadBlacklist() {
-	try {
-		const content = await readFile(BLACKLIST_FILE, 'utf-8');
-		const names = content
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line && !line.startsWith('#'));
-		/** @type {Set<string>} */
-		const blacklist = new Set();
-		for (const entry of names) {
-			blacklist.add(entry);
-			blacklist.add(entry.replace(/\.json$/i, ''));
-			if (!entry.endsWith('.json')) blacklist.add(`${entry}.json`);
-		}
-		return blacklist;
-	} catch {
-		// File doesn't exist, return empty set
-		return new Set();
 	}
 }
 
@@ -89,8 +63,6 @@ async function loadAdaptiveLayoutNames() {
 }
 
 /**
- * Publish `stale` on variants whose referenced keys the layout no longer has.
- *
  * @param {import('../src/lib/layoutSupplemental.ts').LayoutSupplemental} supplemental
  * @param {ReadonlySet<string> | undefined} staleIds
  */
@@ -105,15 +77,12 @@ function markStaleVariants(supplemental, staleIds) {
 }
 
 /**
- * Load per-layout like counts from cmini's likes.json.
- * Keeps only total counts; individual user ids are not shipped.
- *
  * @param {Set<string>} validLayoutNames
  * @returns {Promise<Record<string, number>>}
  */
 async function loadLayoutLikes(validLayoutNames) {
 	try {
-		const content = await readFile(join(CACHE_DIR, 'likes.json'), 'utf-8');
+		const content = await readFile(join(CMINI_CACHE_DIR, 'likes.json'), 'utf-8');
 		const parsed = JSON.parse(content);
 		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
 
@@ -136,42 +105,47 @@ async function loadLayoutLikes(validLayoutNames) {
 }
 
 async function applySparseCheckout() {
-	await $`cd ${CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
-	// sparse-checkout set updates patterns but does not materialize newly added paths in an
-	// existing partial clone (e.g. CI cache from before likes.json was in SPARSE_CHECKOUT).
-	await $`git -C ${CACHE_DIR} checkout HEAD -- ${SPARSE_CHECKOUT_WORKTREE}`;
+	await $`cd ${CMINI_CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
+	await $`git -C ${CMINI_CACHE_DIR} checkout HEAD -- ${SPARSE_CHECKOUT_WORKTREE}`;
 }
 
-async function ensureCache(offline = false) {
-	const cacheExists = await access(CACHE_DIR)
+/**
+ * @param {boolean} offline
+ */
+async function ensureCache(offline) {
+	const cacheExists = await access(CMINI_CACHE_DIR)
 		.then(() => true)
 		.catch(() => false);
 
 	if (!cacheExists) {
 		if (offline) {
-			throw new Error(`cmini cache missing at ${CACHE_DIR}. Run: bun run ./bin/cmini-sync.js`);
+			throw new Error(
+				`cmini cache missing at ${CMINI_CACHE_DIR}. Run: bun run ./bin/catalog-sync.js`
+			);
 		}
 		console.log('→ Initial clone (this may take a while)...');
-		await mkdir(CACHE_DIR, { recursive: true });
-		await $`git clone --filter=blob:none --sparse ${REPO} ${CACHE_DIR}`;
+		await mkdir(CMINI_CACHE_DIR, { recursive: true });
+		await $`git clone --filter=blob:none --sparse ${REPO} ${CMINI_CACHE_DIR}`;
 		await applySparseCheckout();
 	} else if (offline) {
 		console.log('→ Using existing cmini cache (offline)...');
 	} else {
 		console.log('→ Updating cache...');
 		const isShallow = (
-			await $`git -C ${CACHE_DIR} rev-parse --is-shallow-repository`.text()
+			await $`git -C ${CMINI_CACHE_DIR} rev-parse --is-shallow-repository`.text()
 		).trim();
 		if (isShallow === 'true') {
 			console.log('→ Unshallowing cache for layout timestamps...');
-			await $`git -C ${CACHE_DIR} fetch --unshallow`.nothrow();
+			await $`git -C ${CMINI_CACHE_DIR} fetch --unshallow`.nothrow();
 		}
 		const branchName = await resolveDefaultBranch();
-		const localHead = (await $`git -C ${CACHE_DIR} rev-parse HEAD`.text()).trim();
-		await $`cd ${CACHE_DIR} && git fetch origin ${branchName}`;
-		const remoteHead = (await $`git -C ${CACHE_DIR} rev-parse origin/${branchName}`.text()).trim();
+		const localHead = (await $`git -C ${CMINI_CACHE_DIR} rev-parse HEAD`.text()).trim();
+		await $`cd ${CMINI_CACHE_DIR} && git fetch origin ${branchName}`;
+		const remoteHead = (
+			await $`git -C ${CMINI_CACHE_DIR} rev-parse origin/${branchName}`.text()
+		).trim();
 		if (localHead !== remoteHead) {
-			await $`cd ${CACHE_DIR} && git reset --hard origin/${branchName}`;
+			await $`cd ${CMINI_CACHE_DIR} && git reset --hard origin/${branchName}`;
 		} else {
 			console.log('→ Cache already up to date');
 		}
@@ -180,26 +154,28 @@ async function ensureCache(offline = false) {
 }
 
 async function run() {
-	const offline = process.argv.includes('--offline') || process.env.CMINI_SYNC_OFFLINE === '1';
+	const { offline } = parseOfflineForceArgs(process.argv.slice(2), {
+		offlineEnv: 'CMINI_SYNC_OFFLINE'
+	});
+	if (process.argv.includes('--force')) {
+		console.warn('  ⚠ catalog-sync ignores --force (use without --offline to fetch the repo)');
+	}
 	await ensureCache(offline);
 
 	const blacklist = await loadBlacklist();
 	const adaptiveLayoutNames = await loadAdaptiveLayoutNames();
 
-	// Get existing layouts before sync (read from the generated file if it exists)
 	let beforeLayouts = [];
 	try {
-		const beforeContent = await readFile(LAYOUTS_FILE, 'utf-8');
-		beforeLayouts = JSON.parse(beforeContent);
+		beforeLayouts = JSON.parse(await readFile(LAYOUTS_FILE, 'utf-8'));
 	} catch {
-		// File doesn't exist yet, that's fine
+		// first run
 	}
 
 	console.log('→ Syncing and transforming layouts...');
 	await $`mkdir -p static`;
 
-	// Get all layout files from cache
-	const cacheLayoutsDir = join(CACHE_DIR, 'layouts');
+	const cacheLayoutsDir = join(CMINI_CACHE_DIR, 'layouts');
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 	const layoutFileSet = new Set(layoutFiles);
@@ -248,35 +224,9 @@ async function run() {
 	}
 
 	console.log('→ Resolving layout timestamps from git history...');
-	const layoutTimestamps = await buildLayoutTimestamps(CACHE_DIR, layoutFiles);
+	const layoutTimestamps = await buildLayoutTimestamps(CMINI_CACHE_DIR, layoutFiles);
 
-	console.log(`→ Loading cminibrowser cmini stats (${CMINI_STATS_CORPUS})...`);
-	const cminiDump = await readCminibrowserJson(`stats/${CMINI_STATS_CORPUS}.json`, {
-		offline
-	});
-	const cminiStatsIndex = indexCminibrowserCminiDump(cminiDump);
-	console.log(`  ✔ Indexed ${cminiStatsIndex.size} layouts from cminibrowser dump`);
-
-	let cyanophageData = null;
-	try {
-		cyanophageData = await loadCyanophageData();
-		console.log(`→ Loaded ${CYANOPHAGE_ANALYZER} analyzer data for effort metrics`);
-	} catch (err) {
-		console.warn(
-			`  ⚠ Could not load cyanophage data (${err.message}); cyanophage stats will be skipped`
-		);
-	}
-
-	// Transform all layouts
 	const transformedLayouts = [];
-	const layoutStats = {};
-	/** @type {Record<string, import('./cminibrowser-cmini-stats.js').CminibrowserCminiExtendedStats>} */
-	const layoutStatsExtended = {};
-	const cyanophageStats = {};
-	let statsLoaded = 0;
-	let statsMissing = 0;
-	let cyanophageStatsLoaded = 0;
-	let cyanophageStatsSkipped = 0;
 
 	/**
 	 * @param {string} filename
@@ -285,8 +235,7 @@ async function run() {
 		const layoutName = filename.replace('.json', '');
 		if (blacklist.has(layoutName) || blacklist.has(filename)) return null;
 
-		const cachePath = join(cacheLayoutsDir, filename);
-		const originalContent = await readFile(cachePath, 'utf-8');
+		const originalContent = await readFile(join(cacheLayoutsDir, filename), 'utf-8');
 		const rawLayout = JSON.parse(originalContent);
 		const transformedLayout = transformLayout(rawLayout);
 		const variants = supplementalByLayout.get(rawLayout.name)?.variants ?? [];
@@ -303,18 +252,7 @@ async function run() {
 		transformedLayout.hasAdaptiveSwap =
 			adaptiveLayoutNames.has(rawLayout.name) || transformedLayout.hasAdaptiveSwapMappings;
 
-		const cminiHit = lookupCminibrowserCminiStats(cminiStatsIndex, rawLayout.name);
-		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
-			magicMappings: defaultMagicMappings(variants)
-		});
-
-		return {
-			encoded: encodeLayout(transformedLayout),
-			name: rawLayout.name,
-			stats: cminiHit?.compact ?? null,
-			extended: cminiHit?.extended ?? null,
-			cyanStats
-		};
+		return encodeLayout(transformedLayout);
 	}
 
 	for (let i = 0; i < layoutFiles.length; i += SYNC_CONCURRENCY) {
@@ -327,30 +265,12 @@ async function run() {
 				})
 			)
 		);
-
-		for (const result of results) {
-			if (!result) continue;
-			transformedLayouts.push(result.encoded);
-			if (result.stats) {
-				layoutStats[result.name] = result.stats;
-				if (result.extended) layoutStatsExtended[result.name] = result.extended;
-				statsLoaded++;
-			} else {
-				statsMissing++;
-			}
-			if (result.cyanStats) {
-				cyanophageStats[result.name] = result.cyanStats;
-				cyanophageStatsLoaded++;
-			} else {
-				cyanophageStatsSkipped++;
-			}
+		for (const encoded of results) {
+			if (encoded) transformedLayouts.push(encoded);
 		}
 	}
 
-	// Sort layouts by name for consistent output
 	transformedLayouts.sort((a, b) => a[0].localeCompare(b[0]));
-
-	// Write compact layout tuples (minified — GitHub Pages gzip-compresses on transfer)
 	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
 
 	const validLayoutNames = new Set(transformedLayouts.map((layout) => layout[0]));
@@ -364,59 +284,23 @@ async function run() {
 			])
 	);
 	await writeFile(SUPPLEMENTAL_FILE, JSON.stringify(publishedSupplemental) + '\n', 'utf-8');
+	console.log(`  ✔ Catalog: ${transformedLayouts.length} layouts`);
 	console.log(`  ✔ Supplemental data for ${Object.keys(publishedSupplemental).length} layouts`);
 
 	console.log('→ Building layout likes...');
-	const layoutLikes = await loadLayoutLikes(new Set(transformedLayouts.map((layout) => layout[0])));
+	const layoutLikes = await loadLayoutLikes(validLayoutNames);
 	await writeFile(LIKES_FILE, JSON.stringify(layoutLikes) + '\n', 'utf-8');
-	console.log(`  ✔ Likes for ${Object.keys(layoutLikes).length} layouts\n`);
-
-	console.log('→ Merging layout stats from cminibrowser dump...');
-	const statsFile = cminiCompactStatsRelPath(CMINI_STATS_CORPUS);
-	const extendedStatsFile = cminiExtendedStatsRelPath(CMINI_STATS_CORPUS);
-	const sortedStats = Object.fromEntries(
-		Object.keys(layoutStats)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, layoutStats[name]])
-	);
-	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
-	const sortedExtended = Object.fromEntries(
-		Object.keys(layoutStatsExtended)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, layoutStatsExtended[name]])
-	);
-	await writeFile(extendedStatsFile, JSON.stringify(sortedExtended) + '\n', 'utf-8');
-	console.log(
-		`  ✔ Stats for ${statsLoaded} layouts (${statsMissing} missing from dump, corpus=${CMINI_STATS_CORPUS}) → ${statsFile}`
-	);
-	console.log(
-		`  ✔ Extended cmini stats for ${Object.keys(sortedExtended).length} layouts (show-page detail only) → ${extendedStatsFile}\n`
-	);
-
-	console.log('→ Building cyanophage effort stats...');
-	const sortedCyanophageStats = Object.fromEntries(
-		Object.keys(cyanophageStats)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, cyanophageStats[name]])
-	);
-	await writeFile(CYANOPHAGE_STATS_FILE, JSON.stringify(sortedCyanophageStats) + '\n', 'utf-8');
-	console.log(
-		`  ✔ Cyanophage stats for ${cyanophageStatsLoaded} layouts (${cyanophageStatsSkipped} skipped, ${CYANOPHAGE_ANALYZER} analyzer)\n`
-	);
+	console.log(`  ✔ Likes for ${Object.keys(layoutLikes).length} layouts`);
 
 	console.log('→ Syncing authors...');
-	await $`cp ${CACHE_DIR}/authors.json static/authors.json`;
+	await $`cp ${CMINI_CACHE_DIR}/authors.json static/authors.json`;
 
-	// Calculate changes by comparing layout names
 	const beforeNames = new Set(beforeLayouts.map(layoutEntryName));
 	const afterNames = new Set(transformedLayouts.map((l) => l[0]));
-
 	const added = transformedLayouts.filter((l) => !beforeNames.has(l[0])).map((l) => l[0]);
 	const removed = beforeLayouts
 		.filter((l) => !afterNames.has(layoutEntryName(l)))
 		.map(layoutEntryName);
-
-	// For modified, compare by hash (name + content hash)
 	const beforeHashes = new Map(
 		beforeLayouts.map((l) => [
 			layoutEntryName(l),
@@ -425,17 +309,14 @@ async function run() {
 	);
 	const modified = transformedLayouts
 		.filter((l) => {
-			const name = l[0];
-			const beforeHash = beforeHashes.get(name);
+			const beforeHash = beforeHashes.get(l[0]);
 			if (!beforeHash) return false;
-			const afterHash = createHash('md5').update(JSON.stringify(l)).digest('hex');
-			return beforeHash !== afterHash;
+			return beforeHash !== createHash('md5').update(JSON.stringify(l)).digest('hex');
 		})
 		.map((l) => l[0]);
 
-	// Print changes
 	if (added.length === 0 && modified.length === 0 && removed.length === 0) {
-		console.log('✔ No layout changes\n');
+		console.log('✔ No layout changes');
 	} else {
 		console.log('✔ Layout changes:');
 		if (added.length > 0) {
@@ -453,13 +334,12 @@ async function run() {
 				console.log(`    - ${name}${reason}`);
 			});
 		}
-		console.log('');
 	}
 
 	console.log('Done');
 }
 
 run().catch((err) => {
-	console.error('❌ Sync failed:', err);
+	console.error('❌ catalog-sync failed:', err);
 	process.exit(1);
 });
