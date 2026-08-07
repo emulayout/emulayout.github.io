@@ -8,6 +8,7 @@
  *   bun run ./bin/verify-cminibrowser-cmini-stats.js
  *   bun run ./bin/verify-cminibrowser-cmini-stats.js --offline
  *   bun run ./bin/verify-cminibrowser-cmini-stats.js --corpus=reddit
+ *   bun run ./bin/verify-cminibrowser-cmini-stats.js --corpus=monkeyracer
  */
 
 import { readFile } from 'node:fs/promises';

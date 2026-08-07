@@ -62,8 +62,9 @@ export const STAT_ANALYZER_MODES = STAT_ANALYZERS;
 
 export type StatsAnalyzerMode = StatsAnalyzer;
 
-/** Corpus currently used for cmini and Mana2 generated stats. */
+/** Corpora used for cmini and Mana2 generated stats. */
 export const MONKEYRACER_CORPUS = 'monkeyracer';
+export const REDDIT_CORPUS = 'reddit';
 
 /** Default corpus when the UI / loader does not select one explicitly. */
 export const DEFAULT_STATS_CORPUS = MONKEYRACER_CORPUS;
@@ -77,6 +78,10 @@ export const STAT_CORPORA = [
 	{
 		value: MONKEYRACER_CORPUS,
 		label: 'Monkeyracer'
+	},
+	{
+		value: REDDIT_CORPUS,
+		label: 'Reddit'
 	}
 ] as const;
 
@@ -109,6 +114,12 @@ export const STATS_DATASETS = [
 		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS)
 	},
 	{
+		analyzer: CMINI_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		statsUrl: cminiStatsUrl(REDDIT_CORPUS)
+	},
+	{
 		analyzer: CYANOPHAGE_ANALYZER,
 		corpus: null,
 		isDefault: true,
@@ -119,6 +130,12 @@ export const STATS_DATASETS = [
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
 		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
+	},
+	{
+		analyzer: MANA2_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		statsUrl: mana2StatsUrl(REDDIT_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
 	}
 ] as const satisfies readonly {
 	analyzer: StatsAnalyzer;
@@ -126,6 +143,16 @@ export const STATS_DATASETS = [
 	isDefault: boolean;
 	statsUrl: string;
 }[];
+
+/** Dump-backed corpora published for an analyzer (excludes Cyanophage). */
+export function dumpSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
+	const corpora: StatsCorpus[] = [];
+	for (const entry of STATS_DATASETS) {
+		if (entry.analyzer !== analyzer || entry.corpus === null) continue;
+		if (!corpora.includes(entry.corpus)) corpora.push(entry.corpus);
+	}
+	return corpora;
+}
 
 export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
 

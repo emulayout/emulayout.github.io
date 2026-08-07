@@ -45,3 +45,24 @@ export function parseOfflineForceArgs(argv, envKeys = {}) {
 	}
 	return { offline, force };
 }
+
+/**
+ * Resolve corpora to sync: `--corpus=` wins, then an optional env override, else the defaults.
+ *
+ * @param {string[]} argv
+ * @param {{ env?: string, defaultCorpora: readonly string[] }} options
+ * @returns {string[]}
+ */
+export function parseCorpusArgs(argv, { env, defaultCorpora }) {
+	const flag = argv.find((arg) => arg.startsWith('--corpus='));
+	if (flag) {
+		const corpus = flag.slice('--corpus='.length).trim();
+		if (!corpus) throw new Error('Empty --corpus= value');
+		return [corpus];
+	}
+	if (env) {
+		const fromEnv = process.env[env]?.trim();
+		if (fromEnv) return [fromEnv];
+	}
+	return [...defaultCorpora];
+}

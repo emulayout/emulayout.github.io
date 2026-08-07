@@ -36,12 +36,12 @@ const TARGET_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'cmini-stats',
 		label: 'cmini stats',
-		hint: 'cminibrowser dump → layout-stats-cmini-*'
+		hint: 'cminibrowser dumps → layout-stats-cmini-{corpus}'
 	},
 	{
 		value: 'mana2-stats',
 		label: 'Mana2 stats',
-		hint: 'cminibrowser dump → layout-stats-mana2-*'
+		hint: 'cminibrowser dumps → layout-stats-mana2-{corpus}-*'
 	},
 	{
 		value: 'cyanophage',

@@ -107,7 +107,8 @@ bun run sync -- --all --offline
 ```
 
 Catalog sync clones/updates cmini and writes layout metadata under `static/`. cmini and Mana2 stats
-are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer by default).
+are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by
+default; override with `--corpus=` / `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS`).
 Cyanophage stats are computed locally from the catalog cache. All generated `static/*.json` files
 are gitignored; CI regenerates them for deployments and the daily catalog sync.
 
@@ -144,13 +145,15 @@ mapping whose trigger is `@` overrides the default and may opt back into repeat 
 Analyzer artifacts are produced by separate scripts:
 
 - `bin/cmini-stats-sync.js` — cminibrowser cmini dumps → `static/layout-stats-cmini-{corpus}.json`
-  (plus extended show-page sibling)
+  (plus extended show-page sibling; syncs Monkeyracer + Reddit unless `--corpus=` is set)
 - `bin/mana2-stats-sync.js` — cminibrowser Mana2 named dumps →
-  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: `monkeyracer.rowstag.none`)
+  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
+  `rowstag.none`)
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
 
-Dump-based syncs accept `--force` (re-download) or `--offline` (reuse `.cache/cminibrowser/`).
-`bun run sync` prompts for targets and refresh mode, or accepts the same flags non-interactively.
+Dump-based syncs accept `--force` (re-download), `--offline` (reuse `.cache/cminibrowser/`), and
+`--corpus=NAME` (single corpus). `bun run sync` prompts for targets and refresh mode, or accepts
+the same flags non-interactively.
 
 ## Contribute supplemental layout data
 
