@@ -5,7 +5,7 @@ on:
     branches:
       - master
   schedule:
-    # After cmini (~5pm PT) and cminibrowser (~7pm PT). 04:15 UTC is 8:15pm PST / 9:15pm PDT.
+    # After cmini (~5pm PT) and cminibrowser (~7pm PT). 04:15 UTC is 9:15pm PST / 8:15pm PDT.
     - cron: '15 4 * * *'
   workflow_dispatch:
 
