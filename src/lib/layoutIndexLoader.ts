@@ -1,7 +1,12 @@
 import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { deserializeFingerWorkload, parseStatLimitsParam } from '$lib/filterUrlCodec';
-import { parseStatsAnalyzerMode } from '$lib/statsAnalyzers';
+import {
+	parseStatsAnalyzerMode,
+	parseStatsCorpus,
+	STATS_CORPUS_STORAGE_KEY,
+	type StatsCorpus
+} from '$lib/statsAnalyzers';
 import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
@@ -10,10 +15,21 @@ import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+/** Read the dump-backed corpus preference before uiPrefs hydrates. */
+function readPreferredStatsCorpus(): StatsCorpus {
+	try {
+		if (typeof localStorage === 'undefined') return parseStatsCorpus(undefined);
+		return parseStatsCorpus(localStorage.getItem(STATS_CORPUS_STORAGE_KEY));
+	} catch {
+		return parseStatsCorpus(undefined);
+	}
+}
+
 export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
 	const statsAnalyzerMode = parseStatsAnalyzerMode(url.searchParams.get('analyzer'));
+	const statsCorpus = readPreferredStatsCorpus();
 	const parsedSortBy: SortBy = (sortParam ? normalizeSortBy(sortParam) : undefined) ?? 'date';
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const needsStatsForSort = isStatSortBy(sortBy);
@@ -33,7 +49,9 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 			fetcher('/layout-supplemental.json'),
 			loadLikes ? fetcher('/layout-likes.json') : Promise.resolve(null),
 			Promise.all(
-				analyzersToPreload.map((analyzer) => loadAnalyzerStats(analyzer, { fetch: fetcher }))
+				analyzersToPreload.map((analyzer) =>
+					loadAnalyzerStats(analyzer, { fetch: fetcher, corpus: statsCorpus })
+				)
 			)
 		]);
 
@@ -46,7 +64,7 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
 
-	layoutStatsStore.reset();
+	layoutStatsStore.reset(statsCorpus);
 
 	const statsMaps: StatsMaps = {};
 	for (let i = 0; i < analyzersToPreload.length; i++) {

@@ -14,6 +14,7 @@
 	import { analyzersNeededForLoad } from '$lib/statsUsage';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
 		buildMirroredPositionMap,
 		buildSimilarityMatchMap,
@@ -30,7 +31,7 @@
 	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);
 	const likesData = $derived(lazyLikesData ?? pageLikesData);
 	const showSharedViewModal = $derived(Boolean(filterStore.pendingSharedView));
-	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
+	const statsMaps = $derived(layoutStatsStore.maps);
 	let likesLoading = $state(false);
 	const statsReady = $derived(
 		filterStore.analyzersNeededForStatLimits.every((analyzer) =>
@@ -73,6 +74,9 @@
 	);
 
 	$effect(() => {
+		if (uiPrefs.hydrated) {
+			layoutStatsStore.applyCorpus(uiPrefs.statsCorpus);
+		}
 		void layoutStatsStore.loadAnalyzers(analyzersToLoad);
 	});
 

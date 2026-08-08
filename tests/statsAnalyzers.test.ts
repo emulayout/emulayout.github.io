@@ -12,12 +12,15 @@ import {
 	STAT_CORPORA,
 	STATS_DATASETS,
 	analyzerShortLabel,
+	analyzerUsesSelectableCorpus,
 	dumpSyncedCorpora,
 	getAnalyzerStatsUrl,
 	getCyanophageStatsUnavailableReason,
 	getStatsDataset,
 	isStatsAnalyzer,
+	isStatsCorpus,
 	parseStatsAnalyzerMode,
+	parseStatsCorpus,
 	resolveStatsAnalyzers,
 	showsCyanophageStats,
 	showsMana2Stats,
@@ -98,6 +101,18 @@ describe('stats analyzer catalog', () => {
 		expect(parseStatsAnalyzerMode(MONKEYRACER_CORPUS)).toBe(DEFAULT_STATS_ANALYZER);
 		expect(parseStatsAnalyzerMode('unknown')).toBe(DEFAULT_STATS_ANALYZER);
 		expect(parseStatsAnalyzerMode(null)).toBe(DEFAULT_STATS_ANALYZER);
+	});
+
+	test('parses selectable corpora and marks dump-backed analyzers', () => {
+		expect(isStatsCorpus(MONKEYRACER_CORPUS)).toBe(true);
+		expect(isStatsCorpus(REDDIT_CORPUS)).toBe(true);
+		expect(isStatsCorpus(CMINI_ANALYZER)).toBe(false);
+		expect(parseStatsCorpus(REDDIT_CORPUS)).toBe(REDDIT_CORPUS);
+		expect(parseStatsCorpus('unknown')).toBe(MONKEYRACER_CORPUS);
+		expect(parseStatsCorpus(null)).toBe(MONKEYRACER_CORPUS);
+		expect(analyzerUsesSelectableCorpus(CMINI_ANALYZER)).toBe(true);
+		expect(analyzerUsesSelectableCorpus(MANA2_ANALYZER)).toBe(true);
+		expect(analyzerUsesSelectableCorpus(CYANOPHAGE_ANALYZER)).toBe(false);
 	});
 
 	test('resolves single-analyzer display modes and visibility', () => {

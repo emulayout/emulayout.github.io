@@ -88,6 +88,26 @@ export const STAT_CORPORA = [
 export type StatsCorpusDefinition = (typeof STAT_CORPORA)[number];
 export type StatsCorpus = StatsCorpusDefinition['value'];
 
+/** localStorage key for the dump-backed corpus preference. */
+export const STATS_CORPUS_STORAGE_KEY = 'statsCorpus';
+
+const STATS_CORPUS_VALUES = new Set<string>(STAT_CORPORA.map((corpus) => corpus.value));
+
+export function isStatsCorpus(value: string): value is StatsCorpus {
+	return STATS_CORPUS_VALUES.has(value);
+}
+
+/** Parse a persisted corpus preference, falling back to the default. */
+export function parseStatsCorpus(value: string | null | undefined): StatsCorpus {
+	if (!value) return DEFAULT_STATS_CORPUS;
+	return isStatsCorpus(value) ? value : DEFAULT_STATS_CORPUS;
+}
+
+/** Whether this analyzer publishes selectable dump corpora (not Cyanophage). */
+export function analyzerUsesSelectableCorpus(analyzer: StatsAnalyzer): boolean {
+	return analyzer === CMINI_ANALYZER || analyzer === MANA2_ANALYZER;
+}
+
 /** Published compact cmini stats for a corpus. */
 export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
 	return `/layout-stats-cmini-${corpus}.json`;
@@ -144,6 +164,8 @@ export const STATS_DATASETS = [
 	statsUrl: string;
 }[];
 
+export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
+
 /** Dump-backed corpora published for an analyzer (excludes Cyanophage). */
 export function dumpSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
 	const corpora: StatsCorpus[] = [];
@@ -153,8 +175,6 @@ export function dumpSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
 	}
 	return corpora;
 }
-
-export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
 
 const STATS_ANALYZER_BY_VALUE = new Map<StatsAnalyzer, StatsAnalyzerDefinition>(
 	STAT_ANALYZERS.map((analyzer) => [analyzer.value, analyzer])
