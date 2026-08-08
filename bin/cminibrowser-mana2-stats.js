@@ -1,7 +1,7 @@
 /**
  * Map cminibrowser mana2 named dumps into Emulayout compact Mana2 arrays
- * (`MANA2_STAT_KEYS` / `MANA2_STAT_VALUE_SCALE`), and preserve the full dump
- * entry for per-layout detail payloads (show pages).
+ * (`MANA2_STAT_KEYS` / `MANA2_STAT_VALUE_SCALE`). Validated extended buckets
+ * are retained in the in-memory index for diagnostics.
  *
  * Dump URL: `/data/mana2/named/{corpus}.{board}.{space}.json`
  * Key order/scale must stay aligned with `src/lib/statsDerivation.ts`.
@@ -101,7 +101,7 @@ const TRI_FIELDS = [
  * @typedef {{
  *   dumpId: string,
  *   compact: number[],
- *   extended: Record<string, unknown>
+ *   extended?: Record<string, unknown>
  * }} CminibrowserMana2LayoutStats
  */
 
@@ -130,25 +130,26 @@ export function cminibrowserMana2NamedDumpPath(corpus, board, space) {
 }
 
 /**
- * Preserve the dump entry for show-page detail payloads.
+ * Extract validated analyzer buckets for diagnostics. Hand-balance (`hb`) is
+ * optional because it is not part of the compact Mana2 schema.
  * @param {unknown} entry
  * @returns {Record<string, unknown> | null}
  */
 export function extractCminibrowserMana2Extended(entry) {
 	if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
 	const raw = /** @type {Record<string, unknown>} */ (entry);
-	for (const key of ['hb', 'big', 'skip', 'tri', 'trin', 'fu']) {
+	for (const key of ['big', 'skip', 'tri', 'trin', 'fu']) {
 		if (!raw[key] || typeof raw[key] !== 'object' || Array.isArray(raw[key])) return null;
 	}
 	/** @type {Record<string, unknown>} */
 	const extended = {
-		hb: raw.hb,
 		big: raw.big,
 		skip: raw.skip,
 		tri: raw.tri,
 		trin: raw.trin,
 		fu: raw.fu
 	};
+	if (raw.hb && typeof raw.hb === 'object' && !Array.isArray(raw.hb)) extended.hb = raw.hb;
 	if (raw.fsp && typeof raw.fsp === 'object' && !Array.isArray(raw.fsp)) extended.fsp = raw.fsp;
 	if (raw.fspw && typeof raw.fspw === 'object' && !Array.isArray(raw.fspw))
 		extended.fspw = raw.fspw;
@@ -235,9 +236,13 @@ export function indexCminibrowserMana2Dump(dump) {
 
 	for (const [dumpId, entry] of Object.entries(dump)) {
 		const compact = encodeCminibrowserMana2Stats(entry);
-		const extended = extractCminibrowserMana2Extended(entry);
-		if (!compact || !extended) continue;
-		index.set(dumpId.toLowerCase(), { dumpId, compact, extended });
+		if (!compact) continue;
+		const extended = extractCminibrowserMana2Extended(entry) ?? undefined;
+		index.set(dumpId.toLowerCase(), {
+			dumpId,
+			compact,
+			...(extended ? { extended } : {})
+		});
 	}
 	return index;
 }

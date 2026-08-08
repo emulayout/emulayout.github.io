@@ -43,6 +43,17 @@ describe('cminibrowser mana2 dump encoding', () => {
 		const hit = lookupCminibrowserMana2Stats(index, 'gallium');
 		expect(hit?.dumpId).toBe('Gallium');
 		expect(hit?.compact).toEqual(encodeCminibrowserMana2Stats(GALLIUM_DUMP)!);
-		expect(hit?.extended.hb).toEqual(GALLIUM_DUMP.hb);
+		expect(hit?.extended?.hb).toEqual(GALLIUM_DUMP.hb);
+	});
+
+	test('indexes compact stats when the unused hand-balance bucket is absent', () => {
+		const withoutHandBalance = structuredClone(GALLIUM_DUMP);
+		delete withoutHandBalance.hb;
+
+		const index = indexCminibrowserMana2Dump({ Gallium: withoutHandBalance });
+		const hit = lookupCminibrowserMana2Stats(index, 'gallium');
+		expect(hit?.compact).toEqual(encodeCminibrowserMana2Stats(withoutHandBalance)!);
+		expect(hit?.extended).toBeDefined();
+		expect(hit?.extended?.hb).toBeUndefined();
 	});
 });
