@@ -100,9 +100,9 @@ there are no metric-cell filter or sort targets.
   height so action rows remain aligned between available and unavailable cards.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
-- Stats corpus (Monkeyracer / Reddit) is a Settings → Display preference. It applies only to cmini
-  and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus
-  reloads those dump-backed stats maps without altering analyzer, filters, or sort.
+- Stats corpus (Monkeyracer / Reddit) lives in the results toolbar beside Analyzer. It applies only
+  to cmini and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing
+  corpus reloads those dump-backed stats maps without altering analyzer, filters, or sort.
 
 ## Code map
 
@@ -110,7 +110,8 @@ there are no metric-cell filter or sort targets.
 - Corpus catalog and artifact URLs: `src/lib/statsAnalyzers.ts`
 - Dump-backed stats loading and corpus invalidation: `src/lib/layoutStatsLoader.ts`,
   `src/lib/layoutStatsStore.svelte.ts`
-- Settings corpus control: `src/lib/components/DisplaySettingsPanel.svelte`
+- Toolbar corpus control: `src/lib/components/CorpusTabs.svelte`,
+  `src/lib/components/LayoutResultsToolbar.svelte`
 - Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`, `src/lib/components/SegmentedControl.svelte`
 - Analyzer models, base metrics, preferred sort directions, and dynamic sixth-cell placement:

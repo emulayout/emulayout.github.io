@@ -6,6 +6,7 @@
 		type ActiveFilterChip
 	} from '$lib/activeFilterChips';
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
+	import CorpusTabs from '$lib/components/CorpusTabs.svelte';
 	import StatsDisplayTabs from '$lib/components/StatsDisplayTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
@@ -77,6 +78,62 @@
 
 <div bind:this={resultsStatus} id="results-status" class="results-toolbar-shell mb-2">
 	<div class="results-toolbar-filters-row">
+		<div class="results-toolbar-status">
+			<p class="results-toolbar-count" style="color: var(--text-secondary);">
+				Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
+				{#if filterStore.layoutSource === 'selected'}
+					selected layouts
+				{:else}
+					layouts
+				{/if}
+				{#if filterStore.hasSimilarReference}
+					<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
+				{/if}
+				{#if filterStore.similarReferenceName}
+					<span style="color: var(--text-primary); font-weight: 600;"
+						>{filterStore.similarReferenceName}</span
+					>
+				{/if}
+			</p>
+		</div>
+
+		<div class="results-toolbar-view-modes">
+			<div class="results-toolbar-stats-display">
+				<span class="results-toolbar-stats-label">Stats</span>
+				<StatsDisplayTabs
+					value={uiPrefs.layoutCardStatsMode}
+					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
+				/>
+			</div>
+
+			<div class="results-toolbar-analyzer">
+				<span class="results-toolbar-analyzer-label" style="color: var(--text-secondary);">
+					Analyzer
+					{#if hiddenAnalyzerFilterCaution}
+						<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
+					{/if}
+				</span>
+				<AnalyzerTabs
+					variant="toolbar"
+					ariaLabel="Analyzer"
+					value={filterStore.statsAnalyzer}
+					onChange={(next) => filterStore.setStatsAnalyzer(next)}
+				/>
+			</div>
+
+			<div class="results-toolbar-corpus">
+				<span class="results-toolbar-corpus-label" style="color: var(--text-secondary);">
+					Corpus
+					<Tooltip
+						text="Applies only to cmini and Mana2 stats. Cyanophage uses its own word-frequency data."
+					/>
+				</span>
+				<CorpusTabs value={uiPrefs.statsCorpus} onChange={(next) => uiPrefs.setStatsCorpus(next)} />
+			</div>
+		</div>
+	</div>
+
+	<div class="results-toolbar">
 		<div class="results-toolbar-filters" aria-label="Active filters">
 			{#if filterChips.length > 0}
 				<span class="results-toolbar-filters-label">Filters</span>
@@ -115,52 +172,6 @@
 					{/each}
 				</ul>
 			{/if}
-		</div>
-
-		<div class="results-toolbar-view-modes">
-			<div class="results-toolbar-stats-display">
-				<span class="results-toolbar-stats-label">Stats</span>
-				<StatsDisplayTabs
-					value={uiPrefs.layoutCardStatsMode}
-					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
-				/>
-			</div>
-
-			<div class="results-toolbar-analyzer">
-				<span class="results-toolbar-analyzer-label" style="color: var(--text-secondary);">
-					Analyzer
-					{#if hiddenAnalyzerFilterCaution}
-						<Tooltip variant="caution" text={hiddenAnalyzerFilterCaution.text} />
-					{/if}
-				</span>
-				<AnalyzerTabs
-					variant="toolbar"
-					ariaLabel="Analyzer"
-					value={filterStore.statsAnalyzer}
-					onChange={(next) => filterStore.setStatsAnalyzer(next)}
-				/>
-			</div>
-		</div>
-	</div>
-
-	<div class="results-toolbar">
-		<div class="results-toolbar-status">
-			<p class="results-toolbar-count" style="color: var(--text-secondary);">
-				Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
-				{#if filterStore.layoutSource === 'selected'}
-					selected layouts
-				{:else}
-					layouts
-				{/if}
-				{#if filterStore.hasSimilarReference}
-					<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
-				{/if}
-				{#if filterStore.similarReferenceName}
-					<span style="color: var(--text-primary); font-weight: 600;"
-						>{filterStore.similarReferenceName}</span
-					>
-				{/if}
-			</p>
 		</div>
 
 		<div class="results-toolbar-controls">
@@ -383,13 +394,21 @@
 		flex-shrink: 0;
 	}
 
-	.results-toolbar-analyzer-label {
+	.results-toolbar-analyzer-label,
+	.results-toolbar-corpus-label {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
 		font-size: 0.75rem;
 		line-height: 1.2;
 		white-space: nowrap;
+	}
+
+	.results-toolbar-corpus {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		flex-shrink: 0;
 	}
 
 	.results-toolbar {
@@ -470,13 +489,15 @@
 		}
 
 		.results-toolbar-stats-display,
-		.results-toolbar-analyzer {
+		.results-toolbar-analyzer,
+		.results-toolbar-corpus {
 			justify-content: space-between;
 			width: 100%;
 		}
 
 		.results-toolbar-stats-display :global(.stats-display-tabs),
-		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar) {
+		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar),
+		.results-toolbar-corpus :global(.corpus-tabs) {
 			flex: 1 1 auto;
 			min-width: 0;
 		}
@@ -488,7 +509,11 @@
 		}
 
 		.results-toolbar-status {
-			flex: 0 0 auto;
+			flex: 0 1 auto;
+			min-width: 0;
+		}
+
+		.results-toolbar-filters {
 			width: 100%;
 		}
 

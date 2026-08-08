@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { STAT_CORPORA } from '$lib/statsAnalyzers';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 </script>
 
@@ -79,35 +78,6 @@
 		</div>
 	</section>
 
-	<section class="display-settings-section" aria-labelledby="stats-corpus-settings-title">
-		<h3 id="stats-corpus-settings-title" class="display-settings-section-title">Stats corpus</h3>
-		<div class="display-settings-section-options">
-			<div class="display-settings-mode-row display-settings-mode-row--stack">
-				<span class="display-settings-copy">
-					<span id="stats-corpus-display-label" class="display-settings-label">Corpus</span>
-					<span class="display-settings-desc">
-						Applies only to cmini and Mana2 stats. Cyanophage uses its own word-frequency data.
-					</span>
-				</span>
-				<div
-					class="display-settings-mode-control display-settings-mode-control--wide"
-					role="group"
-					aria-labelledby="stats-corpus-display-label"
-				>
-					{#each STAT_CORPORA as corpus (corpus.value)}
-						<button
-							type="button"
-							class="display-settings-mode-option"
-							class:display-settings-mode-option--active={uiPrefs.statsCorpus === corpus.value}
-							aria-pressed={uiPrefs.statsCorpus === corpus.value}
-							onclick={() => uiPrefs.setStatsCorpus(corpus.value)}>{corpus.label}</button
-						>
-					{/each}
-				</div>
-			</div>
-		</div>
-	</section>
-
 	<section class="display-settings-section" aria-labelledby="similarity-display-title">
 		<h3 id="similarity-display-title" class="display-settings-section-title">
 			Similarity comparison
@@ -177,11 +147,6 @@
 		line-height: 1.25;
 	}
 
-	.display-settings-mode-row--stack {
-		align-items: stretch;
-		flex-direction: column;
-	}
-
 	.display-settings-mode-control {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
@@ -190,11 +155,6 @@
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		background: var(--bg-primary);
-	}
-
-	.display-settings-mode-control--wide {
-		width: 100%;
-		max-width: 22rem;
 	}
 
 	.display-settings-mode-option {
