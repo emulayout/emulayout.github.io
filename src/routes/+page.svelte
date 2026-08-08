@@ -297,6 +297,7 @@
 
 	.layout-view-bar :global(.display-settings-menu) {
 		align-self: center;
+		flex-shrink: 0;
 		margin-bottom: 0.25rem;
 	}
 
