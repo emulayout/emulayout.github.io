@@ -27,8 +27,7 @@ const MAX_REPORTED = Number(process.env.CMINIBROWSER_VERIFY_MAX_REPORTED ?? 15);
 const ABS_TOLERANCE = Number(process.env.CMINIBROWSER_VERIFY_ABS_TOLERANCE ?? 1);
 
 /**
- * Keys that are known to drift more between our analyzer and the dump.
- * Reported separately so scalar parity stays visible.
+ * Report finger fields separately so scalar parity remains easy to scan.
  */
 const FINGER_KEYS = new Set(['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']);
 

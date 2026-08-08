@@ -1,6 +1,6 @@
 import type { CompactMana2Stats, CyanophageStats, Mana2Stats, CminiStats } from '$lib/layout';
 
-/** Keep in sync with FINGERS in bin/cmini-analyzer.js. */
+/** Keep in sync with CMINIBROWSER_CMINI_FINGER_KEYS in bin/cminibrowser-cmini-stats.js. */
 export const FINGER_USAGE_KEYS = [
 	'LI',
 	'LM',
@@ -34,7 +34,7 @@ export type CyanophageFingerDistanceKey = `distance${CyanophageFingerUsageKey}`;
 export const LEFT_HAND_FINGERS = ['LI', 'LM', 'LR', 'LP'] as const;
 export const RIGHT_HAND_FINGERS = ['RI', 'RM', 'RR', 'RP'] as const;
 
-/** Frontend decoder order for arrays emitted by bin/layout-stats.js. */
+/** Frontend decoder order for arrays emitted by bin/cminibrowser-cmini-stats.js. */
 export const BOT_STAT_KEYS = [
 	'alternate',
 	'roll-in',

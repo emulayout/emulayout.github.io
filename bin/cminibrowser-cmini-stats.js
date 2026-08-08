@@ -1,13 +1,10 @@
 /**
  * Map cminibrowser cmini engine dumps (`/data/stats/{corpus}.json`) into Emulayout's
- * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`), and preserve the
- * full dump entry for per-layout detail payloads (show pages).
+ * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`). Validated extended
+ * fields are retained in the in-memory index for diagnostics.
  *
- * Key order and scale must stay aligned with `bin/layout-stats.js` /
- * `src/lib/statsDerivation.ts`.
+ * Key order and scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
-
-import { FINGERS } from './cmini-analyzer.js';
 
 /** Default corpus for published cmini catalog stats. */
 export const CMINIBROWSER_CMINI_DEFAULT_CORPUS = 'monkeyracer';
@@ -16,7 +13,25 @@ export const CMINIBROWSER_CMINI_DEFAULT_CORPUS = 'monkeyracer';
 export const CMINIBROWSER_CMINI_STAT_VALUE_SCALE = 10_000;
 
 /**
- * Compact field order — keep in sync with BOT_STAT_KEYS in layout-stats.js.
+ * Finger-use field order in the cminibrowser cmini dump.
+ * @type {readonly ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']}
+ */
+export const CMINIBROWSER_CMINI_FINGER_KEYS = [
+	'LI',
+	'LM',
+	'LR',
+	'LP',
+	'RI',
+	'RM',
+	'RR',
+	'RP',
+	'LT',
+	'RT',
+	'TB'
+];
+
+/**
+ * Compact field order — keep in sync with BOT_STAT_KEYS in statsDerivation.ts.
  * @type {readonly string[]}
  */
 export const CMINIBROWSER_CMINI_STAT_KEYS = [
@@ -32,7 +47,7 @@ export const CMINIBROWSER_CMINI_STAT_KEYS = [
 	'sfb',
 	'lh',
 	'rh',
-	...FINGERS
+	...CMINIBROWSER_CMINI_FINGER_KEYS
 ];
 
 /** Dump scalar field → Emulayout BOT_STAT_KEYS entry. */
@@ -62,7 +77,7 @@ export const CMINIBROWSER_CMINI_SCALAR_FIELDS = [
  */
 
 /**
- * Full dump fields kept for show-page detail payloads (not the catalog blob).
+ * Additional validated dump fields retained for diagnostics.
  * @typedef {{
  *   roll_in: number,
  *   roll_out: number,
@@ -148,7 +163,7 @@ function normalizeFingerMap(value) {
 }
 
 /**
- * Preserve dump fields for per-layout detail files (show pages).
+ * Extract additional validated dump fields for diagnostics.
  * @param {unknown} entry
  * @returns {CminibrowserCminiExtendedStats | null}
  */
@@ -244,7 +259,7 @@ export function encodeCminibrowserCminiStats(entry) {
 			? /** @type {Record<string, unknown>} */ (fingers)
 			: {};
 
-	for (const finger of FINGERS) {
+	for (const finger of CMINIBROWSER_CMINI_FINGER_KEYS) {
 		const fingerEntry = fingerUses[finger];
 		if (fingerEntry && typeof fingerEntry === 'object' && !Array.isArray(fingerEntry)) {
 			const use = /** @type {Record<string, unknown>} */ (fingerEntry).use;
