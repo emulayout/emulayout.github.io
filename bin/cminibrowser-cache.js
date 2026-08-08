@@ -6,8 +6,9 @@
  * dumps are not re-downloaded. Pass `force: true` to ignore validators.
  */
 
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { writeFileAtomically } from './sync-shared.js';
 
 export const CMINIBROWSER_ORIGIN = 'https://cminibrowser.com';
 export const CMINIBROWSER_CACHE_DIR = join(process.cwd(), '.cache', 'cminibrowser');
@@ -77,16 +78,40 @@ async function writeDumpMeta(cachePath, response) {
 	const etag = response.headers.get('etag') ?? undefined;
 	const lastModified = response.headers.get('last-modified') ?? undefined;
 	if (!etag && !lastModified) return;
-	await writeFile(
+	await writeFileAtomically(
 		metaPathFor(cachePath),
 		JSON.stringify({
 			...(etag ? { etag } : {}),
 			...(lastModified ? { lastModified } : {}),
 			url: response.url,
 			fetchedAt: new Date().toISOString()
-		}) + '\n',
-		'utf-8'
+		}) + '\n'
 	);
+}
+
+/**
+ * @param {string | Uint8Array} body
+ * @param {string} source
+ */
+function parseDumpJson(body, source) {
+	try {
+		return JSON.parse(typeof body === 'string' ? body : Buffer.from(body).toString('utf-8'));
+	} catch (error) {
+		throw new Error(
+			`Invalid JSON in cminibrowser dump from ${source}: ${error instanceof Error ? error.message : String(error)}`,
+			{ cause: error }
+		);
+	}
+}
+
+/**
+ * @param {string} cachePath
+ * @param {((value: unknown) => void) | undefined} validateJson
+ */
+async function readAndValidateCachedDump(cachePath, validateJson) {
+	const json = parseDumpJson(await readFile(cachePath, 'utf-8'), cachePath);
+	validateJson?.(json);
+	return json;
 }
 
 /**
@@ -96,11 +121,11 @@ async function writeDumpMeta(cachePath, response) {
  * - `force` or missing cache: unconditional download.
  *
  * @param {string} dataPath path under /data, e.g. `stats/monkeyracer.json`
- * @param {{ offline?: boolean, force?: boolean }} [options]
- * @returns {Promise<{ path: string, updated: boolean }>}
+ * @param {{ offline?: boolean, force?: boolean, validateJson?: (value: unknown) => void }} [options]
+ * @returns {Promise<{ path: string, updated: boolean, json: unknown }>}
  */
 export async function ensureCminibrowserDump(dataPath, options = {}) {
-	const { offline = false, force = false } = options;
+	const { offline = false, force = false, validateJson } = options;
 	const cachePath = cminibrowserCachePath(dataPath);
 	const cached = await pathExists(cachePath);
 
@@ -110,7 +135,8 @@ export async function ensureCminibrowserDump(dataPath, options = {}) {
 				`cminibrowser dump missing at ${cachePath}. Run without --offline to download.`
 			);
 		}
-		return { path: cachePath, updated: false };
+		const json = await readAndValidateCachedDump(cachePath, validateJson);
+		return { path: cachePath, updated: false, json };
 	}
 
 	const url = cminibrowserDataUrl(dataPath);
@@ -134,7 +160,8 @@ export async function ensureCminibrowserDump(dataPath, options = {}) {
 			throw new Error(`Received HTTP 304 for ${url} but cache file is missing at ${cachePath}`);
 		}
 		console.log(`  ✔ Not modified (cache hit): ${cachePath}`);
-		return { path: cachePath, updated: false };
+		const json = await readAndValidateCachedDump(cachePath, validateJson);
+		return { path: cachePath, updated: false, json };
 	}
 
 	if (!response.ok) {
@@ -142,18 +169,20 @@ export async function ensureCminibrowserDump(dataPath, options = {}) {
 	}
 
 	const body = Buffer.from(await response.arrayBuffer());
+	const json = parseDumpJson(body, url);
+	validateJson?.(json);
 	await mkdir(dirname(cachePath), { recursive: true });
-	await writeFile(cachePath, body);
+	await writeFileAtomically(cachePath, body);
 	await writeDumpMeta(cachePath, response);
 	console.log(`  ✔ ${cachePath} (${body.length.toLocaleString()} bytes)`);
-	return { path: cachePath, updated: true };
+	return { path: cachePath, updated: true, json };
 }
 
 /**
  * @param {string} dataPath
- * @param {{ offline?: boolean, force?: boolean }} [options]
+ * @param {{ offline?: boolean, force?: boolean, validateJson?: (value: unknown) => void }} [options]
  */
 export async function readCminibrowserJson(dataPath, options = {}) {
-	const { path } = await ensureCminibrowserDump(dataPath, options);
-	return JSON.parse(await readFile(path, 'utf-8'));
+	const { json } = await ensureCminibrowserDump(dataPath, options);
+	return json;
 }

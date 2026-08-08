@@ -157,7 +157,10 @@ The individual dump-import scripts accept `--force` (unconditional re-download),
 `.cache/cminibrowser/`), and `--corpus=NAME` (single corpus). Online syncs use conditional requests
 (ETag / Last-Modified) so unchanged dumps are not re-downloaded. The top-level `bun run sync`
 wrapper accepts task selections plus `--force` or `--offline`, but deliberately runs all configured
-corpora so the generated site and per-layout detail payloads remain complete.
+corpora so the generated site and per-layout detail payloads remain complete. Each downloaded dump
+must contain usable stats for at least 90% of the non-blacklisted catalog before it can replace the
+existing cache or published artifact. Cache and artifact replacements are atomic, so an invalid,
+incomplete, or interrupted download leaves the last good files in place.
 
 ## Contribute supplemental layout data
 

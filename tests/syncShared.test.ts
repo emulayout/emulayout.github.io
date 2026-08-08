@@ -2,7 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseCorpusArgs, writeTextFileIfChanged } from '../bin/sync-shared.js';
+import {
+	assertStatsCatalogCoverage,
+	parseCorpusArgs,
+	writeTextFileIfChanged
+} from '../bin/sync-shared.js';
 
 describe('parseCorpusArgs', () => {
 	test('prefers --corpus= over env and defaults', () => {
@@ -58,5 +62,20 @@ describe('writeTextFileIfChanged', () => {
 		} finally {
 			await rm(directory, { recursive: true, force: true });
 		}
+	});
+});
+
+describe('assertStatsCatalogCoverage', () => {
+	test('accepts a dump at the minimum coverage', () => {
+		expect(() => assertStatsCatalogCoverage('test dump', 90, 100)).not.toThrow();
+	});
+
+	test('rejects incomplete and empty dumps', () => {
+		expect(() => assertStatsCatalogCoverage('test dump', 89, 100)).toThrow(
+			'test dump covers 89/100 eligible layouts (89.0%); minimum is 90.0%'
+		);
+		expect(() => assertStatsCatalogCoverage('empty dump', 0, 0)).toThrow(
+			'empty dump covers 0/0 eligible layouts'
+		);
 	});
 });

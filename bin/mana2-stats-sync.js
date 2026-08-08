@@ -28,6 +28,7 @@ import { layoutEntryName } from './layout-codec.js';
 import { mana2StatsRelPath } from './stats-artifact-paths.js';
 import {
 	LAYOUTS_FILE,
+	assertStatsCatalogCoverage,
 	loadBlacklist,
 	parseCorpusArgs,
 	parseOfflineForceArgs,
@@ -47,9 +48,19 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const dumpPath = cminibrowserMana2NamedDumpPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
-	const { path: cachePath } = await ensureCminibrowserDump(dumpPath, mode);
-
-	const dump = JSON.parse(await readFile(cachePath, 'utf-8'));
+	const validateJson = (dump) => {
+		const candidateIndex = indexCminibrowserMana2Dump(dump);
+		let eligible = 0;
+		let loaded = 0;
+		for (const layout of layouts) {
+			const name = layoutEntryName(layout);
+			if (!name || blacklist.has(name) || blacklist.has(`${name}.json`)) continue;
+			eligible++;
+			if (lookupCminibrowserMana2Stats(candidateIndex, name)) loaded++;
+		}
+		assertStatsCatalogCoverage(`cminibrowser Mana2 ${corpus} dump`, loaded, eligible);
+	};
+	const { json: dump } = await ensureCminibrowserDump(dumpPath, { ...mode, validateJson });
 	const index = indexCminibrowserMana2Dump(dump);
 	console.log(`  ✔ Indexed ${index.size} layouts from dump`);
 
@@ -75,6 +86,11 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 		layoutStats[name] = hit.compact;
 		statsLoaded++;
 	}
+	assertStatsCatalogCoverage(
+		`cminibrowser Mana2 ${corpus} artifact`,
+		statsLoaded,
+		statsLoaded + statsMissing
+	);
 
 	await mkdir('static', { recursive: true });
 

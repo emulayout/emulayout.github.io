@@ -2,12 +2,37 @@
  * Shared helpers for catalog and analyzer sync scripts.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const LAYOUTS_FILE = 'static/all-layouts.json';
 export const BLACKLIST_FILE = 'layout-blacklist.txt';
 export const CMINI_CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
+export const MIN_STATS_CATALOG_COVERAGE = 0.9;
+
+/**
+ * Replace a file atomically so interrupted syncs cannot leave a partial cache or
+ * generated artifact behind. The temporary file lives beside the destination,
+ * which keeps the rename on the same filesystem.
+ *
+ * @param {string} path
+ * @param {string | Uint8Array} body
+ */
+export async function writeFileAtomically(path, body) {
+	const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
+	try {
+		await writeFile(temporaryPath, body);
+		await rename(temporaryPath, path);
+	} catch (error) {
+		try {
+			await unlink(temporaryPath);
+		} catch {
+			// Preserve the original write/rename failure if temporary cleanup also fails.
+		}
+		throw error;
+	}
+}
 
 /**
  * Write generated text only when its bytes changed, preserving stable mtimes for
@@ -23,8 +48,32 @@ export async function writeTextFileIfChanged(path, body) {
 	} catch (error) {
 		if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
 	}
-	await writeFile(path, body, 'utf-8');
+	await writeFileAtomically(path, body);
 	return true;
+}
+
+/**
+ * Reject suspiciously incomplete analyzer dumps before they can replace a good
+ * cache or published artifact.
+ *
+ * @param {string} label
+ * @param {number} loaded
+ * @param {number} eligible
+ * @param {number} [minimum]
+ */
+export function assertStatsCatalogCoverage(
+	label,
+	loaded,
+	eligible,
+	minimum = MIN_STATS_CATALOG_COVERAGE
+) {
+	const coverage = eligible > 0 ? loaded / eligible : 0;
+	if (eligible > 0 && coverage >= minimum) return;
+
+	throw new Error(
+		`${label} covers ${loaded}/${eligible} eligible layouts (${(coverage * 100).toFixed(1)}%); ` +
+			`minimum is ${(minimum * 100).toFixed(1)}%. Refusing to update cached or published stats.`
+	);
 }
 
 /**
