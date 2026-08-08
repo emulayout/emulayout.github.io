@@ -77,9 +77,7 @@
 		authorName={detail.authorName}
 		likeCount={detail.likeCount}
 		onBackToLayouts={backToLayouts}
-		compactCminiStats={detail.stats.cmini}
-		compactCyanophageStats={detail.stats.cyanophage}
-		compactMana2Stats={detail.stats.mana2}
+		detailStats={detail.stats}
 		inputProfile={detail.inputProfile}
 		{disabledMappingIds}
 		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}

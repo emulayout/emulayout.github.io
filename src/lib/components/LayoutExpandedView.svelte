@@ -1,12 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
-	import type {
-		CompactCyanophageStats,
-		CompactLayoutStats,
-		CompactMana2Stats,
-		LayoutData
-	} from '$lib/layout';
+	import type { LayoutData } from '$lib/layout';
+	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
 		decodeCyanophageStats,
 		decodeMana2Stats,
@@ -55,9 +51,7 @@
 		authorName: string;
 		likeCount: number;
 		onBackToLayouts?: (event: MouseEvent) => void;
-		compactCminiStats?: CompactLayoutStats;
-		compactCyanophageStats?: CompactCyanophageStats;
-		compactMana2Stats?: CompactMana2Stats;
+		detailStats?: LayoutDetailStats;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
@@ -70,9 +64,7 @@
 		authorName,
 		likeCount,
 		onBackToLayouts,
-		compactCminiStats,
-		compactCyanophageStats,
-		compactMana2Stats,
+		detailStats = {},
 		inputProfile,
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
@@ -174,11 +166,14 @@
 		(showCmini ? 1 : 0) + (showCyanophage ? 1 : 0) + (showMana2 ? 1 : 0)
 	);
 
-	const cminiCompact = $derived(layoutStatsStore.maps.cmini?.[layout.name] ?? compactCminiStats);
-	const cyanophageCompact = $derived(
-		layoutStatsStore.maps.cyanophage?.[layout.name] ?? compactCyanophageStats
+	const embeddedStats = $derived(
+		resolveLayoutDetailStats(detailStats, layoutStatsStore.activeCorpus)
 	);
-	const mana2Compact = $derived(layoutStatsStore.maps.mana2?.[layout.name] ?? compactMana2Stats);
+	const cminiCompact = $derived(layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini);
+	const cyanophageCompact = $derived(
+		layoutStatsStore.maps.cyanophage?.[layout.name] ?? embeddedStats.cyanophage
+	);
+	const mana2Compact = $derived(layoutStatsStore.maps.mana2?.[layout.name] ?? embeddedStats.mana2);
 
 	const cminiLoading = $derived(showCmini && layoutStatsStore.isLoading(CMINI_ANALYZER));
 	const cyanophageLoading = $derived(
@@ -315,9 +310,9 @@
 		{layout}
 		{authorName}
 		{likeCount}
-		{compactCminiStats}
-		{compactCyanophageStats}
-		{compactMana2Stats}
+		compactCminiStats={cminiCompact}
+		compactCyanophageStats={cyanophageCompact}
+		compactMana2Stats={mana2Compact}
 		statsAnalyzer={summaryStatsAnalyzer}
 		onStatsAnalyzerChange={(analyzer) => (summaryStatsAnalyzer = analyzer)}
 		{inputProfile}

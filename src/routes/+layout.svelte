@@ -86,6 +86,13 @@
 		return () => mediaQuery.removeEventListener('change', handleChange);
 	});
 
+	// Keep dump-backed stats aligned with the persisted corpus on every route,
+	// including cold layout-detail visits and shell-owned Quick Find / Compare.
+	$effect(() => {
+		if (!uiPrefs.hydrated) return;
+		layoutStatsStore.applyCorpus(uiPrefs.statsCorpus);
+	});
+
 	// Apply theme class to document
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', dark);

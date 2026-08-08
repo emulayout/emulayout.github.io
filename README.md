@@ -30,7 +30,7 @@ directly in the browser.
 
 | Analyzer                                                   | Emulayout integration                                           |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
-| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from cminibrowser Monkeyracer dumps   |
+| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from selectable cminibrowser corpora  |
 | [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground |
 | [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from cminibrowser corpus dumps           |
 

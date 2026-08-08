@@ -1,10 +1,12 @@
 import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../src/lib/layoutDetails';
+import { STATS_CORPUS_STORAGE_KEY } from '../../src/lib/statsAnalyzers';
 import {
 	adaptivePreview,
 	angleLeftThumb,
 	lela,
 	missingOrthoColumn,
+	qwerty,
 	repeatKey
 } from './fixtures/catalog-data';
 
@@ -95,6 +97,40 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 	await page.getByRole('button', { name: 'Compare layouts' }).click();
 	await expect(page.getByRole('dialog', { name: 'Compare' })).toBeVisible();
 	expect(requestedPaths).toContain('/all-layouts.json');
+});
+
+test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
+	const monkeyracer = Array<number>(23).fill(0);
+	monkeyracer[0] = 3000;
+	monkeyracer[9] = 100;
+	const reddit = [...monkeyracer];
+	reddit[9] = 200;
+
+	await page.addInitScript(({ key, corpus }) => localStorage.setItem(key, corpus), {
+		key: STATS_CORPUS_STORAGE_KEY,
+		corpus: 'reddit'
+	});
+	await page.route(`**/layout-details/${layoutDetailFileId('QWERTY')}.json`, async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: qwerty,
+				authorName: 'cmini',
+				likeCount: 0,
+				stats: { cmini: { monkeyracer, reddit } }
+			}
+		});
+	});
+
+	const requestedPaths: string[] = [];
+	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
+	await page.goto('/layouts/QWERTY');
+
+	const summaryStats = page
+		.locator('[data-layout-name="QWERTY"]')
+		.getByLabel('cmini core statistics');
+	await expect(summaryStats.getByText('2.00%', { exact: true })).toBeVisible();
+	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit.json');
 });
 
 test('defaults to the Test area and switches detail sections with tab keyboard navigation', async ({
@@ -446,10 +482,12 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 				authorName: 'lelazsq',
 				likeCount: 0,
 				stats: {
-					cmini: [
-						1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792,
-						2041, 948, 1331, 275, 0, 0, 0
-					]
+					cmini: {
+						monkeyracer: [
+							1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792,
+							2041, 948, 1331, 275, 0, 0, 0
+						]
+					}
 				}
 			}
 		});

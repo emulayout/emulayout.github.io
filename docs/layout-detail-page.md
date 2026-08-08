@@ -30,11 +30,16 @@ GitHub Pages serves generated static files and has no runtime API. The index con
 them. A detail route instead loads exactly one generated file from `static/layout-details/`.
 
 Each versioned detail file contains one compact layout tuple, its resolved author and like count,
-its Magic/Adaptive input-behavior source, and all available compact cmini, Cyanophage, and Mana2
-stats. Filenames are the canonical layout name encoded as UTF-8 hex, avoiding filesystem and URL
-ambiguity for punctuation and international names. `bin/layout-details.js` generates the files
-from the existing aggregate artifacts, writes only byte-changed files, and removes stale generated
-JSON files. It also publishes `static/layout-names.json`.
+its Magic/Adaptive input-behavior source, corpus-keyed compact cmini and Mana2 stats, and compact
+Cyanophage stats. Filenames are the canonical layout name encoded as UTF-8 hex, avoiding filesystem
+and URL ambiguity for punctuation and international names. `bin/layout-details.js` generates the
+files from the existing aggregate artifacts, writes only byte-changed files, and removes stale
+generated JSON files. It also publishes `static/layout-names.json`.
+
+The persisted corpus preference is global shell state. The shared layout applies it on every route,
+and detail/Quick Find views resolve the matching cmini and Mana2 entry from their per-layout payload.
+Consequently, reloading a detail URL preserves the chosen corpus without downloading an
+analyzer-wide stats map. Cyanophage continues to ignore the corpus preference.
 
 Quick Find uses the in-memory aggregate catalog (layouts, authors, likes, input
 profiles, and any already-loaded analyzer maps) for name search and card previews
@@ -57,7 +62,8 @@ small without weakening app-bar functionality.
   Adaptive, and Repeat indicators aligned in the same right-hand rail.
 - The summary card includes its own analyzer selector directly below finger usage. It switches the
   card among cmini, Cyanophage, and Mana2 without changing the index analyzer preference or the
-  analyzer visibility controls in the detail page's `Stats` section.
+  analyzer visibility controls in the detail page's `Stats` section. Its cmini and Mana2 values use
+  the globally selected corpus, including after a direct visit or reload.
 - Ordinary external links below the card open the layout in Cyanophage when compatible and open a
   custom typing lesson on Colemak Camp. These are semantic links rather than button-driven menus.
 - A persistent option below those links disables or re-enables a Repeat key when present. The
@@ -129,6 +135,8 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   static adapter emits `404.html` so GitHub Pages can bootstrap direct client-side route requests.
 - A direct detail link loads one generated layout-detail file and does not fetch the aggregate
   catalog unless an aggregate-dependent feature such as Compare is opened.
+- A direct detail link resolves cmini and Mana2 stats for the persisted corpus from that detail file;
+  changing or reloading routes does not silently fall back to Monkeyracer.
 - Quick Find does not fetch `layout-names.json` or `/layout-details/*.json` when the aggregate
   catalog is already in memory; those requests are only for cold detail-page visits.
 - On cold detail-page visits, Quick Find debounces on-demand detail loads while the highlight

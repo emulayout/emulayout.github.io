@@ -9,8 +9,23 @@ import type {
 import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
 import { compileLayoutInputRegistry, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { LayoutSupplemental } from '$lib/layoutSupplemental';
+import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 
-export const LAYOUT_DETAIL_VERSION = 2;
+export const LAYOUT_DETAIL_VERSION = 3;
+
+export type CorpusCompactStats<T> = Partial<Record<StatsCorpus, T>>;
+
+export interface LayoutDetailStats {
+	cmini?: CorpusCompactStats<CompactLayoutStats>;
+	cyanophage?: CompactCyanophageStats;
+	mana2?: CorpusCompactStats<CompactMana2Stats>;
+}
+
+export interface ResolvedLayoutDetailStats {
+	cmini?: CompactLayoutStats;
+	cyanophage?: CompactCyanophageStats;
+	mana2?: CompactMana2Stats;
+}
 
 export interface CompactLayoutDetail {
 	version: typeof LAYOUT_DETAIL_VERSION;
@@ -18,11 +33,7 @@ export interface CompactLayoutDetail {
 	authorName: string;
 	likeCount: number;
 	supplemental?: LayoutSupplemental;
-	stats: {
-		cmini?: CompactLayoutStats;
-		cyanophage?: CompactCyanophageStats;
-		mana2?: CompactMana2Stats;
-	};
+	stats: LayoutDetailStats;
 }
 
 export interface LayoutDetail {
@@ -30,7 +41,7 @@ export interface LayoutDetail {
 	authorName: string;
 	likeCount: number;
 	inputProfile?: LayoutInputProfile;
-	stats: CompactLayoutDetail['stats'];
+	stats: LayoutDetailStats;
 }
 
 export interface CatalogLayoutDetailSource {
@@ -56,7 +67,8 @@ export function resolveAuthorName(authorsData: Record<string, number>, userId: n
 export function buildCatalogLayoutDetail(
 	name: string,
 	catalog: CatalogLayoutDetailSource,
-	statsMaps: StatsMaps = {}
+	statsMaps: StatsMaps = {},
+	statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS
 ): LayoutDetail | null {
 	const layout = catalog.layouts.find((entry) => entry.name === name);
 	if (!layout) return null;
@@ -67,10 +79,21 @@ export function buildCatalogLayoutDetail(
 		likeCount: catalog.likesData[name] ?? 0,
 		...(inputProfile ? { inputProfile } : {}),
 		stats: {
-			cmini: statsMaps.cmini?.[name],
+			...(statsMaps.cmini?.[name] ? { cmini: { [statsCorpus]: statsMaps.cmini[name] } } : {}),
 			cyanophage: statsMaps.cyanophage?.[name],
-			mana2: statsMaps.mana2?.[name]
+			...(statsMaps.mana2?.[name] ? { mana2: { [statsCorpus]: statsMaps.mana2[name] } } : {})
 		}
+	};
+}
+
+export function resolveLayoutDetailStats(
+	stats: LayoutDetailStats,
+	corpus: StatsCorpus
+): ResolvedLayoutDetailStats {
+	return {
+		cmini: stats.cmini?.[corpus],
+		cyanophage: stats.cyanophage,
+		mana2: stats.mana2?.[corpus]
 	};
 }
 

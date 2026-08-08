@@ -15,7 +15,6 @@
 	import { analyzersNeededForLoad } from '$lib/statsUsage';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
 		buildMirroredPositionMap,
 		buildSimilarityMatchMap,
@@ -75,14 +74,10 @@
 	);
 
 	$effect(() => {
-		const hydrated = uiPrefs.hydrated;
-		const statsCorpus = uiPrefs.statsCorpus;
+		void layoutStatsStore.activeCorpus;
 		const analyzers = analyzersToLoad;
 
 		untrack(() => {
-			if (hydrated) {
-				layoutStatsStore.applyCorpus(statsCorpus);
-			}
 			void layoutStatsStore.loadAnalyzers(analyzers);
 		});
 	});

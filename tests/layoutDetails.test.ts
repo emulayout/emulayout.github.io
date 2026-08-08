@@ -6,6 +6,7 @@ import {
 	decodeLayoutDetail,
 	layoutDetailFileId as clientLayoutDetailFileId,
 	layoutDetailUrl,
+	resolveLayoutDetailStats,
 	type CompactLayoutDetail
 } from '$lib/layoutDetails';
 import type { CompactLayout } from '$lib/layoutCodec';
@@ -65,9 +66,15 @@ describe('per-layout detail data', () => {
 			{ [compactLayout[0]]: supplemental },
 			{ [compactLayout[0]]: 7 },
 			{
-				cmini: { [compactLayout[0]]: [1] },
+				cmini: {
+					monkeyracer: { [compactLayout[0]]: [1] },
+					reddit: { [compactLayout[0]]: [4] }
+				},
 				cyanophage: { [compactLayout[0]]: [2] },
-				mana2: { [compactLayout[0]]: [3] }
+				mana2: {
+					monkeyracer: { [compactLayout[0]]: [3] },
+					reddit: { [compactLayout[0]]: [5] }
+				}
 			}
 		);
 
@@ -80,9 +87,9 @@ describe('per-layout detail data', () => {
 				likeCount: 7,
 				supplemental,
 				stats: {
-					cmini: [1],
+					cmini: { monkeyracer: [1], reddit: [4] },
 					cyanophage: [2],
-					mana2: [3]
+					mana2: { monkeyracer: [3], reddit: [5] }
 				}
 			}
 		});
@@ -94,14 +101,19 @@ describe('per-layout detail data', () => {
 			layout: compactLayout,
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: [1] }
+			stats: { cmini: { monkeyracer: [1], reddit: [2] } }
 		};
 
 		expect(decodeLayoutDetail(payload, compactLayout[0])).toMatchObject({
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: [1] },
+			stats: { cmini: { monkeyracer: [1], reddit: [2] } },
 			layout: { name: compactLayout[0], user: 42 }
+		});
+		expect(resolveLayoutDetailStats(payload.stats, 'reddit')).toEqual({
+			cmini: [2],
+			cyanophage: undefined,
+			mana2: undefined
 		});
 		expect(decodeLayoutDetail(payload, 'another-layout')).toBeNull();
 	});
@@ -130,13 +142,17 @@ describe('per-layout detail data', () => {
 				{
 					cmini: { [name]: [9, 8, 7] },
 					mana2: { [name]: [1] }
-				}
+				},
+				'reddit'
 			)
 		).toMatchObject({
 			layout,
 			authorName: 'derek',
 			likeCount: 11,
-			stats: { cmini: [9, 8, 7], mana2: [1] }
+			stats: {
+				cmini: { reddit: [9, 8, 7] },
+				mana2: { reddit: [1] }
+			}
 		});
 
 		expect(

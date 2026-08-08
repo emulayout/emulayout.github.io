@@ -102,7 +102,9 @@ there are no metric-cell filter or sort targets.
   Mana2 show finger usage only.
 - Stats corpus (Monkeyracer / Reddit) lives in the results toolbar beside Analyzer. It applies only
   to cmini and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing
-  corpus reloads those dump-backed stats maps without altering analyzer, filters, or sort.
+  corpus reloads those dump-backed stats maps without altering analyzer, filters, or sort. The
+  preference is global: per-layout detail payloads carry corpus-keyed cmini and Mana2 values so
+  direct detail visits, Quick Find, and Compare remain consistent after navigation or reload.
 
 ## Code map
 
@@ -110,6 +112,8 @@ there are no metric-cell filter or sort targets.
 - Corpus catalog and artifact URLs: `src/lib/statsAnalyzers.ts`
 - Dump-backed stats loading and corpus invalidation: `src/lib/layoutStatsLoader.ts`,
   `src/lib/layoutStatsStore.svelte.ts`
+- Global corpus application and per-layout resolution: `src/routes/+layout.svelte`,
+  `src/lib/layoutDetails.ts`, `bin/layout-details.js`
 - Toolbar corpus control (native select): `src/lib/components/CorpusTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`
 - Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
