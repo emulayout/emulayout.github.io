@@ -110,7 +110,7 @@ there are no metric-cell filter or sort targets.
 - Corpus catalog and artifact URLs: `src/lib/statsAnalyzers.ts`
 - Dump-backed stats loading and corpus invalidation: `src/lib/layoutStatsLoader.ts`,
   `src/lib/layoutStatsStore.svelte.ts`
-- Toolbar corpus control: `src/lib/components/CorpusTabs.svelte`,
+- Toolbar corpus control (native select): `src/lib/components/CorpusTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`
 - Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`, `src/lib/components/SegmentedControl.svelte`
