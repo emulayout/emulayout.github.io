@@ -214,11 +214,13 @@
 	);
 
 	function hasAnalyzerData(analyzer: StatsAnalyzer): boolean {
-		if (analyzer === CMINI_ANALYZER) return Boolean(cminiCompact);
-		if (analyzer === CYANOPHAGE_ANALYZER) {
-			return Boolean(cyanophageCompact);
+		if (analyzer === CMINI_ANALYZER) {
+			return cminiCompact != null && decodeCminiStats(cminiCompact) != null;
 		}
-		return Boolean(mana2Compact);
+		if (analyzer === CYANOPHAGE_ANALYZER) {
+			return cyanophageCompact != null && decodeCyanophageStats(cyanophageCompact) != null;
+		}
+		return mana2Compact != null && decodeMana2Stats(mana2Compact) != null;
 	}
 
 	function setAnalyzer(analyzer: StatsAnalyzer, checked: boolean) {
@@ -235,9 +237,21 @@
 	}
 
 	onMount(() => {
-		showCmini = hasAnalyzerData(CMINI_ANALYZER);
-		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER);
-		showMana2 = hasAnalyzerData(MANA2_ANALYZER);
+		// Select analyzers with decodable data. Truthy-but-undecodable compact
+		// (e.g. stale Mana2 length) still selects so we can refresh below.
+		showCmini = hasAnalyzerData(CMINI_ANALYZER) || Boolean(cminiCompact);
+		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER) || Boolean(cyanophageCompact);
+		showMana2 = hasAnalyzerData(MANA2_ANALYZER) || Boolean(mana2Compact);
+
+		if (showCmini && !hasAnalyzerData(CMINI_ANALYZER)) {
+			void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
+		}
+		if (showCyanophage && !hasAnalyzerData(CYANOPHAGE_ANALYZER)) {
+			void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
+		}
+		if (showMana2 && !hasAnalyzerData(MANA2_ANALYZER)) {
+			void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
+		}
 	});
 </script>
 
