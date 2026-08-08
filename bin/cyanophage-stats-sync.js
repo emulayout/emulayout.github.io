@@ -21,12 +21,25 @@ import { CMINI_CACHE_DIR, loadBlacklist } from './sync-shared.js';
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const SYNC_CONCURRENCY = Number(process.env.CYANOPHAGE_SYNC_CONCURRENCY ?? 16);
 
-async function run() {
-	const cacheLayoutsDir = join(CMINI_CACHE_DIR, 'layouts');
-	const cacheExists = await access(cacheLayoutsDir)
+async function pathExists(path) {
+	return access(path)
 		.then(() => true)
 		.catch(() => false);
-	if (!cacheExists) {
+}
+
+async function run() {
+	const skipIfCminiUnchanged =
+		process.env.CYANOPHAGE_SKIP_IF_CMINI_UNCHANGED === '1' && process.env.CMINI_CHANGED === 'false';
+	if (skipIfCminiUnchanged && (await pathExists(CYANOPHAGE_STATS_FILE))) {
+		console.log(
+			`✔ cmini HEAD unchanged; keeping existing Cyanophage stats → ${CYANOPHAGE_STATS_FILE}`
+		);
+		console.log('Done');
+		return;
+	}
+
+	const cacheLayoutsDir = join(CMINI_CACHE_DIR, 'layouts');
+	if (!(await pathExists(cacheLayoutsDir))) {
 		throw new Error(
 			`cmini layouts missing at ${cacheLayoutsDir}. Run: bun run ./bin/catalog-sync.js`
 		);

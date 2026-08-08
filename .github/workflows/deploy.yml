@@ -66,24 +66,36 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Cache cmini repo + cminibrowser dumps
+      - name: Cache cmini repo + cminibrowser dumps + catalog artifacts
         uses: actions/cache@v6
         with:
           path: |
             .cache/cmini-repo
             .cache/cminibrowser
             .cache/layout-timestamps.json
-          key: ${{ runner.os }}-cmini-v10-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+            .cache/cmini-synced-head
+            static/all-layouts.json
+            static/layout-supplemental.json
+            static/authors.json
+            static/layout-likes.json
+            static/layout-stats-cyanophage.json
+            static/layout-stats-cmini-*.json
+            static/layout-stats-mana2-*.json
+          key: ${{ runner.os }}-cmini-v11-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
       - name: Sync catalog
+        id: catalog
         run: bun run ./bin/catalog-sync.js
         env:
           CI: true
+          # Scheduled runs skip the catalog rebuild when cmini HEAD is unchanged.
+          # Pushes always rebuild so curated supplemental data stays fresh.
+          CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
       - name: Sync cmini stats
-        run: bun run ./bin/cmini-stats-sync.js --force
+        run: bun run ./bin/cmini-stats-sync.js
         env:
           CI: true
 
@@ -91,9 +103,11 @@ jobs:
         run: bun run ./bin/cyanophage-stats-sync.js
         env:
           CI: true
+          CYANOPHAGE_SKIP_IF_CMINI_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
+          CMINI_CHANGED: ${{ steps.catalog.outputs.cmini_changed }}
 
       - name: Sync Mana2 stats
-        run: bun run ./bin/mana2-stats-sync.js --force
+        run: bun run ./bin/mana2-stats-sync.js
         env:
           CI: true
 

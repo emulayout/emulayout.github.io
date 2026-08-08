@@ -9,11 +9,14 @@
  * Use --force to re-download the dump even when a cache file exists.
  * Use --corpus=NAME (or MANA2_STATS_CORPUS) to sync one corpus; otherwise
  * sync every dump-backed Mana2 corpus from the frontend catalog.
+ *
+ * Writes compact catalog artifacts only. Full dump fields stay in the local
+ * cminibrowser cache for diagnostics — they are not published under static/.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { MANA2_ANALYZER, dumpSyncedCorpora } from '../src/lib/statsAnalyzers.ts';
-import { readCminibrowserJson } from './cminibrowser-cache.js';
+import { ensureCminibrowserDump } from './cminibrowser-cache.js';
 import {
 	CMINIBROWSER_MANA2_DEFAULT_BOARD,
 	CMINIBROWSER_MANA2_DEFAULT_SPACE,
@@ -22,7 +25,7 @@ import {
 	lookupCminibrowserMana2Stats
 } from './cminibrowser-mana2-stats.js';
 import { layoutEntryName } from './layout-codec.js';
-import { mana2ExtendedStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
+import { mana2StatsRelPath } from './stats-artifact-paths.js';
 import {
 	LAYOUTS_FILE,
 	loadBlacklist,
@@ -34,6 +37,15 @@ const MANA2_STATS_BOARD = process.env.MANA2_STATS_BOARD ?? CMINIBROWSER_MANA2_DE
 const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DEFAULT_SPACE;
 
 /**
+ * @param {string} path
+ */
+async function pathExists(path) {
+	return access(path)
+		.then(() => true)
+		.catch(() => false);
+}
+
+/**
  * @param {unknown[]} layouts
  * @param {Set<string>} blacklist
  * @param {string} corpus
@@ -41,15 +53,20 @@ const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DE
  */
 async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const dumpPath = cminibrowserMana2NamedDumpPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
+	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
-	const dump = await readCminibrowserJson(dumpPath, mode);
+	const { path: cachePath, updated } = await ensureCminibrowserDump(dumpPath, mode);
+	if (!updated && !mode.force && !mode.offline && (await pathExists(statsFile))) {
+		console.log(`  ✔ Dump unchanged; keeping ${statsFile}`);
+		return;
+	}
+
+	const dump = JSON.parse(await readFile(cachePath, 'utf-8'));
 	const index = indexCminibrowserMana2Dump(dump);
 	console.log(`  ✔ Indexed ${index.size} layouts from dump`);
 
 	/** @type {Record<string, number[]>} */
 	const layoutStats = {};
-	/** @type {Record<string, Record<string, unknown>>} */
-	const layoutStatsExtended = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
 	let blacklisted = 0;
@@ -68,33 +85,23 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 			continue;
 		}
 		layoutStats[name] = hit.compact;
-		layoutStatsExtended[name] = hit.extended;
 		statsLoaded++;
 	}
 
 	await mkdir('static', { recursive: true });
-	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
-	const extendedFile = mana2ExtendedStatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 
 	const sortedStats = Object.fromEntries(
 		Object.keys(layoutStats)
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, layoutStats[name]])
 	);
-	const sortedExtended = Object.fromEntries(
-		Object.keys(layoutStatsExtended)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, layoutStatsExtended[name]])
-	);
 
 	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
-	await writeFile(extendedFile, JSON.stringify(sortedExtended) + '\n', 'utf-8');
 
 	console.log(
 		`  ✔ Mana2 stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
 	);
 	console.log(`  ✔ Wrote ${statsFile}`);
-	console.log(`  ✔ Extended mana2 stats for show pages → ${extendedFile}`);
 }
 
 async function run() {

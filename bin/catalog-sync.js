@@ -8,7 +8,7 @@
  * Use --offline to skip git fetch and reuse `.cache/cmini-repo`.
  */
 
-import { readFile, mkdir, access, readdir, writeFile } from 'node:fs/promises';
+import { access, appendFile, readFile, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { $ } from 'bun';
@@ -35,6 +35,7 @@ import {
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const LIKES_FILE = 'static/layout-likes.json';
 const ADAPTIVE_LAYOUTS_FILE = 'adaptive-layouts.txt';
+const SYNCED_HEAD_FILE = join(process.cwd(), '.cache', 'cmini-synced-head');
 const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json'];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
 const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
@@ -153,14 +154,57 @@ async function ensureCache(offline) {
 	}
 }
 
+async function pathExists(path) {
+	return access(path)
+		.then(() => true)
+		.catch(() => false);
+}
+
+/**
+ * @param {boolean} changed
+ */
+async function writeCminiChangedOutput(changed) {
+	const line = `cmini_changed=${changed ? 'true' : 'false'}\n`;
+	if (process.env.GITHUB_OUTPUT) {
+		await appendFile(process.env.GITHUB_OUTPUT, line);
+	}
+}
+
 async function run() {
-	const { offline } = parseOfflineForceArgs(process.argv.slice(2), {
+	const argv = process.argv.slice(2);
+	const { offline } = parseOfflineForceArgs(argv, {
 		offlineEnv: 'CMINI_SYNC_OFFLINE'
 	});
-	if (process.argv.includes('--force')) {
+	if (argv.includes('--force')) {
 		console.warn('  ⚠ catalog-sync ignores --force (use without --offline to fetch the repo)');
 	}
+	const skipIfUnchanged =
+		argv.includes('--skip-if-unchanged') || process.env.CATALOG_SYNC_SKIP_IF_UNCHANGED === '1';
+
 	await ensureCache(offline);
+
+	const head = (await $`git -C ${CMINI_CACHE_DIR} rev-parse HEAD`.text()).trim();
+	let previousHead = null;
+	try {
+		previousHead = (await readFile(SYNCED_HEAD_FILE, 'utf-8')).trim();
+	} catch {
+		// first successful sync after this marker existed
+	}
+	const cminiChanged = previousHead !== head;
+	await writeCminiChangedOutput(cminiChanged);
+
+	if (
+		!cminiChanged &&
+		skipIfUnchanged &&
+		(await pathExists(LAYOUTS_FILE)) &&
+		(await pathExists(SUPPLEMENTAL_FILE)) &&
+		(await pathExists(LIKES_FILE)) &&
+		(await pathExists('static/authors.json'))
+	) {
+		console.log(`✔ cmini HEAD unchanged (${head.slice(0, 12)}); skipping catalog rebuild`);
+		console.log('Done');
+		return;
+	}
 
 	const blacklist = await loadBlacklist();
 	const adaptiveLayoutNames = await loadAdaptiveLayoutNames();
@@ -336,6 +380,8 @@ async function run() {
 		}
 	}
 
+	await mkdir(join(process.cwd(), '.cache'), { recursive: true });
+	await writeFile(SYNCED_HEAD_FILE, `${head}\n`, 'utf-8');
 	console.log('Done');
 }
 

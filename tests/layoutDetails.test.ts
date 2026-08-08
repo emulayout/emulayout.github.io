@@ -66,14 +66,8 @@ describe('per-layout detail data', () => {
 			{ [compactLayout[0]]: 7 },
 			{
 				cmini: { [compactLayout[0]]: [1] },
-				cminiExtended: {
-					[compactLayout[0]]: { alt: 0.3, fspeed: 12.5, fingers: { LI: { use: 0.1 } } }
-				},
 				cyanophage: { [compactLayout[0]]: [2] },
-				mana2: { [compactLayout[0]]: [3] },
-				mana2Extended: {
-					[compactLayout[0]]: { hb: { leftHand: 50 }, fu: { LI: 10 } }
-				}
+				mana2: { [compactLayout[0]]: [3] }
 			}
 		);
 
@@ -87,10 +81,8 @@ describe('per-layout detail data', () => {
 				supplemental,
 				stats: {
 					cmini: [1],
-					cminiExtended: { alt: 0.3, fspeed: 12.5, fingers: { LI: { use: 0.1 } } },
 					cyanophage: [2],
-					mana2: [3],
-					mana2Extended: { hb: { leftHand: 50 }, fu: { LI: 10 } }
+					mana2: [3]
 				}
 			}
 		});

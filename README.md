@@ -145,15 +145,16 @@ mapping whose trigger is `@` overrides the default and may opt back into repeat 
 Analyzer artifacts are produced by separate scripts:
 
 - `bin/cmini-stats-sync.js` — cminibrowser cmini dumps → `static/layout-stats-cmini-{corpus}.json`
-  (plus extended show-page sibling; syncs Monkeyracer + Reddit unless `--corpus=` is set)
+  (syncs Monkeyracer + Reddit unless `--corpus=` is set)
 - `bin/mana2-stats-sync.js` — cminibrowser Mana2 named dumps →
   `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
   `rowstag.none`)
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
 
-Dump-based syncs accept `--force` (re-download), `--offline` (reuse `.cache/cminibrowser/`), and
-`--corpus=NAME` (single corpus). `bun run sync` prompts for targets and refresh mode, or accepts
-the same flags non-interactively.
+Dump-based syncs accept `--force` (unconditional re-download), `--offline` (reuse
+`.cache/cminibrowser/`), and `--corpus=NAME` (single corpus). Online syncs use conditional
+requests (ETag / Last-Modified) so unchanged dumps are not re-downloaded. `bun run sync` prompts
+for targets and refresh mode, or accepts the same flags non-interactively.
 
 ## Contribute supplemental layout data
 

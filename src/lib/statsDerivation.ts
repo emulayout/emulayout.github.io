@@ -120,7 +120,6 @@ export const MANA2_STAT_KEYS = [
 	'finger-usage-RM',
 	'finger-usage-RR',
 	'finger-usage-RP',
-	'offpinky',
 	'sfb',
 	'sfbw',
 	'skb',
@@ -152,9 +151,7 @@ export const MANA2_STAT_KEYS = [
 	'inroll3',
 	'inroll3nothumbs',
 	'outroll3',
-	'outroll3nothumbs',
-	'goodroll',
-	'goodrollnothumbs'
+	'outroll3nothumbs'
 ] as const;
 
 export type Mana2StatKey = (typeof MANA2_STAT_KEYS)[number];
@@ -190,8 +187,6 @@ export type DerivedMana2Stats = {
 	outroll2: number;
 	inroll3: number;
 	outroll3: number;
-	goodroll: number;
-	offpinky: number;
 	lh: number;
 	rh: number;
 } & Record<CyanophageFingerUsageKey, number>;
@@ -373,8 +368,6 @@ export function deriveMana2Stats(stats: Mana2Stats): DerivedMana2Stats {
 		outroll2: stats.outroll2 ?? 0,
 		inroll3: stats.inroll3 ?? 0,
 		outroll3: stats.outroll3 ?? 0,
-		goodroll: stats.goodroll ?? 0,
-		offpinky: stats.offpinky ?? 0,
 		lh: LP + LR + LM + LI + LT,
 		rh: RI + RM + RR + RP + RT,
 		LP,

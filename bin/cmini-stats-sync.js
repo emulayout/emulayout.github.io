@@ -8,23 +8,35 @@
  * Use --force to re-download the dump even when a cache file exists.
  * Use --corpus=NAME (or CMINIBROWSER_CMINI_CORPUS) to sync one corpus; otherwise
  * sync every dump-backed cmini corpus from the frontend catalog.
+ *
+ * Writes compact catalog artifacts only. Full dump fields stay in the local
+ * cminibrowser cache for diagnostics — they are not published under static/.
  */
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { CMINI_ANALYZER, dumpSyncedCorpora } from '../src/lib/statsAnalyzers.ts';
-import { readCminibrowserJson } from './cminibrowser-cache.js';
+import { ensureCminibrowserDump } from './cminibrowser-cache.js';
 import {
 	indexCminibrowserCminiDump,
 	lookupCminibrowserCminiStats
 } from './cminibrowser-cmini-stats.js';
 import { layoutEntryName } from './layout-codec.js';
-import { cminiCompactStatsRelPath, cminiExtendedStatsRelPath } from './stats-artifact-paths.js';
+import { cminiCompactStatsRelPath } from './stats-artifact-paths.js';
 import {
 	LAYOUTS_FILE,
 	loadBlacklist,
 	parseCorpusArgs,
 	parseOfflineForceArgs
 } from './sync-shared.js';
+
+/**
+ * @param {string} path
+ */
+async function pathExists(path) {
+	return access(path)
+		.then(() => true)
+		.catch(() => false);
+}
 
 /**
  * @param {unknown[]} layouts
@@ -34,15 +46,20 @@ import {
  */
 async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const dumpPath = `stats/${corpus}.json`;
+	const statsFile = cminiCompactStatsRelPath(corpus);
 	console.log(`→ Loading cminibrowser cmini dump (${dumpPath})...`);
-	const dump = await readCminibrowserJson(dumpPath, mode);
+	const { path: cachePath, updated } = await ensureCminibrowserDump(dumpPath, mode);
+	if (!updated && !mode.force && !mode.offline && (await pathExists(statsFile))) {
+		console.log(`  ✔ Dump unchanged; keeping ${statsFile}`);
+		return;
+	}
+
+	const dump = JSON.parse(await readFile(cachePath, 'utf-8'));
 	const index = indexCminibrowserCminiDump(dump);
 	console.log(`  ✔ Indexed ${index.size} layouts from dump`);
 
 	/** @type {Record<string, number[]>} */
 	const layoutStats = {};
-	/** @type {Record<string, import('./cminibrowser-cmini-stats.js').CminibrowserCminiExtendedStats>} */
-	const layoutStatsExtended = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
 	let blacklisted = 0;
@@ -61,32 +78,22 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 			continue;
 		}
 		layoutStats[name] = hit.compact;
-		if (hit.extended) layoutStatsExtended[name] = hit.extended;
 		statsLoaded++;
 	}
 
 	await mkdir('static', { recursive: true });
-	const statsFile = cminiCompactStatsRelPath(corpus);
-	const extendedFile = cminiExtendedStatsRelPath(corpus);
 	const sortedStats = Object.fromEntries(
 		Object.keys(layoutStats)
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, layoutStats[name]])
 	);
-	const sortedExtended = Object.fromEntries(
-		Object.keys(layoutStatsExtended)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, layoutStatsExtended[name]])
-	);
 
 	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
-	await writeFile(extendedFile, JSON.stringify(sortedExtended) + '\n', 'utf-8');
 
 	console.log(
 		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
 	);
 	console.log(`  ✔ Wrote ${statsFile}`);
-	console.log(`  ✔ Extended cmini stats for show pages → ${extendedFile}`);
 }
 
 async function run() {

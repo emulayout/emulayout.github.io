@@ -30,7 +30,6 @@ export const CMINIBROWSER_MANA2_STAT_KEYS = [
 	'finger-usage-RM',
 	'finger-usage-RR',
 	'finger-usage-RP',
-	'offpinky',
 	'sfb',
 	'sfbw',
 	'skb',
@@ -62,9 +61,7 @@ export const CMINIBROWSER_MANA2_STAT_KEYS = [
 	'inroll3',
 	'inroll3nothumbs',
 	'outroll3',
-	'outroll3nothumbs',
-	'goodroll',
-	'goodrollnothumbs'
+	'outroll3nothumbs'
 ];
 
 const FINGER_USAGE_ORDER = ['LP', 'LR', 'LM', 'LI', 'LT', 'RT', 'RI', 'RM', 'RR', 'RP'];
@@ -161,8 +158,6 @@ export function extractCminibrowserMana2Extended(entry) {
 /**
  * Convert one layout's named dump object to a compact Mana2 array, or null if unusable.
  *
- * Dump fields not present in Emulayout's compact schema (`offpinky`, `goodroll*`) encode as 0.
- *
  * @param {unknown} entry
  * @returns {number[] | null}
  */
@@ -195,11 +190,7 @@ export function encodeCminibrowserMana2Stats(entry) {
 	}
 
 	/** @type {Record<string, number>} */
-	const byKey = {
-		offpinky: 0,
-		goodroll: 0,
-		goodrollnothumbs: 0
-	};
+	const byKey = {};
 
 	for (const finger of FINGER_USAGE_ORDER) {
 		const value = /** @type {Record<string, unknown>} */ (fu)[finger];

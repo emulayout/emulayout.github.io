@@ -94,9 +94,7 @@
 			{ label: 'Alt (no thumbs)', value: pct(s.altNoThumbs) },
 			{ label: 'Redirect (no thumbs)', value: pct(s.redirectNoThumbs) },
 			{ label: 'Redirect SFS & weak', value: pct(s.redirectSfsWeak) },
-			{ label: 'Roll (no thumbs)', value: pct(s.rollNoThumbs) },
-			{ label: 'Good roll', value: pct(s.goodroll) },
-			{ label: 'Off-pinky', value: pct(s.offpinky) }
+			{ label: 'Roll (no thumbs)', value: pct(s.rollNoThumbs) }
 		];
 	});
 

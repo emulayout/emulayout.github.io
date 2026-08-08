@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
@@ -74,10 +75,16 @@
 	);
 
 	$effect(() => {
-		if (uiPrefs.hydrated) {
-			layoutStatsStore.applyCorpus(uiPrefs.statsCorpus);
-		}
-		void layoutStatsStore.loadAnalyzers(analyzersToLoad);
+		const hydrated = uiPrefs.hydrated;
+		const statsCorpus = uiPrefs.statsCorpus;
+		const analyzers = analyzersToLoad;
+
+		untrack(() => {
+			if (hydrated) {
+				layoutStatsStore.applyCorpus(statsCorpus);
+			}
+			void layoutStatsStore.loadAnalyzers(analyzers);
+		});
 	});
 
 	function retryStatsLoads(analyzers: Iterable<StatsAnalyzer>) {

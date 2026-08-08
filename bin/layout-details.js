@@ -2,12 +2,7 @@
 
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import {
-	cminiCompactStatsRelPath,
-	cminiExtendedStatsRelPath,
-	mana2ExtendedStatsRelPath,
-	mana2StatsRelPath
-} from './stats-artifact-paths.js';
+import { cminiCompactStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
 
 export const LAYOUT_DETAIL_VERSION = 2;
 
@@ -32,11 +27,6 @@ const OPTIONAL_FILES = {
 	mana2: join(
 		process.cwd(),
 		mana2StatsRelPath(DETAIL_STATS_CORPUS, DETAIL_MANA2_BOARD, DETAIL_MANA2_SPACE)
-	),
-	cminiExtended: join(process.cwd(), cminiExtendedStatsRelPath(DETAIL_STATS_CORPUS)),
-	mana2Extended: join(
-		process.cwd(),
-		mana2ExtendedStatsRelPath(DETAIL_STATS_CORPUS, DETAIL_MANA2_BOARD, DETAIL_MANA2_SPACE)
 	)
 };
 
@@ -82,16 +72,12 @@ async function writeIfChanged(path, body) {
  * @param {Record<string, number>} likes
  * @param {{
  *   cmini: Record<string, unknown>,
- *   cminiExtended?: Record<string, unknown>,
  *   cyanophage: Record<string, unknown>,
- *   mana2: Record<string, unknown>,
- *   mana2Extended?: Record<string, unknown>
+ *   mana2: Record<string, unknown>
  * }} stats
  */
 export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
 	const authorById = new Map(Object.entries(authors).map(([name, id]) => [id, name]));
-	const cminiExtended = stats.cminiExtended ?? {};
-	const mana2Extended = stats.mana2Extended ?? {};
 	return layouts.map((layout) => {
 		if (!Array.isArray(layout) || typeof layout[0] !== 'string') {
 			throw new Error('all-layouts.json contains an invalid compact layout');
@@ -108,10 +94,8 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
 				stats: {
 					...(stats.cmini[name] ? { cmini: stats.cmini[name] } : {}),
-					...(cminiExtended[name] ? { cminiExtended: cminiExtended[name] } : {}),
 					...(stats.cyanophage[name] ? { cyanophage: stats.cyanophage[name] } : {}),
-					...(stats.mana2[name] ? { mana2: stats.mana2[name] } : {}),
-					...(mana2Extended[name] ? { mana2Extended: mana2Extended[name] } : {})
+					...(stats.mana2[name] ? { mana2: stats.mana2[name] } : {})
 				}
 			}
 		};
@@ -119,34 +103,20 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 }
 
 export async function generateLayoutDetails() {
-	const [
-		layouts,
-		authors,
-		supplemental,
-		likes,
-		cmini,
-		cyanophage,
-		mana2,
-		cminiExtended,
-		mana2Extended
-	] = await Promise.all([
+	const [layouts, authors, supplemental, likes, cmini, cyanophage, mana2] = await Promise.all([
 		readJson(REQUIRED_FILES.layouts),
 		readJson(REQUIRED_FILES.authors),
 		readJson(REQUIRED_FILES.supplemental),
 		readJson(REQUIRED_FILES.likes),
 		readJson(REQUIRED_FILES.cmini),
 		readJson(REQUIRED_FILES.cyanophage),
-		readOptionalJson(OPTIONAL_FILES.mana2),
-		readOptionalJson(OPTIONAL_FILES.cminiExtended),
-		readOptionalJson(OPTIONAL_FILES.mana2Extended)
+		readOptionalJson(OPTIONAL_FILES.mana2)
 	]);
 
 	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {
 		cmini,
-		cminiExtended,
 		cyanophage,
-		mana2,
-		mana2Extended
+		mana2
 	});
 	await mkdir(DETAILS_DIR, { recursive: true });
 

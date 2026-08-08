@@ -31,9 +31,8 @@ describe('cminibrowser mana2 dump encoding', () => {
 		expect(byKey.altnothumbs).toBe(
 			Math.round(GALLIUM_DUMP.trin.alt * CMINIBROWSER_MANA2_STAT_VALUE_SCALE)
 		);
-		expect(byKey.offpinky).toBe(0);
-		expect(byKey.goodroll).toBe(0);
-		expect(byKey.goodrollnothumbs).toBe(0);
+		expect(Object.hasOwn(byKey, 'offpinky')).toBe(false);
+		expect(Object.hasOwn(byKey, 'goodroll')).toBe(false);
 	});
 
 	test('indexes dumps for case-insensitive lookup and keeps extended fields', () => {
