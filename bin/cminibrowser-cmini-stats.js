@@ -1,7 +1,6 @@
 /**
  * Map cminibrowser cmini engine dumps (`/data/stats/{corpus}.json`) into Emulayout's
- * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`). Validated extended
- * fields are retained in the in-memory index for diagnostics.
+ * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`).
  *
  * Key order and scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
@@ -68,51 +67,8 @@ export const CMINIBROWSER_CMINI_SCALAR_FIELDS = [
 
 /**
  * @typedef {{
- *   use?: number,
- *   fsp?: number,
- *   wfsp?: number,
- *   sfb?: number,
- *   sfs?: number
- * }} CminibrowserCminiFingerStats
- */
-
-/**
- * Additional validated dump fields retained for diagnostics.
- * @typedef {{
- *   roll_in: number,
- *   roll_out: number,
- *   alt: number,
- *   redirect: number,
- *   bad_redirect: number,
- *   oneh_in: number,
- *   oneh_out: number,
- *   sfr?: number,
- *   sfs?: number,
- *   sfs_alt: number,
- *   sfs_red: number,
- *   sfb: number,
- *   lh: number,
- *   rh: number,
- *   pinky?: number,
- *   fspeed?: number,
- *   fspeed_weighted?: number,
- *   fspeed_ortho?: number,
- *   fspeed_rowstag?: number,
- *   fspeed_weighted_ortho?: number,
- *   fspeed_weighted_rowstag?: number,
- *   redirect_thumb?: number,
- *   bad_redirect_thumb?: number,
- *   fingers?: Record<string, CminibrowserCminiFingerStats>,
- *   fingers_ortho?: Record<string, CminibrowserCminiFingerStats>,
- *   fingers_rowstag?: Record<string, CminibrowserCminiFingerStats>
- * }} CminibrowserCminiExtendedStats
- */
-
-/**
- * @typedef {{
  *   dumpId: string,
- *   compact: number[],
- *   extended: CminibrowserCminiExtendedStats
+ *   compact: number[]
  * }} CminibrowserCminiLayoutStats
  */
 
@@ -129,108 +85,6 @@ function isFiniteNumber(value) {
  */
 export function encodeCminibrowserStatValue(value) {
 	return Math.round(value * CMINIBROWSER_CMINI_STAT_VALUE_SCALE);
-}
-
-/**
- * @param {unknown} value
- * @returns {CminibrowserCminiFingerStats | null}
- */
-function normalizeFingerStats(value) {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-	const raw = /** @type {Record<string, unknown>} */ (value);
-	/** @type {CminibrowserCminiFingerStats} */
-	const out = {};
-	for (const key of /** @type {const} */ (['use', 'fsp', 'wfsp', 'sfb', 'sfs'])) {
-		const metric = raw[key];
-		if (isFiniteNumber(metric)) out[key] = metric;
-	}
-	return Object.keys(out).length > 0 ? out : null;
-}
-
-/**
- * @param {unknown} value
- * @returns {Record<string, CminibrowserCminiFingerStats> | undefined}
- */
-function normalizeFingerMap(value) {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-	/** @type {Record<string, CminibrowserCminiFingerStats>} */
-	const out = {};
-	for (const [finger, entry] of Object.entries(value)) {
-		const normalized = normalizeFingerStats(entry);
-		if (normalized) out[finger] = normalized;
-	}
-	return Object.keys(out).length > 0 ? out : undefined;
-}
-
-/**
- * Extract additional validated dump fields for diagnostics.
- * @param {unknown} entry
- * @returns {CminibrowserCminiExtendedStats | null}
- */
-export function extractCminibrowserCminiExtended(entry) {
-	if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
-	const raw = /** @type {Record<string, unknown>} */ (entry);
-
-	/** @type {CminibrowserCminiExtendedStats} */
-	const extended = {
-		roll_in: 0,
-		roll_out: 0,
-		alt: 0,
-		redirect: 0,
-		bad_redirect: 0,
-		oneh_in: 0,
-		oneh_out: 0,
-		sfs_alt: 0,
-		sfs_red: 0,
-		sfb: 0,
-		lh: 0,
-		rh: 0
-	};
-
-	for (const key of /** @type {const} */ ([
-		'roll_in',
-		'roll_out',
-		'alt',
-		'redirect',
-		'bad_redirect',
-		'oneh_in',
-		'oneh_out',
-		'sfs_alt',
-		'sfs_red',
-		'sfb',
-		'lh',
-		'rh'
-	])) {
-		const value = raw[key];
-		if (!isFiniteNumber(value)) return null;
-		extended[key] = value;
-	}
-
-	for (const key of /** @type {const} */ ([
-		'sfr',
-		'sfs',
-		'pinky',
-		'fspeed',
-		'fspeed_weighted',
-		'fspeed_ortho',
-		'fspeed_rowstag',
-		'fspeed_weighted_ortho',
-		'fspeed_weighted_rowstag',
-		'redirect_thumb',
-		'bad_redirect_thumb'
-	])) {
-		const value = raw[key];
-		if (isFiniteNumber(value)) extended[key] = value;
-	}
-
-	const fingers = normalizeFingerMap(raw.fingers);
-	if (fingers) extended.fingers = fingers;
-	const fingersOrtho = normalizeFingerMap(raw.fingers_ortho);
-	if (fingersOrtho) extended.fingers_ortho = fingersOrtho;
-	const fingersRowstag = normalizeFingerMap(raw.fingers_rowstag);
-	if (fingersRowstag) extended.fingers_rowstag = fingersRowstag;
-
-	return extended;
 }
 
 /**
@@ -284,9 +138,8 @@ export function indexCminibrowserCminiDump(dump) {
 
 	for (const [dumpId, entry] of Object.entries(dump)) {
 		const compact = encodeCminibrowserCminiStats(entry);
-		const extended = extractCminibrowserCminiExtended(entry);
-		if (!compact || !extended) continue;
-		index.set(dumpId.toLowerCase(), { dumpId, compact, extended });
+		if (!compact) continue;
+		index.set(dumpId.toLowerCase(), { dumpId, compact });
 	}
 	return index;
 }

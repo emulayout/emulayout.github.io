@@ -4,7 +4,6 @@ import {
 	CMINIBROWSER_CMINI_STAT_VALUE_SCALE,
 	encodeCminibrowserCminiDump,
 	encodeCminibrowserCminiStats,
-	extractCminibrowserCminiExtended,
 	indexCminibrowserCminiDump,
 	lookupCminibrowserCminiStats
 } from '../bin/cminibrowser-cmini-stats.js';
@@ -72,23 +71,10 @@ describe('cminibrowser cmini dump encoding', () => {
 		expect(encoded.has('gallium')).toBe(true);
 	});
 
-	test('extracts extended dump fields and supports case-insensitive lookup', () => {
-		const extended = extractCminibrowserCminiExtended(GALLIUM_DUMP);
-		expect(extended?.fspeed).toBe(38.957292);
-		expect(extended?.sfr).toBe(0.097133);
-		expect(extended?.fingers?.LI?.fsp).toBe(9.228712);
-		expect(extended?.fingers_ortho).toBeUndefined();
-
-		const withOrtho = extractCminibrowserCminiExtended({
-			...GALLIUM_DUMP,
-			fingers_ortho: GALLIUM_DUMP.fingers
-		});
-		expect(withOrtho?.fingers_ortho?.LP?.use).toBe(0.083589);
-
+	test('supports case-insensitive indexed lookup', () => {
 		const index = indexCminibrowserCminiDump({ Gallium: GALLIUM_DUMP });
 		const hit = lookupCminibrowserCminiStats(index, 'gallium');
 		expect(hit?.dumpId).toBe('Gallium');
 		expect(hit?.compact).toEqual(encodeCminibrowserCminiStats(GALLIUM_DUMP)!);
-		expect(hit?.extended?.alt).toBe(0.326619);
 	});
 });

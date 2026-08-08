@@ -5,7 +5,6 @@ import {
 	CMINIBROWSER_MANA2_STAT_KEYS,
 	CMINIBROWSER_MANA2_STAT_VALUE_SCALE,
 	encodeCminibrowserMana2Stats,
-	extractCminibrowserMana2Extended,
 	indexCminibrowserMana2Dump,
 	lookupCminibrowserMana2Stats
 } from '../bin/cminibrowser-mana2-stats.js';
@@ -35,15 +34,13 @@ describe('cminibrowser mana2 dump encoding', () => {
 		expect(Object.hasOwn(byKey, 'goodroll')).toBe(false);
 	});
 
-	test('indexes dumps for case-insensitive lookup and keeps extended fields', () => {
+	test('indexes dumps for case-insensitive lookup', () => {
 		expect(encodeCminibrowserMana2Stats({})).toBeNull();
-		expect(extractCminibrowserMana2Extended(GALLIUM_DUMP)?.fsp).toEqual(GALLIUM_DUMP.fsp);
 
 		const index = indexCminibrowserMana2Dump({ Gallium: GALLIUM_DUMP });
 		const hit = lookupCminibrowserMana2Stats(index, 'gallium');
 		expect(hit?.dumpId).toBe('Gallium');
 		expect(hit?.compact).toEqual(encodeCminibrowserMana2Stats(GALLIUM_DUMP)!);
-		expect(hit?.extended?.hb).toEqual(GALLIUM_DUMP.hb);
 	});
 
 	test('indexes compact stats when the unused hand-balance bucket is absent', () => {
@@ -53,7 +50,5 @@ describe('cminibrowser mana2 dump encoding', () => {
 		const index = indexCminibrowserMana2Dump({ Gallium: withoutHandBalance });
 		const hit = lookupCminibrowserMana2Stats(index, 'gallium');
 		expect(hit?.compact).toEqual(encodeCminibrowserMana2Stats(withoutHandBalance)!);
-		expect(hit?.extended).toBeDefined();
-		expect(hit?.extended?.hb).toBeUndefined();
 	});
 });

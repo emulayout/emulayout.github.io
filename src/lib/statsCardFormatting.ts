@@ -467,7 +467,7 @@ export function formatStatsLoadingBlock(): string {
 export function formatStatsUnavailableBlock(): string {
 	return [
 		'STATS UNAVAILABLE',
-		'no cmini cache for this layout',
+		'no cmini stats for this layout',
 		...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')
 	].join('\n');
 }

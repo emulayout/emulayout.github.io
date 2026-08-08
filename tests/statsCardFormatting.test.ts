@@ -62,6 +62,7 @@ describe('stats card formatting', () => {
 		expect(buildMana2StatsBlockLines(mana2Stats())).toHaveLength(MANA2_STATS_BLOCK_LINE_COUNT);
 
 		expect(formatStatsUnavailableBlock().split('\n')).toHaveLength(STATS_BLOCK_LINE_COUNT);
+		expect(formatStatsUnavailableBlock()).toContain('no cmini stats for this layout');
 		expect(formatCyanophageStatsUnavailableBlock().split('\n')).toHaveLength(
 			CYANOPHAGE_STATS_BLOCK_LINE_COUNT
 		);
