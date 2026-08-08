@@ -217,29 +217,6 @@ export const MANA2_GENERAL_STAT_FILTER_GROUPS: readonly GeneralStatFilterGroup[]
 					title: 'Outroll 3',
 					hint: 'Three same-hand keys rolling outward (index → pinky) with no same-finger use.'
 				}
-			],
-			[
-				{
-					key: 'goodroll',
-					label: 'Good',
-					chipLabel: 'Good roll',
-					title: 'Good roll',
-					hint: 'Rolls that also have zero scissor rating on both bigrams—cleaner rolls. Higher is better.'
-				}
-			]
-		]
-	},
-	{
-		title: 'Other',
-		rows: [
-			[
-				{
-					key: 'offpinky',
-					label: 'OffP',
-					chipLabel: 'Off-pinky',
-					title: 'Off pinky',
-					hint: 'Pinky usage off the home row. Stretchy pinky work; lower is usually preferred.'
-				}
 			]
 		]
 	}

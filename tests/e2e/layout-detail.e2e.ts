@@ -1,10 +1,19 @@
 import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../src/lib/layoutDetails';
+import { LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY } from '../../src/lib/layoutDetailStatsPrefs';
+import { STATS_CORPUS_STORAGE_KEY } from '../../src/lib/statsAnalyzers';
+import {
+	COMPACT_STAT_FIELD_COUNT,
+	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,
+	MANA2_COMPACT_STAT_FIELD_COUNT
+} from '../../src/lib/statsDerivation';
 import {
 	adaptivePreview,
 	angleLeftThumb,
+	colemakDh,
 	lela,
 	missingOrthoColumn,
+	qwerty,
 	repeatKey
 } from './fixtures/catalog-data';
 
@@ -97,6 +106,136 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 	expect(requestedPaths).toContain('/all-layouts.json');
 });
 
+test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
+	const monkeyracer = Array<number>(23).fill(0);
+	monkeyracer[0] = 3000;
+	monkeyracer[9] = 100;
+	const reddit = [...monkeyracer];
+	reddit[9] = 200;
+
+	await page.addInitScript(
+		({ key, corpus }) => {
+			if (localStorage.getItem(key) === null) localStorage.setItem(key, corpus);
+		},
+		{
+			key: STATS_CORPUS_STORAGE_KEY,
+			corpus: 'reddit'
+		}
+	);
+	await page.route(`**/layout-details/${layoutDetailFileId('QWERTY')}.json`, async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: qwerty,
+				authorName: 'cmini',
+				likeCount: 0,
+				stats: { cmini: { monkeyracer, reddit } }
+			}
+		});
+	});
+
+	const requestedPaths: string[] = [];
+	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
+	await page.goto('/layouts/QWERTY?tab=stats');
+
+	const summaryStats = page
+		.locator('[data-layout-name="QWERTY"]')
+		.getByLabel('cmini core statistics');
+	const corpus = page.getByRole('combobox', { name: 'Corpus' });
+	await expect(corpus).toHaveValue('reddit');
+	await expect(summaryStats.getByText('2.00%', { exact: true })).toBeVisible();
+	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit.json');
+
+	await corpus.selectOption('monkeyracer');
+	await expect(summaryStats.getByText('1.00%', { exact: true })).toBeVisible();
+	await expect
+		.poll(() => page.evaluate((key) => localStorage.getItem(key), STATS_CORPUS_STORAGE_KEY))
+		.toBe('monkeyracer');
+
+	await page.reload();
+	await expect(corpus).toHaveValue('monkeyracer');
+	await expect(summaryStats.getByText('1.00%', { exact: true })).toBeVisible();
+
+	await page.getByRole('link', { name: 'All layouts' }).click();
+	await expect(page).toHaveURL('/');
+	await expect(corpus).toHaveValue('monkeyracer');
+	await corpus.selectOption('reddit');
+	await page
+		.locator('[data-layout-name="QWERTY"]')
+		.getByRole('link', { name: 'View QWERTY layout details' })
+		.click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=test');
+	await page.getByRole('tab', { name: 'Stats' }).click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=stats');
+	await expect(corpus).toHaveValue('reddit');
+	await expect
+		.poll(() => page.evaluate((key) => localStorage.getItem(key), STATS_CORPUS_STORAGE_KEY))
+		.toBe('reddit');
+});
+
+test('persists detail analyzer visibility across layouts and reloads', async ({ page }) => {
+	const cmini = Array(COMPACT_STAT_FIELD_COUNT).fill(10_000);
+	const cyanophage = Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(10_000);
+	const mana2 = Array(MANA2_COMPACT_STAT_FIELD_COUNT).fill(10_000);
+	await page.route('**/layout-details/*.json', async (route) => {
+		const filename = new URL(route.request().url()).pathname.split('/').pop();
+		const layout = filename === `${layoutDetailFileId('QWERTY')}.json` ? qwerty : colemakDh;
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout,
+				authorName: 'cmini',
+				likeCount: 0,
+				stats: {
+					cmini: { monkeyracer: cmini, reddit: cmini },
+					cyanophage,
+					mana2: { monkeyracer: mana2, reddit: mana2 }
+				}
+			}
+		});
+	});
+
+	await page.goto('/layouts/Colemak-DH?tab=stats');
+	const statsPanel = page.getByRole('tabpanel', { name: 'Stats' });
+	await expect(statsPanel.getByRole('heading', { name: 'Stats options' })).toBeVisible();
+	await expect(statsPanel.getByRole('group', { name: 'Analyzers' })).toBeVisible();
+	const cminiToggle = statsPanel.getByRole('checkbox', { name: 'cmini' });
+	const cyanophageToggle = statsPanel.getByRole('checkbox', { name: 'Cyanophage' });
+	const mana2Toggle = statsPanel.getByRole('checkbox', { name: 'Mana2' });
+	await expect(cminiToggle).toBeChecked();
+	await expect(cyanophageToggle).toBeChecked();
+	await expect(mana2Toggle).toBeChecked();
+
+	await cyanophageToggle.uncheck();
+	await mana2Toggle.uncheck();
+	await expect
+		.poll(() =>
+			page.evaluate((key) => localStorage.getItem(key), LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
+		)
+		.toBe('["cmini"]');
+
+	await page.reload();
+	await expect(cminiToggle).toBeChecked();
+	await expect(cyanophageToggle).not.toBeChecked();
+	await expect(mana2Toggle).not.toBeChecked();
+
+	await page.goto('/layouts/QWERTY?tab=stats');
+	await expect(cminiToggle).toBeChecked();
+	await expect(cyanophageToggle).not.toBeChecked();
+	await expect(mana2Toggle).not.toBeChecked();
+
+	await cminiToggle.uncheck();
+	await expect
+		.poll(() =>
+			page.evaluate((key) => localStorage.getItem(key), LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
+		)
+		.toBe('[]');
+	await page.reload();
+	await expect(cminiToggle).not.toBeChecked();
+	await expect(cyanophageToggle).not.toBeChecked();
+	await expect(mana2Toggle).not.toBeChecked();
+});
+
 test('defaults to the Test area and switches detail sections with tab keyboard navigation', async ({
 	page
 }) => {
@@ -179,7 +318,7 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
 	const statsPanel = page.getByRole('tabpanel', { name: 'Stats' });
 	await expect(statsPanel).toBeVisible();
-	await expect(page.getByText('Show analyzers', { exact: true })).toBeVisible();
+	await expect(page.getByText('Analyzers', { exact: true })).toBeVisible();
 	await expect(statsPanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
 	await expect(summaryCard).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toBeVisible();
@@ -446,10 +585,12 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 				authorName: 'lelazsq',
 				likeCount: 0,
 				stats: {
-					cmini: [
-						1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792,
-						2041, 948, 1331, 275, 0, 0, 0
-					]
+					cmini: {
+						monkeyracer: [
+							1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792,
+							2041, 948, 1331, 275, 0, 0, 0
+						]
+					}
 				}
 			}
 		});

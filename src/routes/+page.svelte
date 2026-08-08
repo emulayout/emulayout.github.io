@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
@@ -30,7 +31,7 @@
 	const pageLikesData = $derived(data.likesAttempted ? (data.likesData ?? {}) : null);
 	const likesData = $derived(lazyLikesData ?? pageLikesData);
 	const showSharedViewModal = $derived(Boolean(filterStore.pendingSharedView));
-	const statsMaps = $derived({ ...data.statsMaps, ...layoutStatsStore.maps });
+	const statsMaps = $derived(layoutStatsStore.maps);
 	let likesLoading = $state(false);
 	const statsReady = $derived(
 		filterStore.analyzersNeededForStatLimits.every((analyzer) =>
@@ -73,7 +74,12 @@
 	);
 
 	$effect(() => {
-		void layoutStatsStore.loadAnalyzers(analyzersToLoad);
+		void layoutStatsStore.activeCorpus;
+		const analyzers = analyzersToLoad;
+
+		untrack(() => {
+			void layoutStatsStore.loadAnalyzers(analyzers);
+		});
 	});
 
 	function retryStatsLoads(analyzers: Iterable<StatsAnalyzer>) {
@@ -293,6 +299,7 @@
 
 	.layout-view-bar :global(.display-settings-menu) {
 		align-self: center;
+		flex-shrink: 0;
 		margin-bottom: 0.25rem;
 	}
 

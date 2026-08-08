@@ -100,10 +100,24 @@ there are no metric-cell filter or sort targets.
   height so action rows remain aligned between available and unavailable cards.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
+- Stats corpus (Monkeyracer / Reddit) is available in the results toolbar beside Analyzer and in the
+  layout-detail Stats options. Both controls edit one persisted preference. It applies only to
+  cmini and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus
+  reloads those dump-backed stats maps without altering analyzer, filters, or sort. Per-layout
+  detail payloads carry corpus-keyed cmini and Mana2 values so direct detail visits, Quick Find, and
+  Compare remain consistent after navigation or reload.
 
 ## Code map
 
 - Display preference and persistence: `src/lib/uiPrefs.svelte.ts`
+- Corpus catalog and artifact URLs: `src/lib/statsAnalyzers.ts`
+- Dump-backed stats loading and corpus invalidation: `src/lib/layoutStatsLoader.ts`,
+  `src/lib/layoutStatsStore.svelte.ts`
+- Global corpus application and per-layout resolution: `src/routes/+layout.svelte`,
+  `src/lib/layoutDetails.ts`, `bin/layout-details.js`
+- Shared corpus control (native select): `src/lib/components/CorpusTabs.svelte`,
+  `src/lib/components/LayoutResultsToolbar.svelte`,
+  `src/lib/components/LayoutExpandedView.svelte`
 - Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`, `src/lib/components/SegmentedControl.svelte`
 - Analyzer models, base metrics, preferred sort directions, and dynamic sixth-cell placement:
@@ -131,6 +145,7 @@ there are no metric-cell filter or sort targets.
 - Quick Find click and Shift-click both toggle the value and never focus the covered sidebar.
 - Quick Find never exposes stat sorting.
 - The detail-page summary analyzer selector changes only that card's analyzer.
+- The index and detail corpus selectors share one persisted corpus preference.
 - Filter values set from cells use inclusive `≤` or `≥` semantics according to the metric's
   preferred direction.
 - Highlights owns visual finger usage; Detailed owns text finger usage.

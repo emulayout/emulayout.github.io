@@ -5,7 +5,8 @@ on:
     branches:
       - master
   schedule:
-    - cron: '15 0 * * *'
+    # After cmini (~5pm PT) and cminibrowser (~7pm PT). 04:15 UTC is 9:15pm PST / 8:15pm PDT.
+    - cron: '15 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -65,43 +66,48 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Setup Go
-        uses: actions/setup-go@v7
-        with:
-          go-version: '1.26.4'
-          cache-dependency-path: bin/mana2-go/go.sum
-
-      - name: Cache cmini repo + layout timestamps
+      - name: Cache cmini repo + cminibrowser dumps + catalog artifacts
         uses: actions/cache@v6
         with:
           path: |
             .cache/cmini-repo
+            .cache/cminibrowser
             .cache/layout-timestamps.json
-            .cache/layout-stats-monkeyracer.json
-          key: ${{ runner.os }}-cmini-v7-${{ hashFiles('bin/cmini-sync.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/layout-stats.js', 'bin/layout-stats-cache.js', 'bin/cmini-analyzer.js', 'bin/cmini-data/**', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts') }}
+            .cache/cmini-synced-head
+            static/all-layouts.json
+            static/layout-supplemental.json
+            static/authors.json
+            static/layout-likes.json
+            static/layout-stats-cyanophage.json
+            static/layout-stats-cmini-*.json
+            static/layout-stats-mana2-*.json
+          key: ${{ runner.os }}-cmini-v11-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
-      - name: Cache mana2 checkout + stats
-        uses: actions/cache@v6
-        with:
-          path: |
-            .cache/mana2
-            .cache/layout-stats-mana2.json
-          key: ${{ runner.os }}-mana2-v2-${{ hashFiles('bin/mana2-sync.js', 'bin/layout-data.js', 'bin/layout-features.js', 'bin/mana2-magic.js', 'bin/mana2-layout.js', 'bin/mana2-stats.js', 'bin/mana2-go/**', 'data/layouts/**') }}
-          restore-keys: |
-            ${{ runner.os }}-mana2-
+      - name: Sync catalog
+        id: catalog
+        run: bun run ./bin/catalog-sync.js
+        env:
+          CI: true
+          # Scheduled runs skip the catalog rebuild when cmini HEAD is unchanged.
+          # Pushes always rebuild so curated supplemental data stays fresh.
+          CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
-      - name: Run cmini-sync
-        run: bun run ./bin/cmini-sync.js
+      - name: Sync cmini stats
+        run: bun run ./bin/cmini-stats-sync.js
         env:
           CI: true
 
-      - name: Verify monkeyracer stats match cmini cache
-        run: bun run verify:monkeyracer-stats
+      - name: Sync Cyanophage stats
+        run: bun run ./bin/cyanophage-stats-sync.js
+        env:
+          CI: true
+          CYANOPHAGE_SKIP_IF_CMINI_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
+          CMINI_CHANGED: ${{ steps.catalog.outputs.cmini_changed }}
 
-      - name: Run mana2-sync
-        run: bun run ./bin/mana2-sync.js
+      - name: Sync Mana2 stats
+        run: bun run ./bin/mana2-stats-sync.js
         env:
           CI: true
 

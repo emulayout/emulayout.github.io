@@ -19,11 +19,16 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"verify:monkeyracer-stats": "bun run ./bin/verify-monkeyracer-stats.js",
-		"mana2-sync": "bun run ./bin/mana2-sync.js",
+		"verify:cminibrowser-cmini-stats": "bun run ./bin/verify-cminibrowser-cmini-stats.js",
+		"catalog-sync": "bun run ./bin/catalog-sync.js",
+		"cmini-stats-sync": "bun run ./bin/cmini-stats-sync.js",
+		"mana2-stats-sync": "bun run ./bin/mana2-stats-sync.js",
+		"cyanophage-stats-sync": "bun run ./bin/cyanophage-stats-sync.js",
+		"sync": "bun run ./bin/sync.js",
 		"generate:layout-details": "bun run ./bin/layout-details.js"
 	},
 	"devDependencies": {
+		"@clack/prompts": "^1.7.0",
 		"@eslint/compat": "^2.1.0",
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.62.0",

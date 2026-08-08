@@ -139,14 +139,17 @@
 
 <style>
 	.layout-view-tabs-scope {
-		display: contents;
+		display: flex;
+		min-width: 0;
+		flex: 1 1 auto;
 	}
 
 	.layout-view-tabs-scope :global(.layout-view-tabs) {
-		display: inline-flex;
+		display: flex;
 		align-items: stretch;
 		gap: 0.25rem;
 		min-width: 0;
+		width: 100%;
 		max-width: 100%;
 		overflow-x: auto;
 		overflow-y: hidden;
@@ -163,6 +166,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 0.25rem;
+		flex: 0 0 auto;
 		padding: 0.5rem 0.75rem;
 		margin-bottom: -1px;
 		border: none;
@@ -187,6 +191,7 @@
 	.layout-view-saved {
 		display: inline-flex;
 		align-items: center;
+		flex: 0 0 auto;
 		margin-bottom: -1px;
 		border-bottom: 2px solid transparent;
 		min-width: 0;

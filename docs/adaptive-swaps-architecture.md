@@ -266,13 +266,8 @@ Cmini stats currently describe the base layout. Adaptive swaps are not included.
 Cyanophage stats incorporate curated Magic / Repeat corpus rewrites when present; Adaptive
 swaps are not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md).
 
-Mana2 support needs an explicit experiment for two-way swaps, overlapping rules, shared triggers,
-and layouts combining Adaptive swaps with other contextual behavior. Result metadata reports Magic
-and Repeat inclusion independently so a combined layout cannot be marked fully included when only
-one behavior was analyzed.
-
-Analyzer cache keys should include only the affected layout's merged behavior profile and inclusion
-result.
+Mana2 stats are imported from cminibrowser dumps and describe the base layout only. Adaptive swaps,
+Magic keys, and Repeat keys are not folded into those metrics.
 
 ### Adaptive presence discovery
 

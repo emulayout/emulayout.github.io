@@ -1,13 +1,6 @@
-import type {
-	CompactMana2Stats,
-	CyanophageStats,
-	Mana2MagicKeyAnalysis,
-	Mana2RepeatKeyAnalysis,
-	Mana2Stats,
-	CminiStats
-} from '$lib/layout';
+import type { CompactMana2Stats, CyanophageStats, Mana2Stats, CminiStats } from '$lib/layout';
 
-/** Keep in sync with FINGERS in bin/cmini-analyzer.js. */
+/** Keep in sync with CMINIBROWSER_CMINI_FINGER_KEYS in bin/cminibrowser-cmini-stats.js. */
 export const FINGER_USAGE_KEYS = [
 	'LI',
 	'LM',
@@ -41,7 +34,7 @@ export type CyanophageFingerDistanceKey = `distance${CyanophageFingerUsageKey}`;
 export const LEFT_HAND_FINGERS = ['LI', 'LM', 'LR', 'LP'] as const;
 export const RIGHT_HAND_FINGERS = ['RI', 'RM', 'RR', 'RP'] as const;
 
-/** Frontend decoder order for arrays emitted by bin/layout-stats.js. */
+/** Frontend decoder order for arrays emitted by bin/cminibrowser-cmini-stats.js. */
 export const BOT_STAT_KEYS = [
 	'alternate',
 	'roll-in',
@@ -115,7 +108,7 @@ export type DerivedCyanophageStats = {
 
 export type CyanophageStatSortKey = keyof DerivedCyanophageStats;
 
-/** Frontend decoder order for arrays emitted by bin/mana2-stats.js. */
+/** Frontend decoder order for arrays emitted by bin/cminibrowser-mana2-stats.js. */
 export const MANA2_STAT_KEYS = [
 	'finger-usage-LP',
 	'finger-usage-LR',
@@ -127,7 +120,6 @@ export const MANA2_STAT_KEYS = [
 	'finger-usage-RM',
 	'finger-usage-RR',
 	'finger-usage-RP',
-	'offpinky',
 	'sfb',
 	'sfbw',
 	'skb',
@@ -159,9 +151,7 @@ export const MANA2_STAT_KEYS = [
 	'inroll3',
 	'inroll3nothumbs',
 	'outroll3',
-	'outroll3nothumbs',
-	'goodroll',
-	'goodrollnothumbs'
+	'outroll3nothumbs'
 ] as const;
 
 export type Mana2StatKey = (typeof MANA2_STAT_KEYS)[number];
@@ -197,8 +187,6 @@ export type DerivedMana2Stats = {
 	outroll2: number;
 	inroll3: number;
 	outroll3: number;
-	goodroll: number;
-	offpinky: number;
 	lh: number;
 	rh: number;
 } & Record<CyanophageFingerUsageKey, number>;
@@ -327,28 +315,15 @@ export function isValidMana2Stats(stats: Mana2Stats): boolean {
 	return (stats.sfb ?? 0) > 0 || (stats.alt ?? 0) > 0 || (stats.roll ?? 0) > 0;
 }
 
-export function getMana2MagicKeyAnalysis(
-	values: CompactMana2Stats
-): Mana2MagicKeyAnalysis | undefined {
-	return Array.isArray(values) ? undefined : values.magicKeys;
-}
-
-export function getMana2RepeatKeyAnalysis(
-	values: CompactMana2Stats
-): Mana2RepeatKeyAnalysis | undefined {
-	return Array.isArray(values) ? undefined : values.repeatKey;
-}
-
 export function decodeMana2Stats(values: CompactMana2Stats): Mana2Stats | undefined {
-	const compactValues = Array.isArray(values) ? values : values.stats;
-	if (compactValues.length !== MANA2_COMPACT_STAT_FIELD_COUNT) {
+	if (!Array.isArray(values) || values.length !== MANA2_COMPACT_STAT_FIELD_COUNT) {
 		return undefined;
 	}
 
 	const stats = {} as Mana2Stats;
 	for (let i = 0; i < MANA2_STAT_KEYS.length; i++) {
 		const key = MANA2_STAT_KEYS[i];
-		const raw = compactValues[i] / MANA2_STAT_VALUE_SCALE;
+		const raw = values[i] / MANA2_STAT_VALUE_SCALE;
 		// Mana2 emits percentage-points for most metrics; keep stretch/weights raw.
 		stats[key] = MANA2_RAW_STAT_KEYS.has(key) ? raw : raw / 100;
 	}
@@ -393,8 +368,6 @@ export function deriveMana2Stats(stats: Mana2Stats): DerivedMana2Stats {
 		outroll2: stats.outroll2 ?? 0,
 		inroll3: stats.inroll3 ?? 0,
 		outroll3: stats.outroll3 ?? 0,
-		goodroll: stats.goodroll ?? 0,
-		offpinky: stats.offpinky ?? 0,
 		lh: LP + LR + LM + LI + LT,
 		rh: RI + RM + RR + RP + RT,
 		LP,

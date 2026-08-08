@@ -1,5 +1,10 @@
 import type { StatsMaps } from '$lib/layout';
-import { getAnalyzerStatsUrl, type StatsAnalyzer } from '$lib/statsAnalyzers';
+import {
+	analyzerUsesSelectableCorpus,
+	getAnalyzerStatsUrl,
+	type StatsAnalyzer,
+	type StatsCorpus
+} from '$lib/statsAnalyzers';
 
 export type AnalyzerStatsMap = NonNullable<StatsMaps[StatsAnalyzer]>;
 
@@ -32,13 +37,16 @@ function errorMessage(error: unknown): string {
  */
 export async function loadAnalyzerStats(
 	analyzer: StatsAnalyzer,
-	options: { fetch?: Fetcher; signal?: AbortSignal } = {}
+	options: { fetch?: Fetcher; signal?: AbortSignal; corpus?: StatsCorpus } = {}
 ): Promise<AnalyzerStatsLoadResult> {
 	const fetcher = options.fetch ?? fetch;
+	const statsUrl = analyzerUsesSelectableCorpus(analyzer)
+		? getAnalyzerStatsUrl(analyzer, options.corpus)
+		: getAnalyzerStatsUrl(analyzer);
 
 	let response: Response;
 	try {
-		response = await fetcher(getAnalyzerStatsUrl(analyzer), {
+		response = await fetcher(statsUrl, {
 			signal: options.signal
 		});
 	} catch (error) {

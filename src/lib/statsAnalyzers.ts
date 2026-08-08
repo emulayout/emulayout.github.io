@@ -62,19 +62,65 @@ export const STAT_ANALYZER_MODES = STAT_ANALYZERS;
 
 export type StatsAnalyzerMode = StatsAnalyzer;
 
-/** Corpus currently used for cmini and Mana2 generated stats. */
+/** Corpora used for cmini and Mana2 generated stats. */
 export const MONKEYRACER_CORPUS = 'monkeyracer';
+export const REDDIT_CORPUS = 'reddit';
+
+/** Default corpus when the UI / loader does not select one explicitly. */
+export const DEFAULT_STATS_CORPUS = MONKEYRACER_CORPUS;
+
+/** Default Mana2 board / spacegrams context for published dumps. */
+export const DEFAULT_MANA2_BOARD = 'rowstag';
+export const DEFAULT_MANA2_SPACE = 'none';
 
 /** Corpora with an explicit frontend identity. */
 export const STAT_CORPORA = [
 	{
 		value: MONKEYRACER_CORPUS,
 		label: 'Monkeyracer'
+	},
+	{
+		value: REDDIT_CORPUS,
+		label: 'Reddit'
 	}
 ] as const;
 
 export type StatsCorpusDefinition = (typeof STAT_CORPORA)[number];
 export type StatsCorpus = StatsCorpusDefinition['value'];
+
+/** localStorage key for the dump-backed corpus preference. */
+export const STATS_CORPUS_STORAGE_KEY = 'statsCorpus';
+
+const STATS_CORPUS_VALUES = new Set<string>(STAT_CORPORA.map((corpus) => corpus.value));
+
+export function isStatsCorpus(value: string): value is StatsCorpus {
+	return STATS_CORPUS_VALUES.has(value);
+}
+
+/** Parse a persisted corpus preference, falling back to the default. */
+export function parseStatsCorpus(value: string | null | undefined): StatsCorpus {
+	if (!value) return DEFAULT_STATS_CORPUS;
+	return isStatsCorpus(value) ? value : DEFAULT_STATS_CORPUS;
+}
+
+/** Whether this analyzer publishes selectable dump corpora (not Cyanophage). */
+export function analyzerUsesSelectableCorpus(analyzer: StatsAnalyzer): boolean {
+	return analyzer === CMINI_ANALYZER || analyzer === MANA2_ANALYZER;
+}
+
+/** Published compact cmini stats for a corpus. */
+export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
+	return `/layout-stats-cmini-${corpus}.json`;
+}
+
+/** Published Mana2 stats for a corpus / board / space context. */
+export function mana2StatsUrl(
+	corpus: StatsCorpus = DEFAULT_STATS_CORPUS,
+	board: string = DEFAULT_MANA2_BOARD,
+	space: string = DEFAULT_MANA2_SPACE
+): string {
+	return `/layout-stats-mana2-${corpus}-${board}-${space}.json`;
+}
 
 /**
  * A generated stats artifact is analyzer output for a particular corpus.
@@ -85,7 +131,13 @@ export const STATS_DATASETS = [
 		analyzer: CMINI_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: '/layout-stats.json'
+		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS)
+	},
+	{
+		analyzer: CMINI_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		statsUrl: cminiStatsUrl(REDDIT_CORPUS)
 	},
 	{
 		analyzer: CYANOPHAGE_ANALYZER,
@@ -97,7 +149,13 @@ export const STATS_DATASETS = [
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: '/layout-stats-mana2.json'
+		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
+	},
+	{
+		analyzer: MANA2_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		statsUrl: mana2StatsUrl(REDDIT_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
 	}
 ] as const satisfies readonly {
 	analyzer: StatsAnalyzer;
@@ -107,6 +165,16 @@ export const STATS_DATASETS = [
 }[];
 
 export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
+
+/** Dump-backed corpora published for an analyzer (excludes Cyanophage). */
+export function dumpSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
+	const corpora: StatsCorpus[] = [];
+	for (const entry of STATS_DATASETS) {
+		if (entry.analyzer !== analyzer || entry.corpus === null) continue;
+		if (!corpora.includes(entry.corpus)) corpora.push(entry.corpus);
+	}
+	return corpora;
+}
 
 const STATS_ANALYZER_BY_VALUE = new Map<StatsAnalyzer, StatsAnalyzerDefinition>(
 	STAT_ANALYZERS.map((analyzer) => [analyzer.value, analyzer])

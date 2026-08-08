@@ -3,6 +3,7 @@ import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
+import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -46,7 +47,11 @@ class LayoutsCatalog {
 	}
 
 	/** Preview payload when the aggregate catalog is already in memory. */
-	getLayoutDetail(name: string, statsMaps: StatsMaps = {}): LayoutDetail | null {
+	getLayoutDetail(
+		name: string,
+		statsMaps: StatsMaps = {},
+		statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS
+	): LayoutDetail | null {
 		if (!this.fullCatalogLoaded) return null;
 		return buildCatalogLayoutDetail(
 			name,
@@ -56,7 +61,8 @@ class LayoutsCatalog {
 				likesData: this.likesData,
 				inputProfiles: this.inputProfiles
 			},
-			statsMaps
+			statsMaps,
+			statsCorpus
 		);
 	}
 

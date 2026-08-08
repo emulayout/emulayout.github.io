@@ -9,6 +9,7 @@
 	import type { LayoutCardMetric } from '$lib/layoutStatsBlockModel';
 	import type { StatLimitOperator } from '$lib/filterStore.svelte';
 	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
+	import { resolveLayoutDetailStats } from '$lib/layoutDetails';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
@@ -40,12 +41,23 @@
 	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
 	const highlightedName = $derived(matches[activeIndex] ?? null);
 	const catalogDetail = $derived(
-		previewName ? layoutsCatalog.getLayoutDetail(previewName, layoutStatsStore.maps) : null
+		previewName
+			? layoutsCatalog.getLayoutDetail(
+					previewName,
+					layoutStatsStore.maps,
+					layoutStatsStore.activeCorpus
+				)
+			: null
 	);
 	const fetchedDetail = $derived(
 		previewName ? (layoutDetailsStore.get(previewName) ?? null) : null
 	);
 	const highlightedDetail = $derived(catalogDetail ?? fetchedDetail);
+	const highlightedStats = $derived(
+		highlightedDetail
+			? resolveLayoutDetailStats(highlightedDetail.stats, layoutStatsStore.activeCorpus)
+			: {}
+	);
 	const openedFromDetailPage = $derived(page.route.id === '/layouts/[name]');
 
 	// Detail links in the preview navigate in-app; dismiss so the show page is not covered.
@@ -272,9 +284,9 @@
 						layout={highlightedDetail.layout}
 						authorName={highlightedDetail.authorName}
 						likeCount={highlightedDetail.likeCount}
-						compactCminiStats={highlightedDetail.stats.cmini}
-						compactCyanophageStats={highlightedDetail.stats.cyanophage}
-						compactMana2Stats={highlightedDetail.stats.mana2}
+						compactCminiStats={highlightedStats.cmini}
+						compactCyanophageStats={highlightedStats.cyanophage}
+						compactMana2Stats={highlightedStats.mana2}
 						inputProfile={highlightedDetail.inputProfile}
 						statFilterInteraction={openedFromDetailPage ? 'disabled' : 'apply-only'}
 						allowSelection={!openedFromDetailPage}

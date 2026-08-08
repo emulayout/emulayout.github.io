@@ -3,18 +3,38 @@ import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 
 describe('loadAnalyzerStats', () => {
 	test('returns a parsed analyzer map on success', async () => {
+		const requested: string[] = [];
 		const result = await loadAnalyzerStats('cmini', {
-			fetch: async () =>
-				new Response(JSON.stringify({ Canary: [1, 2, 3] }), {
+			corpus: 'reddit',
+			fetch: async (input) => {
+				requested.push(String(input));
+				return new Response(JSON.stringify({ Canary: [1, 2, 3] }), {
 					status: 200,
 					headers: { 'content-type': 'application/json' }
-				})
+				});
+			}
 		});
 
+		expect(requested).toEqual(['/layout-stats-cmini-reddit.json']);
 		expect(result).toEqual({
 			status: 'loaded',
 			map: { Canary: [1, 2, 3] }
 		});
+	});
+
+	test('ignores corpus for Cyanophage fetches', async () => {
+		const requested: string[] = [];
+		await loadAnalyzerStats('cyanophage', {
+			corpus: 'reddit',
+			fetch: async (input) => {
+				requested.push(String(input));
+				return new Response(JSON.stringify({ Canary: [1] }), {
+					status: 200,
+					headers: { 'content-type': 'application/json' }
+				});
+			}
+		});
+		expect(requested).toEqual(['/layout-stats-cyanophage.json']);
 	});
 
 	test('represents an HTTP failure without rejecting', async () => {

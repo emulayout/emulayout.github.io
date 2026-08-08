@@ -28,15 +28,15 @@ directly in the browser.
 - Compare two layouts side by side, including per-metric differences.
 - Expand a layout for a cross-analyzer view of its statistics.
 
-| Analyzer                                                   | Emulayout integration                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics using the Monkeyracer corpus            |
-| [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground   |
-| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Monkeyracer statistics with supported Magic-key mappings included |
+| Analyzer                                                   | Emulayout integration                                           |
+| ---------------------------------------------------------- | --------------------------------------------------------------- |
+| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from selectable cminibrowser corpora  |
+| [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground |
+| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from cminibrowser corpus dumps           |
 
-Each analyzer retains its own metric definitions and units. cmini and Cyanophage describe the base
-layout. Mana2 can include supported Magic-key profiles; Adaptive swaps are not currently included
-in analyzer results.
+Each analyzer retains its own metric definitions and units. cmini and Mana2 stats are imported from
+[cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer by default). Cyanophage is computed
+locally. Adaptive swaps are not currently included in analyzer results.
 
 ## Try layouts in place
 
@@ -77,25 +77,48 @@ The layout catalog, authors, and input-behavior metadata under `static/` are req
 checkout, populate them once before starting the development server:
 
 ```sh
-bun run ./bin/cmini-sync.js
+bun run sync                   # or: bun run ./bin/catalog-sync.js
 bun run dev
 ```
 
 Analyzer stats are optional at runtime. Without them, catalog browsing, non-stat filters, layout
 testing, selections, and saved views still work; analyzer displays, stat filters, and stat sorting
-remain unavailable. In the normal local workflow, cmini stats are generated alongside the required
-catalog and checked as part of the same generated data set.
+remain unavailable. Import cmini/Mana2 stats and compute Cyanophage via `bun run sync` (or the
+individual `*-stats-sync` scripts) after the catalog exists.
 
 ### Generate analyzer data
 
 ```sh
-bun run ./bin/cmini-sync.js  # refresh catalog, cmini stats, and Cyanophage stats
-bun run ./bin/mana2-sync.js  # generate Mana2 stats
+bun run sync                              # interactive: choose targets + refresh mode
+bun run ./bin/catalog-sync.js             # cmini repo → catalog artifacts
+bun run ./bin/cmini-stats-sync.js         # cminibrowser → cmini stats
+bun run ./bin/mana2-stats-sync.js         # cminibrowser → Mana2 stats
+bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
 ```
 
-The cmini sync currently creates its catalog and analyzer outputs together. Mana2 generation is
-independent and requires Go. All generated `static/*.json` files are gitignored; CI regenerates
-them for deployments and the daily catalog sync.
+`bun run sync` opens a TUI to pick independent tasks (catalog, cmini stats, Mana2 stats, Cyanophage,
+layout details) and whether to reuse caches (normal), re-download dumps (force), or stay offline.
+Non-interactive wrapper examples:
+
+```sh
+bun run sync -- --all --force
+bun run sync -- --catalog --cmini-stats --mana2-stats --cyanophage --details
+bun run sync -- --all --offline
+```
+
+Catalog sync clones/updates cmini and writes layout metadata under `static/`. cmini and Mana2 stats
+are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by
+default). The top-level sync always processes every configured corpus. To import only one corpus,
+invoke `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set
+that script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage
+stats are computed locally from the catalog cache. All generated `static/*.json` files are
+gitignored; CI regenerates them for deployments and the daily catalog sync.
+
+Optional diagnostic (not run in CI):
+
+```sh
+bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to the dump encoder
+```
 
 ### Common commands
 
@@ -104,6 +127,7 @@ them for deployments and the daily catalog sync.
 | `bun run dev`               | Start the development server                       |
 | `bun run build`             | Create a production build                          |
 | `bun run preview`           | Preview the production build                       |
+| `bun run sync`              | Run catalog and analyzer data sync tasks           |
 | `bun run check`             | Run Svelte and TypeScript checks                   |
 | `bun run lint`              | Check formatting and lint the project              |
 | `bun test`                  | Run unit tests                                     |
@@ -113,20 +137,30 @@ them for deployments and the daily catalog sync.
 
 ## Generated data
 
-`bin/cmini-sync.js` clones cmini into `.cache/cmini-repo` and generates the layout catalog, cmini
-stats, Cyanophage stats, likes, and supplemental layout data under `static/`. Curated supplemental
-data comes from `data/layouts/`; `adaptive-layouts.txt` records layouts known to use Adaptive swaps
-even when their mappings have not yet been curated. A layout key named `@` repeats the previous
-uninterrupted emitted character by default, so that behavior does not require a curated file. A
-curated Magic mapping whose trigger is `@` overrides the default and may opt back into repeat
-fallback explicitly.
+`bin/catalog-sync.js` clones cmini into `.cache/cmini-repo` (layouts, authors, likes) and writes the
+layout catalog, likes, and supplemental layout data under `static/`. Curated supplemental data comes
+from `data/layouts/`; `adaptive-layouts.txt` records layouts known to use Adaptive swaps even when
+their mappings have not yet been curated. A layout key named `@` repeats the previous uninterrupted
+emitted character by default, so that behavior does not require a curated file. A curated Magic
+mapping whose trigger is `@` overrides the default and may opt back into repeat fallback explicitly.
 
-`bin/mana2-sync.js` clones Mana2 into `.cache/mana2`, builds its CLI, and writes
-`static/layout-stats-mana2.json`. Supported Magic-key rules and standalone Repeat-key behavior use
-Mana2's extended engine. Unsupported or combined profiles use the standard engine and carry an
-explicit fallback reason in the generated data.
-Use `--offline` after the first sync to skip fetching the Mana2 repository. If Go is unavailable,
-the script skips outside CI rather than failing.
+Analyzer artifacts are produced by separate scripts:
+
+- `bin/cmini-stats-sync.js` — cminibrowser cmini dumps → `static/layout-stats-cmini-{corpus}.json`
+  (syncs Monkeyracer + Reddit unless `--corpus=` is set)
+- `bin/mana2-stats-sync.js` — cminibrowser Mana2 named dumps →
+  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
+  `rowstag.none`)
+- `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
+
+The individual dump-import scripts accept `--force` (unconditional re-download), `--offline` (reuse
+`.cache/cminibrowser/`), and `--corpus=NAME` (single corpus). Online syncs use conditional requests
+(ETag / Last-Modified) so unchanged dumps are not re-downloaded. The top-level `bun run sync`
+wrapper accepts task selections plus `--force` or `--offline`, but deliberately runs all configured
+corpora so the generated site and per-layout detail payloads remain complete. Each downloaded dump
+must contain usable stats for at least 90% of the non-blacklisted catalog before it can replace the
+existing cache or published artifact. Cache and artifact replacements are atomic, so an invalid,
+incomplete, or interrupted download leaves the last good files in place.
 
 ## Contribute supplemental layout data
 
@@ -148,7 +182,7 @@ filename must exactly match its cmini layout name. The simplest useful file is:
 See [`docs/layout-supplemental-data.md`](docs/layout-supplemental-data.md) for the full format,
 including how to offer alternative mapping versions and what happens when a layout changes upstream.
 
-Run the cmini sync at least once to populate `.cache/cmini-repo`, then validate:
+Run the catalog sync at least once to populate `.cache/cmini-repo`, then validate:
 
 ```sh
 bun run validate:mappings

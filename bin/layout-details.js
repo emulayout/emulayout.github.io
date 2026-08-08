@@ -2,8 +2,20 @@
 
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+	CMINI_ANALYZER,
+	DEFAULT_STATS_CORPUS,
+	MANA2_ANALYZER,
+	dumpSyncedCorpora
+} from '../src/lib/statsAnalyzers.ts';
+import { cminiCompactStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
 
-export const LAYOUT_DETAIL_VERSION = 2;
+export const LAYOUT_DETAIL_VERSION = 3;
+
+const DETAIL_MANA2_BOARD = process.env.MANA2_STATS_BOARD ?? 'rowstag';
+const DETAIL_MANA2_SPACE = process.env.MANA2_STATS_SPACE ?? 'none';
+const CMINI_CORPORA = dumpSyncedCorpora(CMINI_ANALYZER);
+const MANA2_CORPORA = dumpSyncedCorpora(MANA2_ANALYZER);
 
 const STATIC_DIR = join(process.cwd(), 'static');
 const DETAILS_DIR = join(STATIC_DIR, 'layout-details');
@@ -14,11 +26,8 @@ const REQUIRED_FILES = {
 	authors: join(STATIC_DIR, 'authors.json'),
 	supplemental: join(STATIC_DIR, 'layout-supplemental.json'),
 	likes: join(STATIC_DIR, 'layout-likes.json'),
-	cmini: join(STATIC_DIR, 'layout-stats.json'),
+	cmini: join(process.cwd(), cminiCompactStatsRelPath(DEFAULT_STATS_CORPUS)),
 	cyanophage: join(STATIC_DIR, 'layout-stats-cyanophage.json')
-};
-const OPTIONAL_FILES = {
-	mana2: join(STATIC_DIR, 'layout-stats-mana2.json')
 };
 
 /** @param {string} name */
@@ -61,7 +70,11 @@ async function writeIfChanged(path, body) {
  * @param {Record<string, number>} authors
  * @param {Record<string, unknown>} supplemental
  * @param {Record<string, number>} likes
- * @param {{cmini: Record<string, unknown>, cyanophage: Record<string, unknown>, mana2: Record<string, unknown>}} stats
+ * @param {{
+ *   cmini: Record<string, Record<string, unknown>>,
+ *   cyanophage: Record<string, unknown>,
+ *   mana2: Record<string, Record<string, unknown>>
+ * }} stats
  */
 export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
 	const authorById = new Map(Object.entries(authors).map(([name, id]) => [id, name]));
@@ -71,6 +84,16 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 		}
 		const name = layout[0];
 		const userId = layout[1];
+		const cmini = Object.fromEntries(
+			Object.entries(stats.cmini).flatMap(([corpus, map]) =>
+				map[name] === undefined ? [] : [[corpus, map[name]]]
+			)
+		);
+		const mana2 = Object.fromEntries(
+			Object.entries(stats.mana2).flatMap(([corpus, map]) =>
+				map[name] === undefined ? [] : [[corpus, map[name]]]
+			)
+		);
 		return {
 			name,
 			payload: {
@@ -80,9 +103,9 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				likeCount: likes[name] ?? 0,
 				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
 				stats: {
-					...(stats.cmini[name] ? { cmini: stats.cmini[name] } : {}),
+					...(Object.keys(cmini).length > 0 ? { cmini } : {}),
 					...(stats.cyanophage[name] ? { cyanophage: stats.cyanophage[name] } : {}),
-					...(stats.mana2[name] ? { mana2: stats.mana2[name] } : {})
+					...(Object.keys(mana2).length > 0 ? { mana2 } : {})
 				}
 			}
 		};
@@ -90,20 +113,35 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 }
 
 export async function generateLayoutDetails() {
-	const [layouts, authors, supplemental, likes, cmini, cyanophage, mana2] = await Promise.all([
+	const [layouts, authors, supplemental, likes, defaultCmini, cyanophage] = await Promise.all([
 		readJson(REQUIRED_FILES.layouts),
 		readJson(REQUIRED_FILES.authors),
 		readJson(REQUIRED_FILES.supplemental),
 		readJson(REQUIRED_FILES.likes),
 		readJson(REQUIRED_FILES.cmini),
-		readJson(REQUIRED_FILES.cyanophage),
-		readOptionalJson(OPTIONAL_FILES.mana2)
+		readJson(REQUIRED_FILES.cyanophage)
 	]);
+	const cminiEntries = await Promise.all(
+		CMINI_CORPORA.map(async (corpus) => [
+			corpus,
+			corpus === DEFAULT_STATS_CORPUS
+				? defaultCmini
+				: await readOptionalJson(join(process.cwd(), cminiCompactStatsRelPath(corpus)))
+		])
+	);
+	const mana2Entries = await Promise.all(
+		MANA2_CORPORA.map(async (corpus) => [
+			corpus,
+			await readOptionalJson(
+				join(process.cwd(), mana2StatsRelPath(corpus, DETAIL_MANA2_BOARD, DETAIL_MANA2_SPACE))
+			)
+		])
+	);
 
 	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {
-		cmini,
+		cmini: Object.fromEntries(cminiEntries),
 		cyanophage,
-		mana2
+		mana2: Object.fromEntries(mana2Entries)
 	});
 	await mkdir(DETAILS_DIR, { recursive: true });
 

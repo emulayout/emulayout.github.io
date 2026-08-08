@@ -118,18 +118,10 @@
 				{
 					id: 'rolls',
 					label: 'Rolls',
-					keys: [
-						'mana-roll',
-						'inroll2',
-						'outroll2',
-						'rollNoThumbs',
-						'inroll3',
-						'outroll3',
-						'goodroll'
-					]
+					keys: ['mana-roll', 'inroll2', 'outroll2', 'rollNoThumbs', 'inroll3', 'outroll3']
 				}
 			],
-			other: [{ id: 'offpinky', label: 'Off pinky', keys: ['offpinky'] }]
+			other: []
 		}
 	};
 
