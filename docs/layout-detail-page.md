@@ -36,10 +36,11 @@ and URL ambiguity for punctuation and international names. `bin/layout-details.j
 files from the existing aggregate artifacts, writes only byte-changed files, and removes stale
 generated JSON files. It also publishes `static/layout-names.json`.
 
-The persisted corpus preference is global shell state. The shared layout applies it on every route,
-and detail/Quick Find views resolve the matching cmini and Mana2 entry from their per-layout payload.
-Consequently, reloading a detail URL preserves the chosen corpus without downloading an
-analyzer-wide stats map. Cyanophage continues to ignore the corpus preference.
+The persisted corpus preference is global shell state. Both the index toolbar and detail-page Stats
+options expose the same selector, and the shared layout applies its value on every route. Detail and
+Quick Find views resolve the matching cmini and Mana2 entry from their per-layout payload.
+Consequently, changing routes or reloading a detail URL preserves the chosen corpus without
+downloading an analyzer-wide stats map. Cyanophage continues to ignore the corpus preference.
 
 Quick Find uses the in-memory aggregate catalog (layouts, authors, likes, input
 profiles, and any already-loaded analyzer maps) for name search and card previews
@@ -58,6 +59,10 @@ small without weakening app-bar functionality.
 - A detail-rich layout card and its external links persist in the left column outside the tab
   panels. The card includes metadata, the layout display, likes, and compact analyzer stats, but
   deliberately omits selection, author-filter, metric-filter/sort, and action-toolbar buttons.
+- The Stats section groups its analyzer visibility checkboxes under `Stats options`, with a compact
+  corpus selector in the section heading row. The corpus selector changes cmini and Mana2 values
+  throughout the detail page and shares its persisted selection with the index toolbar. Cyanophage
+  values are unchanged.
 - The layout display uses the same full-width keyboard row as a catalog card, keeping its Magic,
   Adaptive, and Repeat indicators aligned in the same right-hand rail.
 - The summary card includes its own analyzer selector directly below finger usage. It switches the
@@ -98,8 +103,9 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   The document title and the detail article's accessible name use the exact canonical layout name.
 - The compact summary card omits selection and the recursive detail link, along with card stats and
   the layout test area. Its layout-local and external-link actions remain available.
-- Analyzer checkboxes initially select every analyzer included in the detail file. If an analyzer
-  result is absent, enabling it may fall back to the analyzer-wide static map.
+- On first use, analyzer checkboxes select every analyzer included in the detail file. Later changes,
+  including an explicit all-unchecked state, persist across layouts, navigation, and reloads. If a
+  selected analyzer result is absent, the page may fall back to the analyzer-wide static map.
 - Magic and Adaptive mapping controls remain above analyzer stats. Their disabled-mapping state is
   page-session-only and resets on navigation or reload, matching the previous expanded-view model.
 - The styled keyboard's prospective Magic and Adaptive output uses the emulator's exact history and
@@ -122,7 +128,10 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - Generated detail files and name index: `bin/layout-details.js`
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
-- Expanded layout content and analyzer controls: `src/lib/components/LayoutExpandedView.svelte`
+- Expanded layout content, corpus selector, and analyzer controls:
+  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/CorpusTabs.svelte`
+- Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
+  `src/lib/layoutDetailStatsPrefs.ts`
 - Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
 - Detail section semantics and keyboard navigation: `src/lib/components/Tabs.svelte`
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
@@ -137,6 +146,10 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   catalog unless an aggregate-dependent feature such as Compare is opened.
 - A direct detail link resolves cmini and Mana2 stats for the persisted corpus from that detail file;
   changing or reloading routes does not silently fall back to Monkeyracer.
+- The index and detail corpus selectors are two controls for one persisted preference. Changing
+  either control updates the other route on navigation or reload.
+- Detail analyzer visibility preserves the user's last explicit selection, including no analyzers;
+  the data-driven default applies only when no valid preference has been stored.
 - Quick Find does not fetch `layout-names.json` or `/layout-details/*.json` when the aggregate
   catalog is already in memory; those requests are only for cold detail-page visits.
 - On cold detail-page visits, Quick Find debounces on-demand detail loads while the highlight

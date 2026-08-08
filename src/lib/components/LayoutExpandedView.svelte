@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
@@ -23,6 +23,7 @@
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
+	import CorpusTabs from '$lib/components/CorpusTabs.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
@@ -45,6 +46,7 @@
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import { repeatKeyMappingId } from '$lib/inputMappingControls';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		layout: LayoutData;
@@ -84,6 +86,7 @@
 	let showCmini = $state(false);
 	let showCyanophage = $state(false);
 	let showMana2 = $state(false);
+	let analyzerPrefsInitialized = $state(false);
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let anglemodTransformActive = $state(false);
 	let previewContextualKeyOutput = $state(true);
@@ -161,6 +164,7 @@
 			{ preferDisplay: anglemodTransformActive }
 		)
 	);
+	const statsOptionsTitleId = $derived(`${titleId}-stats-options`);
 	const analyzersTitleId = $derived(`${titleId}-analyzers`);
 	const analyzerCount = $derived(
 		(showCmini ? 1 : 0) + (showCyanophage ? 1 : 0) + (showMana2 ? 1 : 0)
@@ -222,7 +226,15 @@
 		if (analyzer === CMINI_ANALYZER) showCmini = checked;
 		else if (analyzer === CYANOPHAGE_ANALYZER) showCyanophage = checked;
 		else showMana2 = checked;
-		if (checked && !hasAnalyzerData(analyzer)) void layoutStatsStore.ensureLoaded(analyzer);
+		uiPrefs.setLayoutDetailStatsAnalyzers(selectedAnalyzers());
+	}
+
+	function selectedAnalyzers(): StatsAnalyzer[] {
+		return STAT_ANALYZERS.flatMap(({ value }) => {
+			if (value === CMINI_ANALYZER) return showCmini ? [value] : [];
+			if (value === CYANOPHAGE_ANALYZER) return showCyanophage ? [value] : [];
+			return showMana2 ? [value] : [];
+		});
 	}
 
 	function toggleRepeatKey() {
@@ -231,22 +243,37 @@
 		onDisabledMappingIdsChange(repeatKeyEnabled ? [...retained, repeatMappingId] : retained);
 	}
 
-	onMount(() => {
-		// Select analyzers with decodable data. Truthy-but-undecodable compact
-		// (e.g. stale Mana2 length) still selects so we can refresh below.
-		showCmini = hasAnalyzerData(CMINI_ANALYZER) || Boolean(cminiCompact);
-		showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER) || Boolean(cyanophageCompact);
-		showMana2 = hasAnalyzerData(MANA2_ANALYZER) || Boolean(mana2Compact);
+	$effect(() => {
+		if (!uiPrefs.hydrated || analyzerPrefsInitialized) return;
+		untrack(() => {
+			const persisted = uiPrefs.layoutDetailStatsAnalyzers;
+			if (persisted === null) {
+				// First use defaults to every analyzer included in this detail payload.
+				showCmini = hasAnalyzerData(CMINI_ANALYZER) || Boolean(cminiCompact);
+				showCyanophage = hasAnalyzerData(CYANOPHAGE_ANALYZER) || Boolean(cyanophageCompact);
+				showMana2 = hasAnalyzerData(MANA2_ANALYZER) || Boolean(mana2Compact);
+				uiPrefs.setLayoutDetailStatsAnalyzers(selectedAnalyzers());
+			} else {
+				showCmini = persisted.includes(CMINI_ANALYZER);
+				showCyanophage = persisted.includes(CYANOPHAGE_ANALYZER);
+				showMana2 = persisted.includes(MANA2_ANALYZER);
+			}
+			analyzerPrefsInitialized = true;
+		});
+	});
 
-		if (showCmini && !hasAnalyzerData(CMINI_ANALYZER)) {
-			void layoutStatsStore.ensureLoaded(CMINI_ANALYZER);
-		}
-		if (showCyanophage && !hasAnalyzerData(CYANOPHAGE_ANALYZER)) {
-			void layoutStatsStore.ensureLoaded(CYANOPHAGE_ANALYZER);
-		}
-		if (showMana2 && !hasAnalyzerData(MANA2_ANALYZER)) {
-			void layoutStatsStore.ensureLoaded(MANA2_ANALYZER);
-		}
+	$effect(() => {
+		if (!analyzerPrefsInitialized) return;
+		const missing = STAT_ANALYZERS.flatMap(({ value }) => {
+			if (value === CMINI_ANALYZER && showCmini && !hasAnalyzerData(value)) return [value];
+			if (value === CYANOPHAGE_ANALYZER && showCyanophage && !hasAnalyzerData(value))
+				return [value];
+			if (value === MANA2_ANALYZER && showMana2 && !hasAnalyzerData(value)) return [value];
+			return [];
+		});
+		untrack(() => {
+			for (const analyzer of missing) void layoutStatsStore.ensureLoaded(analyzer);
+		});
 	});
 </script>
 
@@ -480,36 +507,48 @@
 						aria-labelledby={statsTabId}
 					>
 						<section
-							class="detail-analyzer-controls flex min-w-0 flex-col gap-2 rounded-xl px-3 py-3"
+							class="detail-stats-controls flex min-w-0 flex-col gap-3 rounded-xl px-3 py-3"
 							style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-							aria-labelledby={analyzersTitleId}
+							aria-labelledby={statsOptionsTitleId}
 						>
-							<h3
-								id={analyzersTitleId}
-								class="text-sm font-semibold m-0"
-								style="color: var(--text-primary);"
-							>
-								Show analyzers
-							</h3>
-							<div class="detail-analyzer-options">
-								{@render analyzerToggle(
-									CMINI_ANALYZER,
-									cminiLabel,
-									showCmini,
-									'var(--analyzer-cmini)'
-								)}
-								{@render analyzerToggle(
-									CYANOPHAGE_ANALYZER,
-									cyanophageLabel,
-									showCyanophage,
-									'var(--analyzer-cyanophage)'
-								)}
-								{@render analyzerToggle(
-									MANA2_ANALYZER,
-									mana2Label,
-									showMana2,
-									'var(--analyzer-mana2)'
-								)}
+							<div class="detail-stats-controls-header">
+								<h3
+									id={statsOptionsTitleId}
+									class="text-sm font-semibold m-0"
+									style="color: var(--text-primary);"
+								>
+									Stats options
+								</h3>
+								<label class="detail-corpus-option">
+									<span class="detail-stats-option-label">Corpus</span>
+									<CorpusTabs
+										value={uiPrefs.statsCorpus}
+										onChange={(corpus) => uiPrefs.setStatsCorpus(corpus)}
+									/>
+								</label>
+							</div>
+							<div class="detail-analyzer-group" role="group" aria-labelledby={analyzersTitleId}>
+								<span id={analyzersTitleId} class="detail-stats-option-label"> Analyzers </span>
+								<div class="detail-analyzer-options">
+									{@render analyzerToggle(
+										CMINI_ANALYZER,
+										cminiLabel,
+										showCmini,
+										'var(--analyzer-cmini)'
+									)}
+									{@render analyzerToggle(
+										CYANOPHAGE_ANALYZER,
+										cyanophageLabel,
+										showCyanophage,
+										'var(--analyzer-cyanophage)'
+									)}
+									{@render analyzerToggle(
+										MANA2_ANALYZER,
+										mana2Label,
+										showMana2,
+										'var(--analyzer-mana2)'
+									)}
+								</div>
 							</div>
 						</section>
 						{#if analyzerCount > 0}
@@ -943,6 +982,37 @@
 		grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
 		gap: 0.75rem 1rem;
 		min-width: 0;
+	}
+
+	.detail-corpus-option {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.detail-stats-controls-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		min-width: 0;
+	}
+
+	.detail-stats-option-label {
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		line-height: 1rem;
+	}
+
+	.detail-analyzer-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--border);
 	}
 
 	.unique-columns {
