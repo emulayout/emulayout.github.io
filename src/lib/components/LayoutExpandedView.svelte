@@ -28,6 +28,7 @@
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
+	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import type { TabOption } from '$lib/tabs';
 	import {
@@ -93,11 +94,19 @@
 	let showAdaptiveSwapPaths = $state(false);
 	let layoutInputHistory = $state('');
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+	const practiceTabId = $derived(`${titleId}-tab-practice`);
 	const testTabId = $derived(`${titleId}-tab-test`);
 	const statsTabId = $derived(`${titleId}-tab-stats`);
+	const practicePanelId = $derived(`${titleId}-panel-practice`);
 	const testPanelId = $derived(`${titleId}-panel-test`);
 	const statsPanelId = $derived(`${titleId}-panel-stats`);
 	const sections = $derived<TabOption<LayoutDetailSection>[]>([
+		{
+			value: 'practice',
+			label: 'Typing practice',
+			id: practiceTabId,
+			controls: practicePanelId
+		},
 		{ value: 'test', label: 'Test area', id: testTabId, controls: testPanelId },
 		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
 	]);
@@ -433,7 +442,23 @@
 					/>
 				</div>
 
-				{#if activeSection === 'test'}
+				{#if activeSection === 'practice'}
+					<div
+						id={practicePanelId}
+						class="detail-practice-panel detail-panel-content"
+						role="tabpanel"
+						aria-labelledby={practiceTabId}
+					>
+						<LayoutTypingPractice
+							{layout}
+							rows={displayRows}
+							keyMaps={testKeyMaps}
+							{inputProfile}
+							{disabledMappingIds}
+							knownMagicTriggers={conventionalMagicTriggers}
+						/>
+					</div>
+				{:else if activeSection === 'test'}
 					<div
 						id={testPanelId}
 						class="detail-test-panel detail-panel-content"
@@ -774,6 +799,7 @@
 		padding: 0.5rem 0.25rem 2rem;
 	}
 
+	.detail-practice-panel,
 	.detail-test-panel,
 	.detail-stats-panel {
 		min-width: 0;
@@ -870,6 +896,10 @@
 		flex-direction: column;
 		gap: 1.25rem;
 		min-width: 0;
+	}
+
+	.detail-practice-panel {
+		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
 	}
 
 	.detail-test-input-row {

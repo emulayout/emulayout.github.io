@@ -35,10 +35,10 @@ test('opens a layout on its own route and returns to the preserved index view', 
 	const keyboardDetailsLink = card.getByRole('link', {
 		name: 'View Colemak-DH layout details'
 	});
-	await expect(keyboardDetailsLink).toHaveAttribute('href', '/layouts/Colemak-DH?tab=test');
+	await expect(keyboardDetailsLink).toHaveAttribute('href', '/layouts/Colemak-DH?tab=practice');
 	await keyboardDetailsLink.click();
 
-	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
 	await expect(page.getByRole('heading', { name: 'Emulayout', exact: true })).toBeVisible();
 	await expect(page.getByRole('article', { name: 'Colemak-DH details' })).toBeVisible();
 	await expect(page.locator('.layout-detail-title')).toHaveCount(0);
@@ -83,7 +83,7 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
 	await page.goto('/layouts/QWERTY?selected=lela&likes=0');
 
-	await expect(page).toHaveURL('/layouts/QWERTY?tab=test');
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
 	await expect(page.locator('[data-layout-detail]')).toBeVisible();
 	await expect(page.getByRole('article', { name: 'QWERTY details' })).toBeVisible();
 	const ansiPreview = page.getByRole('img', { name: 'QWERTY keyboard preview' });
@@ -164,7 +164,7 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 		.locator('[data-layout-name="QWERTY"]')
 		.getByRole('link', { name: 'View QWERTY layout details' })
 		.click();
-	await expect(page).toHaveURL('/layouts/QWERTY?tab=test');
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
 	await page.getByRole('tab', { name: 'Stats' }).click();
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=stats');
 	await expect(corpus).toHaveValue('reddit');
@@ -236,45 +236,62 @@ test('persists detail analyzer visibility across layouts and reloads', async ({ 
 	await expect(mana2Toggle).not.toBeChecked();
 });
 
-test('defaults to the Test area and switches detail sections with tab keyboard navigation', async ({
+test('defaults to Typing practice and switches detail sections with tab keyboard navigation', async ({
 	page
 }) => {
 	await page.goto('/layouts/Colemak-DH');
 
+	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
 	const testTab = page.getByRole('tab', { name: 'Test area' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
-	await expect(testTab).toHaveAttribute('aria-selected', 'true');
-	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
-	const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
-	await expect(testPanel).toBeVisible();
+	await expect(practiceTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await expect(practicePanel).toBeVisible();
+	await expect(practicePanel.locator('[data-practice-word]')).toHaveText([
+		'assurance',
+		'snapshot',
+		'designers',
+		'climb',
+		'make',
+		'gentle',
+		'rhythm',
+		'bright',
+		'window',
+		'calm'
+	]);
+	await expect(practicePanel.getByLabel('0 of 10 words complete')).toHaveText('0/10');
+	await expect(practicePanel.getByLabel('Elapsed time: 00:00')).toHaveText('00:00');
 
 	const detailPage = page.locator('[data-layout-detail]');
-	const testArea = page.getByPlaceholder('Layout test area');
-	const testAreaContainer = testPanel.locator('.layout-test-area');
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const practiceInputContainer = practicePanel.locator('.layout-test-area');
 	const keyboardPreview = page.getByRole('img', { name: 'Colemak-DH keyboard preview' });
 	const summaryCard = detailPage.locator('[data-layout-name="Colemak-DH"]');
 	const detailTabs = page.getByRole('tablist', { name: 'Layout detail sections' });
-	const [cardBox, tabsBox, previewBox, testAreaContainerBox] = await Promise.all([
+	const [cardBox, tabsBox, previewBox, practiceInputContainerBox] = await Promise.all([
 		summaryCard.boundingBox(),
 		detailTabs.boundingBox(),
 		keyboardPreview.boundingBox(),
-		testAreaContainer.boundingBox()
+		practiceInputContainer.boundingBox()
 	]);
 	expect(cardBox).not.toBeNull();
 	expect(tabsBox).not.toBeNull();
 	expect(previewBox).not.toBeNull();
-	expect(testAreaContainerBox).not.toBeNull();
+	expect(practiceInputContainerBox).not.toBeNull();
 	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'ortho');
 	expect(tabsBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
-	expect(testAreaContainerBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
-	expect(testAreaContainerBox!.y + testAreaContainerBox!.height).toBeLessThanOrEqual(previewBox!.y);
-	expect(Math.abs(previewBox!.x - testAreaContainerBox!.x)).toBeLessThanOrEqual(1);
-	expect(Math.abs(previewBox!.width - testAreaContainerBox!.width)).toBeLessThanOrEqual(1);
+	expect(practiceInputContainerBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
+	expect(practiceInputContainerBox!.y + practiceInputContainerBox!.height).toBeLessThanOrEqual(
+		previewBox!.y
+	);
+	expect(Math.abs(previewBox!.x - practiceInputContainerBox!.x)).toBeLessThanOrEqual(1);
+	expect(Math.abs(previewBox!.width - practiceInputContainerBox!.width)).toBeLessThanOrEqual(1);
 	const keyboardBoard = keyboardPreview.locator('.keyboard-preview__board');
 	await expect(keyboardBoard).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(keyboardBoard).toHaveCSS('border-top-style', 'none');
 	await expect(keyboardBoard).toHaveCSS('box-shadow', 'none');
-	await expect(testPanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
+	await expect(practicePanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
 	await expect(summaryCard.getByRole('button')).toHaveCount(1);
 	await expect(summaryCard.getByRole('button', { name: 'Anglemod' })).toBeVisible();
 	const cminiCardStats = summaryCard.getByLabel('cmini core statistics');
@@ -307,11 +324,21 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 		detailPage.getByRole('link', { name: 'Practice typing on Colemak Camp' })
 	).toHaveAttribute('href', /^https:\/\/emulayout\.github\.io\/colemakcamp\//);
 
-	await testArea.focus();
+	await practiceInput.focus();
 	await page.keyboard.press('a');
-	await expect(testArea).toHaveValue('a');
+	await expect(practiceInput).toHaveValue('a');
 
-	await testTab.focus();
+	await practiceTab.focus();
+	await practiceTab.press('ArrowRight');
+	await expect(testTab).toBeFocused();
+	await expect(testTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
+	const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
+	await expect(testPanel).toBeVisible();
+	const testArea = page.getByPlaceholder('Layout test area');
+	await expect(testArea).toBeVisible();
+	await expect(practiceInput).toHaveCount(0);
+
 	await testTab.press('ArrowRight');
 	await expect(statsTab).toBeFocused();
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
@@ -338,9 +365,51 @@ test('defaults to the Test area and switches detail sections with tab keyboard n
 	).toHaveAttribute('aria-checked', 'true');
 });
 
+test('colors typing-practice feedback and advances only a completed word', async ({ page }) => {
+	await page.goto('/layouts/QWERTY');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.getByLabel('Practice words');
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	let currentWord = practiceWords.locator('[data-current-word="true"]');
+
+	await expect(currentWord).toHaveText('assurance');
+	await practiceInput.focus();
+	await page.keyboard.type('assurz');
+	await expect(practiceInput).toHaveValue('assurz');
+	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(5);
+	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(1);
+	await expect(currentWord.locator('[data-character-status="correct"]').first()).toHaveCSS(
+		'color',
+		'rgb(122, 168, 37)'
+	);
+	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCSS(
+		'color',
+		'rgb(196, 75, 58)'
+	);
+
+	await page.keyboard.press('Space');
+	await expect(practiceInput).toHaveValue('assurz ');
+	await expect(practicePanel.getByLabel('0 of 10 words complete')).toHaveText('0/10');
+	await expect(currentWord).toHaveText('assurance ');
+
+	await practiceInput.selectText();
+	await page.keyboard.type('assurance');
+	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(9);
+	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(0);
+
+	await page.keyboard.press('Space');
+	await expect(practiceInput).toHaveValue('');
+	await expect(practicePanel.getByLabel('1 of 10 words complete')).toHaveText('1/10');
+	currentWord = practiceWords.locator('[data-current-word="true"]');
+	await expect(currentWord).toHaveText('snapshot');
+	await expect(practiceWords).not.toContainText('assurance');
+});
+
 test('uses the detail tab query as the selected-section source of truth', async ({ page }) => {
 	await page.goto('/layouts/Colemak-DH?tab=stats&selected=lela');
 
+	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
 	const testTab = page.getByRole('tab', { name: 'Test area' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
@@ -355,8 +424,8 @@ test('uses the detail tab query as the selected-section source of truth', async 
 	await expect(testTab).toHaveAttribute('aria-selected', 'true');
 
 	await page.goto('/layouts/Colemak-DH?tab=unknown');
-	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
-	await expect(testTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
+	await expect(practiceTab).toHaveAttribute('aria-selected', 'true');
 });
 
 test('uses one document scrollbar for detail content at every responsive width', async ({
@@ -422,7 +491,7 @@ test('disables and re-enables a Repeat key from the persistent options', async (
 			}
 		});
 	});
-	await page.goto('/layouts/repeat-key');
+	await page.goto('/layouts/repeat-key?tab=test');
 
 	const repeatOption = page.getByRole('button', { name: 'Disable repeat key' });
 	const repeatTestArea = page.getByPlaceholder('Layout test area');
@@ -442,7 +511,7 @@ test('disables and re-enables a Repeat key from the persistent options', async (
 });
 
 test('removes and reapplies angle mod from the summary card action', async ({ page }) => {
-	await page.goto('/layouts/lela');
+	await page.goto('/layouts/lela?tab=test');
 	const summaryCard = page.locator('[data-layout-name="lela"]');
 	const angleOption = summaryCard.getByRole('button', { name: 'Remove anglemod' });
 	await expect(angleOption).toHaveAttribute('aria-pressed', 'false');
@@ -487,7 +556,7 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 			}
 		});
 	});
-	await page.goto('/layouts/adaptive-preview');
+	await page.goto('/layouts/adaptive-preview?tab=test');
 
 	const testArea = page.getByPlaceholder('Layout test area');
 	const preview = page.getByRole('img', { name: 'adaptive-preview keyboard preview' });
@@ -672,7 +741,7 @@ test('opens the layout show page from Quick Find with Enter', async ({ page }) =
 	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
 	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
 
-	await expect(page).toHaveURL('/layouts/lela?tab=test');
+	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 	await expect(quickFind).toHaveCount(0);
 });
 
@@ -688,7 +757,7 @@ test('dismisses Quick Find when opening layout details from the preview', async 
 	await expect(previewCard).toBeVisible();
 	await previewCard.getByRole('link', { name: 'View lela layout details' }).click();
 
-	await expect(page).toHaveURL('/layouts/lela?tab=test');
+	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 	await expect(quickFind).toHaveCount(0);
 });
 
@@ -708,7 +777,7 @@ test.describe('full-catalog keyboard previews', () => {
 
 	test('places special mappings beside the test area', async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 800 });
-		await page.goto('/layouts/vylet');
+		await page.goto('/layouts/vylet?tab=test');
 
 		const row = page.locator('.detail-test-input-row--with-mappings');
 		const mappings = row.locator('.detail-test-mappings');

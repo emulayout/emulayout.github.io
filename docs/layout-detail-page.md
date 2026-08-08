@@ -12,16 +12,17 @@ AI implementation context for the dedicated page that replaces the former expand
   Find, Compare, help hints, theme controls, and the home link.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
-- Detail URLs are canonical layout paths whose only query state is `tab=test` or `tab=stats`. Index
-  filters, selections, and display state are reset while the detail route is active and cannot
-  rewrite its URL. Missing, invalid, or mixed query state is canonicalized to one valid `tab` value.
+- Detail URLs are canonical layout paths whose only query state is `tab=practice`, `tab=test`, or
+  `tab=stats`. Index filters, selections, and display state are reset while the detail route is
+  active and cannot rewrite its URL. Missing, invalid, or mixed query state is canonicalized to one
+  valid `tab` value.
 - When a detail page was opened from the catalog, `All layouts` uses browser history to restore
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
-- The show page has two accessible sections: `Test area` and `Stats`. The `tab` query parameter is
-  their source of truth, including for direct links and reloads; missing or invalid values default
-  to Test area.
+- The show page has three accessible sections: `Typing practice`, `Test area`, and `Stats`. The
+  `tab` query parameter is their source of truth, including for direct links and reloads; missing or
+  invalid values default to Typing practice.
 
 ## Data loading
 
@@ -74,10 +75,17 @@ small without weakening app-bar functionality.
 - A persistent option below those links disables or re-enables a Repeat key when present. The
   summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
   update the card, typing emulator, and generated external links together.
-- The `Test area` and `Stats` tabs sit at the top of the right column and control only that main
-  content. The persistent layout card is not part of either tab panel. Selecting a tab replaces the
-  current detail history entry with its canonical query URL, preserving the existing All layouts
-  back-navigation behavior.
+- The `Typing practice`, `Test area`, and `Stats` tabs sit at the top of the right column and control
+  only that main content. The persistent layout card is not part of any tab panel. Selecting a tab
+  replaces the current detail history entry with its canonical query URL, preserving the existing
+  All layouts back-navigation behavior.
+- `Typing practice` is the first and default tab. Its initial scaffold follows a lesson-like vertical
+  rhythm: a fixed ten-word prompt, a large layout-aware typing field, word-count and elapsed-time
+  values, and the board-aware keyboard preview at the bottom. Typed characters color the current
+  target green or red. An exact word followed by Space removes that word, clears the input, and
+  increments progress; the timer remains a placeholder. The field uses the same input resolver,
+  anglemod state, disabled mappings, and uninterrupted-history rules as the Test area. See
+  [`typing-practice.md`](./typing-practice.md) for its state model and extension boundaries.
 - `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
   controls share that first row on the right while the emulator occupies the larger left portion;
   narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
@@ -130,10 +138,13 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content, corpus selector, and analyzer controls:
   `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/CorpusTabs.svelte`
+- Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
+  `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
 - Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
   `src/lib/layoutDetailStatsPrefs.ts`
 - Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
-- Detail section semantics and keyboard navigation: `src/lib/components/Tabs.svelte`
+- Detail section URL state, semantics, and keyboard navigation: `src/lib/layoutDetailTabs.ts`,
+  `src/lib/components/Tabs.svelte`
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
 - Semantic detail link in the action toolbar: `src/lib/components/LayoutCardActions.svelte`
 - Route browser coverage: `tests/e2e/layout-detail.e2e.ts`
@@ -161,9 +172,9 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.
-- Test area is the fallback detail section when `tab` is absent or invalid. Test area and Stats are
-  linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard activation; the URL follows each
-  activation, and the persistent left card is outside both panels.
+- Typing practice is the fallback detail section when `tab` is absent or invalid. Typing practice,
+  Test area, and Stats are linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard
+  activation; the URL follows each activation, and the persistent left card is outside every panel.
 - A summary card cannot link recursively to its own detail page.
 - Detail URLs preserve canonical layout-name casing and encoding.
 - Missing layouts always provide a path back to the index.

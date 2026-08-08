@@ -222,6 +222,9 @@ in the swapped output.
   or Adaptive mapping updates that feature's control.
 - On the layout detail page, mappings sit to the right of the emulator in the first Test-area row at
   wider viewports and stack below it on narrow screens.
+- The detail page's Typing practice field uses the same resolver and disabled-mapping state as the
+  Test area. Its keyboard preview derives prospective output from that field's own uninterrupted
+  history so switching between the two sections does not mix contextual state.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
   with the values they would emit and gain the active accent background. The shared preview switch
@@ -232,7 +235,9 @@ in the swapped output.
 
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
 prospective outputs from the same profile and history, but the layout test area does not display an
-applied-keypress event directly. A dedicated typing page may use that result later.
+applied-keypress event directly. Typing practice receives the full resolved-input result at its
+controlled-input boundary so future accuracy and speed metrics can use it without duplicating the
+resolver.
 
 Disabled mapping state is owned by the current page, shared by the floating window and layout test
 area on the index or by the mappings panel and keyboard summary on the detail route. It is

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
 	import type { LayoutData } from '$lib/layout';
-	import { resolveLayoutInput, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
+	import {
+		resolveLayoutInput,
+		type LayoutInputProfile,
+		type LayoutInputResult
+	} from '$lib/layoutInputBehaviors';
 	import {
 		insertTextAtSelection,
 		resolveLayoutTestKeyDown,
@@ -15,7 +19,12 @@
 		keyMaps: LayoutTestKeyMaps;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
-		variant?: 'card' | 'page';
+		variant?: 'card' | 'page' | 'practice';
+		placeholder?: string;
+		ariaLabel?: string;
+		value?: string;
+		onValueChange?: (value: string) => void;
+		onResolvedInput?: (result: LayoutInputResult) => string | undefined;
 		onInputHistoryChange?: (history: string) => void;
 	}
 
@@ -25,6 +34,11 @@
 		inputProfile,
 		disabledMappingIds = [],
 		variant = 'card',
+		placeholder = 'Layout test area',
+		ariaLabel = placeholder,
+		value,
+		onValueChange,
+		onResolvedInput,
 		onInputHistoryChange
 	}: Props = $props();
 	let textareaElement: HTMLTextAreaElement | null = $state(null);
@@ -44,6 +58,14 @@
 		return key === 'Shift' || key === 'Control' || key === 'Alt' || key === 'Meta';
 	}
 
+	function setTextValue(nextValue: string, cursor = nextValue.length, notify = true) {
+		if (textareaElement) {
+			textareaElement.value = nextValue;
+			textareaElement.setSelectionRange(cursor, cursor);
+		}
+		if (notify) onValueChange?.(nextValue);
+	}
+
 	function insertText(text: string) {
 		if (!textareaElement || !text) return;
 		const edit = insertTextAtSelection(
@@ -52,15 +74,28 @@
 			textareaElement.selectionEnd,
 			text
 		);
-		textareaElement.value = edit.value;
-		textareaElement.setSelectionRange(edit.cursor, edit.cursor);
+		setTextValue(edit.value, edit.cursor);
+	}
+
+	function applyResolvedReplacement(result: LayoutInputResult): boolean {
+		const replacementValue = onResolvedInput?.(result);
+		if (replacementValue === undefined) return false;
+		setTextValue(replacementValue);
+		resetInputHistory();
+		return true;
 	}
 
 	function processLayoutText(text: string) {
 		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
+		if (applyResolvedReplacement(result)) return;
 		insertText(result.text);
 		setInputHistory(result.nextHistory);
 	}
+
+	$effect(() => {
+		if (value === undefined || !textareaElement || textareaElement.value === value) return;
+		setTextValue(value, value.length, false);
+	});
 
 	$effect(() => {
 		void disabledMappingIds;
@@ -78,13 +113,28 @@
 		if (decision.preventDefault) event.preventDefault();
 		if (decision.stopPropagation) event.stopPropagation();
 		if (decision.edit?.type === 'clear') {
-			if (textareaElement) textareaElement.value = '';
+			setTextValue('');
 			resetInputHistory();
 		} else if (decision.edit?.type === 'insert') {
 			processLayoutText(decision.edit.text);
+		} else if (
+			!decision.preventDefault &&
+			onResolvedInput &&
+			event.key === ' ' &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.metaKey
+		) {
+			const result = resolveLayoutInput(inputProfile, inputHistory, event.key, disabledMappings);
+			if (applyResolvedReplacement(result)) event.preventDefault();
 		} else if (!isModifierKey(event.key)) {
 			resetInputHistory();
 		}
+	}
+
+	function handleInput(event: Event & { currentTarget: HTMLTextAreaElement }) {
+		onValueChange?.(event.currentTarget.value);
+		resetInputHistory();
 	}
 
 	function handleKeyUp(event: KeyboardEvent) {
@@ -109,8 +159,13 @@
 <div
 	class="layout-test-area"
 	class:layout-test-area--page={variant === 'page'}
+	class:layout-test-area--practice={variant === 'practice'}
 	style="
-		height: {variant === 'page' ? 'clamp(12rem, 32vh, 22rem)' : `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
+		height: {variant === 'page'
+		? 'clamp(12rem, 32vh, 22rem)'
+		: variant === 'practice'
+			? 'clamp(4.75rem, 11vh, 6.5rem)'
+			: `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
 		background-color: var(--input-bg);
 		border: 1px solid var(--border);
 		--tw-ring-color: var(--accent);
@@ -121,10 +176,11 @@
 		class="layout-test-area-input"
 		style="color: var(--text-primary);"
 		rows="2"
-		placeholder="Layout test area"
+		{placeholder}
+		aria-label={ariaLabel}
 		onkeydown={handleKeyDown}
 		onkeyup={handleKeyUp}
-		oninput={resetInputHistory}
+		oninput={handleInput}
 		onpointerdown={resetInputHistory}
 		onblur={resetInputHistory}></textarea>
 </div>
@@ -163,5 +219,12 @@
 		padding: 1rem;
 		font-size: 1rem;
 		line-height: 1.5;
+	}
+
+	.layout-test-area--practice .layout-test-area-input {
+		padding: 1rem 1.25rem;
+		font-size: clamp(1.35rem, 3vw, 2rem);
+		font-weight: 500;
+		line-height: 1.35;
 	}
 </style>
