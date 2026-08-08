@@ -98,7 +98,7 @@ bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
 
 `bun run sync` opens a TUI to pick independent tasks (catalog, cmini stats, Mana2 stats, Cyanophage,
 layout details) and whether to reuse caches (normal), re-download dumps (force), or stay offline.
-For scripts:
+Non-interactive wrapper examples:
 
 ```sh
 bun run sync -- --all --force
@@ -108,9 +108,11 @@ bun run sync -- --all --offline
 
 Catalog sync clones/updates cmini and writes layout metadata under `static/`. cmini and Mana2 stats
 are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by
-default; override with `--corpus=` / `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS`).
-Cyanophage stats are computed locally from the catalog cache. All generated `static/*.json` files
-are gitignored; CI regenerates them for deployments and the daily catalog sync.
+default). The top-level sync always processes every configured corpus. To import only one corpus,
+invoke `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set
+that script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage
+stats are computed locally from the catalog cache. All generated `static/*.json` files are
+gitignored; CI regenerates them for deployments and the daily catalog sync.
 
 Optional diagnostic (not run in CI):
 
@@ -125,7 +127,7 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 | `bun run dev`               | Start the development server                       |
 | `bun run build`             | Create a production build                          |
 | `bun run preview`           | Preview the production build                       |
-| `bun run sync`              | Interactive catalog + analyzer data sync           |
+| `bun run sync`              | Run catalog and analyzer data sync tasks           |
 | `bun run check`             | Run Svelte and TypeScript checks                   |
 | `bun run lint`              | Check formatting and lint the project              |
 | `bun test`                  | Run unit tests                                     |
@@ -151,10 +153,11 @@ Analyzer artifacts are produced by separate scripts:
   `rowstag.none`)
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
 
-Dump-based syncs accept `--force` (unconditional re-download), `--offline` (reuse
-`.cache/cminibrowser/`), and `--corpus=NAME` (single corpus). Online syncs use conditional
-requests (ETag / Last-Modified) so unchanged dumps are not re-downloaded. `bun run sync` prompts
-for targets and refresh mode, or accepts the same flags non-interactively.
+The individual dump-import scripts accept `--force` (unconditional re-download), `--offline` (reuse
+`.cache/cminibrowser/`), and `--corpus=NAME` (single corpus). Online syncs use conditional requests
+(ETag / Last-Modified) so unchanged dumps are not re-downloaded. The top-level `bun run sync`
+wrapper accepts task selections plus `--force` or `--offline`, but deliberately runs all configured
+corpora so the generated site and per-layout detail payloads remain complete.
 
 ## Contribute supplemental layout data
 

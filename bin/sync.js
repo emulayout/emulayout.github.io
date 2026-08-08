@@ -11,6 +11,9 @@
  *   --force                   re-download cminibrowser dumps (stats tasks)
  *   --offline                 reuse caches; no network (catalog + dump stats)
  *   --yes / -y                accept defaults without prompting
+ *
+ * Corpus selection belongs to the individual dump-import scripts. This wrapper
+ * always syncs every configured corpus so generated detail payloads stay complete.
  */
 
 import * as p from '@clack/prompts';
@@ -77,11 +80,33 @@ const MODE_OPTIONS = /** @type {const} */ ([
 const DUMP_TARGETS = new Set(/** @type {SyncTarget[]} */ (['cmini-stats', 'mana2-stats']));
 /** Targets that accept --offline for the cmini git cache. */
 const CATALOG_TARGETS = new Set(/** @type {SyncTarget[]} */ (['catalog']));
+const SYNC_OPTIONS = new Set([
+	'--catalog',
+	'--cmini-stats',
+	'--cmini',
+	'--mana2-stats',
+	'--mana2',
+	'--cyanophage',
+	'--details',
+	'--all',
+	'--force',
+	'--offline',
+	'--yes',
+	'-y'
+]);
 
 /**
  * @param {string[]} argv
  */
-function parseArgs(argv) {
+export function parseSyncArgs(argv) {
+	const unsupported = argv.filter((arg) => !SYNC_OPTIONS.has(arg));
+	if (unsupported.length > 0) {
+		const suffix = unsupported.some((arg) => arg.startsWith('--corpus'))
+			? ' Use --corpus=NAME with the individual cmini-stats-sync or mana2-stats-sync script.'
+			: '';
+		throw new Error(`Unsupported sync option: ${unsupported.join(', ')}.${suffix}`);
+	}
+
 	const force = argv.includes('--force');
 	const offline = argv.includes('--offline');
 	const yes = argv.includes('--yes') || argv.includes('-y');
@@ -207,7 +232,7 @@ async function runPlan(targets, mode) {
 }
 
 async function run() {
-	const parsed = parseArgs(process.argv.slice(2));
+	const parsed = parseSyncArgs(process.argv.slice(2));
 
 	/** @type {SyncTarget[]} */
 	let targets = parsed.targets;
@@ -231,7 +256,9 @@ async function run() {
 	await runPlan(targets, mode);
 }
 
-run().catch((err) => {
-	console.error('❌ sync failed:', err);
-	process.exit(1);
-});
+if (import.meta.main) {
+	run().catch((err) => {
+		console.error('❌ sync failed:', err);
+		process.exit(1);
+	});
+}
