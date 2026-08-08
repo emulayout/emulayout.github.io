@@ -14,7 +14,7 @@
  * cminibrowser cache for diagnostics — they are not published under static/.
  */
 
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { MANA2_ANALYZER, dumpSyncedCorpora } from '../src/lib/statsAnalyzers.ts';
 import { ensureCminibrowserDump } from './cminibrowser-cache.js';
 import {
@@ -30,20 +30,12 @@ import {
 	LAYOUTS_FILE,
 	loadBlacklist,
 	parseCorpusArgs,
-	parseOfflineForceArgs
+	parseOfflineForceArgs,
+	writeTextFileIfChanged
 } from './sync-shared.js';
 
 const MANA2_STATS_BOARD = process.env.MANA2_STATS_BOARD ?? CMINIBROWSER_MANA2_DEFAULT_BOARD;
 const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DEFAULT_SPACE;
-
-/**
- * @param {string} path
- */
-async function pathExists(path) {
-	return access(path)
-		.then(() => true)
-		.catch(() => false);
-}
 
 /**
  * @param {unknown[]} layouts
@@ -55,11 +47,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const dumpPath = cminibrowserMana2NamedDumpPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
-	const { path: cachePath, updated } = await ensureCminibrowserDump(dumpPath, mode);
-	if (!updated && !mode.force && !mode.offline && (await pathExists(statsFile))) {
-		console.log(`  ✔ Dump unchanged; keeping ${statsFile}`);
-		return;
-	}
+	const { path: cachePath } = await ensureCminibrowserDump(dumpPath, mode);
 
 	const dump = JSON.parse(await readFile(cachePath, 'utf-8'));
 	const index = indexCminibrowserMana2Dump(dump);
@@ -96,12 +84,12 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 			.map((name) => [name, layoutStats[name]])
 	);
 
-	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
+	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
 
 	console.log(
 		`  ✔ Mana2 stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
 	);
-	console.log(`  ✔ Wrote ${statsFile}`);
+	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
 }
 
 async function run() {

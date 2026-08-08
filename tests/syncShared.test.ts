@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { parseCorpusArgs } from '../bin/sync-shared.js';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { parseCorpusArgs, writeTextFileIfChanged } from '../bin/sync-shared.js';
 
 describe('parseCorpusArgs', () => {
 	test('prefers --corpus= over env and defaults', () => {
@@ -39,6 +42,21 @@ describe('parseCorpusArgs', () => {
 			).toEqual(['monkeyracer', 'reddit']);
 		} finally {
 			if (previous !== undefined) process.env.CMINIBROWSER_CMINI_CORPUS = previous;
+		}
+	});
+});
+
+describe('writeTextFileIfChanged', () => {
+	test('writes new and changed content without rewriting identical content', async () => {
+		const directory = await mkdtemp(join(tmpdir(), 'emulayout-sync-shared-'));
+		const path = join(directory, 'artifact.json');
+		try {
+			expect(await writeTextFileIfChanged(path, '{"version":1}\n')).toBe(true);
+			expect(await writeTextFileIfChanged(path, '{"version":1}\n')).toBe(false);
+			expect(await writeTextFileIfChanged(path, '{"version":2}\n')).toBe(true);
+			expect(await readFile(path, 'utf-8')).toBe('{"version":2}\n');
+		} finally {
+			await rm(directory, { recursive: true, force: true });
 		}
 	});
 });

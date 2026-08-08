@@ -13,7 +13,7 @@
  * cminibrowser cache for diagnostics — they are not published under static/.
  */
 
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { CMINI_ANALYZER, dumpSyncedCorpora } from '../src/lib/statsAnalyzers.ts';
 import { ensureCminibrowserDump } from './cminibrowser-cache.js';
 import {
@@ -26,17 +26,9 @@ import {
 	LAYOUTS_FILE,
 	loadBlacklist,
 	parseCorpusArgs,
-	parseOfflineForceArgs
+	parseOfflineForceArgs,
+	writeTextFileIfChanged
 } from './sync-shared.js';
-
-/**
- * @param {string} path
- */
-async function pathExists(path) {
-	return access(path)
-		.then(() => true)
-		.catch(() => false);
-}
 
 /**
  * @param {unknown[]} layouts
@@ -48,11 +40,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const dumpPath = `stats/${corpus}.json`;
 	const statsFile = cminiCompactStatsRelPath(corpus);
 	console.log(`→ Loading cminibrowser cmini dump (${dumpPath})...`);
-	const { path: cachePath, updated } = await ensureCminibrowserDump(dumpPath, mode);
-	if (!updated && !mode.force && !mode.offline && (await pathExists(statsFile))) {
-		console.log(`  ✔ Dump unchanged; keeping ${statsFile}`);
-		return;
-	}
+	const { path: cachePath } = await ensureCminibrowserDump(dumpPath, mode);
 
 	const dump = JSON.parse(await readFile(cachePath, 'utf-8'));
 	const index = indexCminibrowserCminiDump(dump);
@@ -88,12 +76,12 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 			.map((name) => [name, layoutStats[name]])
 	);
 
-	await writeFile(statsFile, JSON.stringify(sortedStats) + '\n', 'utf-8');
+	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
 
 	console.log(
 		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
 	);
-	console.log(`  ✔ Wrote ${statsFile}`);
+	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
 }
 
 async function run() {

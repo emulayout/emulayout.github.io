@@ -2,12 +2,30 @@
  * Shared helpers for catalog and analyzer sync scripts.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const LAYOUTS_FILE = 'static/all-layouts.json';
 export const BLACKLIST_FILE = 'layout-blacklist.txt';
 export const CMINI_CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
+
+/**
+ * Write generated text only when its bytes changed, preserving stable mtimes for
+ * downstream caches while still re-deriving the content on every sync.
+ *
+ * @param {string} path
+ * @param {string} body
+ * @returns {Promise<boolean>} whether the file was written
+ */
+export async function writeTextFileIfChanged(path, body) {
+	try {
+		if ((await readFile(path, 'utf-8')) === body) return false;
+	} catch (error) {
+		if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
+	}
+	await writeFile(path, body, 'utf-8');
+	return true;
+}
 
 /**
  * @returns {Promise<Set<string>>}
