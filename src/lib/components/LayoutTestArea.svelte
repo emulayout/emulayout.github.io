@@ -22,10 +22,13 @@
 		variant?: 'card' | 'page' | 'practice';
 		placeholder?: string;
 		ariaLabel?: string;
+		focusOnMount?: boolean;
+		invalid?: boolean;
 		value?: string;
-		onValueChange?: (value: string) => void;
+		onValueChange?: (value: string) => string | undefined;
 		onResolvedInput?: (result: LayoutInputResult) => string | undefined;
 		onInputHistoryChange?: (history: string) => void;
+		onEscape?: () => string;
 	}
 
 	const {
@@ -36,12 +39,15 @@
 		variant = 'card',
 		placeholder = 'Layout test area',
 		ariaLabel = placeholder,
+		focusOnMount = false,
+		invalid = false,
 		value,
 		onValueChange,
 		onResolvedInput,
-		onInputHistoryChange
+		onInputHistoryChange,
+		onEscape
 	}: Props = $props();
-	let textareaElement: HTMLTextAreaElement | null = $state(null);
+	let inputElement: HTMLInputElement | HTMLTextAreaElement | null = $state(null);
 	let inputHistory = '';
 	const disabledMappings = $derived(new Set(disabledMappingIds));
 
@@ -58,23 +64,30 @@
 		return key === 'Shift' || key === 'Control' || key === 'Alt' || key === 'Meta';
 	}
 
-	function setTextValue(nextValue: string, cursor = nextValue.length, notify = true) {
-		if (textareaElement) {
-			textareaElement.value = nextValue;
-			textareaElement.setSelectionRange(cursor, cursor);
+	function setTextValue(nextValue: string, cursor = nextValue.length, notify = true): boolean {
+		if (inputElement) {
+			inputElement.value = nextValue;
+			inputElement.setSelectionRange(cursor, cursor);
 		}
-		if (notify) onValueChange?.(nextValue);
+		if (!notify) return false;
+		const replacementValue = onValueChange?.(nextValue);
+		if (replacementValue === undefined) return false;
+		if (inputElement) {
+			inputElement.value = replacementValue;
+			inputElement.setSelectionRange(replacementValue.length, replacementValue.length);
+		}
+		return true;
 	}
 
-	function insertText(text: string) {
-		if (!textareaElement || !text) return;
+	function insertText(text: string): boolean {
+		if (!inputElement || !text) return false;
 		const edit = insertTextAtSelection(
-			textareaElement.value,
-			textareaElement.selectionStart,
-			textareaElement.selectionEnd,
+			inputElement.value,
+			inputElement.selectionStart ?? inputElement.value.length,
+			inputElement.selectionEnd ?? inputElement.value.length,
 			text
 		);
-		setTextValue(edit.value, edit.cursor);
+		return setTextValue(edit.value, edit.cursor);
 	}
 
 	function applyResolvedReplacement(result: LayoutInputResult): boolean {
@@ -88,12 +101,15 @@
 	function processLayoutText(text: string) {
 		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
 		if (applyResolvedReplacement(result)) return;
-		insertText(result.text);
-		setInputHistory(result.nextHistory);
+		if (insertText(result.text)) {
+			resetInputHistory();
+		} else {
+			setInputHistory(result.nextHistory);
+		}
 	}
 
 	$effect(() => {
-		if (value === undefined || !textareaElement || textareaElement.value === value) return;
+		if (value === undefined || !inputElement || inputElement.value === value) return;
 		setTextValue(value, value.length, false);
 	});
 
@@ -102,7 +118,21 @@
 		resetInputHistory();
 	});
 
+	$effect(() => {
+		if (!focusOnMount || !inputElement) return;
+		const element = inputElement;
+		const frame = window.requestAnimationFrame(() => element.focus({ preventScroll: true }));
+		return () => window.cancelAnimationFrame(frame);
+	});
+
 	function handleKeyDown(event: KeyboardEvent) {
+		if (variant === 'practice' && event.key === 'Enter') {
+			event.preventDefault();
+			event.stopPropagation();
+			resetInputHistory();
+			return;
+		}
+
 		const decision = resolveLayoutTestKeyDown(event, {
 			hasThumbKeys: layout.hasThumbKeys,
 			thumbKeysByHand: layout.thumbKeysByHand,
@@ -113,7 +143,12 @@
 		if (decision.preventDefault) event.preventDefault();
 		if (decision.stopPropagation) event.stopPropagation();
 		if (decision.edit?.type === 'clear') {
-			setTextValue('');
+			if (onEscape) {
+				const replacementValue = onEscape();
+				setTextValue(replacementValue, replacementValue.length, false);
+			} else {
+				setTextValue('');
+			}
 			resetInputHistory();
 		} else if (decision.edit?.type === 'insert') {
 			processLayoutText(decision.edit.text);
@@ -132,9 +167,27 @@
 		}
 	}
 
-	function handleInput(event: Event & { currentTarget: HTMLTextAreaElement }) {
-		onValueChange?.(event.currentTarget.value);
+	function handleInput(event: Event & { currentTarget: HTMLInputElement | HTMLTextAreaElement }) {
+		const replacementValue = onValueChange?.(event.currentTarget.value);
+		if (replacementValue !== undefined) {
+			setTextValue(replacementValue, replacementValue.length, false);
+		}
 		resetInputHistory();
+	}
+
+	function handleBeforeInput(event: InputEvent) {
+		if (
+			variant === 'practice' &&
+			(event.inputType === 'insertFromPaste' ||
+				event.inputType === 'insertLineBreak' ||
+				event.inputType === 'insertParagraph')
+		) {
+			event.preventDefault();
+		}
+	}
+
+	function handlePaste(event: ClipboardEvent) {
+		if (variant === 'practice') event.preventDefault();
 	}
 
 	function handleKeyUp(event: KeyboardEvent) {
@@ -160,29 +213,46 @@
 	class="layout-test-area"
 	class:layout-test-area--page={variant === 'page'}
 	class:layout-test-area--practice={variant === 'practice'}
+	class:layout-test-area--invalid={variant === 'practice' && invalid}
 	style="
 		height: {variant === 'page'
 		? 'clamp(12rem, 32vh, 22rem)'
 		: variant === 'practice'
-			? 'clamp(4.75rem, 11vh, 6.5rem)'
+			? '4.5rem'
 			: `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
 		background-color: var(--input-bg);
 		border: 1px solid var(--border);
 		--tw-ring-color: var(--accent);
 	"
 >
-	<textarea
-		bind:this={textareaElement}
-		class="layout-test-area-input"
-		style="color: var(--text-primary);"
-		rows="2"
-		{placeholder}
-		aria-label={ariaLabel}
-		onkeydown={handleKeyDown}
-		onkeyup={handleKeyUp}
-		oninput={handleInput}
-		onpointerdown={resetInputHistory}
-		onblur={resetInputHistory}></textarea>
+	{#if variant === 'practice'}
+		<input
+			bind:this={inputElement}
+			type="text"
+			class="layout-test-area-input"
+			{placeholder}
+			aria-label={ariaLabel}
+			onkeydown={handleKeyDown}
+			onkeyup={handleKeyUp}
+			onbeforeinput={handleBeforeInput}
+			oninput={handleInput}
+			onpaste={handlePaste}
+			onpointerdown={resetInputHistory}
+			onblur={resetInputHistory}
+		/>
+	{:else}
+		<textarea
+			bind:this={inputElement}
+			class="layout-test-area-input"
+			rows="2"
+			{placeholder}
+			aria-label={ariaLabel}
+			onkeydown={handleKeyDown}
+			onkeyup={handleKeyUp}
+			oninput={handleInput}
+			onpointerdown={resetInputHistory}
+			onblur={resetInputHistory}></textarea>
+	{/if}
 </div>
 
 <style>
@@ -211,6 +281,7 @@
 		resize: none;
 		outline: none;
 		background: transparent;
+		color: var(--text-primary);
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 	}
@@ -222,9 +293,16 @@
 	}
 
 	.layout-test-area--practice .layout-test-area-input {
-		padding: 1rem 1.25rem;
-		font-size: clamp(1.35rem, 3vw, 2rem);
-		font-weight: 500;
-		line-height: 1.35;
+		padding: 0.75rem 1.25rem;
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+		font-size: 2.5rem;
+		font-weight: 600;
+		line-height: 1.2;
+		letter-spacing: 0.015em;
+	}
+
+	.layout-test-area--practice.layout-test-area--invalid .layout-test-area-input {
+		color: var(--typing-practice-incorrect);
 	}
 </style>

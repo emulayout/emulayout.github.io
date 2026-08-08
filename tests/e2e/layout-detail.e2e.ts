@@ -248,23 +248,19 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	await expect(practicePanel).toBeVisible();
-	await expect(practicePanel.locator('[data-practice-word]')).toHaveText([
-		'assurance',
-		'snapshot',
-		'designers',
-		'climb',
-		'make',
-		'gentle',
-		'rhythm',
-		'bright',
-		'window',
-		'calm'
-	]);
+	const initialPracticeWords = await practicePanel
+		.locator('[data-practice-word]')
+		.allTextContents();
+	expect(initialPracticeWords).toHaveLength(10);
+	expect(new Set(initialPracticeWords).size).toBe(10);
+	expect(initialPracticeWords.every((word) => word.length > 0)).toBe(true);
 	await expect(practicePanel.getByLabel('0 of 10 words complete')).toHaveText('0/10');
 	await expect(practicePanel.getByLabel('Elapsed time: 00:00')).toHaveText('00:00');
+	await expect(practicePanel.getByLabel('Typing practice results')).toHaveCount(0);
 
 	const detailPage = page.locator('[data-layout-detail]');
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const practiceWords = practicePanel.getByLabel('Practice words');
 	const practiceInputContainer = practicePanel.locator('.layout-test-area');
 	const keyboardPreview = page.getByRole('img', { name: 'Colemak-DH keyboard preview' });
 	const summaryCard = detailPage.locator('[data-layout-name="Colemak-DH"]');
@@ -292,6 +288,25 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(keyboardBoard).toHaveCSS('border-top-style', 'none');
 	await expect(keyboardBoard).toHaveCSS('box-shadow', 'none');
 	await expect(practicePanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
+	await expect(practiceWords).toHaveCSS('flex-wrap', 'nowrap');
+	await expect(practiceWords).toHaveCSS('overflow', 'hidden');
+	await expect(practiceWords).toHaveCSS('white-space', 'nowrap');
+	const [promptTypography, inputTypography] = await Promise.all(
+		[practiceWords, practiceInput].map((locator) =>
+			locator.evaluate((element) => {
+				const styles = getComputedStyle(element);
+				return {
+					fontFamily: styles.fontFamily,
+					fontSize: styles.fontSize,
+					fontWeight: styles.fontWeight,
+					letterSpacing: styles.letterSpacing,
+					lineHeight: styles.lineHeight
+				};
+			})
+		)
+	);
+	expect(inputTypography).toEqual(promptTypography);
+	await expect(practiceInput).toBeFocused();
 	await expect(summaryCard.getByRole('button')).toHaveCount(1);
 	await expect(summaryCard.getByRole('button', { name: 'Anglemod' })).toBeVisible();
 	const cminiCardStats = summaryCard.getByLabel('cmini core statistics');
@@ -327,6 +342,11 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await practiceInput.focus();
 	await page.keyboard.press('a');
 	await expect(practiceInput).toHaveValue('a');
+	await expect
+		.poll(async () => practicePanel.getByLabel(/^Elapsed time:/).getAttribute('aria-label'), {
+			timeout: 2500
+		})
+		.not.toBe('Elapsed time: 00:00');
 
 	await practiceTab.focus();
 	await practiceTab.press('ArrowRight');
@@ -365,45 +385,159 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	).toHaveAttribute('aria-checked', 'true');
 });
 
+test('focuses typing practice and Escape starts a different lesson', async ({ page }) => {
+	await page.goto('/layouts/QWERTY');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(10);
+	await expect(practiceInput).toBeFocused();
+	await expect(practiceInput).toHaveAttribute('type', 'text');
+	await expect(practicePanel.locator('.layout-test-area')).toHaveCSS('height', '72px');
+	const initialWords = await practiceWords.allTextContents();
+	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+	await page.evaluate(() => navigator.clipboard.writeText('blocked paste'));
+	await practiceInput.press('ControlOrMeta+V');
+	await expect(practiceInput).toHaveValue('');
+	await practiceInput.press('Enter');
+	await expect(practiceInput).toHaveValue('');
+	await expect(practicePanel.getByLabel('Elapsed time: 00:00')).toHaveText('00:00');
+
+	await page.keyboard.type(initialWords[0]![0]!);
+	await expect
+		.poll(async () => practicePanel.getByLabel(/^Elapsed time:/).getAttribute('aria-label'), {
+			timeout: 2500
+		})
+		.not.toBe('Elapsed time: 00:00');
+
+	await page.keyboard.press('Escape');
+	await expect(practiceInput).toBeFocused();
+	await expect(practiceInput).toHaveValue('');
+	await expect(practicePanel.getByLabel('0 of 10 words complete')).toHaveText('0/10');
+	await expect(practicePanel.getByLabel('Elapsed time: 00:00')).toHaveText('00:00');
+	await expect(practicePanel.getByLabel('Typing practice results')).toHaveCount(0);
+	await expect(practiceWords).toHaveCount(10);
+	const replacementWords = await practiceWords.allTextContents();
+	expect(replacementWords.some((word) => initialWords.includes(word))).toBe(false);
+});
+
+test('loads the word pool only after Typing practice opens', async ({ page }) => {
+	const wordPoolRequests: string[] = [];
+	let releaseWordPool!: () => void;
+	const wordPoolGate = new Promise<void>((resolve) => {
+		releaseWordPool = resolve;
+	});
+	await page.route('**/languages/english1k.json', async (route) => {
+		await wordPoolGate;
+		await route.continue();
+	});
+	page.on('request', (request) => {
+		if (new URL(request.url()).pathname === '/languages/english1k.json') {
+			wordPoolRequests.push(request.url());
+		}
+	});
+
+	await page.goto('/layouts/QWERTY?tab=stats');
+	await expect(page.getByRole('tabpanel', { name: 'Stats' })).toBeVisible();
+	expect(wordPoolRequests).toHaveLength(0);
+
+	await page.getByRole('tab', { name: 'Typing practice' }).click();
+	const loadingMessage = page.getByText('Loading...', { exact: true });
+	await expect(loadingMessage).toBeVisible();
+	await expect(loadingMessage).toHaveCSS('font-size', '40px');
+	await expect(loadingMessage).toHaveCSS('font-weight', '600');
+	await expect(loadingMessage).toHaveCSS('line-height', '48px');
+	releaseWordPool();
+	await expect(
+		page.getByRole('tabpanel', { name: 'Typing practice' }).locator('[data-practice-word]')
+	).toHaveCount(10);
+	expect(wordPoolRequests).toHaveLength(1);
+});
+
 test('colors typing-practice feedback and advances only a completed word', async ({ page }) => {
 	await page.goto('/layouts/QWERTY');
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const practiceWords = practicePanel.getByLabel('Practice words');
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	await expect(practicePanel.locator('[data-practice-word]')).toHaveCount(10);
+	const initialWords = await practicePanel.locator('[data-practice-word]').allTextContents();
+	const testCharacterCount = Array.from(initialWords.join(' ')).length;
 	let currentWord = practiceWords.locator('[data-current-word="true"]');
+	const targetWord = (await currentWord.textContent())!;
+	const targetCharacters = Array.from(targetWord);
+	const firstTargetCharacter = targetCharacters[0]!;
+	const secondTargetCharacter = targetCharacters[1];
+	const wrongCharacter = firstTargetCharacter === 'x' ? 'z' : 'x';
+	const incorrectInput = `${wrongCharacter}${secondTargetCharacter ?? ''}`;
 
-	await expect(currentWord).toHaveText('assurance');
 	await practiceInput.focus();
-	await page.keyboard.type('assurz');
-	await expect(practiceInput).toHaveValue('assurz');
-	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(5);
-	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(1);
-	await expect(currentWord.locator('[data-character-status="correct"]').first()).toHaveCSS(
-		'color',
-		'rgb(122, 168, 37)'
+	await page.keyboard.type(incorrectInput);
+	await expect(practiceInput).toHaveValue(incorrectInput);
+	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(
+		secondTargetCharacter === undefined ? 0 : 1
 	);
+	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(1);
+	if (secondTargetCharacter !== undefined) {
+		await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCSS(
+			'color',
+			'rgb(122, 168, 37)'
+		);
+	}
 	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCSS(
 		'color',
 		'rgb(196, 75, 58)'
 	);
+	await expect(practiceInput).toHaveCSS('color', 'rgb(196, 75, 58)');
 
 	await page.keyboard.press('Space');
-	await expect(practiceInput).toHaveValue('assurz ');
+	await expect(practiceInput).toHaveValue(`${incorrectInput} `);
 	await expect(practicePanel.getByLabel('0 of 10 words complete')).toHaveText('0/10');
-	await expect(currentWord).toHaveText('assurance ');
+	await expect(currentWord).toHaveText(targetWord);
 
 	await practiceInput.selectText();
-	await page.keyboard.type('assurance');
-	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(9);
+	await page.keyboard.type(targetWord);
+	await expect(currentWord.locator('[data-character-status="correct"]')).toHaveCount(
+		targetCharacters.length
+	);
 	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(0);
+	await expect(practiceInput).not.toHaveCSS('color', 'rgb(196, 75, 58)');
 
 	await page.keyboard.press('Space');
 	await expect(practiceInput).toHaveValue('');
 	await expect(practicePanel.getByLabel('1 of 10 words complete')).toHaveText('1/10');
 	currentWord = practiceWords.locator('[data-current-word="true"]');
-	await expect(currentWord).toHaveText('snapshot');
-	await expect(practiceWords).not.toContainText('assurance');
+	await expect(currentWord).not.toHaveText(targetWord);
+	expect(await practicePanel.locator('[data-practice-word]').allTextContents()).not.toContain(
+		targetWord
+	);
+
+	for (let completedWordCount = 1; completedWordCount < 9; completedWordCount += 1) {
+		const nextWord = (await practiceWords.locator('[data-current-word="true"]').textContent())!;
+		await practiceInput.fill(nextWord);
+		await page.keyboard.press('Space');
+		await expect(
+			practicePanel.getByLabel(`${completedWordCount + 1} of 10 words complete`)
+		).toHaveText(`${completedWordCount + 1}/10`);
+	}
+
+	const finalWord = (await practiceWords.locator('[data-current-word="true"]').textContent())!;
+	await practiceInput.fill(finalWord);
+	await expect(practiceInput).toHaveValue('');
+	await expect(practicePanel.getByLabel('10 of 10 words complete')).toHaveText('10/10');
+	await expect(practiceWords).toHaveText('Press esc to restart');
+	await expect(practiceWords.locator('[data-current-word="true"]')).toHaveCount(0);
+	const correctAttemptCount = testCharacterCount + (secondTargetCharacter === undefined ? 0 : 1);
+	const expectedAccuracy = ((correctAttemptCount / (correctAttemptCount + 2)) * 100).toFixed(2);
+	const results = practicePanel.getByLabel('Typing practice results');
+	await expect(results).toBeVisible();
+	await expect(results.getByText(`Accuracy: ${expectedAccuracy}%`)).toBeVisible();
+	await expect(results.getByText(/^WPM: [1-9]\d*\.\d{2}$/)).toBeVisible();
+	const completedResults = await results.textContent();
+	await practiceInput.fill('x');
+	await expect(practiceInput).toHaveValue('');
+	await expect(results).toHaveText(completedResults!);
 });
 
 test('uses the detail tab query as the selected-section source of truth', async ({ page }) => {

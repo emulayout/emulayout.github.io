@@ -53,6 +53,8 @@ html {
 	--warning: #9a8f12;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #c44b3a;
+	--typing-practice-correct: #7aa825;
+	--typing-practice-incorrect: #c44b3a;
 	--new-layout-dot: #eda095;
 }
 
@@ -88,6 +90,8 @@ html {
 	--warning: #d5dc14;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #e07060;
+	--typing-practice-correct: #92c92c;
+	--typing-practice-incorrect: #e07060;
 	--new-layout-dot: #982818;
 }
 

@@ -80,12 +80,13 @@ small without weakening app-bar functionality.
   replaces the current detail history entry with its canonical query URL, preserving the existing
   All layouts back-navigation behavior.
 - `Typing practice` is the first and default tab. Its initial scaffold follows a lesson-like vertical
-  rhythm: a fixed ten-word prompt, a large layout-aware typing field, word-count and elapsed-time
-  values, and the board-aware keyboard preview at the bottom. Typed characters color the current
-  target green or red. An exact word followed by Space removes that word, clears the input, and
-  increments progress; the timer remains a placeholder. The field uses the same input resolver,
-  anglemod state, disabled mappings, and uninterrupted-history rules as the Test area. See
-  [`typing-practice.md`](./typing-practice.md) for its state model and extension boundaries.
+  rhythm: ten distinct words sampled from the vendored English 1k list, a large layout-aware typing
+  field, word-count and elapsed-time values, and the board-aware keyboard preview at the bottom.
+  Typed characters color the current target green or red. An exact word followed by Space removes
+  that word, clears the input, and increments progress; the timer remains a placeholder. The field
+  uses the same input resolver, anglemod state, disabled mappings, and uninterrupted-history rules
+  as the Test area. See [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary
+  provenance, and extension boundaries.
 - `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
   controls share that first row on the right while the emulator occupies the larger left portion;
   narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent

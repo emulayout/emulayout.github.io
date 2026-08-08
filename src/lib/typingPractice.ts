@@ -24,6 +24,8 @@ export interface TypingPracticeSession {
 	totalWordCount: number;
 }
 
+export type TypingPracticeRandomSource = () => number;
+
 function normalizedWords(words: readonly string[]): TypingPracticeWord[] {
 	return words.flatMap((word, index) => {
 		const text = word.trim();
@@ -41,16 +43,53 @@ export function createTypingPracticeSession(words: readonly string[]): TypingPra
 	};
 }
 
+export function selectRandomTypingPracticeWords(
+	words: readonly string[],
+	count: number,
+	random: TypingPracticeRandomSource = Math.random
+): string[] {
+	const pool = normalizedWords(words).map(({ text }) => text);
+	const selectionCount = Math.min(Math.max(Math.floor(count), 0), pool.length);
+
+	for (let index = 0; index < selectionCount; index += 1) {
+		const randomUnit = Math.min(Math.max(random(), 0), 1 - Number.EPSILON);
+		const randomIndex = index + Math.floor(randomUnit * (pool.length - index));
+		[pool[index], pool[randomIndex]] = [pool[randomIndex], pool[index]];
+	}
+
+	return pool.slice(0, selectionCount);
+}
+
+export function createRandomTypingPracticeSession(
+	words: readonly string[],
+	count: number,
+	random: TypingPracticeRandomSource = Math.random
+): TypingPracticeSession {
+	return createTypingPracticeSession(selectRandomTypingPracticeWords(words, count, random));
+}
+
 export function updateTypingPracticeInput(
 	session: TypingPracticeSession,
 	input: string
 ): TypingPracticeSession {
-	return { ...session, input };
+	const updatedSession = { ...session, input };
+	return updatedSession.remainingWords.length === 1 && isTypingPracticeWordComplete(updatedSession)
+		? advanceTypingPracticeWord(updatedSession)
+		: updatedSession;
 }
 
 export function isTypingPracticeWordComplete(session: TypingPracticeSession): boolean {
 	return (
 		session.remainingWords[0] !== undefined && session.input === session.remainingWords[0].text
+	);
+}
+
+export function hasTypingPracticeInputError(session: TypingPracticeSession): boolean {
+	const activeWord = session.remainingWords[0];
+	if (!activeWord) return false;
+	const targetCharacters = Array.from(activeWord.text);
+	return Array.from(session.input).some(
+		(character, index) => character !== targetCharacters[index]
 	);
 }
 
@@ -67,16 +106,14 @@ export function advanceTypingPracticeWord(session: TypingPracticeSession): Typin
 function buildCurrentWordFeedback(word: string, input: string): TypingPracticeCharacterFeedback[] {
 	const targetCharacters = Array.from(word);
 	const inputCharacters = Array.from(input);
-	const characterCount = Math.max(targetCharacters.length, inputCharacters.length);
 
-	return Array.from({ length: characterCount }, (_, index) => {
-		const targetCharacter = targetCharacters[index];
+	return targetCharacters.map((targetCharacter, index) => {
 		const inputCharacter = inputCharacters[index];
 		if (inputCharacter === undefined) {
-			return { character: targetCharacter ?? '', status: 'pending' };
+			return { character: targetCharacter, status: 'pending' };
 		}
 		return {
-			character: targetCharacter ?? inputCharacter,
+			character: targetCharacter,
 			status: inputCharacter === targetCharacter ? 'correct' : 'incorrect'
 		};
 	});
