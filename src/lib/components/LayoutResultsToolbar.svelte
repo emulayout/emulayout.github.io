@@ -28,6 +28,7 @@
 		void filterStore.sourceLayoutCount;
 		return getActiveFilterChips(filterStore);
 	});
+	const hasFilterChips = $derived(filterChips.length > 0);
 	const cminiSortFields = $derived(getStatSortFieldsForAnalyzer(CMINI_ANALYZER));
 	const cyanophageSortFields = $derived(getStatSortFieldsForAnalyzer(CYANOPHAGE_ANALYZER));
 	const mana2SortFields = $derived(getStatSortFieldsForAnalyzer(MANA2_ANALYZER));
@@ -76,26 +77,32 @@
 	}
 </script>
 
+{#snippet showingCount()}
+	<p class="results-toolbar-count" style="color: var(--text-secondary);">
+		Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
+		{#if filterStore.layoutSource === 'selected'}
+			selected layouts
+		{:else}
+			layouts
+		{/if}
+		{#if filterStore.hasSimilarReference}
+			<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
+		{/if}
+		{#if filterStore.similarReferenceName}
+			<span style="color: var(--text-primary); font-weight: 600;"
+				>{filterStore.similarReferenceName}</span
+			>
+		{/if}
+	</p>
+{/snippet}
+
 <div bind:this={resultsStatus} id="results-status" class="results-toolbar-shell mb-2">
 	<div class="results-toolbar-filters-row">
-		<div class="results-toolbar-status">
-			<p class="results-toolbar-count" style="color: var(--text-secondary);">
-				Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
-				{#if filterStore.layoutSource === 'selected'}
-					selected layouts
-				{:else}
-					layouts
-				{/if}
-				{#if filterStore.hasSimilarReference}
-					<span style="color: var(--similar-diff); font-weight: 600;">similar</span> to
-				{/if}
-				{#if filterStore.similarReferenceName}
-					<span style="color: var(--text-primary); font-weight: 600;"
-						>{filterStore.similarReferenceName}</span
-					>
-				{/if}
-			</p>
-		</div>
+		{#if hasFilterChips}
+			<div class="results-toolbar-status">
+				{@render showingCount()}
+			</div>
+		{/if}
 
 		<div class="results-toolbar-view-modes">
 			<div class="results-toolbar-stats-display">
@@ -134,8 +141,8 @@
 	</div>
 
 	<div class="results-toolbar">
-		<div class="results-toolbar-filters" aria-label="Active filters">
-			{#if filterChips.length > 0}
+		{#if hasFilterChips}
+			<div class="results-toolbar-filters" aria-label="Active filters">
 				<span class="results-toolbar-filters-label">Filters</span>
 				<ul class="results-toolbar-filter-chips">
 					{#each filterChips as chip (chip.id)}
@@ -171,8 +178,12 @@
 						</li>
 					{/each}
 				</ul>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<div class="results-toolbar-status">
+				{@render showingCount()}
+			</div>
+		{/if}
 
 		<div class="results-toolbar-controls">
 			<label class="results-toolbar-field select-none">
