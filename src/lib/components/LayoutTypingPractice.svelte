@@ -351,52 +351,54 @@
 		class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
 	>
 		<div class="typing-practice-keyboard-main">
-			<LayoutKeyboardPreview
-				{layout}
-				{rows}
-				feedback={keyboardFeedback}
-				swapPaths={keyboardSwapPaths}
-				highlightedKeys={nextPracticeKeys}
-				highlightHomeKeys={displayOptions.colorHomeKeys}
-				horizontalAlignment="start"
-			/>
-			<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
-				<ToggleSwitch
-					checked={displayOptions.highlightNextKey}
-					label="Highlight next key"
-					onCheckedChange={(checked) =>
-						uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
+			<div class="typing-practice-keyboard-cluster">
+				<LayoutKeyboardPreview
+					{layout}
+					{rows}
+					feedback={keyboardFeedback}
+					swapPaths={keyboardSwapPaths}
+					highlightedKeys={nextPracticeKeys}
+					highlightHomeKeys={displayOptions.colorHomeKeys}
+					horizontalAlignment="start"
 				/>
-				<ToggleSwitch
-					checked={displayOptions.colorHomeKeys}
-					label="Color home keys"
-					onCheckedChange={(checked) =>
-						uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
-				/>
-				{#if hasSpecialKeys}
+				<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
 					<ToggleSwitch
-						checked={displayOptions.showSpecialKeys}
-						label="Show special keys"
+						checked={displayOptions.highlightNextKey}
+						label="Highlight next key"
 						onCheckedChange={(checked) =>
-							uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
+							uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
 					/>
-				{/if}
-				{#if hasAdaptiveSwapPreview}
 					<ToggleSwitch
-						checked={displayOptions.showAdaptiveSwaps}
-						label="Show Adaptive swaps"
+						checked={displayOptions.colorHomeKeys}
+						label="Color home keys"
 						onCheckedChange={(checked) =>
-							uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+							uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
 					/>
-					{#if displayOptions.showAdaptiveSwaps}
+					{#if hasSpecialKeys}
 						<ToggleSwitch
-							checked={displayOptions.showSwapPaths}
-							label="Show swap paths"
+							checked={displayOptions.showSpecialKeys}
+							label="Show special keys"
 							onCheckedChange={(checked) =>
-								uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+								uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
 						/>
 					{/if}
-				{/if}
+					{#if hasAdaptiveSwapPreview}
+						<ToggleSwitch
+							checked={displayOptions.showAdaptiveSwaps}
+							label="Show Adaptive swaps"
+							onCheckedChange={(checked) =>
+								uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+						/>
+						{#if displayOptions.showAdaptiveSwaps}
+							<ToggleSwitch
+								checked={displayOptions.showSwapPaths}
+								label="Show swap paths"
+								onCheckedChange={(checked) =>
+									uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+							/>
+						{/if}
+					{/if}
+				</div>
 			</div>
 		</div>
 		{#if showSpecialMappings && inputProfile}
@@ -551,6 +553,22 @@
 		min-width: 0;
 	}
 
+	.typing-practice-keyboard-main {
+		display: flex;
+		justify-content: center;
+	}
+
+	.typing-practice-keyboard-cluster {
+		width: max-content;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	.typing-practice-keyboard-cluster :global(.keyboard-preview) {
+		width: max-content;
+		max-width: 100%;
+	}
+
 	.typing-practice-mappings {
 		width: 100%;
 		max-width: 19.6875rem;
@@ -559,6 +577,7 @@
 
 	.typing-practice-keyboard-options {
 		display: flex;
+		width: 100%;
 		min-width: 0;
 		flex-flow: row wrap;
 		justify-content: flex-start;

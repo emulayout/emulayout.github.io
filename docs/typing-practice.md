@@ -39,11 +39,12 @@ renderer.
   keys, and show contextual special-key feedback when the layout has Magic or Adaptive mappings.
   Next-key guidance respects contextual input output and is withheld while the current input
   contains an error or is waiting for a word-separating Space.
-- The keyboard and its shared-switch options are left aligned, with the options in one unboxed row
-  directly below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only
-  while the Adaptive preview is enabled. When special keys are shown, a wider view places their
-  mappings in a column capped at 315px beside the larger keyboard column; smaller views stack the
-  keyboard and its options before the mappings.
+- The keyboard is centered in its primary column together with its shared-switch options. The
+  options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
+  below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only while the
+  Adaptive preview is enabled. When special keys are shown, a wider view keeps their mappings in a
+  right-hand column capped at 315px beside the larger keyboard column; smaller views stack the
+  centered keyboard group before the mappings.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM. Accuracy is correct character attempts divided by all

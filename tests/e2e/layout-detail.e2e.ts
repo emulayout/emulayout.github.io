@@ -532,6 +532,8 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const targetWord = (await practiceWords.first().textContent())!;
 	const nextCharacter = Array.from(targetWord)[0]!;
 	const keyboardPreview = practicePanel.getByRole('img', { name: 'QWERTY keyboard preview' });
+	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
+	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
 	const nextKeyToggle = keyboardOptions.getByRole('switch', { name: 'Highlight next key' });
 	const homeKeyToggle = keyboardOptions.getByRole('switch', { name: 'Color home keys' });
@@ -562,12 +564,21 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 
 	await expect(keyboardOptions).toHaveCSS('flex-direction', 'row');
 	await expect(keyboardOptions).toHaveCSS('justify-content', 'flex-start');
-	const [wideKeyboardBox, wideOptionsBox] = await Promise.all([
+	const [wideMainBox, wideClusterBox, wideKeyboardBox, wideOptionsBox] = await Promise.all([
+		keyboardMain.boundingBox(),
+		keyboardCluster.boundingBox(),
 		keyboardPreview.boundingBox(),
 		keyboardOptions.boundingBox()
 	]);
+	expect(wideMainBox).not.toBeNull();
+	expect(wideClusterBox).not.toBeNull();
 	expect(wideKeyboardBox).not.toBeNull();
 	expect(wideOptionsBox).not.toBeNull();
+	expect(wideClusterBox!.x + wideClusterBox!.width / 2).toBeCloseTo(
+		wideMainBox!.x + wideMainBox!.width / 2,
+		0
+	);
+	expect(wideOptionsBox!.x).toBeCloseTo(wideClusterBox!.x, 0);
 	expect(wideOptionsBox!.y).toBeGreaterThanOrEqual(wideKeyboardBox!.y + wideKeyboardBox!.height);
 	const firstKeyboardKeyBox = await keyboardPreview
 		.locator('[data-key-char]')
@@ -626,6 +637,7 @@ test('places special mappings beside the typing-practice keyboard', async ({ pag
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
+	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
 	const mappings = practicePanel.locator('.typing-practice-mappings');
 	const keyboardPreview = practicePanel.getByRole('img', {
 		name: 'adaptive-preview keyboard preview'
@@ -668,12 +680,18 @@ test('places special mappings beside the typing-practice keyboard', async ({ pag
 	await expect(keyboardPreview.locator('[data-key-feedback]')).toHaveCount(0);
 	await showSpecialKeys.check();
 	await expect(mappings).toBeVisible();
-	const [wideKeyboardBox, wideMappingsBox] = await Promise.all([
+	const [wideKeyboardBox, wideClusterBox, wideMappingsBox] = await Promise.all([
 		keyboardMain.boundingBox(),
+		keyboardCluster.boundingBox(),
 		mappings.boundingBox()
 	]);
 	expect(wideKeyboardBox).not.toBeNull();
+	expect(wideClusterBox).not.toBeNull();
 	expect(wideMappingsBox).not.toBeNull();
+	expect(wideClusterBox!.x + wideClusterBox!.width / 2).toBeCloseTo(
+		wideKeyboardBox!.x + wideKeyboardBox!.width / 2,
+		0
+	);
 	expect(wideMappingsBox!.width).toBeLessThanOrEqual(315);
 	expect(wideKeyboardBox!.width).toBeGreaterThan(wideMappingsBox!.width);
 	expect(wideMappingsBox!.x).toBeGreaterThanOrEqual(wideKeyboardBox!.x + wideKeyboardBox!.width);
