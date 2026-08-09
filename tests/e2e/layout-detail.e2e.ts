@@ -569,11 +569,13 @@ test.describe('typing-practice input layout', () => {
 		await expect(firstKey).toHaveAttribute('aria-invalid', 'true');
 		await expect(secondKey).toHaveAttribute('aria-invalid', 'true');
 		await expect(dialog.getByText('Each key value must be unique.')).toBeVisible();
+		await expect(dialog.locator('[data-keyboard-input-missing-ansi] kbd')).toHaveText(['q']);
 		await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled();
 		await firstKey.focus();
 		await firstKey.press('q');
 		await expect(firstKey).not.toHaveAttribute('aria-invalid', 'true');
 		await expect(secondKey).not.toHaveAttribute('aria-invalid', 'true');
+		await expect(dialog.locator('[data-keyboard-input-missing-ansi]')).toHaveCount(0);
 
 		await dialog.locator('[data-keyboard-input-slot="0,12"]').press('ArrowRight');
 		await expect(dialog.locator('[data-keyboard-input-slot="1,0"]')).toBeFocused();

@@ -57,8 +57,11 @@ through the QWERTY character for that slot; explicit values override those place
 The editor blocks Save when two effective values are the same, including a collision between an
 explicit value and another slot's QWERTY placeholder. Every field participating in a collision is
 marked invalid and receives a border using the dedicated `--keyboard-input-validation-error` theme
-variable. Catalog layout data is loaded only when the modal opens; an ordinary direct detail visit
-does not fetch the aggregate catalog merely because the control exists.
+variable. A non-blocking hint lists characters from the editor's standard ANSI set that are absent
+from the effective mapping. Missing ANSI characters do not prevent Save because specialized input
+layouts may intentionally use a different character set. Catalog layout data is loaded only when
+the modal opens; an ordinary direct detail visit does not fetch the aggregate catalog merely
+because the control exists.
 
 ## Persisted data
 

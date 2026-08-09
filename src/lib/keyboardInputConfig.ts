@@ -38,6 +38,8 @@ const DEFAULT_QWERTY_MAIN_KEYS: readonly KeyboardInputKey[] = DEFAULT_QWERTY_ROW
 	(row, rowIndex) => row.map((value, column) => ({ slot: `${rowIndex},${column}`, value }))
 );
 
+const STANDARD_ANSI_INPUT_VALUES = DEFAULT_QWERTY_MAIN_KEYS.map((key) => key.value);
+
 const DEFAULT_QWERTY_VALUE_BY_SLOT = new Map(
 	DEFAULT_QWERTY_MAIN_KEYS.map((key) => [key.slot, key.value])
 );
@@ -173,6 +175,11 @@ export function validateKeyboardInputConfig(
 
 export function keyboardInputConfigError(config: KeyboardInputConfig): string | null {
 	return validateKeyboardInputConfig(config).error;
+}
+
+export function keyboardInputMissingAnsiValues(config: KeyboardInputConfig): string[] {
+	const configuredValues = new Set(config.keys.map(keyboardInputEffectiveValue).filter(Boolean));
+	return STANDARD_ANSI_INPUT_VALUES.filter((value) => !configuredValues.has(value));
 }
 
 export function clearKeyboardInputConfig(config: KeyboardInputConfig): KeyboardInputConfig {

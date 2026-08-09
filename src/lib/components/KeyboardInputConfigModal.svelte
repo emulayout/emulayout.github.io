@@ -9,6 +9,7 @@
 		cloneKeyboardInputConfig,
 		createDefaultKeyboardInputConfig,
 		createKeyboardInputConfigFromLayout,
+		keyboardInputMissingAnsiValues,
 		validateKeyboardInputConfig,
 		type InputKeyboardType,
 		type KeyboardInputConfig
@@ -26,6 +27,7 @@
 	let draft = $state<KeyboardInputConfig>(createDefaultKeyboardInputConfig());
 	const validation = $derived(validateKeyboardInputConfig(draft));
 	const validationError = $derived(validation.error);
+	const missingAnsiValues = $derived(keyboardInputMissingAnsiValues(draft));
 
 	$effect(() => {
 		if (!open) return;
@@ -102,6 +104,17 @@
 				invalidSlots={validation.invalidSlots}
 				onConfigChange={(nextConfig) => (draft = nextConfig)}
 			/>
+
+			{#if missingAnsiValues.length > 0}
+				<p class="keyboard-input-config-hint" data-keyboard-input-missing-ansi>
+					<span>Potentially missing ANSI keys:</span>
+					<span class="keyboard-input-config-hint__keys">
+						{#each missingAnsiValues as value (value)}
+							<kbd>{value}</kbd>
+						{/each}
+					</span>
+				</p>
+			{/if}
 
 			{#if validationError}
 				<p class="keyboard-input-config-error" role="alert">{validationError}</p>
@@ -195,6 +208,39 @@
 		margin: 0;
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
+	}
+
+	.keyboard-input-config-hint {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.35rem 0.5rem;
+		margin: 0;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+	}
+
+	.keyboard-input-config-hint__keys {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.keyboard-input-config-hint kbd {
+		display: inline-flex;
+		min-width: 1.5rem;
+		min-height: 1.5rem;
+		align-items: center;
+		justify-content: center;
+		padding: 0.1rem 0.35rem;
+		border: 1px solid var(--border);
+		border-radius: 0.3rem;
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+		font-size: 0.8rem;
+		line-height: 1;
 	}
 
 	.keyboard-input-config-actions {

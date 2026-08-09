@@ -7,6 +7,7 @@ import {
 	keyboardInputConfigLabel,
 	keyboardInputConfigError,
 	keyboardInputEffectiveValue,
+	keyboardInputMissingAnsiValues,
 	keyboardInputPlaceholderValue,
 	keyboardInputRows,
 	isKeyboardInputHomeKeySlot,
@@ -72,6 +73,10 @@ describe('keyboard input configuration', () => {
 			error: 'Each key value must be unique.',
 			invalidSlots: ['0,0', '0,1']
 		});
+		expect(keyboardInputMissingAnsiValues(duplicate)).toEqual(['q']);
+		const uniqueButIncomplete = updateKeyboardInputKey(original, '0,0', '1');
+		expect(keyboardInputConfigError(uniqueButIncomplete)).toBeNull();
+		expect(keyboardInputMissingAnsiValues(uniqueButIncomplete)).toEqual(['q']);
 		const cleared = clearKeyboardInputConfig(original);
 		expect(cleared.baseLayoutName).toBeNull();
 		expect(cleared.keys.every((key) => key.value === '')).toBe(true);
@@ -81,6 +86,7 @@ describe('keyboard input configuration', () => {
 			invalidSlots: ['0,0', '0,1']
 		});
 		expect(keyboardInputConfigLabel(cleared)).toBe('QWERTY');
+		expect(keyboardInputMissingAnsiValues(cleared)).toEqual([]);
 		expect(parseKeyboardInputConfig(serializeKeyboardInputConfig(cleared))).toEqual(cleared);
 		expect(keyboardInputConfigError(original)).toBeNull();
 	});
