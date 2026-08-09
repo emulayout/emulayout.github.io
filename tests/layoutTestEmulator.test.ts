@@ -62,6 +62,7 @@ describe('layout test key maps and text edits', () => {
 		];
 		const maps = withKeyboardInputConfig(createLayoutTestKeyMaps('q w'), decodeLayout(target), {
 			baseLayoutName: 'custom',
+			baseLayoutModified: false,
 			keyboardType: 'ortho',
 			keys: [
 				{ slot: '0,0', value: 'b' },
@@ -77,6 +78,7 @@ describe('layout test key maps and text edits', () => {
 				decodeLayout(target),
 				{
 					baseLayoutName: 'custom',
+					baseLayoutModified: false,
 					keyboardType: 'ortho',
 					keys: [
 						{ slot: '0,0', value: 'b' },
@@ -126,6 +128,7 @@ describe('layout test key maps and text edits', () => {
 			target,
 			{
 				baseLayoutName: 'custom',
+				baseLayoutModified: false,
 				keyboardType: 'ortho',
 				keys: [
 					{ slot: '2,0', value: 'z' },
@@ -167,6 +170,7 @@ describe('layout test key maps and text edits', () => {
 			target,
 			{
 				baseLayoutName: 'custom',
+				baseLayoutModified: false,
 				keyboardType: 'ortho',
 				keys: [
 					{ slot: '2,0', value: 'a' },

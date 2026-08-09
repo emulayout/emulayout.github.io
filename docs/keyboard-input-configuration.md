@@ -18,6 +18,9 @@ one set of translation rules.
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice, the detail
   Layout test area, and index-card test areas all apply it.
+- The index page places the shared input-layout trigger beside the top-level Settings control. Below
+  the small-screen breakpoint, it keeps only the keyboard icon visible and exposes the full label
+  in a tooltip on hover or keyboard focus.
 
 The configuration modal offers two setup paths:
 
@@ -26,6 +29,10 @@ The configuration modal offers two setup paths:
    main-grid topology. Standard slots the imported layout does not define remain visible but inert;
    the source layout has no opinion about those keys.
 2. Edit any key after choosing a base. Every effective value must be unique.
+
+An untouched selected base names the shared trigger. Editing any key marks the configuration as
+modified, so every trigger reads `Input layout: Custom` while the selected base remains visible in
+the modal as provenance. Reselecting a base or Reset clears that modified state.
 
 The base layout is optional. The modal initially focuses its autocomplete without opening the
 listbox. Typing opens ranked matches, the chevron explicitly toggles an alphabetical list, and a
@@ -77,7 +84,8 @@ not fetch the aggregate catalog merely because the control exists.
 `src/lib/keyboardInputConfig.ts` owns the versioned `keyboardInputConfig` local-storage document.
 The stored model contains:
 
-- the base layout name as provenance for the autocomplete and trigger label;
+- the base layout name as provenance for the autocomplete and, while untouched, the trigger label;
+- whether a key has been edited since that base was selected;
 - the two-value keyboard presentation type;
 - key values keyed by stable `row,column` slots;
 - an optional inert marker for standard slots omitted by an imported base;
@@ -85,9 +93,10 @@ The stored model contains:
 
 Parsing rejects unknown versions, malformed slots, duplicate effective values, and invalid thumb
 metadata, then falls back to QWERTY. It restores missing standard main-grid slots and per-hand thumb
-placeholders in older saved profiles. Version 2 adds the inert marker; version-1 blank keys retain
-their former QWERTY fallback meaning during migration. Components edit cloned drafts; only Save
-replaces the shared state in `keyboardInputStore.svelte.ts` and writes local storage.
+placeholders in older saved profiles. Version 2 adds the inert marker; version 3 adds the base
+modified marker. Version-1 blank keys retain their former QWERTY fallback meaning during migration.
+Components edit cloned drafts; only Save replaces the shared state in
+`keyboardInputStore.svelte.ts` and writes local storage.
 
 ## Runtime translation
 
@@ -141,8 +150,8 @@ route- or feature-specific preference imports.
   6–9. Extended columns are never home keys.
 - Every configuration retains visible left- and right-thumb slots. The default mappings are empty
   and inert, and only explicitly assigned ordinary keys can produce target thumb outputs.
-- Selecting a base replaces the entire draft; editing afterward preserves its base name as
-  provenance.
+- Selecting a base replaces the entire draft. Editing afterward preserves its base name as
+  provenance but labels the shared controls `Custom`.
 - Draft changes do not affect typing until Save.
 - Catalog loading is modal-triggered and remains lazy on direct detail visits.
 - Consumers that have not opted in preserve their current `KeyboardEvent.code` behavior.

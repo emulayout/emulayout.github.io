@@ -16,7 +16,9 @@ const sparseIndexTarget: CompactLayout = [
 	[0, 0, 0, 2, 3]
 ];
 
-test('uses slot-aware configured input mapping in index-card test areas', async ({ page }) => {
+test('uses slot-aware configured input mapping and exposes its control in the index header', async ({
+	page
+}) => {
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [sparseIndexTarget] });
 	});
@@ -25,11 +27,40 @@ test('uses slot-aware configured input mapping in index-card test areas', async 
 	const testArea = page
 		.locator('[data-layout-name="sparse-index-target"]')
 		.getByPlaceholder('Layout test area');
+	const inputLayoutButton = page.getByRole('button', { name: 'Input layout: QWERTY' });
+	const settingsButton = page.getByRole('button', { name: 'Settings' });
+	const allLayoutsTab = page.getByRole('tab', { name: 'All layouts' });
+	await expect(inputLayoutButton).toBeVisible();
+	await expect(settingsButton).toBeVisible();
+	const inputLayoutButtonBox = await inputLayoutButton.boundingBox();
+	const settingsButtonBox = await settingsButton.boundingBox();
+	const allLayoutsTabBox = await allLayoutsTab.boundingBox();
+	expect(inputLayoutButtonBox).not.toBeNull();
+	expect(settingsButtonBox).not.toBeNull();
+	expect(allLayoutsTabBox).not.toBeNull();
+	expect(inputLayoutButtonBox!.x + inputLayoutButtonBox!.width).toBeLessThanOrEqual(
+		settingsButtonBox!.x
+	);
+	expect(
+		Math.abs(
+			inputLayoutButtonBox!.y +
+				inputLayoutButtonBox!.height / 2 -
+				(allLayoutsTabBox!.y + allLayoutsTabBox!.height / 2)
+		)
+	).toBeLessThanOrEqual(1);
 	await testArea.press('x');
 	await expect(testArea).toHaveValue('');
 	await testArea.press('c');
 	await testArea.press('v');
 	await expect(testArea).toHaveValue('.l');
+	await inputLayoutButton.click();
+	await expect(page.getByRole('dialog', { name: 'Configure input layout' })).toBeVisible();
+	await page.keyboard.press('Escape');
+
+	await page.setViewportSize({ width: 600, height: 900 });
+	await expect(inputLayoutButton.locator('.keyboard-input-config-label')).toBeHidden();
+	await inputLayoutButton.hover();
+	await expect(page.getByRole('tooltip')).toHaveText('Input layout: QWERTY');
 });
 
 test.describe('typing-practice input layout', () => {
@@ -190,9 +221,7 @@ test.describe('typing-practice input layout', () => {
 
 		await dialog.getByRole('button', { name: 'Save' }).click();
 		await expect(dialog).toHaveCount(0);
-		await expect(
-			practicePanel.getByRole('button', { name: 'Input layout: Colemak-DH' })
-		).toBeVisible();
+		await expect(practicePanel.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
 		expect(
 			await page.evaluate((key) => localStorage.getItem(key), KEYBOARD_INPUT_CONFIG_STORAGE_KEY)
 		).not.toBeNull();
@@ -203,7 +232,7 @@ test.describe('typing-practice input layout', () => {
 		await expect(
 			page
 				.getByRole('tabpanel', { name: 'Typing practice' })
-				.getByRole('button', { name: 'Input layout: Colemak-DH' })
+				.getByRole('button', { name: 'Input layout: Custom' })
 		).toBeVisible();
 		await page
 			.getByRole('tabpanel', { name: 'Typing practice' })
@@ -213,7 +242,7 @@ test.describe('typing-practice input layout', () => {
 
 		await page.getByRole('tab', { name: 'Layout test area' }).click();
 		const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
-		await expect(testPanel.getByRole('button', { name: 'Input layout: Colemak-DH' })).toBeVisible();
+		await expect(testPanel.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
 		const testInput = testPanel.getByRole('textbox', { name: 'Layout test area' });
 		await testInput.press('f');
 		await expect(testInput).toHaveValue('e');
@@ -224,6 +253,7 @@ test.describe('typing-practice input layout', () => {
 			.getByPlaceholder('Layout test area');
 		await indexTestInput.press('f');
 		await expect(indexTestInput).toHaveValue('e');
+		await expect(page.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
 	});
 
 	test('switches between an assigned real thumb key and Space simulation', async ({ page }) => {

@@ -35,6 +35,8 @@ describe('keyboard input configuration', () => {
 	test('provides a complete staggered QWERTY default and round-trips persistence', () => {
 		const config = createDefaultKeyboardInputConfig();
 		expect(config.baseLayoutName).toBe('QWERTY');
+		expect(config.baseLayoutModified).toBe(false);
+		expect(keyboardInputConfigLabel(config)).toBe('QWERTY');
 		expect(config.keyboardType).toBe('staggered');
 		expect(config.keys).toHaveLength(36);
 		expect(config.keys.find((key) => key.slot === '0,12')?.value).toBe('\\');
@@ -53,6 +55,8 @@ describe('keyboard input configuration', () => {
 	test('preserves thumb hands when a catalog layout becomes the editable base', () => {
 		const config = createKeyboardInputConfigFromLayout(decodeLayout(thumbLayout));
 		expect(config.baseLayoutName).toBe('thumb-base');
+		expect(config.baseLayoutModified).toBe(false);
+		expect(keyboardInputConfigLabel(config)).toBe('thumb-base');
 		expect(config.keyboardType).toBe('ortho');
 		expect(config.keys).toHaveLength(36);
 		expect(config.keys.find((key) => key.slot === '0,2')?.value).toBe('');
@@ -76,6 +80,9 @@ describe('keyboard input configuration', () => {
 		).toBe(true);
 
 		const assigned = updateKeyboardInputKey(imported, inertKey.slot, '1');
+		expect(assigned.baseLayoutName).toBe('thumb-base');
+		expect(assigned.baseLayoutModified).toBe(true);
+		expect(keyboardInputConfigLabel(assigned)).toBe('Custom');
 		expect(assigned.keys.find((key) => key.slot === inertKey.slot)).toEqual({
 			slot: '0,2',
 			value: '1'
@@ -102,7 +109,8 @@ describe('keyboard input configuration', () => {
 		const migrated = parseKeyboardInputConfig(legacy);
 		expect(migrated.keys.find((key) => key.slot === '0,0')).toEqual({ slot: '0,0', value: '' });
 		expect(keyboardInputEffectiveValue(migrated.keys.find((key) => key.slot === '0,0')!)).toBe('q');
-		expect(JSON.parse(serializeKeyboardInputConfig(migrated)).version).toBe(2);
+		expect(migrated.baseLayoutModified).toBe(false);
+		expect(JSON.parse(serializeKeyboardInputConfig(migrated)).version).toBe(3);
 	});
 
 	test('uses QWERTY placeholders for empty keys and rejects effective duplicates', () => {
@@ -110,6 +118,7 @@ describe('keyboard input configuration', () => {
 		const edited = updateKeyboardInputKey(original, '0,0', '1');
 		expect(original.keys[0].value).toBe('q');
 		expect(edited.keys[0].value).toBe('1');
+		expect(keyboardInputConfigLabel(edited)).toBe('Custom');
 		expect(cloneKeyboardInputConfig(edited)).not.toBe(edited);
 		expect(keyboardInputConfigError(updateKeyboardInputKey(original, '0,0', ''))).toBeNull();
 		const duplicate = updateKeyboardInputKey(original, '0,0', 'w');
@@ -124,6 +133,7 @@ describe('keyboard input configuration', () => {
 		expect(keyboardInputMissingAnsiValues(uniqueButIncomplete)).toEqual(['q']);
 		const cleared = clearKeyboardInputConfig(original);
 		expect(cleared.baseLayoutName).toBeNull();
+		expect(cleared.baseLayoutModified).toBe(false);
 		expect(cleared.keys.every((key) => key.value === '')).toBe(true);
 		expect(keyboardInputConfigError(cleared)).toBeNull();
 		expect(validateKeyboardInputConfig(updateKeyboardInputKey(cleared, '0,0', 'w'))).toEqual({
@@ -148,6 +158,7 @@ describe('keyboard input configuration', () => {
 	test('moves horizontally across row boundaries and vertically between rows', () => {
 		const rows = keyboardInputRows({
 			baseLayoutName: null,
+			baseLayoutModified: false,
 			keyboardType: 'ortho',
 			keys: [
 				{ slot: '0,0', value: 'a' },

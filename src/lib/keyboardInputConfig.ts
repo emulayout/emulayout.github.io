@@ -3,7 +3,7 @@ import { isHomeKeySlot, shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export const KEYBOARD_INPUT_CONFIG_STORAGE_KEY = 'keyboardInputConfig';
 
-const KEYBOARD_INPUT_CONFIG_VERSION = 2;
+const KEYBOARD_INPUT_CONFIG_VERSION = 3;
 
 export type InputKeyboardType = 'ortho' | 'staggered';
 
@@ -17,6 +17,8 @@ export interface KeyboardInputKey {
 
 export interface KeyboardInputConfig {
 	baseLayoutName: string | null;
+	/** At least one key has been edited since the current base was selected. */
+	baseLayoutModified: boolean;
 	keyboardType: InputKeyboardType;
 	keys: KeyboardInputKey[];
 }
@@ -125,7 +127,8 @@ export function keyboardInputEffectiveValue(key: KeyboardInputKey): string {
 }
 
 export function keyboardInputConfigLabel(config: KeyboardInputConfig): string {
-	if (config.baseLayoutName) return config.baseLayoutName;
+	if (config.baseLayoutName && !config.baseLayoutModified) return config.baseLayoutName;
+	if (config.baseLayoutModified) return 'Custom';
 	const hasCustomValue = config.keys.some((key) => {
 		const value = normalizeKeyboardInputValue(key.value);
 		return Boolean(value && value !== keyboardInputPlaceholderValue(key.slot));
@@ -136,6 +139,7 @@ export function keyboardInputConfigLabel(config: KeyboardInputConfig): string {
 export function createDefaultKeyboardInputConfig(): KeyboardInputConfig {
 	return {
 		baseLayoutName: 'QWERTY',
+		baseLayoutModified: false,
 		keyboardType: 'staggered',
 		keys: withKeyboardInputTopology([...DEFAULT_QWERTY_MAIN_KEYS])
 	};
@@ -154,6 +158,7 @@ export function createKeyboardInputConfigFromLayout(layout: LayoutData): Keyboar
 
 	return {
 		baseLayoutName: layout.name,
+		baseLayoutModified: false,
 		keyboardType: inputKeyboardTypeFromBoard(layout.board),
 		keys: withKeyboardInputTopology(keys, true)
 	};
@@ -209,6 +214,7 @@ export function clearKeyboardInputConfig(config: KeyboardInputConfig): KeyboardI
 	return {
 		...config,
 		baseLayoutName: null,
+		baseLayoutModified: false,
 		keys: config.keys.map((key) => ({
 			slot: key.slot,
 			value: '',
@@ -242,8 +248,15 @@ export function updateKeyboardInputKey(
 	value: string
 ): KeyboardInputConfig {
 	const normalizedValue = normalizeKeyboardInputValue(value);
+	const currentKey = config.keys.find((key) => key.slot === slot);
+	const keyChanged = Boolean(
+		currentKey &&
+		(currentKey.value !== normalizedValue ||
+			(currentKey.inert === true && Boolean(normalizedValue)))
+	);
 	return {
 		...config,
+		baseLayoutModified: config.baseLayoutName ? config.baseLayoutModified || keyChanged : false,
 		keys: config.keys.map((key) =>
 			key.slot === slot
 				? {
@@ -285,6 +298,9 @@ export function navigateKeyboardInputSlot(
 function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | null {
 	if (!isRecord(value)) return null;
 	if (value.keyboardType !== 'ortho' && value.keyboardType !== 'staggered') return null;
+	if (value.baseLayoutModified !== undefined && typeof value.baseLayoutModified !== 'boolean') {
+		return null;
+	}
 	if (!Array.isArray(value.keys)) return null;
 
 	const keys: KeyboardInputKey[] = [];
@@ -314,6 +330,7 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 
 	const config: KeyboardInputConfig = {
 		baseLayoutName: typeof value.baseLayoutName === 'string' ? value.baseLayoutName : null,
+		baseLayoutModified: value.baseLayoutModified === true,
 		keyboardType: value.keyboardType,
 		keys: withKeyboardInputTopology(keys)
 	};
@@ -324,7 +341,10 @@ export function parseKeyboardInputConfig(storedValue: string | null): KeyboardIn
 	if (storedValue === null) return createDefaultKeyboardInputConfig();
 	try {
 		const document: unknown = JSON.parse(storedValue);
-		if (!isRecord(document) || (document.version !== 1 && document.version !== 2)) {
+		if (
+			!isRecord(document) ||
+			(document.version !== 1 && document.version !== 2 && document.version !== 3)
+		) {
 			return createDefaultKeyboardInputConfig();
 		}
 		return normalizeKeyboardInputConfig(document.config) ?? createDefaultKeyboardInputConfig();
