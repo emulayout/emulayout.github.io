@@ -126,9 +126,8 @@ it. `LayoutTestArea.svelte` continues to own physical-key handling and contextua
 Its optional controlled-value callbacks let the practice consumer observe value changes and replace
 the field after a resolved logical keypress. The resolved-input hook receives the full resolver
 result so the completion-space path can record the logical attempt without duplicating the input
-engine. Typing practice and the detail Layout test area supply an input-layout key map compiled from
-the persisted configuration; catalog-card test areas still omit that map and retain their
-physical-code behavior.
+engine. Typing practice, the detail Layout test area, and catalog-card test areas supply an
+input-layout key map compiled from the persisted configuration and structured display geometry.
 
 The successful-space path is intentionally ordered:
 

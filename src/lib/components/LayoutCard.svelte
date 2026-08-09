@@ -12,6 +12,7 @@
 	import { uiPrefs, type LayoutCardStatsMode } from '$lib/uiPrefs.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import { isNewSinceLastSync } from '$lib/recentLayouts';
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
@@ -43,7 +44,7 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
-	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
 	import { buildLayoutStatsBlockModel, type LayoutCardMetric } from '$lib/layoutStatsBlockModel';
 	import {
 		getStatSortField,
@@ -215,7 +216,15 @@
 	});
 
 	const transformedDisplayValue = $derived(displayRowsToString(transformedDisplayRows));
-	const layoutTestKeyMaps = $derived(createLayoutTestKeyMaps(transformedDisplayValue));
+	const layoutTestKeyMaps = $derived(
+		createLayoutTestKeyMaps(transformedDisplayValue, {
+			layout,
+			rows: transformedDisplayRows
+		})
+	);
+	const configuredLayoutTestKeyMaps = $derived(
+		withKeyboardInputConfig(layoutTestKeyMaps, layout, keyboardInputStore.config)
+	);
 	const showSimilarDiffs = $derived(
 		Boolean(similarDiffPositions && similarDiffPositions.size > 0 && !isSimilarActive)
 	);
@@ -598,7 +607,12 @@
 				{/if}
 			{/if}
 			{#if renderTestArea}
-				<LayoutTestArea {layout} keyMaps={layoutTestKeyMaps} {inputProfile} {disabledMappingIds} />
+				<LayoutTestArea
+					{layout}
+					keyMaps={configuredLayoutTestKeyMaps}
+					{inputProfile}
+					{disabledMappingIds}
+				/>
 			{/if}
 		</div>
 	{/if}

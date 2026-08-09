@@ -1,10 +1,10 @@
 # Keyboard input configuration
 
 This document defines the reusable input-keyboard layer used to simulate a target layout when the
-browser is receiving keys from a non-QWERTY operating-system or firmware layout. Typing practice
-and the detail Layout test area share the same consumer model, while the configuration deliberately
-sits below both features so catalog-card test areas can adopt it without separate preferences or
-translation rules.
+browser is receiving keys from a non-QWERTY operating-system or firmware layout. Typing practice,
+the detail Layout test area, and catalog-card test areas share the same consumer model. The
+configuration deliberately sits below those features so every test surface uses one preference and
+one set of translation rules.
 
 ## Terminology and product model
 
@@ -16,9 +16,8 @@ translation rules.
   the existing Adaptive, Magic, and Repeat resolver.
 - QWERTY on a staggered board is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
-- The configuration is global and persists across routes and reloads. Typing practice and the
-  detail Layout test area opt into it; index-card test areas retain their existing mapping until
-  they are intentionally migrated.
+- The configuration is global and persists across routes and reloads. Typing practice, the detail
+  Layout test area, and index-card test areas all apply it.
 
 The configuration modal offers two setup paths:
 
@@ -118,8 +117,8 @@ route- or feature-specific preference imports.
 - Reusable modal trigger: `src/lib/components/KeyboardInputConfigControl.svelte`
 - Catalog-backed modal: `src/lib/components/KeyboardInputConfigModal.svelte`
 - Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`
-- Detail-page consumers: `src/lib/components/LayoutTypingPractice.svelte`,
-  `src/lib/components/LayoutExpandedView.svelte`
+- Consumers: `src/lib/components/LayoutTypingPractice.svelte`,
+  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/LayoutCard.svelte`
 - Pure coverage: `tests/keyboardInputConfig.test.ts`, `tests/layoutTestEmulator.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-input-layout.e2e.ts`
 

@@ -1,7 +1,36 @@
 import { expect, test } from './fixtures/test';
 import { KEYBOARD_INPUT_CONFIG_STORAGE_KEY } from '../../src/lib/keyboardInputConfig';
+import type { CompactLayout } from '../../src/lib/layoutCodec';
+import { qwerty } from './fixtures/catalog-data';
 
 test.use({ catalogVariant: 'core' });
+
+const sparseIndexTarget: CompactLayout = [
+	'sparse-index-target',
+	qwerty[1],
+	2,
+	'2026-08-09T00:00:00Z',
+	2,
+	['q', 'a', 'z', '.', 'l'],
+	[0, 1, 2, 2, 2],
+	[0, 0, 0, 2, 3]
+];
+
+test('uses slot-aware configured input mapping in index-card test areas', async ({ page }) => {
+	await page.route('**/all-layouts.json', async (route) => {
+		await route.fulfill({ json: [sparseIndexTarget] });
+	});
+	await page.goto('/?name=sparse-index-target&likes=0&newIndicator=0');
+
+	const testArea = page
+		.locator('[data-layout-name="sparse-index-target"]')
+		.getByPlaceholder('Layout test area');
+	await testArea.press('x');
+	await expect(testArea).toHaveValue('');
+	await testArea.press('c');
+	await testArea.press('v');
+	await expect(testArea).toHaveValue('.l');
+});
 
 test.describe('typing-practice input layout', () => {
 	test.use({ catalogVariant: 'full' });
@@ -186,5 +215,12 @@ test.describe('typing-practice input layout', () => {
 		const testInput = testPanel.getByRole('textbox', { name: 'Layout test area' });
 		await testInput.press('f');
 		await expect(testInput).toHaveValue('e');
+
+		await page.goto('/?name=QWERTY&likes=0&newIndicator=0');
+		const indexTestInput = page
+			.locator('[data-layout-name="QWERTY"]')
+			.getByPlaceholder('Layout test area');
+		await indexTestInput.press('f');
+		await expect(indexTestInput).toHaveValue('e');
 	});
 });

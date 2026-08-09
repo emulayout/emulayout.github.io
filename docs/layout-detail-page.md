@@ -93,9 +93,8 @@ small without weakening app-bar functionality.
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
-  control are reusable. The detail Layout test area uses the same persisted input layout for free
-  typing, while index-card emulators retain their existing physical-code mapping until that surface
-  explicitly adopts the configuration. See
+  control are reusable. The detail Layout test area and index-card emulators use the same persisted
+  input layout and structured slot mapping for free typing. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - `Layout test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard
   workspace follows it, using the same structure as Typing practice: the key group and its
