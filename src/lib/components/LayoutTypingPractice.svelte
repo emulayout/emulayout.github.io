@@ -405,10 +405,23 @@
 			onEscape={restartPractice}
 		/>
 		<div class="typing-practice-status" aria-label="Typing practice status">
-			<span aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
+			<span
+				class="typing-practice-status__count"
+				aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
 				>{session.completedWordCount}/{session.totalWordCount}</span
 			>
-			<span aria-label={`Elapsed time: ${elapsedTime}`}>{elapsedTime}</span>
+			{#if !customPracticeText}
+				<span class="typing-practice-status__credit">
+					Word bank source:<br />
+					<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
+						monkeytype <span aria-hidden="true">↗</span>
+					</a>
+					(english_1k)
+				</span>
+			{/if}
+			<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
+				>{elapsedTime}</span
+			>
 		</div>
 		<div
 			class="typing-practice-results"
@@ -631,9 +644,9 @@
 	}
 
 	.typing-practice-status {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: center;
-		justify-content: space-between;
 		gap: 1rem;
 		padding-inline: clamp(1rem, 8%, 4rem);
 		color: var(--text-secondary);
@@ -643,6 +656,44 @@
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
 		line-height: 1.2;
+	}
+
+	.typing-practice-status__count {
+		grid-column: 1;
+		justify-self: start;
+	}
+
+	.typing-practice-status__credit {
+		grid-column: 2;
+		justify-self: center;
+		color: color-mix(in srgb, var(--text-secondary) 60%, transparent);
+		font-size: clamp(0.625rem, 1.25vw, 0.75rem);
+		font-weight: 500;
+		text-align: center;
+	}
+
+	.typing-practice-status__credit a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.typing-practice-status__credit a:hover {
+		color: var(--text-secondary);
+		text-decoration: underline;
+	}
+
+	.typing-practice-status__credit a:focus-visible {
+		border-radius: 0.2rem;
+		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+		outline-offset: 0.15rem;
+	}
+
+	.typing-practice-status__time {
+		grid-column: 3;
+		justify-self: end;
 	}
 
 	.typing-practice-results {
