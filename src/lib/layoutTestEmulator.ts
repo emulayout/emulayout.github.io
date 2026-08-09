@@ -1,9 +1,18 @@
 import { buildKeyMap, buildShiftKeyMap, type KeyMap } from './cmini/keyboard';
 import type { ThumbKeyEntry } from './layout';
+import type { LayoutData } from '$lib/layout';
+import {
+	keyboardInputEffectiveValue,
+	parseKeyboardInputSlot,
+	type KeyboardInputConfig
+} from '$lib/keyboardInputConfig';
+import { QWERTY_CHAR_TO_SHIFTED, QWERTY_KEY_MAP } from '$lib/cmini/keyboard';
 
 export interface LayoutTestKeyMaps {
 	keyMap: KeyMap;
 	shiftKeyMap: KeyMap;
+	/** Browser-emitted key value → practiced-layout output for a configured input keyboard. */
+	inputKeyMap?: KeyMap;
 }
 
 export interface LayoutTestKeyInput {
@@ -46,6 +55,72 @@ export function createLayoutTestKeyMaps(displayValue: string): LayoutTestKeyMaps
 		keyMap,
 		shiftKeyMap: buildShiftKeyMap(keyMap)
 	};
+}
+
+function shiftedCharacter(character: string): string | undefined {
+	if (/^[a-z]$/u.test(character)) return character.toUpperCase();
+	return QWERTY_CHAR_TO_SHIFTED[character];
+}
+
+const codeBySlot = new Map(
+	Object.entries(QWERTY_KEY_MAP).map(([code, position]) => [
+		`${position.row},${position.col}`,
+		code
+	])
+);
+
+/**
+ * Add event.key-based translation for a configured input layout while retaining the legacy
+ * event.code maps as a fallback contract for consumers that have not opted in yet.
+ */
+export function withKeyboardInputConfig(
+	keyMaps: LayoutTestKeyMaps,
+	targetLayout: LayoutData,
+	inputConfig: KeyboardInputConfig
+): LayoutTestKeyMaps {
+	const inputKeyMap: KeyMap = {};
+	const thumbKeysByHand = { l: [] as typeof inputConfig.keys, r: [] as typeof inputConfig.keys };
+
+	for (const inputKey of inputConfig.keys) {
+		const position = parseKeyboardInputSlot(inputKey.slot);
+		if (!position || position.row < 3) continue;
+		const hand = inputKey.thumbHand ?? (position.column < 5 ? 'l' : 'r');
+		thumbKeysByHand[hand].push(inputKey);
+	}
+	for (const hand of ['l', 'r'] as const) {
+		thumbKeysByHand[hand].sort((a, b) => {
+			const aPosition = parseKeyboardInputSlot(a.slot);
+			const bPosition = parseKeyboardInputSlot(b.slot);
+			return (aPosition?.column ?? 0) - (bPosition?.column ?? 0);
+		});
+	}
+
+	for (const inputKey of inputConfig.keys) {
+		const source = keyboardInputEffectiveValue(inputKey);
+		const position = parseKeyboardInputSlot(inputKey.slot);
+		if (!source || !position) continue;
+
+		let target: string;
+		let shiftedTarget: string | undefined;
+		if (position.row < 3) {
+			const code = codeBySlot.get(inputKey.slot);
+			target = code ? (keyMaps.keyMap[code] ?? '') : '';
+			shiftedTarget = code ? keyMaps.shiftKeyMap[code] : undefined;
+		} else {
+			const hand = inputKey.thumbHand ?? (position.column < 5 ? 'l' : 'r');
+			const inputThumbIndex = thumbKeysByHand[hand].findIndex(
+				(candidate) => candidate.slot === inputKey.slot
+			);
+			target = targetLayout.thumbKeysByHand[hand][inputThumbIndex]?.key ?? '';
+			shiftedTarget = shiftedCharacter(target);
+		}
+
+		inputKeyMap[source] = target;
+		const shiftedSource = shiftedCharacter(source);
+		if (shiftedSource) inputKeyMap[shiftedSource] = shiftedTarget ?? '';
+	}
+
+	return { ...keyMaps, inputKeyMap };
 }
 
 export function insertTextAtSelection(
@@ -129,10 +204,15 @@ export function resolveLayoutTestKeyDown(
 
 	const captureThumbModifier =
 		options.hasThumbKeys && isThumbModifierHeld(input, options.metaThumbKeys);
-	const mappedCharacter = input.shiftKey
-		? options.keyMaps.shiftKeyMap[input.code]
-		: options.keyMaps.keyMap[input.code];
-	const mappedCode = input.code in options.keyMaps.keyMap;
+	const usesConfiguredInput = options.keyMaps.inputKeyMap !== undefined;
+	const mappedCharacter = usesConfiguredInput
+		? options.keyMaps.inputKeyMap?.[input.key]
+		: input.shiftKey
+			? options.keyMaps.shiftKeyMap[input.code]
+			: options.keyMaps.keyMap[input.code];
+	const mappedCode = usesConfiguredInput
+		? input.key in (options.keyMaps.inputKeyMap ?? {})
+		: input.code in options.keyMaps.keyMap;
 
 	if (!mappedCode && !captureThumbModifier) return PASS_THROUGH;
 	return {

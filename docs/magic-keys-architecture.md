@@ -166,11 +166,12 @@ failing deployment. If Cmini removes only a trigger a variant uses, sync publish
 
 For one captured layout key, the resolver:
 
-1. applies at most one Adaptive swap to the base output;
-2. treats that output as a possible Magic trigger;
-3. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
-4. otherwise, treats `@` as a possible Repeat trigger;
-5. inserts the final output and appends it once to bounded shared history.
+1. receives the target layout's base output after any opted-in input-layout translation;
+2. applies at most one Adaptive swap to the base output;
+3. treats that output as a possible Magic trigger;
+4. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
+5. otherwise, treats `@` as a possible Repeat trigger;
+6. inserts the final output and appends it once to bounded shared history.
 
 Magic and Repeat are not recursively applied during the same physical keypress. A Magic match also
 prevents the resulting text from being interpreted as Repeat output. This makes an explicit `@`

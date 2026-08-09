@@ -5,9 +5,11 @@ import {
 	resolveLayoutTestKeyDown,
 	shouldCaptureLayoutTestKeyUp,
 	usesMetaThumbKeys,
+	withKeyboardInputConfig,
 	type LayoutTestKeyInput,
 	type LayoutTestKeyOptions
 } from '$lib/layoutTestEmulator';
+import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
 
 function keyInput(overrides: Partial<LayoutTestKeyInput> = {}): LayoutTestKeyInput {
 	return {
@@ -44,6 +46,43 @@ describe('layout test key maps and text edits', () => {
 		expect(maps.shiftKeyMap.KeyA).toBe('A');
 		expect(maps.keyMap.Semicolon).toBe(';');
 		expect(maps.shiftKeyMap.Semicolon).toBe(':');
+	});
+
+	test('translates configured input-layout characters by position, including thumbs', () => {
+		const target: CompactLayout = [
+			'target',
+			1,
+			2,
+			'2026-01-01T00:00:00Z',
+			3,
+			['q', 'w', 'r'],
+			[0, 0, 3],
+			[0, 1, 2],
+			'l'
+		];
+		const maps = withKeyboardInputConfig(createLayoutTestKeyMaps('q w'), decodeLayout(target), {
+			baseLayoutName: 'custom',
+			keyboardType: 'ortho',
+			keys: [
+				{ slot: '0,0', value: 'b' },
+				{ slot: '0,1', value: 'l' },
+				{ slot: '3,4', value: 'e', thumbHand: 'l' }
+			]
+		});
+
+		expect(maps.inputKeyMap).toEqual({ b: 'q', B: 'Q', l: 'w', L: 'W', e: 'r', E: 'R' });
+		expect(
+			resolveLayoutTestKeyDown(keyInput({ key: 'b', code: 'KeyB' }), {
+				...keyOptions(),
+				hasThumbKeys: true,
+				thumbKeysByHand: decodeLayout(target).thumbKeysByHand,
+				keyMaps: maps
+			})
+		).toEqual({
+			preventDefault: true,
+			stopPropagation: false,
+			edit: { type: 'insert', text: 'q' }
+		});
 	});
 
 	test('replaces the current selection and advances the cursor', () => {

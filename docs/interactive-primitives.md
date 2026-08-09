@@ -66,6 +66,19 @@ opens the modal with the displayed lesson selected as the editable source; Cance
 button, Escape, and backdrop dismissal restore focus to that pencil. Saving replaces the prompt via
 the route's shareable `text` query parameter.
 
+The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
+uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor
+owns arrow-key navigation among its text fields: Left and Right cross row boundaries, Up and Down
+select the nearest key in the adjacent row, and entering one printable key advances to the next
+field. The modal validates a unique effective source-key map before Save and restores focus to its
+trigger on every dismissal path.
+
+`LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
+focus stays closed, typing opens ranked search matches, and the chevron toggles a default
+alphabetical list with the committed selection first. Refocusing after leaving the field also opens
+that default list. Selection closes the list but retains input focus. Consumers that supply
+`onClear` get a separate trailing clear button; clearing retains focus with the list closed.
+
 ## Invariants
 
 - Interactive consumers pass state down and receive changes through callbacks; primitives do not

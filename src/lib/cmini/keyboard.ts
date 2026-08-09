@@ -18,7 +18,7 @@ export function isHomeKeySlot(row: number, col: number): boolean {
 }
 
 // Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
-// Row 0: q w e r t y u i o p [ ]
+// Row 0: q w e r t y u i o p [ ] \
 // Row 1: a s d f g h j k l ; '
 // Row 2: z x c v b n m , . /
 export const QWERTY_KEY_MAP: Record<string, QwertyKeyPos> = {
@@ -34,6 +34,7 @@ export const QWERTY_KEY_MAP: Record<string, QwertyKeyPos> = {
 	KeyP: { row: 0, col: 9 },
 	BracketLeft: { row: 0, col: 10 },
 	BracketRight: { row: 0, col: 11 },
+	Backslash: { row: 0, col: 12 },
 	KeyA: { row: 1, col: 0 },
 	KeyS: { row: 1, col: 1 },
 	KeyD: { row: 1, col: 2 },

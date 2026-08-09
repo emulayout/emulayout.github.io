@@ -187,13 +187,15 @@ the UI consumes takes the first one. A profile carries `variantId`, `variantLabe
 
 For each captured layout key:
 
-1. Start with the base layout output for the physical key.
-2. Apply at most one adaptive-swap lookup using the preceding uninterrupted emitted history.
-3. Treat the Adaptive result as the candidate Magic-key trigger.
-4. Apply at most one Magic-key rule.
-5. If Magic did not match, apply Repeat-key behavior.
-6. Insert the final output once.
-7. Append that final output to bounded shared history.
+1. On a surface that has opted into input-layout configuration, translate the configured source
+   character to the target layout's physical slot. Otherwise, resolve the physical key directly.
+2. Start with the target layout's base output for that slot.
+3. Apply at most one adaptive-swap lookup using the preceding uninterrupted emitted history.
+4. Treat the Adaptive result as the candidate Magic-key trigger.
+5. Apply at most one Magic-key rule.
+6. If Magic did not match, apply Repeat-key behavior.
+7. Insert the final output once.
+8. Append that final output to bounded shared history.
 
 Output is not recursively processed during the same physical keypress. It can trigger behavior on
 the next keypress through history. The explicit Adaptive-then-Magic-then-Repeat order also means an
@@ -210,6 +212,9 @@ in the swapped output.
 ## UI boundaries
 
 - `LayoutTestArea` owns DOM keyboard events, textarea edits, and history resets.
+- The optional input-layout compiler owns source-character-to-target-slot translation before this
+  resolver. Typing practice is the first consumer; see
+  [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - The pure resolver owns matching, precedence, case handling, and bounded history.
 - `InputMappingsPanel` renders Magic and Adaptive feature sections and their ephemeral
   enable/disable controls. Section and group checkboxes are bulk controls over their individual

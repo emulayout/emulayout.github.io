@@ -34,6 +34,8 @@
 
 	let open = $state(false);
 	let requestedIndex = $state(0);
+	let hasFocusedOnce = $state(false);
+	let suppressNextFocusOpen = false;
 	let rootEl = $state<HTMLDivElement | undefined>(undefined);
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
 
@@ -42,11 +44,20 @@
 	/** Writable derived: follows `selected`, overridable while the user is typing. */
 	let query = $derived(committed);
 	const showClear = $derived(Boolean(onClear && committed));
-	const matches = $derived(findLayoutNameMatches(layouts, query, maxResults));
+	const defaultMatches = $derived.by(() => {
+		const names = layouts
+			.map((layout) => layout.name)
+			.toSorted((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+		if (!committed) return names.slice(0, maxResults);
+		return [committed, ...names.filter((name) => name !== committed)].slice(0, maxResults);
+	});
+	const matches = $derived(
+		open && (query.trim().length === 0 || query === committed)
+			? defaultMatches
+			: findLayoutNameMatches(layouts, query, maxResults)
+	);
 	const activeIndex = $derived(clampSearchResultIndex(requestedIndex, matches.length));
-
-	/** Don't open the list just because the committed name fills the field. */
-	const listOpen = $derived(open && query.trim().length > 0 && query.trim() !== committed);
+	const listOpen = $derived(open);
 
 	const highlightedName = $derived(
 		listOpen && matches.length > 0 ? (matches[activeIndex] ?? null) : null
@@ -67,7 +78,8 @@
 		query = name;
 		open = false;
 		requestedIndex = 0;
-		inputEl?.blur();
+		inputEl?.focus({ preventScroll: true });
+		inputEl?.select();
 	}
 
 	function handleClear() {
@@ -75,14 +87,26 @@
 		query = '';
 		open = false;
 		requestedIndex = 0;
-		inputEl?.focus();
+		suppressNextFocusOpen = true;
+		inputEl?.focus({ preventScroll: true });
 	}
 
 	function handleInputFocus() {
-		open = true;
+		const shouldOpen = hasFocusedOnce && !suppressNextFocusOpen;
+		hasFocusedOnce = true;
+		suppressNextFocusOpen = false;
+		if (shouldOpen) open = true;
 		if (committed && query === committed) {
 			inputEl?.select();
 		}
+	}
+
+	function toggleList() {
+		open = !open;
+		requestedIndex = 0;
+		suppressNextFocusOpen = document.activeElement !== inputEl;
+		inputEl?.focus({ preventScroll: true });
+		if (committed && query === committed) inputEl?.select();
 	}
 
 	function handleInput(event: Event) {
@@ -108,7 +132,6 @@
 				event.preventDefault();
 				event.stopPropagation();
 				resetToCommitted();
-				inputEl?.blur();
 			}
 			return;
 		}
@@ -130,18 +153,26 @@
 			if (name) selectName(name, 'enter');
 		}
 	}
+
+	function keyboardNavigation(node: HTMLInputElement) {
+		node.addEventListener('keydown', handleKeyDown);
+		return {
+			destroy() {
+				node.removeEventListener('keydown', handleKeyDown);
+			}
+		};
+	}
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={rootEl}
 	class="layout-autocomplete relative min-w-0 w-full"
 	onfocusout={handleFocusOut}
-	onkeydown={handleKeyDown}
 >
 	<label class="sr-only" for={id}>{label}</label>
 	<div class="layout-autocomplete-field relative min-w-0 w-full">
 		<input
+			use:keyboardNavigation
 			bind:this={inputEl}
 			{id}
 			type="text"
@@ -174,28 +205,52 @@
 			"
 		/>
 
-		{#if showClear}
+		<div class="layout-autocomplete-trailing" style="color: var(--text-secondary);">
+			{#if showClear}
+				<button
+					type="button"
+					class="layout-autocomplete-clear"
+					aria-label="Clear selected layout"
+					title="Clear"
+					onclick={handleClear}
+				>
+					<svg
+						class="size-3.5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						aria-hidden="true"
+					>
+						<path d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				</button>
+			{/if}
 			<button
 				type="button"
-				class="layout-autocomplete-clear"
-				style="color: var(--text-secondary);"
-				aria-label="Clear selected layout"
-				title="Clear"
-				onclick={handleClear}
+				class="layout-autocomplete-toggle"
+				aria-label={listOpen ? 'Hide layout options' : 'Show layout options'}
+				aria-expanded={listOpen}
+				aria-controls={listboxId}
+				onpointerdown={(event) => event.preventDefault()}
+				onclick={toggleList}
 			>
 				<svg
-					class="size-3.5"
+					class="layout-autocomplete-caret"
+					class:layout-autocomplete-caret--open={listOpen}
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
-					stroke-width="2.5"
+					stroke-width="2"
 					stroke-linecap="round"
+					stroke-linejoin="round"
 					aria-hidden="true"
 				>
-					<path d="M6 6l12 12M18 6L6 18" />
+					<path d="m6 9 6 6 6-6" />
 				</svg>
 			</button>
-		{/if}
+		</div>
 	</div>
 
 	{#if listOpen}
@@ -246,17 +301,25 @@
 
 	.layout-autocomplete-input {
 		padding-left: 0.75rem;
-		padding-right: 0.75rem;
+		padding-right: 2.25rem;
 	}
 
 	.layout-autocomplete-input--clearable {
-		padding-right: 2rem;
+		padding-right: 3.75rem;
+	}
+
+	.layout-autocomplete-trailing {
+		position: absolute;
+		top: 50%;
+		right: 0.625rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.125rem;
+		transform: translateY(-50%);
+		pointer-events: none;
 	}
 
 	.layout-autocomplete-clear {
-		position: absolute;
-		top: 50%;
-		right: 0.375rem;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -267,7 +330,7 @@
 		border: none;
 		border-radius: 0.375rem;
 		background: transparent;
-		transform: translateY(-50%);
+		pointer-events: auto;
 		cursor: pointer;
 	}
 
@@ -279,5 +342,42 @@
 	.layout-autocomplete-clear:focus-visible {
 		outline: none;
 		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.layout-autocomplete-caret {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+		transition: transform 0.2s ease;
+	}
+
+	.layout-autocomplete-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 0.375rem;
+		background: transparent;
+		color: inherit;
+		pointer-events: auto;
+		cursor: pointer;
+	}
+
+	.layout-autocomplete-toggle:hover {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+	}
+
+	.layout-autocomplete-toggle:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.layout-autocomplete-caret--open {
+		transform: rotate(180deg);
 	}
 </style>

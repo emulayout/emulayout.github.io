@@ -7,6 +7,7 @@
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import { hasOpenModal } from '$lib/modalScrollLock';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { onMount } from 'svelte';
@@ -71,6 +72,7 @@
 	onMount(() => {
 		debugEnabled = localStorage.getItem('debug') === 'true';
 		uiPrefs.hydrate();
+		keyboardInputStore.hydrate();
 
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';

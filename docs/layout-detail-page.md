@@ -12,10 +12,10 @@ AI implementation context for the dedicated page that replaces the former expand
   Find, Compare, help hints, theme controls, and the home link.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
-- Detail URLs are canonical layout paths whose only query state is `tab=practice`, `tab=test`, or
-  `tab=stats`. Index filters, selections, and display state are reset while the detail route is
-  active and cannot rewrite its URL. Missing, invalid, or mixed query state is canonicalized to one
-  valid `tab` value.
+- Detail URLs are canonical layout paths whose query state is a valid `tab=practice`, `tab=test`, or
+  `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters, selections, and
+  display state are reset while the detail route is active and cannot rewrite its URL. Missing,
+  invalid, or mixed tab state is canonicalized to one valid `tab` value.
 - When a detail page was opened from the catalog, `All layouts` uses browser history to restore
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
@@ -87,6 +87,13 @@ small without weakening app-bar functionality.
   uses the same input resolver, anglemod state, disabled mappings, and uninterrupted-history rules
   as the Test area. See [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary
   provenance, and extension boundaries.
+- Typing practice exposes the shared input-layout configuration control. Its modal can seed the
+  editable physical key map from any known layout, choose staggered or ortho presentation, and
+  persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
+  loads the aggregate catalog because the picker requires all known layouts. The compiler and
+  control are reusable, but Test area and index-card emulators retain their existing physical-code
+  mapping until those surfaces explicitly adopt the configuration. See
+  [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
   controls share that first row on the right while the emulator occupies the larger left portion;
   narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
@@ -141,6 +148,11 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
+- Shared input-layout model, persisted store, modal, and editor: `src/lib/keyboardInputConfig.ts`,
+  `src/lib/keyboardInputStore.svelte.ts`,
+  `src/lib/components/KeyboardInputConfigControl.svelte`,
+  `src/lib/components/KeyboardInputConfigModal.svelte`,
+  `src/lib/components/KeyboardInputEditor.svelte`
 - Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
   `src/lib/layoutDetailStatsPrefs.ts`
 - Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
@@ -155,7 +167,8 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - The app remains client-only (`ssr = false`). The home page is prerendered to `index.html`, and the
   static adapter emits `404.html` so GitHub Pages can bootstrap direct client-side route requests.
 - A direct detail link loads one generated layout-detail file and does not fetch the aggregate
-  catalog unless an aggregate-dependent feature such as Compare is opened.
+  catalog unless an aggregate-dependent feature such as Compare or the input-layout base picker is
+  opened.
 - A direct detail link resolves cmini and Mana2 stats for the persisted corpus from that detail file;
   changing or reloading routes does not silently fall back to Monkeyracer.
 - The index and detail corpus selectors are two controls for one persisted preference. Changing

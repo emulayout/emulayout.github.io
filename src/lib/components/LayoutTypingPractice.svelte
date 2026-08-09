@@ -2,6 +2,7 @@
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
+	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import TypingPracticeTextModal from '$lib/components/TypingPracticeTextModal.svelte';
 	import type { LayoutData } from '$lib/layout';
@@ -11,7 +12,8 @@
 		buildAdaptiveKeyboardSwapPaths,
 		buildLayoutKeyboardFeedback
 	} from '$lib/layoutKeyboardFeedback';
-	import type { LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { withKeyboardInputConfig, type LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		calculateTypingPracticeResults,
 		countTypingPracticeInputAttempts,
@@ -94,6 +96,9 @@
 	);
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
+	const practiceKeyMaps = $derived(
+		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config)
+	);
 	const prompt = $derived(buildTypingPracticePrompt(session));
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
 	const practiceComplete = $derived(
@@ -318,7 +323,7 @@
 	<div class="typing-practice-input">
 		<LayoutTestArea
 			{layout}
-			{keyMaps}
+			keyMaps={practiceKeyMaps}
 			{inputProfile}
 			{disabledMappingIds}
 			variant="practice"
@@ -365,6 +370,7 @@
 					horizontalAlignment="start"
 				/>
 				<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
+					<KeyboardInputConfigControl />
 					<ToggleSwitch
 						checked={displayOptions.highlightNextKey}
 						label="Highlight next key"

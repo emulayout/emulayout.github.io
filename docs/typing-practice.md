@@ -39,6 +39,11 @@ renderer.
   keys, and show contextual special-key feedback when the layout has Magic or Adaptive mappings.
   Next-key guidance respects contextual input output and is withheld while the current input
   contains an error or is waiting for a word-separating Space.
+- The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
+  including thumbs, from any known catalog layout and then edit individual keys. The configuration
+  is global and persisted, while Typing practice is currently the only input surface that applies
+  it. See [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable
+  model and event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
   below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only while the
@@ -96,6 +101,9 @@ it. `LayoutTestArea.svelte` continues to own physical-key handling and contextua
 Its optional controlled-value callbacks let the practice consumer observe value changes and replace
 the field after a resolved logical keypress. This hook receives the full resolver result so later
 metrics can inspect applied Adaptive, Magic, or Repeat behavior without duplicating the input engine.
+Typing practice also supplies an input-layout key map compiled from the persisted configuration;
+other `LayoutTestArea` consumers omit that map and retain their current physical-code behavior until
+they explicitly adopt the shared configuration.
 
 The successful-space path is intentionally ordered:
 
@@ -123,6 +131,12 @@ The successful-space path is intentionally ordered:
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
 - Custom-text parsing and URL parameter: `src/lib/typingPracticeText.ts`
+- Input-layout model, validation, persistence, and target-map compiler:
+  `src/lib/keyboardInputConfig.ts`, `src/lib/keyboardInputStore.svelte.ts`,
+  `src/lib/layoutTestEmulator.ts`
+- Reusable input-layout control and editor: `src/lib/components/KeyboardInputConfigControl.svelte`,
+  `src/lib/components/KeyboardInputConfigModal.svelte`,
+  `src/lib/components/KeyboardInputEditor.svelte`
 - Shared persisted preference state: `src/lib/uiPrefs.svelte.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
@@ -146,3 +160,5 @@ The successful-space path is intentionally ordered:
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
 - Test area and Typing practice keep independent text and contextual histories.
+- Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
+  displayed target layout or its contextual profile.
