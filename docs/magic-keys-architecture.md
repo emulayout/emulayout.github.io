@@ -240,6 +240,12 @@ it with currently armed Adaptive swaps without changing the formatted text board
 key is both a Magic trigger and part of an armed Adaptive swap, the Adaptive presentation wins
 because Adaptive changes that physical key before Magic behavior is considered.
 
+Typing practice also offers a separate, default-off Magic-group underline. It marks the preceding
+context and emitted target characters for every enabled rule that can replace part of a lesson word.
+For a trigger with repeat-last fallback, eligible adjacent doubled letters in the same word are
+marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
+set; it does not alter input resolution or the default prompt presentation.
+
 ## Analyzer boundaries
 
 Cmini stats describe the base layout and do not incorporate contextual behavior.

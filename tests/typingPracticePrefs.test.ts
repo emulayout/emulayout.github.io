@@ -18,6 +18,7 @@ describe('typing practice display preferences', () => {
 			...createDefaultTypingPracticeDisplayOptions(),
 			highlightNextKey: true,
 			colorHomeKeys: true,
+			underlineMagicGroups: true,
 			onlyRelevantAdaptiveSwaps: true,
 			showSwapPaths: true
 		};

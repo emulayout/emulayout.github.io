@@ -32,6 +32,7 @@
 		type TypingPracticeSession
 	} from '$lib/typingPractice';
 	import { resolveNextTypingPracticeKeys } from '$lib/typingPracticeKeyboard';
+	import { buildTypingPracticeMagicGroupIndexes } from '$lib/typingPracticeMagicGroups';
 	import { typingPracticeWordsFromText } from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
@@ -96,11 +97,26 @@
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
+	const hasMagicGroupPreview = $derived(Boolean(inputProfile?.magicKeys));
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
 	const practiceKeyMaps = $derived(
 		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config)
 	);
 	const prompt = $derived(buildTypingPracticePrompt(session));
+	const magicGroupIndexes = $derived(
+		new Map(
+			prompt.map((word) => [
+				word.id,
+				displayOptions.underlineMagicGroups
+					? buildTypingPracticeMagicGroupIndexes(
+							word.word,
+							inputProfile?.magicKeys,
+							disabledMappingIds
+						)
+					: new Set<number>()
+			])
+		)
+	);
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
 	const practiceComplete = $derived(
 		session.totalWordCount > 0 && session.completedWordCount === session.totalWordCount
@@ -265,6 +281,12 @@
 							<span
 								class:typing-practice-character--correct={character.status === 'correct'}
 								class:typing-practice-character--incorrect={character.status === 'incorrect'}
+								class:typing-practice-character--magic-group={magicGroupIndexes
+									.get(word.id)
+									?.has(characterIndex)}
+								data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
+									? 'true'
+									: undefined}
 								data-character-status={character.status}>{character.character}</span
 							>
 						{/each}
@@ -395,6 +417,14 @@
 									uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
 							/>
 						{/if}
+						{#if hasMagicGroupPreview}
+							<ToggleSwitch
+								checked={displayOptions.underlineMagicGroups}
+								label="Underline magic group"
+								onCheckedChange={(checked) =>
+									uiPrefs.setTypingPracticeDisplayOption('underlineMagicGroups', checked)}
+							/>
+						{/if}
 						{#if hasAdaptiveSwapPreview}
 							<ToggleSwitch
 								checked={displayOptions.showAdaptiveSwaps}
@@ -521,6 +551,12 @@
 
 	.typing-practice-character--incorrect {
 		color: var(--typing-practice-incorrect);
+	}
+
+	.typing-practice-character--magic-group {
+		text-decoration-line: underline;
+		text-decoration-thickness: 0.08em;
+		text-underline-offset: 0.12em;
 	}
 
 	.typing-practice-input {

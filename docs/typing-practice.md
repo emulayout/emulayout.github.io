@@ -40,6 +40,11 @@ renderer.
   and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
   guidance respects contextual input output and is withheld while the current input contains an
   error or is waiting for a word-separating Space.
+- Layouts with curated Magic mappings add a default-off Underline magic group option. It underlines
+  each target substring that can be entered with a Magic key, including the preceding rule context
+  and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
+  letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
+  precedence.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
   is global and persisted, while Typing practice is currently the only input surface that applies
@@ -140,6 +145,7 @@ The successful-space path is intentionally ordered:
 - Timing, accuracy, and WPM calculations: `src/lib/typingPracticeMetrics.ts`
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
+- Magic-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
 - Custom-text parsing and URL parameter: `src/lib/typingPracticeText.ts`
 - Input-layout model, validation, persistence, and target-map compiler:
   `src/lib/keyboardInputConfig.ts`, `src/lib/keyboardInputStore.svelte.ts`,

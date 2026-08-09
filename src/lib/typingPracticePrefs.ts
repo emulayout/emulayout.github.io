@@ -6,6 +6,7 @@ export interface TypingPracticeDisplayOptions {
 	highlightNextKey: boolean;
 	colorHomeKeys: boolean;
 	showSpecialKeys: boolean;
+	underlineMagicGroups: boolean;
 	showAdaptiveSwaps: boolean;
 	onlyRelevantAdaptiveSwaps: boolean;
 	showSwapPaths: boolean;
@@ -16,6 +17,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		highlightNextKey: false,
 		colorHomeKeys: false,
 		showSpecialKeys: true,
+		underlineMagicGroups: false,
 		showAdaptiveSwaps: true,
 		onlyRelevantAdaptiveSwaps: false,
 		showSwapPaths: false
@@ -39,6 +41,10 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 			typeof value.colorHomeKeys === 'boolean' ? value.colorHomeKeys : defaults.colorHomeKeys,
 		showSpecialKeys:
 			typeof value.showSpecialKeys === 'boolean' ? value.showSpecialKeys : defaults.showSpecialKeys,
+		underlineMagicGroups:
+			typeof value.underlineMagicGroups === 'boolean'
+				? value.underlineMagicGroups
+				: defaults.underlineMagicGroups,
 		showAdaptiveSwaps:
 			typeof value.showAdaptiveSwaps === 'boolean'
 				? value.showAdaptiveSwaps

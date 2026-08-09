@@ -16,7 +16,8 @@ import {
 	lela,
 	missingOrthoColumn,
 	qwerty,
-	repeatKey
+	repeatKey,
+	vylet
 } from './fixtures/catalog-data';
 
 test.use({ catalogVariant: 'core' });
@@ -983,6 +984,51 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await expect(
 		restoredKeyboardOptions.getByRole('switch', { name: 'Show swap paths' })
 	).toBeChecked();
+});
+
+test('underlines enabled Magic groups in typing-practice words', async ({ page }) => {
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: vylet,
+				authorName: 'acas',
+				likeCount: 0,
+				supplemental: {
+					schema: 1,
+					variants: [
+						{
+							id: 'default',
+							magicKeys: {
+								mappings: {
+									'*': { rules: { e: 'x' }, fallback: 'repeat-last' }
+								}
+							}
+						}
+					]
+				},
+				stats: {}
+			}
+		});
+	});
+	await page.goto('/layouts/vylet?text=explode%20will');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const underlineMagicGroup = practicePanel.getByRole('switch', {
+		name: 'Underline magic group'
+	});
+	const words = practicePanel.locator('[data-practice-word]');
+	await expect(underlineMagicGroup).not.toBeChecked();
+	await expect(practicePanel.locator('[data-magic-group="true"]')).toHaveCount(0);
+
+	await underlineMagicGroup.check();
+	await expect(words.nth(0).locator('[data-magic-group="true"]')).toHaveText(['e', 'x']);
+	await expect(words.nth(1).locator('[data-magic-group="true"]')).toHaveText(['l', 'l']);
+
+	await page.reload();
+	await expect(underlineMagicGroup).toBeChecked();
+	await expect(words.nth(0).locator('[data-magic-group="true"]')).toHaveText(['e', 'x']);
+	await expect(words.nth(1).locator('[data-magic-group="true"]')).toHaveText(['l', 'l']);
 });
 
 test('colors typing-practice feedback and advances only a completed word', async ({ page }) => {
