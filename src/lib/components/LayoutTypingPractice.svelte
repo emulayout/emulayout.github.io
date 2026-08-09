@@ -63,6 +63,10 @@
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
+	const FULL_KEY_GAP_REM = 0.45;
+	const COMPACT_KEY_GAP_REM = 0.25;
+	const COMPACT_MAPPINGS_RESERVED_REM = 15.5;
+	const WIDE_MAPPINGS_RESERVED_REM = 21.1875;
 	type WordPoolStatus = 'loading' | 'ready' | 'error';
 	let wordPool = $state<string[]>([]);
 	let wordPoolStatus = $state<WordPoolStatus>('loading');
@@ -88,6 +92,62 @@
 	let startedAtMilliseconds = $state<number | null>(null);
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
+
+	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
+		if (layout.board === 'ortho' || layout.board === 'mini') {
+			const mainRowMaxColumn = Math.max(
+				9,
+				...Object.values(layout.keys)
+					.filter(({ row }) => row < 3)
+					.map(({ col }) => col)
+			);
+			const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
+			return {
+				keyUnits: 5 + rightSlotCount + 0.48,
+				gapCount: rightSlotCount + 3
+			};
+		}
+
+		const rowTerms = rows.flatMap((row) => {
+			const keys = row.filter((cell) => cell.slot !== null);
+			if (keys.length === 0) return [];
+			const rowNumber = Number(keys[0].slot?.split(',')[0]);
+			if (rowNumber >= 3) return [];
+			const rowOffset = rowNumber === 1 ? 0.28 : rowNumber === 2 ? 0.68 : 0;
+			return [{ keyUnits: keys.length + rowOffset, gapCount: Math.max(keys.length - 1, 0) }];
+		});
+
+		return (
+			rowTerms.sort(
+				(a, b) =>
+					b.keyUnits * 3.35 +
+					b.gapCount * FULL_KEY_GAP_REM -
+					(a.keyUnits * 3.35 + a.gapCount * FULL_KEY_GAP_REM)
+			)[0] ?? { keyUnits: 10, gapCount: 9 }
+		);
+	}
+
+	function fittedKeySize(
+		keyUnits: number,
+		gapCount: number,
+		gapRem: number,
+		reservedRem = 0
+	): string {
+		const containerShare = (100 / keyUnits).toFixed(5);
+		const reservedShare = ((gapCount * gapRem + reservedRem) / keyUnits).toFixed(5);
+		return `calc(${containerShare}cqw - ${reservedShare}rem)`;
+	}
+
+	const keyboardSizingStyle = $derived.by(() => {
+		const { keyUnits, gapCount } = keyboardWidthTerms();
+		return [
+			`--keyboard-preview-key-size-stacked: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM)}`,
+			`--keyboard-preview-key-size-compact: ${fittedKeySize(keyUnits, gapCount, COMPACT_KEY_GAP_REM)}`,
+			`--keyboard-preview-key-size-with-compact-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, COMPACT_MAPPINGS_RESERVED_REM)}`,
+			`--keyboard-preview-key-size-with-wide-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, WIDE_MAPPINGS_RESERVED_REM)}`
+		].join('; ');
+	});
+
 	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
@@ -397,6 +457,7 @@
 			<div
 				class="typing-practice-keyboard-layout"
 				class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
+				style={keyboardSizingStyle}
 			>
 				<div class="typing-practice-keyboard-cluster">
 					<div class="typing-practice-keyboard-preview-area">
@@ -631,6 +692,8 @@
 	}
 
 	.typing-practice-keyboard-layout {
+		--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-stacked));
+		--keyboard-preview-key-gap: 0.45rem;
 		display: grid;
 		width: max-content;
 		max-width: 100%;
@@ -697,15 +760,18 @@
 
 	@container typing-practice-keyboard (max-width: 30rem) {
 		.typing-practice-keyboard-layout {
-			--keyboard-preview-key-size: clamp(1.5rem, 7.6cqw, 2.35rem);
-			--keyboard-preview-key-gap: clamp(0.125rem, 0.7cqw, 0.25rem);
+			--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-compact));
+			--keyboard-preview-key-gap: 0.25rem;
 		}
 	}
 
 	@container typing-practice-keyboard (min-width: 50rem) {
 		.typing-practice-keyboard-layout--with-mappings {
-			--keyboard-preview-key-size: clamp(2.35rem, 4.8cqw, 3.35rem);
-			--keyboard-preview-key-gap: clamp(0.2rem, 0.45cqw, 0.45rem);
+			--keyboard-preview-key-size: min(
+				3.35rem,
+				var(--keyboard-preview-key-size-with-compact-mappings)
+			);
+			--keyboard-preview-key-gap: 0.45rem;
 			grid-template-columns: max-content 14rem;
 			align-items: start;
 		}
@@ -719,8 +785,10 @@
 
 	@container typing-practice-keyboard (min-width: 72rem) {
 		.typing-practice-keyboard-layout--with-mappings {
-			--keyboard-preview-key-size: clamp(2.35rem, 4.7vw, 3.35rem);
-			--keyboard-preview-key-gap: clamp(0.25rem, 0.65vw, 0.45rem);
+			--keyboard-preview-key-size: min(
+				3.35rem,
+				var(--keyboard-preview-key-size-with-wide-mappings)
+			);
 			grid-template-columns: max-content 19.6875rem;
 		}
 

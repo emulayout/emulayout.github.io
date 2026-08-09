@@ -64,11 +64,12 @@ renderer.
   produce the next required lesson character. When special keys are shown, a wider view keeps their mappings in a
   right-hand column capped at 315px. The keyboard and mappings share one intrinsic-width wrapper so
   their combined footprint stays centered. At intermediate widths the mappings column narrows and
-  presents one mapping per line while the keyboard keys and gaps scale down to keep the combined
-  group within the page. Regions without room for both columns place that compact mappings panel
-  beneath the keyboard and expand it to the full width of the shared keyboard area. At phone widths
-  the keys and gaps continue scaling with the practice region, keeping the full keyboard inside the
-  detail column instead of widening the page.
+  presents one mapping per line. The keyboard derives its intrinsic width from the current board's
+  actual row geometry and retains full-size keys until that board no longer fits beside the mappings
+  or within the stacked region; only then does it scale down. Regions without room for both columns
+  place that compact mappings panel beneath the keyboard and expand it to the full width of the shared
+  keyboard area. At phone widths the keys and gaps continue scaling with the practice region, keeping
+  the full keyboard inside the detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM in a row whose height is reserved throughout the lesson, so

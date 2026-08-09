@@ -730,8 +730,8 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 		keyboardPreview.locator('[data-keyboard-row="0"] [data-key-home="true"]')
 	).toHaveCount(0);
 
-	await expect(keyboardOptions).toHaveCSS('flex-direction', 'row');
-	await expect(keyboardOptions).toHaveCSS('justify-content', 'flex-start');
+	await expect(keyboardOptions).toHaveCSS('display', 'grid');
+	await expect(keyboardOptions).toHaveCSS('grid-auto-flow', 'row');
 	const [wideMainBox, wideClusterBox, wideKeyboardBox, wideOptionsBox, wideInputLayoutBox] =
 		await Promise.all([
 			keyboardMain.boundingBox(),
@@ -926,7 +926,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	expect(compactMappingsBox!.width).toBeLessThanOrEqual(224);
 	const compactKeyBox = await yKey.boundingBox();
 	expect(compactKeyBox).not.toBeNull();
-	expect(compactKeyBox!.width).toBeLessThan(wideKeyBox!.width);
+	expect(compactKeyBox!.width).toBeCloseTo(wideKeyBox!.width, 0);
 	const compactMappingRows = await mappings
 		.locator('.mapping-row')
 		.evaluateAll((elements) =>
@@ -960,6 +960,9 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	expect(keyboardOverflow.scrollWidth).toBeLessThanOrEqual(keyboardOverflow.clientWidth + 1);
 
 	await page.setViewportSize({ width: 468, height: 900 });
+	const phoneKeyBox = await yKey.boundingBox();
+	expect(phoneKeyBox).not.toBeNull();
+	expect(phoneKeyBox!.width).toBeLessThan(wideKeyBox!.width);
 	const narrowPageBounds = await page.evaluate(() => {
 		const detailColumns = document.querySelector('.detail-columns');
 		const keyboardKeys = document.querySelector('.keyboard-preview__keys');
