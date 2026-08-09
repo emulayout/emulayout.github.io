@@ -613,7 +613,7 @@ test('colors typing-practice feedback and advances only a completed word', async
 	await expect(results).toHaveText(completedResults!);
 });
 
-test('disables and re-enables a Repeat key from the persistent options', async ({ page }) => {
+test('keeps Repeat enabled without a detail-page toggle', async ({ page }) => {
 	await page.route('**/layout-details/*.json', async (route) => {
 		await route.fulfill({
 			json: {
@@ -627,21 +627,13 @@ test('disables and re-enables a Repeat key from the persistent options', async (
 	});
 	await page.goto('/layouts/repeat-key?tab=test');
 
-	const repeatOption = page.getByRole('button', { name: 'Disable repeat key' });
 	const repeatTestArea = page.getByPlaceholder('Layout test area');
+	await expect(page.getByRole('button', { name: 'Disable repeat key' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Enable repeat key' })).toHaveCount(0);
 	await repeatTestArea.focus();
 	await page.keyboard.press('a');
 	await page.keyboard.press('/');
 	await expect(repeatTestArea).toHaveValue('aa');
-	await page.keyboard.press('Escape');
-	await repeatOption.click();
-	await expect(page.getByRole('button', { name: 'Enable repeat key' })).toBeVisible();
-	await repeatTestArea.focus();
-	await page.keyboard.press('a');
-	await page.keyboard.press('/');
-	await expect(repeatTestArea).toHaveValue('a@');
-	await page.getByRole('button', { name: 'Enable repeat key' }).click();
-	await expect(page.getByRole('button', { name: 'Disable repeat key' })).toBeVisible();
 });
 
 test('highlights both a direct key and Repeat when either can type the next letter', async ({

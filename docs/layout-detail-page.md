@@ -74,9 +74,9 @@ small without weakening app-bar functionality.
   summaries stack them, and catalog cards retain their existing presentation.
 - Ordinary external links below the card open the layout in Cyanophage when compatible and open a
   custom typing lesson on Colemak Camp. These are semantic links rather than button-driven menus.
-- A persistent option below those links disables or re-enables a Repeat key when present. The
-  summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
-  update the card, typing emulator, and generated external links together.
+- Repeat behavior stays enabled on the detail page and has no detail-page toggle. The summary card
+  keeps the catalog-style anglemod action as its only card action. Anglemod changes update the card,
+  typing emulator, and generated external links together.
 - The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and
   control only that main content. The persistent layout card is not part of any tab panel. Selecting
   a tab replaces the current detail history entry with its canonical query URL, preserving the

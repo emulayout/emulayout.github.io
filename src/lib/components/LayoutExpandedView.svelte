@@ -47,7 +47,6 @@
 	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
-	import { repeatKeyMappingId } from '$lib/inputMappingControls';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
@@ -130,13 +129,6 @@
 	const configuredTestKeyMaps = $derived(
 		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
 	);
-	const repeatMappingId = $derived(
-		inputProfile?.repeatKey ? repeatKeyMappingId(inputProfile.repeatKey.trigger) : undefined
-	);
-	const repeatKeyEnabled = $derived(
-		repeatMappingId === undefined || !disabledMappingIds.includes(repeatMappingId)
-	);
-	const repeatOptionLabel = $derived(repeatKeyEnabled ? 'Disable repeat key' : 'Enable repeat key');
 	const hasSpecialMappings = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
@@ -268,12 +260,6 @@
 			if (value === CYANOPHAGE_ANALYZER) return showCyanophage ? [value] : [];
 			return showMana2 ? [value] : [];
 		});
-	}
-
-	function toggleRepeatKey() {
-		if (!repeatMappingId || !onDisabledMappingIdsChange) return;
-		const retained = disabledMappingIds.filter((id) => id !== repeatMappingId);
-		onDisabledMappingIdsChange(repeatKeyEnabled ? [...retained, repeatMappingId] : retained);
 	}
 
 	$effect(() => {
@@ -435,28 +421,6 @@
 			<span aria-hidden="true">↗</span>
 		</a>
 	</nav>
-	{#if inputProfile?.repeatKey}
-		<div class="layout-detail-options" role="group" aria-label={`${layout.name} layout options`}>
-			<button type="button" onclick={toggleRepeatKey}>
-				<svg
-					class="size-4 shrink-0"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="m17 2 4 4-4 4" />
-					<path d="M3 11V9a3 3 0 0 1 3-3h15" />
-					<path d="m7 22-4-4 4-4" />
-					<path d="M21 13v2a3 3 0 0 1-3 3H3" />
-				</svg>
-				{repeatOptionLabel}
-			</button>
-		</div>
-	{/if}
 {/snippet}
 
 <article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
@@ -874,42 +838,6 @@
 		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
 		outline-offset: 0.2rem;
 		border-radius: 0.2rem;
-	}
-
-	.layout-detail-options {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.5rem;
-		padding-inline: 0.25rem;
-	}
-
-	.layout-detail-options button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: flex-start;
-		gap: 0.5rem;
-		width: 100%;
-		min-height: 2rem;
-		padding: 0.35rem 0.65rem;
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-		background-color: var(--bg-secondary);
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		line-height: 1.25rem;
-		cursor: pointer;
-	}
-
-	.layout-detail-options button:hover {
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		color: var(--text-primary);
-	}
-
-	.layout-detail-options button:focus-visible {
-		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-		outline-offset: 0.15rem;
 	}
 
 	.detail-main {

@@ -219,8 +219,8 @@ Filters are also independent:
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
-The layout detail page shows Magic and Adaptive mapping controls in the active typing workspace,
-while Repeat remains controlled by the persistent option below the layout summary.
+The layout detail page shows Magic and Adaptive mapping controls in the active typing workspace.
+Repeat stays enabled there and has no detail-page toggle.
 
 The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
 default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
