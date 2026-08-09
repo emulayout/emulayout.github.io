@@ -24,6 +24,10 @@ one set of translation rules.
 
 The configuration modal offers two setup paths:
 
+An always-visible header hint explains that the input profile tells Emulayout which characters the
+physical keyboard sends so typing practice and layout test areas can translate them to the target
+layout.
+
 1. Choose any known catalog layout in the Base layout autocomplete. This replaces the draft values,
    keyboard type, and thumb metadata with that layout while retaining the complete QWERTY-sized
    main-grid topology. Standard slots the imported layout does not define remain visible but inert;

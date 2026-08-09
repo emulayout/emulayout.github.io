@@ -52,7 +52,7 @@
 			onmouseleave={close}
 			onfocus={open}
 			onblur={close}
-			onkeydown={handleKeyDown}
+			onkeydowncapture={handleKeyDown}
 			class="tooltip-trigger"
 			class:tooltip-trigger--help={variant === 'help'}
 			class:tooltip-trigger--caution={variant === 'caution'}

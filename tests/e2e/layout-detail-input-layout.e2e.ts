@@ -128,6 +128,15 @@ test.describe('typing-practice input layout', () => {
 		await expect(baseLayout).toHaveValue('QWERTY');
 		await expect(baseLayout).toBeFocused();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'false');
+		const purposeHint = dialog.getByRole('button', { name: 'Help' });
+		await expect(purposeHint).toBeVisible();
+		await purposeHint.focus();
+		await expect(page.getByRole('tooltip')).toHaveText(
+			'Tell Emulayout which characters your physical keys send. This lets typing practice and layout test areas translate them correctly to the layout you are testing.'
+		);
+		await purposeHint.press('Escape');
+		await expect(page.getByRole('tooltip')).toHaveCount(0);
+		await expect(dialog).toBeVisible();
 		await expect(keyboardType).toHaveValue('staggered');
 		await expect(dialog.locator('[data-keyboard-input-slot]')).toHaveCount(36);
 		await expect(

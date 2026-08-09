@@ -4,6 +4,7 @@
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		clearKeyboardInputConfig,
 		cloneKeyboardInputConfig,
@@ -24,6 +25,8 @@
 	}
 
 	let { open, config, onClose, onSave }: Props = $props();
+	const purposeHint =
+		'Tell Emulayout which characters your physical keys send. This lets typing practice and layout test areas translate them correctly to the layout you are testing.';
 	let draft = $state<KeyboardInputConfig>(createDefaultKeyboardInputConfig());
 	const validation = $derived(validateKeyboardInputConfig(draft));
 	const validationError = $derived(validation.error);
@@ -65,7 +68,13 @@
 	panelClass="max-w-5xl max-h-[calc(100vh-2rem)]"
 	initialFocusSelector="#keyboard-input-base"
 >
-	<ModalHeader titleId="keyboard-input-config-title" title="Configure input layout" {onClose} />
+	<ModalHeader titleId="keyboard-input-config-title" title="Configure input layout" {onClose}>
+		{#snippet actions()}
+			<span class="mr-auto inline-flex">
+				<Tooltip alwaysVisible text={purposeHint} />
+			</span>
+		{/snippet}
+	</ModalHeader>
 
 	<form class="keyboard-input-config-form" onsubmit={submit}>
 		<div class="keyboard-input-config-content">
