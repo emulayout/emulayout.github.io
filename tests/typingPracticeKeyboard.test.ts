@@ -22,6 +22,14 @@ describe('typing practice keyboard guidance', () => {
 		expect(resolveNextTypingPracticeKeys(session, ['s', 'e', 'd'], undefined, 'se')).toEqual(['e']);
 	});
 
+	test('selects the physical base key for shifted target characters', () => {
+		const uppercase = createTypingPracticeSession(['I?']);
+		const punctuation = updateTypingPracticeInput(uppercase, 'I');
+
+		expect(resolveNextTypingPracticeKeys(uppercase, ['i', '/'], undefined, '')).toEqual(['i']);
+		expect(resolveNextTypingPracticeKeys(punctuation, ['i', '/'], undefined, 'I')).toEqual(['/']);
+	});
+
 	test('stops suggesting keys while the current input has an error or is complete', () => {
 		const initial = createTypingPracticeSession(['seed', 'next']);
 		const incorrect = updateTypingPracticeInput(initial, 'sx');

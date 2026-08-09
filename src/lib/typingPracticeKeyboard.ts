@@ -1,6 +1,7 @@
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { resolveLayoutInput } from '$lib/layoutInputBehaviors';
 import { hasTypingPracticeInputError, type TypingPracticeSession } from '$lib/typingPractice';
+import { shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 const HOME_ROW = 1;
 const LEFT_HOME_KEY_COLUMNS = { start: 0, end: 3 } as const;
@@ -30,13 +31,27 @@ export function resolveNextTypingPracticeKeys(
 
 	const disabledMappings = new Set(disabledMappingIds);
 	const nextCharacter = Array.from(remainingTarget)[0];
-	const directKey = availableKeys.find((key) => key === nextCharacter);
+	const inputValuesByKey = new Map(
+		availableKeys.map((key) => [
+			key,
+			Array.from(
+				new Set(
+					[key, shiftedKeyCharacter(key)].filter(
+						(inputValue): inputValue is string => inputValue !== undefined
+					)
+				)
+			)
+		])
+	);
+	const directKey = availableKeys.find((key) => inputValuesByKey.get(key)?.includes(nextCharacter));
 	const candidates = directKey
 		? [directKey, ...availableKeys.filter((key) => key !== directKey)]
 		: availableKeys;
 
 	return candidates.filter((key) => {
-		const result = resolveLayoutInput(inputProfile, inputHistory, key, disabledMappings);
-		return result.text.length > 0 && remainingTarget.startsWith(result.text);
+		return inputValuesByKey.get(key)?.some((inputValue) => {
+			const result = resolveLayoutInput(inputProfile, inputHistory, inputValue, disabledMappings);
+			return result.text.length > 0 && remainingTarget.startsWith(result.text);
+		});
 	});
 }

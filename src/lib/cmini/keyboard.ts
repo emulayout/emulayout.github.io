@@ -73,6 +73,12 @@ export const QWERTY_CHAR_TO_SHIFTED: Record<string, string> = {
 	'=': '+'
 };
 
+/** Browser `KeyboardEvent.key` value emitted when Shift modifies a base key character. */
+export function shiftedKeyCharacter(character: string): string | undefined {
+	if (/^[a-z]$/u.test(character)) return character.toUpperCase();
+	return QWERTY_CHAR_TO_SHIFTED[character];
+}
+
 function splitRowChars(row: string): string[] {
 	return row.split(/\s+/).filter((c) => c.length > 0);
 }
@@ -193,7 +199,7 @@ export function buildShiftKeyMap(baseKeyMap: KeyMap): KeyMap {
 		if (!keyCode.startsWith('Key')) {
 			const baseChar = baseKeyMap[keyCode];
 			if (!baseChar) continue;
-			const shifted = QWERTY_CHAR_TO_SHIFTED[baseChar];
+			const shifted = shiftedKeyCharacter(baseChar);
 			if (shifted) map[keyCode] = shifted;
 		}
 	}

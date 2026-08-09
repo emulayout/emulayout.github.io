@@ -124,7 +124,9 @@
 			: applyAnglemodToDisplayRows(baseDisplayRows);
 	});
 	const displayValue = $derived(displayRowsToString(displayRows));
-	const testKeyMaps = $derived(createLayoutTestKeyMaps(displayValue));
+	const testKeyMaps = $derived(
+		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
+	);
 	const configuredTestKeyMaps = $derived(
 		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
 	);

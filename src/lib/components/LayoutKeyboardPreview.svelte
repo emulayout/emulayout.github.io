@@ -557,15 +557,10 @@
 	}
 
 	.keyboard-preview__key--next {
-		border-color: var(--typing-practice-next-key-decoration);
-		background: linear-gradient(
-			180deg,
-			color-mix(in srgb, var(--typing-practice-next-key-decoration) 16%, var(--bg-primary)) 0%,
-			color-mix(in srgb, var(--typing-practice-next-key-decoration) 8%, var(--bg-primary)) 100%
+		outline: 2px solid var(--typing-practice-next-key-decoration);
+		outline-offset: -1px;
+		filter: drop-shadow(
+			0 0 0.35rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent)
 		);
-		box-shadow:
-			inset 0 0 0 1px var(--typing-practice-next-key-decoration),
-			0 2px 0 color-mix(in srgb, var(--typing-practice-next-key-decoration) 58%, black),
-			0 0 0.75rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent);
 	}
 </style>

@@ -10,6 +10,11 @@ import {
 	type LayoutTestKeyOptions
 } from '$lib/layoutTestEmulator';
 import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
+import {
+	applyAnglemodToDisplayRows,
+	computeDisplayRows,
+	displayRowsToString
+} from '$lib/layoutDisplay';
 
 function keyInput(overrides: Partial<LayoutTestKeyInput> = {}): LayoutTestKeyInput {
 	return {
@@ -83,6 +88,75 @@ describe('layout test key maps and text edits', () => {
 			stopPropagation: false,
 			edit: { type: 'insert', text: 'q' }
 		});
+	});
+
+	test('preserves sparse and extended target slots in configured translation', () => {
+		const target = decodeLayout([
+			'sparse-target',
+			1,
+			2,
+			'2026-01-01T00:00:00Z',
+			2,
+			['q', 'a', 'z', '.', 'l', '!'],
+			[0, 1, 2, 2, 2, 0],
+			[0, 0, 0, 2, 3, 13]
+		]);
+		const rows = computeDisplayRows(target);
+		const maps = withKeyboardInputConfig(
+			createLayoutTestKeyMaps(displayRowsToString(rows), { layout: target, rows }),
+			target,
+			{
+				baseLayoutName: 'custom',
+				keyboardType: 'ortho',
+				keys: [
+					{ slot: '2,0', value: 'z' },
+					{ slot: '2,1', value: 'x' },
+					{ slot: '2,2', value: 'c' },
+					{ slot: '2,3', value: 'v' },
+					{ slot: '0,13', value: '1' }
+				]
+			}
+		);
+
+		expect(maps.inputKeyMap).toEqual({
+			'1': '!',
+			z: 'z',
+			Z: 'Z',
+			x: '',
+			X: '',
+			c: '.',
+			C: '>',
+			v: 'l',
+			V: 'L'
+		});
+	});
+
+	test('indexes configured translation by transformed visual slots', () => {
+		const target = decodeLayout([
+			'anglemod-target',
+			1,
+			2,
+			'2026-01-01T00:00:00Z',
+			2,
+			['q', 'a', 'z', 'x', 'c', 'v', 'b'],
+			[0, 1, 2, 2, 2, 2, 2],
+			[0, 0, 0, 1, 2, 3, 4]
+		]);
+		const rows = applyAnglemodToDisplayRows(computeDisplayRows(target));
+		const maps = withKeyboardInputConfig(
+			createLayoutTestKeyMaps(displayRowsToString(rows), { layout: target, rows }),
+			target,
+			{
+				baseLayoutName: 'custom',
+				keyboardType: 'ortho',
+				keys: [
+					{ slot: '2,0', value: 'a' },
+					{ slot: '2,4', value: 'e' }
+				]
+			}
+		);
+
+		expect(maps.inputKeyMap).toEqual({ a: 'x', A: 'X', e: 'z', E: 'Z' });
 	});
 
 	test('replaces the current selection and advances the cursor', () => {

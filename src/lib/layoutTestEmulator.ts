@@ -1,18 +1,31 @@
-import { buildKeyMap, buildShiftKeyMap, type KeyMap } from './cmini/keyboard';
+import {
+	buildKeyMap,
+	buildShiftKeyMap,
+	QWERTY_KEY_MAP,
+	shiftedKeyCharacter,
+	type KeyMap
+} from './cmini/keyboard';
 import type { ThumbKeyEntry } from './layout';
 import type { LayoutData } from '$lib/layout';
+import type { DisplayCell } from '$lib/layoutDisplay';
 import {
 	keyboardInputEffectiveValue,
 	parseKeyboardInputSlot,
 	type KeyboardInputConfig
 } from '$lib/keyboardInputConfig';
-import { QWERTY_CHAR_TO_SHIFTED, QWERTY_KEY_MAP } from '$lib/cmini/keyboard';
 
 export interface LayoutTestKeyMaps {
 	keyMap: KeyMap;
 	shiftKeyMap: KeyMap;
+	/** Visible target character keyed by stable main-grid `row,column` slot. */
+	slotKeyMap?: KeyMap;
 	/** Browser-emitted key value → practiced-layout output for a configured input keyboard. */
 	inputKeyMap?: KeyMap;
+}
+
+export interface LayoutTestDisplayGeometry {
+	layout: LayoutData;
+	rows: readonly (readonly DisplayCell[])[];
 }
 
 export interface LayoutTestKeyInput {
@@ -49,17 +62,45 @@ const PASS_THROUGH: LayoutTestKeyDecision = {
 	stopPropagation: false
 };
 
-export function createLayoutTestKeyMaps(displayValue: string): LayoutTestKeyMaps {
+function buildSlotKeyMap({ layout, rows }: LayoutTestDisplayGeometry): KeyMap {
+	const slotKeyMap: KeyMap = {};
+
+	for (const row of rows) {
+		const visibleKeys = row.filter(
+			(cell): cell is DisplayCell & { slot: string } => cell.slot !== null
+		);
+		if (visibleKeys.length === 0) continue;
+
+		const rowNumber = parseKeyboardInputSlot(visibleKeys[0].slot)?.row;
+		if (rowNumber === undefined || rowNumber >= 3) continue;
+
+		const columns = Array.from(layout.positionBySlot.keys())
+			.map(parseKeyboardInputSlot)
+			.filter(
+				(position): position is { row: number; column: number } => position?.row === rowNumber
+			)
+			.map(({ column }) => column)
+			.toSorted((a, b) => a - b);
+
+		for (let index = 0; index < columns.length; index += 1) {
+			const visibleKey = visibleKeys[index];
+			if (visibleKey) slotKeyMap[`${rowNumber},${columns[index]}`] = visibleKey.char;
+		}
+	}
+
+	return slotKeyMap;
+}
+
+export function createLayoutTestKeyMaps(
+	displayValue: string,
+	displayGeometry?: LayoutTestDisplayGeometry
+): LayoutTestKeyMaps {
 	const keyMap = buildKeyMap(displayValue);
 	return {
 		keyMap,
-		shiftKeyMap: buildShiftKeyMap(keyMap)
+		shiftKeyMap: buildShiftKeyMap(keyMap),
+		...(displayGeometry ? { slotKeyMap: buildSlotKeyMap(displayGeometry) } : {})
 	};
-}
-
-function shiftedCharacter(character: string): string | undefined {
-	if (/^[a-z]$/u.test(character)) return character.toUpperCase();
-	return QWERTY_CHAR_TO_SHIFTED[character];
 }
 
 const codeBySlot = new Map(
@@ -104,19 +145,23 @@ export function withKeyboardInputConfig(
 		let shiftedTarget: string | undefined;
 		if (position.row < 3) {
 			const code = codeBySlot.get(inputKey.slot);
-			target = code ? (keyMaps.keyMap[code] ?? '') : '';
-			shiftedTarget = code ? keyMaps.shiftKeyMap[code] : undefined;
+			target = keyMaps.slotKeyMap
+				? (keyMaps.slotKeyMap[inputKey.slot] ?? '')
+				: code
+					? (keyMaps.keyMap[code] ?? '')
+					: '';
+			shiftedTarget = shiftedKeyCharacter(target);
 		} else {
 			const hand = inputKey.thumbHand ?? (position.column < 5 ? 'l' : 'r');
 			const inputThumbIndex = thumbKeysByHand[hand].findIndex(
 				(candidate) => candidate.slot === inputKey.slot
 			);
 			target = targetLayout.thumbKeysByHand[hand][inputThumbIndex]?.key ?? '';
-			shiftedTarget = shiftedCharacter(target);
+			shiftedTarget = shiftedKeyCharacter(target);
 		}
 
 		inputKeyMap[source] = target;
-		const shiftedSource = shiftedCharacter(source);
+		const shiftedSource = shiftedKeyCharacter(source);
 		if (shiftedSource) inputKeyMap[shiftedSource] = shiftedTarget ?? '';
 	}
 

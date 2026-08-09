@@ -38,8 +38,9 @@ and calculation logic outside the renderer.
 - The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
   switches below the keyboard can highlight the next valid key, color the eight resting home keys,
   and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
-  guidance respects contextual input output and is withheld while the current input contains an
-  error or is waiting for a word-separating Space. Home-key coloring is enabled by default.
+  guidance respects shifted and contextual input output and is withheld while the current input
+  contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
+  and active contextual-key styles. Home-key coloring is enabled by default.
 - Layouts with curated Magic mappings add a default-off Underline magic group option. It underlines
   each target substring that can be entered with a Magic key, including the preceding rule context
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
@@ -100,8 +101,9 @@ clock on the first recorded attempt, and freezes it at completion. Keeping wall-
 the session model lets timing and result formulas remain deterministic in unit tests.
 
 `src/lib/typingPracticeKeyboard.ts` resolves every valid next physical key from the remaining
-target, available layout keys, contextual input profile, and current input history. This includes
-both a direct character key and an enabled Repeat key when they emit the same next character.
+target, available layout keys, contextual input profile, and current input history. It tests both
+the base and shifted value of each physical key. This includes both a direct character key and an
+enabled Repeat key when they emit the same next character.
 The optional relevant-swap filter uses that same result even when next-key highlighting is disabled,
 then retains both sides of each matching Adaptive pair. Keyboard presentation keeps next-key and
 home-key styling as independent layers so existing Magic and Adaptive feedback continues to compose

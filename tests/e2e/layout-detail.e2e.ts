@@ -794,6 +794,37 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	await expect(restoredOptions.getByRole('switch', { name: 'Color home keys' })).toBeChecked();
 });
 
+test('composes next-key guidance with home-key styling', async ({ page }) => {
+	await page.goto('/layouts/QWERTY?text=a');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const keyboardPreview = practicePanel.getByRole('img', { name: 'QWERTY keyboard preview' });
+	const aKey = keyboardPreview.locator('[data-key-char="a"]');
+	await expect(aKey).toHaveAttribute('data-key-home', 'true');
+	const homeStyle = await aKey.evaluate((element) => {
+		const style = getComputedStyle(element);
+		return {
+			backgroundImage: style.backgroundImage,
+			borderColor: style.borderColor,
+			boxShadow: style.boxShadow
+		};
+	});
+
+	await practicePanel.getByRole('switch', { name: 'Highlight next key' }).check();
+	await expect(aKey).toHaveAttribute('data-key-next', 'true');
+	await expect(aKey).toHaveCSS('outline-style', 'solid');
+	expect(
+		await aKey.evaluate((element) => {
+			const style = getComputedStyle(element);
+			return {
+				backgroundImage: style.backgroundImage,
+				borderColor: style.borderColor,
+				boxShadow: style.boxShadow
+			};
+		})
+	).toEqual(homeStyle);
+});
+
 test('places special mappings without clipping the typing-practice keyboard', async ({ page }) => {
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.route('**/layout-details/*.json', async (route) => {
@@ -1089,6 +1120,10 @@ test('colors typing-practice feedback and advances only a completed word', async
 		'rgb(196, 75, 58)'
 	);
 	await expect(practiceInput).toHaveCSS('color', 'rgb(196, 75, 58)');
+	await expect(practiceInput).toHaveAttribute('aria-invalid', 'true');
+	await expect(practicePanel.getByRole('status')).toHaveText(
+		'Typing input does not match the current word.'
+	);
 
 	await page.keyboard.press('Space');
 	await expect(practiceInput).toHaveValue(`${incorrectInput} `);
@@ -1102,6 +1137,8 @@ test('colors typing-practice feedback and advances only a completed word', async
 	);
 	await expect(currentWord.locator('[data-character-status="incorrect"]')).toHaveCount(0);
 	await expect(practiceInput).not.toHaveCSS('color', 'rgb(196, 75, 58)');
+	await expect(practiceInput).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(practicePanel.getByRole('status')).toHaveText('');
 
 	await page.keyboard.press('Space');
 	await expect(practiceInput).toHaveValue('');

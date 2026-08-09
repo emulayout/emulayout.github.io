@@ -1,4 +1,5 @@
 import type { BoardType, LayoutData } from '$lib/layout';
+import { shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export const KEYBOARD_INPUT_CONFIG_STORAGE_KEY = 'keyboardInputConfig';
 
@@ -159,14 +160,26 @@ export function validateKeyboardInputConfig(
 	for (const key of config.keys) {
 		const value = keyboardInputEffectiveValue(key);
 		if (!value) continue;
-		const slots = slotsByValue.get(value) ?? [];
-		slots.push(key.slot);
-		slotsByValue.set(value, slots);
+		const emittedValues = new Set(
+			[value, shiftedKeyCharacter(value)].filter(
+				(emittedValue): emittedValue is string => emittedValue !== undefined
+			)
+		);
+		for (const emittedValue of emittedValues) {
+			const slots = slotsByValue.get(emittedValue) ?? [];
+			slots.push(key.slot);
+			slotsByValue.set(emittedValue, slots);
+		}
 	}
 
-	const invalidSlots = Array.from(slotsByValue.values())
-		.filter((slots) => slots.length > 1)
-		.flat();
+	const invalidSlotSet = new Set(
+		Array.from(slotsByValue.values())
+			.filter((slots) => slots.length > 1)
+			.flat()
+	);
+	const invalidSlots = config.keys
+		.map(({ slot }) => slot)
+		.filter((slot) => invalidSlotSet.has(slot));
 	return {
 		error: invalidSlots.length > 0 ? 'Each key value must be unique.' : null,
 		invalidSlots

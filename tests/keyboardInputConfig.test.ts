@@ -91,6 +91,15 @@ describe('keyboard input configuration', () => {
 		expect(keyboardInputConfigError(original)).toBeNull();
 	});
 
+	test('rejects collisions with generated shifted event-key aliases', () => {
+		const config = updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', ':');
+
+		expect(validateKeyboardInputConfig(config)).toEqual({
+			error: 'Each key value must be unique.',
+			invalidSlots: ['0,0', '1,9']
+		});
+	});
+
 	test('moves horizontally across row boundaries and vertically between rows', () => {
 		const rows = keyboardInputRows({
 			baseLayoutName: null,

@@ -232,6 +232,7 @@
 			class="layout-test-area-input"
 			{placeholder}
 			aria-label={ariaLabel}
+			aria-invalid={invalid || undefined}
 			onkeydown={handleKeyDown}
 			onkeyup={handleKeyUp}
 			onbeforeinput={handleBeforeInput}
@@ -240,6 +241,9 @@
 			onpointerdown={resetInputHistory}
 			onblur={resetInputHistory}
 		/>
+		<span class="layout-test-area-error" role="status" aria-live="polite">
+			{invalid ? 'Typing input does not match the current word.' : ''}
+		</span>
 	{:else}
 		<textarea
 			bind:this={inputElement}
@@ -304,5 +308,17 @@
 
 	.layout-test-area--practice.layout-test-area--invalid .layout-test-area-input {
 		color: var(--typing-practice-incorrect);
+	}
+
+	.layout-test-area-error {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 </style>

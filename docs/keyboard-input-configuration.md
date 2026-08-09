@@ -58,13 +58,15 @@ through the QWERTY character for that slot; explicit values override those place
   thumb-key target layout. Empty thumb slots are optional; nonempty values remain unique.
 
 The editor blocks Save when two effective values are the same, including a collision between an
-explicit value and another slot's QWERTY placeholder. Every field participating in a collision is
-marked invalid and receives a border using the dedicated `--keyboard-input-validation-error` theme
-variable. A non-blocking hint lists characters from the editor's standard ANSI set that are absent
-from the effective mapping. Missing ANSI characters do not prevent Save because specialized input
-layouts may intentionally use a different character set. Catalog layout data is loaded only when
-the modal opens; an ordinary direct detail visit does not fetch the aggregate catalog merely
-because the control exists.
+explicit value and another slot's QWERTY placeholder. Validation also reserves the browser-emitted
+shifted alias for each letter and standard punctuation key, so configurations such as explicit `:`
+beside `;` cannot compile an ambiguous `KeyboardEvent.key`. Every field participating in a
+collision is marked invalid and receives a border using the dedicated
+`--keyboard-input-validation-error` theme variable. A non-blocking hint lists characters from the
+editor's standard ANSI set that are absent from the effective mapping. Missing ANSI characters do
+not prevent Save because specialized input layouts may intentionally use a different character
+set. Catalog layout data is loaded only when the modal opens; an ordinary direct detail visit does
+not fetch the aggregate catalog merely because the control exists.
 
 ## Persisted data
 
@@ -88,8 +90,9 @@ boundary:
 
 1. Resolve each input slot's explicit value, falling back to its QWERTY placeholder, and match
    `KeyboardEvent.key` to that effective input key.
-2. For main-grid keys, use its row/column to find the target output already compiled by
-   `createLayoutTestKeyMaps`. This preserves target angle transformations and legacy shifted output.
+2. For main-grid keys, use its row/column to find the target output compiled from the structured
+   display rows by `createLayoutTestKeyMaps`. The slot-indexed map preserves sparse holes, extended
+   columns, target angle transformations, and shifted output.
 3. For thumb keys, match left/right hand and within-hand order to the target layout's thumb keys.
 4. Pass the resulting target base output to `resolveLayoutInput`, where Adaptive, Magic, and Repeat
    behavior proceeds unchanged.
