@@ -679,14 +679,20 @@
 	}
 
 	.typing-practice-keyboard-options {
-		display: flex;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+		grid-auto-flow: row;
+		align-items: start;
 		width: 100%;
 		min-width: 0;
-		flex-flow: row wrap;
-		justify-content: flex-start;
-		gap: 0.625rem 1rem;
+		gap: 0.75rem 1rem;
 		margin-top: 0.75rem;
 		contain: inline-size;
+	}
+
+	.typing-practice-keyboard-options :global(.toggle-switch) {
+		width: 100%;
+		min-width: 0;
 	}
 
 	@container typing-practice-keyboard (max-width: 30rem) {

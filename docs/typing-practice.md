@@ -54,8 +54,10 @@ renderer.
   it. See [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable
   model and event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The
-  options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
-  below it. Adaptive layouts add Show adaptive swaps there and reveal Show swap paths only while the
+  options stay left aligned to the keyboard inside that shared wrapper, in an unboxed responsive
+  grid directly below it. Equal-width columns collapse from several columns to one as the keyboard
+  narrows, keeping each switch aligned in orderly rows. Adaptive layouts add Show adaptive swaps
+  there and reveal Show swap paths only while the
   Adaptive preview is enabled. Hiding the path control does not clear its persisted value, so it
   restores its prior state when the preview is enabled again. A default-off Only show relevant swaps
   option limits the preview and any paths to the armed pair containing a physical key that can
