@@ -3,10 +3,15 @@
 	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import TypingPracticeTextModal from '$lib/components/TypingPracticeTextModal.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import type { DisplayCell } from '$lib/layoutDisplay';
-	import type { LayoutInputProfile, LayoutInputResult } from '$lib/layoutInputBehaviors';
+	import {
+		resolveLayoutInput,
+		type LayoutInputProfile,
+		type LayoutInputResult
+	} from '$lib/layoutInputBehaviors';
 	import {
 		buildAdaptiveKeyboardSwapPathsFromFeedback,
 		buildLayoutKeyboardFeedback,
@@ -30,7 +35,10 @@
 		updateTypingPracticeInput,
 		type TypingPracticeSession
 	} from '$lib/typingPractice';
-	import { resolveNextTypingPracticeKeys } from '$lib/typingPracticeKeyboard';
+	import {
+		resolveNextTypingPracticeKeys,
+		resolveSimulatedTypingPracticeThumbInput
+	} from '$lib/typingPracticeKeyboard';
 	import { buildTypingPracticeMagicGroupIndexes } from '$lib/typingPracticeMagicGroups';
 	import { typingPracticeWordsFromText } from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
@@ -100,9 +108,16 @@
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
 	const hasMagicGroupPreview = $derived(Boolean(inputProfile?.magicKeys));
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
+	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
 	const practiceKeyMaps = $derived(
-		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config)
+		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config, {
+			includeThumbKeys: !simulateThumbKeys
+		})
 	);
+	const thumbKeys = $derived([
+		...layout.thumbKeysByHand.l.map(({ key }) => key),
+		...layout.thumbKeysByHand.r.map(({ key }) => key)
+	]);
 	const prompt = $derived(buildTypingPracticePrompt(session));
 	const magicGroupIndexes = $derived(
 		new Map(
@@ -273,6 +288,20 @@
 		}
 		return session.input;
 	}
+
+	function resolvePracticeInput(history: string, inputText: string): LayoutInputResult {
+		if (inputText === ' ') {
+			const simulatedThumb = resolveSimulatedTypingPracticeThumbInput(
+				session,
+				thumbKeys,
+				inputProfile,
+				history,
+				disabledMappingIds
+			);
+			if (simulatedThumb) return simulatedThumb;
+		}
+		return resolveLayoutInput(inputProfile, history, inputText, new Set(disabledMappingIds));
+	}
 </script>
 
 {#if wordPoolStatus === 'loading' && !customPracticeText}
@@ -370,6 +399,7 @@
 			invalid={inputHasError}
 			value={session.input}
 			onValueChange={handleValueChange}
+			resolveInput={simulateThumbKeys ? resolvePracticeInput : undefined}
 			onResolvedInput={handleResolvedInput}
 			onInputHistoryChange={(history) => (inputHistory = history)}
 			onEscape={restartPractice}
@@ -419,6 +449,20 @@
 				onCheckedChange={(checked) =>
 					uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
 			/>
+			{#if layout.hasThumbKeys}
+				<div class="typing-practice-simulate-thumbs-option" data-simulate-thumb-keys-option>
+					<ToggleSwitch
+						checked={displayOptions.simulateThumbKeys}
+						label="Simulate thumb keys"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('simulateThumbKeys', checked)}
+					/>
+					<Tooltip
+						alwaysVisible
+						text="When enabled, Space simulates whichever thumb key produces the next required character, including Magic or Repeat. Between words, it types a normal space. Configured thumb mappings are ignored."
+					/>
+				</div>
+			{/if}
 			{#if hasSpecialKeys}
 				<ToggleSwitch
 					checked={displayOptions.showSpecialKeys}
@@ -477,6 +521,20 @@
 {/if}
 
 <style>
+	.typing-practice-simulate-thumbs-option {
+		display: flex;
+		width: max-content;
+		max-width: 100%;
+		align-items: center;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+
+	.typing-practice-simulate-thumbs-option :global(.toggle-switch) {
+		width: auto;
+		flex: 0 1 auto;
+	}
+
 	.typing-practice-load-status {
 		margin: 0;
 		color: var(--text-secondary);

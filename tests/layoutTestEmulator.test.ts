@@ -72,6 +72,22 @@ describe('layout test key maps and text edits', () => {
 
 		expect(maps.inputKeyMap).toEqual({ b: 'q', B: 'Q', l: 'w', L: 'W', e: 'r', E: 'R' });
 		expect(
+			withKeyboardInputConfig(
+				createLayoutTestKeyMaps('q w'),
+				decodeLayout(target),
+				{
+					baseLayoutName: 'custom',
+					keyboardType: 'ortho',
+					keys: [
+						{ slot: '0,0', value: 'b' },
+						{ slot: '0,1', value: 'l' },
+						{ slot: '3,4', value: 'e', thumbHand: 'l' }
+					]
+				},
+				{ includeThumbKeys: false }
+			).inputKeyMap
+		).toEqual({ b: 'q', B: 'Q', l: 'w', L: 'W' });
+		expect(
 			resolveLayoutTestKeyDown(keyInput({ key: 'b', code: 'KeyB' }), {
 				...keyOptions(),
 				keyMaps: maps

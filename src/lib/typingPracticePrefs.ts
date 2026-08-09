@@ -5,6 +5,7 @@ const TYPING_PRACTICE_DISPLAY_OPTIONS_VERSION = 1;
 export interface TypingPracticeDisplayOptions {
 	highlightNextKey: boolean;
 	colorHomeKeys: boolean;
+	simulateThumbKeys: boolean;
 	showSpecialKeys: boolean;
 	underlineMagicGroups: boolean;
 	underlineAdaptiveGroups: boolean;
@@ -17,6 +18,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 	return {
 		highlightNextKey: false,
 		colorHomeKeys: true,
+		simulateThumbKeys: false,
 		showSpecialKeys: true,
 		underlineMagicGroups: false,
 		underlineAdaptiveGroups: false,
@@ -41,6 +43,10 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 				: defaults.highlightNextKey,
 		colorHomeKeys:
 			typeof value.colorHomeKeys === 'boolean' ? value.colorHomeKeys : defaults.colorHomeKeys,
+		simulateThumbKeys:
+			typeof value.simulateThumbKeys === 'boolean'
+				? value.simulateThumbKeys
+				: defaults.simulateThumbKeys,
 		showSpecialKeys:
 			typeof value.showSpecialKeys === 'boolean' ? value.showSpecialKeys : defaults.showSpecialKeys,
 		underlineMagicGroups:

@@ -56,6 +56,11 @@ and calculation logic outside the renderer.
   slots are empty, and modifier keys are not thumb inputs. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable model and
   event-translation boundary.
+- Thumb-key layouts add a default-off Simulate thumb keys option. While enabled, Space produces the
+  thumb key whose fully resolved output matches the next required lesson text, including a thumb
+  used as a Magic or Repeat key. Space remains a word separator when the current word is complete,
+  and saved input-layout thumb assignments are ignored. Its help trigger remains available even
+  when global help hints are hidden because the interaction changes the meaning of Space.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in an unboxed responsive
   grid directly below it. Equal-width columns collapse from several columns to one as the keyboard

@@ -226,7 +226,7 @@ test.describe('typing-practice input layout', () => {
 		await expect(indexTestInput).toHaveValue('e');
 	});
 
-	test('emits a target thumb only from an explicitly assigned real key', async ({ page }) => {
+	test('switches between an assigned real thumb key and Space simulation', async ({ page }) => {
 		await page.goto('/layouts/night?text=r');
 		const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 		const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
@@ -245,6 +245,27 @@ test.describe('typing-practice input layout', () => {
 		await dialog.getByRole('button', { name: 'Save' }).click();
 
 		await practiceInput.press('1');
+		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
+		await practiceInput.press('Escape');
+
+		const simulateOption = practicePanel.locator('[data-simulate-thumb-keys-option]');
+		const simulateThumbKeys = simulateOption.getByRole('switch', {
+			name: 'Simulate thumb keys'
+		});
+		await expect(simulateThumbKeys).not.toBeChecked();
+		const hint = simulateOption.getByRole('button', { name: 'Help' });
+		await expect(hint).toBeVisible();
+		await hint.hover();
+		await expect(page.getByRole('tooltip')).toContainText(
+			'When enabled, Space simulates whichever thumb key produces the next required character'
+		);
+
+		await simulateThumbKeys.check();
+		await practiceInput.focus();
+		await practiceInput.press('1');
+		await expect(practiceInput).toHaveValue('1');
+		await practiceInput.press('Backspace');
+		await practiceInput.press('Space');
 		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
 	});
 });

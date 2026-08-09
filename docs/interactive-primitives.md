@@ -23,7 +23,8 @@ retain domain-specific markup and styling.
   focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
   title and close-button chrome.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
-  Escape dismissal, and body portal placement.
+  Escape dismissal, and body portal placement. Help triggers normally follow the global hint
+  preference; a consumer may keep essential interaction guidance available with `alwaysVisible`.
 
 `portalToBody.ts`, `listboxNavigation.ts`, and `segmentedControl.ts` contain small reusable behavior
 helpers used by these components.

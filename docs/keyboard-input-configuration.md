@@ -108,6 +108,10 @@ Shifted source letters and standard punctuation are compiled alongside their shi
 Control, Command/Meta, and Alt/Option are never treated as thumb keys; modified browser and
 application shortcuts pass through the emulator.
 
+Typing practice has one explicit exception to the saved thumb assignments: its optional Simulate
+thumb keys mode omits them from `inputKeyMap` and resolves Space against the target layout's thumb
+outputs using the next required lesson text. Other test surfaces always use the saved assignments.
+
 The optional `inputKeyMap` on `LayoutTestKeyMaps` is the adoption seam. Existing consumers continue
 to resolve `KeyboardEvent.code`; a consumer opts in by wrapping its ordinary target maps with
 `withKeyboardInputConfig`. This keeps the shared DOM input component and contextual engine free of

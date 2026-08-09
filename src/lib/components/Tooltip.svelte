@@ -6,9 +6,11 @@
 		text: string;
 		/** Visual style of the trigger button. */
 		variant?: 'help' | 'caution';
+		/** Keep this help trigger available even when global help hints are hidden. */
+		alwaysVisible?: boolean;
 	}
 
-	let { text, variant = 'help' }: Props = $props();
+	let { text, variant = 'help', alwaysVisible = false }: Props = $props();
 
 	let showTooltip = $state(false);
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
@@ -16,7 +18,7 @@
 
 	const ariaLabel = $derived(variant === 'caution' ? 'Caution' : 'Help');
 	/** Help tips follow the app-bar toggle; caution warnings always stay visible. */
-	const hintsVisible = $derived(variant === 'caution' || uiPrefs.hintsEnabled);
+	const hintsVisible = $derived(variant === 'caution' || alwaysVisible || uiPrefs.hintsEnabled);
 
 	function open() {
 		if (!hintsVisible) return;

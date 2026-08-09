@@ -27,6 +27,10 @@ export interface LayoutTestDisplayGeometry {
 	rows: readonly (readonly DisplayCell[])[];
 }
 
+export interface KeyboardInputTranslationOptions {
+	includeThumbKeys?: boolean;
+}
+
 export interface LayoutTestKeyInput {
 	key: string;
 	code: string;
@@ -113,7 +117,8 @@ const codeBySlot = new Map(
 export function withKeyboardInputConfig(
 	keyMaps: LayoutTestKeyMaps,
 	targetLayout: LayoutData,
-	inputConfig: KeyboardInputConfig
+	inputConfig: KeyboardInputConfig,
+	options: KeyboardInputTranslationOptions = {}
 ): LayoutTestKeyMaps {
 	const inputKeyMap: KeyMap = {};
 	const thumbKeysByHand = { l: [] as typeof inputConfig.keys, r: [] as typeof inputConfig.keys };
@@ -136,6 +141,7 @@ export function withKeyboardInputConfig(
 		const source = keyboardInputEffectiveValue(inputKey);
 		const position = parseKeyboardInputSlot(inputKey.slot);
 		if (!source || !position) continue;
+		if (position.row >= 3 && options.includeThumbKeys === false) continue;
 
 		let target: string;
 		let shiftedTarget: string | undefined;

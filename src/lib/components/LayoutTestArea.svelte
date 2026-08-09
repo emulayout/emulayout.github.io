@@ -22,6 +22,7 @@
 		invalid?: boolean;
 		value?: string;
 		onValueChange?: (value: string) => string | undefined;
+		resolveInput?: (inputHistory: string, inputText: string) => LayoutInputResult;
 		onResolvedInput?: (result: LayoutInputResult) => string | undefined;
 		onInputHistoryChange?: (history: string) => void;
 		onEscape?: () => string;
@@ -38,6 +39,7 @@
 		invalid = false,
 		value,
 		onValueChange,
+		resolveInput,
 		onResolvedInput,
 		onInputHistoryChange,
 		onEscape
@@ -94,7 +96,9 @@
 	}
 
 	function processLayoutText(text: string) {
-		const result = resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
+		const result =
+			resolveInput?.(inputHistory, text) ??
+			resolveLayoutInput(inputProfile, inputHistory, text, disabledMappings);
 		if (applyResolvedReplacement(result)) return;
 		if (insertText(result.text)) {
 			resetInputHistory();
@@ -142,6 +146,16 @@
 			resetInputHistory();
 		} else if (decision.edit?.type === 'insert') {
 			processLayoutText(decision.edit.text);
+		} else if (
+			!decision.preventDefault &&
+			resolveInput &&
+			event.key === ' ' &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.metaKey
+		) {
+			event.preventDefault();
+			processLayoutText(event.key);
 		} else if (
 			!decision.preventDefault &&
 			onResolvedInput &&

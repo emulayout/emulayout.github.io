@@ -4,7 +4,8 @@ import { compileLayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { createTypingPracticeSession, updateTypingPracticeInput } from '$lib/typingPractice';
 import {
 	isTypingPracticeHomeKeySlot,
-	resolveNextTypingPracticeKeys
+	resolveNextTypingPracticeKeys,
+	resolveSimulatedTypingPracticeThumbInput
 } from '$lib/typingPracticeKeyboard';
 
 describe('typing practice keyboard guidance', () => {
@@ -57,5 +58,37 @@ describe('typing practice keyboard guidance', () => {
 		expect(
 			resolveNextTypingPracticeKeys(session, ['l', '@'], profile, 'hel', [repeatKeyMappingId('@')])
 		).toEqual(['l']);
+	});
+
+	test('simulates a direct thumb key only while the current word needs its output', () => {
+		const initial = createTypingPracticeSession(['rest']);
+		const complete = updateTypingPracticeInput(initial, 'rest');
+
+		expect(resolveSimulatedTypingPracticeThumbInput(initial, ['r'], undefined, '')).toEqual({
+			text: 'r',
+			nextHistory: '',
+			applied: []
+		});
+		expect(resolveSimulatedTypingPracticeThumbInput(complete, ['r'], undefined, 'rest')).toBe(
+			undefined
+		);
+	});
+
+	test('simulates Repeat and Magic keys assigned to thumbs by their resolved output', () => {
+		const repeatProfile = compileLayoutInputProfile({}, { '@': {}, l: {} }, true);
+		const repeated = updateTypingPracticeInput(createTypingPracticeSession(['hello']), 'hel');
+		expect(resolveSimulatedTypingPracticeThumbInput(repeated, ['@'], repeatProfile, 'hel')).toEqual(
+			{ text: 'l', nextHistory: 'l', applied: ['repeat-key'] }
+		);
+
+		const magicProfile = compileLayoutInputProfile({
+			magicKeys: { mappings: { '*': { h: 'i' } } }
+		});
+		const magic = updateTypingPracticeInput(createTypingPracticeSession(['hi']), 'h');
+		expect(resolveSimulatedTypingPracticeThumbInput(magic, ['*'], magicProfile, 'h')).toEqual({
+			text: 'i',
+			nextHistory: 'i',
+			applied: ['magic-key']
+		});
 	});
 });
