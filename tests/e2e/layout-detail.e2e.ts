@@ -800,7 +800,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 					variants: [
 						{
 							id: 'default',
-							adaptiveSwaps: { mappings: { l: { y: 'j' }, n: { y: 'r' } } }
+							adaptiveSwaps: { mappings: { l: { y: 'j', h: 'k' }, n: { y: 'r' } } }
 						}
 					]
 				},
@@ -808,7 +808,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 			}
 		});
 	});
-	await page.goto('/layouts/adaptive-preview');
+	await page.goto('/layouts/adaptive-preview?text=lj');
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
@@ -821,29 +821,46 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
 	const showSpecialKeys = keyboardOptions.getByRole('switch', { name: 'Show special keys' });
 	const showAdaptiveSwaps = keyboardOptions.getByRole('switch', {
-		name: 'Show Adaptive swaps'
+		name: 'Show adaptive swaps'
+	});
+	const onlyRelevantSwaps = keyboardOptions.getByRole('switch', {
+		name: 'Only show relevant swaps'
 	});
 	const showSwapPaths = keyboardOptions.getByRole('switch', { name: 'Show swap paths' });
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
 	const yKey = keyboardPreview.locator('[data-key-char="y"]');
 	const jKey = keyboardPreview.locator('[data-key-char="j"]');
+	const hKey = keyboardPreview.locator('[data-key-char="h"]');
+	const kKey = keyboardPreview.locator('[data-key-char="k"]');
 	const swapPath = keyboardPreview.locator('[data-swap-path="j:y"]');
 	await expect(showSpecialKeys).toBeChecked();
 	await expect(showAdaptiveSwaps).toBeChecked();
+	await expect(onlyRelevantSwaps).not.toBeChecked();
 	await expect(showSwapPaths).not.toBeChecked();
 	await expect(mappings.getByRole('checkbox', { name: 'Adaptive swap mappings' })).toBeVisible();
 
 	await practiceInput.press('l');
 	await expect(yKey).toHaveText('j');
 	await expect(jKey).toHaveText('y');
+	await expect(hKey).toHaveText('k');
+	await expect(kKey).toHaveText('h');
+	await page.keyboard.press('Escape');
+	await onlyRelevantSwaps.check();
+	await practiceInput.press('l');
+	await expect(yKey).toHaveText('j');
+	await expect(jKey).toHaveText('y');
+	await expect(hKey).toHaveText('h');
+	await expect(kKey).toHaveText('k');
 	await page.keyboard.press('Escape');
 	await showAdaptiveSwaps.uncheck();
+	await expect(onlyRelevantSwaps).toHaveCount(0);
 	await expect(showSwapPaths).toHaveCount(0);
 	await practiceInput.press('l');
 	await expect(yKey).toHaveText('y');
 	await expect(jKey).toHaveText('j');
 	await page.keyboard.press('Escape');
 	await showAdaptiveSwaps.check();
+	await expect(onlyRelevantSwaps).toBeChecked();
 	await expect(showSwapPaths).toBeVisible();
 	await expect(showSwapPaths).not.toBeChecked();
 	await showSwapPaths.check();
@@ -958,7 +975,10 @@ test('places special mappings without clipping the typing-practice keyboard', as
 		restoredKeyboardOptions.getByRole('switch', { name: 'Show special keys' })
 	).toBeChecked();
 	await expect(
-		restoredKeyboardOptions.getByRole('switch', { name: 'Show Adaptive swaps' })
+		restoredKeyboardOptions.getByRole('switch', { name: 'Show adaptive swaps' })
+	).toBeChecked();
+	await expect(
+		restoredKeyboardOptions.getByRole('switch', { name: 'Only show relevant swaps' })
 	).toBeChecked();
 	await expect(
 		restoredKeyboardOptions.getByRole('switch', { name: 'Show swap paths' })

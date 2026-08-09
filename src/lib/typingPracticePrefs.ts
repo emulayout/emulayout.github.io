@@ -7,6 +7,7 @@ export interface TypingPracticeDisplayOptions {
 	colorHomeKeys: boolean;
 	showSpecialKeys: boolean;
 	showAdaptiveSwaps: boolean;
+	onlyRelevantAdaptiveSwaps: boolean;
 	showSwapPaths: boolean;
 }
 
@@ -16,6 +17,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		colorHomeKeys: false,
 		showSpecialKeys: true,
 		showAdaptiveSwaps: true,
+		onlyRelevantAdaptiveSwaps: false,
 		showSwapPaths: false
 	};
 }
@@ -41,6 +43,10 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 			typeof value.showAdaptiveSwaps === 'boolean'
 				? value.showAdaptiveSwaps
 				: defaults.showAdaptiveSwaps,
+		onlyRelevantAdaptiveSwaps:
+			typeof value.onlyRelevantAdaptiveSwaps === 'boolean'
+				? value.onlyRelevantAdaptiveSwaps
+				: defaults.onlyRelevantAdaptiveSwaps,
 		showSwapPaths:
 			typeof value.showSwapPaths === 'boolean' ? value.showSwapPaths : defaults.showSwapPaths
 	};

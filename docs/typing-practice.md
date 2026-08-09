@@ -47,8 +47,10 @@ renderer.
   model and event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
-  below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only while the
-  Adaptive preview is enabled. When special keys are shown, a wider view keeps their mappings in a
+  below it. Adaptive layouts add Show adaptive swaps there and reveal Show swap paths only while the
+  Adaptive preview is enabled. A default-off Only show relevant swaps option limits the preview and
+  any paths to the armed pair containing a physical key that can produce the next required lesson
+  character. When special keys are shown, a wider view keeps their mappings in a
   right-hand column capped at 315px. The keyboard and mappings share one intrinsic-width wrapper so
   their combined footprint stays centered. At intermediate widths the mappings column narrows and
   presents one mapping per line while the keyboard keys and gaps scale down to keep the combined
@@ -88,8 +90,10 @@ the session model lets timing and result formulas remain deterministic in unit t
 `src/lib/typingPracticeKeyboard.ts` resolves every valid next physical key from the remaining
 target, available layout keys, contextual input profile, and current input history. This includes
 both a direct character key and an enabled Repeat key when they emit the same next character.
-Keyboard presentation keeps next-key and home-key styling as independent layers so existing Magic
-and Adaptive feedback continues to compose normally.
+The optional relevant-swap filter uses that same result even when next-key highlighting is disabled,
+then retains both sides of each matching Adaptive pair. Keyboard presentation keeps next-key and
+home-key styling as independent layers so existing Magic and Adaptive feedback continues to compose
+normally.
 
 The source vocabulary is vendored as `static/languages/english1k.json` from Monkeytype's
 `english_1k` list at commit `d7eb4b76f3b3000199022ea52a52365b9346b8d0`. The file contains

@@ -4,8 +4,10 @@ import { compileLayoutInputProfile } from '$lib/layoutInputBehaviors';
 import {
 	buildAdaptiveKeyboardFeedback,
 	buildAdaptiveKeyboardSwapPaths,
+	buildAdaptiveKeyboardSwapPathsFromFeedback,
 	buildLayoutKeyboardFeedback,
-	buildMagicKeyboardFeedback
+	buildMagicKeyboardFeedback,
+	filterAdaptiveKeyboardFeedbackByKeys
 } from '$lib/layoutKeyboardFeedback';
 
 describe('layout keyboard feedback', () => {
@@ -36,6 +38,22 @@ describe('layout keyboard feedback', () => {
 		expect(buildAdaptiveKeyboardSwapPaths(adaptiveProfile.adaptiveSwaps, 'l', [mappingId])).toEqual(
 			[]
 		);
+	});
+
+	test('keeps only the armed pair containing a valid next physical key', () => {
+		const profile = compileLayoutInputProfile({
+			adaptiveSwaps: { mappings: { l: { y: 'j', h: 'k' } } }
+		});
+		const feedback = buildLayoutKeyboardFeedback({
+			adaptiveSwaps: profile.adaptiveSwaps,
+			inputHistory: 'l'
+		});
+
+		const filtered = filterAdaptiveKeyboardFeedbackByKeys(feedback, ['y']);
+		expect(Array.from(filtered.keys())).toEqual(['y', 'j']);
+		expect(buildAdaptiveKeyboardSwapPathsFromFeedback(filtered)).toEqual([{ from: 'j', to: 'y' }]);
+		expect(filterAdaptiveKeyboardFeedbackByKeys(feedback, [])).toEqual(new Map());
+		expect(filterAdaptiveKeyboardFeedbackByKeys(feedback, undefined)).toBe(feedback);
 	});
 
 	test('activates a Magic key only when it has a prospective value', () => {

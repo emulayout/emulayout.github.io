@@ -9,8 +9,9 @@
 	import type { DisplayCell } from '$lib/layoutDisplay';
 	import type { LayoutInputProfile, LayoutInputResult } from '$lib/layoutInputBehaviors';
 	import {
-		buildAdaptiveKeyboardSwapPaths,
-		buildLayoutKeyboardFeedback
+		buildAdaptiveKeyboardSwapPathsFromFeedback,
+		buildLayoutKeyboardFeedback,
+		filterAdaptiveKeyboardFeedbackByKeys
 	} from '$lib/layoutKeyboardFeedback';
 	import { withKeyboardInputConfig, type LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
@@ -117,40 +118,38 @@
 			elapsedMilliseconds
 		)
 	);
-	const keyboardFeedback = $derived(
-		buildLayoutKeyboardFeedback({
-			magicKeys: displayOptions.showSpecialKeys ? inputProfile?.magicKeys : undefined,
-			adaptiveSwaps:
-				displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
-					? inputProfile?.adaptiveSwaps
-					: undefined,
+	const validNextPracticeKeys = $derived(
+		resolveNextTypingPracticeKeys(
+			session,
+			Object.keys(layout.keys),
+			inputProfile,
 			inputHistory,
-			disabledMappingIds,
-			knownMagicTriggers: displayOptions.showSpecialKeys ? knownMagicTriggers : []
-		})
+			disabledMappingIds
+		)
+	);
+	const keyboardFeedback = $derived(
+		filterAdaptiveKeyboardFeedbackByKeys(
+			buildLayoutKeyboardFeedback({
+				magicKeys: displayOptions.showSpecialKeys ? inputProfile?.magicKeys : undefined,
+				adaptiveSwaps:
+					displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
+						? inputProfile?.adaptiveSwaps
+						: undefined,
+				inputHistory,
+				disabledMappingIds,
+				knownMagicTriggers: displayOptions.showSpecialKeys ? knownMagicTriggers : []
+			}),
+			displayOptions.onlyRelevantAdaptiveSwaps ? validNextPracticeKeys : undefined
+		)
 	);
 	const keyboardSwapPaths = $derived(
 		displayOptions.showSpecialKeys &&
 			displayOptions.showAdaptiveSwaps &&
 			displayOptions.showSwapPaths
-			? buildAdaptiveKeyboardSwapPaths(
-					inputProfile?.adaptiveSwaps,
-					inputHistory,
-					disabledMappingIds
-				)
+			? buildAdaptiveKeyboardSwapPathsFromFeedback(keyboardFeedback)
 			: []
 	);
-	const nextPracticeKeys = $derived(
-		displayOptions.highlightNextKey
-			? resolveNextTypingPracticeKeys(
-					session,
-					Object.keys(layout.keys),
-					inputProfile,
-					inputHistory,
-					disabledMappingIds
-				)
-			: []
-	);
+	const nextPracticeKeys = $derived(displayOptions.highlightNextKey ? validNextPracticeKeys : []);
 
 	$effect(() => {
 		if (startedAtMilliseconds === null || endedAtMilliseconds !== null) return;
@@ -399,11 +398,17 @@
 						{#if hasAdaptiveSwapPreview}
 							<ToggleSwitch
 								checked={displayOptions.showAdaptiveSwaps}
-								label="Show Adaptive swaps"
+								label="Show adaptive swaps"
 								onCheckedChange={(checked) =>
 									uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
 							/>
 							{#if displayOptions.showAdaptiveSwaps}
+								<ToggleSwitch
+									checked={displayOptions.onlyRelevantAdaptiveSwaps}
+									label="Only show relevant swaps"
+									onCheckedChange={(checked) =>
+										uiPrefs.setTypingPracticeDisplayOption('onlyRelevantAdaptiveSwaps', checked)}
+								/>
 								<ToggleSwitch
 									checked={displayOptions.showSwapPaths}
 									label="Show swap paths"

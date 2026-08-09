@@ -233,10 +233,13 @@ in the swapped output.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
   with the values they would emit and gain the active accent background. The shared preview switch
-  disables this presentation alongside prospective Magic output. A second, default-off switch draws
-  measured SVG connectors between every armed pair. Connector state follows the same history and
-  disabled mappings but remains independent of the label-preview switch. The formatted text board
-  never changes.
+  disables this presentation alongside prospective Magic output. Typing practice has a separate,
+  default-off relevance filter that retains only an armed pair containing a physical key that can
+  produce the next required lesson character; it uses the same fully resolved next-key candidates as
+  key highlighting and filters paths along with key feedback. Another default-off switch draws
+  measured SVG connectors between every visible armed pair. Connector state follows the same
+  history and disabled mappings but remains independent of the label-preview switch. The formatted
+  text board never changes.
 
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
 prospective outputs from the same profile and history, but the layout test area does not display an
