@@ -1,8 +1,7 @@
 <script lang="ts">
-	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
-	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
+	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import TypingPracticeTextModal from '$lib/components/TypingPracticeTextModal.svelte';
 	import type { LayoutData } from '$lib/layout';
@@ -63,10 +62,6 @@
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
-	const FULL_KEY_GAP_REM = 0.45;
-	const COMPACT_KEY_GAP_REM = 0.25;
-	const COMPACT_MAPPINGS_RESERVED_REM = 15.5;
-	const WIDE_MAPPINGS_RESERVED_REM = 21.1875;
 	type WordPoolStatus = 'loading' | 'ready' | 'error';
 	let wordPool = $state<string[]>([]);
 	let wordPoolStatus = $state<WordPoolStatus>('loading');
@@ -92,61 +87,6 @@
 	let startedAtMilliseconds = $state<number | null>(null);
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
-
-	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
-		if (layout.board === 'ortho' || layout.board === 'mini') {
-			const mainRowMaxColumn = Math.max(
-				9,
-				...Object.values(layout.keys)
-					.filter(({ row }) => row < 3)
-					.map(({ col }) => col)
-			);
-			const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
-			return {
-				keyUnits: 5 + rightSlotCount + 0.48,
-				gapCount: rightSlotCount + 3
-			};
-		}
-
-		const rowTerms = rows.flatMap((row) => {
-			const keys = row.filter((cell) => cell.slot !== null);
-			if (keys.length === 0) return [];
-			const rowNumber = Number(keys[0].slot?.split(',')[0]);
-			if (rowNumber >= 3) return [];
-			const rowOffset = rowNumber === 1 ? 0.28 : rowNumber === 2 ? 0.68 : 0;
-			return [{ keyUnits: keys.length + rowOffset, gapCount: Math.max(keys.length - 1, 0) }];
-		});
-
-		return (
-			rowTerms.sort(
-				(a, b) =>
-					b.keyUnits * 3.35 +
-					b.gapCount * FULL_KEY_GAP_REM -
-					(a.keyUnits * 3.35 + a.gapCount * FULL_KEY_GAP_REM)
-			)[0] ?? { keyUnits: 10, gapCount: 9 }
-		);
-	}
-
-	function fittedKeySize(
-		keyUnits: number,
-		gapCount: number,
-		gapRem: number,
-		reservedRem = 0
-	): string {
-		const containerShare = (100 / keyUnits).toFixed(5);
-		const reservedShare = ((gapCount * gapRem + reservedRem) / keyUnits).toFixed(5);
-		return `calc(${containerShare}cqw - ${reservedShare}rem)`;
-	}
-
-	const keyboardSizingStyle = $derived.by(() => {
-		const { keyUnits, gapCount } = keyboardWidthTerms();
-		return [
-			`--keyboard-preview-key-size-stacked: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM)}`,
-			`--keyboard-preview-key-size-compact: ${fittedKeySize(keyUnits, gapCount, COMPACT_KEY_GAP_REM)}`,
-			`--keyboard-preview-key-size-with-compact-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, COMPACT_MAPPINGS_RESERVED_REM)}`,
-			`--keyboard-preview-key-size-with-wide-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, WIDE_MAPPINGS_RESERVED_REM)}`
-		].join('; ');
-	});
 
 	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
 	const hasSpecialKeys = $derived(
@@ -452,99 +392,80 @@
 		</div>
 	</div>
 
-	<div class="typing-practice-keyboard-region">
-		<div class="typing-practice-keyboard-main">
-			<div
-				class="typing-practice-keyboard-layout"
-				class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
-				style={keyboardSizingStyle}
-			>
-				<div class="typing-practice-keyboard-cluster">
-					<div class="typing-practice-keyboard-preview-area">
-						<div class="typing-practice-input-layout-control">
-							<KeyboardInputConfigControl />
-						</div>
-						<LayoutKeyboardPreview
-							{layout}
-							{rows}
-							feedback={keyboardFeedback}
-							swapPaths={keyboardSwapPaths}
-							highlightedKeys={nextPracticeKeys}
-							highlightHomeKeys={displayOptions.colorHomeKeys}
-							horizontalAlignment="start"
-						/>
-					</div>
-					<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
-						<ToggleSwitch
-							checked={displayOptions.highlightNextKey}
-							label="Highlight next key"
-							onCheckedChange={(checked) =>
-								uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
-						/>
-						<ToggleSwitch
-							checked={displayOptions.colorHomeKeys}
-							label="Color home keys"
-							onCheckedChange={(checked) =>
-								uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
-						/>
-						{#if hasSpecialKeys}
-							<ToggleSwitch
-								checked={displayOptions.showSpecialKeys}
-								label="Show special keys"
-								onCheckedChange={(checked) =>
-									uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
-							/>
-						{/if}
-						{#if hasMagicGroupPreview}
-							<ToggleSwitch
-								checked={displayOptions.underlineMagicGroups}
-								label="Underline magic group"
-								onCheckedChange={(checked) =>
-									uiPrefs.setTypingPracticeDisplayOption('underlineMagicGroups', checked)}
-							/>
-						{/if}
-						{#if hasAdaptiveSwapPreview}
-							<ToggleSwitch
-								checked={displayOptions.showAdaptiveSwaps}
-								label="Show adaptive swaps"
-								onCheckedChange={(checked) =>
-									uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
-							/>
-							<ToggleSwitch
-								checked={displayOptions.underlineAdaptiveGroups}
-								label="Underline adaptive group"
-								onCheckedChange={(checked) =>
-									uiPrefs.setTypingPracticeDisplayOption('underlineAdaptiveGroups', checked)}
-							/>
-							{#if displayOptions.showAdaptiveSwaps}
-								<ToggleSwitch
-									checked={displayOptions.onlyRelevantAdaptiveSwaps}
-									label="Only show relevant swaps"
-									onCheckedChange={(checked) =>
-										uiPrefs.setTypingPracticeDisplayOption('onlyRelevantAdaptiveSwaps', checked)}
-								/>
-								<ToggleSwitch
-									checked={displayOptions.showSwapPaths}
-									label="Show swap paths"
-									onCheckedChange={(checked) =>
-										uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
-								/>
-							{/if}
-						{/if}
-					</div>
-				</div>
-				{#if showSpecialMappings && inputProfile}
-					<div class="typing-practice-mappings">
-						<InputMappingsPanel
-							profile={inputProfile}
-							{disabledMappingIds}
-							{onDisabledMappingIdsChange}
-						/>
-					</div>
+	<LayoutKeyboardWorkspace
+		{layout}
+		{rows}
+		feedback={keyboardFeedback}
+		swapPaths={keyboardSwapPaths}
+		highlightedKeys={nextPracticeKeys}
+		highlightHomeKeys={displayOptions.colorHomeKeys}
+		{inputProfile}
+		{disabledMappingIds}
+		{onDisabledMappingIdsChange}
+		showMappings={showSpecialMappings}
+	>
+		{#snippet header()}
+			<KeyboardInputConfigControl />
+		{/snippet}
+		{#snippet options()}
+			<ToggleSwitch
+				checked={displayOptions.highlightNextKey}
+				label="Highlight next key"
+				onCheckedChange={(checked) =>
+					uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
+			/>
+			<ToggleSwitch
+				checked={displayOptions.colorHomeKeys}
+				label="Color home keys"
+				onCheckedChange={(checked) =>
+					uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
+			/>
+			{#if hasSpecialKeys}
+				<ToggleSwitch
+					checked={displayOptions.showSpecialKeys}
+					label="Show special keys"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
+				/>
+			{/if}
+			{#if hasMagicGroupPreview}
+				<ToggleSwitch
+					checked={displayOptions.underlineMagicGroups}
+					label="Underline magic group"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('underlineMagicGroups', checked)}
+				/>
+			{/if}
+			{#if hasAdaptiveSwapPreview}
+				<ToggleSwitch
+					checked={displayOptions.showAdaptiveSwaps}
+					label="Show adaptive swaps"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+				/>
+				<ToggleSwitch
+					checked={displayOptions.underlineAdaptiveGroups}
+					label="Underline adaptive group"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('underlineAdaptiveGroups', checked)}
+				/>
+				{#if displayOptions.showAdaptiveSwaps}
+					<ToggleSwitch
+						checked={displayOptions.onlyRelevantAdaptiveSwaps}
+						label="Only show relevant swaps"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('onlyRelevantAdaptiveSwaps', checked)}
+					/>
+					<ToggleSwitch
+						checked={displayOptions.showSwapPaths}
+						label="Show swap paths"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+					/>
 				{/if}
-			</div>
-		</div>
-	</div>
+			{/if}
+		{/snippet}
+	</LayoutKeyboardWorkspace>
 {/if}
 
 {#if onCustomPracticeTextChange}
@@ -684,116 +605,5 @@
 
 	.typing-practice-results--hidden {
 		visibility: hidden;
-	}
-
-	.typing-practice-keyboard-region {
-		container: typing-practice-keyboard / inline-size;
-		min-width: 0;
-	}
-
-	.typing-practice-keyboard-layout {
-		--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-stacked));
-		--keyboard-preview-key-gap: 0.45rem;
-		display: grid;
-		width: max-content;
-		max-width: 100%;
-		gap: clamp(0.75rem, 2vw, 1.5rem);
-		min-width: 0;
-	}
-
-	.typing-practice-keyboard-main,
-	.typing-practice-mappings {
-		min-width: 0;
-	}
-
-	.typing-practice-keyboard-main {
-		display: flex;
-		justify-content: center;
-	}
-
-	.typing-practice-keyboard-cluster {
-		display: grid;
-		grid-template-columns: minmax(0, max-content);
-		width: max-content;
-		max-width: 100%;
-		min-width: 0;
-	}
-
-	.typing-practice-keyboard-cluster :global(.keyboard-preview) {
-		width: max-content;
-		max-width: 100%;
-	}
-
-	.typing-practice-keyboard-preview-area {
-		display: grid;
-		width: 100%;
-		min-width: 0;
-	}
-
-	.typing-practice-input-layout-control {
-		justify-self: start;
-		margin-bottom: 0.5rem;
-	}
-
-	.typing-practice-mappings {
-		width: 100%;
-		margin-top: 1.25rem;
-		margin-inline: auto;
-	}
-
-	.typing-practice-keyboard-options {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-		grid-auto-flow: row;
-		align-items: start;
-		width: 100%;
-		min-width: 0;
-		gap: 0.75rem 1rem;
-		margin-top: 0.75rem;
-		contain: inline-size;
-	}
-
-	.typing-practice-keyboard-options :global(.toggle-switch) {
-		width: 100%;
-		min-width: 0;
-	}
-
-	@container typing-practice-keyboard (max-width: 30rem) {
-		.typing-practice-keyboard-layout {
-			--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-compact));
-			--keyboard-preview-key-gap: 0.25rem;
-		}
-	}
-
-	@container typing-practice-keyboard (min-width: 50rem) {
-		.typing-practice-keyboard-layout--with-mappings {
-			--keyboard-preview-key-size: min(
-				3.35rem,
-				var(--keyboard-preview-key-size-with-compact-mappings)
-			);
-			--keyboard-preview-key-gap: 0.45rem;
-			grid-template-columns: max-content 14rem;
-			align-items: start;
-		}
-
-		.typing-practice-keyboard-layout--with-mappings .typing-practice-mappings {
-			max-width: 14rem;
-			margin-top: 0;
-			margin-inline: 0;
-		}
-	}
-
-	@container typing-practice-keyboard (min-width: 72rem) {
-		.typing-practice-keyboard-layout--with-mappings {
-			--keyboard-preview-key-size: min(
-				3.35rem,
-				var(--keyboard-preview-key-size-with-wide-mappings)
-			);
-			grid-template-columns: max-content 19.6875rem;
-		}
-
-		.typing-practice-keyboard-layout--with-mappings .typing-practice-mappings {
-			max-width: 19.6875rem;
-		}
 	}
 </style>

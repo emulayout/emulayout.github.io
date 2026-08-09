@@ -50,9 +50,9 @@ renderer.
   can produce after the full contextual-input pipeline resolves.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
-  is global and persisted, while Typing practice is currently the only input surface that applies
-  it. See [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable
-  model and event-translation boundary.
+  is global and persisted, and both Typing practice and the detail Test area apply it. See
+  [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable model and
+  event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in an unboxed responsive
   grid directly below it. Equal-width columns collapse from several columns to one as the keyboard
@@ -165,6 +165,8 @@ The successful-space path is intentionally ordered:
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
+- Shared responsive keyboard, options, and mappings workspace:
+  `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`

@@ -22,11 +22,11 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
-	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import CorpusTabs from '$lib/components/CorpusTabs.svelte';
+	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
-	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
+	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
@@ -39,7 +39,8 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
-	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		buildAdaptiveKeyboardSwapPaths,
 		buildLayoutKeyboardFeedback
@@ -125,6 +126,9 @@
 	});
 	const displayValue = $derived(displayRowsToString(displayRows));
 	const testKeyMaps = $derived(createLayoutTestKeyMaps(displayValue));
+	const configuredTestKeyMaps = $derived(
+		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
+	);
 	const repeatMappingId = $derived(
 		inputProfile?.repeatKey ? repeatKeyMappingId(inputProfile.repeatKey.trigger) : undefined
 	);
@@ -322,6 +326,25 @@
 	</label>
 {/snippet}
 
+{#snippet testKeyboardOptions()}
+	<ToggleSwitch
+		checked={previewContextualKeyOutput}
+		label={contextualKeyPreviewLabel}
+		onCheckedChange={(checked) => (previewContextualKeyOutput = checked)}
+	/>
+	{#if hasAdaptiveSwapPreview}
+		<ToggleSwitch
+			checked={showAdaptiveSwapPaths}
+			label="Show swap paths"
+			onCheckedChange={(checked) => (showAdaptiveSwapPaths = checked)}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet testKeyboardHeader()}
+	<KeyboardInputConfigControl />
+{/snippet}
+
 {#snippet sharedHeaders()}
 	{#if showCmini}
 		<th scope="col" class="shared-stats-col shared-stats-col--cmini">{cminiTableLabel}</th>
@@ -473,56 +496,29 @@
 						role="tabpanel"
 						aria-labelledby={testTabId}
 					>
-						<div
-							class="detail-test-input-row"
-							class:detail-test-input-row--with-mappings={hasSpecialMappings}
-						>
-							<div class="detail-test-area-wrap">
-								<LayoutTestArea
-									{layout}
-									keyMaps={testKeyMaps}
-									{inputProfile}
-									{disabledMappingIds}
-									variant="page"
-									onInputHistoryChange={(history) => (layoutInputHistory = history)}
-								/>
-							</div>
-
-							{#if hasSpecialMappings && inputProfile}
-								<div class="detail-test-mappings">
-									<InputMappingsPanel
-										profile={inputProfile}
-										{disabledMappingIds}
-										{onDisabledMappingIdsChange}
-									/>
-								</div>
-							{/if}
-						</div>
-
-						<div class="detail-keyboard-preview">
-							{#if hasContextualKeyPreview}
-								<div class="detail-keyboard-preview-controls">
-									<ToggleSwitch
-										checked={previewContextualKeyOutput}
-										label={contextualKeyPreviewLabel}
-										onCheckedChange={(checked) => (previewContextualKeyOutput = checked)}
-									/>
-									{#if hasAdaptiveSwapPreview}
-										<ToggleSwitch
-											checked={showAdaptiveSwapPaths}
-											label="Show swap paths"
-											onCheckedChange={(checked) => (showAdaptiveSwapPaths = checked)}
-										/>
-									{/if}
-								</div>
-							{/if}
-							<LayoutKeyboardPreview
+						<div class="detail-test-area-wrap">
+							<LayoutTestArea
 								{layout}
-								rows={displayRows}
-								feedback={keyboardFeedback}
-								swapPaths={keyboardSwapPaths}
+								keyMaps={configuredTestKeyMaps}
+								{inputProfile}
+								{disabledMappingIds}
+								variant="page"
+								onInputHistoryChange={(history) => (layoutInputHistory = history)}
 							/>
 						</div>
+
+						<LayoutKeyboardWorkspace
+							{layout}
+							rows={displayRows}
+							feedback={keyboardFeedback}
+							swapPaths={keyboardSwapPaths}
+							{inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+							showMappings={hasSpecialMappings}
+							header={testKeyboardHeader}
+							options={hasContextualKeyPreview ? testKeyboardOptions : undefined}
+						/>
 					</div>
 				{:else}
 					<div
@@ -902,48 +898,8 @@
 		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
 	}
 
-	.detail-test-input-row {
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
+	.detail-test-area-wrap {
 		min-width: 0;
-	}
-
-	.detail-test-area-wrap,
-	.detail-test-mappings {
-		min-width: 0;
-	}
-
-	.detail-keyboard-preview {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		min-width: 0;
-	}
-
-	.detail-keyboard-preview-controls {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		gap: 0.625rem 1rem;
-	}
-
-	@media (min-width: 768px) {
-		.detail-test-input-row--with-mappings {
-			display: grid;
-			grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
-			align-items: start;
-		}
-
-		.detail-test-input-row--with-mappings .detail-test-mappings {
-			grid-row: 1;
-			grid-column: 2;
-		}
-
-		.detail-test-input-row--with-mappings .detail-test-area-wrap {
-			grid-row: 1;
-			grid-column: 1;
-		}
 	}
 
 	.detail-analyzer-options {

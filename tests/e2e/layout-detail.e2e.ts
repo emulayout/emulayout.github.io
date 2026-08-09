@@ -654,6 +654,13 @@ test.describe('typing-practice input layout', () => {
 			.getByRole('textbox', { name: 'Typing practice input' })
 			.press('f');
 		await expect(page.getByText('Press esc to restart')).toBeVisible();
+
+		await page.getByRole('tab', { name: 'Test area' }).click();
+		const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
+		await expect(testPanel.getByRole('button', { name: 'Input layout: Colemak-DH' })).toBeVisible();
+		const testInput = testPanel.getByRole('textbox', { name: 'Layout test area' });
+		await testInput.press('f');
+		await expect(testInput).toHaveValue('e');
 	});
 });
 
@@ -699,8 +706,8 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const targetWord = (await practiceWords.first().textContent())!;
 	const nextCharacter = Array.from(targetWord)[0]!;
 	const keyboardPreview = practicePanel.getByRole('img', { name: 'QWERTY keyboard preview' });
-	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
-	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
+	const keyboardMain = practicePanel.locator('.layout-keyboard-workspace-main');
+	const keyboardCluster = practicePanel.locator('.layout-keyboard-workspace-cluster');
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
 	const inputLayoutControl = practicePanel.getByRole('button', { name: 'Input layout: QWERTY' });
 	const nextKeyToggle = keyboardOptions.getByRole('switch', { name: 'Highlight next key' });
@@ -812,10 +819,10 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await page.goto('/layouts/adaptive-preview?text=lj');
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
-	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
-	const keyboardLayout = practicePanel.locator('.typing-practice-keyboard-layout');
-	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
-	const mappings = practicePanel.locator('.typing-practice-mappings');
+	const keyboardMain = practicePanel.locator('.layout-keyboard-workspace-main');
+	const keyboardLayout = practicePanel.locator('.layout-keyboard-workspace');
+	const keyboardCluster = practicePanel.locator('.layout-keyboard-workspace-cluster');
+	const mappings = practicePanel.locator('.layout-keyboard-workspace-mappings');
 	const keyboardPreview = practicePanel.getByRole('img', {
 		name: 'adaptive-preview keyboard preview'
 	});
@@ -1614,31 +1621,52 @@ test('shows a recoverable not-found page for an unknown layout URL', async ({ pa
 test.describe('full-catalog keyboard previews', () => {
 	test.use({ catalogVariant: 'full' });
 
-	test('places special mappings beside the test area', async ({ page }) => {
-		await page.setViewportSize({ width: 1280, height: 800 });
+	test('uses the shared keyboard workspace in the test area', async ({ page }) => {
+		await page.setViewportSize({ width: 1600, height: 900 });
 		await page.goto('/layouts/vylet?tab=test');
 
-		const row = page.locator('.detail-test-input-row--with-mappings');
-		const mappings = row.locator('.detail-test-mappings');
-		const testArea = row.locator('.layout-test-area');
-		const preview = page.getByRole('img', { name: 'vylet keyboard preview' });
-		const [rowBox, mappingsBox, testAreaBox, previewBox] = await Promise.all([
-			row.boundingBox(),
-			mappings.boundingBox(),
-			testArea.boundingBox(),
-			preview.boundingBox()
-		]);
+		const panel = page.getByRole('tabpanel', { name: 'Test area' });
+		const workspace = panel.locator('.layout-keyboard-workspace');
+		const keyboardCluster = panel.locator('.layout-keyboard-workspace-cluster');
+		const mappings = panel.locator('.layout-keyboard-workspace-mappings');
+		const options = panel.getByRole('group', { name: 'Keyboard options' });
+		const testArea = panel.locator('.layout-test-area');
+		const preview = panel.getByRole('img', { name: 'vylet keyboard preview' });
+		const [workspaceBox, clusterBox, mappingsBox, optionsBox, testAreaBox, previewBox] =
+			await Promise.all([
+				workspace.boundingBox(),
+				keyboardCluster.boundingBox(),
+				mappings.boundingBox(),
+				options.boundingBox(),
+				testArea.boundingBox(),
+				preview.boundingBox()
+			]);
 
-		expect(rowBox).not.toBeNull();
+		expect(workspaceBox).not.toBeNull();
+		expect(clusterBox).not.toBeNull();
 		expect(mappingsBox).not.toBeNull();
+		expect(optionsBox).not.toBeNull();
 		expect(testAreaBox).not.toBeNull();
 		expect(previewBox).not.toBeNull();
-		expect(testAreaBox!.x).toBeLessThan(mappingsBox!.x);
-		expect(Math.abs(mappingsBox!.y - testAreaBox!.y)).toBeLessThanOrEqual(1);
-		expect(testAreaBox!.width).toBeLessThan(rowBox!.width);
-		expect(previewBox!.y).toBeGreaterThanOrEqual(
-			Math.max(mappingsBox!.y + mappingsBox!.height, testAreaBox!.y + testAreaBox!.height)
+		expect(previewBox!.y).toBeGreaterThan(testAreaBox!.y + testAreaBox!.height);
+		expect(mappingsBox!.x).toBeGreaterThanOrEqual(clusterBox!.x + clusterBox!.width);
+		expect(Math.abs(mappingsBox!.y - clusterBox!.y)).toBeLessThanOrEqual(1);
+		expect(optionsBox!.y).toBeGreaterThanOrEqual(previewBox!.y + previewBox!.height);
+
+		await page.setViewportSize({ width: 700, height: 900 });
+		const [narrowWorkspaceBox, narrowClusterBox, narrowMappingsBox] = await Promise.all([
+			workspace.boundingBox(),
+			keyboardCluster.boundingBox(),
+			mappings.boundingBox()
+		]);
+		expect(narrowWorkspaceBox).not.toBeNull();
+		expect(narrowClusterBox).not.toBeNull();
+		expect(narrowMappingsBox).not.toBeNull();
+		expect(narrowMappingsBox!.y).toBeGreaterThanOrEqual(
+			narrowClusterBox!.y + narrowClusterBox!.height
 		);
+		expect(narrowMappingsBox!.x).toBeCloseTo(narrowWorkspaceBox!.x, 0);
+		expect(narrowMappingsBox!.width).toBeCloseTo(narrowWorkspaceBox!.width, 0);
 	});
 
 	test('places Turnip’s right thumb between k and p', async ({ page }) => {

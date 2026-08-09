@@ -93,13 +93,16 @@ small without weakening app-bar functionality.
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
-  control are reusable, but Test area and index-card emulators retain their existing physical-code
-  mapping until those surfaces explicitly adopt the configuration. See
+  control are reusable. The detail Test area uses the same persisted input layout for free typing,
+  while index-card emulators retain their existing physical-code mapping until that surface
+  explicitly adopts the configuration. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
-- `Test area` begins with the keyboard emulator. When Magic or Adaptive mappings exist, their
-  controls share that first row on the right while the emulator occupies the larger left portion;
-  narrow screens keep the emulator first and stack the mappings below it. A full-width, transparent
-  keyboard-preview region follows, with its key group centered without an outer card treatment.
+- `Test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard workspace
+  follows it, using the same structure as Typing practice: the key group and its responsive options
+  grid form one centered cluster, while Magic or Adaptive mappings occupy a capped right-hand
+  column when space permits and expand beneath the keyboard when it does not. The workspace has no
+  outer card treatment, retains full-size keys until its actual board geometry no longer fits, and
+  exposes the shared Input layout control above the keys.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
   trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
   an output, then shows that next output on an accent-colored keycap. A local switch restores the
@@ -157,7 +160,9 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/components/KeyboardInputEditor.svelte`
 - Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
   `src/lib/layoutDetailStatsPrefs.ts`
-- Large board-aware keyboard preview: `src/lib/components/LayoutKeyboardPreview.svelte`
+- Shared responsive keyboard workspace and board-aware preview:
+  `src/lib/components/LayoutKeyboardWorkspace.svelte`,
+  `src/lib/components/LayoutKeyboardPreview.svelte`
 - Detail section URL state, semantics, and keyboard navigation: `src/lib/layoutDetailTabs.ts`,
   `src/lib/components/Tabs.svelte`
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
