@@ -241,6 +241,11 @@ in the swapped output.
   history and disabled mappings but remains independent of the label-preview switch. The formatted
   text board never changes.
 
+Typing practice also offers a separate, default-off Adaptive-group underline. For each enabled swap
+that can produce the next part of a lesson word, it marks the preceding Adaptive trigger and the
+final emitted target text. This derivation runs through the complete Adaptive-then-Magic-then-Repeat
+pipeline, follows disabled mappings, and does not alter the default prompt presentation.
+
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
 prospective outputs from the same profile and history, but the layout test area does not display an
 applied-keypress event directly. Typing practice receives the full resolved-input result at its

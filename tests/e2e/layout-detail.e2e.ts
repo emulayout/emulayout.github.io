@@ -827,6 +827,9 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	const onlyRelevantSwaps = keyboardOptions.getByRole('switch', {
 		name: 'Only show relevant swaps'
 	});
+	const underlineAdaptiveGroup = keyboardOptions.getByRole('switch', {
+		name: 'Underline adaptive group'
+	});
 	const showSwapPaths = keyboardOptions.getByRole('switch', { name: 'Show swap paths' });
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
 	const yKey = keyboardPreview.locator('[data-key-char="y"]');
@@ -837,8 +840,15 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await expect(showSpecialKeys).toBeChecked();
 	await expect(showAdaptiveSwaps).toBeChecked();
 	await expect(onlyRelevantSwaps).not.toBeChecked();
+	await expect(underlineAdaptiveGroup).not.toBeChecked();
 	await expect(showSwapPaths).not.toBeChecked();
 	await expect(mappings.getByRole('checkbox', { name: 'Adaptive swap mappings' })).toBeVisible();
+	await expect(practicePanel.locator('[data-adaptive-group="true"]')).toHaveCount(0);
+
+	await underlineAdaptiveGroup.check();
+	await expect(
+		practicePanel.locator('[data-practice-word]').first().locator('[data-adaptive-group="true"]')
+	).toHaveText(['l', 'j']);
 
 	await practiceInput.press('l');
 	await expect(yKey).toHaveText('j');
@@ -853,6 +863,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await expect(hKey).toHaveText('h');
 	await expect(kKey).toHaveText('k');
 	await page.keyboard.press('Escape');
+	await showSwapPaths.check();
 	await showAdaptiveSwaps.uncheck();
 	await expect(onlyRelevantSwaps).toHaveCount(0);
 	await expect(showSwapPaths).toHaveCount(0);
@@ -863,8 +874,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await showAdaptiveSwaps.check();
 	await expect(onlyRelevantSwaps).toBeChecked();
 	await expect(showSwapPaths).toBeVisible();
-	await expect(showSwapPaths).not.toBeChecked();
-	await showSwapPaths.check();
+	await expect(showSwapPaths).toBeChecked();
 	await practiceInput.press('l');
 	await expect(swapPath).toHaveCount(1);
 	await page.keyboard.press('Escape');
@@ -980,6 +990,9 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	).toBeChecked();
 	await expect(
 		restoredKeyboardOptions.getByRole('switch', { name: 'Only show relevant swaps' })
+	).toBeChecked();
+	await expect(
+		restoredKeyboardOptions.getByRole('switch', { name: 'Underline adaptive group' })
 	).toBeChecked();
 	await expect(
 		restoredKeyboardOptions.getByRole('switch', { name: 'Show swap paths' })

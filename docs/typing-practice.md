@@ -45,6 +45,9 @@ renderer.
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
   precedence.
+- Layouts with curated Adaptive mappings similarly add a default-off Underline adaptive group
+  option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
+  can produce after the full contextual-input pipeline resolves.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
   is global and persisted, while Typing practice is currently the only input surface that applies
@@ -53,9 +56,10 @@ renderer.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
   below it. Adaptive layouts add Show adaptive swaps there and reveal Show swap paths only while the
-  Adaptive preview is enabled. A default-off Only show relevant swaps option limits the preview and
-  any paths to the armed pair containing a physical key that can produce the next required lesson
-  character. When special keys are shown, a wider view keeps their mappings in a
+  Adaptive preview is enabled. Hiding the path control does not clear its persisted value, so it
+  restores its prior state when the preview is enabled again. A default-off Only show relevant swaps
+  option limits the preview and any paths to the armed pair containing a physical key that can
+  produce the next required lesson character. When special keys are shown, a wider view keeps their mappings in a
   right-hand column capped at 315px. The keyboard and mappings share one intrinsic-width wrapper so
   their combined footprint stays centered. At intermediate widths the mappings column narrows and
   presents one mapping per line while the keyboard keys and gaps scale down to keep the combined
@@ -146,6 +150,7 @@ The successful-space path is intentionally ordered:
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
 - Magic-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
+- Adaptive-group prompt hints: `src/lib/typingPracticeAdaptiveGroups.ts`
 - Custom-text parsing and URL parameter: `src/lib/typingPracticeText.ts`
 - Input-layout model, validation, persistence, and target-map compiler:
   `src/lib/keyboardInputConfig.ts`, `src/lib/keyboardInputStore.svelte.ts`,

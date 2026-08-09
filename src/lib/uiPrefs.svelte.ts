@@ -86,7 +86,6 @@ class UiPrefs {
 
 	setTypingPracticeDisplayOption(option: keyof TypingPracticeDisplayOptions, value: boolean) {
 		const next = { ...this.typingPracticeDisplayOptions, [option]: value };
-		if (!next.showAdaptiveSwaps) next.showSwapPaths = false;
 		this.typingPracticeDisplayOptions = next;
 		localStorage.setItem(
 			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,

@@ -19,6 +19,7 @@ describe('typing practice display preferences', () => {
 			highlightNextKey: true,
 			colorHomeKeys: true,
 			underlineMagicGroups: true,
+			underlineAdaptiveGroups: true,
 			onlyRelevantAdaptiveSwaps: true,
 			showSwapPaths: true
 		};
@@ -30,11 +31,11 @@ describe('typing practice display preferences', () => {
 		).toEqual({ ...createDefaultTypingPracticeDisplayOptions(), highlightNextKey: true });
 	});
 
-	test('turns swap paths off when Adaptive previews are disabled', () => {
+	test('preserves swap paths while Adaptive previews are disabled', () => {
 		const parsed = parseTypingPracticeDisplayOptions(
 			'{"version":1,"options":{"showAdaptiveSwaps":false,"showSwapPaths":true}}'
 		);
 		expect(parsed.showAdaptiveSwaps).toBe(false);
-		expect(parsed.showSwapPaths).toBe(false);
+		expect(parsed.showSwapPaths).toBe(true);
 	});
 });

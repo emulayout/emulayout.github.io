@@ -35,6 +35,7 @@
 	import { buildTypingPracticeMagicGroupIndexes } from '$lib/typingPracticeMagicGroups';
 	import { typingPracticeWordsFromText } from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 
 	interface Props {
@@ -113,6 +114,16 @@
 							inputProfile?.magicKeys,
 							disabledMappingIds
 						)
+					: new Set<number>()
+			])
+		)
+	);
+	const adaptiveGroupIndexes = $derived(
+		new Map(
+			prompt.map((word) => [
+				word.id,
+				displayOptions.underlineAdaptiveGroups
+					? buildTypingPracticeAdaptiveGroupIndexes(word.word, inputProfile, disabledMappingIds)
 					: new Set<number>()
 			])
 		)
@@ -284,7 +295,13 @@
 								class:typing-practice-character--magic-group={magicGroupIndexes
 									.get(word.id)
 									?.has(characterIndex)}
+								class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
+									.get(word.id)
+									?.has(characterIndex)}
 								data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
+									? 'true'
+									: undefined}
+								data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
 									? 'true'
 									: undefined}
 								data-character-status={character.status}>{character.character}</span
@@ -432,6 +449,12 @@
 								onCheckedChange={(checked) =>
 									uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
 							/>
+							<ToggleSwitch
+								checked={displayOptions.underlineAdaptiveGroups}
+								label="Underline adaptive group"
+								onCheckedChange={(checked) =>
+									uiPrefs.setTypingPracticeDisplayOption('underlineAdaptiveGroups', checked)}
+							/>
 							{#if displayOptions.showAdaptiveSwaps}
 								<ToggleSwitch
 									checked={displayOptions.onlyRelevantAdaptiveSwaps}
@@ -553,7 +576,8 @@
 		color: var(--typing-practice-incorrect);
 	}
 
-	.typing-practice-character--magic-group {
+	.typing-practice-character--magic-group,
+	.typing-practice-character--adaptive-group {
 		text-decoration-line: underline;
 		text-decoration-thickness: 0.08em;
 		text-underline-offset: 0.12em;
