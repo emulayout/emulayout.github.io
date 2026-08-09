@@ -338,12 +338,15 @@
 			>
 			<span aria-label={`Elapsed time: ${elapsedTime}`}>{elapsedTime}</span>
 		</div>
-		{#if practiceComplete}
-			<div class="typing-practice-results" aria-label="Typing practice results">
-				<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
-				<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
-			</div>
-		{/if}
+		<div
+			class="typing-practice-results"
+			class:typing-practice-results--hidden={!practiceComplete}
+			aria-label={practiceComplete ? 'Typing practice results' : undefined}
+			aria-hidden={!practiceComplete}
+		>
+			<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
+			<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
+		</div>
 	</div>
 
 	<div
@@ -539,6 +542,10 @@
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
 		line-height: 1.2;
+	}
+
+	.typing-practice-results--hidden {
+		visibility: hidden;
 	}
 
 	.typing-practice-keyboard-layout {

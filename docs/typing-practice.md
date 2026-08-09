@@ -47,9 +47,11 @@ renderer.
   centered keyboard group before the mappings.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
-- Completion reveals Accuracy and WPM. Accuracy is correct character attempts divided by all
-  character attempts; deletions do not count as attempts. WPM uses the conventional five-character
-  word and the lesson's completed characters, including inter-word spaces, over elapsed time.
+- Completion reveals Accuracy and WPM in a row whose height is reserved throughout the lesson, so
+  revealing results does not shift the keyboard. Accuracy is correct character attempts divided by
+  all character attempts; deletions do not count as attempts. WPM uses the conventional
+  five-character word and the lesson's completed characters, including inter-word spaces, over
+  elapsed time.
 - The completed prompt reads `Press esc to restart` and Escape immediately starts the next lesson.
 - A trailing pencil button on random prompts opens the shared modal shell with the displayed lesson
   ready to edit. Saving normalized nonempty text writes it to the URL and starts that custom lesson.
