@@ -53,11 +53,53 @@ describe('keyboard input configuration', () => {
 		expect(config.keyboardType).toBe('ortho');
 		expect(config.keys).toHaveLength(36);
 		expect(config.keys.find((key) => key.slot === '0,2')?.value).toBe('');
-		expect(keyboardInputEffectiveValue(config.keys.find((key) => key.slot === '0,2')!)).toBe('e');
+		expect(config.keys.find((key) => key.slot === '0,2')?.inert).toBe(true);
+		expect(keyboardInputEffectiveValue(config.keys.find((key) => key.slot === '0,2')!)).toBe('');
 		expect(config.keys.filter((key) => key.thumbHand)).toEqual([
 			{ slot: '3,2', value: 'e', thumbHand: 'l' },
 			{ slot: '3,6', value: 'r', thumbHand: 'r' }
 		]);
+	});
+
+	test('keeps imported omissions inert until the user assigns them', () => {
+		const imported = createKeyboardInputConfigFromLayout(decodeLayout(thumbLayout));
+		const inertKey = imported.keys.find((key) => key.slot === '0,2')!;
+		expect(keyboardInputConfigError(imported)).toBeNull();
+		expect(keyboardInputMissingAnsiValues(imported)).toContain('t');
+		expect(
+			updateKeyboardInputKey(imported, inertKey.slot, '').keys.find(
+				(key) => key.slot === inertKey.slot
+			)?.inert
+		).toBe(true);
+
+		const assigned = updateKeyboardInputKey(imported, inertKey.slot, '1');
+		expect(assigned.keys.find((key) => key.slot === inertKey.slot)).toEqual({
+			slot: '0,2',
+			value: '1'
+		});
+		expect(
+			keyboardInputEffectiveValue(assigned.keys.find((key) => key.slot === inertKey.slot)!)
+		).toBe('1');
+
+		const cleared = clearKeyboardInputConfig(imported);
+		expect(cleared.keys.some((key) => key.inert)).toBe(false);
+		expect(keyboardInputEffectiveValue(cleared.keys.find((key) => key.slot === '0,2')!)).toBe('e');
+	});
+
+	test('migrates version-one input configurations without making their blank keys inert', () => {
+		const legacy = JSON.stringify({
+			version: 1,
+			config: {
+				baseLayoutName: null,
+				keyboardType: 'staggered',
+				keys: [{ slot: '0,0', value: '' }]
+			}
+		});
+
+		const migrated = parseKeyboardInputConfig(legacy);
+		expect(migrated.keys.find((key) => key.slot === '0,0')).toEqual({ slot: '0,0', value: '' });
+		expect(keyboardInputEffectiveValue(migrated.keys.find((key) => key.slot === '0,0')!)).toBe('q');
+		expect(JSON.parse(serializeKeyboardInputConfig(migrated)).version).toBe(2);
 	});
 
 	test('uses QWERTY placeholders for empty keys and rejects effective duplicates', () => {

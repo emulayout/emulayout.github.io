@@ -14,7 +14,7 @@ export const HOME_ROW_INDEX = 1;
 /** Home keys on row 1, excluding the split gap column. */
 export function isHomeKeySlot(row: number, col: number): boolean {
 	if (row !== HOME_ROW_INDEX) return false;
-	return col < SPLIT_COL - 1 || col > SPLIT_COL;
+	return (col >= 0 && col <= 3) || (col >= 6 && col <= 9);
 }
 
 // Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code

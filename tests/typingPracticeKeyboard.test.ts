@@ -15,6 +15,7 @@ describe('typing practice keyboard guidance', () => {
 
 		expect(highlightedColumns).toEqual([0, 1, 2, 3, 6, 7, 8, 9]);
 		expect(isTypingPracticeHomeKeySlot(0, 3)).toBe(false);
+		expect(isTypingPracticeHomeKeySlot(1, 10)).toBe(false);
 	});
 
 	test('selects the direct key for the next untyped character', () => {

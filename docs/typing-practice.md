@@ -176,7 +176,8 @@ The successful-space path is intentionally ordered:
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
-- Browser coverage: `tests/e2e/layout-detail.e2e.ts`
+- Browser coverage: `tests/e2e/layout-detail-typing-practice.e2e.ts`,
+  `tests/e2e/layout-detail-keyboard-preview.e2e.ts`
 
 ## Invariants
 

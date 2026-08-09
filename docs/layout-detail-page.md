@@ -173,7 +173,8 @@ small without weakening app-bar functionality.
   `src/lib/components/Tabs.svelte`
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
 - Semantic detail link in the action toolbar: `src/lib/components/LayoutCardActions.svelte`
-- Route browser coverage: `tests/e2e/layout-detail.e2e.ts`
+- Route browser coverage: `tests/e2e/layout-detail*.e2e.ts`, split across navigation, typing
+  practice, input-layout configuration, keyboard previews, and Quick Find.
 
 ## Invariants
 

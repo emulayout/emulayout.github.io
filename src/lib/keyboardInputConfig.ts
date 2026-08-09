@@ -1,15 +1,17 @@
 import type { BoardType, LayoutData } from '$lib/layout';
-import { shiftedKeyCharacter } from '$lib/cmini/keyboard';
+import { isHomeKeySlot, shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export const KEYBOARD_INPUT_CONFIG_STORAGE_KEY = 'keyboardInputConfig';
 
-const KEYBOARD_INPUT_CONFIG_VERSION = 1;
+const KEYBOARD_INPUT_CONFIG_VERSION = 2;
 
 export type InputKeyboardType = 'ortho' | 'staggered';
 
 export interface KeyboardInputKey {
 	slot: string;
 	value: string;
+	/** The imported base layout does not assign this physical slot. */
+	inert?: boolean;
 	thumbHand?: 'l' | 'r';
 }
 
@@ -95,12 +97,19 @@ function withKeyboardInputThumbPlaceholders(keys: KeyboardInputKey[]): KeyboardI
 	return result.sort(compareKeyboardInputKeys);
 }
 
-function withKeyboardInputTopology(keys: KeyboardInputKey[]): KeyboardInputKey[] {
+function withKeyboardInputTopology(
+	keys: KeyboardInputKey[],
+	missingMainKeysInert = false
+): KeyboardInputKey[] {
 	const result = keys.map((key) => ({ ...key }));
 	const slots = new Set(result.map((key) => key.slot));
 	for (const defaultKey of DEFAULT_QWERTY_MAIN_KEYS) {
 		if (slots.has(defaultKey.slot)) continue;
-		result.push({ slot: defaultKey.slot, value: '' });
+		result.push({
+			slot: defaultKey.slot,
+			value: '',
+			...(missingMainKeysInert ? { inert: true } : {})
+		});
 		slots.add(defaultKey.slot);
 	}
 	return withKeyboardInputThumbPlaceholders(result);
@@ -111,6 +120,7 @@ export function keyboardInputPlaceholderValue(slot: string): string {
 }
 
 export function keyboardInputEffectiveValue(key: KeyboardInputKey): string {
+	if (key.inert) return '';
 	return normalizeKeyboardInputValue(key.value) || keyboardInputPlaceholderValue(key.slot);
 }
 
@@ -145,7 +155,7 @@ export function createKeyboardInputConfigFromLayout(layout: LayoutData): Keyboar
 	return {
 		baseLayoutName: layout.name,
 		keyboardType: inputKeyboardTypeFromBoard(layout.board),
-		keys: withKeyboardInputTopology(keys)
+		keys: withKeyboardInputTopology(keys, true)
 	};
 }
 
@@ -199,12 +209,16 @@ export function clearKeyboardInputConfig(config: KeyboardInputConfig): KeyboardI
 	return {
 		...config,
 		baseLayoutName: null,
-		keys: config.keys.map((key) => ({ ...key, value: '' }))
+		keys: config.keys.map((key) => ({
+			slot: key.slot,
+			value: '',
+			...(key.thumbHand ? { thumbHand: key.thumbHand } : {})
+		}))
 	};
 }
 
 export function isKeyboardInputHomeKeySlot(row: number, column: number): boolean {
-	return row === 1 && ((column >= 0 && column <= 3) || (column >= 6 && column <= 9));
+	return isHomeKeySlot(row, column);
 }
 
 export function keyboardInputRows(config: KeyboardInputConfig): KeyboardInputRow[] {
@@ -227,10 +241,18 @@ export function updateKeyboardInputKey(
 	slot: string,
 	value: string
 ): KeyboardInputConfig {
+	const normalizedValue = normalizeKeyboardInputValue(value);
 	return {
 		...config,
 		keys: config.keys.map((key) =>
-			key.slot === slot ? { ...key, value: normalizeKeyboardInputValue(value) } : key
+			key.slot === slot
+				? {
+						slot: key.slot,
+						value: normalizedValue,
+						...(!normalizedValue && key.inert ? { inert: true } : {}),
+						...(key.thumbHand ? { thumbHand: key.thumbHand } : {})
+					}
+				: key
 		)
 	};
 }
@@ -274,15 +296,18 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		const position = parseKeyboardInputSlot(entry.slot);
 		if (!position) return null;
 		if (typeof entry.value !== 'string' || slots.has(entry.slot)) return null;
+		if (entry.inert !== undefined && typeof entry.inert !== 'boolean') return null;
 		if (entry.thumbHand !== undefined && entry.thumbHand !== 'l' && entry.thumbHand !== 'r') {
 			return null;
 		}
+		const normalizedValue = normalizeKeyboardInputValue(entry.value);
 		const thumbHand =
 			position.row >= 3 ? (entry.thumbHand ?? (position.column < 5 ? 'l' : 'r')) : undefined;
 		slots.add(entry.slot);
 		keys.push({
 			slot: entry.slot,
-			value: normalizeKeyboardInputValue(entry.value),
+			value: normalizedValue,
+			...(!normalizedValue && entry.inert === true ? { inert: true } : {}),
 			...(thumbHand ? { thumbHand } : {})
 		});
 	}
@@ -299,7 +324,7 @@ export function parseKeyboardInputConfig(storedValue: string | null): KeyboardIn
 	if (storedValue === null) return createDefaultKeyboardInputConfig();
 	try {
 		const document: unknown = JSON.parse(storedValue);
-		if (!isRecord(document) || document.version !== KEYBOARD_INPUT_CONFIG_VERSION) {
+		if (!isRecord(document) || (document.version !== 1 && document.version !== 2)) {
 			return createDefaultKeyboardInputConfig();
 		}
 		return normalizeKeyboardInputConfig(document.config) ?? createDefaultKeyboardInputConfig();

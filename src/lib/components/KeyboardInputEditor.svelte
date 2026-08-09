@@ -125,10 +125,11 @@
 						use:registerInput={key.slot}
 						type="text"
 						value={key.value}
-						placeholder={keyboardInputPlaceholderValue(key.slot)}
+						placeholder={key.inert ? '' : keyboardInputPlaceholderValue(key.slot)}
 						aria-label={keyLabel(row.row, keyIndex)}
 						aria-invalid={invalidSlots.includes(key.slot) || undefined}
 						data-keyboard-input-slot={key.slot}
+						data-keyboard-input-inert={key.inert ? 'true' : undefined}
 						class:keyboard-input-editor__key--home={isHomeKey(key)}
 						class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
 						autocomplete="off"

@@ -24,7 +24,8 @@ The configuration modal offers two setup paths:
 
 1. Choose any known catalog layout in the Base layout autocomplete. This replaces the draft values,
    keyboard type, and thumb metadata with that layout while retaining the complete QWERTY-sized
-   main-grid topology.
+   main-grid topology. Standard slots the imported layout does not define remain visible but inert;
+   the source layout has no opinion about those keys.
 2. Edit any key after choosing a base. Every effective value must be unique.
 
 The base layout is optional. The modal initially focuses its autocomplete without opening the
@@ -43,8 +44,10 @@ is retained independently after customization.
 
 Each key is a single-line selectable text field. Typing a printable key replaces its value and
 moves focus to the next key. Backspace or Delete clears the current key without moving focus.
-Every standard main-grid slot is always rendered. A missing or cleared value displays and resolves
-through the QWERTY character for that slot; explicit values override those placeholders.
+Every standard main-grid slot is always rendered. A slot omitted by an imported base stays blank
+and inert until the user assigns it. A user-cleared mapped key resolves through the QWERTY
+character for that slot; explicit values override those placeholders. Clear selected layout and
+Reset remove imported inert state and restore the documented QWERTY fallback model.
 
 - Arrow Left and Arrow Right move through the flattened visual order. Right at a row's final key
   moves to the first key of the next row; Left at a row's first key moves to the final key of the
@@ -76,20 +79,22 @@ The stored model contains:
 - the base layout name as provenance for the autocomplete and trigger label;
 - the two-value keyboard presentation type;
 - key values keyed by stable `row,column` slots;
+- an optional inert marker for standard slots omitted by an imported base;
 - optional left/right thumb-hand identity.
 
 Parsing rejects unknown versions, malformed slots, duplicate effective values, and invalid thumb
 metadata, then falls back to QWERTY. It restores missing standard main-grid slots and per-hand thumb
-placeholders in older saved profiles. Components edit cloned drafts; only Save replaces the shared
-state in `keyboardInputStore.svelte.ts` and writes local storage.
+placeholders in older saved profiles. Version 2 adds the inert marker; version-1 blank keys retain
+their former QWERTY fallback meaning during migration. Components edit cloned drafts; only Save
+replaces the shared state in `keyboardInputStore.svelte.ts` and writes local storage.
 
 ## Runtime translation
 
 `withKeyboardInputConfig` compiles a saved input profile into the existing `LayoutTestKeyMaps`
 boundary:
 
-1. Resolve each input slot's explicit value, falling back to its QWERTY placeholder, and match
-   `KeyboardEvent.key` to that effective input key.
+1. Ignore inert imported omissions. Resolve every other input slot's explicit value, falling back
+   to its QWERTY placeholder, and match `KeyboardEvent.key` to that effective input key.
 2. For main-grid keys, use its row/column to find the target output compiled from the structured
    display rows by `createLayoutTestKeyMaps`. The slot-indexed map preserves sparse holes, extended
    columns, target angle transformations, and shifted output.
@@ -116,15 +121,17 @@ route- or feature-specific preference imports.
 - Detail-page consumers: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutExpandedView.svelte`
 - Pure coverage: `tests/keyboardInputConfig.test.ts`, `tests/layoutTestEmulator.test.ts`
-- Browser coverage: `tests/e2e/layout-detail.e2e.ts`
+- Browser coverage: `tests/e2e/layout-detail-input-layout.e2e.ts`
 
 ## Invariants
 
 - There is one global saved input profile, not one copy per test surface or target layout.
 - Input-layout translation happens before target-layout contextual behavior.
 - Main-grid identity is row/column; thumb identity is hand plus within-hand order.
-- Every configuration retains the full standard QWERTY main-grid topology; sparse bases supply only
-  overrides and never remove physical key fields.
+- Every configuration retains the full standard QWERTY main-grid topology; sparse bases mark
+  unspecified standard slots inert and never remove their physical key fields.
+- Home-key presentation always means the traditional eight resting keys: row 1, columns 0–3 and
+  6–9. Extended columns are never home keys.
 - Every configuration retains visible left- and right-thumb slots; empty thumb mappings are inert.
 - Selecting a base replaces the entire draft; editing afterward preserves its base name as
   provenance.

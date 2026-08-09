@@ -1,18 +1,10 @@
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { resolveLayoutInput } from '$lib/layoutInputBehaviors';
 import { hasTypingPracticeInputError, type TypingPracticeSession } from '$lib/typingPractice';
-import { shiftedKeyCharacter } from '$lib/cmini/keyboard';
-
-const HOME_ROW = 1;
-const LEFT_HOME_KEY_COLUMNS = { start: 0, end: 3 } as const;
-const RIGHT_HOME_KEY_COLUMNS = { start: 6, end: 9 } as const;
+import { isHomeKeySlot, shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export function isTypingPracticeHomeKeySlot(row: number, column: number): boolean {
-	if (row !== HOME_ROW) return false;
-	return (
-		(column >= LEFT_HOME_KEY_COLUMNS.start && column <= LEFT_HOME_KEY_COLUMNS.end) ||
-		(column >= RIGHT_HOME_KEY_COLUMNS.start && column <= RIGHT_HOME_KEY_COLUMNS.end)
-	);
+	return isHomeKeySlot(row, column);
 }
 
 export function resolveNextTypingPracticeKeys(
