@@ -572,6 +572,8 @@
 	}
 
 	.typing-practice-keyboard-cluster {
+		display: grid;
+		grid-template-columns: minmax(0, max-content);
 		width: max-content;
 		max-width: 100%;
 		min-width: 0;
@@ -596,6 +598,7 @@
 		justify-content: flex-start;
 		gap: 0.625rem 1rem;
 		margin-top: 0.75rem;
+		contain: inline-size;
 	}
 
 	@media (min-width: 48rem) {
