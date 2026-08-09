@@ -20,7 +20,7 @@ AI implementation context for the dedicated page that replaces the former expand
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
-- The show page has three accessible sections: `Typing practice`, `Test area`, and `Stats`. The
+- The show page has three accessible sections: `Typing practice`, `Layout test area`, and `Stats`. The
   `tab` query parameter is their source of truth, including for direct links and reloads; missing or
   invalid values default to Typing practice.
 
@@ -77,7 +77,7 @@ small without weakening app-bar functionality.
 - A persistent option below those links disables or re-enables a Repeat key when present. The
   summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
   update the card, typing emulator, and generated external links together.
-- The `Typing practice`, `Test area`, and `Stats` tabs sit at the top of the right column and control
+- The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and control
   only that main content. The persistent layout card is not part of any tab panel. Selecting a tab
   replaces the current detail history entry with its canonical query URL, preserving the existing
   All layouts back-navigation behavior.
@@ -87,25 +87,28 @@ small without weakening app-bar functionality.
   Typed characters color the current target green or red. An exact word followed by Space removes
   that word, clears the input, and increments progress; the timer remains a placeholder. The field
   uses the same input resolver, anglemod state, disabled mappings, and uninterrupted-history rules
-  as the Test area. See [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary
+  as the Layout test area. See [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary
   provenance, and extension boundaries.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
-  control are reusable. The detail Test area uses the same persisted input layout for free typing,
+  control are reusable. The detail Layout test area uses the same persisted input layout for free typing,
   while index-card emulators retain their existing physical-code mapping until that surface
   explicitly adopts the configuration. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
-- `Test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard workspace
+- `Layout test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard workspace
   follows it, using the same structure as Typing practice: the key group and its responsive options
   grid form one centered cluster, while Magic or Adaptive mappings occupy a capped right-hand
   column when space permits and expand beneath the keyboard when it does not. The workspace has no
   outer card treatment, retains full-size keys until its actual board geometry no longer fits, and
-  exposes the shared Input layout control above the keys.
+  exposes the shared Input layout control above the keys. Its options include the shared home-key
+  coloring and special-key visibility treatments in addition to its free-typing contextual previews.
+  Home-key coloring defaults on, and every option in this workspace persists across layouts and
+  reloads in a dedicated versioned local-storage document.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
   trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
-  an output, then shows that next output on an accent-colored keycap. A local switch restores the
+  an output, then shows that next output on an accent-colored keycap. A persisted switch restores the
   literal trigger characters and ordinary key styling. An unmapped conventional `*` still gets the
   neutral Magic symbol but cannot show a prospective output.
   Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both
@@ -160,6 +163,7 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/components/KeyboardInputEditor.svelte`
 - Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
   `src/lib/layoutDetailStatsPrefs.ts`
+- Persisted Layout test area display preferences: `src/lib/layoutTestAreaPrefs.ts`
 - Shared responsive keyboard workspace and board-aware preview:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`,
   `src/lib/components/LayoutKeyboardPreview.svelte`
@@ -194,7 +198,7 @@ paths` switch draws accent connectors between each currently active pair. Paths 
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.
 - Typing practice is the fallback detail section when `tab` is absent or invalid. Typing practice,
-  Test area, and Stats are linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard
+  Layout test area, and Stats are linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard
   activation; the URL follows each activation, and the persistent left card is outside every panel.
 - A summary card cannot link recursively to its own detail page.
 - Detail URLs preserve canonical layout-name casing and encoding.

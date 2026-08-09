@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../src/lib/layoutDetails';
 import { LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY } from '../../src/lib/layoutDetailStatsPrefs';
 import { KEYBOARD_INPUT_CONFIG_STORAGE_KEY } from '../../src/lib/keyboardInputConfig';
+import { LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY } from '../../src/lib/layoutTestAreaPrefs';
 import { STATS_CORPUS_STORAGE_KEY } from '../../src/lib/statsAnalyzers';
 import { TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY } from '../../src/lib/typingPracticePrefs';
 import {
@@ -245,7 +246,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await page.goto('/layouts/Colemak-DH');
 
 	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
-	const testTab = page.getByRole('tab', { name: 'Test area' });
+	const testTab = page.getByRole('tab', { name: 'Layout test area' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(practiceTab).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
@@ -363,7 +364,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(testTab).toBeFocused();
 	await expect(testTab).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
-	const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
+	const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
 	await expect(testPanel).toBeVisible();
 	const testArea = page.getByPlaceholder('Layout test area');
 	await expect(testArea).toBeVisible();
@@ -655,8 +656,8 @@ test.describe('typing-practice input layout', () => {
 			.press('f');
 		await expect(page.getByText('Press esc to restart')).toBeVisible();
 
-		await page.getByRole('tab', { name: 'Test area' }).click();
-		const testPanel = page.getByRole('tabpanel', { name: 'Test area' });
+		await page.getByRole('tab', { name: 'Layout test area' }).click();
+		const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
 		await expect(testPanel.getByRole('button', { name: 'Input layout: Colemak-DH' })).toBeVisible();
 		const testInput = testPanel.getByRole('textbox', { name: 'Layout test area' });
 		await testInput.press('f');
@@ -714,7 +715,7 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const homeKeyToggle = keyboardOptions.getByRole('switch', { name: 'Color home keys' });
 	await expect(keyboardOptions.getByRole('switch', { name: 'Show special keys' })).toHaveCount(0);
 	await expect(nextKeyToggle).not.toBeChecked();
-	await expect(homeKeyToggle).not.toBeChecked();
+	await expect(homeKeyToggle).toBeChecked();
 	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(0);
 
 	await nextKeyToggle.check();
@@ -728,7 +729,6 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	await page.keyboard.press('Backspace');
 	await expect(nextKey).toHaveAttribute('data-key-next', 'true');
 
-	await homeKeyToggle.check();
 	const homeRow = keyboardPreview.locator('[data-keyboard-row="1"]');
 	await expect(homeRow.locator('[data-key-home="true"]')).toHaveCount(8);
 	await expect(homeRow.locator('[data-key-char="g"]')).not.toHaveAttribute('data-key-home', 'true');
@@ -1143,7 +1143,7 @@ test('uses the detail tab query as the selected-section source of truth', async 
 	await page.goto('/layouts/Colemak-DH?tab=stats&selected=lela');
 
 	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
-	const testTab = page.getByRole('tab', { name: 'Test area' });
+	const testTab = page.getByRole('tab', { name: 'Layout test area' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
@@ -1404,15 +1404,23 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	});
 	await page.goto('/layouts/adaptive-preview?tab=test');
 
-	const testArea = page.getByPlaceholder('Layout test area');
-	const preview = page.getByRole('img', { name: 'adaptive-preview keyboard preview' });
+	const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
+	const testArea = testPanel.getByPlaceholder('Layout test area');
+	const preview = testPanel.getByRole('img', { name: 'adaptive-preview keyboard preview' });
 	const yKey = preview.locator('[data-key-char="y"]');
 	const jKey = preview.locator('[data-key-char="j"]');
-	const previewToggle = page.getByRole('switch', { name: 'Preview Adaptive swaps' });
-	const pathToggle = page.getByRole('switch', { name: 'Show swap paths' });
+	const colorHomeKeysToggle = testPanel.getByRole('switch', { name: 'Color home keys' });
+	const showSpecialKeysToggle = testPanel.getByRole('switch', { name: 'Show special keys' });
+	const previewToggle = testPanel.getByRole('switch', { name: 'Preview Adaptive swaps' });
+	const pathToggle = testPanel.getByRole('switch', { name: 'Show swap paths' });
+	const mappings = testPanel.locator('.layout-keyboard-workspace-mappings');
 	const swapPath = preview.locator('[data-swap-path="j:y"]');
 	const baseBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
 
+	await expect(colorHomeKeysToggle).toBeChecked();
+	await expect(showSpecialKeysToggle).toBeChecked();
+	await expect(mappings).toBeVisible();
+	await expect(preview.locator('[data-key-home="true"]')).toHaveCount(8);
 	await expect(previewToggle).toBeChecked();
 	await expect(pathToggle).not.toBeChecked();
 	await expect(swapPath).toHaveCount(0);
@@ -1441,6 +1449,19 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	await expect(swapPath).toHaveCount(1);
 	const activeBackground = await yKey.evaluate((key) => getComputedStyle(key).backgroundImage);
 	expect(activeBackground).not.toBe(baseBackground);
+	await showSpecialKeysToggle.uncheck();
+	await expect(mappings).toHaveCount(0);
+	await expect(yKey).toHaveText('y');
+	await expect(jKey).toHaveText('j');
+	await expect(swapPath).toHaveCount(0);
+	await showSpecialKeysToggle.check();
+	await expect(mappings).toBeVisible();
+	await testArea.focus();
+	await page.keyboard.press('Escape');
+	await page.keyboard.press('l');
+	await expect(yKey).toHaveText('j');
+	await expect(jKey).toHaveText('y');
+	await expect(swapPath).toHaveCount(1);
 
 	await page.keyboard.press('Escape');
 	await expect(yKey).toHaveText('y');
@@ -1454,6 +1475,34 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 	await expect(yKey).toHaveText('y');
 	await expect(jKey).toHaveText('j');
 	await expect(swapPath).toHaveCount(0);
+
+	await colorHomeKeysToggle.uncheck();
+	await showSpecialKeysToggle.uncheck();
+	expect(
+		await page.evaluate(
+			(key) => localStorage.getItem(key),
+			LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY
+		)
+	).not.toBeNull();
+	await page.reload();
+	const restoredTestOptions = page
+		.getByRole('tabpanel', { name: 'Layout test area' })
+		.getByRole('group', { name: 'Keyboard options' });
+	await expect(
+		restoredTestOptions.getByRole('switch', { name: 'Color home keys' })
+	).not.toBeChecked();
+	await expect(
+		restoredTestOptions.getByRole('switch', { name: 'Show special keys' })
+	).not.toBeChecked();
+	await expect(
+		restoredTestOptions.getByRole('switch', { name: 'Preview Adaptive swaps' })
+	).toBeChecked();
+	await expect(restoredTestOptions.getByRole('switch', { name: 'Show swap paths' })).toBeChecked();
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'Layout test area' })
+			.locator('.layout-keyboard-workspace-mappings')
+	).toHaveCount(0);
 });
 
 test('preserves ortho columns when a row has a missing key', async ({ page }) => {
@@ -1625,7 +1674,7 @@ test.describe('full-catalog keyboard previews', () => {
 		await page.setViewportSize({ width: 1600, height: 900 });
 		await page.goto('/layouts/vylet?tab=test');
 
-		const panel = page.getByRole('tabpanel', { name: 'Test area' });
+		const panel = page.getByRole('tabpanel', { name: 'Layout test area' });
 		const workspace = panel.locator('.layout-keyboard-workspace');
 		const keyboardCluster = panel.locator('.layout-keyboard-workspace-cluster');
 		const mappings = panel.locator('.layout-keyboard-workspace-mappings');

@@ -16,7 +16,7 @@ export interface TypingPracticeDisplayOptions {
 export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDisplayOptions {
 	return {
 		highlightNextKey: false,
-		colorHomeKeys: false,
+		colorHomeKeys: true,
 		showSpecialKeys: true,
 		underlineMagicGroups: false,
 		underlineAdaptiveGroups: false,

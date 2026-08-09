@@ -8,6 +8,7 @@ import {
 describe('typing practice display preferences', () => {
 	test('uses safe defaults for absent, malformed, and unknown documents', () => {
 		const defaults = createDefaultTypingPracticeDisplayOptions();
+		expect(defaults.colorHomeKeys).toBe(true);
 		expect(parseTypingPracticeDisplayOptions(null)).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{')).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{"version":2,"options":{}}')).toEqual(defaults);

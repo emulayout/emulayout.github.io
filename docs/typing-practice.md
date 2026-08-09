@@ -39,7 +39,7 @@ renderer.
   switches below the keyboard can highlight the next valid key, color the eight resting home keys,
   and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
   guidance respects contextual input output and is withheld while the current input contains an
-  error or is waiting for a word-separating Space.
+  error or is waiting for a word-separating Space. Home-key coloring is enabled by default.
 - Layouts with curated Magic mappings add a default-off Underline magic group option. It underlines
   each target substring that can be entered with a Magic key, including the preceding rule context
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
@@ -50,7 +50,7 @@ renderer.
   can produce after the full contextual-input pipeline resolves.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
-  is global and persisted, and both Typing practice and the detail Test area apply it. See
+  is global and persisted, and both Typing practice and the detail Layout test area apply it. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable model and
   event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The
@@ -114,7 +114,7 @@ The source vocabulary is vendored as `static/languages/english1k.json` from Monk
 Monkeytype identifies its repository license as GPL-3.0.
 
 `src/lib/typingPracticeWords.ts` fetches and validates that static payload. The request starts only
-when `LayoutTypingPractice.svelte` mounts, so direct Stats and Test area visits do not download the
+when `LayoutTypingPractice.svelte` mounts, so direct Stats and Layout test area visits do not download the
 word pool. The practice UI exposes loading and failure states before creating a session.
 
 The layout-detail route owns canonical `tab` and `text` query state and passes normalized custom text
@@ -185,6 +185,6 @@ The successful-space path is intentionally ordered:
 - Remaining words retain stable identities as the head of the queue is removed.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
-- Test area and Typing practice keep independent text and contextual histories.
+- Layout test area and Typing practice keep independent text and contextual histories.
 - Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
   displayed target layout or its contextual profile.

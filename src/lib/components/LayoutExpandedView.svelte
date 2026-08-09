@@ -96,9 +96,8 @@
 	let analyzerPrefsInitialized = $state(false);
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let anglemodTransformActive = $state(false);
-	let previewContextualKeyOutput = $state(true);
-	let showAdaptiveSwapPaths = $state(false);
 	let layoutInputHistory = $state('');
+	const testDisplayOptions = $derived(uiPrefs.layoutTestAreaDisplayOptions);
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const practiceTabId = $derived(`${titleId}-tab-practice`);
 	const testTabId = $derived(`${titleId}-tab-test`);
@@ -113,7 +112,7 @@
 			id: practiceTabId,
 			controls: practicePanelId
 		},
-		{ value: 'test', label: 'Test area', id: testTabId, controls: testPanelId },
+		{ value: 'test', label: 'Layout test area', id: testTabId, controls: testPanelId },
 		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
 	]);
 	const isAngleBoard = $derived(layout.board === 'angle');
@@ -139,6 +138,11 @@
 	const hasSpecialMappings = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
+	const hasSpecialKeys = $derived(
+		layout.hasMagicKey ||
+			layout.hasAdaptiveSwap ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
 	const conventionalMagicTriggers = $derived(
 		layout.hasMagicKey && Object.prototype.hasOwnProperty.call(layout.keys, '*') ? ['*'] : []
 	);
@@ -156,15 +160,24 @@
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
-			magicKeys: previewContextualKeyOutput ? inputProfile?.magicKeys : undefined,
-			adaptiveSwaps: previewContextualKeyOutput ? inputProfile?.adaptiveSwaps : undefined,
+			magicKeys:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.magicKeys
+					: undefined,
+			adaptiveSwaps:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.adaptiveSwaps
+					: undefined,
 			inputHistory: layoutInputHistory,
 			disabledMappingIds,
-			knownMagicTriggers: previewContextualKeyOutput ? conventionalMagicTriggers : []
+			knownMagicTriggers:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? conventionalMagicTriggers
+					: []
 		})
 	);
 	const keyboardSwapPaths = $derived(
-		showAdaptiveSwapPaths
+		testDisplayOptions.showSpecialKeys && testDisplayOptions.showAdaptiveSwapPaths
 			? buildAdaptiveKeyboardSwapPaths(
 					inputProfile?.adaptiveSwaps,
 					layoutInputHistory,
@@ -328,16 +341,33 @@
 
 {#snippet testKeyboardOptions()}
 	<ToggleSwitch
-		checked={previewContextualKeyOutput}
-		label={contextualKeyPreviewLabel}
-		onCheckedChange={(checked) => (previewContextualKeyOutput = checked)}
+		checked={testDisplayOptions.colorHomeKeys}
+		label="Color home keys"
+		onCheckedChange={(checked) => uiPrefs.setLayoutTestAreaDisplayOption('colorHomeKeys', checked)}
 	/>
-	{#if hasAdaptiveSwapPreview}
+	{#if hasSpecialKeys}
 		<ToggleSwitch
-			checked={showAdaptiveSwapPaths}
-			label="Show swap paths"
-			onCheckedChange={(checked) => (showAdaptiveSwapPaths = checked)}
+			checked={testDisplayOptions.showSpecialKeys}
+			label="Show special keys"
+			onCheckedChange={(checked) =>
+				uiPrefs.setLayoutTestAreaDisplayOption('showSpecialKeys', checked)}
 		/>
+	{/if}
+	{#if hasContextualKeyPreview}
+		<ToggleSwitch
+			checked={testDisplayOptions.previewContextualKeyOutput}
+			label={contextualKeyPreviewLabel}
+			onCheckedChange={(checked) =>
+				uiPrefs.setLayoutTestAreaDisplayOption('previewContextualKeyOutput', checked)}
+		/>
+		{#if hasAdaptiveSwapPreview}
+			<ToggleSwitch
+				checked={testDisplayOptions.showAdaptiveSwapPaths}
+				label="Show swap paths"
+				onCheckedChange={(checked) =>
+					uiPrefs.setLayoutTestAreaDisplayOption('showAdaptiveSwapPaths', checked)}
+			/>
+		{/if}
 	{/if}
 {/snippet}
 
@@ -512,12 +542,13 @@
 							rows={displayRows}
 							feedback={keyboardFeedback}
 							swapPaths={keyboardSwapPaths}
+							highlightHomeKeys={testDisplayOptions.colorHomeKeys}
 							{inputProfile}
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
-							showMappings={hasSpecialMappings}
+							showMappings={testDisplayOptions.showSpecialKeys && hasSpecialMappings}
 							header={testKeyboardHeader}
-							options={hasContextualKeyPreview ? testKeyboardOptions : undefined}
+							options={testKeyboardOptions}
 						/>
 					</div>
 				{:else}

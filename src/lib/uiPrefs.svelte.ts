@@ -20,6 +20,13 @@ import {
 	TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
 	type TypingPracticeDisplayOptions
 } from '$lib/typingPracticePrefs';
+import {
+	createDefaultLayoutTestAreaDisplayOptions,
+	LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
+	parseLayoutTestAreaDisplayOptions,
+	serializeLayoutTestAreaDisplayOptions,
+	type LayoutTestAreaDisplayOptions
+} from '$lib/layoutTestAreaPrefs';
 
 export type LayoutCardStatsMode = 'focused' | 'detailed';
 
@@ -38,6 +45,10 @@ class UiPrefs {
 	typingPracticeDisplayOptions = $state<TypingPracticeDisplayOptions>(
 		createDefaultTypingPracticeDisplayOptions()
 	);
+	/** Persisted visual guidance and contextual-preview options for Layout test area. */
+	layoutTestAreaDisplayOptions = $state<LayoutTestAreaDisplayOptions>(
+		createDefaultLayoutTestAreaDisplayOptions()
+	);
 	/** True after `hydrate()` reads localStorage (avoids applying defaults over persisted values). */
 	hydrated = $state(false);
 
@@ -52,6 +63,9 @@ class UiPrefs {
 		);
 		this.typingPracticeDisplayOptions = parseTypingPracticeDisplayOptions(
 			localStorage.getItem(TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY)
+		);
+		this.layoutTestAreaDisplayOptions = parseLayoutTestAreaDisplayOptions(
+			localStorage.getItem(LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY)
 		);
 		this.hydrated = true;
 	}
@@ -90,6 +104,15 @@ class UiPrefs {
 		localStorage.setItem(
 			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
 			serializeTypingPracticeDisplayOptions(next)
+		);
+	}
+
+	setLayoutTestAreaDisplayOption(option: keyof LayoutTestAreaDisplayOptions, value: boolean) {
+		const next = { ...this.layoutTestAreaDisplayOptions, [option]: value };
+		this.layoutTestAreaDisplayOptions = next;
+		localStorage.setItem(
+			LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
+			serializeLayoutTestAreaDisplayOptions(next)
 		);
 	}
 }

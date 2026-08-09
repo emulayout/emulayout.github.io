@@ -225,11 +225,11 @@ in the swapped output.
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
   or Adaptive mapping updates that feature's control.
-- On the layout detail page, the free-form Test-area emulator remains full width above the shared
+- On the layout detail page, the free-form Layout test area emulator remains full width above the shared
   keyboard workspace. Mappings sit to the right of the keyboard-and-options cluster at wider
   workspace widths and expand beneath it on narrow screens, matching Typing practice.
 - The detail page's Typing practice field uses the same resolver and disabled-mapping state as the
-  Test area. Its keyboard preview derives prospective output from that field's own uninterrupted
+  Layout test area. Its keyboard preview derives prospective output from that field's own uninterrupted
   history so switching between the two sections does not mix contextual state.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
