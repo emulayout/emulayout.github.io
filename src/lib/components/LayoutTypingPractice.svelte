@@ -1,10 +1,15 @@
 <script lang="ts">
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
+	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
+	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import type { DisplayCell } from '$lib/layoutDisplay';
 	import type { LayoutInputProfile, LayoutInputResult } from '$lib/layoutInputBehaviors';
-	import { buildLayoutKeyboardFeedback } from '$lib/layoutKeyboardFeedback';
+	import {
+		buildAdaptiveKeyboardSwapPaths,
+		buildLayoutKeyboardFeedback
+	} from '$lib/layoutKeyboardFeedback';
 	import type { LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import {
 		calculateTypingPracticeResults,
@@ -21,7 +26,8 @@
 		isTypingPracticeWordComplete,
 		updateTypingPracticeInput
 	} from '$lib/typingPractice';
-	import { resolveNextTypingPracticeKey } from '$lib/typingPracticeKeyboard';
+	import { resolveNextTypingPracticeKeys } from '$lib/typingPracticeKeyboard';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 
 	interface Props {
@@ -30,6 +36,7 @@
 		keyMaps: LayoutTestKeyMaps;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
+		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		knownMagicTriggers?: readonly string[];
 	}
 
@@ -39,6 +46,7 @@
 		keyMaps,
 		inputProfile,
 		disabledMappingIds = [],
+		onDisabledMappingIdsChange,
 		knownMagicTriggers = []
 	}: Props = $props();
 
@@ -64,8 +72,17 @@
 	let startedAtMilliseconds = $state<number | null>(null);
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
-	let highlightNextKey = $state(false);
-	let colorHomeKeys = $state(false);
+	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
+	const hasSpecialKeys = $derived(
+		layout.hasMagicKey ||
+			layout.hasAdaptiveSwap ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
+	const hasSpecialMappings = $derived(
+		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
+	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
+	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
 	const prompt = $derived(buildTypingPracticePrompt(session));
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
 	const practiceComplete = $derived(
@@ -86,23 +103,37 @@
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
-			magicKeys: inputProfile?.magicKeys,
-			adaptiveSwaps: inputProfile?.adaptiveSwaps,
+			magicKeys: displayOptions.showSpecialKeys ? inputProfile?.magicKeys : undefined,
+			adaptiveSwaps:
+				displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
+					? inputProfile?.adaptiveSwaps
+					: undefined,
 			inputHistory,
 			disabledMappingIds,
-			knownMagicTriggers
+			knownMagicTriggers: displayOptions.showSpecialKeys ? knownMagicTriggers : []
 		})
 	);
-	const nextPracticeKey = $derived(
-		highlightNextKey
-			? resolveNextTypingPracticeKey(
+	const keyboardSwapPaths = $derived(
+		displayOptions.showSpecialKeys &&
+			displayOptions.showAdaptiveSwaps &&
+			displayOptions.showSwapPaths
+			? buildAdaptiveKeyboardSwapPaths(
+					inputProfile?.adaptiveSwaps,
+					inputHistory,
+					disabledMappingIds
+				)
+			: []
+	);
+	const nextPracticeKeys = $derived(
+		displayOptions.highlightNextKey
+			? resolveNextTypingPracticeKeys(
 					session,
 					Object.keys(layout.keys),
 					inputProfile,
 					inputHistory,
 					disabledMappingIds
 				)
-			: undefined
+			: []
 	);
 
 	$effect(() => {
@@ -239,28 +270,68 @@
 		{/if}
 	</div>
 
-	<div class="typing-practice-keyboard-layout">
-		<div class="typing-practice-keyboard-spacer" aria-hidden="true"></div>
-		<div class="typing-practice-keyboard">
+	<div
+		class="typing-practice-keyboard-layout"
+		class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
+	>
+		<div class="typing-practice-keyboard-main">
 			<LayoutKeyboardPreview
 				{layout}
 				{rows}
 				feedback={keyboardFeedback}
-				highlightedKey={nextPracticeKey}
-				highlightHomeKeys={colorHomeKeys}
+				swapPaths={keyboardSwapPaths}
+				highlightedKeys={nextPracticeKeys}
+				highlightHomeKeys={displayOptions.colorHomeKeys}
+				horizontalAlignment="start"
 			/>
+			<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
+				<ToggleSwitch
+					checked={displayOptions.highlightNextKey}
+					label="Highlight next key"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
+				/>
+				<ToggleSwitch
+					checked={displayOptions.colorHomeKeys}
+					label="Color home keys"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
+				/>
+				{#if hasSpecialKeys}
+					<ToggleSwitch
+						checked={displayOptions.showSpecialKeys}
+						label="Show special keys"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
+					/>
+				{/if}
+				{#if hasAdaptiveSwapPreview}
+					<ToggleSwitch
+						checked={displayOptions.showAdaptiveSwaps}
+						label="Show Adaptive swaps"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+					/>
+					{#if displayOptions.showAdaptiveSwaps}
+						<ToggleSwitch
+							checked={displayOptions.showSwapPaths}
+							label="Show swap paths"
+							onCheckedChange={(checked) =>
+								uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+						/>
+					{/if}
+				{/if}
+			</div>
 		</div>
-		<fieldset class="typing-practice-keyboard-options">
-			<legend>Keyboard options</legend>
-			<label>
-				<input type="checkbox" bind:checked={highlightNextKey} />
-				<span>Highlight next key</span>
-			</label>
-			<label>
-				<input type="checkbox" bind:checked={colorHomeKeys} />
-				<span>Color home keys</span>
-			</label>
-		</fieldset>
+		{#if showSpecialMappings && inputProfile}
+			<div class="typing-practice-mappings">
+				<InputMappingsPanel
+					profile={inputProfile}
+					{disabledMappingIds}
+					{onDisabledMappingIdsChange}
+				/>
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -345,59 +416,41 @@
 	}
 
 	.typing-practice-keyboard-layout {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 5fr) minmax(11rem, 1fr);
-		align-items: center;
+		display: block;
 		gap: clamp(0.75rem, 2vw, 1.5rem);
 		min-width: 0;
 		margin-top: clamp(2.5rem, 8vh, 5rem);
 	}
 
-	.typing-practice-keyboard,
-	.typing-practice-keyboard-spacer {
+	.typing-practice-keyboard-main,
+	.typing-practice-mappings {
 		min-width: 0;
+	}
+
+	.typing-practice-mappings {
+		width: 100%;
+		max-width: 19.6875rem;
+		margin-top: 1.25rem;
 	}
 
 	.typing-practice-keyboard-options {
 		display: flex;
 		min-width: 0;
-		flex-direction: column;
-		gap: 0.65rem;
-		padding: 0.85rem;
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-		color: var(--text-primary);
+		flex-flow: row wrap;
+		justify-content: flex-start;
+		gap: 0.625rem 1rem;
+		margin-top: 0.75rem;
 	}
 
-	.typing-practice-keyboard-options legend {
-		padding-inline: 0.25rem;
-		font-weight: 600;
-	}
-
-	.typing-practice-keyboard-options label {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		font-size: 0.9rem;
-		line-height: 1.25;
-	}
-
-	@media (max-width: 56rem) {
-		.typing-practice-keyboard-layout {
-			grid-template-columns: minmax(0, 1fr);
-			align-items: stretch;
+	@media (min-width: 48rem) {
+		.typing-practice-keyboard-layout--with-mappings {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(16rem, 19.6875rem);
+			align-items: start;
 		}
 
-		.typing-practice-keyboard-spacer {
-			display: none;
-		}
-
-		.typing-practice-keyboard {
-			grid-row: 1;
-		}
-
-		.typing-practice-keyboard-options {
-			grid-row: 2;
+		.typing-practice-keyboard-layout--with-mappings .typing-practice-mappings {
+			margin-top: 0;
 		}
 	}
 </style>

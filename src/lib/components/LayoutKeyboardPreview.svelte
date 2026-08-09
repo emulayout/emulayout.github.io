@@ -17,8 +17,9 @@
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
-		highlightedKey?: string;
+		highlightedKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
+		horizontalAlignment?: 'start' | 'center';
 	}
 
 	type PreviewKey = DisplayCell & { slot: string };
@@ -58,8 +59,9 @@
 		rows,
 		feedback = EMPTY_FEEDBACK,
 		swapPaths = [],
-		highlightedKey,
-		highlightHomeKeys = false
+		highlightedKeys = [],
+		highlightHomeKeys = false,
+		horizontalAlignment = 'center'
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
@@ -67,6 +69,7 @@
 	const rightThumbKeys = $derived(
 		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
 	);
+	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
 		const mainRowMaxColumn = Math.max(
 			9,
@@ -136,7 +139,7 @@
 	}
 
 	function isHighlightedKey(key: string): boolean {
-		return highlightedKey !== undefined && key.toLowerCase() === highlightedKey.toLowerCase();
+		return highlightedKeySet.has(key.toLowerCase());
 	}
 
 	function isHomeKey(key: PreviewKey): boolean {
@@ -245,7 +248,11 @@
 	data-geometry={orthoGeometry ? 'ortho' : 'ansi'}
 >
 	<div class="keyboard-preview__board" aria-hidden="true">
-		<div class="keyboard-preview__keys" bind:this={keysElement}>
+		<div
+			class="keyboard-preview__keys"
+			class:keyboard-preview__keys--start={horizontalAlignment === 'start'}
+			bind:this={keysElement}
+		>
 			{#if swapPathLayer.paths.length > 0}
 				<svg
 					class="keyboard-preview__swap-paths"
@@ -407,6 +414,10 @@
 		width: max-content;
 		margin-inline: auto;
 		padding-block: 0.125rem 0.3rem;
+	}
+
+	.keyboard-preview__keys--start {
+		margin-inline: 0 auto;
 	}
 
 	.keyboard-preview__swap-paths {

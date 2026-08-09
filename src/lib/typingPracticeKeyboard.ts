@@ -14,19 +14,19 @@ export function isTypingPracticeHomeKeySlot(row: number, column: number): boolea
 	);
 }
 
-export function resolveNextTypingPracticeKey(
+export function resolveNextTypingPracticeKeys(
 	session: TypingPracticeSession,
 	availableKeys: readonly string[],
 	inputProfile: LayoutInputProfile | undefined,
 	inputHistory: string,
 	disabledMappingIds: readonly string[] = []
-): string | undefined {
+): string[] {
 	const activeWord = session.remainingWords[0];
-	if (!activeWord || hasTypingPracticeInputError(session)) return undefined;
+	if (!activeWord || hasTypingPracticeInputError(session)) return [];
 
 	const inputLength = Array.from(session.input).length;
 	const remainingTarget = Array.from(activeWord.text).slice(inputLength).join('');
-	if (!remainingTarget) return undefined;
+	if (!remainingTarget) return [];
 
 	const disabledMappings = new Set(disabledMappingIds);
 	const nextCharacter = Array.from(remainingTarget)[0];
@@ -35,7 +35,7 @@ export function resolveNextTypingPracticeKey(
 		? [directKey, ...availableKeys.filter((key) => key !== directKey)]
 		: availableKeys;
 
-	return candidates.find((key) => {
+	return candidates.filter((key) => {
 		const result = resolveLayoutInput(inputProfile, inputHistory, key, disabledMappings);
 		return result.text.length > 0 && remainingTarget.startsWith(result.text);
 	});

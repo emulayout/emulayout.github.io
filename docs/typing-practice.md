@@ -30,18 +30,24 @@ renderer.
   timing, results, and contextual-input history while retaining focus.
 - The practice field is a single-line text input sized to one line. Enter and paste input are
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
-- Keyboard options can highlight the next valid key and color the eight resting home keys. Next-key
-  guidance respects contextual input output and is withheld while the current input contains an
-  error or is waiting for a word-separating Space.
-- On wider screens the keyboard sits in the larger center column, balanced by an empty left column
-  and options on the right. Smaller screens stack the keyboard first and its options below it.
+- Left-aligned keyboard options can highlight the next valid key, color the eight resting home
+  keys, and show contextual special-key feedback when the layout has Magic or Adaptive mappings.
+  Next-key guidance respects contextual input output and is withheld while the current input
+  contains an error or is waiting for a word-separating Space.
+- The keyboard and its shared-switch options are left aligned, with the options in one unboxed row
+  directly below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only
+  while the Adaptive preview is enabled. When special keys are shown, a wider view places their
+  mappings in a column capped at 315px beside the larger keyboard column; smaller views stack the
+  keyboard and its options before the mappings.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM. Accuracy is correct character attempts divided by all
   character attempts; deletions do not count as attempts. WPM uses the conventional five-character
   word and the lesson's completed characters, including inter-word spaces, over elapsed time.
 - The completed prompt reads `Press esc to restart` and Escape immediately starts the next lesson.
-- Practice state is page-session-only. Navigating away or reloading starts a new random lesson.
+- Keyboard display options persist across layouts and reloads in the versioned
+  `typingPracticeDisplayOptions` local-storage document. Lesson state remains page-session-only;
+  navigating away or reloading starts a new random lesson.
 
 ## State and input boundaries
 
@@ -56,10 +62,11 @@ calculation. `LayoutTypingPractice.svelte` owns the page-session timestamps and 
 clock on the first recorded attempt, and freezes it at completion. Keeping wall-clock state out of
 the session model lets timing and result formulas remain deterministic in unit tests.
 
-`src/lib/typingPracticeKeyboard.ts` resolves the next displayed key from the remaining target,
-available layout keys, contextual input profile, and current input history. Keyboard presentation
-keeps next-key and home-key styling as independent layers so existing Magic and Adaptive feedback
-continues to compose normally.
+`src/lib/typingPracticeKeyboard.ts` resolves every valid next physical key from the remaining
+target, available layout keys, contextual input profile, and current input history. This includes
+both a direct character key and an enabled Repeat key when they emit the same next character.
+Keyboard presentation keeps next-key and home-key styling as independent layers so existing Magic
+and Adaptive feedback continues to compose normally.
 
 The source vocabulary is vendored as `static/languages/english1k.json` from Monkeytype's
 `english_1k` list at commit `d7eb4b76f3b3000199022ea52a52365b9346b8d0`. The file contains
@@ -93,14 +100,16 @@ The successful-space path is intentionally ordered:
   of prompt derivation so WPM calculations remain deterministic and unit-testable.
 - Accuracy and keystroke metrics should consume resolved-input events. Define explicitly whether
   corrections, contextual expansions, and consumed Magic presses count before persisting results.
-- Persisted preferences or resumable lessons require an explicit versioned storage format; do not
-  persist the current in-memory session shape directly.
+- Additional persisted lesson state or resumable lessons require a separate explicit versioned
+  storage format; do not persist the current in-memory session shape directly.
 
 ## Code map
 
 - Session model and prompt feedback: `src/lib/typingPractice.ts`
 - Timing, accuracy, and WPM calculations: `src/lib/typingPracticeMetrics.ts`
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
+- Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
+- Shared persisted preference state: `src/lib/uiPrefs.svelte.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`

@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../src/lib/layoutDetails';
 import { LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY } from '../../src/lib/layoutDetailStatsPrefs';
 import { STATS_CORPUS_STORAGE_KEY } from '../../src/lib/statsAnalyzers';
+import { TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY } from '../../src/lib/typingPracticePrefs';
 import {
 	COMPACT_STAT_FIELD_COUNT,
 	CYANOPHAGE_COMPACT_STAT_FIELD_COUNT,
@@ -248,9 +249,9 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	await expect(practicePanel).toBeVisible();
-	const initialPracticeWords = await practicePanel
-		.locator('[data-practice-word]')
-		.allTextContents();
+	const practiceWordItems = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWordItems).toHaveCount(10);
+	const initialPracticeWords = await practiceWordItems.allTextContents();
 	expect(initialPracticeWords).toHaveLength(10);
 	expect(new Set(initialPracticeWords).size).toBe(10);
 	expect(initialPracticeWords.every((word) => word.length > 0)).toBe(true);
@@ -285,9 +286,11 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	expect(practiceInputContainerBox!.y + practiceInputContainerBox!.height).toBeLessThanOrEqual(
 		previewBox!.y
 	);
-	expect(previewBox!.x).toBeGreaterThan(practiceInputContainerBox!.x);
-	expect(keyboardOptionsBox!.x).toBeGreaterThanOrEqual(previewBox!.x + previewBox!.width);
-	expect(previewBox!.width).toBeGreaterThan(keyboardOptionsBox!.width);
+	expect(keyboardOptionsBox!.y).toBeGreaterThanOrEqual(previewBox!.y + previewBox!.height);
+	expect(keyboardOptionsBox!.x + keyboardOptionsBox!.width).toBeLessThanOrEqual(
+		previewBox!.x + previewBox!.width
+	);
+	await expect(keyboardOptions).toHaveCSS('border-top-width', '0px');
 	const keyboardBoard = keyboardPreview.locator('.keyboard-preview__board');
 	await expect(keyboardBoard).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(keyboardBoard).toHaveCSS('border-top-style', 'none');
@@ -470,8 +473,9 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const nextCharacter = Array.from(targetWord)[0]!;
 	const keyboardPreview = practicePanel.getByRole('img', { name: 'QWERTY keyboard preview' });
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
-	const nextKeyToggle = keyboardOptions.getByRole('checkbox', { name: 'Highlight next key' });
-	const homeKeyToggle = keyboardOptions.getByRole('checkbox', { name: 'Color home keys' });
+	const nextKeyToggle = keyboardOptions.getByRole('switch', { name: 'Highlight next key' });
+	const homeKeyToggle = keyboardOptions.getByRole('switch', { name: 'Color home keys' });
+	await expect(keyboardOptions.getByRole('switch', { name: 'Show special keys' })).toHaveCount(0);
 	await expect(nextKeyToggle).not.toBeChecked();
 	await expect(homeKeyToggle).not.toBeChecked();
 	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(0);
@@ -496,13 +500,21 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 		keyboardPreview.locator('[data-keyboard-row="0"] [data-key-home="true"]')
 	).toHaveCount(0);
 
+	await expect(keyboardOptions).toHaveCSS('flex-direction', 'row');
+	await expect(keyboardOptions).toHaveCSS('justify-content', 'flex-start');
 	const [wideKeyboardBox, wideOptionsBox] = await Promise.all([
 		keyboardPreview.boundingBox(),
 		keyboardOptions.boundingBox()
 	]);
 	expect(wideKeyboardBox).not.toBeNull();
 	expect(wideOptionsBox).not.toBeNull();
-	expect(wideOptionsBox!.x).toBeGreaterThanOrEqual(wideKeyboardBox!.x + wideKeyboardBox!.width);
+	expect(wideOptionsBox!.y).toBeGreaterThanOrEqual(wideKeyboardBox!.y + wideKeyboardBox!.height);
+	const firstKeyboardKeyBox = await keyboardPreview
+		.locator('[data-key-char]')
+		.first()
+		.boundingBox();
+	expect(firstKeyboardKeyBox).not.toBeNull();
+	expect(firstKeyboardKeyBox!.x).toBeCloseTo(wideKeyboardBox!.x, 0);
 
 	await page.setViewportSize({ width: 700, height: 900 });
 	const [narrowKeyboardBox, narrowOptionsBox] = await Promise.all([
@@ -514,6 +526,122 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	expect(narrowOptionsBox!.y).toBeGreaterThanOrEqual(
 		narrowKeyboardBox!.y + narrowKeyboardBox!.height
 	);
+	expect(
+		await page.evaluate(
+			(key) => localStorage.getItem(key),
+			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY
+		)
+	).not.toBeNull();
+
+	await page.goto('/layouts/Colemak-DH');
+	const restoredOptions = page
+		.getByRole('tabpanel', { name: 'Typing practice' })
+		.getByRole('group', { name: 'Keyboard options' });
+	await expect(restoredOptions.getByRole('switch', { name: 'Highlight next key' })).toBeChecked();
+	await expect(restoredOptions.getByRole('switch', { name: 'Color home keys' })).toBeChecked();
+});
+
+test('places special mappings beside the typing-practice keyboard', async ({ page }) => {
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: adaptivePreview,
+				authorName: 'acas',
+				likeCount: 0,
+				supplemental: {
+					schema: 1,
+					variants: [
+						{
+							id: 'default',
+							adaptiveSwaps: { mappings: { l: { y: 'j' } } }
+						}
+					]
+				},
+				stats: {}
+			}
+		});
+	});
+	await page.goto('/layouts/adaptive-preview');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
+	const mappings = practicePanel.locator('.typing-practice-mappings');
+	const keyboardPreview = practicePanel.getByRole('img', {
+		name: 'adaptive-preview keyboard preview'
+	});
+	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
+	const showSpecialKeys = keyboardOptions.getByRole('switch', { name: 'Show special keys' });
+	const showAdaptiveSwaps = keyboardOptions.getByRole('switch', {
+		name: 'Show Adaptive swaps'
+	});
+	const showSwapPaths = keyboardOptions.getByRole('switch', { name: 'Show swap paths' });
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const yKey = keyboardPreview.locator('[data-key-char="y"]');
+	const jKey = keyboardPreview.locator('[data-key-char="j"]');
+	const swapPath = keyboardPreview.locator('[data-swap-path="j:y"]');
+	await expect(showSpecialKeys).toBeChecked();
+	await expect(showAdaptiveSwaps).toBeChecked();
+	await expect(showSwapPaths).not.toBeChecked();
+	await expect(mappings.getByRole('checkbox', { name: 'Adaptive swap mappings' })).toBeVisible();
+
+	await practiceInput.press('l');
+	await expect(yKey).toHaveText('j');
+	await expect(jKey).toHaveText('y');
+	await page.keyboard.press('Escape');
+	await showAdaptiveSwaps.uncheck();
+	await expect(showSwapPaths).toHaveCount(0);
+	await practiceInput.press('l');
+	await expect(yKey).toHaveText('y');
+	await expect(jKey).toHaveText('j');
+	await page.keyboard.press('Escape');
+	await showAdaptiveSwaps.check();
+	await expect(showSwapPaths).toBeVisible();
+	await expect(showSwapPaths).not.toBeChecked();
+	await showSwapPaths.check();
+	await practiceInput.press('l');
+	await expect(swapPath).toHaveCount(1);
+	await page.keyboard.press('Escape');
+
+	await showSpecialKeys.uncheck();
+	await expect(mappings).toHaveCount(0);
+	await expect(keyboardPreview.locator('[data-key-feedback]')).toHaveCount(0);
+	await showSpecialKeys.check();
+	await expect(mappings).toBeVisible();
+	const [wideKeyboardBox, wideMappingsBox] = await Promise.all([
+		keyboardMain.boundingBox(),
+		mappings.boundingBox()
+	]);
+	expect(wideKeyboardBox).not.toBeNull();
+	expect(wideMappingsBox).not.toBeNull();
+	expect(wideMappingsBox!.width).toBeLessThanOrEqual(315);
+	expect(wideKeyboardBox!.width).toBeGreaterThan(wideMappingsBox!.width);
+	expect(wideMappingsBox!.x).toBeGreaterThanOrEqual(wideKeyboardBox!.x + wideKeyboardBox!.width);
+
+	await page.setViewportSize({ width: 700, height: 900 });
+	const [narrowKeyboardBox, narrowMappingsBox] = await Promise.all([
+		keyboardMain.boundingBox(),
+		mappings.boundingBox()
+	]);
+	expect(narrowKeyboardBox).not.toBeNull();
+	expect(narrowMappingsBox).not.toBeNull();
+	expect(narrowMappingsBox!.y).toBeGreaterThanOrEqual(
+		narrowKeyboardBox!.y + narrowKeyboardBox!.height
+	);
+
+	await page.reload();
+	const restoredKeyboardOptions = page
+		.getByRole('tabpanel', { name: 'Typing practice' })
+		.getByRole('group', { name: 'Keyboard options' });
+	await expect(
+		restoredKeyboardOptions.getByRole('switch', { name: 'Show special keys' })
+	).toBeChecked();
+	await expect(
+		restoredKeyboardOptions.getByRole('switch', { name: 'Show Adaptive swaps' })
+	).toBeChecked();
+	await expect(
+		restoredKeyboardOptions.getByRole('switch', { name: 'Show swap paths' })
+	).toBeChecked();
 });
 
 test('colors typing-practice feedback and advances only a completed word', async ({ page }) => {
@@ -703,6 +831,67 @@ test('disables and re-enables a Repeat key from the persistent options', async (
 	await expect(repeatTestArea).toHaveValue('a@');
 	await page.getByRole('button', { name: 'Enable repeat key' }).click();
 	await expect(page.getByRole('button', { name: 'Disable repeat key' })).toBeVisible();
+});
+
+test('highlights both a direct key and Repeat when either can type the next letter', async ({
+	page
+}) => {
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: repeatKey,
+				authorName: 'ikcelaks',
+				likeCount: 0,
+				stats: {}
+			}
+		});
+	});
+	await page.route('**/languages/english1k.json', async (route) => {
+		await route.fulfill({
+			json: {
+				name: 'repeat-key-test',
+				words: [
+					'hello',
+					'letter',
+					'coffee',
+					'apple',
+					'green',
+					'tree',
+					'book',
+					'summer',
+					'happy',
+					'class'
+				]
+			}
+		});
+	});
+	await page.goto('/layouts/repeat-key');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(10);
+	const targetWord = (await practiceWords.first().textContent())!;
+	const targetCharacters = Array.from(targetWord);
+	const repeatedIndex = targetCharacters.findIndex(
+		(character, index) => index > 0 && character === targetCharacters[index - 1]
+	);
+	expect(repeatedIndex).toBeGreaterThan(0);
+
+	await practicePanel.getByRole('switch', { name: 'Highlight next key' }).check();
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	for (const character of targetCharacters.slice(0, repeatedIndex)) {
+		await practiceInput.press(character);
+	}
+
+	const keyboardPreview = practicePanel.getByRole('img', {
+		name: 'repeat-key keyboard preview'
+	});
+	const directKey = keyboardPreview.locator(`[data-key-char="${targetCharacters[repeatedIndex]}"]`);
+	const repeatKeyPreview = keyboardPreview.locator('[data-key-char="@"]');
+	await expect(directKey).toHaveAttribute('data-key-next', 'true');
+	await expect(repeatKeyPreview).toHaveAttribute('data-key-next', 'true');
+	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(2);
 });
 
 test('removes and reapplies angle mod from the summary card action', async ({ page }) => {
