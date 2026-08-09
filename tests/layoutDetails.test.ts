@@ -33,6 +33,12 @@ describe('per-layout detail data', () => {
 		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'stats')).toBe(
 			'/layouts/Colemak-DH?tab=stats'
 		);
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'practice', 'hello  brave\nworld')).toBe(
+			'/layouts/Colemak-DH?tab=practice&text=hello+brave+world'
+		);
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'test', '   ')).toBe(
+			'/layouts/Colemak-DH?tab=test'
+		);
 		expect(parseLayoutDetailSection('practice')).toBe('practice');
 		expect(parseLayoutDetailSection('stats')).toBe('stats');
 		expect(parseLayoutDetailSection('test')).toBe('test');

@@ -61,6 +61,8 @@
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		activeSection: LayoutDetailSection;
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
+		customPracticeText?: string | null;
+		onCustomPracticeTextChange?: (text: string | null) => void;
 	}
 
 	const {
@@ -73,7 +75,9 @@
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
 		activeSection,
-		onActiveSectionChange
+		onActiveSectionChange,
+		customPracticeText = null,
+		onCustomPracticeTextChange
 	}: Props = $props();
 
 	const cminiLabel =
@@ -458,6 +462,8 @@
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
 							knownMagicTriggers={conventionalMagicTriggers}
+							{customPracticeText}
+							{onCustomPracticeTextChange}
 						/>
 					</div>
 				{:else if activeSection === 'test'}

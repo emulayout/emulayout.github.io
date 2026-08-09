@@ -3,6 +3,7 @@
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
+	import TypingPracticeTextModal from '$lib/components/TypingPracticeTextModal.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import type { DisplayCell } from '$lib/layoutDisplay';
 	import type { LayoutInputProfile, LayoutInputResult } from '$lib/layoutInputBehaviors';
@@ -24,9 +25,11 @@
 		createTypingPracticeSession,
 		hasTypingPracticeInputError,
 		isTypingPracticeWordComplete,
-		updateTypingPracticeInput
+		updateTypingPracticeInput,
+		type TypingPracticeSession
 	} from '$lib/typingPractice';
 	import { resolveNextTypingPracticeKeys } from '$lib/typingPracticeKeyboard';
+	import { typingPracticeWordsFromText } from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 
@@ -38,6 +41,8 @@
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		knownMagicTriggers?: readonly string[];
+		customPracticeText?: string | null;
+		onCustomPracticeTextChange?: (text: string | null) => void;
 	}
 
 	const {
@@ -47,7 +52,9 @@
 		inputProfile,
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
-		knownMagicTriggers = []
+		knownMagicTriggers = [],
+		customPracticeText = null,
+		onCustomPracticeTextChange
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
@@ -56,6 +63,9 @@
 	let wordPoolStatus = $state<WordPoolStatus>('loading');
 
 	function createPracticeSession(excludedWords: readonly string[] = []) {
+		if (customPracticeText) {
+			return createTypingPracticeSession(typingPracticeWordsFromText(customPracticeText));
+		}
 		const excluded = new Set(excludedWords);
 		return createRandomTypingPracticeSession(
 			wordPool.filter((word) => !excluded.has(word)),
@@ -63,8 +73,9 @@
 		);
 	}
 
-	let session = $state(createTypingPracticeSession([]));
+	let session = $state<TypingPracticeSession>(createPracticeSession());
 	let lessonWords = $state<string[]>([]);
+	let textModalOpen = $state(false);
 	let testCharacterCount = $state(0);
 	let inputHistory = $state('');
 	let correctAttemptCount = $state(0);
@@ -145,13 +156,24 @@
 	});
 
 	$effect(() => {
+		if (customPracticeText) {
+			wordPoolStatus = 'ready';
+			setPracticeSession(createPracticeSession());
+			return;
+		}
+
+		if (wordPool.length > 0) {
+			wordPoolStatus = 'ready';
+			setPracticeSession(createPracticeSession());
+			return;
+		}
+
+		wordPoolStatus = 'loading';
 		const controller = new AbortController();
 		void loadTypingPracticeWords(fetch, ENGLISH_1K_WORD_POOL_URL, controller.signal)
 			.then((words) => {
 				if (controller.signal.aborted) return;
 				wordPool = words;
-				setPracticeSession(createPracticeSession());
-				wordPoolStatus = 'ready';
 			})
 			.catch(() => {
 				if (!controller.signal.aborted) wordPoolStatus = 'error';
@@ -169,10 +191,11 @@
 		incorrectAttemptCount += incorrect;
 	}
 
-	function setPracticeSession(nextSession: ReturnType<typeof createPracticeSession>) {
+	function setPracticeSession(nextSession: TypingPracticeSession) {
+		const nextLessonWords = nextSession.remainingWords.map(({ text }) => text);
 		session = nextSession;
-		lessonWords = nextSession.remainingWords.map(({ text }) => text);
-		testCharacterCount = countTypingPracticeTestCharacters(lessonWords);
+		lessonWords = nextLessonWords;
+		testCharacterCount = countTypingPracticeTestCharacters(nextLessonWords);
 		correctAttemptCount = 0;
 		incorrectAttemptCount = 0;
 		startedAtMilliseconds = null;
@@ -182,8 +205,13 @@
 	}
 
 	function restartPractice(): string {
-		setPracticeSession(createPracticeSession(lessonWords));
+		setPracticeSession(createPracticeSession(customPracticeText ? [] : lessonWords));
 		return session.input;
+	}
+
+	function saveCustomPracticeText(text: string) {
+		textModalOpen = false;
+		onCustomPracticeTextChange?.(text);
 	}
 
 	function handleValueChange(input: string): string | undefined {
@@ -216,26 +244,74 @@
 	}
 </script>
 
-{#if wordPoolStatus === 'loading'}
+{#if wordPoolStatus === 'loading' && !customPracticeText}
 	<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
 {:else if wordPoolStatus === 'error'}
 	<p class="typing-practice-load-status" role="alert">Unable to load practice words.</p>
 {:else}
-	<div class="typing-practice-copy" aria-label="Practice words">
-		{#if prompt.length > 0}
-			{#each prompt as word (word.id)}
-				<span data-practice-word={word.word} data-current-word={word.current ? 'true' : undefined}>
-					{#each word.characters as character, characterIndex (characterIndex)}
-						<span
-							class:typing-practice-character--correct={character.status === 'correct'}
-							class:typing-practice-character--incorrect={character.status === 'incorrect'}
-							data-character-status={character.status}>{character.character}</span
-						>
-					{/each}
-				</span>
-			{/each}
-		{:else}
-			<span>Press esc to restart</span>
+	<div class="typing-practice-prompt-row">
+		<div class="typing-practice-copy" aria-label="Practice words">
+			{#if prompt.length > 0}
+				{#each prompt as word (word.id)}
+					<span
+						data-practice-word={word.word}
+						data-current-word={word.current ? 'true' : undefined}
+					>
+						{#each word.characters as character, characterIndex (characterIndex)}
+							<span
+								class:typing-practice-character--correct={character.status === 'correct'}
+								class:typing-practice-character--incorrect={character.status === 'incorrect'}
+								data-character-status={character.status}>{character.character}</span
+							>
+						{/each}
+					</span>
+				{/each}
+			{:else}
+				<span>Press esc to restart</span>
+			{/if}
+		</div>
+		{#if onCustomPracticeTextChange}
+			{#if customPracticeText}
+				<button
+					type="button"
+					class="typing-practice-text-action"
+					aria-label="Clear custom practice text"
+					title="Clear custom practice text"
+					onclick={() => onCustomPracticeTextChange(null)}
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						aria-hidden="true"
+					>
+						<path d="M18 6 6 18M6 6l12 12" />
+					</svg>
+				</button>
+			{:else}
+				<button
+					type="button"
+					class="typing-practice-text-action"
+					aria-label="Edit practice text"
+					title="Edit practice text"
+					onclick={() => (textModalOpen = true)}
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 20h9" />
+						<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" />
+					</svg>
+				</button>
+			{/if}
 		{/if}
 	</div>
 
@@ -335,6 +411,15 @@
 	</div>
 {/if}
 
+{#if onCustomPracticeTextChange}
+	<TypingPracticeTextModal
+		open={textModalOpen}
+		initialText={lessonWords.join(' ')}
+		onClose={() => (textModalOpen = false)}
+		onSave={saveCustomPracticeText}
+	/>
+{/if}
+
 <style>
 	.typing-practice-load-status {
 		margin: 0;
@@ -348,12 +433,20 @@
 		white-space: nowrap;
 	}
 
+	.typing-practice-prompt-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
 	.typing-practice-copy {
 		display: flex;
 		flex-wrap: nowrap;
 		gap: 0.55em;
 		width: 100%;
 		min-width: 0;
+		flex: 1 1 auto;
 		color: var(--text-primary);
 		font-family:
 			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
@@ -367,6 +460,37 @@
 
 	.typing-practice-copy > [data-practice-word] {
 		flex: none;
+	}
+
+	.typing-practice-text-action {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		flex: none;
+		margin-left: auto;
+		padding: 0;
+		border: 0;
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
+
+	.typing-practice-text-action:hover {
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+	}
+
+	.typing-practice-text-action:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.typing-practice-text-action svg {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 
 	.typing-practice-character--correct {

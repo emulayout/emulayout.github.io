@@ -430,6 +430,66 @@ test('focuses typing practice and Escape starts a different lesson', async ({ pa
 	expect(replacementWords.some((word) => initialWords.includes(word))).toBe(false);
 });
 
+test('uses URL-backed custom practice text until it is cleared', async ({ page }) => {
+	const wordPoolRequests: string[] = [];
+	page.on('request', (request) => {
+		if (new URL(request.url()).pathname === '/languages/english1k.json') {
+			wordPoolRequests.push(request.url());
+		}
+	});
+
+	await page.goto('/layouts/QWERTY?text=hello%20hello%20world');
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(3);
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=hello+hello+world');
+	await expect(practiceWords).toHaveText(['hello', 'hello', 'world']);
+	expect(wordPoolRequests).toHaveLength(0);
+	await expect(
+		practicePanel.getByRole('button', { name: 'Clear custom practice text' })
+	).toBeVisible();
+	await expect(practicePanel.getByRole('button', { name: 'Edit practice text' })).toHaveCount(0);
+
+	await practiceInput.press('h');
+	await page.keyboard.press('Escape');
+	await expect(practiceWords).toHaveText(['hello', 'hello', 'world']);
+	await expect(practiceInput).toHaveValue('');
+	await expect(practicePanel.getByLabel('0 of 3 words complete')).toHaveText('0/3');
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=hello+hello+world');
+
+	await page.getByRole('tab', { name: 'Stats' }).click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=stats&text=hello+hello+world');
+	await page.getByRole('tab', { name: 'Typing practice' }).click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=hello+hello+world');
+
+	await practicePanel.getByRole('button', { name: 'Clear custom practice text' }).click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
+	await expect(practiceWords).toHaveCount(10);
+	await expect(practicePanel.getByRole('button', { name: 'Edit practice text' })).toBeVisible();
+
+	const randomWords = await practiceWords.allTextContents();
+	await practicePanel.getByRole('button', { name: 'Edit practice text' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice custom text' });
+	const customTextField = dialog.getByRole('textbox', { name: 'Practice text' });
+	await expect(customTextField).toHaveValue(randomWords.join(' '));
+	await expect(customTextField).toBeFocused();
+	await expect
+		.poll(() =>
+			customTextField.evaluate((field: HTMLTextAreaElement) => ({
+				start: field.selectionStart,
+				end: field.selectionEnd,
+				length: field.value.length
+			}))
+		)
+		.toEqual({ start: 0, end: randomWords.join(' ').length, length: randomWords.join(' ').length });
+	await customTextField.fill('custom text source');
+	await dialog.getByRole('button', { name: 'Use text' }).click();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=custom+text+source');
+	await expect(practiceWords).toHaveText(['custom', 'text', 'source']);
+	await expect(dialog).toHaveCount(0);
+});
+
 test('loads the word pool only after Typing practice opens', async ({ page }) => {
 	const wordPoolRequests: string[] = [];
 	let releaseWordPool!: () => void;

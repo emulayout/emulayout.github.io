@@ -61,6 +61,11 @@ canonical `tab` query parameter owns the selected value across direct links, rel
 automatic keyboard activation; Typing practice is the fallback for missing or invalid values. The
 panels use layout-specific ids so their tab relationships remain unique for every route.
 
+Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. The trailing pencil
+opens the modal with the displayed lesson selected as the editable source; Cancel, the header close
+button, Escape, and backdrop dismissal restore focus to that pencil. Saving replaces the prompt via
+the route's shareable `text` query parameter.
+
 ## Invariants
 
 - Interactive consumers pass state down and receive changes through callbacks; primitives do not

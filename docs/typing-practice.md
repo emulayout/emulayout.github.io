@@ -8,8 +8,12 @@ renderer.
 ## Product model
 
 - `Typing practice` is the first and default layout-detail tab.
-- Each new lesson samples ten distinct words from the vendored English 1k list. The first remaining
-  word is the active target.
+- Without custom text, each new lesson samples ten distinct words from the vendored English 1k
+  list. The first remaining word is the active target.
+- The shareable `text` query parameter replaces the random lesson with its normalized,
+  whitespace-separated words. Duplicate words are retained. Escape resets a custom lesson to the
+  same text; it does not select random words. The custom text remains in the URL while switching
+  layout-detail tabs.
 - Each emitted input character is compared by position with the active target. Matching target
   characters are green, mismatches are red, and untyped characters remain neutral. Input beyond the
   target remains visible in the field and counts toward accuracy, but is not appended to the prompt.
@@ -25,8 +29,9 @@ renderer.
   incorrect attempt without changing the rendered prompt text.
 - The prompt and input use the same monospace typography. The prompt stays on one clipped line;
   words beyond the available width are hidden rather than wrapped.
-- The input receives focus when Typing practice mounts. Escape replaces the lesson with ten newly
-  sampled words that exclude every word from the previous lesson, then resets input, progress,
+- The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
+  lesson with ten newly sampled words that exclude every word from the previous lesson. For a
+  custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
   timing, results, and contextual-input history while retaining focus.
 - The practice field is a single-line text input sized to one line. Enter and paste input are
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
@@ -45,6 +50,10 @@ renderer.
   character attempts; deletions do not count as attempts. WPM uses the conventional five-character
   word and the lesson's completed characters, including inter-word spaces, over elapsed time.
 - The completed prompt reads `Press esc to restart` and Escape immediately starts the next lesson.
+- A trailing pencil button on random prompts opens the shared modal shell with the displayed lesson
+  ready to edit. Saving normalized nonempty text writes it to the URL and starts that custom lesson.
+  Custom prompts replace the pencil with a trailing clear button; clearing removes `text` from the
+  URL and returns to a random ten-word lesson.
 - Keyboard display options persist across layouts and reloads in the versioned
   `typingPracticeDisplayOptions` local-storage document. Lesson state remains page-session-only;
   navigating away or reloading starts a new random lesson.
@@ -78,11 +87,12 @@ Monkeytype identifies its repository license as GPL-3.0.
 when `LayoutTypingPractice.svelte` mounts, so direct Stats and Test area visits do not download the
 word pool. The practice UI exposes loading and failure states before creating a session.
 
-`LayoutTypingPractice.svelte` owns one session and renders it. `LayoutTestArea.svelte` continues to
-own physical-key handling and contextual-input resolution. Its optional controlled-value callbacks
-let the practice consumer observe value changes and replace the field after a resolved logical
-keypress. This hook receives the full resolver result so later metrics can inspect applied Adaptive,
-Magic, or Repeat behavior without duplicating the input engine.
+The layout-detail route owns canonical `tab` and `text` query state and passes normalized custom text
+down through `LayoutExpandedView.svelte`. `LayoutTypingPractice.svelte` owns one session and renders
+it. `LayoutTestArea.svelte` continues to own physical-key handling and contextual-input resolution.
+Its optional controlled-value callbacks let the practice consumer observe value changes and replace
+the field after a resolved logical keypress. This hook receives the full resolver result so later
+metrics can inspect applied Adaptive, Magic, or Repeat behavior without duplicating the input engine.
 
 The successful-space path is intentionally ordered:
 
@@ -109,10 +119,12 @@ The successful-space path is intentionally ordered:
 - Timing, accuracy, and WPM calculations: `src/lib/typingPracticeMetrics.ts`
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
+- Custom-text parsing and URL parameter: `src/lib/typingPracticeText.ts`
 - Shared persisted preference state: `src/lib/uiPrefs.svelte.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
+- Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice.test.ts`
@@ -125,6 +137,8 @@ The successful-space path is intentionally ordered:
 - Non-final words require an exact active-word match followed by resolved Space; the final exact
   match advances immediately.
 - The prompt queue, input field, progress count, and contextual history reset together on advance.
+- Custom lesson resets reproduce the normalized URL text exactly; random lesson resets exclude the
+  prior ten words.
 - Remaining words retain stable identities as the head of the queue is removed.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
