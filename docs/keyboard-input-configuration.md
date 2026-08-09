@@ -55,9 +55,10 @@ through the QWERTY character for that slot; explicit values override those place
   thumb-key target layout. Empty thumb slots are optional; nonempty values remain unique.
 
 The editor blocks Save when two effective values are the same, including a collision between an
-explicit value and another slot's QWERTY placeholder. Catalog layout data is loaded only when the
-modal opens; an ordinary direct detail visit does not fetch the aggregate catalog merely because
-the control exists.
+explicit value and another slot's QWERTY placeholder. Every field participating in a collision is
+marked invalid and receives a border using the dedicated `--keyboard-input-validation-error` theme
+variable. Catalog layout data is loaded only when the modal opens; an ordinary direct detail visit
+does not fetch the aggregate catalog merely because the control exists.
 
 ## Persisted data
 

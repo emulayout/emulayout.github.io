@@ -13,7 +13,8 @@ import {
 	navigateKeyboardInputSlot,
 	parseKeyboardInputConfig,
 	serializeKeyboardInputConfig,
-	updateKeyboardInputKey
+	updateKeyboardInputKey,
+	validateKeyboardInputConfig
 } from '$lib/keyboardInputConfig';
 import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
 
@@ -65,13 +66,20 @@ describe('keyboard input configuration', () => {
 		expect(edited.keys[0].value).toBe('1');
 		expect(cloneKeyboardInputConfig(edited)).not.toBe(edited);
 		expect(keyboardInputConfigError(updateKeyboardInputKey(original, '0,0', ''))).toBeNull();
-		expect(keyboardInputConfigError(updateKeyboardInputKey(original, '0,0', 'w'))).toBe(
-			'Each key value must be unique.'
-		);
+		const duplicate = updateKeyboardInputKey(original, '0,0', 'w');
+		expect(keyboardInputConfigError(duplicate)).toBe('Each key value must be unique.');
+		expect(validateKeyboardInputConfig(duplicate)).toEqual({
+			error: 'Each key value must be unique.',
+			invalidSlots: ['0,0', '0,1']
+		});
 		const cleared = clearKeyboardInputConfig(original);
 		expect(cleared.baseLayoutName).toBeNull();
 		expect(cleared.keys.every((key) => key.value === '')).toBe(true);
 		expect(keyboardInputConfigError(cleared)).toBeNull();
+		expect(validateKeyboardInputConfig(updateKeyboardInputKey(cleared, '0,0', 'w'))).toEqual({
+			error: 'Each key value must be unique.',
+			invalidSlots: ['0,0', '0,1']
+		});
 		expect(keyboardInputConfigLabel(cleared)).toBe('QWERTY');
 		expect(parseKeyboardInputConfig(serializeKeyboardInputConfig(cleared))).toEqual(cleared);
 		expect(keyboardInputConfigError(original)).toBeNull();

@@ -23,6 +23,11 @@ export interface KeyboardInputRow {
 	keys: KeyboardInputKey[];
 }
 
+export interface KeyboardInputConfigValidation {
+	error: string | null;
+	invalidSlots: string[];
+}
+
 const DEFAULT_QWERTY_ROWS = [
 	['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\'],
 	['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'"],
@@ -145,10 +150,29 @@ export function cloneKeyboardInputConfig(config: KeyboardInputConfig): KeyboardI
 	return { ...config, keys: config.keys.map((key) => ({ ...key })) };
 }
 
+export function validateKeyboardInputConfig(
+	config: KeyboardInputConfig
+): KeyboardInputConfigValidation {
+	const slotsByValue = new Map<string, string[]>();
+	for (const key of config.keys) {
+		const value = keyboardInputEffectiveValue(key);
+		if (!value) continue;
+		const slots = slotsByValue.get(value) ?? [];
+		slots.push(key.slot);
+		slotsByValue.set(value, slots);
+	}
+
+	const invalidSlots = Array.from(slotsByValue.values())
+		.filter((slots) => slots.length > 1)
+		.flat();
+	return {
+		error: invalidSlots.length > 0 ? 'Each key value must be unique.' : null,
+		invalidSlots
+	};
+}
+
 export function keyboardInputConfigError(config: KeyboardInputConfig): string | null {
-	const values = config.keys.map(keyboardInputEffectiveValue).filter(Boolean);
-	if (new Set(values).size !== values.length) return 'Each key value must be unique.';
-	return null;
+	return validateKeyboardInputConfig(config).error;
 }
 
 export function clearKeyboardInputConfig(config: KeyboardInputConfig): KeyboardInputConfig {

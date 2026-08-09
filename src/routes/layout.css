@@ -57,6 +57,7 @@ html {
 	--typing-practice-incorrect: #c44b3a;
 	--typing-practice-next-key-decoration: #292622;
 	--typing-practice-home-key: #c8bca9;
+	--keyboard-input-validation-error: #c44b3a;
 	--new-layout-dot: #eda095;
 }
 
@@ -96,6 +97,7 @@ html {
 	--typing-practice-incorrect: #e07060;
 	--typing-practice-next-key-decoration: #f3efe8;
 	--typing-practice-home-key: #625c54;
+	--keyboard-input-validation-error: #e07060;
 	--new-layout-dot: #982818;
 }
 

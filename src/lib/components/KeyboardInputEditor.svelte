@@ -14,10 +14,11 @@
 
 	interface Props {
 		config: KeyboardInputConfig;
+		invalidSlots?: readonly string[];
 		onConfigChange: (config: KeyboardInputConfig) => void;
 	}
 
-	let { config, onConfigChange }: Props = $props();
+	let { config, invalidSlots = [], onConfigChange }: Props = $props();
 	const rows = $derived(keyboardInputRows(config));
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
 
@@ -126,8 +127,10 @@
 						value={key.value}
 						placeholder={keyboardInputPlaceholderValue(key.slot)}
 						aria-label={keyLabel(row.row, keyIndex)}
+						aria-invalid={invalidSlots.includes(key.slot) || undefined}
 						data-keyboard-input-slot={key.slot}
 						class:keyboard-input-editor__key--home={isHomeKey(key)}
+						class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
 						autocomplete="off"
 						autocapitalize="off"
 						autocorrect="off"
@@ -221,5 +224,16 @@
 	.keyboard-input-editor input:focus {
 		border-color: var(--accent);
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+
+	.keyboard-input-editor input.keyboard-input-editor__key--invalid,
+	.keyboard-input-editor input.keyboard-input-editor__key--invalid:hover,
+	.keyboard-input-editor input.keyboard-input-editor__key--invalid:focus {
+		border-color: var(--keyboard-input-validation-error);
+	}
+
+	.keyboard-input-editor input.keyboard-input-editor__key--invalid:focus {
+		box-shadow: 0 0 0 2px
+			color-mix(in srgb, var(--keyboard-input-validation-error) 35%, transparent);
 	}
 </style>

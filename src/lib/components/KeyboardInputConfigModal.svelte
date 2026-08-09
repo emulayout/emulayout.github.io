@@ -9,7 +9,7 @@
 		cloneKeyboardInputConfig,
 		createDefaultKeyboardInputConfig,
 		createKeyboardInputConfigFromLayout,
-		keyboardInputConfigError,
+		validateKeyboardInputConfig,
 		type InputKeyboardType,
 		type KeyboardInputConfig
 	} from '$lib/keyboardInputConfig';
@@ -24,7 +24,8 @@
 
 	let { open, config, onClose, onSave }: Props = $props();
 	let draft = $state<KeyboardInputConfig>(createDefaultKeyboardInputConfig());
-	const validationError = $derived(keyboardInputConfigError(draft));
+	const validation = $derived(validateKeyboardInputConfig(draft));
+	const validationError = $derived(validation.error);
 
 	$effect(() => {
 		if (!open) return;
@@ -96,7 +97,11 @@
 				</label>
 			</div>
 
-			<KeyboardInputEditor config={draft} onConfigChange={(nextConfig) => (draft = nextConfig)} />
+			<KeyboardInputEditor
+				config={draft}
+				invalidSlots={validation.invalidSlots}
+				onConfigChange={(nextConfig) => (draft = nextConfig)}
+			/>
 
 			{#if validationError}
 				<p class="keyboard-input-config-error" role="alert">{validationError}</p>
@@ -188,7 +193,7 @@
 
 	.keyboard-input-config-error {
 		margin: 0;
-		color: var(--typing-practice-incorrect);
+		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
 	}
 
