@@ -1,9 +1,9 @@
 # Typing practice
 
 This document records the product and architecture boundaries for the layout detail page's typing
-practice. The current lesson is deliberately small, but its state model is intended to support
-generated lessons, timing, accuracy, and speed metrics without moving those concerns into the
-renderer.
+practice. The feature currently supports generated and URL-authored lessons, timing, accuracy, WPM,
+contextual-input guidance, and configurable physical input layouts while keeping its pure session
+and calculation logic outside the renderer.
 
 ## Product model
 
@@ -57,19 +57,19 @@ renderer.
   options stay left aligned to the keyboard inside that shared wrapper, in an unboxed responsive
   grid directly below it. Equal-width columns collapse from several columns to one as the keyboard
   narrows, keeping each switch aligned in orderly rows. Adaptive layouts add Show adaptive swaps
-  there and reveal Show swap paths only while the
-  Adaptive preview is enabled. Hiding the path control does not clear its persisted value, so it
-  restores its prior state when the preview is enabled again. A default-off Only show relevant swaps
-  option limits the preview and any paths to the armed pair containing a physical key that can
-  produce the next required lesson character. When special keys are shown, a wider view keeps their mappings in a
-  right-hand column capped at 315px. The keyboard and mappings share one intrinsic-width wrapper so
-  their combined footprint stays centered. At intermediate widths the mappings column narrows and
-  presents one mapping per line. The keyboard derives its intrinsic width from the current board's
-  actual row geometry and retains full-size keys until that board no longer fits beside the mappings
-  or within the stacked region; only then does it scale down. Regions without room for both columns
-  place that compact mappings panel beneath the keyboard and expand it to the full width of the shared
-  keyboard area. At phone widths the keys and gaps continue scaling with the practice region, keeping
-  the full keyboard inside the detail column instead of widening the page.
+  there and reveal Show swap paths only while the Adaptive preview is enabled. Hiding the path
+  control does not clear its persisted value, so it restores its prior state when the preview is
+  enabled again. A default-off Only show relevant swaps option limits the preview and any paths to
+  the armed pair containing a physical key that can produce the next required lesson character.
+  When special keys are shown, a wider view keeps their mappings in a right-hand column capped at
+  315px. The keyboard and mappings share one intrinsic-width wrapper so their combined footprint
+  stays centered. At intermediate widths the mappings column narrows and presents one mapping per
+  line. The keyboard derives its intrinsic width from the current board's actual row geometry and
+  retains full-size keys until that board no longer fits beside the mappings or within the stacked
+  region; only then does it scale down. Regions without room for both columns place that compact
+  mappings panel beneath the keyboard and expand it to the full width of the shared keyboard area.
+  At phone widths the keys and gaps continue scaling with the practice region, keeping the full
+  keyboard inside the detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM in a row whose height is reserved throughout the lesson, so
@@ -114,18 +114,19 @@ The source vocabulary is vendored as `static/languages/english1k.json` from Monk
 Monkeytype identifies its repository license as GPL-3.0.
 
 `src/lib/typingPracticeWords.ts` fetches and validates that static payload. The request starts only
-when `LayoutTypingPractice.svelte` mounts, so direct Stats and Layout test area visits do not download the
-word pool. The practice UI exposes loading and failure states before creating a session.
+when `LayoutTypingPractice.svelte` mounts, so direct Stats and Layout test area visits do not
+download the word pool. The practice UI exposes loading and failure states before creating a
+session.
 
 The layout-detail route owns canonical `tab` and `text` query state and passes normalized custom text
 down through `LayoutExpandedView.svelte`. `LayoutTypingPractice.svelte` owns one session and renders
 it. `LayoutTestArea.svelte` continues to own physical-key handling and contextual-input resolution.
 Its optional controlled-value callbacks let the practice consumer observe value changes and replace
-the field after a resolved logical keypress. This hook receives the full resolver result so later
-metrics can inspect applied Adaptive, Magic, or Repeat behavior without duplicating the input engine.
-Typing practice also supplies an input-layout key map compiled from the persisted configuration;
-other `LayoutTestArea` consumers omit that map and retain their current physical-code behavior until
-they explicitly adopt the shared configuration.
+the field after a resolved logical keypress. The resolved-input hook receives the full resolver
+result so the completion-space path can record the logical attempt without duplicating the input
+engine. Typing practice and the detail Layout test area supply an input-layout key map compiled from
+the persisted configuration; catalog-card test areas still omit that map and retain their
+physical-code behavior.
 
 The successful-space path is intentionally ordered:
 
@@ -141,8 +142,9 @@ The successful-space path is intentionally ordered:
   must remain unique even when generated lessons contain duplicates.
 - Pause/resume and idle-time rules belong beside the existing component-owned clock. Keep them out
   of prompt derivation so WPM calculations remain deterministic and unit-testable.
-- Accuracy and keystroke metrics should consume resolved-input events. Define explicitly whether
-  corrections, contextual expansions, and consumed Magic presses count before persisting results.
+- Persisted results or richer keystroke analytics should extend the existing attempt-counting and
+  resolved-input boundaries. Define explicitly how corrections, multi-character contextual output,
+  and consumed Magic presses contribute before adding a durable result format.
 - Additional persisted lesson state or resumable lessons require a separate explicit versioned
   storage format; do not persist the current in-memory session shape directly.
 
@@ -152,6 +154,7 @@ The successful-space path is intentionally ordered:
 - Timing, accuracy, and WPM calculations: `src/lib/typingPracticeMetrics.ts`
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
+- Layout-test display-option parsing and persistence format: `src/lib/layoutTestAreaPrefs.ts`
 - Magic-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
 - Adaptive-group prompt hints: `src/lib/typingPracticeAdaptiveGroups.ts`
 - Custom-text parsing and URL parameter: `src/lib/typingPracticeText.ts`
@@ -170,9 +173,7 @@ The successful-space path is intentionally ordered:
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
-- Unit coverage: `tests/typingPractice.test.ts`
-- Metrics unit coverage: `tests/typingPracticeMetrics.test.ts`
-- Word-pool loading coverage: `tests/typingPracticeWords.test.ts`
+- Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
 - Browser coverage: `tests/e2e/layout-detail.e2e.ts`
 
 ## Invariants

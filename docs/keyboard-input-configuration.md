@@ -2,8 +2,8 @@
 
 This document defines the reusable input-keyboard layer used to simulate a target layout when the
 browser is receiving keys from a non-QWERTY operating-system or firmware layout. Typing practice
-and the detail Layout test area share the same consumer model, while the configuration deliberately sits
-below both features so catalog-card test areas can adopt it without separate preferences or
+and the detail Layout test area share the same consumer model, while the configuration deliberately
+sits below both features so catalog-card test areas can adopt it without separate preferences or
 translation rules.
 
 ## Terminology and product model
@@ -17,8 +17,8 @@ translation rules.
 - QWERTY on a staggered board is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice and the
-  detail Layout test area opt into it; index-card test areas retain their existing mapping until they are
-  intentionally migrated.
+  detail Layout test area opt into it; index-card test areas retain their existing mapping until
+  they are intentionally migrated.
 
 The configuration modal offers two setup paths:
 

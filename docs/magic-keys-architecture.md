@@ -219,20 +219,21 @@ Filters are also independent:
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
-The layout detail page may show Magic and Adaptive controls, while Repeat remains controlled by the
-icon beside the keyboard summary.
+The layout detail page shows Magic and Adaptive mapping controls in the active typing workspace,
+while Repeat remains controlled by the persistent option below the layout summary.
 
 The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
 default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
 cards instead of its literal marker. This includes a conventional `*` whose mappings are
-unavailable. The preview resolves mapped triggers against the test area's current uninterrupted
-emitted history and disabled-mapping set:
+unavailable. Each typing surface resolves mapped triggers against its own current uninterrupted
+emitted history and the page's shared disabled-mapping set:
 
 - when pressing the trigger would emit a value, the keycap displays that value and gains the active
   accent background;
 - when no rule or emitting fallback applies, the Magic symbol remains on the ordinary neutral
   keycap;
-- turning the preview off restores literal trigger characters and ordinary key styling.
+- turning the Layout test area preview off restores literal trigger characters and ordinary key
+  styling; Typing practice suppresses this feedback when Show special keys is off.
 
 This is prospective state, not a second input resolver: the keyboard derives it with the same pure
 Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback and combines

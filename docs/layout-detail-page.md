@@ -20,9 +20,9 @@ AI implementation context for the dedicated page that replaces the former expand
   the untouched index URL. Direct visits fall back to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
-- The show page has three accessible sections: `Typing practice`, `Layout test area`, and `Stats`. The
-  `tab` query parameter is their source of truth, including for direct links and reloads; missing or
-  invalid values default to Typing practice.
+- The show page has three accessible sections: `Typing practice`, `Layout test area`, and `Stats`.
+  The `tab` query parameter is their source of truth, including for direct links and reloads;
+  missing or invalid values default to Typing practice.
 
 ## Data loading
 
@@ -77,35 +77,35 @@ small without weakening app-bar functionality.
 - A persistent option below those links disables or re-enables a Repeat key when present. The
   summary card keeps the catalog-style anglemod action as its only card action. Anglemod changes
   update the card, typing emulator, and generated external links together.
-- The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and control
-  only that main content. The persistent layout card is not part of any tab panel. Selecting a tab
-  replaces the current detail history entry with its canonical query URL, preserving the existing
-  All layouts back-navigation behavior.
-- `Typing practice` is the first and default tab. Its initial scaffold follows a lesson-like vertical
-  rhythm: ten distinct words sampled from the vendored English 1k list, a large layout-aware typing
-  field, word-count and elapsed-time values, and the board-aware keyboard preview at the bottom.
-  Typed characters color the current target green or red. An exact word followed by Space removes
-  that word, clears the input, and increments progress; the timer remains a placeholder. The field
-  uses the same input resolver, anglemod state, disabled mappings, and uninterrupted-history rules
-  as the Layout test area. See [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary
-  provenance, and extension boundaries.
+- The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and
+  control only that main content. The persistent layout card is not part of any tab panel. Selecting
+  a tab replaces the current detail history entry with its canonical query URL, preserving the
+  existing All layouts back-navigation behavior.
+- `Typing practice` is the first and default tab. It presents ten random English 1k words or a
+  URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time, completion
+  Accuracy/WPM, and the board-aware keyboard workspace. Typed characters color the current target
+  green or red. Exact non-final words advance on Space; the final word completes immediately without
+  Space. The field uses the same input resolver, anglemod state, disabled mappings, and
+  uninterrupted-history rules as the Layout test area. See
+  [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary provenance, metrics,
+  prompt guidance, and extension boundaries.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
-  control are reusable. The detail Layout test area uses the same persisted input layout for free typing,
-  while index-card emulators retain their existing physical-code mapping until that surface
+  control are reusable. The detail Layout test area uses the same persisted input layout for free
+  typing, while index-card emulators retain their existing physical-code mapping until that surface
   explicitly adopts the configuration. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
-- `Layout test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard workspace
-  follows it, using the same structure as Typing practice: the key group and its responsive options
-  grid form one centered cluster, while Magic or Adaptive mappings occupy a capped right-hand
-  column when space permits and expand beneath the keyboard when it does not. The workspace has no
-  outer card treatment, retains full-size keys until its actual board geometry no longer fits, and
-  exposes the shared Input layout control above the keys. Its options include the shared home-key
-  coloring and special-key visibility treatments in addition to its free-typing contextual previews.
-  Home-key coloring defaults on, and every option in this workspace persists across layouts and
-  reloads in a dedicated versioned local-storage document.
+- `Layout test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard
+  workspace follows it, using the same structure as Typing practice: the key group and its
+  responsive options grid form one centered cluster, while Magic or Adaptive mappings occupy a
+  capped right-hand column when space permits and expand beneath the keyboard when it does not. The
+  workspace has no outer card treatment, retains full-size keys until its actual board geometry no
+  longer fits, and exposes the shared Input layout control above the keys. Its options include the
+  shared home-key coloring and special-key visibility treatments in addition to its free-typing
+  contextual previews. Home-key coloring defaults on, and every option in this workspace persists
+  across layouts and reloads in a dedicated versioned local-storage document.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
   trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
   an output, then shows that next output on an accent-colored keycap. A persisted switch restores the
@@ -113,8 +113,8 @@ small without weakening app-bar functionality.
   neutral Magic symbol but cannot show a prospective output.
   Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both
   affected keycaps replace their base letters with their swapped outputs and use the active accent
-  background until the uninterrupted context changes or resets. A separate, default-off `Show swap
-paths` switch draws accent connectors between each currently active pair. Paths can be shown
+  background until the uninterrupted context changes or resets. A separate, default-off
+  `Show swap paths` switch draws accent connectors between each currently active pair. Paths can be shown
   independently of the label preview and disappear with the same history and mapping resets.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
@@ -125,13 +125,14 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   tables in the right column.
 - The card is the page's visible layout-name heading; the redundant detail-page heading is omitted.
   The document title and the detail article's accessible name use the exact canonical layout name.
-- The compact summary card omits selection and the recursive detail link, along with card stats and
-  the layout test area. Its layout-local and external-link actions remain available.
+- The compact summary card omits selection, the recursive detail link, and the layout test area. It
+  retains its local analyzer-switchable stats plus layout-local and external-link actions.
 - On first use, analyzer checkboxes select every analyzer included in the detail file. Later changes,
   including an explicit all-unchecked state, persist across layouts, navigation, and reloads. If a
   selected analyzer result is absent, the page may fall back to the analyzer-wide static map.
-- Magic and Adaptive mapping controls remain above analyzer stats. Their disabled-mapping state is
-  page-session-only and resets on navigation or reload, matching the previous expanded-view model.
+- Magic and Adaptive mapping controls appear in the active typing workspace. Their shared
+  disabled-mapping state is page-session-only and resets on navigation or reload, matching the
+  previous expanded-view model.
 - The styled keyboard's prospective Magic and Adaptive output uses the emulator's exact history and
   current disabled mappings. A no-op Magic trigger has no active background, while each armed
   Adaptive swap colors both affected keys and optionally connects them. Resetting emulator history
@@ -163,7 +164,8 @@ paths` switch draws accent connectors between each currently active pair. Paths 
   `src/lib/components/KeyboardInputEditor.svelte`
 - Persisted corpus and detail-analyzer preferences: `src/lib/uiPrefs.svelte.ts`,
   `src/lib/layoutDetailStatsPrefs.ts`
-- Persisted Layout test area display preferences: `src/lib/layoutTestAreaPrefs.ts`
+- Persisted typing-workspace display preferences: `src/lib/typingPracticePrefs.ts`,
+  `src/lib/layoutTestAreaPrefs.ts`
 - Shared responsive keyboard workspace and board-aware preview:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`,
   `src/lib/components/LayoutKeyboardPreview.svelte`

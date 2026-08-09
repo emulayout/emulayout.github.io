@@ -1,7 +1,7 @@
 # Contextual input architecture
 
-This document records the decisions that matter when extending magic keys, adaptive swaps, the
-layout test area, or a future dedicated typing page.
+This document records the decisions that matter when extending Magic keys, Adaptive swaps, the
+Layout test area, or Typing practice.
 
 Reference for adaptive-swap behavior:
 [Adaptive Swaps](https://notes.dario.ca/Personal/Adaptive-Swaps).
@@ -213,7 +213,8 @@ in the swapped output.
 
 - `LayoutTestArea` owns DOM keyboard events, textarea edits, and history resets.
 - The optional input-layout compiler owns source-character-to-target-slot translation before this
-  resolver. Typing practice is the first consumer; see
+  resolver. Typing practice and the detail Layout test area opt into the shared saved configuration;
+  catalog-card test areas retain physical-code resolution. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - The pure resolver owns matching, precedence, case handling, and bounded history.
 - `InputMappingsPanel` renders Magic and Adaptive feature sections and their ephemeral
@@ -225,19 +226,19 @@ in the swapped output.
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
   or Adaptive mapping updates that feature's control.
-- On the layout detail page, the free-form Layout test area emulator remains full width above the shared
-  keyboard workspace. Mappings sit to the right of the keyboard-and-options cluster at wider
+- On the layout detail page, the free-form Layout test area emulator remains full width above the
+  shared keyboard workspace. Mappings sit to the right of the keyboard-and-options cluster at wider
   workspace widths and expand beneath it on narrow screens, matching Typing practice.
 - The detail page's Typing practice field uses the same resolver and disabled-mapping state as the
-  Layout test area. Its keyboard preview derives prospective output from that field's own uninterrupted
-  history so switching between the two sections does not mix contextual state.
+  Layout test area. Its keyboard preview derives prospective output from that field's own
+  uninterrupted history so switching between the two sections does not mix contextual state.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
   with the values they would emit and gain the active accent background. The shared preview switch
   disables this presentation alongside prospective Magic output. Typing practice has a separate,
   default-off relevance filter that retains only an armed pair containing a physical key that can
-  produce the next required lesson character; it uses the same fully resolved next-key candidates as
-  key highlighting and filters paths along with key feedback. Another default-off switch draws
+  produce the next required lesson character; it uses the same fully resolved next-key candidates
+  as key highlighting and filters paths along with key feedback. Another default-off switch draws
   measured SVG connectors between every visible armed pair. Connector state follows the same
   history and disabled mappings but remains independent of the label-preview switch. The formatted
   text board never changes.
@@ -250,8 +251,8 @@ pipeline, follows disabled mappings, and does not alter the default prompt prese
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
 prospective outputs from the same profile and history, but the layout test area does not display an
 applied-keypress event directly. Typing practice receives the full resolved-input result at its
-controlled-input boundary so future accuracy and speed metrics can use it without duplicating the
-resolver.
+controlled-input boundary so its attempt counting and completion metrics do not duplicate the
+resolver. Future persisted results or richer keystroke analytics should extend that same boundary.
 
 Disabled mapping state is owned by the current page, shared by the floating window and layout test
 area on the index or by the mappings panel and keyboard summary on the detail route. It is
