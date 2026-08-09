@@ -3,8 +3,6 @@ import {
 	createLayoutTestKeyMaps,
 	insertTextAtSelection,
 	resolveLayoutTestKeyDown,
-	shouldCaptureLayoutTestKeyUp,
-	usesMetaThumbKeys,
 	withKeyboardInputConfig,
 	type LayoutTestKeyInput,
 	type LayoutTestKeyOptions
@@ -30,13 +28,10 @@ function keyInput(overrides: Partial<LayoutTestKeyInput> = {}): LayoutTestKeyInp
 
 function keyOptions(overrides: Partial<LayoutTestKeyOptions> = {}): LayoutTestKeyOptions {
 	return {
-		hasThumbKeys: false,
-		thumbKeysByHand: { l: [], r: [] },
 		keyMaps: {
 			keyMap: { KeyA: 'x', Semicolon: ';' },
 			shiftKeyMap: { KeyA: 'X', Semicolon: ':' }
 		},
-		metaThumbKeys: false,
 		...overrides
 	};
 }
@@ -79,14 +74,22 @@ describe('layout test key maps and text edits', () => {
 		expect(
 			resolveLayoutTestKeyDown(keyInput({ key: 'b', code: 'KeyB' }), {
 				...keyOptions(),
-				hasThumbKeys: true,
-				thumbKeysByHand: decodeLayout(target).thumbKeysByHand,
 				keyMaps: maps
 			})
 		).toEqual({
 			preventDefault: true,
 			stopPropagation: false,
 			edit: { type: 'insert', text: 'q' }
+		});
+		expect(
+			resolveLayoutTestKeyDown(keyInput({ key: 'e', code: 'KeyE' }), {
+				...keyOptions(),
+				keyMaps: maps
+			})
+		).toEqual({
+			preventDefault: true,
+			stopPropagation: false,
+			edit: { type: 'insert', text: 'r' }
 		});
 	});
 
@@ -186,8 +189,16 @@ describe('layout test keydown decisions', () => {
 		});
 	});
 
-	test('leaves browser shortcuts alone when the layout has no thumb keys', () => {
+	test('leaves browser modifier shortcuts and unmapped keys alone', () => {
 		expect(resolveLayoutTestKeyDown(keyInput({ ctrlKey: true }), keyOptions())).toEqual({
+			preventDefault: false,
+			stopPropagation: false
+		});
+		expect(resolveLayoutTestKeyDown(keyInput({ altKey: true }), keyOptions())).toEqual({
+			preventDefault: false,
+			stopPropagation: false
+		});
+		expect(resolveLayoutTestKeyDown(keyInput({ metaKey: true }), keyOptions())).toEqual({
 			preventDefault: false,
 			stopPropagation: false
 		});
@@ -195,82 +206,5 @@ describe('layout test keydown decisions', () => {
 			preventDefault: false,
 			stopPropagation: false
 		});
-	});
-
-	test('maps non-Apple Alt thumb keys and captures held-thumb sequences', () => {
-		const options = keyOptions({
-			hasThumbKeys: true,
-			thumbKeysByHand: {
-				l: [
-					{ key: 'r', col: 2 },
-					{ key: 'e', col: 3 }
-				],
-				r: [
-					{ key: 'n', col: 6 },
-					{ key: 's', col: 7 }
-				]
-			}
-		});
-
-		expect(
-			resolveLayoutTestKeyDown(
-				keyInput({ key: 'Alt', code: 'AltLeft', shiftKey: true, altKey: true }),
-				options
-			)
-		).toEqual({
-			preventDefault: true,
-			stopPropagation: true,
-			edit: { type: 'insert', text: 'E' }
-		});
-		expect(
-			resolveLayoutTestKeyDown(keyInput({ key: 'Alt', code: 'AltRight', altKey: true }), options)
-		).toEqual({
-			preventDefault: true,
-			stopPropagation: true,
-			edit: { type: 'insert', text: 'n' }
-		});
-		expect(resolveLayoutTestKeyDown(keyInput({ altKey: true }), options)).toEqual({
-			preventDefault: true,
-			stopPropagation: true,
-			edit: { type: 'insert', text: 'x' }
-		});
-	});
-
-	test('uses Command thumbs on Apple platforms while preserving blocking modifiers', () => {
-		const options = keyOptions({
-			hasThumbKeys: true,
-			metaThumbKeys: true,
-			thumbKeysByHand: {
-				l: [{ key: 'e', col: 3 }],
-				r: [{ key: 'n', col: 6 }]
-			}
-		});
-
-		expect(
-			resolveLayoutTestKeyDown(keyInput({ key: 'Meta', code: 'MetaLeft', metaKey: true }), options)
-		).toEqual({
-			preventDefault: true,
-			stopPropagation: true,
-			edit: { type: 'insert', text: 'e' }
-		});
-		expect(resolveLayoutTestKeyDown(keyInput({ altKey: true }), options)).toEqual({
-			preventDefault: false,
-			stopPropagation: false
-		});
-	});
-});
-
-describe('layout test platform and keyup handling', () => {
-	test('selects the thumb modifier from the platform', () => {
-		expect(usesMetaThumbKeys('MacIntel', '')).toBe(true);
-		expect(usesMetaThumbKeys('', 'iPhone')).toBe(true);
-		expect(usesMetaThumbKeys('Linux x86_64', 'Macintosh')).toBe(false);
-	});
-
-	test('captures only the configured thumb key releases', () => {
-		expect(shouldCaptureLayoutTestKeyUp('AltLeft', true, false)).toBe(true);
-		expect(shouldCaptureLayoutTestKeyUp('MetaLeft', true, false)).toBe(false);
-		expect(shouldCaptureLayoutTestKeyUp('MetaRight', true, true)).toBe(true);
-		expect(shouldCaptureLayoutTestKeyUp('MetaRight', false, true)).toBe(false);
 	});
 });

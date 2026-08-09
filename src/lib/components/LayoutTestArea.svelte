@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { LAYOUT_CARD_TEST_AREA_HEIGHT } from '$lib/constants';
-	import type { LayoutData } from '$lib/layout';
 	import {
 		resolveLayoutInput,
 		type LayoutInputProfile,
@@ -9,13 +8,10 @@
 	import {
 		insertTextAtSelection,
 		resolveLayoutTestKeyDown,
-		shouldCaptureLayoutTestKeyUp,
-		usesMetaThumbKeys,
 		type LayoutTestKeyMaps
 	} from '$lib/layoutTestEmulator';
 
 	interface Props {
-		layout: LayoutData;
 		keyMaps: LayoutTestKeyMaps;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
@@ -32,7 +28,6 @@
 	}
 
 	const {
-		layout,
 		keyMaps,
 		inputProfile,
 		disabledMappingIds = [],
@@ -133,12 +128,7 @@
 			return;
 		}
 
-		const decision = resolveLayoutTestKeyDown(event, {
-			hasThumbKeys: layout.hasThumbKeys,
-			thumbKeysByHand: layout.thumbKeysByHand,
-			keyMaps,
-			metaThumbKeys: usesMetaThumbKeys(navigator.platform, navigator.userAgent)
-		});
+		const decision = resolveLayoutTestKeyDown(event, { keyMaps });
 
 		if (decision.preventDefault) event.preventDefault();
 		if (decision.stopPropagation) event.stopPropagation();
@@ -189,20 +179,6 @@
 	function handlePaste(event: ClipboardEvent) {
 		if (variant === 'practice') event.preventDefault();
 	}
-
-	function handleKeyUp(event: KeyboardEvent) {
-		if (
-			!shouldCaptureLayoutTestKeyUp(
-				event.code,
-				layout.hasThumbKeys,
-				usesMetaThumbKeys(navigator.platform, navigator.userAgent)
-			)
-		) {
-			return;
-		}
-		event.preventDefault();
-		event.stopPropagation();
-	}
 </script>
 
 <!--
@@ -234,7 +210,6 @@
 			aria-label={ariaLabel}
 			aria-invalid={invalid || undefined}
 			onkeydown={handleKeyDown}
-			onkeyup={handleKeyUp}
 			onbeforeinput={handleBeforeInput}
 			oninput={handleInput}
 			onpaste={handlePaste}
@@ -252,7 +227,6 @@
 			{placeholder}
 			aria-label={ariaLabel}
 			onkeydown={handleKeyDown}
-			onkeyup={handleKeyUp}
 			oninput={handleInput}
 			onpointerdown={resetInputHistory}
 			onblur={resetInputHistory}></textarea>

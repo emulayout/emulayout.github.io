@@ -57,7 +57,9 @@ Reset remove imported inert state and restore the documented QWERTY fallback mod
 - Thumb keys are ordinary editable fields in their own row. Their persisted left/right hand and
   within-hand order are part of physical identity. At least one slot per hand is always retained,
   even when the chosen base has no thumbs, so a saved input profile can later be used against a
-  thumb-key target layout. Empty thumb slots are optional; nonempty values remain unique.
+  thumb-key target layout. The QWERTY default leaves both thumb slots empty and inert. Users must
+  explicitly assign ordinary real-key values to simulate thumb presses; modifier keys are never
+  assigned automatically. Empty thumb slots are optional; nonempty values remain unique.
 
 The editor blocks Save when two effective values are the same, including a collision between an
 explicit value and another slot's QWERTY placeholder. Validation also reserves the browser-emitted
@@ -97,12 +99,14 @@ boundary:
 2. For main-grid keys, use its row/column to find the target output compiled from the structured
    display rows by `createLayoutTestKeyMaps`. The slot-indexed map preserves sparse holes, extended
    columns, target angle transformations, and shifted output.
-3. For thumb keys, match left/right hand and within-hand order to the target layout's thumb keys.
+3. For each nonempty thumb assignment, match its ordinary real-key value by left/right hand and
+   within-hand order to the target layout's thumb keys. Empty thumb slots emit nothing.
 4. Pass the resulting target base output to `resolveLayoutInput`, where Adaptive, Magic, and Repeat
    behavior proceeds unchanged.
 
 Shifted source letters and standard punctuation are compiled alongside their shifted target output.
-Browser shortcuts and modifier handling remain owned by `LayoutTestArea`.
+Control, Command/Meta, and Alt/Option are never treated as thumb keys; modified browser and
+application shortcuts pass through the emulator.
 
 The optional `inputKeyMap` on `LayoutTestKeyMaps` is the adoption seam. Existing consumers continue
 to resolve `KeyboardEvent.code`; a consumer opts in by wrapping its ordinary target maps with
@@ -131,7 +135,8 @@ route- or feature-specific preference imports.
   unspecified standard slots inert and never remove their physical key fields.
 - Home-key presentation always means the traditional eight resting keys: row 1, columns 0–3 and
   6–9. Extended columns are never home keys.
-- Every configuration retains visible left- and right-thumb slots; empty thumb mappings are inert.
+- Every configuration retains visible left- and right-thumb slots. The default mappings are empty
+  and inert, and only explicitly assigned ordinary keys can produce target thumb outputs.
 - Selecting a base replaces the entire draft; editing afterward preserves its base name as
   provenance.
 - Draft changes do not affect typing until Save.

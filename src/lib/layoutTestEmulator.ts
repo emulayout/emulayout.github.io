@@ -5,7 +5,6 @@ import {
 	shiftedKeyCharacter,
 	type KeyMap
 } from './cmini/keyboard';
-import type { ThumbKeyEntry } from './layout';
 import type { LayoutData } from '$lib/layout';
 import type { DisplayCell } from '$lib/layoutDisplay';
 import {
@@ -38,10 +37,7 @@ export interface LayoutTestKeyInput {
 }
 
 export interface LayoutTestKeyOptions {
-	hasThumbKeys: boolean;
-	thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] };
 	keyMaps: LayoutTestKeyMaps;
-	metaThumbKeys: boolean;
 }
 
 export type LayoutTestEdit = { type: 'clear' } | { type: 'insert'; text: string };
@@ -180,42 +176,6 @@ export function insertTextAtSelection(
 	};
 }
 
-/** Apple devices use Command as the physical thumb key; other platforms use Alt. */
-export function usesMetaThumbKeys(platform: string, userAgent: string): boolean {
-	return /Mac|iPhone|iPad|iPod/.test(platform || userAgent);
-}
-
-function thumbHandFromCode(code: string): 'l' | 'r' | undefined {
-	if (code === 'MetaLeft' || code === 'AltLeft') return 'l';
-	if (code === 'MetaRight' || code === 'AltRight') return 'r';
-	return undefined;
-}
-
-function isThumbKeyCode(code: string, metaThumbKeys: boolean): boolean {
-	return metaThumbKeys
-		? code === 'MetaLeft' || code === 'MetaRight'
-		: code === 'AltLeft' || code === 'AltRight';
-}
-
-function primaryThumbCharacter(
-	thumbKeysByHand: LayoutTestKeyOptions['thumbKeysByHand'],
-	hand: 'l' | 'r'
-): string | undefined {
-	const entries = thumbKeysByHand[hand];
-	if (entries.length === 0) return undefined;
-	return hand === 'l' ? entries.at(-1)?.key : entries[0]?.key;
-}
-
-function isThumbModifierHeld(input: LayoutTestKeyInput, metaThumbKeys: boolean): boolean {
-	return metaThumbKeys ? input.metaKey : input.altKey;
-}
-
-function hasBlockingModifier(input: LayoutTestKeyInput, metaThumbKeys: boolean): boolean {
-	if (metaThumbKeys) return input.ctrlKey || input.altKey;
-	// Alt is the thumb modifier. Allow AltGr (Ctrl+Alt); block Meta and plain Ctrl.
-	return input.metaKey || (input.ctrlKey && !input.altKey);
-}
-
 export function resolveLayoutTestKeyDown(
 	input: LayoutTestKeyInput,
 	options: LayoutTestKeyOptions
@@ -228,27 +188,8 @@ export function resolveLayoutTestKeyDown(
 		};
 	}
 
-	if (options.hasThumbKeys && isThumbKeyCode(input.code, options.metaThumbKeys)) {
-		const hand = thumbHandFromCode(input.code);
-		let mappedCharacter = hand ? primaryThumbCharacter(options.thumbKeysByHand, hand) : undefined;
-		if (mappedCharacter && input.shiftKey && /^[a-z]$/i.test(mappedCharacter)) {
-			mappedCharacter = mappedCharacter.toUpperCase();
-		}
-		return {
-			preventDefault: true,
-			stopPropagation: true,
-			...(mappedCharacter ? { edit: { type: 'insert' as const, text: mappedCharacter } } : {})
-		};
-	}
+	if (input.ctrlKey || input.altKey || input.metaKey) return PASS_THROUGH;
 
-	if (options.hasThumbKeys) {
-		if (hasBlockingModifier(input, options.metaThumbKeys)) return PASS_THROUGH;
-	} else if (input.ctrlKey || input.altKey || input.metaKey) {
-		return PASS_THROUGH;
-	}
-
-	const captureThumbModifier =
-		options.hasThumbKeys && isThumbModifierHeld(input, options.metaThumbKeys);
 	const usesConfiguredInput = options.keyMaps.inputKeyMap !== undefined;
 	const mappedCharacter = usesConfiguredInput
 		? options.keyMaps.inputKeyMap?.[input.key]
@@ -259,18 +200,10 @@ export function resolveLayoutTestKeyDown(
 		? input.key in (options.keyMaps.inputKeyMap ?? {})
 		: input.code in options.keyMaps.keyMap;
 
-	if (!mappedCode && !captureThumbModifier) return PASS_THROUGH;
+	if (!mappedCode) return PASS_THROUGH;
 	return {
 		preventDefault: true,
-		stopPropagation: captureThumbModifier,
+		stopPropagation: false,
 		...(mappedCharacter ? { edit: { type: 'insert' as const, text: mappedCharacter } } : {})
 	};
-}
-
-export function shouldCaptureLayoutTestKeyUp(
-	code: string,
-	hasThumbKeys: boolean,
-	metaThumbKeys: boolean
-): boolean {
-	return hasThumbKeys && isThumbKeyCode(code, metaThumbKeys);
 }

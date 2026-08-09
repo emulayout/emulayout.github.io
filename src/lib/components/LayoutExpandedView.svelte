@@ -530,7 +530,6 @@
 					>
 						<div class="detail-test-area-wrap">
 							<LayoutTestArea
-								{layout}
 								keyMaps={configuredTestKeyMaps}
 								{inputProfile}
 								{disabledMappingIds}

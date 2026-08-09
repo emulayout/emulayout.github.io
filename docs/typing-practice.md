@@ -51,7 +51,9 @@ and calculation logic outside the renderer.
   can produce after the full contextual-input pipeline resolves.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
-  is global and persisted, and both Typing practice and the detail Layout test area apply it. See
+  is global and persisted, and Typing practice, the detail Layout test area, and index-card test
+  areas apply it. Thumb simulation requires an explicitly assigned ordinary key; the default thumb
+  slots are empty, and modifier keys are not thumb inputs. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md) for the reusable model and
   event-translation boundary.
 - The keyboard is centered in its primary column together with its shared-switch options. The

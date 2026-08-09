@@ -42,6 +42,9 @@ describe('keyboard input configuration', () => {
 			{ slot: '3,0', value: '', thumbHand: 'l' },
 			{ slot: '3,1', value: '', thumbHand: 'r' }
 		]);
+		expect(
+			config.keys.filter((key) => key.thumbHand).map((key) => keyboardInputEffectiveValue(key))
+		).toEqual(['', '']);
 		expect(keyboardInputPlaceholderValue('1,0')).toBe('a');
 		expect(parseKeyboardInputConfig(serializeKeyboardInputConfig(config))).toEqual(config);
 		expect(parseKeyboardInputConfig('{')).toEqual(config);

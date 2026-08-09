@@ -607,12 +607,7 @@
 				{/if}
 			{/if}
 			{#if renderTestArea}
-				<LayoutTestArea
-					{layout}
-					keyMaps={configuredLayoutTestKeyMaps}
-					{inputProfile}
-					{disabledMappingIds}
-				/>
+				<LayoutTestArea keyMaps={configuredLayoutTestKeyMaps} {inputProfile} {disabledMappingIds} />
 			{/if}
 		</div>
 	{/if}

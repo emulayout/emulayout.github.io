@@ -110,7 +110,7 @@
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key.toLowerCase() !== 'k') return;
 			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
-			// Layout test area remaps keys (incl. thumb modifiers) — don't steal presses.
+			// Layout test area remaps real key presses — don't steal them.
 			const target = event.target;
 			if (
 				target instanceof HTMLTextAreaElement &&

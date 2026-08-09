@@ -102,6 +102,8 @@ test.describe('typing-practice input layout', () => {
 		await expect(
 			dialog.locator('[data-keyboard-input-row="3"] [data-keyboard-input-slot]')
 		).toHaveCount(2);
+		await expect(dialog.locator('[data-keyboard-input-slot="3,0"]')).toHaveValue('');
+		await expect(dialog.locator('[data-keyboard-input-slot="3,1"]')).toHaveValue('');
 		await expect(
 			dialog.locator('[data-keyboard-input-row="1"] .keyboard-input-editor__key--home')
 		).toHaveCount(8);
@@ -222,5 +224,27 @@ test.describe('typing-practice input layout', () => {
 			.getByPlaceholder('Layout test area');
 		await indexTestInput.press('f');
 		await expect(indexTestInput).toHaveValue('e');
+	});
+
+	test('emits a target thumb only from an explicitly assigned real key', async ({ page }) => {
+		await page.goto('/layouts/night?text=r');
+		const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+		const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+		await practicePanel.getByRole('button', { name: 'Input layout: QWERTY' }).click();
+
+		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
+		const leftThumb = dialog.locator('[data-keyboard-input-slot="3,0"]');
+		const rightThumb = dialog.locator('[data-keyboard-input-slot="3,1"]');
+		await expect(leftThumb).toHaveValue('');
+		await expect(leftThumb).toHaveAttribute('placeholder', '');
+		await expect(rightThumb).toHaveValue('');
+		await expect(rightThumb).toHaveAttribute('placeholder', '');
+
+		await leftThumb.press('1');
+		await expect(leftThumb).toHaveValue('1');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+
+		await practiceInput.press('1');
+		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
 	});
 });

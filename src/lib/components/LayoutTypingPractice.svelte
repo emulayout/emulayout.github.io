@@ -360,7 +360,6 @@
 
 	<div class="typing-practice-input">
 		<LayoutTestArea
-			{layout}
 			keyMaps={practiceKeyMaps}
 			{inputProfile}
 			{disabledMappingIds}
