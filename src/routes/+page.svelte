@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
+	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutCardList from '$lib/components/LayoutCardList.svelte';
 	import LayoutResultsToolbar from '$lib/components/LayoutResultsToolbar.svelte';
 	import LayoutViewTabs from '$lib/components/LayoutViewTabs.svelte';
@@ -201,7 +202,10 @@
 <div class="page-root">
 	<div class="layout-view-bar">
 		<LayoutViewTabs />
-		<DisplaySettingsMenu />
+		<div class="layout-view-actions">
+			<KeyboardInputConfigControl responsiveLabel />
+			<DisplaySettingsMenu />
+		</div>
 	</div>
 
 	{#key resultsViewKey}
@@ -300,7 +304,20 @@
 	.layout-view-bar :global(.display-settings-menu) {
 		align-self: center;
 		flex-shrink: 0;
-		margin-bottom: 0.25rem;
+	}
+
+	.layout-view-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.layout-view-actions :global(.keyboard-input-config-trigger) {
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.25;
+		white-space: nowrap;
 	}
 
 	.results-empty {

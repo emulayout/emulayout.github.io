@@ -184,7 +184,7 @@
 							void onPractice();
 						}}
 					>
-						Practice typing on Colemak Camp
+						More practice on Colemak Camp
 					</button>
 				{/snippet}
 			</DropdownMenu>

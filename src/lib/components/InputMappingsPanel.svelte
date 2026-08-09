@@ -176,6 +176,7 @@
 
 <style>
 	.input-mappings-panel {
+		container: input-mappings-panel / inline-size;
 		min-height: 208px;
 		padding: 0.75rem;
 		border: 1px solid var(--border);
@@ -296,7 +297,7 @@
 		text-align: center;
 	}
 
-	@media (max-width: 32rem) {
+	@container input-mappings-panel (max-width: 16rem) {
 		.magic-key-mappings-list,
 		.adaptive-swap-mappings-list {
 			grid-template-columns: minmax(0, 1fr);

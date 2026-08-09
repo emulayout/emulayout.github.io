@@ -14,11 +14,11 @@ export const HOME_ROW_INDEX = 1;
 /** Home keys on row 1, excluding the split gap column. */
 export function isHomeKeySlot(row: number, col: number): boolean {
 	if (row !== HOME_ROW_INDEX) return false;
-	return col < SPLIT_COL - 1 || col > SPLIT_COL;
+	return (col >= 0 && col <= 3) || (col >= 6 && col <= 9);
 }
 
 // Standard QWERTY layout positions (row, col) mapped to KeyboardEvent.code
-// Row 0: q w e r t y u i o p [ ]
+// Row 0: q w e r t y u i o p [ ] \
 // Row 1: a s d f g h j k l ; '
 // Row 2: z x c v b n m , . /
 export const QWERTY_KEY_MAP: Record<string, QwertyKeyPos> = {
@@ -34,6 +34,7 @@ export const QWERTY_KEY_MAP: Record<string, QwertyKeyPos> = {
 	KeyP: { row: 0, col: 9 },
 	BracketLeft: { row: 0, col: 10 },
 	BracketRight: { row: 0, col: 11 },
+	Backslash: { row: 0, col: 12 },
 	KeyA: { row: 1, col: 0 },
 	KeyS: { row: 1, col: 1 },
 	KeyD: { row: 1, col: 2 },
@@ -71,6 +72,12 @@ export const QWERTY_CHAR_TO_SHIFTED: Record<string, string> = {
 	'-': '_',
 	'=': '+'
 };
+
+/** Browser `KeyboardEvent.key` value emitted when Shift modifies a base key character. */
+export function shiftedKeyCharacter(character: string): string | undefined {
+	if (/^[a-z]$/u.test(character)) return character.toUpperCase();
+	return QWERTY_CHAR_TO_SHIFTED[character];
+}
 
 function splitRowChars(row: string): string[] {
 	return row.split(/\s+/).filter((c) => c.length > 0);
@@ -192,7 +199,7 @@ export function buildShiftKeyMap(baseKeyMap: KeyMap): KeyMap {
 		if (!keyCode.startsWith('Key')) {
 			const baseChar = baseKeyMap[keyCode];
 			if (!baseChar) continue;
-			const shifted = QWERTY_CHAR_TO_SHIFTED[baseChar];
+			const shifted = shiftedKeyCharacter(baseChar);
 			if (shifted) map[keyCode] = shifted;
 		}
 	}

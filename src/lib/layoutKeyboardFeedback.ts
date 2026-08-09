@@ -66,13 +66,36 @@ export function buildAdaptiveKeyboardFeedback(
 	return feedback;
 }
 
-/** Build one undirected connector for each currently armed Adaptive pair. */
-export function buildAdaptiveKeyboardSwapPaths(
-	profile: AdaptiveSwapProfile | undefined,
-	inputHistory: string,
-	disabledMappingIds: readonly string[] = []
+/**
+ * Keep only Adaptive pairs containing a physical key that can emit the next
+ * required typing-practice output. Non-Adaptive feedback remains composable.
+ */
+export function filterAdaptiveKeyboardFeedbackByKeys(
+	feedback: LayoutKeyboardFeedback,
+	relevantKeys: readonly string[] | undefined
+): LayoutKeyboardFeedback {
+	if (relevantKeys === undefined) return feedback;
+
+	const relevant = new Set(relevantKeys.map((key) => key.toLowerCase()));
+	const visibleAdaptiveKeys = new Set<string>();
+	for (const [key, state] of feedback) {
+		if (state.kind !== 'adaptive' || !state.active || !state.value) continue;
+		if (!relevant.has(key.toLowerCase())) continue;
+		visibleAdaptiveKeys.add(key.toLowerCase());
+		visibleAdaptiveKeys.add(state.value.toLowerCase());
+	}
+
+	return new Map(
+		Array.from(feedback).filter(
+			([key, state]) => state.kind !== 'adaptive' || visibleAdaptiveKeys.has(key.toLowerCase())
+		)
+	);
+}
+
+/** Build connectors from the Adaptive feedback that is actually visible. */
+export function buildAdaptiveKeyboardSwapPathsFromFeedback(
+	feedback: LayoutKeyboardFeedback
 ): readonly LayoutKeyboardSwapPath[] {
-	const feedback = buildAdaptiveKeyboardFeedback(profile, inputHistory, disabledMappingIds);
 	const paths: LayoutKeyboardSwapPath[] = [];
 	const seen = new Set<string>();
 
@@ -86,6 +109,16 @@ export function buildAdaptiveKeyboardSwapPaths(
 	}
 
 	return paths;
+}
+
+/** Build one undirected connector for each currently armed Adaptive pair. */
+export function buildAdaptiveKeyboardSwapPaths(
+	profile: AdaptiveSwapProfile | undefined,
+	inputHistory: string,
+	disabledMappingIds: readonly string[] = []
+): readonly LayoutKeyboardSwapPath[] {
+	const feedback = buildAdaptiveKeyboardFeedback(profile, inputHistory, disabledMappingIds);
+	return buildAdaptiveKeyboardSwapPathsFromFeedback(feedback);
 }
 
 export interface LayoutKeyboardFeedbackOptions {

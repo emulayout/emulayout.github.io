@@ -30,6 +30,8 @@
 		onSortMetric?: (metric: LayoutCardMetric, order: SortOrder) => void;
 		/** Highlights uses visual finger usage; Detailed uses the text stat block. */
 		mode?: 'focused' | 'detailed';
+		/** Allows a wide Highlights row in detail-page summary cards only. */
+		wideFocusedLayout?: boolean;
 	}
 
 	const {
@@ -42,7 +44,8 @@
 		onFilterMetric,
 		onFilterFingerUsage,
 		onSortMetric,
-		mode = 'focused'
+		mode = 'focused',
+		wideFocusedLayout = false
 	}: Props = $props();
 
 	function fallbackCopy(model: LayoutStatsBlockModel) {
@@ -111,7 +114,8 @@
 	<section
 		class="core-stats core-stats--{model.analyzer}"
 		aria-label="{analyzerLabel} core statistics"
-		style:min-height={`${getLayoutCardStatsHeight(model.analyzer, 'focused')}px`}
+		class:core-stats--wide-focused={wideFocusedLayout && Boolean(model.fingerUsage)}
+		style={`--core-stats-min-height: ${getLayoutCardStatsHeight(model.analyzer, 'focused')}px`}
 	>
 		{#if model.cardMetrics}
 			<dl class="core-stats-grid">
@@ -230,11 +234,13 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
+		container: layout-card-stats / inline-size;
 	}
 
 	.core-stats {
 		--core-stats-tone: var(--text-caption);
 		min-width: 0;
+		min-height: var(--core-stats-min-height);
 	}
 
 	.core-stats--cmini {
@@ -499,5 +505,20 @@
 		gap: 0.5rem;
 		align-items: end;
 		min-width: 0;
+	}
+
+	@container layout-card-stats (min-width: 42rem) {
+		.core-stats--wide-focused {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: center;
+			min-height: 0;
+		}
+
+		.core-stats--wide-focused .finger-chart-area {
+			margin-top: 0;
+			padding-inline-start: 1rem;
+			border-inline-start: 1px solid var(--border);
+		}
 	}
 </style>

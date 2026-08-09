@@ -7,6 +7,7 @@
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import { hasOpenModal } from '$lib/modalScrollLock';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { onMount } from 'svelte';
@@ -71,6 +72,7 @@
 	onMount(() => {
 		debugEnabled = localStorage.getItem('debug') === 'true';
 		uiPrefs.hydrate();
+		keyboardInputStore.hydrate();
 
 		const stored = localStorage.getItem('theme');
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
@@ -108,7 +110,7 @@
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key.toLowerCase() !== 'k') return;
 			if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
-			// Layout test area remaps keys (incl. thumb modifiers) — don't steal presses.
+			// Layout test area remaps real key presses — don't steal them.
 			const target = event.target;
 			if (
 				target instanceof HTMLTextAreaElement &&

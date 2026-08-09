@@ -53,6 +53,12 @@ html {
 	--warning: #9a8f12;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #c44b3a;
+	--typing-practice-correct: #7aa825;
+	--typing-practice-incorrect: #c44b3a;
+	--typing-practice-next-key-decoration: #292622;
+	--typing-practice-home-key: #c8bca9;
+	--keyboard-input-validation-error: #c44b3a;
+	--keyboard-input-reset-destructive: #b94335;
 	--new-layout-dot: #eda095;
 }
 
@@ -88,6 +94,12 @@ html {
 	--warning: #d5dc14;
 	--stats-diff-better: var(--similar-diff);
 	--stats-diff-worse: #e07060;
+	--typing-practice-correct: #92c92c;
+	--typing-practice-incorrect: #e07060;
+	--typing-practice-next-key-decoration: #f3efe8;
+	--typing-practice-home-key: #625c54;
+	--keyboard-input-validation-error: #e07060;
+	--keyboard-input-reset-destructive: #e07060;
 	--new-layout-dot: #982818;
 }
 

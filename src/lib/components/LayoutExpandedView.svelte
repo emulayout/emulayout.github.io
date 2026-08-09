@@ -22,13 +22,15 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { buildExpandedStatsTables, type ExpandedStatsRow } from '$lib/layoutExpandedStats';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
-	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import CorpusTabs from '$lib/components/CorpusTabs.svelte';
+	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
-	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
+	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
+	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import type { TabOption } from '$lib/tabs';
 	import {
 		applyAnglemodToDisplayRows,
@@ -37,14 +39,14 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
-	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		buildAdaptiveKeyboardSwapPaths,
 		buildLayoutKeyboardFeedback
 	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
-	import { repeatKeyMappingId } from '$lib/inputMappingControls';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
@@ -59,6 +61,8 @@
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		activeSection: LayoutDetailSection;
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
+		customPracticeText?: string | null;
+		onCustomPracticeTextChange?: (text: string | null) => void;
 	}
 
 	const {
@@ -71,7 +75,9 @@
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
 		activeSection,
-		onActiveSectionChange
+		onActiveSectionChange,
+		customPracticeText = null,
+		onCustomPracticeTextChange
 	}: Props = $props();
 
 	const cminiLabel =
@@ -89,16 +95,23 @@
 	let analyzerPrefsInitialized = $state(false);
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let anglemodTransformActive = $state(false);
-	let previewContextualKeyOutput = $state(true);
-	let showAdaptiveSwapPaths = $state(false);
 	let layoutInputHistory = $state('');
+	const testDisplayOptions = $derived(uiPrefs.layoutTestAreaDisplayOptions);
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+	const practiceTabId = $derived(`${titleId}-tab-practice`);
 	const testTabId = $derived(`${titleId}-tab-test`);
 	const statsTabId = $derived(`${titleId}-tab-stats`);
+	const practicePanelId = $derived(`${titleId}-panel-practice`);
 	const testPanelId = $derived(`${titleId}-panel-test`);
 	const statsPanelId = $derived(`${titleId}-panel-stats`);
 	const sections = $derived<TabOption<LayoutDetailSection>[]>([
-		{ value: 'test', label: 'Test area', id: testTabId, controls: testPanelId },
+		{
+			value: 'practice',
+			label: 'Typing practice',
+			id: practiceTabId,
+			controls: practicePanelId
+		},
+		{ value: 'test', label: 'Layout test area', id: testTabId, controls: testPanelId },
 		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
 	]);
 	const isAngleBoard = $derived(layout.board === 'angle');
@@ -110,16 +123,19 @@
 			: applyAnglemodToDisplayRows(baseDisplayRows);
 	});
 	const displayValue = $derived(displayRowsToString(displayRows));
-	const testKeyMaps = $derived(createLayoutTestKeyMaps(displayValue));
-	const repeatMappingId = $derived(
-		inputProfile?.repeatKey ? repeatKeyMappingId(inputProfile.repeatKey.trigger) : undefined
+	const testKeyMaps = $derived(
+		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
 	);
-	const repeatKeyEnabled = $derived(
-		repeatMappingId === undefined || !disabledMappingIds.includes(repeatMappingId)
+	const configuredTestKeyMaps = $derived(
+		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
 	);
-	const repeatOptionLabel = $derived(repeatKeyEnabled ? 'Disable repeat key' : 'Enable repeat key');
 	const hasSpecialMappings = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+	);
+	const hasSpecialKeys = $derived(
+		layout.hasMagicKey ||
+			layout.hasAdaptiveSwap ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
 	const conventionalMagicTriggers = $derived(
 		layout.hasMagicKey && Object.prototype.hasOwnProperty.call(layout.keys, '*') ? ['*'] : []
@@ -138,15 +154,24 @@
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
-			magicKeys: previewContextualKeyOutput ? inputProfile?.magicKeys : undefined,
-			adaptiveSwaps: previewContextualKeyOutput ? inputProfile?.adaptiveSwaps : undefined,
+			magicKeys:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.magicKeys
+					: undefined,
+			adaptiveSwaps:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.adaptiveSwaps
+					: undefined,
 			inputHistory: layoutInputHistory,
 			disabledMappingIds,
-			knownMagicTriggers: previewContextualKeyOutput ? conventionalMagicTriggers : []
+			knownMagicTriggers:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? conventionalMagicTriggers
+					: []
 		})
 	);
 	const keyboardSwapPaths = $derived(
-		showAdaptiveSwapPaths
+		testDisplayOptions.showSpecialKeys && testDisplayOptions.showAdaptiveSwapPaths
 			? buildAdaptiveKeyboardSwapPaths(
 					inputProfile?.adaptiveSwaps,
 					layoutInputHistory,
@@ -237,12 +262,6 @@
 		});
 	}
 
-	function toggleRepeatKey() {
-		if (!repeatMappingId || !onDisabledMappingIdsChange) return;
-		const retained = disabledMappingIds.filter((id) => id !== repeatMappingId);
-		onDisabledMappingIdsChange(repeatKeyEnabled ? [...retained, repeatMappingId] : retained);
-	}
-
 	$effect(() => {
 		if (!uiPrefs.hydrated || analyzerPrefsInitialized) return;
 		untrack(() => {
@@ -308,6 +327,42 @@
 	</label>
 {/snippet}
 
+{#snippet testKeyboardOptions()}
+	<ToggleSwitch
+		checked={testDisplayOptions.colorHomeKeys}
+		label="Color home keys"
+		onCheckedChange={(checked) => uiPrefs.setLayoutTestAreaDisplayOption('colorHomeKeys', checked)}
+	/>
+	{#if hasSpecialKeys}
+		<ToggleSwitch
+			checked={testDisplayOptions.showSpecialKeys}
+			label="Show special keys"
+			onCheckedChange={(checked) =>
+				uiPrefs.setLayoutTestAreaDisplayOption('showSpecialKeys', checked)}
+		/>
+	{/if}
+	{#if hasContextualKeyPreview}
+		<ToggleSwitch
+			checked={testDisplayOptions.previewContextualKeyOutput}
+			label={contextualKeyPreviewLabel}
+			onCheckedChange={(checked) =>
+				uiPrefs.setLayoutTestAreaDisplayOption('previewContextualKeyOutput', checked)}
+		/>
+		{#if hasAdaptiveSwapPreview}
+			<ToggleSwitch
+				checked={testDisplayOptions.showAdaptiveSwapPaths}
+				label="Show swap paths"
+				onCheckedChange={(checked) =>
+					uiPrefs.setLayoutTestAreaDisplayOption('showAdaptiveSwapPaths', checked)}
+			/>
+		{/if}
+	{/if}
+{/snippet}
+
+{#snippet testKeyboardHeader()}
+	<KeyboardInputConfigControl />
+{/snippet}
+
 {#snippet sharedHeaders()}
 	{#if showCmini}
 		<th scope="col" class="shared-stats-col shared-stats-col--cmini">{cminiTableLabel}</th>
@@ -362,32 +417,10 @@
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
-			Practice typing on Colemak Camp
+			More practice on Colemak Camp
 			<span aria-hidden="true">↗</span>
 		</a>
 	</nav>
-	{#if inputProfile?.repeatKey}
-		<div class="layout-detail-options" role="group" aria-label={`${layout.name} layout options`}>
-			<button type="button" onclick={toggleRepeatKey}>
-				<svg
-					class="size-4 shrink-0"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="m17 2 4 4-4 4" />
-					<path d="M3 11V9a3 3 0 0 1 3-3h15" />
-					<path d="m7 22-4-4 4-4" />
-					<path d="M21 13v2a3 3 0 0 1-3 3H3" />
-				</svg>
-				{repeatOptionLabel}
-			</button>
-		</div>
-	{/if}
 {/snippet}
 
 <article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
@@ -433,71 +466,55 @@
 					/>
 				</div>
 
-				{#if activeSection === 'test'}
+				{#if activeSection === 'practice'}
+					<div
+						id={practicePanelId}
+						class="detail-practice-panel detail-panel-content"
+						role="tabpanel"
+						aria-labelledby={practiceTabId}
+					>
+						<LayoutTypingPractice
+							{layout}
+							rows={displayRows}
+							keyMaps={testKeyMaps}
+							{inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+							knownMagicTriggers={conventionalMagicTriggers}
+							{customPracticeText}
+							{onCustomPracticeTextChange}
+						/>
+					</div>
+				{:else if activeSection === 'test'}
 					<div
 						id={testPanelId}
 						class="detail-test-panel detail-panel-content"
 						role="tabpanel"
 						aria-labelledby={testTabId}
 					>
-						<div
-							class="detail-test-input-row"
-							class:detail-test-input-row--with-mappings={hasSpecialMappings}
-						>
-							<div class="detail-test-area-wrap">
-								<LayoutTestArea
-									{layout}
-									keyMaps={testKeyMaps}
-									{inputProfile}
-									{disabledMappingIds}
-									variant="page"
-									onInputHistoryChange={(history) => (layoutInputHistory = history)}
-								/>
-							</div>
-
-							{#if hasSpecialMappings && inputProfile}
-								<div class="detail-test-mappings">
-									<InputMappingsPanel
-										profile={inputProfile}
-										{disabledMappingIds}
-										{onDisabledMappingIdsChange}
-									/>
-								</div>
-							{/if}
-						</div>
-
-						<div class="detail-keyboard-preview">
-							{#if hasContextualKeyPreview}
-								<div class="detail-keyboard-preview-controls">
-									<label class="detail-keyboard-preview-toggle">
-										<input
-											type="checkbox"
-											role="switch"
-											bind:checked={previewContextualKeyOutput}
-										/>
-										<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
-											<span></span>
-										</span>
-										<span>{contextualKeyPreviewLabel}</span>
-									</label>
-									{#if hasAdaptiveSwapPreview}
-										<label class="detail-keyboard-preview-toggle">
-											<input type="checkbox" role="switch" bind:checked={showAdaptiveSwapPaths} />
-											<span class="detail-keyboard-preview-toggle__track" aria-hidden="true">
-												<span></span>
-											</span>
-											<span>Show swap paths</span>
-										</label>
-									{/if}
-								</div>
-							{/if}
-							<LayoutKeyboardPreview
-								{layout}
-								rows={displayRows}
-								feedback={keyboardFeedback}
-								swapPaths={keyboardSwapPaths}
+						<div class="detail-test-area-wrap">
+							<LayoutTestArea
+								keyMaps={configuredTestKeyMaps}
+								{inputProfile}
+								{disabledMappingIds}
+								variant="page"
+								onInputHistoryChange={(history) => (layoutInputHistory = history)}
 							/>
 						</div>
+
+						<LayoutKeyboardWorkspace
+							{layout}
+							rows={displayRows}
+							feedback={keyboardFeedback}
+							swapPaths={keyboardSwapPaths}
+							highlightHomeKeys={testDisplayOptions.colorHomeKeys}
+							{inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+							showMappings={testDisplayOptions.showSpecialKeys && hasSpecialMappings}
+							header={testKeyboardHeader}
+							options={testKeyboardOptions}
+						/>
 					</div>
 				{:else}
 					<div
@@ -774,6 +791,7 @@
 		padding: 0.5rem 0.25rem 2rem;
 	}
 
+	.detail-practice-panel,
 	.detail-test-panel,
 	.detail-stats-panel {
 		min-width: 0;
@@ -822,42 +840,6 @@
 		border-radius: 0.2rem;
 	}
 
-	.layout-detail-options {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.5rem;
-		padding-inline: 0.25rem;
-	}
-
-	.layout-detail-options button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: flex-start;
-		gap: 0.5rem;
-		width: 100%;
-		min-height: 2rem;
-		padding: 0.35rem 0.65rem;
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-		background-color: var(--bg-secondary);
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		line-height: 1.25rem;
-		cursor: pointer;
-	}
-
-	.layout-detail-options button:hover {
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		color: var(--text-primary);
-	}
-
-	.layout-detail-options button:focus-visible {
-		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-		outline-offset: 0.15rem;
-	}
-
 	.detail-main {
 		display: flex;
 		flex-direction: column;
@@ -872,109 +854,12 @@
 		min-width: 0;
 	}
 
-	.detail-test-input-row {
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
+	.detail-practice-panel {
+		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
+	}
+
+	.detail-test-area-wrap {
 		min-width: 0;
-	}
-
-	.detail-test-area-wrap,
-	.detail-test-mappings {
-		min-width: 0;
-	}
-
-	.detail-keyboard-preview {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		min-width: 0;
-	}
-
-	.detail-keyboard-preview-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 600;
-		line-height: 1rem;
-		cursor: pointer;
-	}
-
-	.detail-keyboard-preview-controls {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		gap: 0.625rem 1rem;
-	}
-
-	.detail-keyboard-preview-toggle input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
-
-	.detail-keyboard-preview-toggle__track {
-		display: inline-flex;
-		width: 2rem;
-		height: 1.125rem;
-		flex-shrink: 0;
-		align-items: center;
-		padding: 0.125rem;
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		background: var(--bg-primary);
-		transition:
-			border-color 0.12s ease,
-			background-color 0.12s ease;
-	}
-
-	.detail-keyboard-preview-toggle__track > span {
-		width: 0.75rem;
-		height: 0.75rem;
-		border-radius: 50%;
-		background: var(--text-secondary);
-		transition:
-			background-color 0.12s ease,
-			transform 0.12s ease;
-	}
-
-	.detail-keyboard-preview-toggle input:checked + .detail-keyboard-preview-toggle__track {
-		border-color: color-mix(in srgb, var(--accent) 72%, var(--border));
-		background: color-mix(in srgb, var(--accent) 28%, var(--bg-primary));
-	}
-
-	.detail-keyboard-preview-toggle input:checked + .detail-keyboard-preview-toggle__track > span {
-		background: var(--accent);
-		transform: translateX(0.875rem);
-	}
-
-	.detail-keyboard-preview-toggle input:focus-visible + .detail-keyboard-preview-toggle__track {
-		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-		outline-offset: 0.15rem;
-	}
-
-	@media (min-width: 768px) {
-		.detail-test-input-row--with-mappings {
-			display: grid;
-			grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
-			align-items: start;
-		}
-
-		.detail-test-input-row--with-mappings .detail-test-mappings {
-			grid-row: 1;
-			grid-column: 2;
-		}
-
-		.detail-test-input-row--with-mappings .detail-test-area-wrap {
-			grid-row: 1;
-			grid-column: 1;
-		}
 	}
 
 	.detail-analyzer-options {

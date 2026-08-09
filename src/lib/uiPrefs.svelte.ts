@@ -13,6 +13,20 @@ import {
 	normalizeLayoutDetailStatsAnalyzers,
 	parseLayoutDetailStatsAnalyzers
 } from '$lib/layoutDetailStatsPrefs';
+import {
+	createDefaultTypingPracticeDisplayOptions,
+	parseTypingPracticeDisplayOptions,
+	serializeTypingPracticeDisplayOptions,
+	TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
+	type TypingPracticeDisplayOptions
+} from '$lib/typingPracticePrefs';
+import {
+	createDefaultLayoutTestAreaDisplayOptions,
+	LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
+	parseLayoutTestAreaDisplayOptions,
+	serializeLayoutTestAreaDisplayOptions,
+	type LayoutTestAreaDisplayOptions
+} from '$lib/layoutTestAreaPrefs';
 
 export type LayoutCardStatsMode = 'focused' | 'detailed';
 
@@ -27,6 +41,14 @@ class UiPrefs {
 	statsCorpus = $state<StatsCorpus>(DEFAULT_STATS_CORPUS);
 	/** Persisted analyzer columns for layout-detail stats; null means use the data-driven default. */
 	layoutDetailStatsAnalyzers = $state<StatsAnalyzer[] | null>(null);
+	/** Persisted visual guidance and contextual-preview options for Typing practice. */
+	typingPracticeDisplayOptions = $state<TypingPracticeDisplayOptions>(
+		createDefaultTypingPracticeDisplayOptions()
+	);
+	/** Persisted visual guidance and contextual-preview options for Layout test area. */
+	layoutTestAreaDisplayOptions = $state<LayoutTestAreaDisplayOptions>(
+		createDefaultLayoutTestAreaDisplayOptions()
+	);
 	/** True after `hydrate()` reads localStorage (avoids applying defaults over persisted values). */
 	hydrated = $state(false);
 
@@ -38,6 +60,12 @@ class UiPrefs {
 		this.statsCorpus = parseStatsCorpus(localStorage.getItem(STATS_CORPUS_STORAGE_KEY));
 		this.layoutDetailStatsAnalyzers = parseLayoutDetailStatsAnalyzers(
 			localStorage.getItem(LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
+		);
+		this.typingPracticeDisplayOptions = parseTypingPracticeDisplayOptions(
+			localStorage.getItem(TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY)
+		);
+		this.layoutTestAreaDisplayOptions = parseLayoutTestAreaDisplayOptions(
+			localStorage.getItem(LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY)
 		);
 		this.hydrated = true;
 	}
@@ -67,6 +95,24 @@ class UiPrefs {
 		localStorage.setItem(
 			LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY,
 			JSON.stringify(this.layoutDetailStatsAnalyzers)
+		);
+	}
+
+	setTypingPracticeDisplayOption(option: keyof TypingPracticeDisplayOptions, value: boolean) {
+		const next = { ...this.typingPracticeDisplayOptions, [option]: value };
+		this.typingPracticeDisplayOptions = next;
+		localStorage.setItem(
+			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
+			serializeTypingPracticeDisplayOptions(next)
+		);
+	}
+
+	setLayoutTestAreaDisplayOption(option: keyof LayoutTestAreaDisplayOptions, value: boolean) {
+		const next = { ...this.layoutTestAreaDisplayOptions, [option]: value };
+		this.layoutTestAreaDisplayOptions = next;
+		localStorage.setItem(
+			LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
+			serializeLayoutTestAreaDisplayOptions(next)
 		);
 	}
 }

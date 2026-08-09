@@ -12,6 +12,7 @@
 		type LayoutDetailSection
 	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
+	import { normalizeTypingPracticeText, TYPING_PRACTICE_TEXT_PARAM } from '$lib/typingPracticeText';
 	import { untrack } from 'svelte';
 
 	const { data } = $props();
@@ -19,6 +20,9 @@
 	const layout = $derived(detail?.layout);
 	const activeSection = $derived(
 		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
+	);
+	const customPracticeText = $derived(
+		normalizeTypingPracticeText(page.url.searchParams.get(TYPING_PRACTICE_TEXT_PARAM))
 	);
 	let disabledMappingIds = $state<string[]>([]);
 
@@ -29,11 +33,12 @@
 		const canonicalHref = data.detail
 			? layoutDetailPageHref(
 					pathname,
-					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
+					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
+					normalizeTypingPracticeText(page.url.searchParams.get(TYPING_PRACTICE_TEXT_PARAM))
 				)
 			: pathname;
 		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;
-		// canonicalHref starts with route-aware resolve(); the helper appends only the tab query.
+		// canonicalHref starts with route-aware resolve(); the helper appends canonical detail state.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		replaceState(canonicalHref, page.state);
 	});
@@ -43,11 +48,29 @@
 		// The route is resolved before layoutDetailPageHref appends its canonical tab query.
 		/* eslint-disable svelte/no-navigation-without-resolve */
 		void goto(
-			layoutDetailPageHref(resolve('/layouts/[name]', { name: data.layoutName }), section),
+			layoutDetailPageHref(
+				resolve('/layouts/[name]', { name: data.layoutName }),
+				section,
+				customPracticeText
+			),
 			{
 				replaceState: true,
 				noScroll: true,
 				keepFocus: true,
+				state: page.state
+			}
+		);
+		/* eslint-enable svelte/no-navigation-without-resolve */
+	}
+
+	function setCustomPracticeText(text: string | null) {
+		// The route is resolved before layoutDetailPageHref appends its canonical query.
+		/* eslint-disable svelte/no-navigation-without-resolve */
+		void goto(
+			layoutDetailPageHref(resolve('/layouts/[name]', { name: data.layoutName }), 'practice', text),
+			{
+				replaceState: true,
+				noScroll: true,
 				state: page.state
 			}
 		);
@@ -83,6 +106,8 @@
 		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 		{activeSection}
 		onActiveSectionChange={setActiveSection}
+		{customPracticeText}
+		onCustomPracticeTextChange={setCustomPracticeText}
 	/>
 {:else}
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">

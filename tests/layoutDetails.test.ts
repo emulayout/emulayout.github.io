@@ -26,14 +26,24 @@ const compactLayout: CompactLayout = [
 
 describe('per-layout detail data', () => {
 	test('builds and parses canonical detail-tab URLs', () => {
-		expect(layoutDetailPageHref('/layouts/Colemak-DH')).toBe('/layouts/Colemak-DH?tab=test');
+		expect(layoutDetailPageHref('/layouts/Colemak-DH')).toBe('/layouts/Colemak-DH?tab=practice');
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'test')).toBe(
+			'/layouts/Colemak-DH?tab=test'
+		);
 		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'stats')).toBe(
 			'/layouts/Colemak-DH?tab=stats'
 		);
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'practice', 'hello  brave\nworld')).toBe(
+			'/layouts/Colemak-DH?tab=practice&text=hello+brave+world'
+		);
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'test', '   ')).toBe(
+			'/layouts/Colemak-DH?tab=test'
+		);
+		expect(parseLayoutDetailSection('practice')).toBe('practice');
 		expect(parseLayoutDetailSection('stats')).toBe('stats');
 		expect(parseLayoutDetailSection('test')).toBe('test');
-		expect(parseLayoutDetailSection('unknown')).toBe('test');
-		expect(parseLayoutDetailSection(null)).toBe('test');
+		expect(parseLayoutDetailSection('unknown')).toBe('practice');
+		expect(parseLayoutDetailSection(null)).toBe('practice');
 	});
 
 	test('uses the same filesystem-safe id in the generator and browser', () => {

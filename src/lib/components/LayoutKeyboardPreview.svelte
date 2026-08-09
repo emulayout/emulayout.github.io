@@ -8,6 +8,7 @@
 		LayoutKeyboardKeyFeedback,
 		LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
+	import { isTypingPracticeHomeKeySlot } from '$lib/typingPracticeKeyboard';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
 
@@ -16,6 +17,9 @@
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
+		highlightedKeys?: readonly string[];
+		highlightHomeKeys?: boolean;
+		horizontalAlignment?: 'start' | 'center';
 	}
 
 	type PreviewKey = DisplayCell & { slot: string };
@@ -50,13 +54,22 @@
 		paths: RenderedSwapPath[];
 	};
 
-	const { layout, rows, feedback = EMPTY_FEEDBACK, swapPaths = [] }: Props = $props();
+	const {
+		layout,
+		rows,
+		feedback = EMPTY_FEEDBACK,
+		swapPaths = [],
+		highlightedKeys = [],
+		highlightHomeKeys = false,
+		horizontalAlignment = 'center'
+	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
 	const rightThumbKeys = $derived(
 		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
 	);
+	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
 		const mainRowMaxColumn = Math.max(
 			9,
@@ -123,6 +136,15 @@
 
 	function ansiThumbOffset(column: number): string {
 		return `calc(var(--preview-key-size) * ${column + 0.68} + var(--preview-key-gap) * ${column})`;
+	}
+
+	function isHighlightedKey(key: string): boolean {
+		return highlightedKeySet.has(key.toLowerCase());
+	}
+
+	function isHomeKey(key: PreviewKey): boolean {
+		const [row, column] = key.slot.split(',').map(Number);
+		return isTypingPracticeHomeKeySlot(row, column);
 	}
 
 	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
@@ -226,7 +248,11 @@
 	data-geometry={orthoGeometry ? 'ortho' : 'ansi'}
 >
 	<div class="keyboard-preview__board" aria-hidden="true">
-		<div class="keyboard-preview__keys" bind:this={keysElement}>
+		<div
+			class="keyboard-preview__keys"
+			class:keyboard-preview__keys--start={horizontalAlignment === 'start'}
+			bind:this={keysElement}
+		>
 			{#if swapPathLayer.paths.length > 0}
 				<svg
 					class="keyboard-preview__swap-paths"
@@ -261,10 +287,14 @@
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
+										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
 										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
+										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -285,10 +315,14 @@
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
+										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
 										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
+										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -313,10 +347,12 @@
 								class="keyboard-preview__key keyboard-preview__key--ansi-thumb"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+								class:keyboard-preview__key--next={isHighlightedKey(thumb.key.char)}
 								data-key-char={thumb.key.char}
 								data-thumb-column={thumb.column}
 								data-key-feedback={keyFeedback?.kind}
 								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+								data-key-next={isHighlightedKey(thumb.key.char) ? 'true' : undefined}
 								title={keyFeedback?.value
 									? `${thumb.key.char} emits ${keyFeedback.value}`
 									: undefined}
@@ -337,9 +373,13 @@
 								class="keyboard-preview__key"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+								class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
+								class:keyboard-preview__key--next={isHighlightedKey(key.char)}
 								data-key-char={key.char}
 								data-key-feedback={keyFeedback?.kind}
 								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+								data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
+								data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
 								title={keyFeedback?.value ? `${key.char} emits ${keyFeedback.value}` : undefined}
 							>
 								{@render keyContent(key, keyFeedback)}
@@ -354,8 +394,8 @@
 
 <style>
 	.keyboard-preview {
-		--preview-key-size: clamp(2.35rem, 4.7vw, 3.35rem);
-		--preview-key-gap: clamp(0.25rem, 0.65vw, 0.45rem);
+		--preview-key-size: var(--keyboard-preview-key-size, clamp(2.35rem, 4.7vw, 3.35rem));
+		--preview-key-gap: var(--keyboard-preview-key-gap, clamp(0.25rem, 0.65vw, 0.45rem));
 		width: 100%;
 		overflow-x: auto;
 		scrollbar-width: thin;
@@ -374,6 +414,10 @@
 		width: max-content;
 		margin-inline: auto;
 		padding-block: 0.125rem 0.3rem;
+	}
+
+	.keyboard-preview__keys--start {
+		margin-inline: 0 auto;
 	}
 
 	.keyboard-preview__swap-paths {
@@ -483,6 +527,19 @@
 		height: 100%;
 	}
 
+	.keyboard-preview__key--home {
+		border-color: color-mix(in srgb, var(--typing-practice-home-key) 82%, var(--border));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--typing-practice-home-key) 76%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--typing-practice-home-key) 52%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--typing-practice-home-key) 68%, black),
+			0 0 0.4rem color-mix(in srgb, var(--typing-practice-home-key) 24%, transparent);
+	}
+
 	.keyboard-preview__key--active {
 		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
 		background: linear-gradient(
@@ -497,5 +554,13 @@
 		font-size: clamp(0.65rem, 1.45vw, 1rem);
 		letter-spacing: -0.02em;
 		white-space: nowrap;
+	}
+
+	.keyboard-preview__key--next {
+		outline: 2px solid var(--typing-practice-next-key-decoration);
+		outline-offset: -1px;
+		filter: drop-shadow(
+			0 0 0.35rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent)
+		);
 	}
 </style>

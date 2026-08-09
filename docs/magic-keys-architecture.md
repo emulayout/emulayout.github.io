@@ -166,11 +166,12 @@ failing deployment. If Cmini removes only a trigger a variant uses, sync publish
 
 For one captured layout key, the resolver:
 
-1. applies at most one Adaptive swap to the base output;
-2. treats that output as a possible Magic trigger;
-3. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
-4. otherwise, treats `@` as a possible Repeat trigger;
-5. inserts the final output and appends it once to bounded shared history.
+1. receives the target layout's base output after any opted-in input-layout translation;
+2. applies at most one Adaptive swap to the base output;
+3. treats that output as a possible Magic trigger;
+4. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
+5. otherwise, treats `@` as a possible Repeat trigger;
+6. inserts the final output and appends it once to bounded shared history.
 
 Magic and Repeat are not recursively applied during the same physical keypress. A Magic match also
 prevents the resulting text from being interpreted as Repeat output. This makes an explicit `@`
@@ -218,26 +219,33 @@ Filters are also independent:
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
-The layout detail page may show Magic and Adaptive controls, while Repeat remains controlled by the
-icon beside the keyboard summary.
+The layout detail page shows Magic and Adaptive mapping controls in the active typing workspace.
+Repeat stays enabled there and has no detail-page toggle.
 
 The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
 default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
 cards instead of its literal marker. This includes a conventional `*` whose mappings are
-unavailable. The preview resolves mapped triggers against the test area's current uninterrupted
-emitted history and disabled-mapping set:
+unavailable. Each typing surface resolves mapped triggers against its own current uninterrupted
+emitted history and the page's shared disabled-mapping set:
 
 - when pressing the trigger would emit a value, the keycap displays that value and gains the active
   accent background;
 - when no rule or emitting fallback applies, the Magic symbol remains on the ordinary neutral
   keycap;
-- turning the preview off restores literal trigger characters and ordinary key styling.
+- turning the Layout test area preview off restores literal trigger characters and ordinary key
+  styling; Typing practice suppresses this feedback when Show special keys is off.
 
 This is prospective state, not a second input resolver: the keyboard derives it with the same pure
 Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback and combines
 it with currently armed Adaptive swaps without changing the formatted text board. When a physical
 key is both a Magic trigger and part of an armed Adaptive swap, the Adaptive presentation wins
 because Adaptive changes that physical key before Magic behavior is considered.
+
+Typing practice also offers a separate, default-off Magic-group underline. It marks the preceding
+context and emitted target characters for every enabled rule that can replace part of a lesson word.
+For a trigger with repeat-last fallback, eligible adjacent doubled letters in the same word are
+marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
+set; it does not alter input resolution or the default prompt presentation.
 
 ## Analyzer boundaries
 

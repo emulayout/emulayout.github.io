@@ -16,12 +16,15 @@ retain domain-specific markup and styling.
   Arrow/Home/End navigation.
 - `SegmentedControl.svelte` owns mutually exclusive radiogroup semantics and roving focus for
   presentation or analyzer choices that do not reveal a tabpanel.
+- `ToggleSwitch.svelte` provides the shared labeled switch semantics, focus treatment, and visual
+  state for independent boolean display options.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
   dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
   focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
   title and close-button chrome.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
-  Escape dismissal, and body portal placement.
+  Escape dismissal, and body portal placement. Help triggers normally follow the global hint
+  preference; a consumer may keep essential interaction guidance available with `alwaysVisible`.
 
 `portalToBody.ts`, `listboxNavigation.ts`, and `segmentedControl.ts` contain small reusable behavior
 helpers used by these components.
@@ -54,10 +57,30 @@ panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA r
 consistent as the panel content changes. A successful view import resets the import form, restores
 focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
 
-The layout detail page uses `Tabs` for its Test area and Stats panels. Its canonical `tab` query
-parameter owns the selected value across direct links, reloads, clicks, and automatic keyboard
-activation; Test area is the fallback for missing or invalid values. The panels use layout-specific
-ids so their tab relationships remain unique for every route.
+The layout detail page uses `Tabs` for its Typing practice, Layout test area, and Stats panels. Its
+canonical `tab` query parameter owns the selected value across direct links, reloads, clicks, and
+automatic keyboard activation; Typing practice is the fallback for missing or invalid values. The
+panels use layout-specific ids so their tab relationships remain unique for every route.
+
+Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. The trailing pencil
+opens the modal with the displayed lesson selected as the editable source; Cancel, the header close
+button, Escape, and backdrop dismissal restore focus to that pencil. Saving replaces the prompt via
+the route's shareable `text` query parameter.
+
+The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
+uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor
+owns arrow-key navigation among its text fields: Left and Right cross row boundaries, Up and Down
+select the nearest key in the adjacent row, and entering one printable key advances to the next
+field. The modal validates a unique effective source-key map before Save and restores focus to its
+trigger on every dismissal path.
+
+`LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
+focus stays closed, typing opens ranked search matches, and the chevron toggles a default
+alphabetical list with the committed selection first. Refocusing after leaving the field also opens
+that default list. Selection closes the list but retains input focus. Consumers that supply
+`onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
+optional loading state renders an accessible spinner in the trailing field controls without adding
+content below the field or changing the consumer's layout.
 
 ## Invariants
 
