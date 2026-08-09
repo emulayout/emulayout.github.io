@@ -394,8 +394,8 @@
 
 <style>
 	.keyboard-preview {
-		--preview-key-size: clamp(2.35rem, 4.7vw, 3.35rem);
-		--preview-key-gap: clamp(0.25rem, 0.65vw, 0.45rem);
+		--preview-key-size: var(--keyboard-preview-key-size, clamp(2.35rem, 4.7vw, 3.35rem));
+		--preview-key-gap: var(--keyboard-preview-key-gap, clamp(0.25rem, 0.65vw, 0.45rem));
 		width: 100%;
 		overflow-x: auto;
 		scrollbar-width: thin;

@@ -354,71 +354,77 @@
 		</div>
 	</div>
 
-	<div
-		class="typing-practice-keyboard-layout"
-		class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
-	>
+	<div class="typing-practice-keyboard-region">
 		<div class="typing-practice-keyboard-main">
-			<div class="typing-practice-keyboard-cluster">
-				<LayoutKeyboardPreview
-					{layout}
-					{rows}
-					feedback={keyboardFeedback}
-					swapPaths={keyboardSwapPaths}
-					highlightedKeys={nextPracticeKeys}
-					highlightHomeKeys={displayOptions.colorHomeKeys}
-					horizontalAlignment="start"
-				/>
-				<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
-					<KeyboardInputConfigControl />
-					<ToggleSwitch
-						checked={displayOptions.highlightNextKey}
-						label="Highlight next key"
-						onCheckedChange={(checked) =>
-							uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
-					/>
-					<ToggleSwitch
-						checked={displayOptions.colorHomeKeys}
-						label="Color home keys"
-						onCheckedChange={(checked) =>
-							uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
-					/>
-					{#if hasSpecialKeys}
-						<ToggleSwitch
-							checked={displayOptions.showSpecialKeys}
-							label="Show special keys"
-							onCheckedChange={(checked) =>
-								uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
+			<div
+				class="typing-practice-keyboard-layout"
+				class:typing-practice-keyboard-layout--with-mappings={showSpecialMappings}
+			>
+				<div class="typing-practice-keyboard-cluster">
+					<div class="typing-practice-keyboard-preview-area">
+						<div class="typing-practice-input-layout-control">
+							<KeyboardInputConfigControl />
+						</div>
+						<LayoutKeyboardPreview
+							{layout}
+							{rows}
+							feedback={keyboardFeedback}
+							swapPaths={keyboardSwapPaths}
+							highlightedKeys={nextPracticeKeys}
+							highlightHomeKeys={displayOptions.colorHomeKeys}
+							horizontalAlignment="start"
 						/>
-					{/if}
-					{#if hasAdaptiveSwapPreview}
+					</div>
+					<div class="typing-practice-keyboard-options" role="group" aria-label="Keyboard options">
 						<ToggleSwitch
-							checked={displayOptions.showAdaptiveSwaps}
-							label="Show Adaptive swaps"
+							checked={displayOptions.highlightNextKey}
+							label="Highlight next key"
 							onCheckedChange={(checked) =>
-								uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+								uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
 						/>
-						{#if displayOptions.showAdaptiveSwaps}
+						<ToggleSwitch
+							checked={displayOptions.colorHomeKeys}
+							label="Color home keys"
+							onCheckedChange={(checked) =>
+								uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
+						/>
+						{#if hasSpecialKeys}
 							<ToggleSwitch
-								checked={displayOptions.showSwapPaths}
-								label="Show swap paths"
+								checked={displayOptions.showSpecialKeys}
+								label="Show special keys"
 								onCheckedChange={(checked) =>
-									uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+									uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
 							/>
 						{/if}
-					{/if}
+						{#if hasAdaptiveSwapPreview}
+							<ToggleSwitch
+								checked={displayOptions.showAdaptiveSwaps}
+								label="Show Adaptive swaps"
+								onCheckedChange={(checked) =>
+									uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
+							/>
+							{#if displayOptions.showAdaptiveSwaps}
+								<ToggleSwitch
+									checked={displayOptions.showSwapPaths}
+									label="Show swap paths"
+									onCheckedChange={(checked) =>
+										uiPrefs.setTypingPracticeDisplayOption('showSwapPaths', checked)}
+								/>
+							{/if}
+						{/if}
+					</div>
 				</div>
+				{#if showSpecialMappings && inputProfile}
+					<div class="typing-practice-mappings">
+						<InputMappingsPanel
+							profile={inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+						/>
+					</div>
+				{/if}
 			</div>
 		</div>
-		{#if showSpecialMappings && inputProfile}
-			<div class="typing-practice-mappings">
-				<InputMappingsPanel
-					profile={inputProfile}
-					{disabledMappingIds}
-					{onDisabledMappingIdsChange}
-				/>
-			</div>
-		{/if}
 	</div>
 {/if}
 
@@ -554,11 +560,17 @@
 		visibility: hidden;
 	}
 
+	.typing-practice-keyboard-region {
+		container: typing-practice-keyboard / inline-size;
+		min-width: 0;
+	}
+
 	.typing-practice-keyboard-layout {
-		display: block;
+		display: grid;
+		width: max-content;
+		max-width: 100%;
 		gap: clamp(0.75rem, 2vw, 1.5rem);
 		min-width: 0;
-		margin-top: clamp(2.5rem, 8vh, 5rem);
 	}
 
 	.typing-practice-keyboard-main,
@@ -584,10 +596,21 @@
 		max-width: 100%;
 	}
 
+	.typing-practice-keyboard-preview-area {
+		display: grid;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.typing-practice-input-layout-control {
+		justify-self: start;
+		margin-bottom: 0.5rem;
+	}
+
 	.typing-practice-mappings {
 		width: 100%;
-		max-width: 19.6875rem;
 		margin-top: 1.25rem;
+		margin-inline: auto;
 	}
 
 	.typing-practice-keyboard-options {
@@ -601,15 +624,37 @@
 		contain: inline-size;
 	}
 
-	@media (min-width: 48rem) {
+	@container typing-practice-keyboard (max-width: 30rem) {
+		.typing-practice-keyboard-layout {
+			--keyboard-preview-key-size: clamp(1.5rem, 7.6cqw, 2.35rem);
+			--keyboard-preview-key-gap: clamp(0.125rem, 0.7cqw, 0.25rem);
+		}
+	}
+
+	@container typing-practice-keyboard (min-width: 50rem) {
 		.typing-practice-keyboard-layout--with-mappings {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) minmax(16rem, 19.6875rem);
+			--keyboard-preview-key-size: clamp(2.35rem, 4.8cqw, 3.35rem);
+			--keyboard-preview-key-gap: clamp(0.2rem, 0.45cqw, 0.45rem);
+			grid-template-columns: max-content 14rem;
 			align-items: start;
 		}
 
 		.typing-practice-keyboard-layout--with-mappings .typing-practice-mappings {
+			max-width: 14rem;
 			margin-top: 0;
+			margin-inline: 0;
+		}
+	}
+
+	@container typing-practice-keyboard (min-width: 72rem) {
+		.typing-practice-keyboard-layout--with-mappings {
+			--keyboard-preview-key-size: clamp(2.35rem, 4.7vw, 3.35rem);
+			--keyboard-preview-key-gap: clamp(0.25rem, 0.65vw, 0.45rem);
+			grid-template-columns: max-content 19.6875rem;
+		}
+
+		.typing-practice-keyboard-layout--with-mappings .typing-practice-mappings {
+			max-width: 19.6875rem;
 		}
 	}
 </style>

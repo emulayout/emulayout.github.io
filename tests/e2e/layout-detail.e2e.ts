@@ -657,6 +657,7 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
 	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
+	const inputLayoutControl = practicePanel.getByRole('button', { name: 'Input layout: QWERTY' });
 	const nextKeyToggle = keyboardOptions.getByRole('switch', { name: 'Highlight next key' });
 	const homeKeyToggle = keyboardOptions.getByRole('switch', { name: 'Color home keys' });
 	await expect(keyboardOptions.getByRole('switch', { name: 'Show special keys' })).toHaveCount(0);
@@ -686,22 +687,29 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 
 	await expect(keyboardOptions).toHaveCSS('flex-direction', 'row');
 	await expect(keyboardOptions).toHaveCSS('justify-content', 'flex-start');
-	const [wideMainBox, wideClusterBox, wideKeyboardBox, wideOptionsBox] = await Promise.all([
-		keyboardMain.boundingBox(),
-		keyboardCluster.boundingBox(),
-		keyboardPreview.boundingBox(),
-		keyboardOptions.boundingBox()
-	]);
+	const [wideMainBox, wideClusterBox, wideKeyboardBox, wideOptionsBox, wideInputLayoutBox] =
+		await Promise.all([
+			keyboardMain.boundingBox(),
+			keyboardCluster.boundingBox(),
+			keyboardPreview.boundingBox(),
+			keyboardOptions.boundingBox(),
+			inputLayoutControl.boundingBox()
+		]);
 	expect(wideMainBox).not.toBeNull();
 	expect(wideClusterBox).not.toBeNull();
 	expect(wideKeyboardBox).not.toBeNull();
 	expect(wideOptionsBox).not.toBeNull();
+	expect(wideInputLayoutBox).not.toBeNull();
 	expect(wideClusterBox!.x + wideClusterBox!.width / 2).toBeCloseTo(
 		wideMainBox!.x + wideMainBox!.width / 2,
 		0
 	);
 	expect(wideOptionsBox!.x).toBeCloseTo(wideClusterBox!.x, 0);
 	expect(wideOptionsBox!.y).toBeGreaterThanOrEqual(wideKeyboardBox!.y + wideKeyboardBox!.height);
+	expect(wideInputLayoutBox!.x).toBeCloseTo(wideKeyboardBox!.x, 0);
+	expect(wideInputLayoutBox!.y + wideInputLayoutBox!.height).toBeLessThanOrEqual(
+		wideKeyboardBox!.y
+	);
 	const firstKeyboardKeyBox = await keyboardPreview
 		.locator('[data-key-char]')
 		.first()
@@ -734,7 +742,8 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	await expect(restoredOptions.getByRole('switch', { name: 'Color home keys' })).toBeChecked();
 });
 
-test('places special mappings beside the typing-practice keyboard', async ({ page }) => {
+test('places special mappings without clipping the typing-practice keyboard', async ({ page }) => {
+	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.route('**/layout-details/*.json', async (route) => {
 		await route.fulfill({
 			json: {
@@ -747,7 +756,7 @@ test('places special mappings beside the typing-practice keyboard', async ({ pag
 					variants: [
 						{
 							id: 'default',
-							adaptiveSwaps: { mappings: { l: { y: 'j' } } }
+							adaptiveSwaps: { mappings: { l: { y: 'j' }, n: { y: 'r' } } }
 						}
 					]
 				},
@@ -759,6 +768,7 @@ test('places special mappings beside the typing-practice keyboard', async ({ pag
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const keyboardMain = practicePanel.locator('.typing-practice-keyboard-main');
+	const keyboardLayout = practicePanel.locator('.typing-practice-keyboard-layout');
 	const keyboardCluster = practicePanel.locator('.typing-practice-keyboard-cluster');
 	const mappings = practicePanel.locator('.typing-practice-mappings');
 	const keyboardPreview = practicePanel.getByRole('img', {
@@ -802,31 +812,98 @@ test('places special mappings beside the typing-practice keyboard', async ({ pag
 	await expect(keyboardPreview.locator('[data-key-feedback]')).toHaveCount(0);
 	await showSpecialKeys.check();
 	await expect(mappings).toBeVisible();
-	const [wideKeyboardBox, wideClusterBox, wideMappingsBox] = await Promise.all([
-		keyboardMain.boundingBox(),
-		keyboardCluster.boundingBox(),
-		mappings.boundingBox()
-	]);
+	const [wideKeyboardBox, wideLayoutBox, wideClusterBox, wideMappingsBox, wideKeyBox] =
+		await Promise.all([
+			keyboardMain.boundingBox(),
+			keyboardLayout.boundingBox(),
+			keyboardCluster.boundingBox(),
+			mappings.boundingBox(),
+			yKey.boundingBox()
+		]);
 	expect(wideKeyboardBox).not.toBeNull();
+	expect(wideLayoutBox).not.toBeNull();
 	expect(wideClusterBox).not.toBeNull();
 	expect(wideMappingsBox).not.toBeNull();
-	expect(wideClusterBox!.x + wideClusterBox!.width / 2).toBeCloseTo(
+	expect(wideKeyBox).not.toBeNull();
+	expect(wideLayoutBox!.x + wideLayoutBox!.width / 2).toBeCloseTo(
 		wideKeyboardBox!.x + wideKeyboardBox!.width / 2,
 		0
 	);
 	expect(wideMappingsBox!.width).toBeLessThanOrEqual(315);
-	expect(wideKeyboardBox!.width).toBeGreaterThan(wideMappingsBox!.width);
-	expect(wideMappingsBox!.x).toBeGreaterThanOrEqual(wideKeyboardBox!.x + wideKeyboardBox!.width);
+	expect(wideMappingsBox!.x).toBeGreaterThanOrEqual(wideClusterBox!.x + wideClusterBox!.width);
+
+	await page.setViewportSize({ width: 1300, height: 900 });
+	const [compactMainBox, compactLayoutBox, compactClusterBox, compactMappingsBox] =
+		await Promise.all([
+			keyboardMain.boundingBox(),
+			keyboardLayout.boundingBox(),
+			keyboardCluster.boundingBox(),
+			mappings.boundingBox()
+		]);
+	expect(compactMainBox).not.toBeNull();
+	expect(compactLayoutBox).not.toBeNull();
+	expect(compactClusterBox).not.toBeNull();
+	expect(compactMappingsBox).not.toBeNull();
+	expect(compactLayoutBox!.x + compactLayoutBox!.width / 2).toBeCloseTo(
+		compactMainBox!.x + compactMainBox!.width / 2,
+		0
+	);
+	expect(compactMappingsBox!.x).toBeGreaterThanOrEqual(
+		compactClusterBox!.x + compactClusterBox!.width
+	);
+	expect(compactMappingsBox!.width).toBeLessThanOrEqual(224);
+	const compactKeyBox = await yKey.boundingBox();
+	expect(compactKeyBox).not.toBeNull();
+	expect(compactKeyBox!.width).toBeLessThan(wideKeyBox!.width);
+	const compactMappingRows = await mappings
+		.locator('.mapping-row')
+		.evaluateAll((elements) =>
+			elements.slice(0, 2).map((element) => Math.round(element.getBoundingClientRect().top))
+		);
+	expect(new Set(compactMappingRows).size).toBe(2);
+	const documentWidth = await page.evaluate(() => ({
+		clientWidth: document.documentElement.clientWidth,
+		scrollWidth: document.documentElement.scrollWidth
+	}));
+	expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1);
 
 	await page.setViewportSize({ width: 700, height: 900 });
-	const [narrowKeyboardBox, narrowMappingsBox] = await Promise.all([
-		keyboardMain.boundingBox(),
+	const [narrowKeyboardBox, narrowLayoutBox, narrowMappingsBox] = await Promise.all([
+		keyboardCluster.boundingBox(),
+		keyboardLayout.boundingBox(),
 		mappings.boundingBox()
 	]);
 	expect(narrowKeyboardBox).not.toBeNull();
+	expect(narrowLayoutBox).not.toBeNull();
 	expect(narrowMappingsBox).not.toBeNull();
 	expect(narrowMappingsBox!.y).toBeGreaterThanOrEqual(
 		narrowKeyboardBox!.y + narrowKeyboardBox!.height
+	);
+	expect(narrowMappingsBox!.x).toBeCloseTo(narrowLayoutBox!.x, 0);
+	expect(narrowMappingsBox!.width).toBeCloseTo(narrowLayoutBox!.width, 0);
+	const keyboardOverflow = await keyboardPreview.evaluate((element) => ({
+		clientWidth: element.clientWidth,
+		scrollWidth: element.scrollWidth
+	}));
+	expect(keyboardOverflow.scrollWidth).toBeLessThanOrEqual(keyboardOverflow.clientWidth + 1);
+
+	await page.setViewportSize({ width: 468, height: 900 });
+	const narrowPageBounds = await page.evaluate(() => {
+		const detailColumns = document.querySelector('.detail-columns');
+		const keyboardKeys = document.querySelector('.keyboard-preview__keys');
+		if (!detailColumns || !keyboardKeys) throw new Error('Expected typing-practice keyboard');
+		const columnsBox = detailColumns.getBoundingClientRect();
+		const keysBox = keyboardKeys.getBoundingClientRect();
+		return {
+			documentClientWidth: document.documentElement.clientWidth,
+			documentScrollWidth: document.documentElement.scrollWidth,
+			columnsRight: columnsBox.right,
+			keysRight: keysBox.right
+		};
+	});
+	expect(narrowPageBounds.keysRight).toBeLessThanOrEqual(narrowPageBounds.columnsRight + 1);
+	expect(narrowPageBounds.documentScrollWidth).toBeLessThanOrEqual(
+		narrowPageBounds.documentClientWidth + 1
 	);
 
 	await page.reload();

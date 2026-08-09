@@ -35,10 +35,11 @@ renderer.
   timing, results, and contextual-input history while retaining focus.
 - The practice field is a single-line text input sized to one line. Enter and paste input are
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
-- Left-aligned keyboard options can highlight the next valid key, color the eight resting home
-  keys, and show contextual special-key feedback when the layout has Magic or Adaptive mappings.
-  Next-key guidance respects contextual input output and is withheld while the current input
-  contains an error or is waiting for a word-separating Space.
+- The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
+  switches below the keyboard can highlight the next valid key, color the eight resting home keys,
+  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
+  guidance respects contextual input output and is withheld while the current input contains an
+  error or is waiting for a word-separating Space.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,
   including thumbs, from any known catalog layout and then edit individual keys. The configuration
   is global and persisted, while Typing practice is currently the only input surface that applies
@@ -48,8 +49,13 @@ renderer.
   options stay left aligned to the keyboard inside that shared wrapper, in one unboxed row directly
   below it. Adaptive layouts add Show Adaptive swaps there and reveal Show swap paths only while the
   Adaptive preview is enabled. When special keys are shown, a wider view keeps their mappings in a
-  right-hand column capped at 315px beside the larger keyboard column; smaller views stack the
-  centered keyboard group before the mappings.
+  right-hand column capped at 315px. The keyboard and mappings share one intrinsic-width wrapper so
+  their combined footprint stays centered. At intermediate widths the mappings column narrows and
+  presents one mapping per line while the keyboard keys and gaps scale down to keep the combined
+  group within the page. Regions without room for both columns place that compact mappings panel
+  beneath the keyboard and expand it to the full width of the shared keyboard area. At phone widths
+  the keys and gaps continue scaling with the practice region, keeping the full keyboard inside the
+  detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM in a row whose height is reserved throughout the lesson, so
