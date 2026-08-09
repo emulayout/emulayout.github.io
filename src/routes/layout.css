@@ -58,6 +58,7 @@ html {
 	--typing-practice-next-key-decoration: #292622;
 	--typing-practice-home-key: #c8bca9;
 	--keyboard-input-validation-error: #c44b3a;
+	--keyboard-input-reset-destructive: #b94335;
 	--new-layout-dot: #eda095;
 }
 
@@ -98,6 +99,7 @@ html {
 	--typing-practice-next-key-decoration: #f3efe8;
 	--typing-practice-home-key: #625c54;
 	--keyboard-input-validation-error: #e07060;
+	--keyboard-input-reset-destructive: #e07060;
 	--new-layout-dot: #982818;
 }
 

@@ -535,6 +535,11 @@ test.describe('typing-practice input layout', () => {
 			'q'
 		);
 		await expect(dialog.getByRole('button', { name: 'Save' })).toBeEnabled();
+		await dialog.getByRole('button', { name: 'Reset' }).click();
+		await expect(baseLayout).toHaveValue('QWERTY');
+		await expect(keyboardType).toHaveValue('staggered');
+		await expect(dialog.locator('[data-keyboard-input-slot="0,0"]')).toHaveValue('q');
+		await expect(dialog.locator('[data-keyboard-input-missing-ansi]')).toHaveCount(0);
 
 		await baseLayout.fill('night');
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'true');

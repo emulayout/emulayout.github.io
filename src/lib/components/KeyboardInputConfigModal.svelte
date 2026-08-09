@@ -47,6 +47,10 @@
 		draft = { ...draft, keyboardType };
 	}
 
+	function resetDraft() {
+		draft = createDefaultKeyboardInputConfig();
+	}
+
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
 		if (validationError) return;
@@ -124,18 +128,27 @@
 		<div class="keyboard-input-config-actions">
 			<button
 				type="button"
-				class="filter-reset-button keyboard-input-config-button"
-				onclick={onClose}
+				class="filter-reset-button keyboard-input-config-button keyboard-input-config-button--destructive"
+				onclick={resetDraft}
 			>
-				Cancel
+				Reset
 			</button>
-			<button
-				type="submit"
-				class="filter-reset-button keyboard-input-config-button keyboard-input-config-button--primary"
-				disabled={Boolean(validationError)}
-			>
-				Save
-			</button>
+			<div class="keyboard-input-config-actions__primary">
+				<button
+					type="button"
+					class="filter-reset-button keyboard-input-config-button"
+					onclick={onClose}
+				>
+					Cancel
+				</button>
+				<button
+					type="submit"
+					class="filter-reset-button keyboard-input-config-button keyboard-input-config-button--primary"
+					disabled={Boolean(validationError)}
+				>
+					Save
+				</button>
+			</div>
 		</div>
 	</form>
 </ModalShell>
@@ -246,10 +259,16 @@
 	.keyboard-input-config-actions {
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
+		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 1rem 1.25rem;
 		border-top: 1px solid var(--border);
+	}
+
+	.keyboard-input-config-actions__primary {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.keyboard-input-config-button {
@@ -269,6 +288,32 @@
 		border-color: var(--accent);
 		background-color: color-mix(in srgb, var(--accent) 28%, var(--bg-primary));
 		color: var(--accent);
+	}
+
+	.keyboard-input-config-button--destructive {
+		border-color: color-mix(in srgb, var(--keyboard-input-reset-destructive) 60%, var(--border));
+		background-color: color-mix(
+			in srgb,
+			var(--keyboard-input-reset-destructive) 8%,
+			var(--bg-primary)
+		);
+		color: var(--keyboard-input-reset-destructive);
+	}
+
+	.keyboard-input-config-button--destructive:hover {
+		border-color: var(--keyboard-input-reset-destructive);
+		background-color: color-mix(
+			in srgb,
+			var(--keyboard-input-reset-destructive) 16%,
+			var(--bg-primary)
+		);
+		color: var(--keyboard-input-reset-destructive);
+	}
+
+	.keyboard-input-config-button--destructive:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px
+			color-mix(in srgb, var(--keyboard-input-reset-destructive) 35%, transparent);
 	}
 
 	.keyboard-input-config-button:disabled {

@@ -31,6 +31,8 @@ listbox. Typing opens ranked matches, the chevron explicitly toggles an alphabet
 later refocus opens that default list. Selecting an option keeps focus in the field while closing
 the list. The clear control removes the base provenance and empties every explicit value without
 changing the keyboard shape; the QWERTY placeholders then remain the effective defaults.
+Reset restores the modal draft to the complete staggered QWERTY default. Like other draft edits,
+the reset does not replace the persisted input profile until Save is selected.
 
 Keyboard type is currently `Ortho` or `Staggered`. Angle and stagger catalog layouts initialize as
 Staggered; ortho and mini layouts initialize as Ortho. This choice controls editor presentation and
