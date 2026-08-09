@@ -80,10 +80,8 @@
 						selected={draft.baseLayoutName}
 						onSelect={selectBaseLayout}
 						onClear={() => (draft = clearKeyboardInputConfig(draft))}
+						loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
 					/>
-					{#if layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
-						<p class="keyboard-input-config-status" aria-live="polite">Loading layouts…</p>
-					{/if}
 					{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
 						<p class="keyboard-input-config-error" role="alert">
 							Unable to load the layout catalog.
@@ -208,13 +206,6 @@
 
 	.keyboard-input-config-field select {
 		cursor: pointer;
-	}
-
-	.keyboard-input-config-status {
-		margin: 0;
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 400;
 	}
 
 	.keyboard-input-config-error {

@@ -494,6 +494,50 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 test.describe('typing-practice input layout', () => {
 	test.use({ catalogVariant: 'full' });
 
+	test('shows catalog loading inside the base-layout field without shifting the form', async ({
+		page
+	}) => {
+		let releaseCatalog!: () => void;
+		const catalogGate = new Promise<void>((resolve) => {
+			releaseCatalog = resolve;
+		});
+		await page.route('**/all-layouts.json', async (route) => {
+			await catalogGate;
+			await route.fallback();
+		});
+
+		await page.goto('/layouts/QWERTY');
+		await page.getByRole('button', { name: 'Input layout: QWERTY' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
+		const baseLayout = dialog.getByRole('combobox', { name: 'Base layout' });
+		const fields = dialog.locator('.keyboard-input-config-fields');
+		const loadingIndicator = dialog.locator('[data-layout-autocomplete-loading]');
+		const loadingHeight = await fields.evaluate(
+			(element) => element.getBoundingClientRect().height
+		);
+		await expect(baseLayout).toHaveAttribute('aria-busy', 'true');
+		await expect(loadingIndicator).toBeVisible();
+		await expect(loadingIndicator).toHaveAttribute('role', 'status');
+		await expect(loadingIndicator).toContainText('Loading layouts…');
+		await expect(dialog.locator('p').filter({ hasText: 'Loading layouts…' })).toHaveCount(0);
+		const animationStart = await loadingIndicator.evaluate((element) => {
+			const currentTime = element.getAnimations()[0]?.currentTime;
+			return typeof currentTime === 'number' ? currentTime : 0;
+		});
+		await page.waitForTimeout(200);
+		const animationEnd = await loadingIndicator.evaluate((element) => {
+			const currentTime = element.getAnimations()[0]?.currentTime;
+			return typeof currentTime === 'number' ? currentTime : 0;
+		});
+		expect(animationEnd).toBeGreaterThan(animationStart);
+
+		releaseCatalog();
+		await expect(baseLayout).toHaveAttribute('aria-busy', 'false');
+		await expect(loadingIndicator).toHaveCount(0);
+		const loadedHeight = await fields.evaluate((element) => element.getBoundingClientRect().height);
+		expect(loadedHeight).toBeCloseTo(loadingHeight, 0);
+	});
+
 	test('configures, edits, applies, and restores a catalog-backed input layout', async ({
 		page
 	}) => {
@@ -1077,6 +1121,58 @@ test('keeps the layout summary in the page scroll on wide detail views', async (
 	await page.goto('/layouts/Colemak-DH');
 
 	await expect(page.locator('.detail-side')).toHaveCSS('position', 'static');
+});
+
+test('places summary highlights and finger usage side by side only when the detail card is wide', async ({
+	page
+}) => {
+	const cmini = Array(COMPACT_STAT_FIELD_COUNT).fill(10_000);
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: qwerty,
+				authorName: 'cmini',
+				likeCount: 0,
+				stats: { cmini: { monkeyracer: cmini, reddit: cmini } }
+			}
+		});
+	});
+
+	await page.setViewportSize({ width: 850, height: 900 });
+	await page.goto('/layouts/QWERTY');
+
+	const summary = page.locator('[data-layout-name="QWERTY"]');
+	const stats = summary.getByRole('region', { name: 'cmini core statistics' });
+	const metricGrid = stats.locator('.core-stats-grid');
+	const fingerUsage = stats.locator('.finger-chart-area');
+	await expect(stats).toHaveClass(/core-stats--wide-focused/);
+
+	const [wideGridBox, wideFingerBox] = await Promise.all([
+		metricGrid.boundingBox(),
+		fingerUsage.boundingBox()
+	]);
+	expect(wideGridBox).not.toBeNull();
+	expect(wideFingerBox).not.toBeNull();
+	expect(wideFingerBox!.x).toBeGreaterThanOrEqual(wideGridBox!.x + wideGridBox!.width);
+	expect(
+		Math.min(wideGridBox!.y + wideGridBox!.height, wideFingerBox!.y + wideFingerBox!.height)
+	).toBeGreaterThan(Math.max(wideGridBox!.y, wideFingerBox!.y));
+
+	await page.setViewportSize({ width: 640, height: 900 });
+	await expect(stats).toHaveClass(/core-stats--wide-focused/);
+	const [narrowGridBox, narrowFingerBox] = await Promise.all([
+		metricGrid.boundingBox(),
+		fingerUsage.boundingBox()
+	]);
+	expect(narrowGridBox).not.toBeNull();
+	expect(narrowFingerBox).not.toBeNull();
+	expect(narrowFingerBox!.y).toBeGreaterThanOrEqual(narrowGridBox!.y + narrowGridBox!.height);
+
+	await page.setViewportSize({ width: 850, height: 900 });
+	await page.goto('/');
+	await expect(page.locator('.core-stats').first()).toBeVisible();
+	await expect(page.locator('.core-stats--wide-focused')).toHaveCount(0);
 });
 
 test('disables and re-enables a Repeat key from the persistent options', async ({ page }) => {

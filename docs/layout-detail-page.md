@@ -69,7 +69,9 @@ small without weakening app-bar functionality.
 - The summary card includes its own analyzer selector directly below finger usage. It switches the
   card among cmini, Cyanophage, and Mana2 without changing the index analyzer preference or the
   analyzer visibility controls in the detail page's `Stats` section. Its cmini and Mana2 values use
-  the globally selected corpus, including after a direct visit or reload.
+  the globally selected corpus, including after a direct visit or reload. When the summary card has
+  enough inline space, its Highlights metric grid and finger-usage chart share one row; narrower
+  summaries stack them, and catalog cards retain their existing presentation.
 - Ordinary external links below the card open the layout in Cyanophage when compatible and open a
   custom typing lesson on Colemak Camp. These are semantic links rather than button-driven menus.
 - A persistent option below those links disables or re-enables a Repeat key when present. The

@@ -583,6 +583,7 @@
 					onSortMetric={variant === 'catalog' && allowStatSorting ? handleSortMetric : undefined}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}
+					wideFocusedLayout={variant === 'summary'}
 				/>
 				{#if variant === 'summary' && onStatsAnalyzerChange}
 					<div class="layout-card-analyzer-switch">

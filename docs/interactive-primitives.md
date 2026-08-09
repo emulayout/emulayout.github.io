@@ -77,7 +77,9 @@ trigger on every dismissal path.
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
 that default list. Selection closes the list but retains input focus. Consumers that supply
-`onClear` get a separate trailing clear button; clearing retains focus with the list closed.
+`onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
+optional loading state renders an accessible spinner in the trailing field controls without adding
+content below the field or changing the consumer's layout.
 
 ## Invariants
 

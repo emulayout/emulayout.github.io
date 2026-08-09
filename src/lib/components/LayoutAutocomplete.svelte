@@ -18,6 +18,8 @@
 		onSelect?: (name: string, meta: { via: 'enter' | 'click' }) => void;
 		/** When set with a selection, shows a clear control in the field. */
 		onClear?: () => void;
+		/** Shows a non-layout-affecting loading indicator inside the field. */
+		loading?: boolean;
 	}
 
 	let {
@@ -29,7 +31,8 @@
 		selected = null,
 		onHighlight,
 		onSelect,
-		onClear
+		onClear,
+		loading = false
 	}: Props = $props();
 
 	let open = $state(false);
@@ -179,6 +182,7 @@
 			name="{id}-query"
 			role="combobox"
 			aria-autocomplete="list"
+			aria-busy={loading}
 			aria-expanded={listOpen}
 			aria-controls={listboxId}
 			aria-activedescendant={listOpen && matches[activeIndex]
@@ -197,6 +201,7 @@
 			oninput={handleInput}
 			class="layout-autocomplete-input w-full rounded-xl py-2 text-sm outline-none focus:ring-2 transition-all"
 			class:layout-autocomplete-input--clearable={showClear}
+			class:layout-autocomplete-input--loading={loading}
 			style="
 				background-color: var(--input-bg);
 				color: var(--text-primary);
@@ -206,6 +211,11 @@
 		/>
 
 		<div class="layout-autocomplete-trailing" style="color: var(--text-secondary);">
+			{#if loading}
+				<span class="layout-autocomplete-spinner" role="status" data-layout-autocomplete-loading>
+					<span class="sr-only">Loading layouts…</span>
+				</span>
+			{/if}
 			{#if showClear}
 				<button
 					type="button"
@@ -308,6 +318,14 @@
 		padding-right: 3.75rem;
 	}
 
+	.layout-autocomplete-input--loading {
+		padding-right: 3.75rem;
+	}
+
+	.layout-autocomplete-input--clearable.layout-autocomplete-input--loading {
+		padding-right: 5.25rem;
+	}
+
 	.layout-autocomplete-trailing {
 		position: absolute;
 		top: 50%;
@@ -332,6 +350,19 @@
 		background: transparent;
 		pointer-events: auto;
 		cursor: pointer;
+	}
+
+	.layout-autocomplete-spinner {
+		display: inline-block;
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+		border: 2px solid currentColor;
+		border-right-color: transparent;
+		border-radius: 9999px;
+		animation: layout-autocomplete-spin 1s linear infinite;
+		transform-origin: center;
+		will-change: transform;
 	}
 
 	.layout-autocomplete-clear:hover {
@@ -379,5 +410,11 @@
 
 	.layout-autocomplete-caret--open {
 		transform: rotate(180deg);
+	}
+
+	@keyframes layout-autocomplete-spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>

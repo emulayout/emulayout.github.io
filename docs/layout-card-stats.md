@@ -13,6 +13,9 @@ AI implementation context for the Highlights and Detailed statistics shown on la
 - Analyzer choice normally comes from the results toolbar. The detail-page summary card instead owns
   a local analyzer selector below finger usage so readers can inspect each analyzer without changing
   the index's analyzer preference.
+- A wide detail-page summary card places the Highlights metric grid and finger-usage chart in one
+  row. This is a summary-only container-responsive presentation; index and Quick Find cards retain
+  their existing stacked stats layout and responsiveness.
 - The preference is stored as `layoutCardStatsDisplay`; any value other than `detailed` resolves to
   `focused`/Highlights.
 - Highlights always renders visual finger usage. Detailed always renders finger usage as part of the
