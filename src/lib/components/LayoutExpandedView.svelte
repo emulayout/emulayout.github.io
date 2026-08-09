@@ -431,7 +431,7 @@
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
-			Practice typing on Colemak Camp
+			More practice on Colemak Camp
 			<span aria-hidden="true">↗</span>
 		</a>
 	</nav>

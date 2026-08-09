@@ -335,7 +335,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 		/^https:\/\/cyanophage\.github\.io\//
 	);
 	await expect(
-		detailPage.getByRole('link', { name: 'Practice typing on Colemak Camp' })
+		detailPage.getByRole('link', { name: 'More practice on Colemak Camp' })
 	).toHaveAttribute('href', /^https:\/\/emulayout\.github\.io\/colemakcamp\//);
 
 	await practiceInput.focus();
@@ -369,7 +369,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(summaryCard).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toBeVisible();
 	await expect(
-		detailPage.getByRole('link', { name: 'Practice typing on Colemak Camp' })
+		detailPage.getByRole('link', { name: 'More practice on Colemak Camp' })
 	).toBeVisible();
 	await expect(testArea).toHaveCount(0);
 
