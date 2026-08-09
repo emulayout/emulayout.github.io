@@ -30,6 +30,11 @@ renderer.
   timing, results, and contextual-input history while retaining focus.
 - The practice field is a single-line text input sized to one line. Enter and paste input are
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
+- Keyboard options can highlight the next valid key and color the eight resting home keys. Next-key
+  guidance respects contextual input output and is withheld while the current input contains an
+  error or is waiting for a word-separating Space.
+- On wider screens the keyboard sits in the larger center column, balanced by an empty left column
+  and options on the right. Smaller screens stack the keyboard first and its options below it.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
 - Completion reveals Accuracy and WPM. Accuracy is correct character attempts divided by all
@@ -50,6 +55,11 @@ session and prompt derivation do not read the clock, touch browser state, or dep
 calculation. `LayoutTypingPractice.svelte` owns the page-session timestamps and interval, starts the
 clock on the first recorded attempt, and freezes it at completion. Keeping wall-clock state out of
 the session model lets timing and result formulas remain deterministic in unit tests.
+
+`src/lib/typingPracticeKeyboard.ts` resolves the next displayed key from the remaining target,
+available layout keys, contextual input profile, and current input history. Keyboard presentation
+keeps next-key and home-key styling as independent layers so existing Magic and Adaptive feedback
+continues to compose normally.
 
 The source vocabulary is vendored as `static/languages/english1k.json` from Monkeytype's
 `english_1k` list at commit `d7eb4b76f3b3000199022ea52a52365b9346b8d0`. The file contains
@@ -90,6 +100,7 @@ The successful-space path is intentionally ordered:
 
 - Session model and prompt feedback: `src/lib/typingPractice.ts`
 - Timing, accuracy, and WPM calculations: `src/lib/typingPracticeMetrics.ts`
+- Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`

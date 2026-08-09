@@ -21,6 +21,7 @@
 		isTypingPracticeWordComplete,
 		updateTypingPracticeInput
 	} from '$lib/typingPractice';
+	import { resolveNextTypingPracticeKey } from '$lib/typingPracticeKeyboard';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 
 	interface Props {
@@ -63,6 +64,8 @@
 	let startedAtMilliseconds = $state<number | null>(null);
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
+	let highlightNextKey = $state(false);
+	let colorHomeKeys = $state(false);
 	const prompt = $derived(buildTypingPracticePrompt(session));
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
 	const practiceComplete = $derived(
@@ -89,6 +92,17 @@
 			disabledMappingIds,
 			knownMagicTriggers
 		})
+	);
+	const nextPracticeKey = $derived(
+		highlightNextKey
+			? resolveNextTypingPracticeKey(
+					session,
+					Object.keys(layout.keys),
+					inputProfile,
+					inputHistory,
+					disabledMappingIds
+				)
+			: undefined
 	);
 
 	$effect(() => {
@@ -225,8 +239,28 @@
 		{/if}
 	</div>
 
-	<div class="typing-practice-keyboard">
-		<LayoutKeyboardPreview {layout} {rows} feedback={keyboardFeedback} />
+	<div class="typing-practice-keyboard-layout">
+		<div class="typing-practice-keyboard-spacer" aria-hidden="true"></div>
+		<div class="typing-practice-keyboard">
+			<LayoutKeyboardPreview
+				{layout}
+				{rows}
+				feedback={keyboardFeedback}
+				highlightedKey={nextPracticeKey}
+				highlightHomeKeys={colorHomeKeys}
+			/>
+		</div>
+		<fieldset class="typing-practice-keyboard-options">
+			<legend>Keyboard options</legend>
+			<label>
+				<input type="checkbox" bind:checked={highlightNextKey} />
+				<span>Highlight next key</span>
+			</label>
+			<label>
+				<input type="checkbox" bind:checked={colorHomeKeys} />
+				<span>Color home keys</span>
+			</label>
+		</fieldset>
 	</div>
 {/if}
 
@@ -310,8 +344,60 @@
 		line-height: 1.2;
 	}
 
-	.typing-practice-keyboard {
+	.typing-practice-keyboard-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 5fr) minmax(11rem, 1fr);
+		align-items: center;
+		gap: clamp(0.75rem, 2vw, 1.5rem);
 		min-width: 0;
 		margin-top: clamp(2.5rem, 8vh, 5rem);
+	}
+
+	.typing-practice-keyboard,
+	.typing-practice-keyboard-spacer {
+		min-width: 0;
+	}
+
+	.typing-practice-keyboard-options {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		color: var(--text-primary);
+	}
+
+	.typing-practice-keyboard-options legend {
+		padding-inline: 0.25rem;
+		font-weight: 600;
+	}
+
+	.typing-practice-keyboard-options label {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		font-size: 0.9rem;
+		line-height: 1.25;
+	}
+
+	@media (max-width: 56rem) {
+		.typing-practice-keyboard-layout {
+			grid-template-columns: minmax(0, 1fr);
+			align-items: stretch;
+		}
+
+		.typing-practice-keyboard-spacer {
+			display: none;
+		}
+
+		.typing-practice-keyboard {
+			grid-row: 1;
+		}
+
+		.typing-practice-keyboard-options {
+			grid-row: 2;
+		}
 	}
 </style>

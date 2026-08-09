@@ -263,26 +263,31 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	const practiceWords = practicePanel.getByLabel('Practice words');
 	const practiceInputContainer = practicePanel.locator('.layout-test-area');
 	const keyboardPreview = page.getByRole('img', { name: 'Colemak-DH keyboard preview' });
+	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
 	const summaryCard = detailPage.locator('[data-layout-name="Colemak-DH"]');
 	const detailTabs = page.getByRole('tablist', { name: 'Layout detail sections' });
-	const [cardBox, tabsBox, previewBox, practiceInputContainerBox] = await Promise.all([
-		summaryCard.boundingBox(),
-		detailTabs.boundingBox(),
-		keyboardPreview.boundingBox(),
-		practiceInputContainer.boundingBox()
-	]);
+	const [cardBox, tabsBox, previewBox, practiceInputContainerBox, keyboardOptionsBox] =
+		await Promise.all([
+			summaryCard.boundingBox(),
+			detailTabs.boundingBox(),
+			keyboardPreview.boundingBox(),
+			practiceInputContainer.boundingBox(),
+			keyboardOptions.boundingBox()
+		]);
 	expect(cardBox).not.toBeNull();
 	expect(tabsBox).not.toBeNull();
 	expect(previewBox).not.toBeNull();
 	expect(practiceInputContainerBox).not.toBeNull();
+	expect(keyboardOptionsBox).not.toBeNull();
 	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'ortho');
 	expect(tabsBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.y + practiceInputContainerBox!.height).toBeLessThanOrEqual(
 		previewBox!.y
 	);
-	expect(Math.abs(previewBox!.x - practiceInputContainerBox!.x)).toBeLessThanOrEqual(1);
-	expect(Math.abs(previewBox!.width - practiceInputContainerBox!.width)).toBeLessThanOrEqual(1);
+	expect(previewBox!.x).toBeGreaterThan(practiceInputContainerBox!.x);
+	expect(keyboardOptionsBox!.x).toBeGreaterThanOrEqual(previewBox!.x + previewBox!.width);
+	expect(previewBox!.width).toBeGreaterThan(keyboardOptionsBox!.width);
 	const keyboardBoard = keyboardPreview.locator('.keyboard-preview__board');
 	await expect(keyboardBoard).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(keyboardBoard).toHaveCSS('border-top-style', 'none');
@@ -453,6 +458,62 @@ test('loads the word pool only after Typing practice opens', async ({ page }) =>
 		page.getByRole('tabpanel', { name: 'Typing practice' }).locator('[data-practice-word]')
 	).toHaveCount(10);
 	expect(wordPoolRequests).toHaveLength(1);
+});
+
+test('offers responsive next-key and home-key keyboard guidance', async ({ page }) => {
+	await page.goto('/layouts/QWERTY');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(10);
+	const targetWord = (await practiceWords.first().textContent())!;
+	const nextCharacter = Array.from(targetWord)[0]!;
+	const keyboardPreview = practicePanel.getByRole('img', { name: 'QWERTY keyboard preview' });
+	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
+	const nextKeyToggle = keyboardOptions.getByRole('checkbox', { name: 'Highlight next key' });
+	const homeKeyToggle = keyboardOptions.getByRole('checkbox', { name: 'Color home keys' });
+	await expect(nextKeyToggle).not.toBeChecked();
+	await expect(homeKeyToggle).not.toBeChecked();
+	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(0);
+
+	await nextKeyToggle.check();
+	const nextKey = keyboardPreview.locator(`[data-key-char="${nextCharacter}"]`);
+	await expect(nextKey).toHaveAttribute('data-key-next', 'true');
+	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(1);
+
+	const wrongCharacter = nextCharacter === 'x' ? 'z' : 'x';
+	await practicePanel.getByRole('textbox', { name: 'Typing practice input' }).press(wrongCharacter);
+	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(0);
+	await page.keyboard.press('Backspace');
+	await expect(nextKey).toHaveAttribute('data-key-next', 'true');
+
+	await homeKeyToggle.check();
+	const homeRow = keyboardPreview.locator('[data-keyboard-row="1"]');
+	await expect(homeRow.locator('[data-key-home="true"]')).toHaveCount(8);
+	await expect(homeRow.locator('[data-key-char="g"]')).not.toHaveAttribute('data-key-home', 'true');
+	await expect(homeRow.locator('[data-key-char="h"]')).not.toHaveAttribute('data-key-home', 'true');
+	await expect(
+		keyboardPreview.locator('[data-keyboard-row="0"] [data-key-home="true"]')
+	).toHaveCount(0);
+
+	const [wideKeyboardBox, wideOptionsBox] = await Promise.all([
+		keyboardPreview.boundingBox(),
+		keyboardOptions.boundingBox()
+	]);
+	expect(wideKeyboardBox).not.toBeNull();
+	expect(wideOptionsBox).not.toBeNull();
+	expect(wideOptionsBox!.x).toBeGreaterThanOrEqual(wideKeyboardBox!.x + wideKeyboardBox!.width);
+
+	await page.setViewportSize({ width: 700, height: 900 });
+	const [narrowKeyboardBox, narrowOptionsBox] = await Promise.all([
+		keyboardPreview.boundingBox(),
+		keyboardOptions.boundingBox()
+	]);
+	expect(narrowKeyboardBox).not.toBeNull();
+	expect(narrowOptionsBox).not.toBeNull();
+	expect(narrowOptionsBox!.y).toBeGreaterThanOrEqual(
+		narrowKeyboardBox!.y + narrowKeyboardBox!.height
+	);
 });
 
 test('colors typing-practice feedback and advances only a completed word', async ({ page }) => {

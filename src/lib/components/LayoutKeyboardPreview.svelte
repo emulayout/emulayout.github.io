@@ -8,6 +8,7 @@
 		LayoutKeyboardKeyFeedback,
 		LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
+	import { isTypingPracticeHomeKeySlot } from '$lib/typingPracticeKeyboard';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
 
@@ -16,6 +17,8 @@
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
+		highlightedKey?: string;
+		highlightHomeKeys?: boolean;
 	}
 
 	type PreviewKey = DisplayCell & { slot: string };
@@ -50,7 +53,14 @@
 		paths: RenderedSwapPath[];
 	};
 
-	const { layout, rows, feedback = EMPTY_FEEDBACK, swapPaths = [] }: Props = $props();
+	const {
+		layout,
+		rows,
+		feedback = EMPTY_FEEDBACK,
+		swapPaths = [],
+		highlightedKey,
+		highlightHomeKeys = false
+	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
@@ -123,6 +133,15 @@
 
 	function ansiThumbOffset(column: number): string {
 		return `calc(var(--preview-key-size) * ${column + 0.68} + var(--preview-key-gap) * ${column})`;
+	}
+
+	function isHighlightedKey(key: string): boolean {
+		return highlightedKey !== undefined && key.toLowerCase() === highlightedKey.toLowerCase();
+	}
+
+	function isHomeKey(key: PreviewKey): boolean {
+		const [row, column] = key.slot.split(',').map(Number);
+		return isTypingPracticeHomeKeySlot(row, column);
 	}
 
 	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
@@ -261,10 +280,14 @@
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
+										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
 										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
+										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -285,10 +308,14 @@
 										class="keyboard-preview__key"
 										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
+										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
 										data-key-char={slot.key.char}
 										data-key-column={slot.column}
 										data-key-feedback={keyFeedback?.kind}
 										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
+										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
 										title={keyFeedback?.value
 											? `${slot.key.char} emits ${keyFeedback.value}`
 											: undefined}
@@ -313,10 +340,12 @@
 								class="keyboard-preview__key keyboard-preview__key--ansi-thumb"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+								class:keyboard-preview__key--next={isHighlightedKey(thumb.key.char)}
 								data-key-char={thumb.key.char}
 								data-thumb-column={thumb.column}
 								data-key-feedback={keyFeedback?.kind}
 								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+								data-key-next={isHighlightedKey(thumb.key.char) ? 'true' : undefined}
 								title={keyFeedback?.value
 									? `${thumb.key.char} emits ${keyFeedback.value}`
 									: undefined}
@@ -337,9 +366,13 @@
 								class="keyboard-preview__key"
 								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+								class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
+								class:keyboard-preview__key--next={isHighlightedKey(key.char)}
 								data-key-char={key.char}
 								data-key-feedback={keyFeedback?.kind}
 								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+								data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
+								data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
 								title={keyFeedback?.value ? `${key.char} emits ${keyFeedback.value}` : undefined}
 							>
 								{@render keyContent(key, keyFeedback)}
@@ -483,6 +516,19 @@
 		height: 100%;
 	}
 
+	.keyboard-preview__key--home {
+		border-color: color-mix(in srgb, var(--typing-practice-home-key) 82%, var(--border));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--typing-practice-home-key) 76%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--typing-practice-home-key) 52%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--typing-practice-home-key) 68%, black),
+			0 0 0.4rem color-mix(in srgb, var(--typing-practice-home-key) 24%, transparent);
+	}
+
 	.keyboard-preview__key--active {
 		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
 		background: linear-gradient(
@@ -497,5 +543,18 @@
 		font-size: clamp(0.65rem, 1.45vw, 1rem);
 		letter-spacing: -0.02em;
 		white-space: nowrap;
+	}
+
+	.keyboard-preview__key--next {
+		border-color: var(--typing-practice-next-key-decoration);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--typing-practice-next-key-decoration) 16%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--typing-practice-next-key-decoration) 8%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 0 0 1px var(--typing-practice-next-key-decoration),
+			0 2px 0 color-mix(in srgb, var(--typing-practice-next-key-decoration) 58%, black),
+			0 0 0.75rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent);
 	}
 </style>

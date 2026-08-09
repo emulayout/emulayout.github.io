@@ -55,6 +55,8 @@ html {
 	--stats-diff-worse: #c44b3a;
 	--typing-practice-correct: #7aa825;
 	--typing-practice-incorrect: #c44b3a;
+	--typing-practice-next-key-decoration: #292622;
+	--typing-practice-home-key: #c8bca9;
 	--new-layout-dot: #eda095;
 }
 
@@ -92,6 +94,8 @@ html {
 	--stats-diff-worse: #e07060;
 	--typing-practice-correct: #92c92c;
 	--typing-practice-incorrect: #e07060;
+	--typing-practice-next-key-decoration: #f3efe8;
+	--typing-practice-home-key: #625c54;
 	--new-layout-dot: #982818;
 }
 
