@@ -46,6 +46,7 @@
 		buildLayoutKeyboardFeedback
 	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
+	import { createCminibrowserLayoutURL } from '$lib/cminibrowser';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
@@ -180,6 +181,7 @@
 			: []
 	);
 	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
+	const cminibrowserUrl = $derived(createCminibrowserLayoutURL(layout.name));
 	const cyanophageUrl = $derived(
 		buildCyanophagePlaygroundUrl(
 			layout.keys,
@@ -414,6 +416,12 @@
 				<span aria-hidden="true">↗</span>
 			</a>
 		{/if}
+		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+		<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
+			See more stats on cminibrowser
+			<span aria-hidden="true">↗</span>
+		</a>
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">

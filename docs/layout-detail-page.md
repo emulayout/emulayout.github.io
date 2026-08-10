@@ -72,11 +72,13 @@ small without weakening app-bar functionality.
   the globally selected corpus, including after a direct visit or reload. When the summary card has
   enough inline space, its Highlights metric grid and finger-usage chart share one row; narrower
   summaries stack them, and catalog cards retain their existing presentation.
-- Ordinary external links below the card open the layout in Cyanophage when compatible and open a
-  custom typing lesson on Colemak Camp. These are semantic links rather than button-driven menus.
+- Ordinary external links below the card open the canonical layout by name in cminibrowser, open it
+  in Cyanophage when compatible, and open a custom typing lesson on Colemak Camp. These are semantic
+  links rather than button-driven menus.
 - Repeat behavior stays enabled on the detail page and has no detail-page toggle. The summary card
   keeps the catalog-style anglemod action as its only card action. Anglemod changes update the card,
-  typing emulator, and generated external links together.
+  typing emulator, and generated Cyanophage and Colemak Camp links; the canonical-name cminibrowser
+  link remains unchanged.
 - The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and
   control only that main content. The persistent layout card is not part of any tab panel. Selecting
   a tab replaces the current detail history entry with its canonical query URL, preserving the
@@ -152,8 +154,9 @@ small without weakening app-bar functionality.
 - Generated detail files and name index: `bin/layout-details.js`
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
-- Expanded layout content, corpus selector, and analyzer controls:
-  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/CorpusTabs.svelte`
+- Expanded layout content, external links, corpus selector, and analyzer controls:
+  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/cminibrowser.ts`,
+  `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
 - Shared input-layout model, persisted store, modal, and editor: `src/lib/keyboardInputConfig.ts`,
