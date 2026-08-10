@@ -98,6 +98,26 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 	expect(requestedPaths).toContain('/all-layouts.json');
 });
 
+test('seeds Compare from a detail page with the current layout as the compare-to side', async ({
+	page
+}) => {
+	await page.goto('/layouts/Colemak-DH');
+	await expect(page.getByRole('article', { name: 'Colemak-DH details' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Compare layouts' }).click();
+	const compare = page.getByRole('dialog', { name: 'Compare' });
+	await expect(compare).toBeVisible();
+
+	// The current layout is committed on the right; the left picker awaits input.
+	await expect(compare.getByRole('heading', { name: 'Colemak-DH' })).toBeVisible();
+	await expect(compare.getByRole('combobox', { name: 'Find right layout' })).toHaveCount(0);
+	const leftSearch = compare.getByRole('combobox', { name: 'Find left layout' });
+
+	await leftSearch.fill('lela');
+	await compare.getByRole('option', { name: 'lela' }).click();
+	await expect(compare.getByText('lela − Colemak-DH')).toBeVisible();
+});
+
 test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 	const monkeyracer = Array<number>(23).fill(0);
 	monkeyracer[0] = 3000;

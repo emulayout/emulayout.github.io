@@ -23,6 +23,8 @@
 	let showCompareModal = $state(false);
 	/** How to seed the compare modal on the next open/session bump. */
 	let compareSeedMode = $state<'restore' | 'selection' | 'reset'>('restore');
+	/** Detail-page layout to seed as the compare-to side, when opened from a detail route. */
+	let compareSeedName = $state<string | null>(null);
 	let compareSession = $state(0);
 	let debugEnabled = $state(false);
 
@@ -167,6 +169,10 @@
 			await layoutsCatalog.ensureLoaded();
 			if (!layoutsCatalog.fullCatalogLoaded) return;
 
+			compareSeedName =
+				page.route.id === '/layouts/[name]' && page.data.detail
+					? ((page.data.layoutName as string | undefined) ?? null)
+					: null;
 			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
 			compareSession += 1;
 			showCompareModal = true;
@@ -388,6 +394,7 @@
 	open={showCompareModal}
 	onClose={() => (showCompareModal = false)}
 	seedMode={compareSeedMode}
+	seedName={compareSeedName}
 	session={compareSession}
 	{layouts}
 	{getAuthorName}

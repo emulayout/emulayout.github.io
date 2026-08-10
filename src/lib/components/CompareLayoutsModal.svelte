@@ -22,6 +22,8 @@
 		onClose: () => void;
 		/** How to seed the view pair when the modal opens / session bumps. */
 		seedMode?: 'restore' | 'selection' | 'reset';
+		/** Layout committed to the right compare-to slot on open, e.g. a detail page's layout. */
+		seedName?: string | null;
 		/** Bumped on each open request so reopening reseeds. */
 		session?: number;
 		layouts: LayoutData[];
@@ -34,6 +36,7 @@
 		open,
 		onClose,
 		seedMode = 'restore',
+		seedName = null,
 		session = 0,
 		layouts,
 		getAuthorName,
@@ -130,6 +133,13 @@
 				if (leftName && !layoutByName.has(leftName)) leftName = null;
 				if (rightName && !layoutByName.has(rightName)) rightName = null;
 				if (leftName && leftName === rightName) rightName = null;
+			}
+
+			// Opened from a layout detail page: that layout becomes the compare-to
+			// side, keeping the left picker free for the comparison layout.
+			if (mode !== 'reset' && seedName && layoutByName.has(seedName)) {
+				if (leftName === seedName) leftName = rightName;
+				rightName = seedName;
 			}
 
 			void tick().then(() => {

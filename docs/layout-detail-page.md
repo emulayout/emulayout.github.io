@@ -10,6 +10,9 @@ AI implementation context for the dedicated page that replaces the former expand
   selection and does not navigate. The separate action-toolbar link remains available.
 - The detail route replaces the index content while preserving the shared app bar, including Quick
   Find, Compare, help hints, theme controls, and the home link.
+- Opening Compare from a detail page seeds that layout as the right-hand compare-to side and leaves
+  the left picker free for choosing the comparison layout. Reset and hotkey-reset behavior is
+  unchanged.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
 - Detail URLs are canonical layout paths whose query state is a valid `tab=practice`, `tab=test`, or
