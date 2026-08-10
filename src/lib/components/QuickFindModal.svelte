@@ -145,9 +145,17 @@
 		searchInput?.focus();
 	}
 
-	function showLayout(name: string) {
-		onClose();
+	function showLayout(name: string, event?: MouseEvent | KeyboardEvent) {
 		const href = layoutDetailPageHref(resolve('/layouts/[name]', { name }));
+
+		// Cmd/Ctrl activation mirrors modified link clicks: open a new tab and
+		// keep Quick Find open on the current page.
+		if (event && (event.metaKey || event.ctrlKey)) {
+			window.open(href, '_blank', 'noopener');
+			return;
+		}
+
+		onClose();
 		// href starts with route-aware resolve(); the helper appends only the canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		void goto(href, {
@@ -190,7 +198,7 @@
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			const name = matches[activeIndex];
-			if (name) void showLayout(name);
+			if (name) void showLayout(name, event);
 		}
 	}
 </script>

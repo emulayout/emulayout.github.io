@@ -104,6 +104,37 @@ test('opens the layout show page from Quick Find with Enter', async ({ page }) =
 	await expect(quickFind).toHaveCount(0);
 });
 
+test('opens the show page in a new tab with Cmd/Ctrl activation and keeps Quick Find open', async ({
+	page
+}) => {
+	await page.goto('/');
+	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	const search = quickFind.getByRole('combobox', { name: 'Search layout names' });
+	await search.fill('lela');
+	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
+
+	const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+
+	const [enterTab] = await Promise.all([
+		page.context().waitForEvent('page'),
+		search.press(`${modifier}+Enter`)
+	]);
+	await expect(enterTab).toHaveURL('/layouts/lela?tab=practice');
+	await expect(page).toHaveURL('/');
+	await expect(quickFind).toBeVisible();
+
+	const [clickTab] = await Promise.all([
+		page.context().waitForEvent('page'),
+		quickFind.getByRole('option', { name: 'lela' }).click({ modifiers: [modifier] })
+	]);
+	await expect(clickTab).toHaveURL('/layouts/lela?tab=practice');
+	await expect(page).toHaveURL('/');
+	await expect(quickFind).toBeVisible();
+});
+
 test('returns to the preserved index view after Quick Find detail-to-detail navigation', async ({
 	page
 }) => {

@@ -8,7 +8,7 @@
 		id: string;
 		tabindex: -1;
 		'aria-selected': boolean;
-		onclick: () => void;
+		onclick: (event: MouseEvent) => void;
 		onpointerdown?: (event: PointerEvent) => void;
 		onpointerenter: () => void;
 	}
@@ -27,7 +27,8 @@
 		options: readonly T[];
 		activeIndex: number;
 		onActiveIndexChange: (index: number) => void;
-		onSelect: (option: T) => void;
+		/** The originating event lets consumers honor modified activation (e.g. Cmd/Ctrl). */
+		onSelect: (option: T, event?: MouseEvent | KeyboardEvent) => void;
 		getKey: (option: T) => string | number;
 		isSelected?: (option: T, index: number) => boolean;
 		multiselectable?: boolean;
@@ -93,7 +94,7 @@
 		if ((event.key === 'Enter' || event.key === ' ') && options.length > 0) {
 			event.preventDefault();
 			const option = options[resolvedIndex];
-			if (option) onSelect(option);
+			if (option) onSelect(option, event);
 		}
 	}
 
@@ -104,7 +105,7 @@
 			id: `${id}-option-${index}`,
 			tabindex: -1,
 			'aria-selected': isSelected(option, index),
-			onclick: () => onSelect(option),
+			onclick: (event: MouseEvent) => onSelect(option, event),
 			onpointerdown: preserveExternalFocus
 				? (event: PointerEvent) => event.preventDefault()
 				: undefined,

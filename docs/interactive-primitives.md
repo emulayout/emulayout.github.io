@@ -11,7 +11,9 @@ retain domain-specific markup and styling.
 - `DropdownMenu.svelte` owns menu-button relationships, initial item focus, Arrow/Home/End
   navigation, Escape focus restoration, focus-out dismissal, and outside-pointer dismissal.
 - `Listbox.svelte` owns option semantics, stable active-descendant ids, pointer highlighting,
-  scrolling, and the focusable select-only listbox keyboard model.
+  scrolling, and the focusable select-only listbox keyboard model. `onSelect` receives the
+  originating mouse or keyboard event so consumers can honor modified activation, such as Quick
+  Find opening a layout in a new tab on Cmd/Ctrl.
 - `Tabs.svelte` owns tablist semantics, roving focus, automatic activation, panel relationships, and
   Arrow/Home/End navigation.
 - `SegmentedControl.svelte` owns mutually exclusive radiogroup semantics and roving focus for
