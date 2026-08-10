@@ -16,8 +16,11 @@ AI implementation context for the dedicated page that replaces the former expand
   `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters, selections, and
   display state are reset while the detail route is active and cannot rewrite its URL. Missing,
   invalid, or mixed tab state is canonicalized to one valid `tab` value.
-- When a detail page was opened from the catalog, `All layouts` uses browser history to restore
-  the untouched index URL. Direct visits fall back to `/`.
+- When a detail page was opened from the catalog, the untouched index URL is carried in history
+  state through any chain of detail-to-detail navigations (for example via Quick Find).
+  `All layouts` navigates to that URL as a new history entry, so browser Back still revisits each
+  detail page before returning to the original index view. Direct visits fall back to `/`,
+  including after Quick Find navigations that never touched the index.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
 - The show page has three accessible sections: `Typing practice`, `Layout test area`, and `Stats`.
@@ -198,7 +201,7 @@ small without weakening app-bar functionality.
 - Navigating to a layout detail page from Quick Find (result selection or preview details
   links) dismisses the modal.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
-  is active. Browser history, rather than copied query parameters, restores the index state.
+  is active. History state, rather than copied query parameters, restores the index state.
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.

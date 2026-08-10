@@ -77,10 +77,15 @@
 		/* eslint-enable svelte/no-navigation-without-resolve */
 	}
 
-	function backToLayouts(event: MouseEvent) {
-		if (!page.state.fromLayoutIndex) return;
+	async function backToLayouts(event: MouseEvent) {
+		const indexUrl = page.state.layoutIndexUrl;
+		if (!indexUrl) return;
 		event.preventDefault();
-		history.back();
+		// layoutIndexUrl was captured from the already-resolved index location.
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		await goto(indexUrl);
+		// A forward navigation fires no popstate, so re-read the restored index URL.
+		filterStore.restoreIndexUrlState();
 	}
 
 	$effect(() => {

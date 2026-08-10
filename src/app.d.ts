@@ -6,7 +6,8 @@ declare global {
 		// interface Locals {}
 		// interface PageData {}
 		interface PageState {
-			fromLayoutIndex?: boolean;
+			/** Untouched index URL that opened this detail chain; see layoutDetailNavigationState. */
+			layoutIndexUrl?: string;
 		}
 		// interface Platform {}
 	}

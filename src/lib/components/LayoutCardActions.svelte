@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
-	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
+	import { layoutDetailNavigationState, layoutDetailPageHref } from '$lib/layoutDetailTabs';
 
 	interface Props {
 		markFirstAction: boolean;
@@ -72,7 +72,8 @@
 		// The route is resolved before layoutDetailPageHref appends its canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
 		void goto(layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName })), {
-			state: { ...page.state, fromLayoutIndex: true }
+			// window.location includes shallow-routed filter state that page.url may lack.
+			state: layoutDetailNavigationState(page.state, page.route.id, window.location)
 		});
 	}
 </script>

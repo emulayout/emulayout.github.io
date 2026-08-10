@@ -104,6 +104,62 @@ test('opens the layout show page from Quick Find with Enter', async ({ page }) =
 	await expect(quickFind).toHaveCount(0);
 });
 
+test('returns to the preserved index view after Quick Find detail-to-detail navigation', async ({
+	page
+}) => {
+	await page.goto('/');
+
+	const colemakSelection = page.getByRole('checkbox', { name: 'Select Colemak-DH' });
+	await colemakSelection.check();
+	await expect(page).toHaveURL(/(?:\?|&)selected=/);
+	const indexUrl = page.url();
+
+	await page
+		.locator('[data-layout-name="Colemak-DH"]')
+		.getByRole('link', { name: 'View Colemak-DH layout details' })
+		.click();
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('lela');
+	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
+	await expect(page).toHaveURL('/layouts/lela?tab=practice');
+
+	await page.getByRole('link', { name: 'All layouts' }).click();
+
+	await expect(page).toHaveURL(indexUrl);
+	await expect(colemakSelection).toBeChecked();
+
+	// All layouts pushed a history entry, so Back revisits each detail page.
+	await page.goBack();
+	await expect(page).toHaveURL('/layouts/lela?tab=practice');
+	await page.goBack();
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
+	await page.goBack();
+	await expect(page).toHaveURL(indexUrl);
+	await expect(colemakSelection).toBeChecked();
+});
+
+test('links to the plain index after Quick Find navigation from a direct detail visit', async ({
+	page
+}) => {
+	await page.goto('/layouts/QWERTY');
+	await expect(page.getByRole('article', { name: 'QWERTY details' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const quickFind = page.getByRole('dialog', { name: 'Quick find' });
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).fill('lela');
+	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
+	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
+	await expect(page).toHaveURL('/layouts/lela?tab=practice');
+
+	await page.getByRole('link', { name: 'All layouts' }).click();
+
+	await expect(page).toHaveURL('/');
+});
+
 test('dismisses Quick Find when opening layout details from the preview', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'lela', exact: true })).toBeVisible();
