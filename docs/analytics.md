@@ -25,6 +25,10 @@ These are product decisions. Preserve them unless a human explicitly revisits th
 Send only:
 
 - Coarse page classes (`/`, `/layouts`, `/layouts?tab=test`, `/layouts?tab=stats`).
+- Fixed titles `Layouts index` and `Layout show` — never `document.title`, which includes layout
+  names on show pages.
+- Cross-origin referrers only. Same-origin referrers (including a show URL with `text=` after the
+  home-link full reload) are dropped.
 - Feature identifiers for controls the user touched (`filter-name`, `sort-sfb`, `compare`,
   `practice-setting-highlight-next-key`, …).
 
@@ -50,6 +54,9 @@ Also:
 - Local development and localhost must not send counts. `import.meta.env.DEV` and loopback hosts are
   skipped in `src/lib/goatcounter.ts` before `count.js` is called. GoatCounter also filters local
   addresses unless `allow_local` is set; do not enable `allow_local` in the shipped snippet.
+- Do not call `goatcounter.count()` directly. `count.js` always attaches `q=location.search`, which
+  would leak index filter query strings and practice `text=`. Build the hit with `goatcounter.url()`,
+  delete `q`, then `sendBeacon`.
 
 ## Pageviews
 
@@ -71,6 +78,9 @@ Index filter query churn and show-page `text=` must never become distinct pages.
 names are omitted so index vs show vs tab totals stay readable. Do not put layout names back into
 pageview paths without an explicit product decision; that list would bury the visit totals this
 instrumentation exists to provide.
+
+Pageview titles are `Layouts index` or `Layout show` according to that sanitized path, not the
+document title.
 
 Navigations that sanitize to the same path are skipped (index filter tweaks, detail-to-detail
 layout changes on the same tab, practice-text edits).
@@ -132,7 +142,8 @@ identity.
 ## Code map
 
 - Snippet and `no_onload`: `src/app.html`
-- Transport, local/dev guard, path sanitization, event-name helpers: `src/lib/goatcounter.ts`
+- Transport, local/dev guard, path/title/referrer sanitization, `q` stripping, event-name helpers:
+  `src/lib/goatcounter.ts`
 - SPA pageviews: `src/routes/+layout.svelte` (`afterNavigate`)
 - Quick Find / Compare opens: `src/routes/+layout.svelte`
 - Filter and sort interactions: `src/lib/filterStore.svelte.ts` (`#trackFilter`, `#trackSort`)
@@ -144,6 +155,7 @@ identity.
 
 - Analytics code may fail closed. If `count.js` is late or absent, skip the count; do not block UI.
 - Event names are identifiers, never interpolated user strings.
+- Hits must not include `q`, layout-name titles, or same-origin referrers.
 - Show-page pageviews stay on `/layouts` plus an optional non-default `tab`.
 - Index pageviews stay on `/` regardless of filter or share query state.
 - Restoring state from the URL or a saved/shared view must not look like the user operated each

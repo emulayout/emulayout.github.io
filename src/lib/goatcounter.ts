@@ -14,6 +14,8 @@ export type GoatCounterVars = {
 
 type GoatCounter = {
 	count: (vars?: GoatCounterVars) => void;
+	url?: (vars?: GoatCounterVars) => string | undefined;
+	filter?: () => string | false;
 };
 
 declare global {
@@ -25,6 +27,9 @@ declare global {
 const READY_TIMEOUT_MS = 10_000;
 const READY_POLL_MS = 50;
 const SHOW_PAGE_PATH = '/layouts';
+
+export const LAYOUTS_INDEX_TITLE = 'Layouts index';
+export const LAYOUT_SHOW_TITLE = 'Layout show';
 
 type PageviewUrl = { pathname: string; search: string };
 
@@ -51,6 +56,37 @@ export function goatcounterPageviewPath(pathname: string, search = ''): string {
 	const section = parseLayoutDetailSection(params.get(LAYOUT_DETAIL_TAB_PARAM));
 	if (section === DEFAULT_LAYOUT_DETAIL_SECTION) return SHOW_PAGE_PATH;
 	return `${SHOW_PAGE_PATH}?${LAYOUT_DETAIL_TAB_PARAM}=${section}`;
+}
+
+export function goatcounterPageTitle(pathname: string, search = ''): string {
+	const path = goatcounterPageviewPath(pathname, search);
+	return path === SHOW_PAGE_PATH || path.startsWith(`${SHOW_PAGE_PATH}?`)
+		? LAYOUT_SHOW_TITLE
+		: LAYOUTS_INDEX_TITLE;
+}
+
+/** Drop same-origin referrers so layout names and `text=` never appear as `r`. */
+export function goatcounterSafeReferrer(referrer: string, currentOrigin: string): string {
+	if (!referrer) return '';
+	try {
+		const url = new URL(referrer);
+		return url.origin === currentOrigin ? '' : referrer;
+	} catch {
+		return '';
+	}
+}
+
+/**
+ * `count.js` always appends `q=location.search`. Remove it so filter query
+ * strings and practice `text=` never leave the browser.
+ */
+export function goatcounterCountRequestUrl(
+	countUrl: string,
+	base = 'https://emulayout.goatcounter.com'
+): string {
+	const url = new URL(countUrl, base);
+	url.searchParams.delete('q');
+	return url.toString();
 }
 
 type PageviewTarget = { url: PageviewUrl | null } | null;
@@ -82,20 +118,20 @@ export function goatcounterPracticeSettingEvent(option: string): string {
 	return `practice-setting-${kebab}`;
 }
 
-function withGoatCounter(run: (count: GoatCounter['count']) => void): void {
+function withGoatCounter(run: (gc: GoatCounter) => void): void {
 	if (!shouldSendGoatCounter()) return;
-	const existing = window.goatcounter?.count;
-	if (typeof existing === 'function') {
+	const existing = window.goatcounter;
+	if (existing && typeof existing.url === 'function') {
 		run(existing);
 		return;
 	}
 
 	const started = Date.now();
 	const timer = window.setInterval(() => {
-		const count = window.goatcounter?.count;
-		if (typeof count === 'function') {
+		const gc = window.goatcounter;
+		if (gc && typeof gc.url === 'function') {
 			window.clearInterval(timer);
-			run(count);
+			run(gc);
 			return;
 		}
 		if (Date.now() - started >= READY_TIMEOUT_MS) {
@@ -104,14 +140,51 @@ function withGoatCounter(run: (count: GoatCounter['count']) => void): void {
 	}, READY_POLL_MS);
 }
 
+function titleForCurrentPage(): string {
+	if (typeof window === 'undefined') return LAYOUTS_INDEX_TITLE;
+	return goatcounterPageTitle(window.location.pathname, window.location.search);
+}
+
+function referrerForCurrentPage(): string {
+	if (typeof window === 'undefined') return '';
+	return goatcounterSafeReferrer(document.referrer, window.location.origin);
+}
+
+function sendCountPixel(href: string): void {
+	if (navigator.sendBeacon?.(href)) return;
+	const img = document.createElement('img');
+	img.src = href;
+	img.alt = '';
+	img.setAttribute('aria-hidden', 'true');
+	img.style.position = 'absolute';
+	img.style.width = '1px';
+	img.style.height = '1px';
+	img.addEventListener('load', () => img.remove(), { once: true });
+	img.addEventListener('error', () => img.remove(), { once: true });
+	document.body?.appendChild(img);
+}
+
 export function countGoatCounter(vars: GoatCounterVars): void {
-	withGoatCounter((count) => count(vars));
+	const payload: GoatCounterVars = {
+		...vars,
+		title: vars.title ?? titleForCurrentPage(),
+		referrer: vars.referrer ?? referrerForCurrentPage()
+	};
+
+	withGoatCounter((gc) => {
+		const blocked = typeof gc.filter === 'function' ? gc.filter() : false;
+		if (blocked) return;
+		if (typeof gc.url !== 'function') return;
+		const encoded = gc.url(payload);
+		if (!encoded) return;
+		sendCountPixel(goatcounterCountRequestUrl(encoded, window.location.href));
+	});
 }
 
 /** Record a GoatCounter event. `path` is the event name and must not start with `/`. */
-export function trackGoatCounterEvent(path: string, title?: string): void {
+export function trackGoatCounterEvent(path: string): void {
 	if (!path || path.startsWith('/')) return;
-	countGoatCounter({ path, title, event: true });
+	countGoatCounter({ path, event: true });
 }
 
 export function trackGoatCounterPageview(navigation: {
@@ -120,5 +193,7 @@ export function trackGoatCounterPageview(navigation: {
 }): void {
 	const path = goatcounterPageviewForNavigation(navigation.from, navigation.to);
 	if (!path) return;
-	countGoatCounter({ path });
+	const toUrl = navigation.to?.url;
+	const title = toUrl ? goatcounterPageTitle(toUrl.pathname, toUrl.search) : titleForCurrentPage();
+	countGoatCounter({ path, title });
 }

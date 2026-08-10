@@ -1,10 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	goatcounterCountRequestUrl,
 	goatcounterFilterEvent,
+	goatcounterPageTitle,
 	goatcounterPageviewForNavigation,
 	goatcounterPageviewPath,
 	goatcounterPracticeSettingEvent,
-	goatcounterSortEvent
+	goatcounterSafeReferrer,
+	goatcounterSortEvent,
+	LAYOUT_SHOW_TITLE,
+	LAYOUTS_INDEX_TITLE
 } from '../src/lib/goatcounter';
 
 function url(pathname: string, search = '') {
@@ -63,6 +68,47 @@ describe('goatcounterPageviewForNavigation', () => {
 				url('/layouts/lela', '?tab=stats&text=hello')
 			)
 		).toBeNull();
+	});
+});
+
+describe('goatcounterPageTitle', () => {
+	test('uses Layouts index and Layout show without layout names', () => {
+		expect(goatcounterPageTitle('/', '?analyzer=cmini')).toBe(LAYOUTS_INDEX_TITLE);
+		expect(goatcounterPageTitle('/layouts/lela', '?tab=practice&text=hello')).toBe(
+			LAYOUT_SHOW_TITLE
+		);
+		expect(goatcounterPageTitle('/layouts/lela', '?tab=stats')).toBe(LAYOUT_SHOW_TITLE);
+	});
+});
+
+describe('goatcounterSafeReferrer', () => {
+	test('keeps cross-origin referrers and drops same-origin URLs', () => {
+		expect(
+			goatcounterSafeReferrer(
+				'https://www.google.com/search?q=emulayout',
+				'https://emulayout.github.io'
+			)
+		).toBe('https://www.google.com/search?q=emulayout');
+		expect(
+			goatcounterSafeReferrer(
+				'https://emulayout.github.io/layouts/lela?tab=practice&text=hello+world',
+				'https://emulayout.github.io'
+			)
+		).toBe('');
+		expect(goatcounterSafeReferrer('not a url', 'https://emulayout.github.io')).toBe('');
+	});
+});
+
+describe('goatcounterCountRequestUrl', () => {
+	test('removes location.search while keeping the sanitized path and title', () => {
+		const href = goatcounterCountRequestUrl(
+			'https://emulayout.goatcounter.com/count?p=%2Flayouts&q=%3Ftab%3Dpractice%26text%3Dhello&t=Layout+show&r=https%3A%2F%2Fwww.google.com%2F'
+		);
+		const url = new URL(href);
+		expect(url.searchParams.has('q')).toBe(false);
+		expect(url.searchParams.get('p')).toBe('/layouts');
+		expect(url.searchParams.get('t')).toBe(LAYOUT_SHOW_TITLE);
+		expect(url.searchParams.get('r')).toBe('https://www.google.com/');
 	});
 });
 
