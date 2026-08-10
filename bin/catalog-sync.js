@@ -25,12 +25,8 @@ import {
 	hasMagicKeyMarker,
 	hasRepeatKey
 } from './layout-features.js';
-import {
-	CMINI_CACHE_DIR,
-	LAYOUTS_FILE,
-	loadBlacklist,
-	parseOfflineForceArgs
-} from './sync-shared.js';
+import { CMINI_CACHE_DIR, LAYOUTS_FILE, parseOfflineForceArgs } from './sync-shared.js';
+import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
 
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const LIKES_FILE = 'static/layout-likes.json';
@@ -170,14 +166,21 @@ async function writeCminiChangedOutput(changed) {
 	}
 }
 
+/**
+ * @param {boolean} rebuilt
+ */
+async function writeCatalogRebuiltOutput(rebuilt) {
+	const line = `catalog_rebuilt=${rebuilt ? 'true' : 'false'}\n`;
+	if (process.env.GITHUB_OUTPUT) {
+		await appendFile(process.env.GITHUB_OUTPUT, line);
+	}
+}
+
 async function run() {
 	const argv = process.argv.slice(2);
-	const { offline } = parseOfflineForceArgs(argv, {
+	const { offline, force } = parseOfflineForceArgs(argv, {
 		offlineEnv: 'CMINI_SYNC_OFFLINE'
 	});
-	if (argv.includes('--force')) {
-		console.warn('  ⚠ catalog-sync ignores --force (use without --offline to fetch the repo)');
-	}
 	const skipIfUnchanged =
 		argv.includes('--skip-if-unchanged') || process.env.CATALOG_SYNC_SKIP_IF_UNCHANGED === '1';
 
@@ -193,20 +196,33 @@ async function run() {
 	const cminiChanged = previousHead !== head;
 	await writeCminiChangedOutput(cminiChanged);
 
+	console.log('→ Loading cminibrowser meme filter...');
+	const memeFilter = await loadMemeFilterExclusions({ offline, force, argv });
+	const excludedLayouts = memeFilter.excluded;
+	console.log(
+		`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus}` +
+			(memeFilter.cutoff == null ? '' : `, cutoff=${memeFilter.cutoff}`) +
+			(memeFilter.updated ? ', dump updated' : '') +
+			')'
+	);
+
 	if (
 		!cminiChanged &&
+		!memeFilter.updated &&
 		skipIfUnchanged &&
 		(await pathExists(LAYOUTS_FILE)) &&
 		(await pathExists(SUPPLEMENTAL_FILE)) &&
 		(await pathExists(LIKES_FILE)) &&
 		(await pathExists('static/authors.json'))
 	) {
-		console.log(`✔ cmini HEAD unchanged (${head.slice(0, 12)}); skipping catalog rebuild`);
+		console.log(
+			`✔ cmini HEAD and meme filter unchanged (${head.slice(0, 12)}); skipping catalog rebuild`
+		);
+		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
 		return;
 	}
 
-	const blacklist = await loadBlacklist();
 	const adaptiveLayoutNames = await loadAdaptiveLayoutNames();
 
 	let beforeLayouts = [];
@@ -233,8 +249,8 @@ async function run() {
 			);
 			continue;
 		}
-		if (blacklist.has(layoutName) || blacklist.has(filename)) {
-			throw new Error(`Adaptive layout ${layoutName} is blacklisted`);
+		if (isExcludedLayout(layoutName, excludedLayouts)) {
+			throw new Error(`Adaptive layout ${layoutName} is meme-filtered`);
 		}
 		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
 		if (rawLayout.name !== layoutName) {
@@ -247,7 +263,7 @@ async function run() {
 	const supplementalValidation = await validateSupplementalDataForLayouts({
 		layoutsDir: cacheLayoutsDir,
 		layoutFiles,
-		blacklist,
+		excludedLayouts,
 		supplementalByLayout,
 		allowOrphanedProfiles: true,
 		allowStaleVariants: true
@@ -277,7 +293,7 @@ async function run() {
 	 */
 	async function processLayoutFile(filename) {
 		const layoutName = filename.replace('.json', '');
-		if (blacklist.has(layoutName) || blacklist.has(filename)) return null;
+		if (isExcludedLayout(layoutName, excludedLayouts)) return null;
 
 		const originalContent = await readFile(join(cacheLayoutsDir, filename), 'utf-8');
 		const rawLayout = JSON.parse(originalContent);
@@ -374,7 +390,9 @@ async function run() {
 		if (removed.length > 0) {
 			console.log(`  Removed (${removed.length}):`);
 			removed.sort().forEach((name) => {
-				const reason = blacklist.has(name) ? ' (blacklisted)' : ' (removed from repo)';
+				const reason = isExcludedLayout(name, excludedLayouts)
+					? ' (meme-filtered)'
+					: ' (removed from repo)';
 				console.log(`    - ${name}${reason}`);
 			});
 		}
@@ -382,6 +400,7 @@ async function run() {
 
 	await mkdir(join(process.cwd(), '.cache'), { recursive: true });
 	await writeFile(SYNCED_HEAD_FILE, `${head}\n`, 'utf-8');
+	await writeCatalogRebuiltOutput(true);
 	console.log('Done');
 }
 

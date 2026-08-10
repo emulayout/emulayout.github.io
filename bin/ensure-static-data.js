@@ -8,6 +8,8 @@ import {
 	MANA2_ANALYZER,
 	STATS_DATASETS
 } from '../src/lib/statsAnalyzers.ts';
+import { cminibrowserCachePath } from './cminibrowser-cache.js';
+import { CMINIBROWSER_MEME_FILTER_PATH } from './cminibrowser-meme-filter.js';
 
 const CATALOG_FILES = [
 	'static/all-layouts.json',
@@ -45,6 +47,17 @@ export function analyzerTasksForMissingStaticData(missingFiles) {
 	);
 }
 
+/**
+ * Prefer offline catalog sync when the meme-filter dump is already cached.
+ * Otherwise an online sync is required to fetch it before layouts can be filtered.
+ *
+ * @param {boolean} memeFilterCached
+ * @returns {string[]}
+ */
+export function catalogSyncArgsForBootstrap(memeFilterCached) {
+	return memeFilterCached ? ['--offline'] : [];
+}
+
 /** @param {string} path */
 async function exists(path) {
 	return access(path)
@@ -65,12 +78,23 @@ async function run() {
 	for (const file of missing) {
 		console.log(`  - ${file}`);
 	}
-	console.log('→ Generating from cached sources...');
 
-	await $`bun run ./bin/catalog-sync.js --offline`;
+	const memeFilterCached = await exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH));
+	const catalogArgs = catalogSyncArgsForBootstrap(memeFilterCached);
+	if (catalogArgs.includes('--offline')) {
+		console.log('→ Generating from cached sources...');
+	} else {
+		console.log(
+			'→ Meme filter dump missing from cache; running catalog sync online to fetch it...'
+		);
+	}
+
+	await $`bun run ./bin/catalog-sync.js ${catalogArgs}`;
 	const analyzerTasks = analyzerTasksForMissingStaticData(missing);
 	if (analyzerTasks.includes('cmini')) await $`bun run ./bin/cmini-stats-sync.js --offline`;
-	if (analyzerTasks.includes('cyanophage')) await $`bun run ./bin/cyanophage-stats-sync.js`;
+	if (analyzerTasks.includes('cyanophage')) {
+		await $`bun run ./bin/cyanophage-stats-sync.js --offline`;
+	}
 	if (analyzerTasks.includes('mana2')) await $`bun run ./bin/mana2-stats-sync.js --offline`;
 }
 

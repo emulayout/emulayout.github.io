@@ -16,7 +16,8 @@ import {
 	loadCyanophageData
 } from './cyanophage-stats.js';
 import { defaultMagicMappings } from './layout-features.js';
-import { CMINI_CACHE_DIR, loadBlacklist } from './sync-shared.js';
+import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
+import { CMINI_CACHE_DIR, parseOfflineForceArgs } from './sync-shared.js';
 
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 const SYNC_CONCURRENCY = Number(process.env.CYANOPHAGE_SYNC_CONCURRENCY ?? 16);
@@ -28,11 +29,12 @@ async function pathExists(path) {
 }
 
 async function run() {
-	const skipIfCminiUnchanged =
-		process.env.CYANOPHAGE_SKIP_IF_CMINI_UNCHANGED === '1' && process.env.CMINI_CHANGED === 'false';
-	if (skipIfCminiUnchanged && (await pathExists(CYANOPHAGE_STATS_FILE))) {
+	const skipIfCatalogUnchanged =
+		process.env.CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED === '1' &&
+		process.env.CATALOG_REBUILT === 'false';
+	if (skipIfCatalogUnchanged && (await pathExists(CYANOPHAGE_STATS_FILE))) {
 		console.log(
-			`✔ cmini HEAD unchanged; keeping existing Cyanophage stats → ${CYANOPHAGE_STATS_FILE}`
+			`✔ Catalog unchanged; keeping existing Cyanophage stats → ${CYANOPHAGE_STATS_FILE}`
 		);
 		console.log('Done');
 		return;
@@ -48,7 +50,14 @@ async function run() {
 	console.log(`→ Loading ${CYANOPHAGE_ANALYZER} analyzer data...`);
 	const cyanophageData = await loadCyanophageData();
 
-	const blacklist = await loadBlacklist();
+	const { offline, force } = parseOfflineForceArgs(process.argv.slice(2), {
+		offlineEnv: 'CYANOPHAGE_SYNC_OFFLINE',
+		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
+	});
+	console.log('→ Loading cminibrowser meme filter...');
+	const memeFilter = await loadMemeFilterExclusions({ offline, force });
+	const excludedLayouts = memeFilter.excluded;
+	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
 	const supplementalByLayout = await loadLayoutSupplementalData();
 	const layoutFiles = (await readdir(cacheLayoutsDir)).filter((f) => f.endsWith('.json'));
 
@@ -56,13 +65,17 @@ async function run() {
 	const cyanophageStats = {};
 	let loaded = 0;
 	let skipped = 0;
+	let filtered = 0;
 
 	/**
 	 * @param {string} filename
 	 */
 	async function processLayoutFile(filename) {
 		const layoutName = filename.replace(/\.json$/i, '');
-		if (blacklist.has(layoutName) || blacklist.has(filename)) return null;
+		if (isExcludedLayout(layoutName, excludedLayouts)) {
+			filtered++;
+			return null;
+		}
 
 		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
 		const variants = supplementalByLayout.get(rawLayout.name)?.variants ?? [];
@@ -103,7 +116,7 @@ async function run() {
 	);
 	await writeFile(CYANOPHAGE_STATS_FILE, JSON.stringify(sorted) + '\n', 'utf-8');
 	console.log(
-		`  ✔ Cyanophage stats for ${loaded} layouts (${skipped} skipped) → ${CYANOPHAGE_STATS_FILE}`
+		`  ✔ Cyanophage stats for ${loaded} layouts (${skipped} skipped, ${filtered} meme-filtered) → ${CYANOPHAGE_STATS_FILE}`
 	);
 	console.log('Done');
 }

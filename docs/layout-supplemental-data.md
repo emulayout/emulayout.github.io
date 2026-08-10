@@ -158,7 +158,10 @@ file that declares nothing.
 - `bin/layout-data.js` — loads `data/layouts/*.json` and compiles each variant to surface structural
   errors.
 - `bin/input-mapping-validation.js` — checks each variant's keys against the Cmini layout, fatally
-  for the pull-request gate and as staleness for sync.
+  for the pull-request gate and as staleness for sync; rejects curated data for meme-filtered
+  layouts.
+- `bin/cminibrowser-meme-filter.js` — loads cminibrowser's meme filter dump used as the catalog
+  exclusion list.
 - `bin/catalog-sync.js` — derives the compact feature flags and publishes
   `static/layout-supplemental.json`.
 - `src/lib/layoutInputBehaviors.ts` — compiles the published payload into runtime profiles.

@@ -42,7 +42,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['magic.json', 'odd-symbol.json', 'adaptive.json'],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } },
 					'odd-symbol': { schema: 1, magicKeys: { mappings: { '#': { a: 'o' } } } },
@@ -65,7 +65,7 @@ describe('supplemental data validation', () => {
 		const result = await validateSupplementalDataForLayouts({
 			layoutsDir,
 			layoutFiles: ['magic.json'],
-			blacklist: new Set(),
+			excludedLayouts: new Set(),
 			supplementalByLayout: supplementalMap({
 				magic: {
 					schema: 1,
@@ -87,7 +87,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: [],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					missing: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
 				})
@@ -104,7 +104,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['magic.json'],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
 				})
@@ -119,7 +119,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: [],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					'missing-magic': { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } },
 					'missing-adaptive': { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
@@ -143,7 +143,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['magic.json'],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					magic: { schema: 1, magicKeys: { mappings: { '@': { a: 'o' } } } }
 				})
@@ -160,7 +160,7 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['adaptive.json'],
-				blacklist: new Set(),
+				excludedLayouts: new Set(),
 				supplementalByLayout: supplementalMap({
 					adaptive: { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
 				})
@@ -176,7 +176,7 @@ describe('supplemental data validation', () => {
 		const result = await validateSupplementalDataForLayouts({
 			layoutsDir,
 			layoutFiles: ['adaptive.json'],
-			blacklist: new Set(),
+			excludedLayouts: new Set(),
 			supplementalByLayout: supplementalMap({
 				adaptive: { schema: 1, adaptiveSwaps: { mappings: { l: { y: 'j' } } } }
 			}),
@@ -188,7 +188,7 @@ describe('supplemental data validation', () => {
 		]);
 	});
 
-	test('rejects supplemental data for a blacklisted layout', async () => {
+	test('rejects supplemental data for a meme-filtered layout', async () => {
 		const layoutsDir = await createLayouts({
 			magic: { name: 'magic', keys: { '*': {}, a: {}, o: {} } }
 		});
@@ -197,11 +197,11 @@ describe('supplemental data validation', () => {
 			validateSupplementalDataForLayouts({
 				layoutsDir,
 				layoutFiles: ['magic.json'],
-				blacklist: new Set(['magic']),
+				excludedLayouts: new Set(['magic']),
 				supplementalByLayout: supplementalMap({
 					magic: { schema: 1, magicKeys: { mappings: { '*': { a: 'o' } } } }
 				})
 			})
-		).rejects.toThrow('belongs to a blacklisted layout');
+		).rejects.toThrow('belongs to a meme-filtered layout');
 	});
 });

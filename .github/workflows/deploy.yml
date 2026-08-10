@@ -81,7 +81,7 @@ jobs:
             static/layout-stats-cyanophage.json
             static/layout-stats-cmini-*.json
             static/layout-stats-mana2-*.json
-          key: ${{ runner.os }}-cmini-v11-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}
+          key: ${{ runner.os }}-cmini-v12-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-data.js', 'bin/input-mapping-validation.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'adaptive-layouts.txt', 'data/layouts/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}
           restore-keys: |
             ${{ runner.os }}-cmini-
 
@@ -90,8 +90,9 @@ jobs:
         run: bun run ./bin/catalog-sync.js
         env:
           CI: true
-          # Scheduled runs skip the catalog rebuild when cmini HEAD is unchanged.
-          # Pushes always rebuild so curated supplemental data stays fresh.
+          # Scheduled runs skip the catalog rebuild when cmini HEAD and the meme
+          # filter dump are both unchanged. Pushes always rebuild so curated
+          # supplemental data stays fresh.
           CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
       - name: Sync cmini stats
@@ -103,8 +104,10 @@ jobs:
         run: bun run ./bin/cyanophage-stats-sync.js
         env:
           CI: true
-          CYANOPHAGE_SKIP_IF_CMINI_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
-          CMINI_CHANGED: ${{ steps.catalog.outputs.cmini_changed }}
+          # Scheduled runs skip Cyanophage when catalog-sync itself skipped (cmini HEAD and
+          # meme filter unchanged). Rebuild whenever the catalog was rewritten.
+          CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
+          CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 
       - name: Sync Mana2 stats
         run: bun run ./bin/mana2-stats-sync.js

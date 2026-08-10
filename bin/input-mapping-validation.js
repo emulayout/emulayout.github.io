@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { variantLayoutKeys } from '../src/lib/layoutSupplemental.ts';
+import { isExcludedLayout } from './cminibrowser-meme-filter.js';
 
 /**
  * Validate curated supplemental data against the matching Cmini layouts.
@@ -14,7 +15,7 @@ import { variantLayoutKeys } from '../src/lib/layoutSupplemental.ts';
  * @param {{
  *   layoutsDir: string;
  *   layoutFiles: readonly string[];
- *   blacklist: ReadonlySet<string>;
+ *   excludedLayouts: ReadonlySet<string>;
  *   supplementalByLayout: ReadonlyMap<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>;
  *   allowOrphanedProfiles?: boolean;
  *   allowStaleVariants?: boolean;
@@ -23,7 +24,7 @@ import { variantLayoutKeys } from '../src/lib/layoutSupplemental.ts';
 export async function validateSupplementalDataForLayouts({
 	layoutsDir,
 	layoutFiles,
-	blacklist,
+	excludedLayouts,
 	supplementalByLayout,
 	allowOrphanedProfiles = false,
 	allowStaleVariants = false
@@ -44,8 +45,8 @@ export async function validateSupplementalDataForLayouts({
 			orphanedProfiles.push(layoutName);
 			continue;
 		}
-		if (blacklist.has(layoutName) || blacklist.has(filename)) {
-			throw new Error(`Supplemental data ${layoutName} belongs to a blacklisted layout`);
+		if (isExcludedLayout(layoutName, excludedLayouts)) {
+			throw new Error(`Supplemental data ${layoutName} belongs to a meme-filtered layout`);
 		}
 
 		let rawLayout;

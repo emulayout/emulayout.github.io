@@ -1,26 +1,14 @@
 #!/usr/bin/env bun
 
-import { access, readFile, readdir } from 'node:fs/promises';
+import { access, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadLayoutSupplementalData } from './layout-data.js';
 import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
+import { loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
+import { parseOfflineForceArgs } from './sync-shared.js';
 
 const CMINI_LAYOUTS_DIR =
 	process.env.CMINI_LAYOUTS_DIR ?? join(process.cwd(), '.cache', 'cmini-repo', 'layouts');
-const BLACKLIST_FILE = join(process.cwd(), 'layout-blacklist.txt');
-
-async function loadBlacklist() {
-	const content = await readFile(BLACKLIST_FILE, 'utf-8');
-	const blacklist = new Set();
-	for (const rawLine of content.split('\n')) {
-		const entry = rawLine.trim();
-		if (!entry || entry.startsWith('#')) continue;
-		blacklist.add(entry);
-		blacklist.add(entry.replace(/\.json$/i, ''));
-		if (!entry.endsWith('.json')) blacklist.add(`${entry}.json`);
-	}
-	return blacklist;
-}
 
 async function run() {
 	try {
@@ -31,21 +19,23 @@ async function run() {
 		);
 	}
 
-	const [layoutFiles, blacklist, supplementalByLayout] = await Promise.all([
+	const { offline, force } = parseOfflineForceArgs(process.argv.slice(2));
+	const [layoutFiles, memeFilter, supplementalByLayout] = await Promise.all([
 		readdir(CMINI_LAYOUTS_DIR).then((files) => files.filter((file) => file.endsWith('.json'))),
-		loadBlacklist(),
+		loadMemeFilterExclusions({ offline, force }),
 		loadLayoutSupplementalData()
 	]);
 
 	const result = await validateSupplementalDataForLayouts({
 		layoutsDir: CMINI_LAYOUTS_DIR,
 		layoutFiles,
-		blacklist,
+		excludedLayouts: memeFilter.excluded,
 		supplementalByLayout
 	});
 
 	console.log(
-		`✓ Validated ${result.variantCount} mapping variants across ${result.layoutCount} layouts`
+		`✓ Validated ${result.variantCount} mapping variants across ${result.layoutCount} layouts ` +
+			`(meme filter ${memeFilter.corpus}: ${memeFilter.size} ids)`
 	);
 }
 

@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	REQUIRED_STATIC_FILES_BY_TASK,
-	analyzerTasksForMissingStaticData
+	analyzerTasksForMissingStaticData,
+	catalogSyncArgsForBootstrap
 } from '../bin/ensure-static-data.js';
 
 describe('local static-data bootstrap', () => {
@@ -31,5 +32,10 @@ describe('local static-data bootstrap', () => {
 			'cyanophage',
 			'mana2'
 		]);
+	});
+
+	test('uses offline catalog sync only when the meme filter dump is cached', () => {
+		expect(catalogSyncArgsForBootstrap(true)).toEqual(['--offline']);
+		expect(catalogSyncArgsForBootstrap(false)).toEqual([]);
 	});
 });

@@ -7,7 +7,6 @@ import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const LAYOUTS_FILE = 'static/all-layouts.json';
-export const BLACKLIST_FILE = 'layout-blacklist.txt';
 export const CMINI_CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 export const MIN_STATS_CATALOG_COVERAGE = 0.9;
 
@@ -74,27 +73,6 @@ export function assertStatsCatalogCoverage(
 		`${label} covers ${loaded}/${eligible} eligible layouts (${(coverage * 100).toFixed(1)}%); ` +
 			`minimum is ${(minimum * 100).toFixed(1)}%. Refusing to update cached or published stats.`
 	);
-}
-
-/**
- * @returns {Promise<Set<string>>}
- */
-export async function loadBlacklist() {
-	try {
-		const content = await readFile(BLACKLIST_FILE, 'utf-8');
-		/** @type {Set<string>} */
-		const blacklist = new Set();
-		for (const line of content.split('\n')) {
-			const entry = line.trim();
-			if (!entry || entry.startsWith('#')) continue;
-			blacklist.add(entry);
-			blacklist.add(entry.replace(/\.json$/i, ''));
-			if (!entry.endsWith('.json')) blacklist.add(`${entry}.json`);
-		}
-		return blacklist;
-	} catch {
-		return new Set();
-	}
 }
 
 /**

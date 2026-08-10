@@ -106,13 +106,16 @@ bun run sync -- --catalog --cmini-stats --mana2-stats --cyanophage --details
 bun run sync -- --all --offline
 ```
 
-Catalog sync clones/updates cmini and writes layout metadata under `static/`. cmini and Mana2 stats
-are imported from [cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by
-default). The top-level sync always processes every configured corpus. To import only one corpus,
-invoke `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set
-that script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage
-stats are computed locally from the catalog cache. All generated `static/*.json` files are
-gitignored; CI regenerates them for deployments and the daily catalog sync.
+Catalog sync clones/updates cmini and writes layout metadata under `static/`, excluding layouts that
+cminibrowser's [meme filter](https://cminibrowser.com/api/) marks for the Monkeyracer corpus
+(incomplete, or row-staggered Fspeed above the corpus cutoff). Override with
+`--meme-corpus=NAME` or `CMINIBROWSER_MEME_FILTER_CORPUS`. cmini and Mana2 stats are imported from
+[cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by default). The
+top-level sync always processes every configured corpus. To import only one corpus, invoke
+`bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set that
+script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage stats
+are computed locally from the catalog cache. All generated `static/*.json` files are gitignored; CI
+regenerates them for deployments and the daily catalog sync.
 
 Optional diagnostic (not run in CI):
 
@@ -122,27 +125,27 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 
 ### Common commands
 
-| Command                     | Purpose                                            |
-| --------------------------- | -------------------------------------------------- |
-| `bun run dev`               | Start the development server                       |
-| `bun run build`             | Create a production build                          |
-| `bun run preview`           | Preview the production build                       |
-| `bun run sync`              | Run catalog and analyzer data sync tasks           |
-| `bun run check`             | Run Svelte and TypeScript checks                   |
-| `bun run lint`              | Check formatting and lint the project              |
-| `bun test`                  | Run unit tests                                     |
-| `bun run test:e2e`          | Run Playwright integration tests in Chromium       |
-| `bun run validate:mappings` | Validate every curated supplemental layout file    |
-| `bun run audit:blacklist`   | Report stale entries in the local layout blacklist |
+| Command                     | Purpose                                         |
+| --------------------------- | ----------------------------------------------- |
+| `bun run dev`               | Start the development server                    |
+| `bun run build`             | Create a production build                       |
+| `bun run preview`           | Preview the production build                    |
+| `bun run sync`              | Run catalog and analyzer data sync tasks        |
+| `bun run check`             | Run Svelte and TypeScript checks                |
+| `bun run lint`              | Check formatting and lint the project           |
+| `bun test`                  | Run unit tests                                  |
+| `bun run test:e2e`          | Run Playwright integration tests in Chromium    |
+| `bun run validate:mappings` | Validate every curated supplemental layout file |
 
 ## Generated data
 
-`bin/catalog-sync.js` clones cmini into `.cache/cmini-repo` (layouts, authors, likes) and writes the
-layout catalog, likes, and supplemental layout data under `static/`. Curated supplemental data comes
-from `data/layouts/`; `adaptive-layouts.txt` records layouts known to use Adaptive swaps even when
-their mappings have not yet been curated. A layout key named `@` repeats the previous uninterrupted
-emitted character by default, so that behavior does not require a curated file. A curated Magic
-mapping whose trigger is `@` overrides the default and may opt back into repeat fallback explicitly.
+`bin/catalog-sync.js` clones cmini into `.cache/cmini-repo` (layouts, authors, likes), downloads
+cminibrowser's `meme_filter.json`, and writes the layout catalog, likes, and supplemental layout data
+under `static/` with meme-tier layouts omitted. Curated supplemental data comes from `data/layouts/`;
+`adaptive-layouts.txt` records layouts known to use Adaptive swaps even when their mappings have not
+yet been curated. A layout key named `@` repeats the previous uninterrupted emitted character by
+default, so that behavior does not require a curated file. A curated Magic mapping whose trigger is
+`@` overrides the default and may opt back into repeat fallback explicitly.
 
 Analyzer artifacts are produced by separate scripts:
 
@@ -158,9 +161,9 @@ The individual dump-import scripts accept `--force` (unconditional re-download),
 (ETag / Last-Modified) so unchanged dumps are not re-downloaded. The top-level `bun run sync`
 wrapper accepts task selections plus `--force` or `--offline`, but deliberately runs all configured
 corpora so the generated site and per-layout detail payloads remain complete. Each downloaded dump
-must contain usable stats for at least 90% of the non-blacklisted catalog before it can replace the
-existing cache or published artifact. Cache and artifact replacements are atomic, so an invalid,
-incomplete, or interrupted download leaves the last good files in place.
+must contain usable stats for at least 90% of the published (non-meme-filtered) catalog before it can
+replace the existing cache or published artifact. Cache and artifact replacements are atomic, so an
+invalid, incomplete, or interrupted download leaves the last good files in place.
 
 ## Contribute supplemental layout data
 
@@ -191,7 +194,7 @@ bun run validate:mappings
 Validation checks:
 
 - the file structure and permitted fields, rejecting typos outside the open `meta` object;
-- the filename against the layout name and blacklist;
+- the filename against the layout name and cminibrowser meme filter;
 - every Magic-key trigger and Adaptive swap key against the corresponding layout; and
 - orphan files whose layout is not present in the current cmini catalog.
 
@@ -200,12 +203,3 @@ Pull requests run this validation automatically through the
 deliberately more resilient: if cmini removes a layout after its data merges, the sync warns and
 omits the orphan instead of blocking deployment, and a variant that references a key cmini has since
 removed is published as stale rather than dropped.
-
-For local blacklist maintenance, compare `layout-blacklist.txt` with the cached cmini catalog:
-
-```sh
-bun run audit:blacklist
-```
-
-The audit is read-only and exits successfully after reporting entries that are not currently
-present. Review them before removal because a layout may have been removed only temporarily.

@@ -29,7 +29,6 @@ import { mana2StatsRelPath } from './stats-artifact-paths.js';
 import {
 	LAYOUTS_FILE,
 	assertStatsCatalogCoverage,
-	loadBlacklist,
 	parseCorpusArgs,
 	parseOfflineForceArgs,
 	writeTextFileIfChanged
@@ -40,11 +39,10 @@ const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DE
 
 /**
  * @param {unknown[]} layouts
- * @param {Set<string>} blacklist
  * @param {string} corpus
  * @param {{ offline: boolean, force: boolean }} mode
  */
-async function syncCorpus(layouts, blacklist, corpus, mode) {
+async function syncCorpus(layouts, corpus, mode) {
 	const dumpPath = cminibrowserMana2NamedDumpPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
@@ -54,7 +52,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 		let loaded = 0;
 		for (const layout of layouts) {
 			const name = layoutEntryName(layout);
-			if (!name || blacklist.has(name) || blacklist.has(`${name}.json`)) continue;
+			if (!name) continue;
 			eligible++;
 			if (lookupCminibrowserMana2Stats(candidateIndex, name)) loaded++;
 		}
@@ -68,15 +66,10 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const layoutStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
-	let blacklisted = 0;
 
 	for (const layout of layouts) {
 		const name = layoutEntryName(layout);
 		if (!name) continue;
-		if (blacklist.has(name) || blacklist.has(`${name}.json`)) {
-			blacklisted++;
-			continue;
-		}
 
 		const hit = lookupCminibrowserMana2Stats(index, name);
 		if (!hit) {
@@ -103,7 +96,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
 
 	console.log(
-		`  ✔ Mana2 stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
+		`  ✔ Mana2 stats for ${statsLoaded} layouts (${statsMissing} missing from dump, corpus=${corpus})`
 	);
 	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
 }
@@ -122,10 +115,9 @@ async function run() {
 	console.log(`→ Loading layouts from ${LAYOUTS_FILE}`);
 	/** @type {unknown[]} */
 	const layouts = JSON.parse(await readFile(LAYOUTS_FILE, 'utf-8'));
-	const blacklist = await loadBlacklist();
 
 	for (const corpus of corpora) {
-		await syncCorpus(layouts, blacklist, corpus, { offline, force });
+		await syncCorpus(layouts, corpus, { offline, force });
 	}
 
 	console.log('Done');

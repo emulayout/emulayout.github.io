@@ -25,7 +25,6 @@ import { cminiCompactStatsRelPath } from './stats-artifact-paths.js';
 import {
 	LAYOUTS_FILE,
 	assertStatsCatalogCoverage,
-	loadBlacklist,
 	parseCorpusArgs,
 	parseOfflineForceArgs,
 	writeTextFileIfChanged
@@ -33,11 +32,10 @@ import {
 
 /**
  * @param {unknown[]} layouts
- * @param {Set<string>} blacklist
  * @param {string} corpus
  * @param {{ offline: boolean, force: boolean }} mode
  */
-async function syncCorpus(layouts, blacklist, corpus, mode) {
+async function syncCorpus(layouts, corpus, mode) {
 	const dumpPath = `stats/${corpus}.json`;
 	const statsFile = cminiCompactStatsRelPath(corpus);
 	console.log(`→ Loading cminibrowser cmini dump (${dumpPath})...`);
@@ -47,7 +45,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 		let loaded = 0;
 		for (const layout of layouts) {
 			const name = layoutEntryName(layout);
-			if (!name || blacklist.has(name) || blacklist.has(`${name}.json`)) continue;
+			if (!name) continue;
 			eligible++;
 			if (lookupCminibrowserCminiStats(candidateIndex, name)) loaded++;
 		}
@@ -61,15 +59,10 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const layoutStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
-	let blacklisted = 0;
 
 	for (const layout of layouts) {
 		const name = layoutEntryName(layout);
 		if (!name) continue;
-		if (blacklist.has(name) || blacklist.has(`${name}.json`)) {
-			blacklisted++;
-			continue;
-		}
 
 		const hit = lookupCminibrowserCminiStats(index, name);
 		if (!hit) {
@@ -95,7 +88,7 @@ async function syncCorpus(layouts, blacklist, corpus, mode) {
 	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
 
 	console.log(
-		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing from dump, ${blacklisted} blacklisted, corpus=${corpus})`
+		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing from dump, corpus=${corpus})`
 	);
 	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
 }
@@ -114,10 +107,9 @@ async function run() {
 	console.log(`→ Loading layouts from ${LAYOUTS_FILE}`);
 	/** @type {unknown[]} */
 	const layouts = JSON.parse(await readFile(LAYOUTS_FILE, 'utf-8'));
-	const blacklist = await loadBlacklist();
 
 	for (const corpus of corpora) {
-		await syncCorpus(layouts, blacklist, corpus, { offline, force });
+		await syncCorpus(layouts, corpus, { offline, force });
 	}
 
 	console.log('Done');
