@@ -20,7 +20,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		colorHomeKeys: true,
 		simulateThumbKeys: false,
 		showSpecialKeys: true,
-		underlineMagicGroups: false,
+		underlineMagicGroups: true,
 		underlineAdaptiveGroups: false,
 		showAdaptiveSwaps: true,
 		onlyRelevantAdaptiveSwaps: false,

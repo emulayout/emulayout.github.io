@@ -9,6 +9,7 @@ describe('typing practice display preferences', () => {
 	test('uses safe defaults for absent, malformed, and unknown documents', () => {
 		const defaults = createDefaultTypingPracticeDisplayOptions();
 		expect(defaults.colorHomeKeys).toBe(true);
+		expect(defaults.underlineMagicGroups).toBe(true);
 		expect(defaults.simulateThumbKeys).toBe(false);
 		expect(parseTypingPracticeDisplayOptions(null)).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{')).toEqual(defaults);

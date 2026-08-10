@@ -41,7 +41,7 @@ and calculation logic outside the renderer.
   guidance respects shifted and contextual input output and is withheld while the current input
   contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
   and active contextual-key styles. Home-key coloring is enabled by default.
-- Layouts with curated Magic mappings add a default-off Underline magic group option. It underlines
+- Layouts with curated Magic mappings add a default-on Underline magic group option. It underlines
   each target substring that can be entered with a Magic key, including the preceding rule context
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule

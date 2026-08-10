@@ -509,10 +509,7 @@ test('underlines enabled Magic groups in typing-practice words', async ({ page }
 		name: 'Underline magic group'
 	});
 	const words = practicePanel.locator('[data-practice-word]');
-	await expect(underlineMagicGroup).not.toBeChecked();
-	await expect(practicePanel.locator('[data-magic-group="true"]')).toHaveCount(0);
-
-	await underlineMagicGroup.check();
+	await expect(underlineMagicGroup).toBeChecked();
 	await expect(words.nth(0).locator('[data-magic-group="true"]')).toHaveText(['e', 'x']);
 	await expect(words.nth(1).locator('[data-magic-group="true"]')).toHaveText(['l', 'l']);
 
