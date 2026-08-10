@@ -44,6 +44,7 @@
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
+	import { trackGoatCounterEvent } from '$lib/goatcounter';
 
 	interface Props {
 		layout: LayoutData;
@@ -260,6 +261,12 @@
 		onCustomPracticeTextChange?.(text);
 	}
 
+	function markPracticeComplete(now: number) {
+		endedAtMilliseconds = now;
+		currentTimeMilliseconds = now;
+		trackGoatCounterEvent('practice-complete');
+	}
+
 	function handleValueChange(input: string): string | undefined {
 		if (practiceComplete) return session.input;
 		const activeWord = session.remainingWords[0];
@@ -271,8 +278,7 @@
 		const completedWordCount = session.completedWordCount;
 		session = updateTypingPracticeInput(session, input);
 		if (session.completedWordCount === session.totalWordCount) {
-			endedAtMilliseconds = now;
-			currentTimeMilliseconds = now;
+			markPracticeComplete(now);
 		}
 		return session.completedWordCount > completedWordCount ? session.input : undefined;
 	}
@@ -283,8 +289,7 @@
 		recordAttempts(1, 0, now);
 		session = advanceTypingPracticeWord(session);
 		if (session.completedWordCount === session.totalWordCount) {
-			endedAtMilliseconds = now;
-			currentTimeMilliseconds = now;
+			markPracticeComplete(now);
 		}
 		return session.input;
 	}

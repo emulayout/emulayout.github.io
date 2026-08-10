@@ -27,6 +27,7 @@ import {
 	serializeLayoutTestAreaDisplayOptions,
 	type LayoutTestAreaDisplayOptions
 } from '$lib/layoutTestAreaPrefs';
+import { goatcounterPracticeSettingEvent, trackGoatCounterEvent } from '$lib/goatcounter';
 
 export type LayoutCardStatsMode = 'focused' | 'detailed';
 
@@ -99,6 +100,7 @@ class UiPrefs {
 	}
 
 	setTypingPracticeDisplayOption(option: keyof TypingPracticeDisplayOptions, value: boolean) {
+		trackGoatCounterEvent(goatcounterPracticeSettingEvent(option));
 		const next = { ...this.typingPracticeDisplayOptions, [option]: value };
 		this.typingPracticeDisplayOptions = next;
 		localStorage.setItem(

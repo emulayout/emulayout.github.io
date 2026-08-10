@@ -102,6 +102,7 @@ import {
 	type ThumbKeyFilter,
 	type ViewFilterSnapshot
 } from './filterSnapshot';
+import { goatcounterFilterEvent, goatcounterSortEvent, trackGoatCounterEvent } from './goatcounter';
 
 export type {
 	AdaptiveSwapFilter,
@@ -663,57 +664,76 @@ export class FilterStore {
 		return keys.map((key, i) => (i === index ? value : key));
 	}
 
+	#trackFilter(feature: string) {
+		trackGoatCounterEvent(goatcounterFilterEvent(feature));
+	}
+
+	#trackSort(sortBy: SortBy) {
+		trackGoatCounterEvent(goatcounterSortEvent(sortBy));
+	}
+
 	setIncludeCell(row: number, col: number, value: string) {
+		this.#trackFilter('keys-and');
 		this.includeGrid = this.#setGridCell(this.includeGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeCell(row: number, col: number, value: string) {
+		this.#trackFilter('keys-exclude');
 		this.excludeGrid = this.#setGridCell(this.excludeGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeLeftThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-and');
 		this.includeLeftThumbKeys = this.#setThumbKey(this.includeLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeRightThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-and');
 		this.includeRightThumbKeys = this.#setThumbKey(this.includeRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeLeftThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-exclude');
 		this.excludeLeftThumbKeys = this.#setThumbKey(this.excludeLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setExcludeRightThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-exclude');
 		this.excludeRightThumbKeys = this.#setThumbKey(this.excludeRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrLeftThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-or');
 		this.includeOrLeftThumbKeys = this.#setThumbKey(this.includeOrLeftThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrRightThumbKey(index: number, value: string) {
+		this.#trackFilter('keys-or');
 		this.includeOrRightThumbKeys = this.#setThumbKey(this.includeOrRightThumbKeys, index, value);
 		this.#scheduleFilterApply();
 	}
 
 	setIncludeOrCell(row: number, col: number, value: string) {
+		this.#trackFilter('keys-or');
 		this.includeOrGrid = this.#setGridCell(this.includeOrGrid, row, col, value);
 		this.#scheduleFilterApply();
 	}
 
 	setShowUnfinished(value: boolean) {
+		this.#trackFilter('unfinished');
 		this.showUnfinished = value;
 		this.#debouncedSave();
 	}
 
 	setThumbKeyFilter(value: ThumbKeyFilter) {
+		this.#trackFilter('thumb-keys');
 		this.thumbKeyFilter = value;
 		// Clear thumb key filters when set to excluded
 		if (value === 'excluded') {
@@ -729,26 +749,31 @@ export class FilterStore {
 	}
 
 	setMagicKeyFilter(value: MagicKeyFilter) {
+		this.#trackFilter('magic-keys');
 		this.magicKeyFilter = value;
 		this.#debouncedSave();
 	}
 
 	setRepeatKeyFilter(value: RepeatKeyFilter) {
+		this.#trackFilter('repeat-keys');
 		this.repeatKeyFilter = value;
 		this.#debouncedSave();
 	}
 
 	setAdaptiveSwapFilter(value: AdaptiveSwapFilter) {
+		this.#trackFilter('adaptive-swaps');
 		this.adaptiveSwapFilter = value;
 		this.#debouncedSave();
 	}
 
 	setCharacterSetFilter(value: CharacterSetFilter) {
+		this.#trackFilter('character-set');
 		this.characterSetFilter = value;
 		this.#debouncedSave();
 	}
 
 	setBoardTypeFilter(value: BoardTypeFilter) {
+		this.#trackFilter('board-type');
 		this.boardTypeFilter = value;
 		this.#debouncedSave();
 	}
@@ -767,6 +792,7 @@ export class FilterStore {
 
 	setSortBy(value: SortBy) {
 		const nextSortBy = normalizeViewSortBy(value, this.similarReferenceName);
+		this.#trackSort(nextSortBy);
 		const previousDefault = getDefaultSortOrder(this.sortBy);
 		const wasOnDefaultOrder = !this.#sortOrderManual || this.sortOrder === previousDefault;
 		this.sortBy = nextSortBy;
@@ -791,6 +817,7 @@ export class FilterStore {
 	/** Set a sort field and explicit direction as one UI action. */
 	setSort(value: SortBy, order: SortOrder) {
 		const nextSortBy = normalizeViewSortBy(value, this.similarReferenceName);
+		this.#trackSort(nextSortBy);
 		this.sortBy = nextSortBy;
 		this.sortOrder = order;
 		this.#sortOrderManual = true;
@@ -890,11 +917,13 @@ export class FilterStore {
 	}
 
 	setStatLimitOperator(key: StatLimitKey, operator: StatLimitOperator) {
+		this.#trackFilter(`stat-${key}`);
 		this.statLimits[key].operator = operator;
 		this.#scheduleFilterApply();
 	}
 
 	setStatLimitValue(key: StatLimitKey, value: string) {
+		this.#trackFilter(`stat-${key}`);
 		this.statLimits[key].value = value;
 		this.#scheduleFilterApply();
 	}
@@ -904,6 +933,7 @@ export class FilterStore {
 		finger: FingerWorkloadFinger,
 		level: FingerWorkloadLevel
 	) {
+		this.#trackFilter('workload');
 		const handsLinked = this.fingerWorkloadHandsAreLinked();
 		this.fingerWorkload.preference[hand][finger] = level;
 		if (handsLinked) {
@@ -914,6 +944,7 @@ export class FilterStore {
 	}
 
 	setFingerWorkloadPreset(preset: FingerWorkloadHandPreference) {
+		this.#trackFilter('workload');
 		this.fingerWorkload.preference = {
 			left: { ...preset },
 			right: { ...preset }
@@ -923,6 +954,7 @@ export class FilterStore {
 	}
 
 	setFingerWorkloadAnalyzer(analyzer: StatsAnalyzer) {
+		this.#trackFilter('workload');
 		this.fingerWorkload.analyzer = analyzer;
 		this.#scheduleFilterApply();
 	}
@@ -940,6 +972,7 @@ export class FilterStore {
 	}
 
 	relinkFingerWorkloadHands() {
+		this.#trackFilter('workload');
 		const preference = this.fingerWorkload.preference;
 		preference.right = { ...preference.left };
 		this.fingerWorkloadHandsLinked = true;
@@ -955,11 +988,13 @@ export class FilterStore {
 	}
 
 	setSimilarityFilterOperator(operator: StatLimitOperator) {
+		this.#trackFilter('similarity');
 		this.similarityFilterOperator = operator;
 		this.#saveToUrl();
 	}
 
 	setSimilarityFilterValue(value: string) {
+		this.#trackFilter('similarity');
 		this.similarityFilterValue = value;
 		this.#scheduleFilterApply();
 	}
@@ -973,11 +1008,13 @@ export class FilterStore {
 	}
 
 	setSimilarityWeightHomeKeys(value: boolean) {
+		this.#trackFilter('similarity');
 		this.similarityWeightHomeKeys = value;
 		this.#saveToUrl();
 	}
 
 	setSimilarityMirrorMode(value: SimilarityMirrorMode) {
+		this.#trackFilter('similarity');
 		this.similarityMirrorMode = value;
 		this.#saveToUrl();
 	}
@@ -1009,11 +1046,13 @@ export class FilterStore {
 	}
 
 	setSimilarReferenceAnglemod(value: boolean) {
+		this.#trackFilter('similarity');
 		this.similarReferenceAnglemod = value;
 		this.#saveToUrl();
 	}
 
 	setNameFilter(value: string) {
+		this.#trackFilter('name');
 		this.nameFilterInput = value;
 		this.#scheduleFilterApply();
 	}
@@ -1065,6 +1104,7 @@ export class FilterStore {
 	}
 
 	clearStatLimit(key: StatLimitKey) {
+		this.#trackFilter(`stat-${key}`);
 		const next = { ...this.statLimits };
 		next[key] = { operator: key === 'likes' ? 'gt' : 'lt', value: '' };
 		this.statLimits = next;
@@ -1111,6 +1151,7 @@ export class FilterStore {
 	}
 
 	toggleAuthor(authorId: number) {
+		this.#trackFilter('author');
 		if (this.selectedAuthors.has(authorId)) {
 			this.selectedAuthors.delete(authorId);
 		} else {
@@ -1629,6 +1670,7 @@ export class FilterStore {
 	}
 
 	toggleSimilarReference(name: string, anglemod = false) {
+		this.#trackFilter('similarity');
 		if (this.similarReferenceName === name) {
 			this.similarReferenceName = null;
 			this.#restoreSortAfterSimilar();

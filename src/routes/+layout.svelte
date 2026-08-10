@@ -1,10 +1,12 @@
 <script lang="ts">
 	import './layout.css';
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
 	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
+	import { trackGoatCounterEvent, trackGoatCounterPageview } from '$lib/goatcounter';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
@@ -14,6 +16,10 @@
 	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children } = $props();
+
+	afterNavigate((navigation) => {
+		trackGoatCounterPageview(navigation);
+	});
 
 	type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -133,6 +139,7 @@
 			}
 			if (hasOpenModal()) return;
 			showQuickFind = true;
+			trackGoatCounterEvent('quick-find');
 		}
 
 		document.addEventListener('keydown', handleKeyDown);
@@ -141,6 +148,7 @@
 
 	function openQuickFind() {
 		showQuickFind = true;
+		trackGoatCounterEvent('quick-find');
 	}
 
 	function openCompare() {
@@ -176,6 +184,7 @@
 			compareSeedMode = mode === 'selection' ? 'selection' : 'restore';
 			compareSession += 1;
 			showCompareModal = true;
+			trackGoatCounterEvent('compare');
 		}
 
 		window.addEventListener('emulayout:open-compare', handleOpenCompare);

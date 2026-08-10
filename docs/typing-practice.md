@@ -152,7 +152,9 @@ The successful-space path is intentionally ordered:
   of prompt derivation so WPM calculations remain deterministic and unit-testable.
 - Persisted results or richer keystroke analytics should extend the existing attempt-counting and
   resolved-input boundaries. Define explicitly how corrections, multi-character contextual output,
-  and consumed Magic presses contribute before adding a durable result format.
+  and consumed Magic presses contribute before adding a durable result format. GoatCounter usage
+  analytics in `docs/analytics.md` must stay limited to `practice-complete` and display-toggle
+  events; do not send WPM, accuracy, lesson text, or per-keystroke data there.
 - Additional persisted lesson state or resumable lessons require a separate explicit versioned
   storage format; do not persist the current in-memory session shape directly.
 
