@@ -519,7 +519,7 @@
 		height: clamp(1.05rem, 2.2vw, 1.35rem);
 		align-items: center;
 		justify-content: center;
-		color: var(--accent);
+		color: inherit;
 	}
 
 	.keyboard-preview__magic-icon :global(svg) {
@@ -554,6 +554,20 @@
 		font-size: clamp(0.65rem, 1.45vw, 1rem);
 		letter-spacing: -0.02em;
 		white-space: nowrap;
+	}
+
+	.keyboard-preview__key--magic {
+		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--magic-key) 82%, white) 0%,
+			var(--magic-key) 100%
+		);
+		color: var(--magic-key-fg);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--magic-key) 62%, black),
+			0 0 0.4rem color-mix(in srgb, var(--magic-key) 32%, transparent);
 	}
 
 	.keyboard-preview__key--next {

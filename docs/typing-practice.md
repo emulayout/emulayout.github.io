@@ -45,7 +45,8 @@ and calculation logic outside the renderer.
   each target substring that can be entered with a Magic key, including the preceding rule context
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
-  precedence.
+  precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
+  `--magic-key-fg` for contrast against that fill.
 - Layouts with curated Adaptive mappings similarly add a default-off Underline adaptive group
   option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
   can produce after the full contextual-input pipeline resolves.

@@ -640,6 +640,10 @@
 		text-underline-offset: 0.12em;
 	}
 
+	.typing-practice-character--magic-group {
+		text-decoration-color: var(--magic-key);
+	}
+
 	.typing-practice-input {
 		display: flex;
 		flex-direction: column;

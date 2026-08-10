@@ -57,6 +57,8 @@ html {
 	--typing-practice-incorrect: #c44b3a;
 	--typing-practice-next-key-decoration: #292622;
 	--typing-practice-home-key: #c8bca9;
+	--magic-key: #7a4fb0;
+	--magic-key-fg: var(--bg-primary);
 	--keyboard-input-validation-error: #c44b3a;
 	--keyboard-input-reset-destructive: #b94335;
 	--new-layout-dot: #eda095;
@@ -98,6 +100,7 @@ html {
 	--typing-practice-incorrect: #e07060;
 	--typing-practice-next-key-decoration: #f3efe8;
 	--typing-practice-home-key: #625c54;
+	--magic-key: #c9a6ef;
 	--keyboard-input-validation-error: #e07060;
 	--keyboard-input-reset-destructive: #e07060;
 	--new-layout-dot: #982818;

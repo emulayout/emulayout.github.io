@@ -228,10 +228,9 @@ cards instead of its literal marker. This includes a conventional `*` whose mapp
 unavailable. Each typing surface resolves mapped triggers against its own current uninterrupted
 emitted history and the page's shared disabled-mapping set:
 
-- when pressing the trigger would emit a value, the keycap displays that value and gains the active
-  accent background;
-- when no rule or emitting fallback applies, the Magic symbol remains on the ordinary neutral
-  keycap;
+- Magic triggers use the `--magic-key` fill with `--magic-key-fg` glyph or label color;
+- when pressing the trigger would emit a value, the keycap displays that value;
+- when no rule or emitting fallback applies, the Magic symbol remains on the keycap;
 - turning the Layout test area preview off restores literal trigger characters and ordinary key
   styling; Typing practice suppresses this feedback when Show special keys is off.
 
