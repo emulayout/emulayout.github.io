@@ -58,10 +58,8 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=hello+hello+world');
 	await expect(practiceWords).toHaveText(['hello', 'hello', 'world']);
 	expect(wordPoolRequests).toHaveLength(0);
-	await expect(
-		practicePanel.getByRole('button', { name: 'Clear custom practice text' })
-	).toBeVisible();
-	await expect(practicePanel.getByRole('button', { name: 'Edit practice text' })).toHaveCount(0);
+	const settingsButton = practicePanel.getByRole('button', { name: 'Practice lesson settings' });
+	await expect(settingsButton).toBeVisible();
 
 	await practiceInput.press('h');
 	await page.keyboard.press('Escape');
@@ -75,14 +73,18 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 	await page.getByRole('tab', { name: 'Typing practice' }).click();
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=hello+hello+world');
 
-	await practicePanel.getByRole('button', { name: 'Clear custom practice text' }).click();
+	await settingsButton.click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('button', { name: 'Reset' }).click();
+	await expect(dialog).toHaveCount(0);
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
 	await expect(practiceWords).toHaveCount(10);
-	await expect(practicePanel.getByRole('button', { name: 'Edit practice text' })).toBeVisible();
 
 	const randomWords = await practiceWords.allTextContents();
-	await practicePanel.getByRole('button', { name: 'Edit practice text' }).click();
-	const dialog = page.getByRole('dialog', { name: 'Practice custom text' });
+	await settingsButton.click();
+	await expect(dialog.getByRole('radio', { name: 'Random words' })).toBeChecked();
+	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
+	await dialog.getByRole('radio', { name: 'Custom text' }).check();
 	const customTextField = dialog.getByRole('textbox', { name: 'Practice text' });
 	await expect(customTextField).toHaveValue(randomWords.join(' '));
 	await expect(customTextField).toBeFocused();
@@ -96,10 +98,91 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 		)
 		.toEqual({ start: 0, end: randomWords.join(' ').length, length: randomWords.join(' ').length });
 	await customTextField.fill('custom text source');
-	await dialog.getByRole('button', { name: 'Use text' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=custom+text+source');
 	await expect(practiceWords).toHaveText(['custom', 'text', 'source']);
 	await expect(dialog).toHaveCount(0);
+});
+
+test('balances random lessons toward words matching the active special keys', async ({ page }) => {
+	await page.route('**/layout-details/*.json', async (route) => {
+		await route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: vylet,
+				authorName: 'acas',
+				likeCount: 0,
+				supplemental: {
+					schema: 1,
+					variants: [{ id: 'default', magicKeys: { mappings: { '*': { c: 'k' } } } }]
+				},
+				stats: {}
+			}
+		});
+	});
+	await page.route('**/languages/english1k.json', async (route) => {
+		await route.fulfill({
+			json: {
+				name: 'special-words-test',
+				words: [
+					'luck',
+					'sick',
+					'rock',
+					'kick',
+					'deck',
+					'dock',
+					'cost',
+					'rest',
+					'mind',
+					'gold',
+					'tree',
+					'fish'
+				]
+			}
+		});
+	});
+	await page.goto('/layouts/vylet?special=100');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100');
+	await expect(practiceWords).toHaveCount(10);
+	expect((await practiceWords.allTextContents()).every((word) => word.includes('ck'))).toBe(true);
+
+	const settingsButton = practicePanel.getByRole('button', { name: 'Practice lesson settings' });
+	await settingsButton.click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	const balanceSlider = dialog.getByRole('slider', {
+		name: 'Increase magic/adaptive key occurrences'
+	});
+	await expect(dialog.getByRole('radio', { name: 'Random words' })).toBeChecked();
+	await expect(balanceSlider).toHaveValue('100');
+	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeEnabled();
+	await expect(
+		dialog.getByText('6 of 12 words match the active magic/adaptive keys.')
+	).toBeVisible();
+
+	await balanceSlider.fill('0');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(page).toHaveURL('/layouts/vylet?tab=practice');
+	await expect(dialog).toHaveCount(0);
+
+	await settingsButton.click();
+	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
+	await balanceSlider.fill('100');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100');
+	expect((await practiceWords.allTextContents()).every((word) => word.includes('ck'))).toBe(true);
+
+	// Disabling the only Magic mapping empties the candidate set, so the
+	// untouched lesson regenerates from ordinary random words.
+	await practicePanel
+		.locator('.layout-keyboard-workspace-mappings')
+		.getByRole('checkbox', { name: 'Magic key mappings' })
+		.uncheck();
+	await expect
+		.poll(async () => (await practiceWords.allTextContents()).some((word) => !word.includes('ck')))
+		.toBe(true);
 });
 
 test('loads the word pool only after Typing practice opens', async ({ page }) => {

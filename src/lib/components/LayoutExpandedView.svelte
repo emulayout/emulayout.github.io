@@ -49,6 +49,7 @@
 	import { createCminibrowserLayoutURL } from '$lib/cminibrowser';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
+	import type { TypingPracticeLessonSettings } from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
@@ -62,8 +63,8 @@
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
 		activeSection: LayoutDetailSection;
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
-		customPracticeText?: string | null;
-		onCustomPracticeTextChange?: (text: string | null) => void;
+		practiceLesson?: TypingPracticeLessonSettings;
+		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
 	}
 
 	const {
@@ -77,8 +78,8 @@
 		onDisabledMappingIdsChange,
 		activeSection,
 		onActiveSectionChange,
-		customPracticeText = null,
-		onCustomPracticeTextChange
+		practiceLesson,
+		onPracticeLessonChange
 	}: Props = $props();
 
 	const cminiLabel =
@@ -489,8 +490,8 @@
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
 							knownMagicTriggers={conventionalMagicTriggers}
-							{customPracticeText}
-							{onCustomPracticeTextChange}
+							{practiceLesson}
+							{onPracticeLessonChange}
 						/>
 					</div>
 				{:else if activeSection === 'test'}

@@ -248,6 +248,16 @@ that can produce the next part of a lesson word, it marks the preceding Adaptive
 final emitted target text. This derivation runs through the complete Adaptive-then-Magic-then-Repeat
 pipeline, follows disabled mappings, and does not alter the default prompt presentation.
 
+Typing practice's lesson source is URL-backed and edited in the Practice lesson modal: custom text
+(`text`) or random words with a special-key word balance (`special`, 0–100 percent). The balance
+finds candidate words by checking each pooled word against the currently enabled Magic and Adaptive
+mappings using the same group derivations that drive the underlines, so disabling a mapping or group
+for the session also excludes its words. At 100 the lesson uses only matching words, cycling a small
+candidate set to fill the lesson; when nothing matches the enabled mappings it falls back to
+ordinary random words. Custom text replaces the random source, so the two never coexist in canonical
+URL state. Mapping toggles regenerate a lesson that has not been typed into yet; once typing starts,
+the change applies on the next restart.
+
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives
 prospective outputs from the same profile and history, but the layout test area does not display an
 applied-keypress event directly. Typing practice receives the full resolved-input result at its

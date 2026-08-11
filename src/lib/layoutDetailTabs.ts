@@ -1,4 +1,9 @@
-import { normalizeTypingPracticeText, TYPING_PRACTICE_TEXT_PARAM } from '$lib/typingPracticeText';
+import {
+	normalizeTypingPracticeLessonSettings,
+	TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
+	TYPING_PRACTICE_TEXT_PARAM,
+	type TypingPracticeLessonSettings
+} from '$lib/typingPracticeText';
 
 export const LAYOUT_DETAIL_TAB_PARAM = 'tab';
 export const DEFAULT_LAYOUT_DETAIL_SECTION = 'practice';
@@ -34,12 +39,14 @@ export function layoutDetailNavigationState(
 export function layoutDetailPageHref(
 	pathname: string,
 	section: LayoutDetailSection = DEFAULT_LAYOUT_DETAIL_SECTION,
-	practiceText?: string | null
+	practiceLesson?: Partial<TypingPracticeLessonSettings> | null
 ): string {
 	const params = new URLSearchParams([[LAYOUT_DETAIL_TAB_PARAM, section]]);
-	const normalizedPracticeText = normalizeTypingPracticeText(practiceText);
-	if (normalizedPracticeText) {
-		params.set(TYPING_PRACTICE_TEXT_PARAM, normalizedPracticeText);
+	const lesson = normalizeTypingPracticeLessonSettings(practiceLesson);
+	if (lesson.customText) {
+		params.set(TYPING_PRACTICE_TEXT_PARAM, lesson.customText);
+	} else if (lesson.specialWordsPercent > 0) {
+		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
 	}
 	return `${pathname}?${params}`;
 }

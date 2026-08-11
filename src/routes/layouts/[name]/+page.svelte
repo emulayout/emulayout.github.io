@@ -12,7 +12,13 @@
 		type LayoutDetailSection
 	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
-	import { normalizeTypingPracticeText, TYPING_PRACTICE_TEXT_PARAM } from '$lib/typingPracticeText';
+	import {
+		normalizeTypingPracticeLessonSettings,
+		parseTypingPracticeSpecialWordsPercent,
+		TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
+		TYPING_PRACTICE_TEXT_PARAM,
+		type TypingPracticeLessonSettings
+	} from '$lib/typingPracticeText';
 	import { untrack } from 'svelte';
 
 	const { data } = $props();
@@ -21,9 +27,17 @@
 	const activeSection = $derived(
 		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
 	);
-	const customPracticeText = $derived(
-		normalizeTypingPracticeText(page.url.searchParams.get(TYPING_PRACTICE_TEXT_PARAM))
-	);
+
+	function practiceLessonFromUrl(searchParams: URLSearchParams): TypingPracticeLessonSettings {
+		return normalizeTypingPracticeLessonSettings({
+			customText: searchParams.get(TYPING_PRACTICE_TEXT_PARAM),
+			specialWordsPercent: parseTypingPracticeSpecialWordsPercent(
+				searchParams.get(TYPING_PRACTICE_SPECIAL_WORDS_PARAM)
+			)
+		});
+	}
+
+	const practiceLesson = $derived(practiceLessonFromUrl(page.url.searchParams));
 	let disabledMappingIds = $state<string[]>([]);
 
 	filterStore.enterLayoutDetailRoute();
@@ -34,7 +48,7 @@
 			? layoutDetailPageHref(
 					pathname,
 					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
-					normalizeTypingPracticeText(page.url.searchParams.get(TYPING_PRACTICE_TEXT_PARAM))
+					practiceLessonFromUrl(page.url.searchParams)
 				)
 			: pathname;
 		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;
@@ -51,7 +65,7 @@
 			layoutDetailPageHref(
 				resolve('/layouts/[name]', { name: data.layoutName }),
 				section,
-				customPracticeText
+				practiceLesson
 			),
 			{
 				replaceState: true,
@@ -63,11 +77,15 @@
 		/* eslint-enable svelte/no-navigation-without-resolve */
 	}
 
-	function setCustomPracticeText(text: string | null) {
+	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
 		// The route is resolved before layoutDetailPageHref appends its canonical query.
 		/* eslint-disable svelte/no-navigation-without-resolve */
 		void goto(
-			layoutDetailPageHref(resolve('/layouts/[name]', { name: data.layoutName }), 'practice', text),
+			layoutDetailPageHref(
+				resolve('/layouts/[name]', { name: data.layoutName }),
+				'practice',
+				lesson
+			),
 			{
 				replaceState: true,
 				noScroll: true,
@@ -111,8 +129,8 @@
 		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 		{activeSection}
 		onActiveSectionChange={setActiveSection}
-		{customPracticeText}
-		onCustomPracticeTextChange={setCustomPracticeText}
+		{practiceLesson}
+		onPracticeLessonChange={setPracticeLesson}
 	/>
 {:else}
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">
