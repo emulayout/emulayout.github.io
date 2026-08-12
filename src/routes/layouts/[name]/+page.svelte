@@ -83,7 +83,7 @@
 		void goto(
 			layoutDetailPageHref(
 				resolve('/layouts/[name]', { name: data.layoutName }),
-				'practice',
+				activeSection,
 				lesson
 			),
 			{

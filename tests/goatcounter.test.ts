@@ -35,6 +35,7 @@ describe('goatcounterPageviewPath', () => {
 		expect(goatcounterPageviewPath('/layouts/other', '?tab=test&text=custom')).toBe(
 			'/layouts?tab=test'
 		);
+		expect(goatcounterPageviewPath('/layouts/lela', '?tab=feel')).toBe('/layouts?tab=feel');
 		expect(goatcounterPageviewPath('/layouts/lela', '?tab=nope')).toBe('/layouts');
 	});
 });

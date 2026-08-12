@@ -15,10 +15,10 @@ AI implementation context for the dedicated page that replaces the former expand
   unchanged.
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
-- Detail URLs are canonical layout paths whose query state is a valid `tab=practice`, `tab=test`, or
-  `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters, selections, and
-  display state are reset while the detail route is active and cannot rewrite its URL. Missing,
-  invalid, or mixed tab state is canonicalized to one valid `tab` value.
+- Detail URLs are canonical layout paths whose query state is a valid `tab=practice`, `tab=test`,
+  `tab=feel`, or `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters,
+  selections, and display state are reset while the detail route is active and cannot rewrite its
+  URL. Missing, invalid, or mixed tab state is canonicalized to one valid `tab` value.
 - When a detail page was opened from the catalog, the untouched index URL is carried in history
   state through any chain of detail-to-detail navigations (for example via Quick Find).
   `All layouts` navigates to that URL as a new history entry, so browser Back still revisits each
@@ -26,9 +26,9 @@ AI implementation context for the dedicated page that replaces the former expand
   including after Quick Find navigations that never touched the index.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
-- The show page has three accessible sections: `Typing practice`, `Layout test area`, and `Stats`.
-  The `tab` query parameter is their source of truth, including for direct links and reloads;
-  missing or invalid values default to Typing practice.
+- The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
+  and `Stats`. The `tab` query parameter is their source of truth, including for direct links and
+  reloads; missing or invalid values default to Typing practice.
 
 ## Data loading
 
@@ -85,10 +85,12 @@ small without weakening app-bar functionality.
   keeps the catalog-style anglemod action as its only card action. Anglemod changes update the card,
   typing emulator, and generated Cyanophage and Colemak Camp links; the canonical-name cminibrowser
   link remains unchanged.
-- The `Typing practice`, `Layout test area`, and `Stats` tabs sit at the top of the right column and
-  control only that main content. The persistent layout card is not part of any tab panel. Selecting
-  a tab replaces the current detail history entry with its canonical query URL, preserving the
-  existing All layouts back-navigation behavior.
+- The `Typing practice`, `Layout test area`, `Layout feel`, and `Stats` tabs sit at the top of the
+  right column and control only that main content. The persistent layout card is not part of any tab
+  panel. Selecting a tab replaces the current detail history entry with its canonical query URL,
+  preserving the existing All layouts back-navigation behavior. When help hints are on, the Layout
+  feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
+  practice, without adding a second focusable control inside the tablist.
 - `Typing practice` is the first and default tab. It presents ten random English 1k words or a
   URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time, completion
   Accuracy/WPM, and the board-aware keyboard workspace. Typed characters color the current target
@@ -97,6 +99,30 @@ small without weakening app-bar functionality.
   uninterrupted-history rules as the Layout test area. See
   [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary provenance, metrics,
   prompt guidance, and extension boundaries.
+- `Layout feel` sits between Layout test area and Stats. It reuses Typing practice’s lesson flow,
+  prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text` and
+  `special` query state is shared with Typing practice and preserved across detail tabs. Each source
+  word is planned on the page layout first — including
+  enabled Magic and Adaptive shortcuts — then each planned keystroke is remapped to the user’s
+  configured input-layout label on that physical slot. Example: with input layout QWERTY on
+  Colemak-DH and no contextual shortcuts, `hello` becomes `mkuu;`. With Magic/Adaptive enabled, the
+  remapped prompt includes those trigger/base keystrokes instead of spelling every emitted letter.
+  The remapped prompt is the typing target (identity input, no live target resolve); the original
+  English words sit above it in a quieter secondary line — the active word plus a more muted preview
+  of the next word — and advance with the lesson. That source row keeps its height when the lesson
+  finishes so the remapped prompt does not jump. As each remapped keystroke is entered correctly,
+  the corresponding source letters turn primary color. Magic and Adaptive underlines mark the
+  remapped keystroke spans; next-key highlights still land on the practiced layout’s keycaps. When
+  Magic is preferred and emits a single character, typing the remapped literal letter for that emit
+  is also accepted, while the prompt and next-key highlight keep showing the Magic trigger. Adaptive
+  stays preferred-only because the swapped key is the true key at that moment. A wrong keypress
+  briefly flashes the expected remapped letter red, including when Ignore wrong key presses discards
+  the input. Ignored wrong inserts still count as incorrect attempts for accuracy. A default-on
+  Ignore wrong key presses option discards keystrokes that would introduce an
+  input error, and also blocks backspace, so neither appears in the feel field; it persists with the
+  other display options. Turning Ignore wrong key presses on while the field already has an error
+  trims input back to the last correct prefix. Input-layout, anglemod, and Simulate thumb keys changes
+  re-plan an untouched lesson only; an in-progress lesson keeps its current remapping until restart.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
@@ -165,6 +191,8 @@ small without weakening app-bar functionality.
   `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
+- Layout-feel session UI and physical-key remapping: `src/lib/components/LayoutFeel.svelte`,
+  `src/lib/layoutFeel.ts`
 - Shared input-layout model, persisted store, modal, and editor: `src/lib/keyboardInputConfig.ts`,
   `src/lib/keyboardInputStore.svelte.ts`,
   `src/lib/components/KeyboardInputConfigControl.svelte`,
@@ -182,7 +210,7 @@ small without weakening app-bar functionality.
 - Catalog/summary card variants and detail URL: `src/lib/components/LayoutCard.svelte`
 - Semantic detail link in the action toolbar: `src/lib/components/LayoutCardActions.svelte`
 - Route browser coverage: `tests/e2e/layout-detail*.e2e.ts`, split across navigation, typing
-  practice, input-layout configuration, keyboard previews, and Quick Find.
+  practice, Layout feel, input-layout configuration, keyboard previews, and Quick Find.
 
 ## Invariants
 
@@ -210,8 +238,9 @@ small without weakening app-bar functionality.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.
 - Typing practice is the fallback detail section when `tab` is absent or invalid. Typing practice,
-  Layout test area, and Stats are linked tab/tabpanel pairs with automatic Arrow/Home/End keyboard
-  activation; the URL follows each activation, and the persistent left card is outside every panel.
+  Layout test area, Layout feel, and Stats are linked tab/tabpanel pairs with automatic Arrow/Home/End
+  keyboard activation; the URL follows each activation, and the persistent left card is outside every
+  panel.
 - A summary card cannot link recursively to its own detail page.
 - Detail URLs preserve canonical layout-name casing and encoding.
 - Missing layouts always provide a path back to the index.

@@ -22,6 +22,15 @@ describe('layoutDetailPageHref', () => {
 				specialWordsPercent: 0
 			})
 		).toBe('/layouts/lela?tab=practice');
+		expect(
+			layoutDetailPageHref('/layouts/lela', 'feel', { customText: null, specialWordsPercent: 40 })
+		).toBe('/layouts/lela?tab=feel&special=40');
+		expect(
+			layoutDetailPageHref('/layouts/lela', 'feel', {
+				customText: ' hello  world ',
+				specialWordsPercent: 40
+			})
+		).toBe('/layouts/lela?tab=feel&text=hello+world');
 	});
 });
 

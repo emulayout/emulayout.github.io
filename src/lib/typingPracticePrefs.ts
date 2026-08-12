@@ -12,6 +12,8 @@ export interface TypingPracticeDisplayOptions {
 	showAdaptiveSwaps: boolean;
 	onlyRelevantAdaptiveSwaps: boolean;
 	showSwapPaths: boolean;
+	/** Layout feel only: discard keystrokes that would introduce an input error. */
+	ignoreWrongKeyPresses: boolean;
 }
 
 export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDisplayOptions {
@@ -24,7 +26,8 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		underlineAdaptiveGroups: false,
 		showAdaptiveSwaps: true,
 		onlyRelevantAdaptiveSwaps: false,
-		showSwapPaths: false
+		showSwapPaths: false,
+		ignoreWrongKeyPresses: true
 	};
 }
 
@@ -66,7 +69,11 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 				? value.onlyRelevantAdaptiveSwaps
 				: defaults.onlyRelevantAdaptiveSwaps,
 		showSwapPaths:
-			typeof value.showSwapPaths === 'boolean' ? value.showSwapPaths : defaults.showSwapPaths
+			typeof value.showSwapPaths === 'boolean' ? value.showSwapPaths : defaults.showSwapPaths,
+		ignoreWrongKeyPresses:
+			typeof value.ignoreWrongKeyPresses === 'boolean'
+				? value.ignoreWrongKeyPresses
+				: defaults.ignoreWrongKeyPresses
 	};
 
 	return options;

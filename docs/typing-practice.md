@@ -93,7 +93,10 @@ and calculation logic outside the renderer.
   URL and returns to a random ten-word lesson.
 - Keyboard display options persist across layouts and reloads in the versioned
   `typingPracticeDisplayOptions` local-storage document. Lesson state remains page-session-only;
-  navigating away or reloading starts a new random lesson.
+  navigating away or reloading starts a new random lesson. Layout feel reuses this same document
+  (including Feel-only `ignoreWrongKeyPresses`) and the same shareable `text` / `special` lesson
+  query. See [`layout-detail-page.md`](./layout-detail-page.md) for Feel’s remapped matching model;
+  do not treat Feel as a second live-resolve practice field.
 
 ## State and input boundaries
 
@@ -124,18 +127,21 @@ The source vocabulary is vendored as `static/languages/english1k.json` from Monk
 Monkeytype identifies its repository license as GPL-3.0.
 
 `src/lib/typingPracticeWords.ts` fetches and validates that static payload. The request starts only
-when `LayoutTypingPractice.svelte` mounts, so direct Stats and Layout test area visits do not
-download the word pool. The practice UI exposes loading and failure states before creating a
-session.
+when `LayoutTypingPractice.svelte` or `LayoutFeel.svelte` mounts, so direct Stats and Layout test
+area visits do not download the word pool. Each of those UIs exposes loading and failure states
+before creating a session.
 
-The layout-detail route owns canonical `tab` and `text` query state and passes normalized custom text
-down through `LayoutExpandedView.svelte`. `LayoutTypingPractice.svelte` owns one session and renders
-it. `LayoutTestArea.svelte` continues to own physical-key handling and contextual-input resolution.
-Its optional controlled-value callbacks let the practice consumer observe value changes and replace
-the field after a resolved logical keypress. The resolved-input hook receives the full resolver
-result so the completion-space path can record the logical attempt without duplicating the input
-engine. Typing practice, the detail Layout test area, and catalog-card test areas supply an
+The layout-detail route owns canonical `tab`, `text`, and `special` query state and passes the
+normalized lesson down through `LayoutExpandedView.svelte` to both Typing practice and Layout feel.
+`LayoutTypingPractice.svelte` owns one live-resolve session and renders it. `LayoutFeel.svelte`
+owns a separate remapped session over the same lesson source. `LayoutTestArea.svelte` continues to
+own physical-key handling and contextual-input resolution.
+Its optional controlled-value callbacks let the practice and Feel consumers observe value changes
+and replace the field after a resolved logical keypress. The resolved-input hook receives the full
+resolver result so the completion-space path can record the logical attempt without duplicating the
+input engine. Typing practice, the detail Layout test area, and catalog-card test areas supply an
 input-layout key map compiled from the persisted configuration and structured display geometry.
+Layout feel instead compiles identity maps so typed known-layout labels match the remapped prompt.
 
 The successful-space path is intentionally ordered:
 
@@ -179,14 +185,17 @@ The successful-space path is intentionally ordered:
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
+- Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,
+  `src/lib/components/LayoutFeel.svelte`
 - Shared responsive keyboard, options, and mappings workspace:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
-- Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
+- Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutFeel.test.ts`,
+  `tests/layoutTestAreaPrefs.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-typing-practice.e2e.ts`,
-  `tests/e2e/layout-detail-keyboard-preview.e2e.ts`
+  `tests/e2e/layout-detail-keyboard-preview.e2e.ts`, `tests/e2e/layout-detail-feel.e2e.ts`
 
 ## Invariants
 
@@ -198,6 +207,7 @@ The successful-space path is intentionally ordered:
 - Remaining words retain stable identities as the head of the queue is removed.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
-- Layout test area and Typing practice keep independent text and contextual histories.
+- Layout test area, Typing practice, and Layout feel keep independent text and contextual
+  histories. Practice and Feel share lesson URL state and display prefs, not live session input.
 - Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
   displayed target layout or its contextual profile.

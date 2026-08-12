@@ -26,6 +26,7 @@
 	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
+	import LayoutFeel from '$lib/components/LayoutFeel.svelte';
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
@@ -102,9 +103,11 @@
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const practiceTabId = $derived(`${titleId}-tab-practice`);
 	const testTabId = $derived(`${titleId}-tab-test`);
+	const feelTabId = $derived(`${titleId}-tab-feel`);
 	const statsTabId = $derived(`${titleId}-tab-stats`);
 	const practicePanelId = $derived(`${titleId}-panel-practice`);
 	const testPanelId = $derived(`${titleId}-panel-test`);
+	const feelPanelId = $derived(`${titleId}-panel-feel`);
 	const statsPanelId = $derived(`${titleId}-panel-stats`);
 	const sections = $derived<TabOption<LayoutDetailSection>[]>([
 		{
@@ -114,6 +117,7 @@
 			controls: practicePanelId
 		},
 		{ value: 'test', label: 'Layout test area', id: testTabId, controls: testPanelId },
+		{ value: 'feel', label: 'Layout feel', id: feelTabId, controls: feelPanelId },
 		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
 	]);
 	const isAngleBoard = $derived(layout.board === 'angle');
@@ -472,7 +476,22 @@
 						class="layout-detail-tabs"
 						buttonClass="layout-detail-tab"
 						selectedClass="layout-detail-tab--selected"
-					/>
+					>
+						{#snippet item({ option, selected, tabProps })}
+							<button
+								class="tab layout-detail-tab {selected ? 'layout-detail-tab--selected' : ''}"
+								title={option.value === 'feel' && uiPrefs.hintsEnabled
+									? 'Type with your familiar keys to feel this layout’s finger paths.'
+									: undefined}
+								{...tabProps}
+							>
+								<span>{option.label}</span>
+								{#if option.value === 'feel' && uiPrefs.hintsEnabled}
+									<span class="layout-detail-tab-hint-mark" aria-hidden="true">?</span>
+								{/if}
+							</button>
+						{/snippet}
+					</Tabs>
 				</div>
 
 				{#if activeSection === 'practice'}
@@ -523,6 +542,25 @@
 							showMappings={testDisplayOptions.showSpecialKeys && hasSpecialMappings}
 							header={testKeyboardHeader}
 							options={testKeyboardOptions}
+						/>
+					</div>
+				{:else if activeSection === 'feel'}
+					<div
+						id={feelPanelId}
+						class="detail-feel-panel detail-panel-content"
+						role="tabpanel"
+						aria-labelledby={feelTabId}
+					>
+						<LayoutFeel
+							{layout}
+							rows={displayRows}
+							keyMaps={testKeyMaps}
+							{inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+							knownMagicTriggers={conventionalMagicTriggers}
+							{practiceLesson}
+							{onPracticeLessonChange}
 						/>
 					</div>
 				{:else}
@@ -795,12 +833,32 @@
 		font-weight: 600;
 	}
 
+	.layout-detail-tab-hint-mark {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 0.95rem;
+		height: 0.95rem;
+		margin-left: 0.35rem;
+		border: 1px solid currentColor;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+		font-size: 0.65rem;
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.layout-detail-tabs-wrap :global(.layout-detail-tab--selected .layout-detail-tab-hint-mark) {
+		color: inherit;
+	}
+
 	.layout-detail-scroll {
 		min-height: 0;
 		padding: 0.5rem 0.25rem 2rem;
 	}
 
 	.detail-practice-panel,
+	.detail-feel-panel,
 	.detail-test-panel,
 	.detail-stats-panel {
 		min-width: 0;
@@ -863,7 +921,8 @@
 		min-width: 0;
 	}
 
-	.detail-practice-panel {
+	.detail-practice-panel,
+	.detail-feel-panel {
 		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
 	}
 

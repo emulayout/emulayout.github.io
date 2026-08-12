@@ -1,7 +1,7 @@
 # Contextual input architecture
 
 This document records the decisions that matter when extending Magic keys, Adaptive swaps, the
-Layout test area, or Typing practice.
+Layout test area, Typing practice, or Layout feel.
 
 Reference for adaptive-swap behavior:
 [Adaptive Swaps](https://notes.dario.ca/Personal/Adaptive-Swaps).
@@ -214,7 +214,9 @@ in the swapped output.
 - `LayoutTestArea` owns DOM keyboard events, textarea edits, and history resets.
 - The optional input-layout compiler owns source-character-to-target-slot translation before this
   resolver. Typing practice and the detail Layout test area opt into the shared saved configuration;
-  catalog-card test areas retain physical-code resolution. See
+  catalog-card test areas retain physical-code resolution. Layout feel uses the same saved
+  configuration to remap planned target keystrokes onto known-layout labels, then matches identity
+  input against that remapped prompt. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - The pure resolver owns matching, precedence, case handling, and bounded history.
 - `InputMappingsPanel` renders Magic and Adaptive feature sections and their ephemeral
@@ -232,6 +234,9 @@ in the swapped output.
 - The detail page's Typing practice field uses the same resolver and disabled-mapping state as the
   Layout test area. Its keyboard preview derives prospective output from that field's own
   uninterrupted history so switching between the two sections does not mix contextual state.
+  Layout feel plans Magic and Adaptive shortcuts on the practiced layout first, remaps those
+  keystrokes onto the known layout, and reconstructs emit history from the correct remapped prefix
+  (including a typed Magic literal alternate). It does not live-resolve target Magic while typing.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
   with the values they would emit and gain the active accent background. The shared preview switch
@@ -246,7 +251,9 @@ in the swapped output.
 Typing practice also offers a separate, default-off Adaptive-group underline. For each enabled swap
 that can produce the next part of a lesson word, it marks the preceding Adaptive trigger and the
 final emitted target text. This derivation runs through the complete Adaptive-then-Magic-then-Repeat
-pipeline, follows disabled mappings, and does not alter the default prompt presentation.
+pipeline, follows disabled mappings, and does not alter the default prompt presentation. Layout feel
+reuses the same underline option on the remapped prompt; Adaptive stays preferred-only at match
+time because the swapped key is the true key at that moment.
 
 Typing practice's lesson source is URL-backed and edited in the Practice lesson modal: custom text
 (`text`) or random words with a special-key word balance (`special`, 0–100 percent). The balance
@@ -262,7 +269,9 @@ The resolver returns which behaviors were applied to a keypress. The keyboard pr
 prospective outputs from the same profile and history, but the layout test area does not display an
 applied-keypress event directly. Typing practice receives the full resolved-input result at its
 controlled-input boundary so its attempt counting and completion metrics do not duplicate the
-resolver. Future persisted results or richer keystroke analytics should extend that same boundary.
+resolver. Layout feel’s field is identity input against the remapped prompt; Magic/Adaptive
+planning happens up front in `planFeelWord`, not on each keypress. Future persisted results or
+richer keystroke analytics should extend that same boundary.
 
 Disabled mapping state is owned by the current page, shared by the floating window and layout test
 area on the index or by the mappings panel and keyboard summary on the detail route. It is

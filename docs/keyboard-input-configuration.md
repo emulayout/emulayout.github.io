@@ -2,9 +2,10 @@
 
 This document defines the reusable input-keyboard layer used to simulate a target layout when the
 browser is receiving keys from a non-QWERTY operating-system or firmware layout. Typing practice,
-the detail Layout test area, and catalog-card test areas share the same consumer model. The
-configuration deliberately sits below those features so every test surface uses one preference and
-one set of translation rules.
+the detail Layout test area, and catalog-card test areas share the same consumer model. Layout feel
+uses the same saved known layout, but only to remap planned target keystrokes onto familiar labels;
+its typing field is identity input and does not live-resolve into the practiced layout. The
+configuration deliberately sits below those features so every test surface uses one preference.
 
 ## Terminology and product model
 
@@ -17,7 +18,8 @@ one set of translation rules.
 - QWERTY on a staggered board is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice, the detail
-  Layout test area, and index-card test areas all apply it.
+  Layout test area, and index-card test areas all apply it as source-to-target translation. Layout
+  feel reads the same profile to build a target-to-known character map and identity input maps.
 - The index page places the shared input-layout trigger beside the top-level Settings control. Below
   the small-screen breakpoint, it keeps only the keyboard icon visible and exposes the full label
   in a tooltip on hover or keyboard focus.
@@ -123,7 +125,9 @@ application shortcuts pass through the emulator.
 
 Typing practice has one explicit exception to the saved thumb assignments: its optional Simulate
 thumb keys mode omits them from `inputKeyMap` and resolves Space against the target layout's thumb
-outputs using the next required lesson text. Other test surfaces always use the saved assignments.
+outputs using the next required lesson text. Layout feel has the same Simulate thumb keys switch;
+while enabled it remaps planned thumb keystrokes and, if Space is pressed, inserts the remapped
+feel label for the next planned thumb key. Other test surfaces always use the saved assignments.
 
 The optional `inputKeyMap` on `LayoutTestKeyMaps` is the adoption seam. Existing consumers continue
 to resolve `KeyboardEvent.code`; a consumer opts in by wrapping its ordinary target maps with
@@ -139,7 +143,9 @@ route- or feature-specific preference imports.
 - Catalog-backed modal: `src/lib/components/KeyboardInputConfigModal.svelte`
 - Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`
 - Consumers: `src/lib/components/LayoutTypingPractice.svelte`,
-  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/components/LayoutCard.svelte`
+  `src/lib/components/LayoutFeel.svelte`, `src/lib/components/LayoutExpandedView.svelte`,
+  `src/lib/components/LayoutCard.svelte`
+- Feel remap helpers: `src/lib/layoutFeel.ts` (`buildFeelCharMap`, `buildFeelInputKeyMaps`)
 - Pure coverage: `tests/keyboardInputConfig.test.ts`, `tests/layoutTestEmulator.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-input-layout.e2e.ts`
 
@@ -159,3 +165,5 @@ route- or feature-specific preference imports.
 - Draft changes do not affect typing until Save.
 - Catalog loading is modal-triggered and remains lazy on direct detail visits.
 - Consumers that have not opted in preserve their current `KeyboardEvent.code` behavior.
+- Layout feel must keep identity input maps. Compiling Feel through `withKeyboardInputConfig` would
+  live-resolve known keys into the practiced layout and break the remapped prompt.
