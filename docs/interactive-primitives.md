@@ -59,15 +59,18 @@ panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA r
 consistent as the panel content changes. A successful view import resets the import form, restores
 focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
 
-The layout detail page uses `Tabs` for its Typing practice, Layout test area, and Stats panels. Its
-canonical `tab` query parameter owns the selected value across direct links, reloads, clicks, and
-automatic keyboard activation; Typing practice is the fallback for missing or invalid values. The
-panels use layout-specific ids so their tab relationships remain unique for every route.
+The layout detail page uses `Tabs` for its Typing practice, Layout test area, Layout feel, and Stats
+panels. Its canonical `tab` query parameter owns the selected value across direct links, reloads,
+clicks, and automatic keyboard activation; Typing practice is the fallback for missing or invalid
+values. The panels use layout-specific ids so their tab relationships remain unique for every route.
+When help hints are on, Layout feel paints a decorative `?` on its tab and uses the tab’s `title`
+for the short explanation; do not put a focusable `Tooltip` button inside the tablist.
 
-Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. The trailing pencil
-opens the modal with the displayed lesson selected as the editable source; Cancel, the header close
-button, Escape, and backdrop dismissal restore focus to that pencil. Saving replaces the prompt via
-the route's shareable `text` query parameter.
+Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
+that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
+`special`. The trailing pencil opens the modal with the displayed lesson selected as the editable
+source; Cancel, the header close button, Escape, and backdrop dismissal restore focus to that
+pencil. Saving replaces the prompt via the route's shareable `text` query parameter.
 
 The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
 uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor

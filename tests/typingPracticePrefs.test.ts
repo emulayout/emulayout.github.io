@@ -11,6 +11,7 @@ describe('typing practice display preferences', () => {
 		expect(defaults.colorHomeKeys).toBe(true);
 		expect(defaults.underlineMagicGroups).toBe(true);
 		expect(defaults.simulateThumbKeys).toBe(false);
+		expect(defaults.ignoreWrongKeyPresses).toBe(true);
 		expect(parseTypingPracticeDisplayOptions(null)).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{')).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{"version":2,"options":{}}')).toEqual(defaults);

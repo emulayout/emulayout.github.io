@@ -24,7 +24,8 @@ These are product decisions. Preserve them unless a human explicitly revisits th
 
 Send only:
 
-- Coarse page classes (`/`, `/layouts`, `/layouts?tab=test`, `/layouts?tab=stats`).
+- Coarse page classes (`/`, `/layouts`, `/layouts?tab=test`, `/layouts?tab=feel`,
+  `/layouts?tab=stats`).
 - Fixed titles `Layouts index` and `Layout show` — never `document.title`, which includes layout
   names on show pages.
 - Cross-origin referrers only. Same-origin referrers (including a show URL with `text=` after the
@@ -72,6 +73,7 @@ the first paint does not double-count. The root layout calls `trackGoatCounterPa
 | `/` plus any index filter, display, view, or share query   | `/`                  |
 | `/layouts/<name>` or `?tab=practice` plus optional `text=` | `/layouts`           |
 | `/layouts/<name>?tab=test`                                 | `/layouts?tab=test`  |
+| `/layouts/<name>?tab=feel`                                 | `/layouts?tab=feel`  |
 | `/layouts/<name>?tab=stats`                                | `/layouts?tab=stats` |
 
 Index filter query churn and show-page `text=` must never become distinct pages. Individual layout
@@ -129,6 +131,16 @@ Practice settings are counted at toggle time in `uiPrefs.setTypingPracticeDispla
 bundle on complete. Do not add WPM, accuracy, custom-text flags that embed the text, or input-layout
 identity.
 
+### Layout feel
+
+| Event           | When                   |
+| --------------- | ---------------------- |
+| `feel-complete` | A feel lesson finishes |
+
+Layout feel currently reuses practice display options, so toggling those still emits
+`practice-setting-*` (including `practice-setting-ignore-wrong-key-presses`). Visiting Layout feel
+is a distinct pageview (`/layouts?tab=feel`).
+
 ## Adding a metric
 
 1. Confirm it is a feature-use question, not a value or identity question.
@@ -149,6 +161,7 @@ identity.
 - Filter and sort interactions: `src/lib/filterStore.svelte.ts` (`#trackFilter`, `#trackSort`)
 - Practice display toggles: `src/lib/uiPrefs.svelte.ts`
 - Practice complete: `src/lib/components/LayoutTypingPractice.svelte`
+- Feel complete: `src/lib/components/LayoutFeel.svelte`
 - Unit coverage: `tests/goatcounter.test.ts`
 
 ## Invariants

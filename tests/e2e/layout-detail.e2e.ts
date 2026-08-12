@@ -255,6 +255,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 
 	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
 	const testTab = page.getByRole('tab', { name: 'Layout test area' });
+	const feelTab = page.getByRole('tab', { name: 'Layout feel' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(practiceTab).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
@@ -382,6 +383,17 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(practiceInput).toHaveCount(0);
 
 	await testTab.press('ArrowRight');
+	await expect(feelTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=feel');
+	const feelPanel = page.getByRole('tabpanel', { name: 'Layout feel' });
+	await expect(feelPanel).toBeVisible();
+	const feelInput = page.getByLabel('Layout feel input');
+	await expect(feelInput).toBeVisible();
+	await expect(feelInput).toBeFocused();
+	await expect(testArea).toHaveCount(0);
+
+	await feelTab.focus();
+	await feelTab.press('ArrowRight');
 	await expect(statsTab).toBeFocused();
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
@@ -397,12 +409,12 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(
 		detailPage.getByRole('link', { name: 'More practice on Colemak Camp' })
 	).toBeVisible();
-	await expect(testArea).toHaveCount(0);
+	await expect(feelInput).toHaveCount(0);
 
 	await statsTab.press('ArrowLeft');
-	await expect(testTab).toBeFocused();
-	await expect(testTab).toHaveAttribute('aria-selected', 'true');
-	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');
+	await expect(feelTab).toHaveAttribute('aria-selected', 'true');
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=feel');
+	await expect(page.getByLabel('Layout feel input')).toBeFocused();
 
 	await page.getByRole('link', { name: 'All layouts' }).click();
 	await expect(
@@ -415,6 +427,7 @@ test('uses the detail tab query as the selected-section source of truth', async 
 
 	const practiceTab = page.getByRole('tab', { name: 'Typing practice' });
 	const testTab = page.getByRole('tab', { name: 'Layout test area' });
+	const feelTab = page.getByRole('tab', { name: 'Layout feel' });
 	const statsTab = page.getByRole('tab', { name: 'Stats' });
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=stats');
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
@@ -422,6 +435,10 @@ test('uses the detail tab query as the selected-section source of truth', async 
 
 	await page.reload();
 	await expect(statsTab).toHaveAttribute('aria-selected', 'true');
+
+	await feelTab.click();
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=feel');
+	await expect(feelTab).toHaveAttribute('aria-selected', 'true');
 
 	await testTab.click();
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=test');

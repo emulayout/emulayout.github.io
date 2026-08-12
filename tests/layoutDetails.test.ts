@@ -30,6 +30,9 @@ describe('per-layout detail data', () => {
 		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'test')).toBe(
 			'/layouts/Colemak-DH?tab=test'
 		);
+		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'feel')).toBe(
+			'/layouts/Colemak-DH?tab=feel'
+		);
 		expect(layoutDetailPageHref('/layouts/Colemak-DH', 'stats')).toBe(
 			'/layouts/Colemak-DH?tab=stats'
 		);
@@ -44,6 +47,7 @@ describe('per-layout detail data', () => {
 		expect(parseLayoutDetailSection('practice')).toBe('practice');
 		expect(parseLayoutDetailSection('stats')).toBe('stats');
 		expect(parseLayoutDetailSection('test')).toBe('test');
+		expect(parseLayoutDetailSection('feel')).toBe('feel');
 		expect(parseLayoutDetailSection('unknown')).toBe('practice');
 		expect(parseLayoutDetailSection(null)).toBe('practice');
 	});

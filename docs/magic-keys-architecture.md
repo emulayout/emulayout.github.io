@@ -232,7 +232,7 @@ emitted history and the page's shared disabled-mapping set:
 - when pressing the trigger would emit a value, the keycap displays that value;
 - when no rule or emitting fallback applies, the Magic symbol remains on the keycap;
 - turning the Layout test area preview off restores literal trigger characters and ordinary key
-  styling; Typing practice suppresses this feedback when Show special keys is off.
+  styling; Typing practice and Layout feel suppress this feedback when Show special keys is off.
 
 This is prospective state, not a second input resolver: the keyboard derives it with the same pure
 Magic resolver used by the emulator. The renderer accepts feature-neutral key feedback and combines
@@ -245,6 +245,11 @@ context and emitted target characters for every enabled rule that can replace pa
 For a trigger with repeat-last fallback, eligible adjacent doubled letters in the same word are
 marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
 set; it does not alter input resolution or the default prompt presentation.
+
+Layout feel plans those same Magic shortcuts into the remapped prompt and underlines the remapped
+keystroke spans. The prompt and next-key highlight keep the preferred Magic trigger. When Magic
+emits a single character, typing the remapped literal letter for that emit is also accepted;
+multi-character Magic emits stay preferred-only. Do not add Adaptive literal alternates.
 
 ## Analyzer boundaries
 
