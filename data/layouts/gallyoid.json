@@ -1,0 +1,21 @@
+{
+	"schema": 1,
+	"magicKeys": {
+		"mappings": {
+			"*": {
+				"rules": {
+					"b": "r",
+					"c": "s",
+					"n": "g",
+					"p": "h",
+					"q": "u",
+					"r": "l",
+					"s": "c",
+					"w": "s",
+					"y": "e"
+				},
+				"fallback": { "emit": "y" }
+			}
+		}
+	}
+}
