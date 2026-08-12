@@ -8,6 +8,7 @@
 		LayoutKeyboardKeyFeedback,
 		LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
+	import { isLayoutThumbKey, unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
 	import { isTypingPracticeHomeKeySlot } from '$lib/typingPracticeKeyboard';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
@@ -18,6 +19,8 @@
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
 		highlightedKeys?: readonly string[];
+		/** Practiced-layout characters with no physical mapping from the input keyboard. */
+		unreachableKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
 		horizontalAlignment?: 'start' | 'center';
 	}
@@ -60,6 +63,7 @@
 		feedback = EMPTY_FEEDBACK,
 		swapPaths = [],
 		highlightedKeys = [],
+		unreachableKeys = [],
 		highlightHomeKeys = false,
 		horizontalAlignment = 'center'
 	}: Props = $props();
@@ -70,6 +74,7 @@
 		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
 	);
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
+	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
 		const mainRowMaxColumn = Math.max(
 			9,
@@ -142,9 +147,24 @@
 		return highlightedKeySet.has(key.toLowerCase());
 	}
 
+	function isUnreachableKey(key: string): boolean {
+		return unreachableKeySet.has(key.toLowerCase());
+	}
+
 	function isHomeKey(key: PreviewKey): boolean {
 		const [row, column] = key.slot.split(',').map(Number);
 		return isTypingPracticeHomeKeySlot(row, column);
+	}
+
+	function keyTitle(
+		key: PreviewKey,
+		keyFeedback: LayoutKeyboardKeyFeedback | undefined
+	): string | undefined {
+		if (isUnreachableKey(key.char)) {
+			return unreachableLayoutKeyTitle({ isThumb: isLayoutThumbKey(layout, key.char) });
+		}
+		if (keyFeedback?.value) return `${key.char} emits ${keyFeedback.value}`;
+		return undefined;
 	}
 
 	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
@@ -240,6 +260,39 @@
 	{/if}
 {/snippet}
 
+{#snippet previewKey(
+	key: PreviewKey,
+	attrs: {
+		column?: number;
+		ansiThumb?: boolean;
+		style?: string;
+	} = {}
+)}
+	{@const keyFeedback = feedback.get(key.char)}
+	{@const unreachable = isUnreachableKey(key.char)}
+	<span
+		class="keyboard-preview__key"
+		class:keyboard-preview__key--ansi-thumb={Boolean(attrs.ansiThumb)}
+		class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+		class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
+		class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
+		class:keyboard-preview__key--next={isHighlightedKey(key.char)}
+		class:keyboard-preview__key--unreachable={unreachable}
+		data-key-char={key.char}
+		data-key-column={attrs.column}
+		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
+		data-key-feedback={keyFeedback?.kind}
+		data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
+		data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
+		data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
+		data-key-unreachable={unreachable ? 'true' : undefined}
+		title={keyTitle(key, keyFeedback)}
+		style={attrs.style}
+	>
+		{@render keyContent(key, keyFeedback)}
+	</span>
+{/snippet}
+
 <div
 	class="keyboard-preview"
 	role="img"
@@ -282,25 +335,7 @@
 						<div class="keyboard-preview__half keyboard-preview__half--left">
 							{#each row.leftSlots as slot (slot.column)}
 								{#if slot.key}
-									{@const keyFeedback = feedback.get(slot.key.char)}
-									<span
-										class="keyboard-preview__key"
-										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
-										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
-										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
-										data-key-char={slot.key.char}
-										data-key-column={slot.column}
-										data-key-feedback={keyFeedback?.kind}
-										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
-										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
-										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
-										title={keyFeedback?.value
-											? `${slot.key.char} emits ${keyFeedback.value}`
-											: undefined}
-									>
-										{@render keyContent(slot.key, keyFeedback)}
-									</span>
+									{@render previewKey(slot.key, { column: slot.column })}
 								{:else}
 									<span class="keyboard-preview__key-placeholder" data-key-column={slot.column}
 									></span>
@@ -310,25 +345,7 @@
 						<div class="keyboard-preview__half keyboard-preview__half--right">
 							{#each row.rightSlots as slot (slot.column)}
 								{#if slot.key}
-									{@const keyFeedback = feedback.get(slot.key.char)}
-									<span
-										class="keyboard-preview__key"
-										class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-										class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
-										class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(slot.key)}
-										class:keyboard-preview__key--next={isHighlightedKey(slot.key.char)}
-										data-key-char={slot.key.char}
-										data-key-column={slot.column}
-										data-key-feedback={keyFeedback?.kind}
-										data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
-										data-key-home={highlightHomeKeys && isHomeKey(slot.key) ? 'true' : undefined}
-										data-key-next={isHighlightedKey(slot.key.char) ? 'true' : undefined}
-										title={keyFeedback?.value
-											? `${slot.key.char} emits ${keyFeedback.value}`
-											: undefined}
-									>
-										{@render keyContent(slot.key, keyFeedback)}
-									</span>
+									{@render previewKey(slot.key, { column: slot.column })}
 								{:else}
 									<span class="keyboard-preview__key-placeholder" data-key-column={slot.column}
 									></span>
@@ -342,23 +359,11 @@
 						data-keyboard-row={row.rowNumber}
 					>
 						{#each row.ansiThumbKeys as thumb (thumb.key.slot)}
-							{@const keyFeedback = feedback.get(thumb.key.char)}
-							<span
-								class="keyboard-preview__key keyboard-preview__key--ansi-thumb"
-								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
-								class:keyboard-preview__key--next={isHighlightedKey(thumb.key.char)}
-								data-key-char={thumb.key.char}
-								data-thumb-column={thumb.column}
-								data-key-feedback={keyFeedback?.kind}
-								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
-								data-key-next={isHighlightedKey(thumb.key.char) ? 'true' : undefined}
-								title={keyFeedback?.value
-									? `${thumb.key.char} emits ${keyFeedback.value}`
-									: undefined}
-								style={`left: ${ansiThumbOffset(thumb.column)};`}
-								>{@render keyContent(thumb.key, keyFeedback)}</span
-							>
+							{@render previewKey(thumb.key, {
+								ansiThumb: true,
+								column: thumb.column,
+								style: `left: ${ansiThumbOffset(thumb.column)};`
+							})}
 						{/each}
 					</div>
 				{:else}
@@ -368,22 +373,7 @@
 						style={`--preview-row-offset: ${ansiRowOffset(row.rowNumber)};`}
 					>
 						{#each row.keys as key (key.slot)}
-							{@const keyFeedback = feedback.get(key.char)}
-							<span
-								class="keyboard-preview__key"
-								class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
-								class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
-								class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
-								class:keyboard-preview__key--next={isHighlightedKey(key.char)}
-								data-key-char={key.char}
-								data-key-feedback={keyFeedback?.kind}
-								data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
-								data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
-								data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
-								title={keyFeedback?.value ? `${key.char} emits ${keyFeedback.value}` : undefined}
-							>
-								{@render keyContent(key, keyFeedback)}
-							</span>
+							{@render previewKey(key)}
 						{/each}
 					</div>
 				{/if}
@@ -478,11 +468,6 @@
 		height: var(--preview-key-size);
 	}
 
-	.keyboard-preview__key--ansi-thumb {
-		position: absolute;
-		top: 0;
-	}
-
 	.keyboard-preview__key,
 	.keyboard-preview__key-placeholder {
 		width: var(--preview-key-size);
@@ -491,6 +476,7 @@
 	}
 
 	.keyboard-preview__key {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -511,6 +497,25 @@
 		font-weight: 600;
 		line-height: 1;
 		text-transform: none;
+	}
+
+	.keyboard-preview__key--ansi-thumb {
+		position: absolute;
+		top: 0;
+	}
+
+	.keyboard-preview__key--unreachable::after {
+		content: '';
+		position: absolute;
+		inset: 12%;
+		background: linear-gradient(
+			to top right,
+			transparent calc(50% - 0.09rem),
+			var(--typing-practice-incorrect) calc(50% - 0.09rem),
+			var(--typing-practice-incorrect) calc(50% + 0.09rem),
+			transparent calc(50% + 0.09rem)
+		);
+		pointer-events: none;
 	}
 
 	.keyboard-preview__magic-icon {

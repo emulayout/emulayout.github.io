@@ -121,8 +121,14 @@ small without weakening app-bar functionality.
   Ignore wrong key presses option discards keystrokes that would introduce an
   input error, and also blocks backspace, so neither appears in the feel field; it persists with the
   other display options. Turning Ignore wrong key presses on while the field already has an error
-  trims input back to the last correct prefix. Input-layout, anglemod, and Simulate thumb keys changes
-  re-plan an untouched lesson only; an in-progress lesson keeps its current remapping until restart.
+  trims input back to the last correct prefix. With Simulate thumb keys on, planned thumb keystrokes
+  other than space appear as `_` in the remapped prompt; Space inserts that marker, and the literal
+  remapped letter for that thumb slot does not count. With Simulate thumb keys off, a practiced-layout key that has no physical input-layout mapping
+  soft-locks in Feel and is excluded from random lessons on both Typing practice and Feel: the
+  remapped prompt still shows its label, but typing that letter does not satisfy it. Those keycaps
+  show a red slash with a hover hint; thumb keys also suggest Simulate thumb keys or assigning the
+  thumb in Input layout. Input-layout, anglemod, and Simulate thumb keys changes re-plan an
+  untouched lesson only; an in-progress lesson keeps its current remapping until restart.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
   editable physical key map from any known layout, choose staggered or ortho presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily

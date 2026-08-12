@@ -776,3 +776,31 @@ test('highlights both a direct key and Repeat when either can type the next lett
 	await expect(repeatKeyPreview).toHaveAttribute('data-key-next', 'true');
 	await expect(keyboardPreview.locator('[data-key-next="true"]')).toHaveCount(2);
 });
+
+test.describe('unreachable input-layout keys', () => {
+	test.use({ catalogVariant: 'full' });
+
+	test('marks night’s unassigned thumb and keeps it out of random lessons', async ({ page }) => {
+		await page.goto('/layouts/night');
+
+		const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+		const practiceWords = practicePanel.locator('[data-practice-word]');
+		await expect(practiceWords).toHaveCount(10);
+
+		const thumbKey = practicePanel
+			.getByRole('img', { name: 'night keyboard preview' })
+			.locator('[data-key-char="r"]');
+		await expect(thumbKey).toHaveAttribute('data-key-unreachable', 'true');
+		await expect(thumbKey).toHaveAttribute(
+			'title',
+			/No physical mapping from your input layout\. Words with this key are excluded from random lessons\./
+		);
+		await expect(thumbKey).toHaveAttribute('title', /Simulate thumb keys/);
+
+		const lessonText = (await practiceWords.allTextContents()).join(' ');
+		expect(lessonText).not.toMatch(/r/i);
+
+		await practicePanel.getByRole('switch', { name: 'Simulate thumb keys' }).check();
+		await expect(thumbKey).not.toHaveAttribute('data-key-unreachable', 'true');
+	});
+});

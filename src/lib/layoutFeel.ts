@@ -24,6 +24,9 @@ import {
 } from '$lib/typingPractice';
 import type { TypingPracticeAttemptCounts } from '$lib/typingPracticeMetrics';
 
+/** Prompt/input marker for a simulated thumb keystroke (Space produces this while Simulate thumb keys is on). */
+export const FEEL_SIMULATED_THUMB_MARKER = '_';
+
 export type FeelKeystroke = {
 	/** Physical key pressed on the practiced layout (base, shifted, Magic trigger, …). */
 	targetKey: string;
@@ -37,6 +40,12 @@ export type FeelKeystroke = {
 	 * preferred Magic trigger. Omitted for Adaptive and multi-character Magic emits.
 	 */
 	alternateFeel?: string;
+	/**
+	 * True when this keystroke has no physical mapping from the configured input layout (and is
+	 * not covered by Simulate thumb keys). The prompt still shows the label, but no typed
+	 * character can satisfy the preferred feel label.
+	 */
+	unreachable?: boolean;
 };
 
 export type FeelWordPlan = {
@@ -69,6 +78,36 @@ export function buildFeelCharMap(
 	}
 
 	return targetToKnown;
+}
+
+/**
+ * While Simulate thumb keys is on, planned thumb keystrokes show as `_` so Space — not the
+ * remapped letter on that slot — is the required press. Space itself stays a space character.
+ */
+export function withSimulatedThumbFeelMarkers(
+	targetToKnown: KeyMap,
+	thumbKeys: readonly string[]
+): KeyMap {
+	const next = { ...targetToKnown };
+	for (const thumb of thumbKeys) {
+		if (!thumb || thumb === ' ') continue;
+		next[thumb] = FEEL_SIMULATED_THUMB_MARKER;
+		const shifted = shiftedKeyCharacter(thumb);
+		if (shifted && shifted !== ' ') next[shifted] = FEEL_SIMULATED_THUMB_MARKER;
+	}
+	return next;
+}
+
+function keystrokeIsUnreachable(
+	targetKey: string,
+	unreachableKeys: ReadonlySet<string> | undefined
+): boolean {
+	if (!unreachableKeys || !targetKey || targetKey === ' ') return false;
+	return (
+		unreachableKeys.has(targetKey) ||
+		unreachableKeys.has(targetKey.toLowerCase()) ||
+		unreachableKeys.has(targetKey.toUpperCase())
+	);
 }
 
 /** Rewrite one source word into known-layout labels for the target layout's physical keys. */
@@ -161,8 +200,9 @@ function magicAlternateFeel(
 }
 
 function finalizeFeelKeystroke(
-	keystroke: Omit<FeelKeystroke, 'feel' | 'alternateFeel'>,
-	targetToKnown: KeyMap
+	keystroke: Omit<FeelKeystroke, 'feel' | 'alternateFeel' | 'unreachable'>,
+	targetToKnown: KeyMap,
+	unreachableKeys?: ReadonlySet<string>
 ): FeelKeystroke {
 	const feel = feelLabelForTargetKey(keystroke.targetKey, targetToKnown);
 	const alternateFeel = magicAlternateFeel(
@@ -171,14 +211,19 @@ function finalizeFeelKeystroke(
 		feel,
 		targetToKnown
 	);
-	return alternateFeel === undefined
-		? { ...keystroke, feel }
-		: { ...keystroke, feel, alternateFeel };
+	const unreachable = keystrokeIsUnreachable(keystroke.targetKey, unreachableKeys);
+	return {
+		...keystroke,
+		feel,
+		...(alternateFeel === undefined ? {} : { alternateFeel }),
+		...(unreachable ? { unreachable: true } : {})
+	};
 }
 
 /** Whether a typed feel character matches the preferred keystroke or its Magic literal alternate. */
 export function feelKeystrokeAccepts(keystroke: FeelKeystroke, typedCharacter: string): boolean {
-	return typedCharacter === keystroke.feel || typedCharacter === keystroke.alternateFeel;
+	if (typedCharacter === keystroke.feel) return !keystroke.unreachable;
+	return typedCharacter === keystroke.alternateFeel;
 }
 
 /** Length of the leading feel input that matches the plan, allowing Magic literal alternates. */
@@ -220,7 +265,8 @@ export function planFeelWord(
 	availableKeys: readonly string[],
 	profile: LayoutInputProfile | undefined,
 	disabledMappingIds: readonly string[],
-	targetToKnown: KeyMap
+	targetToKnown: KeyMap,
+	unreachableKeys?: ReadonlySet<string>
 ): FeelWordPlan {
 	const disabledMappings = new Set(disabledMappingIds);
 	const keystrokes: FeelKeystroke[] = [];
@@ -235,7 +281,7 @@ export function planFeelWord(
 				return character
 					? ({ targetKey: character, emitted: character, applied: [] } satisfies Omit<
 							FeelKeystroke,
-							'feel' | 'alternateFeel'
+							'feel' | 'alternateFeel' | 'unreachable'
 						>)
 					: null;
 			})();
@@ -250,7 +296,8 @@ export function planFeelWord(
 					emitted,
 					applied: resolved.applied
 				},
-				targetToKnown
+				targetToKnown,
+				unreachableKeys
 			)
 		);
 		history = resolved.nextHistory;
@@ -277,10 +324,11 @@ export function planFeelWords(
 	availableKeys: readonly string[],
 	profile: LayoutInputProfile | undefined,
 	disabledMappingIds: readonly string[],
-	targetToKnown: KeyMap
+	targetToKnown: KeyMap,
+	unreachableKeys?: ReadonlySet<string>
 ): FeelWordPlan[] {
 	return sourceWords.map((word) =>
-		planFeelWord(word, availableKeys, profile, disabledMappingIds, targetToKnown)
+		planFeelWord(word, availableKeys, profile, disabledMappingIds, targetToKnown, unreachableKeys)
 	);
 }
 

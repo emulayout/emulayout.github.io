@@ -126,8 +126,14 @@ application shortcuts pass through the emulator.
 Typing practice has one explicit exception to the saved thumb assignments: its optional Simulate
 thumb keys mode omits them from `inputKeyMap` and resolves Space against the target layout's thumb
 outputs using the next required lesson text. Layout feel has the same Simulate thumb keys switch;
-while enabled it remaps planned thumb keystrokes and, if Space is pressed, inserts the remapped
-feel label for the next planned thumb key. Other test surfaces always use the saved assignments.
+while enabled, planned thumb keystrokes (except space) show as `_` in the remapped prompt, and Space
+inserts that marker for the next planned thumb key. Literal remapped letters for those thumb slots
+are not accepted. With Simulate off, Feel soft-locks any practiced-layout character that has no
+configured input-layout mapping, and both Typing practice and Feel exclude those characters from
+random lessons. Unmapped keycaps show a red slash and a hover hint (thumbs also recommend Simulate
+thumb keys). Other test surfaces always use the saved assignments.
+
+Shared reachability helpers live in `src/lib/layoutKeyReachability.ts`.
 
 The optional `inputKeyMap` on `LayoutTestKeyMaps` is the adoption seam. Existing consumers continue
 to resolve `KeyboardEvent.code`; a consumer opts in by wrapping its ordinary target maps with
@@ -146,6 +152,7 @@ route- or feature-specific preference imports.
   `src/lib/components/LayoutFeel.svelte`, `src/lib/components/LayoutExpandedView.svelte`,
   `src/lib/components/LayoutCard.svelte`
 - Feel remap helpers: `src/lib/layoutFeel.ts` (`buildFeelCharMap`, `buildFeelInputKeyMaps`)
+- Input reachability and random-word filtering: `src/lib/layoutKeyReachability.ts`
 - Pure coverage: `tests/keyboardInputConfig.test.ts`, `tests/layoutTestEmulator.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-input-layout.e2e.ts`
 

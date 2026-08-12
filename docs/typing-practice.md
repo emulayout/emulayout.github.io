@@ -10,6 +10,10 @@ and calculation logic outside the renderer.
 - `Typing practice` is the first and default layout-detail tab.
 - Without custom text, each new lesson samples ten distinct words from the vendored English 1k
   list. The first remaining word is the active target.
+  Random lessons also skip words that need a practiced-layout character with no physical mapping
+  from the configured input keyboard (for example an unassigned thumb). Keys without a mapping
+  show a red slash on the practice keyboard; hovering explains the exclusion, and thumb keys add a
+  Simulate thumb keys suggestion. Custom `text` lessons are not filtered.
 - The shareable `text` query parameter replaces the random lesson with its normalized,
   whitespace-separated words. Duplicate words are retained. Escape resets a custom lesson to the
   same text; it does not select random words. The custom text remains in the URL while switching
@@ -62,6 +66,9 @@ and calculation logic outside the renderer.
   used as a Magic or Repeat key. Space remains a word separator when the current word is complete,
   and saved input-layout thumb assignments are ignored. Its help trigger remains available even
   when global help hints are hidden because the interaction changes the meaning of Space.
+  Layout feel reuses the same switch: non-space thumb keystrokes appear as `_` in the remapped
+  prompt, and Space inserts that marker instead of accepting the remapped letter on the thumb slot.
+  Simulate also clears the unreachable-thumb slash and lets those letters back into random lessons.
 - The keyboard is centered in its primary column together with its shared-switch options. The
   options stay left aligned to the keyboard inside that shared wrapper, in an unboxed responsive
   grid directly below it. Equal-width columns collapse from several columns to one as the keyboard
@@ -187,13 +194,15 @@ The successful-space path is intentionally ordered:
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
 - Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,
   `src/lib/components/LayoutFeel.svelte`
+- Input-layout reachability, unreachable key titles, and random-word filtering:
+  `src/lib/layoutKeyReachability.ts`
 - Shared responsive keyboard, options, and mappings workspace:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutFeel.test.ts`,
-  `tests/layoutTestAreaPrefs.test.ts`
+  `tests/layoutKeyReachability.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-typing-practice.e2e.ts`,
   `tests/e2e/layout-detail-keyboard-preview.e2e.ts`, `tests/e2e/layout-detail-feel.e2e.ts`
 

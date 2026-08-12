@@ -18,6 +18,11 @@
 		filterAdaptiveKeyboardFeedbackByKeys
 	} from '$lib/layoutKeyboardFeedback';
 	import { withKeyboardInputConfig, type LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
+	import {
+		collectReachableTargetCharacters,
+		typingPracticeWordsForReachability,
+		unreachableTargetLayoutKeys
+	} from '$lib/layoutKeyReachability';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		calculateTypingPracticeResults,
@@ -84,6 +89,17 @@
 
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
+	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
+	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
+	const reachableTargetCharacters = $derived(
+		collectReachableTargetCharacters(keyMaps, layout, keyboardInputStore.config, {
+			simulateThumbKeys
+		})
+	);
+	const unreachableKeys = $derived([
+		...unreachableTargetLayoutKeys(layout, reachableTargetCharacters)
+	]);
+	const unreachableKeySet = $derived(new Set(unreachableKeys));
 
 	function createPracticeSession(excludedWords: readonly string[] = []) {
 		if (customPracticeText) {
@@ -91,7 +107,7 @@
 		}
 		return createTypingPracticeSession(
 			selectTypingPracticeLessonWords({
-				words: wordPool,
+				words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
 				count: PRACTICE_WORD_COUNT,
 				specialWordsPercent,
 				profile: inputProfile,
@@ -112,7 +128,6 @@
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
 
-	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
@@ -129,7 +144,6 @@
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
 	const hasMagicGroupPreview = $derived(Boolean(inputProfile?.magicKeys));
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
-	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
 	const practiceKeyMaps = $derived(
 		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config, {
 			includeThumbKeys: !simulateThumbKeys
@@ -259,6 +273,16 @@
 		if (customPracticeText || specialWordsPercent <= 0) return;
 		void specialCandidateWords;
 		if (untrack(() => startedAtMilliseconds) !== null) return;
+		setPracticeSession(untrack(() => createPracticeSession()));
+	});
+
+	$effect(() => {
+		// Input-layout / Simulate thumb changes refresh an untouched random lesson so
+		// unreachable letters stay out of the word pool. In-progress lessons wait for restart.
+		if (customPracticeText) return;
+		void unreachableKeySet;
+		if (untrack(() => startedAtMilliseconds) !== null) return;
+		if (untrack(() => wordPool).length === 0) return;
 		setPracticeSession(untrack(() => createPracticeSession()));
 	});
 
@@ -460,6 +484,7 @@
 		feedback={keyboardFeedback}
 		swapPaths={keyboardSwapPaths}
 		highlightedKeys={nextPracticeKeys}
+		{unreachableKeys}
 		highlightHomeKeys={displayOptions.colorHomeKeys}
 		{inputProfile}
 		{disabledMappingIds}

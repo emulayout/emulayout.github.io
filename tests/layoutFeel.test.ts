@@ -18,12 +18,15 @@ import {
 	feelHighlightKeys,
 	feelNextTargetKeys,
 	feelSourceCorrectCharacterCount,
+	FEEL_SIMULATED_THUMB_MARKER,
+	feelKeystrokeAccepts,
 	hasFeelInputError,
 	isFeelWordComplete,
 	planFeelWord,
 	shouldIgnoreFeelWrongKeyPress,
 	translateFeelWord,
-	translateFeelWords
+	translateFeelWords,
+	withSimulatedThumbFeelMarkers
 } from '$lib/layoutFeel';
 import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
 import { compileLayoutInputProfile } from '$lib/layoutInputBehaviors';
@@ -148,6 +151,44 @@ describe('layout feel translation', () => {
 	test('leaves unmapped characters intact', () => {
 		const feelMap = { h: 'm', e: 'k' };
 		expect(translateFeelWord('he!', feelMap)).toBe('mk!');
+	});
+
+	test('marks simulated thumb keystrokes as underscores while leaving space alone', () => {
+		const marked = withSimulatedThumbFeelMarkers({ r: 't', e: 'k', ' ': ' ' }, ['r', ' ']);
+		expect(marked.r).toBe(FEEL_SIMULATED_THUMB_MARKER);
+		expect(marked[' ']).toBe(' ');
+		expect(marked.e).toBe('k');
+
+		const plan = planFeelWord('rare', ['r', 'a', 'r', 'e'], undefined, [], marked);
+		expect(plan.keystrokes.map((step) => step.feel)).toEqual([
+			FEEL_SIMULATED_THUMB_MARKER,
+			'a',
+			FEEL_SIMULATED_THUMB_MARKER,
+			'k'
+		]);
+		expect(plan.feelWord).toBe(`${FEEL_SIMULATED_THUMB_MARKER}a${FEEL_SIMULATED_THUMB_MARKER}k`);
+		expect(isFeelWordComplete(plan, plan.feelWord)).toBe(true);
+		expect(hasFeelInputError(plan, 'rare')).toBe(true);
+	});
+
+	test('soft-locks unassigned thumb keystrokes so the base-layout letter does not count', () => {
+		const unreachable = new Set(['r']);
+		const plan = planFeelWord('rare', ['r', 'a', 'r', 'e'], undefined, [], {}, unreachable);
+
+		expect(plan.keystrokes[0]?.unreachable).toBe(true);
+		expect(plan.keystrokes[0]?.feel).toBe('r');
+		expect(feelKeystrokeAccepts(plan.keystrokes[0]!, 'r')).toBe(false);
+		expect(hasFeelInputError(plan, 'r')).toBe(true);
+		expect(isFeelWordComplete(plan, 'rare')).toBe(false);
+
+		expect(plan.keystrokes[1]?.unreachable).toBeUndefined();
+		expect(feelKeystrokeAccepts(plan.keystrokes[1]!, 'a')).toBe(true);
+	});
+
+	test('keeps assigned thumb keystrokes reachable', () => {
+		const plan = planFeelWord('ra', ['r', 'a'], undefined, [], { r: ';', a: 'a' }, new Set());
+		expect(plan.keystrokes[0]?.unreachable).toBeUndefined();
+		expect(feelKeystrokeAccepts(plan.keystrokes[0]!, ';')).toBe(true);
 	});
 
 	test('builds identity input maps so typed known labels match the remapped prompt', () => {

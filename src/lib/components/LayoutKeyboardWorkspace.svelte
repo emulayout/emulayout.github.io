@@ -18,6 +18,7 @@
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
 		highlightedKeys?: readonly string[];
+		unreachableKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
@@ -34,6 +35,7 @@
 		feedback,
 		swapPaths = [],
 		highlightedKeys = [],
+		unreachableKeys = [],
 		highlightHomeKeys = false,
 		inputProfile,
 		disabledMappingIds = [],
@@ -122,6 +124,7 @@
 						{feedback}
 						{swapPaths}
 						{highlightedKeys}
+						{unreachableKeys}
 						{highlightHomeKeys}
 						horizontalAlignment="start"
 					/>

@@ -25,13 +25,20 @@
 		feelCorrectPrefixLength,
 		feelCorrectInputPrefix,
 		feelSourceCorrectCharacterCount,
+		FEEL_SIMULATED_THUMB_MARKER,
 		hasFeelInputError,
 		isFeelWordComplete,
 		planFeelWords,
 		shouldIgnoreFeelWrongKeyPress,
 		updateFeelPracticeInput,
+		withSimulatedThumbFeelMarkers,
 		type FeelWordPlan
 	} from '$lib/layoutFeel';
+	import {
+		collectReachableTargetCharacters,
+		typingPracticeWordsForReachability,
+		unreachableTargetLayoutKeys
+	} from '$lib/layoutKeyReachability';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		calculateTypingPracticeResults,
@@ -116,11 +123,25 @@
 	const hasMagicGroupPreview = $derived(Boolean(inputProfile?.magicKeys));
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
 	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
-	const feelCharMap = $derived(
-		buildFeelCharMap(keyMaps, keyboardInputStore.config, layout, {
-			includeThumbKeys: !simulateThumbKeys
+	const thumbKeys = $derived([
+		...layout.thumbKeysByHand.l.map(({ key }) => key),
+		...layout.thumbKeysByHand.r.map(({ key }) => key)
+	]);
+	const reachableTargetCharacters = $derived(
+		collectReachableTargetCharacters(keyMaps, layout, keyboardInputStore.config, {
+			simulateThumbKeys
 		})
 	);
+	const unreachableKeys = $derived([
+		...unreachableTargetLayoutKeys(layout, reachableTargetCharacters)
+	]);
+	const unreachableKeySet = $derived(new Set(unreachableKeys));
+	const feelCharMap = $derived.by(() => {
+		const map = buildFeelCharMap(keyMaps, keyboardInputStore.config, layout, {
+			includeThumbKeys: !simulateThumbKeys
+		});
+		return simulateThumbKeys ? withSimulatedThumbFeelMarkers(map, thumbKeys) : map;
+	});
 	const practiceKeyMaps = $derived(
 		buildFeelInputKeyMaps(keyMaps, keyboardInputStore.config, {
 			includeThumbKeys: !simulateThumbKeys
@@ -136,10 +157,6 @@
 		}
 		return keys;
 	});
-	const thumbKeys = $derived([
-		...layout.thumbKeysByHand.l.map(({ key }) => key),
-		...layout.thumbKeysByHand.r.map(({ key }) => key)
-	]);
 	const remainingPlans = $derived(lessonPlans.slice(session.completedWordCount));
 	const activePlan = $derived(remainingPlans[0]);
 	const prompt = $derived(buildFeelPrompt(session, remainingPlans));
@@ -224,7 +241,7 @@
 			return typingPracticeWordsFromText(customPracticeText);
 		}
 		return selectTypingPracticeLessonWords({
-			words: wordPool,
+			words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
 			count: PRACTICE_WORD_COUNT,
 			specialWordsPercent,
 			profile: inputProfile,
@@ -242,7 +259,8 @@
 			availableTargetKeys,
 			inputProfile,
 			disabledMappingIds,
-			targetToKnown
+			targetToKnown,
+			unreachableKeySet
 		);
 	}
 
@@ -298,6 +316,16 @@
 		const sources = untrack(() => sourceLessonWords);
 		if (sources.length === 0) return;
 		applyFeelTranslation(sources, targetToKnown);
+	});
+
+	$effect(() => {
+		// Input-layout / Simulate thumb changes refresh an untouched random lesson so
+		// unreachable letters stay out of the word pool. In-progress lessons wait for restart.
+		if (customPracticeText) return;
+		void unreachableKeySet;
+		if (untrack(() => startedAtMilliseconds) !== null) return;
+		if (untrack(() => wordPool).length === 0) return;
+		setPracticeSession(untrack(() => selectSourceLessonWords(untrack(() => sourceLessonWords))));
 	});
 
 	$effect(() => {
@@ -463,8 +491,11 @@
 						thumb === next.targetKey || thumb.toLowerCase() === next.targetKey.toLowerCase()
 				)
 			) {
-				const feelCharacter = feelCharMap[next.targetKey] ?? next.targetKey;
-				return { text: feelCharacter, nextHistory: '', applied: [] };
+				return {
+					text: next.feel || (next.targetKey === ' ' ? ' ' : FEEL_SIMULATED_THUMB_MARKER),
+					nextHistory: '',
+					applied: []
+				};
 			}
 		}
 		return { text: inputText, nextHistory: '', applied: [] };
@@ -610,6 +641,7 @@
 		feedback={keyboardFeedback}
 		swapPaths={keyboardSwapPaths}
 		highlightedKeys={nextPracticeKeys}
+		{unreachableKeys}
 		highlightHomeKeys={displayOptions.colorHomeKeys}
 		{inputProfile}
 		{disabledMappingIds}
@@ -642,7 +674,7 @@
 					/>
 					<Tooltip
 						alwaysVisible
-						text="When enabled, Space simulates whichever thumb key produces the next required character, including Magic or Repeat. Between words, it types a normal space. Configured thumb mappings are ignored."
+						text="When enabled, thumb letters in the remapped prompt become _. Space types that marker for the next thumb keystroke, including Magic or Repeat. Between words, Space is a normal word separator. Configured thumb mappings are ignored."
 					/>
 				</div>
 			{/if}
