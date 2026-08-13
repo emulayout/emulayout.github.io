@@ -79,6 +79,102 @@ export function thumbTargetColumns(hand: 'left' | 'right', count: number): numbe
 	return Array.from({ length: count }, (_, i) => start + i);
 }
 
+function parseDisplaySlot(slot: string): { row: number; col: number } | null {
+	const match = /^(\d+),(\d+)$/.exec(slot);
+	if (!match) return null;
+	return { row: Number(match[1]), col: Number(match[2]) };
+}
+
+function thumbHandForSlot(
+	layout: {
+		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
+		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
+	},
+	row: number,
+	col: number,
+	char: string
+): 'l' | 'r' | undefined {
+	const unique = layout.keys?.[char];
+	if (unique && unique.row === row && unique.col === col) return unique.thumbHand;
+	if (row < THUMB_ROW || !layout.thumbKeysByHand) return undefined;
+	const lower = char.toLowerCase();
+	if (layout.thumbKeysByHand.l.some((entry) => entry.col === col && entry.key === lower)) {
+		return 'l';
+	}
+	if (layout.thumbKeysByHand.r.some((entry) => entry.col === col && entry.key === lower)) {
+		return 'r';
+	}
+	return undefined;
+}
+
+function displayEntriesByRow(layout: {
+	keys?: Record<string, DisplayKeyInfo | KeyInfo>;
+	positionBySlot?: Map<string, string>;
+	thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
+}): Record<number, DisplayKeyEntry[]> {
+	const rows: Record<number, DisplayKeyEntry[]> = {};
+	const add = (key: string, info: DisplayKeyInfo) => {
+		if (typeof info.row !== 'number' || typeof info.col !== 'number') return;
+		if (!rows[info.row]) rows[info.row] = [];
+		rows[info.row].push({
+			key,
+			col: info.col,
+			thumbHand: info.thumbHand,
+			finger: 'finger' in info ? info.finger : undefined
+		});
+	};
+
+	if (layout.positionBySlot && layout.positionBySlot.size > 0) {
+		for (const [slot, char] of layout.positionBySlot) {
+			const parsed = parseDisplaySlot(slot);
+			if (!parsed) continue;
+			const unique = layout.keys?.[char];
+			const matchesUnique = Boolean(
+				unique && unique.row === parsed.row && unique.col === parsed.col
+			);
+			add(char, {
+				row: parsed.row,
+				col: parsed.col,
+				thumbHand: thumbHandForSlot(layout, parsed.row, parsed.col, char),
+				finger:
+					matchesUnique && unique && 'finger' in unique
+						? (unique.finger as string | undefined)
+						: undefined
+			});
+		}
+		return rows;
+	}
+
+	if (!layout.keys || typeof layout.keys !== 'object') return rows;
+	for (const [key, info] of Object.entries(layout.keys)) {
+		if (!info) continue;
+		add(key, info);
+	}
+	return rows;
+}
+
+/**
+ * Widest main-grid column, including duplicate letters that share a character.
+ * Ortho previews use this so extra keys extend the right half instead of collapsing.
+ */
+export function layoutMainRowMaxColumn(layout: {
+	keys?: Record<string, { row: number; col: number }>;
+	positionBySlot?: Map<string, string>;
+}): number {
+	let max = 9;
+	if (layout.positionBySlot && layout.positionBySlot.size > 0) {
+		for (const slot of layout.positionBySlot.keys()) {
+			const parsed = parseDisplaySlot(slot);
+			if (parsed && parsed.row < THUMB_ROW) max = Math.max(max, parsed.col);
+		}
+		return max;
+	}
+	for (const info of Object.values(layout.keys ?? {})) {
+		if (info.row < THUMB_ROW) max = Math.max(max, info.col);
+	}
+	return max;
+}
+
 function cell(char: string, slot: string | null = null): DisplayCell {
 	return { char, slot };
 }
@@ -159,24 +255,14 @@ export function computeDisplayRows(
 	layout: {
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
 		board?: BoardType | string;
+		positionBySlot?: Map<string, string>;
+		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
 	},
 	splitCol = SPLIT_COL
 ): DisplayCell[][] {
-	if (!layout.keys || typeof layout.keys !== 'object') {
+	const rows = displayEntriesByRow(layout);
+	if (Object.keys(rows).length === 0) {
 		return [];
-	}
-
-	/** @type {Record<number, DisplayKeyEntry[]>} */
-	const rows: Record<number, DisplayKeyEntry[]> = {};
-	for (const [key, info] of Object.entries(layout.keys)) {
-		if (!info || typeof info.row !== 'number' || typeof info.col !== 'number') continue;
-		if (!rows[info.row]) rows[info.row] = [];
-		rows[info.row].push({
-			key,
-			col: info.col,
-			thumbHand: info.thumbHand,
-			finger: 'finger' in info ? (info.finger as string | undefined) : undefined
-		});
 	}
 
 	const isAnsiDisplay = layout.board === 'stagger' || layout.board === 'angle';
@@ -249,6 +335,8 @@ export function computeDisplayValue(
 	layout: {
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
 		board?: BoardType | string;
+		positionBySlot?: Map<string, string>;
+		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
 	},
 	splitCol = SPLIT_COL
 ): string {

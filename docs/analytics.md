@@ -11,7 +11,7 @@ popularity study.
 - GoatCounter is the only analytics vendor. Do not add a second tracker, tag manager, or advertising
   pixel.
 - Metrics answer “which features are used?”, not “who is this person?” and not “what did they type?”
-- Pageviews count index vs show vs show-tab visits. Events count feature interactions.
+- Pageviews count index vs show vs show-tab vs creator visits. Events count feature interactions.
 - GoatCounter event names are the metric. There are no custom dimensions or property bags. Keep the
   name set small and stable.
 - GoatCounter sessions dedupe the same path or event name by default. Treat events as “used this
@@ -25,9 +25,9 @@ These are product decisions. Preserve them unless a human explicitly revisits th
 Send only:
 
 - Coarse page classes (`/`, `/layouts`, `/layouts?tab=test`, `/layouts?tab=feel`,
-  `/layouts?tab=stats`).
-- Fixed titles `Layouts index` and `Layout show` — never `document.title`, which includes layout
-  names on show pages.
+  `/layouts?tab=stats`, `/create`).
+- Fixed titles `Layouts index`, `Layout show`, and `Layout creator` — never `document.title`, which
+  includes layout names on show pages.
 - Cross-origin referrers only. Same-origin referrers (including a show URL with `text=` after the
   home-link full reload) are dropped.
 - Feature identifiers for controls the user touched (`filter-name`, `sort-sfb`, `compare`,
@@ -40,6 +40,7 @@ Never send:
   workload rankings, similarity percents).
 - Typing-practice lesson text, WPM, accuracy, timings, or per-keystroke data.
 - Configured input-layout names or key maps.
+- Creator draft names, key maps, or saved-creation identities.
 - Saved-view names, share-URL payloads, or clipboard contents.
 - Free-text of any kind.
 
@@ -75,14 +76,16 @@ the first paint does not double-count. The root layout calls `trackGoatCounterPa
 | `/layouts/<name>?tab=test`                                 | `/layouts?tab=test`  |
 | `/layouts/<name>?tab=feel`                                 | `/layouts?tab=feel`  |
 | `/layouts/<name>?tab=stats`                                | `/layouts?tab=stats` |
+| `/create` plus any future creator query                    | `/create`            |
 
 Index filter query churn and show-page `text=` must never become distinct pages. Individual layout
 names are omitted so index vs show vs tab totals stay readable. Do not put layout names back into
 pageview paths without an explicit product decision; that list would bury the visit totals this
-instrumentation exists to provide.
+instrumentation exists to provide. Creator draft names and key maps stay off the counted path for
+the same reason.
 
-Pageview titles are `Layouts index` or `Layout show` according to that sanitized path, not the
-document title.
+Pageview titles are `Layouts index`, `Layout show`, or `Layout creator` according to that sanitized
+path, not the document title.
 
 Navigations that sanitize to the same path are skipped (index filter tweaks, detail-to-detail
 layout changes on the same tab, practice-text edits).
@@ -171,6 +174,7 @@ is a distinct pageview (`/layouts?tab=feel`).
 - Hits must not include `q`, layout-name titles, or same-origin referrers.
 - Show-page pageviews stay on `/layouts` plus an optional non-default `tab`.
 - Index pageviews stay on `/` regardless of filter or share query state.
+- Creator pageviews stay on `/create`. Do not put draft names or key maps on that path.
 - Restoring state from the URL or a saved/shared view must not look like the user operated each
   restored filter.
 - Typing-practice keystroke analytics described as a possible future in

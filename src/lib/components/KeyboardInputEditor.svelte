@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
+	import { SPLIT_COL } from '$lib/cmini/keyboard';
 	import {
 		isKeyboardInputHomeKeySlot,
 		keyboardInputPlaceholderValue,
@@ -16,11 +17,21 @@
 		config: KeyboardInputConfig;
 		invalidSlots?: readonly string[];
 		onConfigChange: (config: KeyboardInputConfig) => void;
+		/** When false, empty keys stay blank instead of showing QWERTY fallbacks. */
+		showPlaceholders?: boolean;
+		ariaLabel?: string;
 	}
 
-	let { config, invalidSlots = [], onConfigChange }: Props = $props();
+	let {
+		config,
+		invalidSlots = [],
+		onConfigChange,
+		showPlaceholders = true,
+		ariaLabel = 'Input keyboard mapping'
+	}: Props = $props();
 	const rows = $derived(keyboardInputRows(config));
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
+	const orthoGeometry = $derived(config.keyboardType === 'ortho');
 
 	function registerInput(node: HTMLInputElement, slot: string) {
 		inputBySlot.set(slot, node);
@@ -81,18 +92,21 @@
 		setKey(key.slot, field.value, Boolean(field.value));
 	}
 
-	function startsRightHandGap(keys: readonly KeyboardInputKey[], index: number): boolean {
-		if (index === 0) return false;
-		const current = keys[index];
-		const previous = keys[index - 1];
-		const currentPosition = parseKeyboardInputSlot(current.slot);
-		const previousPosition = parseKeyboardInputSlot(previous.slot);
-		if (!currentPosition || !previousPosition) return false;
-		if (currentPosition.row >= 3) {
-			return current.thumbHand === 'r' && previous.thumbHand !== 'r';
+	function orthoHalves(keys: readonly KeyboardInputKey[], row: number) {
+		if (row >= 3) {
+			return {
+				left: keys.filter((key) => key.thumbHand !== 'r'),
+				right: keys.filter((key) => key.thumbHand === 'r')
+			};
 		}
-		if (config.keyboardType === 'staggered') return false;
-		return currentPosition.column >= 5 && previousPosition.column < 5;
+		const left: KeyboardInputKey[] = [];
+		const right: KeyboardInputKey[] = [];
+		for (const key of keys) {
+			const position = parseKeyboardInputSlot(key.slot);
+			if (position && position.column >= SPLIT_COL) right.push(key);
+			else left.push(key);
+		}
+		return { left, right };
 	}
 
 	function isHomeKey(key: KeyboardInputKey): boolean {
@@ -105,44 +119,64 @@
 	}
 </script>
 
-<div class="keyboard-input-editor" aria-label="Input keyboard mapping">
+{#snippet keyField(key: KeyboardInputKey, rowNumber: number, keyIndex: number)}
+	<input
+		use:registerInput={key.slot}
+		type="text"
+		value={key.value}
+		placeholder={showPlaceholders && !key.inert ? keyboardInputPlaceholderValue(key.slot) : ''}
+		aria-label={keyLabel(rowNumber, keyIndex)}
+		aria-invalid={invalidSlots.includes(key.slot) || undefined}
+		data-keyboard-input-slot={key.slot}
+		data-keyboard-input-inert={key.inert ? 'true' : undefined}
+		class:keyboard-input-editor__key--home={isHomeKey(key)}
+		class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
+		autocomplete="off"
+		autocapitalize="off"
+		autocorrect="off"
+		spellcheck="false"
+		onkeydown={(event) => handleKeyDown(event, key)}
+		oninput={(event) => handleInput(event, key)}
+		onfocus={(event) => event.currentTarget.select()}
+		onclick={(event) => event.currentTarget.select()}
+	/>
+{/snippet}
+
+<div class="keyboard-input-editor" role="group" aria-label={ariaLabel}>
 	<div class="keyboard-input-editor__rows" data-keyboard-type={config.keyboardType}>
 		{#each rows as row (row.row)}
-			<div
-				class="keyboard-input-editor__row"
-				class:keyboard-input-editor__row--thumbs={row.row >= 3}
-				class:keyboard-input-editor__row--stagger-home={config.keyboardType === 'staggered' &&
-					row.row === 1}
-				class:keyboard-input-editor__row--stagger-bottom={config.keyboardType === 'staggered' &&
-					row.row === 2}
-				data-keyboard-input-row={row.row}
-			>
-				{#each row.keys as key, keyIndex (key.slot)}
-					{#if startsRightHandGap(row.keys, keyIndex)}
-						<span class="keyboard-input-editor__hand-gap" aria-hidden="true"></span>
-					{/if}
-					<input
-						use:registerInput={key.slot}
-						type="text"
-						value={key.value}
-						placeholder={key.inert ? '' : keyboardInputPlaceholderValue(key.slot)}
-						aria-label={keyLabel(row.row, keyIndex)}
-						aria-invalid={invalidSlots.includes(key.slot) || undefined}
-						data-keyboard-input-slot={key.slot}
-						data-keyboard-input-inert={key.inert ? 'true' : undefined}
-						class:keyboard-input-editor__key--home={isHomeKey(key)}
-						class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
-						autocomplete="off"
-						autocapitalize="off"
-						autocorrect="off"
-						spellcheck="false"
-						onkeydown={(event) => handleKeyDown(event, key)}
-						oninput={(event) => handleInput(event, key)}
-						onfocus={(event) => event.currentTarget.select()}
-						onclick={(event) => event.currentTarget.select()}
-					/>
-				{/each}
-			</div>
+			{#if orthoGeometry}
+				{@const halves = orthoHalves(row.keys, row.row)}
+				<div
+					class="keyboard-input-editor__row keyboard-input-editor__row--ortho"
+					class:keyboard-input-editor__row--thumbs={row.row >= 3}
+					data-keyboard-input-row={row.row}
+				>
+					<div class="keyboard-input-editor__half keyboard-input-editor__half--left">
+						{#each halves.left as key, keyIndex (key.slot)}
+							{@render keyField(key, row.row, keyIndex)}
+						{/each}
+					</div>
+					<span class="keyboard-input-editor__hand-gap" aria-hidden="true"></span>
+					<div class="keyboard-input-editor__half keyboard-input-editor__half--right">
+						{#each halves.right as key, keyIndex (key.slot)}
+							{@render keyField(key, row.row, halves.left.length + keyIndex)}
+						{/each}
+					</div>
+				</div>
+			{:else}
+				<div
+					class="keyboard-input-editor__row"
+					class:keyboard-input-editor__row--thumbs={row.row >= 3}
+					class:keyboard-input-editor__row--stagger-home={row.row === 1}
+					class:keyboard-input-editor__row--stagger-bottom={row.row === 2}
+					data-keyboard-input-row={row.row}
+				>
+					{#each row.keys as key, keyIndex (key.slot)}
+						{@render keyField(key, row.row, keyIndex)}
+					{/each}
+				</div>
+			{/if}
 		{/each}
 	</div>
 </div>
@@ -156,10 +190,15 @@
 	}
 
 	.keyboard-input-editor__rows {
-		--editor-key-size: clamp(2.25rem, 5vw, 3.25rem);
-		--editor-key-gap: clamp(0.25rem, 0.7vw, 0.5rem);
+		--editor-key-size: var(--keyboard-preview-key-size, clamp(2.25rem, 5vw, 3.25rem));
+		--editor-key-gap: var(--keyboard-preview-key-gap, clamp(0.25rem, 0.7vw, 0.5rem));
 		width: max-content;
 		min-width: 100%;
+	}
+
+	.keyboard-input-editor__rows[data-keyboard-type='ortho'] {
+		min-width: 0;
+		margin-inline: auto;
 	}
 
 	.keyboard-input-editor__row {
@@ -168,6 +207,12 @@
 		gap: var(--editor-key-gap);
 		width: max-content;
 		min-width: 100%;
+	}
+
+	.keyboard-input-editor__row--ortho {
+		justify-content: flex-start;
+		min-width: 0;
+		gap: 0;
 	}
 
 	.keyboard-input-editor__row + .keyboard-input-editor__row {
@@ -184,6 +229,20 @@
 
 	.keyboard-input-editor__row--thumbs {
 		margin-top: calc(var(--editor-key-gap) * 1.8);
+	}
+
+	.keyboard-input-editor__half {
+		display: flex;
+		gap: var(--editor-key-gap);
+		min-width: calc(var(--editor-key-size) * 5 + var(--editor-key-gap) * 4);
+	}
+
+	.keyboard-input-editor__half--left {
+		justify-content: flex-end;
+	}
+
+	.keyboard-input-editor__half--right {
+		justify-content: flex-start;
 	}
 
 	.keyboard-input-editor__hand-gap {

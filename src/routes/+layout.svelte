@@ -35,7 +35,10 @@
 	let debugEnabled = $state(false);
 
 	const layouts = $derived(layoutsCatalog.layouts);
-	const usesDocumentScroll = $derived(page.route.id === '/layouts/[name]');
+	const usesDocumentScroll = $derived(
+		page.route.id === '/layouts/[name]' || page.route.id === '/create'
+	);
+	const onCreatePage = $derived(page.route.id === '/create');
 	const authorsData = $derived(layoutsCatalog.authorsData);
 	const statsMaps = $derived(layoutStatsStore.maps);
 	const authorById = $derived(
@@ -264,6 +267,29 @@
 						<path d="M12 17h.01" />
 					</svg>
 				</button>
+				<a
+					href={resolve('/create')}
+					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
+					class:app-header-toggle--on={onCreatePage}
+					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					aria-label="Create layout"
+					title="Create layout"
+					aria-current={onCreatePage ? 'page' : undefined}
+				>
+					<svg
+						class="absolute inset-0 m-auto size-5 transition-all duration-300"
+						style="color: var(--text-primary);"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M12 5v14M5 12h14" />
+					</svg>
+				</a>
 				<button
 					onclick={openCompare}
 					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
@@ -429,7 +455,7 @@
 		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
 	}
 
-	/* Keep the index split view within the viewport; detail routes use document scrolling. */
+	/* Keep the index split view within the viewport; detail and creator routes use document scrolling. */
 	@media (min-width: 768px) {
 		.app-shell:not(.app-shell--document-scroll) {
 			height: 100dvh;

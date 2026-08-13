@@ -104,13 +104,19 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 	}
 
 	const thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] } = { l: [], r: [] };
-	for (const [key, info] of Object.entries(keys)) {
-		if (info.row < THUMB_ROW) continue;
-		const hand = info.thumbHand ?? (info.col < THUMB_SPLIT_COL ? 'l' : 'r');
-		thumbKeysByHand[hand].push({ key: key.toLowerCase(), col: info.col });
+	const orderedThumbIndices = [...thumbIndices].sort((a, b) => cols[a] - cols[b]);
+	for (let j = 0; j < orderedThumbIndices.length; j++) {
+		const index = orderedThumbIndices[j];
+		const hand =
+			thumbHands && thumbHands[j]
+				? thumbHands[j] === 'r'
+					? 'r'
+					: 'l'
+				: cols[index] < THUMB_SPLIT_COL
+					? 'l'
+					: 'r';
+		thumbKeysByHand[hand].push({ key: keyChars[index].toLowerCase(), col: cols[index] });
 	}
-	thumbKeysByHand.l.sort((a, b) => a.col - b.col);
-	thumbKeysByHand.r.sort((a, b) => a.col - b.col);
 
 	return {
 		name,

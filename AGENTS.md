@@ -35,6 +35,8 @@
 - `docs/magic-keys-architecture.md` covers Magic-key and Repeat-key metadata, runtime behavior, composition, filtering, and analyzer boundaries.
 - `docs/adaptive-swaps-architecture.md` covers contextual input data ownership, source formats, runtime resolution, UI boundaries, and deferred work.
 - `docs/layout-supplemental-data.md` covers the curated `data/layouts/<layout>.json` format: open `meta`, mapping variants, staleness, validation strictness, and the published payload. Read it before changing curated layout data, its validation, or its wire format.
+- `docs/layout-creator.md` covers the layout creator route, app-bar Create layout control, draft
+  tabs, the reused typing-practice workspace, and deferred local-storage persistence.
 - `docs/analytics.md` covers GoatCounter pageviews and feature events, privacy invariants, and the code map. Read it before adding or changing analytics. Do not send layout names, typed values, lesson text, or other personal data.
 
 ## Testing tools and patterns

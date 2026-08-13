@@ -2,7 +2,7 @@
 	import { tick } from 'svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
-	import { thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
+	import { layoutMainRowMaxColumn, thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
 	import type {
 		LayoutKeyboardFeedback,
 		LayoutKeyboardKeyFeedback,
@@ -76,12 +76,7 @@
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
-		const mainRowMaxColumn = Math.max(
-			9,
-			...Object.values(layout.keys)
-				.filter(({ row }) => row < 3)
-				.map(({ col }) => col)
-		);
+		const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
 		const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 
 		return rows.flatMap((row) => {
@@ -101,13 +96,7 @@
 							(column, index) => [column, rightKeys[index]] as const
 						)
 					])
-				: new Map(
-						Object.values(layout.keys)
-							.filter(({ row }) => row === rowNumber)
-							.map(({ col }) => col)
-							.sort((a, b) => a - b)
-							.map((column, index) => [column, keys[index]] as const)
-					);
+				: new Map(keys.map((key) => [Number(key.slot.split(',')[1]), key] as const));
 			const leftSlots = Array.from({ length: 5 }, (_, column) => ({
 				column,
 				key: keyByColumn.get(column)

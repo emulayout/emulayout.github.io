@@ -50,7 +50,9 @@ the reset does not replace the persisted input profile until Save is selected.
 
 Keyboard type is currently `Ortho` or `Staggered`. Angle and stagger catalog layouts initialize as
 Staggered; ortho and mini layouts initialize as Ortho. This choice controls editor presentation and
-is retained independently after customization.
+is retained independently after customization. Ortho uses aligned split geometry: each row is a
+five-key left half, a straight center seam, and a right half that grows only to the right, so extra
+keys never shift the columns or the gap. Staggered keeps ANSI row offsets and centered rows.
 
 ## Key editor interaction
 

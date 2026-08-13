@@ -56,7 +56,7 @@
 	import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 	import { trackGoatCounterEvent } from '$lib/goatcounter';
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 
 	interface Props {
 		layout: LayoutData;
@@ -68,6 +68,10 @@
 		knownMagicTriggers?: readonly string[];
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
+		keyboardHeaderEnd?: Snippet;
+		keyboard?: Snippet;
+		/** Sits beside the keyboard in the same centered cluster as mappings. */
+		keyboardAside?: Snippet;
 	}
 
 	const {
@@ -79,7 +83,10 @@
 		onDisabledMappingIdsChange,
 		knownMagicTriggers = [],
 		practiceLesson,
-		onPracticeLessonChange
+		onPracticeLessonChange,
+		keyboardHeaderEnd,
+		keyboard,
+		keyboardAside
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
@@ -490,9 +497,14 @@
 		{disabledMappingIds}
 		{onDisabledMappingIdsChange}
 		showMappings={showSpecialMappings}
+		{keyboard}
+		aside={keyboardAside}
 	>
 		{#snippet header()}
 			<KeyboardInputConfigControl />
+			{#if keyboardHeaderEnd}
+				{@render keyboardHeaderEnd()}
+			{/if}
 		{/snippet}
 		{#snippet options()}
 			<ToggleSwitch

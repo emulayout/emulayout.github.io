@@ -27,9 +27,11 @@ declare global {
 const READY_TIMEOUT_MS = 10_000;
 const READY_POLL_MS = 50;
 const SHOW_PAGE_PATH = '/layouts';
+const CREATOR_PAGE_PATH = '/create';
 
 export const LAYOUTS_INDEX_TITLE = 'Layouts index';
 export const LAYOUT_SHOW_TITLE = 'Layout show';
+export const LAYOUT_CREATOR_TITLE = 'Layout creator';
 
 type PageviewUrl = { pathname: string; search: string };
 
@@ -60,9 +62,9 @@ export function goatcounterPageviewPath(pathname: string, search = ''): string {
 
 export function goatcounterPageTitle(pathname: string, search = ''): string {
 	const path = goatcounterPageviewPath(pathname, search);
-	return path === SHOW_PAGE_PATH || path.startsWith(`${SHOW_PAGE_PATH}?`)
-		? LAYOUT_SHOW_TITLE
-		: LAYOUTS_INDEX_TITLE;
+	if (path === SHOW_PAGE_PATH || path.startsWith(`${SHOW_PAGE_PATH}?`)) return LAYOUT_SHOW_TITLE;
+	if (path === CREATOR_PAGE_PATH) return LAYOUT_CREATOR_TITLE;
+	return LAYOUTS_INDEX_TITLE;
 }
 
 /** Drop same-origin referrers so layout names and `text=` never appear as `r`. */

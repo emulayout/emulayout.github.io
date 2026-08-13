@@ -18,7 +18,7 @@ export interface LayoutData {
 	user: number;
 	board: BoardType;
 	keys: Record<string, KeyInfo>;
-	/** `"row,col"` → key character for O(1) position lookups. */
+	/** `"row,col"` → key character for O(1) position lookups, including duplicate letters. */
 	positionBySlot: Map<string, string>;
 	/** Pre-sorted thumb keys per hand (lowercase key chars). */
 	thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] };

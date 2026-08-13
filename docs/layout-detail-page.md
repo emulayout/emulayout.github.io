@@ -8,8 +8,8 @@ AI implementation context for the dedicated page that replaces the former expand
 - A catalog card's keyboard visualization is a prominent detail link. A clean click or keyboard
   activation opens the detail page, while dragging across its characters preserves native text
   selection and does not navigate. The separate action-toolbar link remains available.
-- The detail route replaces the index content while preserving the shared app bar, including Quick
-  Find, Compare, help hints, theme controls, and the home link.
+- The detail route replaces the index content while preserving the shared app bar, including Create
+  layout, Quick Find, Compare, help hints, theme controls, and the home link.
 - Opening Compare from a detail page seeds that layout as the right-hand compare-to side and leaves
   the left picker free for choosing the comparison layout. Reset and hotkey-reset behavior is
   unchanged.
