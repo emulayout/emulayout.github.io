@@ -11,14 +11,21 @@ those drafts in the browser.
   and the same on-state treatment as enabled help hints.
 - `/create` replaces index or detail content while preserving the rest of the app bar, including
   Quick Find, Compare, help hints, theme controls, and the home link.
-- The page uses index-style view tabs, not detail-page section tabs. The first tab is always
-  `New layout`. Later saved drafts will appear as additional tabs, matching how saved views join
-  All layouts and Selected layouts on the index.
-- The New layout canvas starts as a stagger QWERTY board named `New layout`. It is an in-memory
-  draft only; nothing is written to local storage yet. A layout name field sits above Input layout
-  with a lock beside it. The name updates the live draft; an empty value falls back to `New layout`.
-  Renaming does not regenerate the practice words. The New layout tab label stays fixed until
-  saved-draft naming exists.
+- The page uses index-style view tabs, not detail-page section tabs. The first tab is the unsaved
+  canvas. Later saved drafts will appear as additional tabs, matching how saved views join All
+  layouts and Selected layouts on the index.
+- The New layout canvas starts as a stagger QWERTY board named `New layout`. A layout name field
+  sits above Input layout with a lock beside it. The name updates the live draft; an empty value
+  falls back to `New layout`. The document title and the unsaved-canvas tab use that name. Renaming
+  does not regenerate the practice words.
+- The current draft is the `/create` query string, using the same replace-state sync as the index.
+  Name, base layout, keyboard type, key grid, lock, and Magic/Adaptive mappings (including
+  incomplete rows) are written when they differ from the blank canvas. Writes wait 300ms after the
+  last edit, matching the index filter URL persist, and flush on page hide so a refresh keeps the
+  latest keystrokes. A bare `/create` link starts fresh. Reloading or opening the URL restores the
+  draft. Defaults are omitted, so an untouched canvas stays `/create`. Empty standard slots are
+  omitted from `keys`; a cleared board is `keys=v1:-`. Do not put draft names or key maps into
+  GoatCounter paths or events.
 - Unlocked, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
@@ -31,11 +38,13 @@ those drafts in the browser.
 - Locking the draft turns the name into a title and restores the presentation keyboard: next-key
   highlighting, home-key coloring, and the catalog mapping panel. The key editor, base-layout and
   keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until the
-  draft is unlocked again.
+  draft is unlocked again. The catalog mapping panel still appears when the draft has complete
+  Magic or Adaptive mappings, even if those editors were closed in the unlocked view.
 - While unlocked, Magic key and Adaptive key add buttons sit to the right of the keyboard in their
   own column, vertically centered with the board. Either or both can be on. Magic adds a `*`
   trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
-  Clicking an active button removes that feature.
+  Clicking an active button hides that editor without discarding the draft. The icon lights up only
+  when that feature is on and at least one complete mapping is enabled.
 - When a special key is on, its mapping editor appears in a separate column to the right of those
   buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
   Each panel can add, edit, and delete mappings,
@@ -57,11 +66,11 @@ those drafts in the browser.
 - Persist drafts in a versioned local-storage document and restore them as extra view tabs.
 - Repeat mapping editors.
 - Naming, duplicating, and deleting saved drafts.
-- Shareable creator URLs. Do not put draft names or key maps into GoatCounter paths or events.
 
 ## Code map
 
 - Default canvas, tab values, and key-editor conversion: `src/lib/layoutCreator.ts`
+- Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
@@ -73,7 +82,7 @@ those drafts in the browser.
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
-  `tests/goatcounter.test.ts`
+  `tests/layoutCreatorUrl.test.ts`, `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 
 ## Invariants
@@ -84,4 +93,5 @@ those drafts in the browser.
   labelled tab/tabpanel pair.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, key maps, lesson text, or WPM.
-- Until persistence exists, leaving `/create` discards the in-memory draft.
+- A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new
+  canvas. Saved-draft tabs are still local-storage work.

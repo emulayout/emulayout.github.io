@@ -201,12 +201,15 @@
 		margin-inline: auto;
 	}
 
+	.keyboard-input-editor__rows[data-keyboard-type='staggered'] {
+		min-width: 0;
+	}
+
 	.keyboard-input-editor__row {
 		display: flex;
-		justify-content: center;
+		justify-content: flex-start;
 		gap: var(--editor-key-gap);
 		width: max-content;
-		min-width: 100%;
 	}
 
 	.keyboard-input-editor__row--ortho {
@@ -224,11 +227,16 @@
 	}
 
 	.keyboard-input-editor__row--stagger-bottom {
-		padding-left: calc(var(--editor-key-size) * 0.7);
+		padding-left: calc(var(--editor-key-size) * 0.68);
 	}
 
 	.keyboard-input-editor__row--thumbs {
 		margin-top: calc(var(--editor-key-gap) * 1.8);
+	}
+
+	.keyboard-input-editor__rows[data-keyboard-type='staggered'] .keyboard-input-editor__row--thumbs {
+		justify-content: center;
+		min-width: 100%;
 	}
 
 	.keyboard-input-editor__half {

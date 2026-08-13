@@ -27,7 +27,7 @@ Send only:
 - Coarse page classes (`/`, `/layouts`, `/layouts?tab=test`, `/layouts?tab=feel`,
   `/layouts?tab=stats`, `/create`).
 - Fixed titles `Layouts index`, `Layout show`, and `Layout creator` — never `document.title`, which
-  includes layout names on show pages.
+  includes layout names on show and creator pages.
 - Cross-origin referrers only. Same-origin referrers (including a show URL with `text=` after the
   home-link full reload) are dropped.
 - Feature identifiers for controls the user touched (`filter-name`, `sort-sfb`, `compare`,
@@ -76,7 +76,7 @@ the first paint does not double-count. The root layout calls `trackGoatCounterPa
 | `/layouts/<name>?tab=test`                                 | `/layouts?tab=test`  |
 | `/layouts/<name>?tab=feel`                                 | `/layouts?tab=feel`  |
 | `/layouts/<name>?tab=stats`                                | `/layouts?tab=stats` |
-| `/create` plus any future creator query                    | `/create`            |
+| `/create` plus any creator draft query                     | `/create`            |
 
 Index filter query churn and show-page `text=` must never become distinct pages. Individual layout
 names are omitted so index vs show vs tab totals stay readable. Do not put layout names back into

@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { replaceState } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import type { PathnameWithSearchOrHash } from '$app/types';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
@@ -7,8 +11,12 @@
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import {
+		createHistoryTarget,
+		isRouterNotReadyError,
+		shouldWriteHistory
+	} from '$lib/filterNavigation';
+	import {
 		clearKeyboardInputConfig,
-		createDefaultKeyboardInputConfig,
 		createKeyboardInputConfigFromLayout,
 		type InputKeyboardType,
 		type KeyboardInputConfig
@@ -25,10 +33,19 @@
 		compileCreatorInputProfile,
 		createEmptyCreatorAdaptiveDraft,
 		createEmptyCreatorMagicDraft,
+		creatorAdaptiveDraftHasEnabledMappings,
+		creatorAdaptiveDraftHasMappings,
 		creatorDraftsFromSupplemental,
+		creatorMagicDraftHasEnabledMappings,
+		creatorMagicDraftHasMappings,
 		type CreatorAdaptiveDraft,
 		type CreatorMagicDraft
 	} from '$lib/layoutCreatorMappings';
+	import {
+		creatorSearchFromSnapshot,
+		readCreatorUrlSnapshot,
+		type CreatorUrlSnapshot
+	} from '$lib/layoutCreatorUrl';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -36,42 +53,65 @@
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
+	const CREATOR_PATH = resolve('/create');
+	const CREATOR_URL_DEBOUNCE_MS = 300;
+	const initialSnapshot = readCreatorUrlSnapshot(page.url.searchParams);
 
 	let activeTab = $state<LayoutCreatorTabValue>(LAYOUT_CREATOR_NEW_TAB);
-	let layoutNameDraft = $state(LAYOUT_CREATOR_NEW_LAYOUT_NAME);
-	let layoutLocked = $state(false);
+	let layoutNameDraft = $state(initialSnapshot.name);
+	let layoutLocked = $state(initialSnapshot.locked);
 	let disabledMappingIds = $state<string[]>([]);
-	let includeMagicKey = $state(false);
-	let includeAdaptiveKey = $state(false);
-	let magicDraft = $state.raw(createEmptyCreatorMagicDraft());
-	let adaptiveDraft = $state.raw(createEmptyCreatorAdaptiveDraft());
-	let keyConfig = $state.raw(createDefaultKeyboardInputConfig());
+	let includeMagicKey = $state(initialSnapshot.includeMagicKey);
+	let includeAdaptiveKey = $state(initialSnapshot.includeAdaptiveKey);
+	let magicDraft = $state.raw(initialSnapshot.magicDraft);
+	let adaptiveDraft = $state.raw(initialSnapshot.adaptiveDraft);
+	let keyConfig = $state.raw(initialSnapshot.keyConfig);
+	let pendingHistoryRetry = false;
+	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+	const magicKeyEnabled = $derived(includeMagicKey || keyboardConfigHasMagicKey(keyConfig));
+	const magicDraftHasMappings = $derived(creatorMagicDraftHasMappings(magicDraft));
+	const adaptiveDraftHasMappings = $derived(creatorAdaptiveDraftHasMappings(adaptiveDraft));
+	const magicIconActive = $derived(
+		magicKeyEnabled && creatorMagicDraftHasEnabledMappings(magicDraft, disabledMappingIds)
+	);
+	const adaptiveIconActive = $derived(
+		includeAdaptiveKey && creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds)
+	);
+	const practiceMagicEnabled = $derived(layoutLocked ? magicDraftHasMappings : magicKeyEnabled);
+	const practiceAdaptiveEnabled = $derived(
+		layoutLocked ? adaptiveDraftHasMappings : includeAdaptiveKey
+	);
 	const layout = $derived(
 		createLayoutFromKeyConfig(keyConfig, {
 			name: layoutName,
-			magicKey: includeMagicKey,
-			adaptiveKey: includeAdaptiveKey
+			magicKey: practiceMagicEnabled,
+			adaptiveKey: practiceAdaptiveEnabled
 		})
 	);
-	const magicKeyEnabled = $derived(includeMagicKey || keyboardConfigHasMagicKey(keyConfig));
 	const inputProfile = $derived(
-		compileCreatorInputProfile(magicKeyEnabled, magicDraft, includeAdaptiveKey, adaptiveDraft)
+		compileCreatorInputProfile(
+			practiceMagicEnabled,
+			magicDraft,
+			practiceAdaptiveEnabled,
+			adaptiveDraft
+		)
 	);
-	const showKeyboardMappings = $derived(magicKeyEnabled || includeAdaptiveKey);
+	const showEditorMappings = $derived(magicKeyEnabled || includeAdaptiveKey);
+	const showLockedMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
 	const testKeyMaps = $derived(
 		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
 	);
-	const options: TabOption<LayoutCreatorTabValue>[] = [
+	const options: TabOption<LayoutCreatorTabValue>[] = $derived([
 		{
 			value: LAYOUT_CREATOR_NEW_TAB,
-			label: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+			label: layoutName,
 			id: NEW_TAB_ID,
 			controls: PANEL_ID
 		}
-	];
+	]);
 
 	let baseLayoutSeed = 0;
 
@@ -79,6 +119,69 @@
 		void layoutsCatalog.ensureLoaded();
 		void layoutsCatalog.ensureSupplementalLoaded();
 	});
+
+	$effect(() => {
+		const snapshot = currentCreatorSnapshot();
+		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
+		urlSyncTimeout = setTimeout(() => {
+			urlSyncTimeout = null;
+			writeCreatorHistory(snapshot);
+		}, CREATOR_URL_DEBOUNCE_MS);
+		return () => {
+			if (urlSyncTimeout) {
+				clearTimeout(urlSyncTimeout);
+				urlSyncTimeout = null;
+			}
+		};
+	});
+
+	function currentCreatorSnapshot(): CreatorUrlSnapshot {
+		return {
+			name: layoutNameDraft,
+			locked: layoutLocked,
+			includeMagicKey,
+			includeAdaptiveKey,
+			magicDraft,
+			adaptiveDraft,
+			keyConfig
+		};
+	}
+
+	function flushCreatorUrl() {
+		if (urlSyncTimeout) {
+			clearTimeout(urlSyncTimeout);
+			urlSyncTimeout = null;
+		}
+		writeCreatorHistory(currentCreatorSnapshot());
+	}
+
+	function writeCreatorHistory(snapshot: CreatorUrlSnapshot) {
+		if (typeof window === 'undefined') return;
+		if (page.url.pathname !== CREATOR_PATH) return;
+		const search = creatorSearchFromSnapshot(snapshot);
+		const next = createHistoryTarget({
+			pathname: CREATOR_PATH,
+			search,
+			hash: page.url.hash
+		});
+		const current = createHistoryTarget({
+			pathname: page.url.pathname,
+			search: page.url.search,
+			hash: page.url.hash
+		});
+		if (!shouldWriteHistory('replace', next, current)) return;
+		try {
+			replaceState(resolve(next as PathnameWithSearchOrHash), page.state);
+		} catch (error) {
+			if (!isRouterNotReadyError(error)) throw error;
+			if (pendingHistoryRetry) return;
+			pendingHistoryRetry = true;
+			setTimeout(() => {
+				pendingHistoryRetry = false;
+				writeCreatorHistory(currentCreatorSnapshot());
+			}, 0);
+		}
+	}
 
 	function applyEmptyMappingDrafts() {
 		magicDraft = createEmptyCreatorMagicDraft();
@@ -163,6 +266,12 @@
 		layoutLocked = !layoutLocked;
 	}
 </script>
+
+<svelte:head>
+	<title>{layoutName} · Emulayout</title>
+</svelte:head>
+
+<svelte:window onpagehide={flushCreatorUrl} />
 
 <div class="layout-creator">
 	<div class="layout-creator-view-bar">
@@ -280,7 +389,7 @@
 				<button
 					type="button"
 					class="layout-creator-special-key"
-					class:layout-creator-special-key--magic={magicKeyEnabled}
+					class:layout-creator-special-key--magic={magicIconActive}
 					aria-pressed={magicKeyEnabled}
 					aria-label={magicKeyEnabled ? 'Remove magic key' : 'Add magic key'}
 					onclick={toggleMagicKey}
@@ -293,7 +402,7 @@
 				<button
 					type="button"
 					class="layout-creator-special-key"
-					class:layout-creator-special-key--adaptive={includeAdaptiveKey}
+					class:layout-creator-special-key--adaptive={adaptiveIconActive}
 					aria-pressed={includeAdaptiveKey}
 					aria-label={includeAdaptiveKey ? 'Remove adaptive key' : 'Add adaptive key'}
 					onclick={toggleAdaptiveKey}
@@ -332,7 +441,7 @@
 			{inputProfile}
 			{disabledMappingIds}
 			onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-			showKeyboardMappings={!layoutLocked && showKeyboardMappings}
+			showKeyboardMappings={layoutLocked ? showLockedMappings : showEditorMappings}
 			keyboardHeaderStart={creatorHeaderStart}
 			keyboard={layoutLocked ? undefined : creatorKeyboard}
 			keyboardAside={layoutLocked ? undefined : creatorAside}

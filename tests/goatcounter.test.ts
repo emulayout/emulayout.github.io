@@ -34,6 +34,9 @@ describe('goatcounterPageviewPath', () => {
 	test('keeps the layout creator path', () => {
 		expect(goatcounterPageviewPath('/create')).toBe('/create');
 		expect(goatcounterPageviewPath('/create', '?draft=ignored')).toBe('/create');
+		expect(goatcounterPageviewPath('/create', '?name=Shared+draft&keys=v1:m;0,0::w')).toBe(
+			'/create'
+		);
 	});
 
 	test('keeps non-default detail tabs without layout names or practice text', () => {

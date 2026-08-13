@@ -1,4 +1,5 @@
 import type { AdaptiveSwapMappings, AdaptiveSwapSource } from '$lib/adaptiveSwaps';
+import { adaptiveProfileMappingIds, magicProfileMappingIds } from '$lib/inputMappingControls';
 import { compileLayoutInputProfile, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { CREATOR_MAGIC_KEY } from '$lib/layoutCreator';
 import {
@@ -303,6 +304,41 @@ function compileFeatureProfile(
 	} catch {
 		return undefined;
 	}
+}
+
+export function creatorMagicDraftHasMappings(draft: CreatorMagicDraft): boolean {
+	return Boolean(magicSourceFromDraft(draft));
+}
+
+export function creatorAdaptiveDraftHasMappings(draft: CreatorAdaptiveDraft): boolean {
+	return Boolean(adaptiveSourceFromDraft(draft));
+}
+
+function someMappingEnabled(
+	ids: readonly string[],
+	disabledMappingIds: readonly string[]
+): boolean {
+	if (ids.length === 0) return false;
+	const disabled = new Set(disabledMappingIds);
+	return ids.some((id) => !disabled.has(id));
+}
+
+/** True when the draft compiles at least one mapping that is not disabled. */
+export function creatorMagicDraftHasEnabledMappings(
+	draft: CreatorMagicDraft,
+	disabledMappingIds: readonly string[] = []
+): boolean {
+	const profile = compileFeatureProfile(magicSourceFromDraft(draft), undefined);
+	return someMappingEnabled(magicProfileMappingIds(profile?.magicKeys), disabledMappingIds);
+}
+
+/** True when the draft compiles at least one mapping that is not disabled. */
+export function creatorAdaptiveDraftHasEnabledMappings(
+	draft: CreatorAdaptiveDraft,
+	disabledMappingIds: readonly string[] = []
+): boolean {
+	const profile = compileFeatureProfile(undefined, adaptiveSourceFromDraft(draft));
+	return someMappingEnabled(adaptiveProfileMappingIds(profile?.adaptiveSwaps), disabledMappingIds);
 }
 
 /** Compile complete draft rules into a practice profile. Incomplete rows are omitted. */

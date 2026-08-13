@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { magicRuleMappingId } from '../src/lib/inputMappingControls';
 import {
 	adaptiveDraftFromSource,
 	adaptiveSourceFromDraft,
@@ -9,7 +10,11 @@ import {
 	createCreatorMagicSection,
 	createEmptyCreatorAdaptiveDraft,
 	createEmptyCreatorMagicDraft,
+	creatorAdaptiveDraftHasEnabledMappings,
+	creatorAdaptiveDraftHasMappings,
 	creatorDraftsFromSupplemental,
+	creatorMagicDraftHasEnabledMappings,
+	creatorMagicDraftHasMappings,
 	magicDraftFromSource,
 	magicSourceFromDraft
 } from '../src/lib/layoutCreatorMappings';
@@ -159,6 +164,37 @@ describe('creatorDraftsFromSupplemental', () => {
 		expect(seeded.hasAdaptiveMappings).toBe(false);
 		expect(magicSourceFromDraft(seeded.magicDraft)).toBeUndefined();
 		expect(adaptiveSourceFromDraft(seeded.adaptiveDraft)).toBeUndefined();
+	});
+});
+
+describe('creator draft mapping presence', () => {
+	test('treats empty drafts as having no mappings', () => {
+		expect(creatorMagicDraftHasMappings(createEmptyCreatorMagicDraft())).toBe(false);
+		expect(creatorAdaptiveDraftHasMappings(createEmptyCreatorAdaptiveDraft())).toBe(false);
+		expect(creatorMagicDraftHasEnabledMappings(createEmptyCreatorMagicDraft())).toBe(false);
+		expect(creatorAdaptiveDraftHasEnabledMappings(createEmptyCreatorAdaptiveDraft())).toBe(false);
+	});
+
+	test('lights a complete mapping unless every compiled id is disabled', () => {
+		const magicDraft = {
+			sections: [
+				{
+					...createCreatorMagicSection('*'),
+					rules: [{ ...createCreatorMagicRule(), after: 'c', emit: 'k' }]
+				}
+			]
+		};
+		const adaptiveDraft = {
+			rules: [{ ...createCreatorAdaptiveRule(), trigger: 'l', left: 'y', right: 'j' }],
+			groups: []
+		};
+		const magicId = magicRuleMappingId('*', 'c');
+
+		expect(creatorMagicDraftHasMappings(magicDraft)).toBe(true);
+		expect(creatorAdaptiveDraftHasMappings(adaptiveDraft)).toBe(true);
+		expect(creatorMagicDraftHasEnabledMappings(magicDraft)).toBe(true);
+		expect(creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft)).toBe(true);
+		expect(creatorMagicDraftHasEnabledMappings(magicDraft, [magicId])).toBe(false);
 	});
 });
 

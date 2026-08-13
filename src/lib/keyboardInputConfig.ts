@@ -145,6 +145,18 @@ export function createDefaultKeyboardInputConfig(): KeyboardInputConfig {
 	};
 }
 
+/** Rebuild a config and fill any missing main-row or thumb placeholders. */
+export function buildKeyboardInputConfig(
+	config: Omit<KeyboardInputConfig, 'keys'> & { keys: readonly KeyboardInputKey[] }
+): KeyboardInputConfig {
+	return {
+		baseLayoutName: config.baseLayoutName,
+		baseLayoutModified: config.baseLayoutModified,
+		keyboardType: config.keyboardType,
+		keys: withKeyboardInputTopology(config.keys.map((key) => ({ ...key })))
+	};
+}
+
 export function createKeyboardInputConfigFromLayout(layout: LayoutData): KeyboardInputConfig {
 	const keys = Array.from(layout.positionBySlot, ([slot, value]): KeyboardInputKey => {
 		const info = layout.keys[value];
