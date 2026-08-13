@@ -2,6 +2,7 @@ import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
+import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 
@@ -16,21 +17,25 @@ class LayoutsCatalog {
 	authorsData: Record<string, number> = $state({});
 	likesData: LayoutLikesMap = $state({});
 	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
+	supplemental: LayoutSupplementalByLayout = $state({});
 	layoutNames: string[] = $state([]);
 	fullCatalogLoaded = $state(false);
 	namesLoaded = $state(false);
+	supplementalLoaded = $state(false);
 	loading = $state(false);
 	loadError: Error | null = $state(null);
 	latestLayoutDayKey = $derived(getLatestLayoutDayKey(this.layouts));
 
 	#catalogRequest: Promise<void> | null = null;
 	#namesRequest: Promise<void> | null = null;
+	#supplementalRequest: Promise<void> | null = null;
 
 	hydrate(
 		layouts: LayoutData[],
 		authorsData: Record<string, number>,
 		likesData: LayoutLikesMap,
-		inputProfiles: ReadonlyMap<string, LayoutInputProfile> = new Map()
+		inputProfiles: ReadonlyMap<string, LayoutInputProfile> = new Map(),
+		supplemental?: LayoutSupplementalByLayout
 	) {
 		this.layouts = layouts;
 		this.authorsData = authorsData;
@@ -40,6 +45,10 @@ class LayoutsCatalog {
 		this.fullCatalogLoaded = true;
 		this.namesLoaded = true;
 		this.loadError = null;
+		if (supplemental) {
+			this.supplemental = supplemental;
+			this.supplementalLoaded = true;
+		}
 	}
 
 	getAuthorName(userId: number): string {
@@ -116,6 +125,30 @@ class LayoutsCatalog {
 				this.#catalogRequest = null;
 			});
 		return this.#catalogRequest;
+	}
+
+	async ensureSupplementalLoaded(fetcher: Fetcher = fetch): Promise<void> {
+		if (this.supplementalLoaded) return;
+		if (this.#supplementalRequest) return this.#supplementalRequest;
+
+		this.#supplementalRequest = fetcher('/layout-supplemental.json')
+			.then(async (response) => {
+				if (!response.ok) throw new Error(`Supplemental request failed (${response.status}).`);
+				const supplemental = (await response.json()) as LayoutSupplementalByLayout;
+				if (!supplemental || typeof supplemental !== 'object' || Array.isArray(supplemental)) {
+					throw new Error('Supplemental response was invalid.');
+				}
+				this.supplemental = supplemental;
+				this.supplementalLoaded = true;
+			})
+			.catch(() => {
+				this.supplemental = {};
+				this.supplementalLoaded = true;
+			})
+			.finally(() => {
+				this.#supplementalRequest = null;
+			});
+		return this.#supplementalRequest;
 	}
 }
 

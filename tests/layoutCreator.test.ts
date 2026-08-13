@@ -81,6 +81,14 @@ describe('createLayoutFromKeyConfig', () => {
 		expect(reused.positionBySlot.has('1,11')).toBe(false);
 	});
 
+	test('uses a custom layout name', () => {
+		const layout = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
+			name: 'Custom draft'
+		});
+
+		expect(layout.name).toBe('Custom draft');
+	});
+
 	test('marks adaptive independently of magic', () => {
 		const adaptiveOnly = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
 			adaptiveKey: true

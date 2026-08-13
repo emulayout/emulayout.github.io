@@ -1,4 +1,6 @@
 <script lang="ts">
+	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
+	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
@@ -19,6 +21,14 @@
 		removeMagicKeysFromConfig,
 		type LayoutCreatorTabValue
 	} from '$lib/layoutCreator';
+	import {
+		compileCreatorInputProfile,
+		createEmptyCreatorAdaptiveDraft,
+		createEmptyCreatorMagicDraft,
+		creatorDraftsFromSupplemental,
+		type CreatorAdaptiveDraft,
+		type CreatorMagicDraft
+	} from '$lib/layoutCreatorMappings';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -28,17 +38,27 @@
 	const PANEL_ID = 'layout-creator-panel';
 
 	let activeTab = $state<LayoutCreatorTabValue>(LAYOUT_CREATOR_NEW_TAB);
+	let layoutNameDraft = $state(LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+	let layoutLocked = $state(false);
 	let disabledMappingIds = $state<string[]>([]);
 	let includeMagicKey = $state(false);
 	let includeAdaptiveKey = $state(false);
+	let magicDraft = $state.raw(createEmptyCreatorMagicDraft());
+	let adaptiveDraft = $state.raw(createEmptyCreatorAdaptiveDraft());
 	let keyConfig = $state.raw(createDefaultKeyboardInputConfig());
+	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
 	const layout = $derived(
 		createLayoutFromKeyConfig(keyConfig, {
+			name: layoutName,
 			magicKey: includeMagicKey,
 			adaptiveKey: includeAdaptiveKey
 		})
 	);
 	const magicKeyEnabled = $derived(includeMagicKey || keyboardConfigHasMagicKey(keyConfig));
+	const inputProfile = $derived(
+		compileCreatorInputProfile(magicKeyEnabled, magicDraft, includeAdaptiveKey, adaptiveDraft)
+	);
+	const showKeyboardMappings = $derived(magicKeyEnabled || includeAdaptiveKey);
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
 	const testKeyMaps = $derived(
@@ -53,22 +73,47 @@
 		}
 	];
 
+	let baseLayoutSeed = 0;
+
 	$effect(() => {
 		void layoutsCatalog.ensureLoaded();
+		void layoutsCatalog.ensureSupplementalLoaded();
 	});
 
-	function selectBaseLayout(name: string) {
+	function applyEmptyMappingDrafts() {
+		magicDraft = createEmptyCreatorMagicDraft();
+		adaptiveDraft = createEmptyCreatorAdaptiveDraft();
+		disabledMappingIds = [];
+	}
+
+	function applySupplementalDrafts(name: string) {
+		const seeded = creatorDraftsFromSupplemental(layoutsCatalog.supplemental, name);
+		magicDraft = seeded.magicDraft;
+		adaptiveDraft = seeded.adaptiveDraft;
+		if (seeded.hasMagicMappings) includeMagicKey = true;
+		if (seeded.hasAdaptiveMappings) includeAdaptiveKey = true;
+		disabledMappingIds = [];
+	}
+
+	async function selectBaseLayout(name: string) {
 		const nextLayout = layoutsCatalog.layouts.find((candidate) => candidate.name === name);
 		if (!nextLayout) return;
+		const seed = ++baseLayoutSeed;
 		keyConfig = createKeyboardInputConfigFromLayout(nextLayout);
 		includeMagicKey = nextLayout.hasMagicKey;
 		includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
+		applyEmptyMappingDrafts();
+		await layoutsCatalog.ensureSupplementalLoaded();
+		if (seed !== baseLayoutSeed || keyConfig.baseLayoutName !== name) return;
+		applySupplementalDrafts(name);
 	}
 
 	function clearBaseLayout() {
+		baseLayoutSeed += 1;
 		keyConfig = clearKeyboardInputConfig(keyConfig);
 		includeMagicKey = false;
 		includeAdaptiveKey = false;
+		applyEmptyMappingDrafts();
 	}
 
 	function setKeyboardType(keyboardType: InputKeyboardType) {
@@ -86,10 +131,36 @@
 			return;
 		}
 		includeMagicKey = true;
+		if (magicDraft.sections.length === 0) {
+			magicDraft = createEmptyCreatorMagicDraft();
+		}
 	}
 
 	function toggleAdaptiveKey() {
 		includeAdaptiveKey = !includeAdaptiveKey;
+		if (
+			includeAdaptiveKey &&
+			adaptiveDraft.rules.length === 0 &&
+			adaptiveDraft.groups.length === 0
+		) {
+			adaptiveDraft = createEmptyCreatorAdaptiveDraft();
+		}
+	}
+
+	function setMagicDraft(next: CreatorMagicDraft) {
+		magicDraft = next;
+	}
+
+	function setAdaptiveDraft(next: CreatorAdaptiveDraft) {
+		adaptiveDraft = next;
+	}
+
+	function setLayoutName(name: string) {
+		layoutNameDraft = name;
+	}
+
+	function toggleLayoutLocked() {
+		layoutLocked = !layoutLocked;
 	}
 </script>
 
@@ -115,87 +186,158 @@
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={NEW_TAB_ID}>
+		{#snippet creatorHeaderStart()}
+			<div class="layout-creator-name" class:layout-creator-name--locked={layoutLocked}>
+				{#if layoutLocked}
+					<h2 class="layout-creator-name-title">{layoutName}</h2>
+				{:else}
+					<label class="layout-creator-name-field">
+						<span class="layout-creator-name-label">Layout name</span>
+						<input
+							type="text"
+							value={layoutNameDraft}
+							autocomplete="off"
+							spellcheck="false"
+							aria-label="Layout name"
+							oninput={(event) => setLayoutName(event.currentTarget.value)}
+						/>
+					</label>
+				{/if}
+				<button
+					type="button"
+					class="layout-creator-lock"
+					class:layout-creator-lock--locked={layoutLocked}
+					aria-pressed={layoutLocked}
+					aria-label={layoutLocked ? 'Unlock layout' : 'Lock layout'}
+					onclick={toggleLayoutLocked}
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						{#if layoutLocked}
+							<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+							<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+						{:else}
+							<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+							<path d="M7 11V7a5 5 0 0 1 9.9-1" />
+						{/if}
+					</svg>
+				</button>
+			</div>
+		{/snippet}
+
+		{#snippet creatorKeyboard()}
+			<div class="layout-creator-keyboard">
+				<div class="layout-creator-keyboard-fields">
+					<div class="layout-creator-keyboard-field">
+						<span id="layout-creator-base-label">Base layout (optional)</span>
+						<LayoutAutocomplete
+							layouts={layoutsCatalog.layouts}
+							id="layout-creator-base"
+							label="Base layout (optional)"
+							placeholder="Search layouts…"
+							selected={keyConfig.baseLayoutName}
+							onSelect={selectBaseLayout}
+							onClear={clearBaseLayout}
+							loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
+						/>
+						{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
+							<p class="layout-creator-keyboard-error" role="alert">
+								Unable to load the layout catalog.
+							</p>
+						{/if}
+					</div>
+
+					<label class="layout-creator-keyboard-field">
+						<span>Keyboard type</span>
+						<select
+							value={keyConfig.keyboardType}
+							onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
+						>
+							<option value="ortho">Ortho</option>
+							<option value="staggered">Staggered</option>
+						</select>
+					</label>
+				</div>
+
+				<KeyboardInputEditor
+					config={keyConfig}
+					showPlaceholders={false}
+					ariaLabel="Layout keys"
+					onConfigChange={setKeyConfig}
+				/>
+			</div>
+		{/snippet}
+
+		{#snippet creatorAside()}
+			<div class="layout-creator-special-keys" role="group" aria-label="Special keys">
+				<button
+					type="button"
+					class="layout-creator-special-key"
+					class:layout-creator-special-key--magic={magicKeyEnabled}
+					aria-pressed={magicKeyEnabled}
+					aria-label={magicKeyEnabled ? 'Remove magic key' : 'Add magic key'}
+					onclick={toggleMagicKey}
+				>
+					<span class="layout-creator-special-key__cap">
+						<LayoutInputFeatureIcon feature="magic" />
+					</span>
+					<span class="layout-creator-special-key__label">Magic key</span>
+				</button>
+				<button
+					type="button"
+					class="layout-creator-special-key"
+					class:layout-creator-special-key--adaptive={includeAdaptiveKey}
+					aria-pressed={includeAdaptiveKey}
+					aria-label={includeAdaptiveKey ? 'Remove adaptive key' : 'Add adaptive key'}
+					onclick={toggleAdaptiveKey}
+				>
+					<span class="layout-creator-special-key__cap">
+						<LayoutInputFeatureIcon feature="adaptive" />
+					</span>
+					<span class="layout-creator-special-key__label">Adaptive key</span>
+				</button>
+			</div>
+		{/snippet}
+
+		{#snippet creatorMappings()}
+			{#if magicKeyEnabled}
+				<CreatorMagicMappingsPanel
+					draft={magicDraft}
+					{disabledMappingIds}
+					onDraftChange={setMagicDraft}
+					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+				/>
+			{/if}
+			{#if includeAdaptiveKey}
+				<CreatorAdaptiveMappingsPanel
+					draft={adaptiveDraft}
+					{disabledMappingIds}
+					onDraftChange={setAdaptiveDraft}
+					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+				/>
+			{/if}
+		{/snippet}
+
 		<LayoutTypingPractice
 			{layout}
 			rows={displayRows}
 			keyMaps={testKeyMaps}
+			{inputProfile}
 			{disabledMappingIds}
 			onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-		>
-			{#snippet keyboard()}
-				<div class="layout-creator-keyboard">
-					<div class="layout-creator-keyboard-fields">
-						<div class="layout-creator-keyboard-field">
-							<span id="layout-creator-base-label">Base layout (optional)</span>
-							<LayoutAutocomplete
-								layouts={layoutsCatalog.layouts}
-								id="layout-creator-base"
-								label="Base layout (optional)"
-								placeholder="Search layouts…"
-								selected={keyConfig.baseLayoutName}
-								onSelect={selectBaseLayout}
-								onClear={clearBaseLayout}
-								loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
-							/>
-							{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
-								<p class="layout-creator-keyboard-error" role="alert">
-									Unable to load the layout catalog.
-								</p>
-							{/if}
-						</div>
-
-						<label class="layout-creator-keyboard-field">
-							<span>Keyboard type</span>
-							<select
-								value={keyConfig.keyboardType}
-								onchange={(event) =>
-									setKeyboardType(event.currentTarget.value as InputKeyboardType)}
-							>
-								<option value="ortho">Ortho</option>
-								<option value="staggered">Staggered</option>
-							</select>
-						</label>
-					</div>
-
-					<KeyboardInputEditor
-						config={keyConfig}
-						showPlaceholders={false}
-						ariaLabel="Layout keys"
-						onConfigChange={setKeyConfig}
-					/>
-				</div>
-			{/snippet}
-			{#snippet keyboardAside()}
-				<div class="layout-creator-special-keys" role="group" aria-label="Special keys">
-					<button
-						type="button"
-						class="layout-creator-special-key"
-						class:layout-creator-special-key--magic={magicKeyEnabled}
-						aria-pressed={magicKeyEnabled}
-						aria-label={magicKeyEnabled ? 'Remove magic key' : 'Add magic key'}
-						onclick={toggleMagicKey}
-					>
-						<span class="layout-creator-special-key__cap">
-							<LayoutInputFeatureIcon feature="magic" />
-						</span>
-						<span class="layout-creator-special-key__label">Magic key</span>
-					</button>
-					<button
-						type="button"
-						class="layout-creator-special-key"
-						class:layout-creator-special-key--adaptive={includeAdaptiveKey}
-						aria-pressed={includeAdaptiveKey}
-						aria-label={includeAdaptiveKey ? 'Remove adaptive key' : 'Add adaptive key'}
-						onclick={toggleAdaptiveKey}
-					>
-						<span class="layout-creator-special-key__cap">
-							<LayoutInputFeatureIcon feature="adaptive" />
-						</span>
-						<span class="layout-creator-special-key__label">Adaptive key</span>
-					</button>
-				</div>
-			{/snippet}
-		</LayoutTypingPractice>
+			showKeyboardMappings={!layoutLocked && showKeyboardMappings}
+			keyboardHeaderStart={creatorHeaderStart}
+			keyboard={layoutLocked ? undefined : creatorKeyboard}
+			keyboardAside={layoutLocked ? undefined : creatorAside}
+			keyboardMappings={layoutLocked ? undefined : creatorMappings}
+		/>
 	</div>
 </div>
 
@@ -279,6 +421,99 @@
 	.layout-creator-panel {
 		min-width: 0;
 		padding: 0.5rem 0.25rem 2rem;
+	}
+
+	.layout-creator-name {
+		display: flex;
+		align-items: flex-end;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.layout-creator-name--locked {
+		align-items: center;
+	}
+
+	.layout-creator-name-field {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.layout-creator-name-label {
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 600;
+	}
+
+	.layout-creator-name-field input {
+		width: 100%;
+		height: 2.375rem;
+		padding: 0 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		outline: none;
+		background-color: var(--input-bg);
+		color: var(--text-primary);
+		font-size: 0.875rem;
+		font-weight: 400;
+	}
+
+	.layout-creator-name-field input:focus-visible {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+
+	.layout-creator-name-title {
+		min-width: 0;
+		flex: 1;
+		margin: 0;
+		color: var(--text-primary);
+		font-size: 1.125rem;
+		font-weight: 600;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.layout-creator-lock {
+		display: inline-flex;
+		width: 2.375rem;
+		height: 2.375rem;
+		flex: none;
+		align-items: center;
+		justify-content: center;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--input-bg);
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
+
+	.layout-creator-lock svg {
+		width: 1.125rem;
+		height: 1.125rem;
+	}
+
+	.layout-creator-lock:hover {
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--text-secondary) 55%, var(--border));
+	}
+
+	.layout-creator-lock:focus-visible {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+
+	.layout-creator-lock--locked {
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 	}
 
 	.layout-creator-keyboard {

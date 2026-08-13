@@ -79,6 +79,11 @@ export function unreachableTargetLayoutKeys(
 	return unreachable;
 }
 
+/** Sorted identity so lesson refresh ignores equivalent unreachable-key Set instances. */
+export function unreachableKeysKey(unreachable: Iterable<string>): string {
+	return [...unreachable].sort().join('\0');
+}
+
 export function isUnreachableTargetLayoutKey(
 	character: string,
 	unreachable: ReadonlySet<string>

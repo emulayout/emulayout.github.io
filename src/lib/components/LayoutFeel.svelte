@@ -37,6 +37,7 @@
 	import {
 		collectReachableTargetCharacters,
 		typingPracticeWordsForReachability,
+		unreachableKeysKey,
 		unreachableTargetLayoutKeys
 	} from '$lib/layoutKeyReachability';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
@@ -136,6 +137,7 @@
 		...unreachableTargetLayoutKeys(layout, reachableTargetCharacters)
 	]);
 	const unreachableKeySet = $derived(new Set(unreachableKeys));
+	const unreachableKeysSignature = $derived(unreachableKeysKey(unreachableKeys));
 	const feelCharMap = $derived.by(() => {
 		const map = buildFeelCharMap(keyMaps, keyboardInputStore.config, layout, {
 			includeThumbKeys: !simulateThumbKeys
@@ -321,8 +323,9 @@
 	$effect(() => {
 		// Input-layout / Simulate thumb changes refresh an untouched random lesson so
 		// unreachable letters stay out of the word pool. In-progress lessons wait for restart.
+		// Key the set by contents so a new layout object (rename) does not reshuffle words.
 		if (customPracticeText) return;
-		void unreachableKeySet;
+		void unreachableKeysSignature;
 		if (untrack(() => startedAtMilliseconds) !== null) return;
 		if (untrack(() => wordPool).length === 0) return;
 		setPracticeSession(untrack(() => selectSourceLessonWords(untrack(() => sourceLessonWords))));

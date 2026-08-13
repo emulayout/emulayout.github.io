@@ -12,6 +12,9 @@
 	const COMPACT_MAPPINGS_RESERVED_REM = 15.5;
 	const WIDE_MAPPINGS_RESERVED_REM = 21.1875;
 	const ASIDE_RESERVED_REM = 5.75;
+	const ASIDE_AND_COMPACT_MAPPINGS_RESERVED_REM =
+		ASIDE_RESERVED_REM + COMPACT_MAPPINGS_RESERVED_REM;
+	const ASIDE_AND_WIDE_MAPPINGS_RESERVED_REM = ASIDE_RESERVED_REM + WIDE_MAPPINGS_RESERVED_REM;
 
 	interface Props {
 		layout: LayoutData;
@@ -30,8 +33,10 @@
 		options?: Snippet;
 		/** Replaces the presentation keyboard. Omit to keep the preview. */
 		keyboard?: Snippet;
-		/** Sits beside the keyboard in the same centered cluster as mappings. */
+		/** Sits beside the keyboard in its own column, independent of mappings. */
 		aside?: Snippet;
+		/** Replaces the read-only mappings panel when provided. */
+		mappings?: Snippet;
 	}
 
 	const {
@@ -50,7 +55,8 @@
 		header,
 		options,
 		keyboard,
-		aside
+		aside,
+		mappings
 	}: Props = $props();
 
 	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
@@ -100,66 +106,69 @@
 			`--keyboard-preview-key-size-compact: ${fittedKeySize(keyUnits, gapCount, COMPACT_KEY_GAP_REM)}`,
 			`--keyboard-preview-key-size-with-aside: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, ASIDE_RESERVED_REM)}`,
 			`--keyboard-preview-key-size-with-compact-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, COMPACT_MAPPINGS_RESERVED_REM)}`,
-			`--keyboard-preview-key-size-with-wide-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, WIDE_MAPPINGS_RESERVED_REM)}`
+			`--keyboard-preview-key-size-with-wide-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, WIDE_MAPPINGS_RESERVED_REM)}`,
+			`--keyboard-preview-key-size-with-aside-and-compact-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, ASIDE_AND_COMPACT_MAPPINGS_RESERVED_REM)}`,
+			`--keyboard-preview-key-size-with-aside-and-wide-mappings: ${fittedKeySize(keyUnits, gapCount, FULL_KEY_GAP_REM, ASIDE_AND_WIDE_MAPPINGS_RESERVED_REM)}`
 		].join('; ');
 	});
 
-	const mappingsVisible = $derived(showMappings && Boolean(inputProfile));
+	const mappingsVisible = $derived(showMappings && (Boolean(mappings) || Boolean(inputProfile)));
 	const asideVisible = $derived(Boolean(aside));
-	const sideVisible = $derived(asideVisible || mappingsVisible);
 </script>
 
 <div class="layout-keyboard-workspace-region">
 	<div class="layout-keyboard-workspace-main">
 		<div
 			class="layout-keyboard-workspace"
-			class:layout-keyboard-workspace--with-aside={asideVisible && !mappingsVisible}
+			class:layout-keyboard-workspace--with-aside={asideVisible}
 			class:layout-keyboard-workspace--with-mappings={mappingsVisible}
 			style={sizingStyle}
 		>
-			<div class="layout-keyboard-workspace-cluster">
-				<div class="layout-keyboard-workspace-preview-area">
-					{#if header}
-						<div class="layout-keyboard-workspace-header">
-							{@render header()}
+			<div class="layout-keyboard-workspace-board">
+				<div class="layout-keyboard-workspace-cluster">
+					<div class="layout-keyboard-workspace-preview-area">
+						{#if header}
+							<div class="layout-keyboard-workspace-header">
+								{@render header()}
+							</div>
+						{/if}
+						{#if keyboard}
+							{@render keyboard()}
+						{:else}
+							<LayoutKeyboardPreview
+								{layout}
+								{rows}
+								{feedback}
+								{swapPaths}
+								{highlightedKeys}
+								{unreachableKeys}
+								{highlightHomeKeys}
+								horizontalAlignment="start"
+							/>
+						{/if}
+					</div>
+					{#if options}
+						<div class="layout-keyboard-workspace-options" role="group" aria-label={optionsLabel}>
+							{@render options()}
 						</div>
 					{/if}
-					{#if keyboard}
-						{@render keyboard()}
-					{:else}
-						<LayoutKeyboardPreview
-							{layout}
-							{rows}
-							{feedback}
-							{swapPaths}
-							{highlightedKeys}
-							{unreachableKeys}
-							{highlightHomeKeys}
-							horizontalAlignment="start"
-						/>
-					{/if}
 				</div>
-				{#if options}
-					<div class="layout-keyboard-workspace-options" role="group" aria-label={optionsLabel}>
-						{@render options()}
+				{#if aside}
+					<div class="layout-keyboard-workspace-aside">
+						{@render aside()}
 					</div>
 				{/if}
 			</div>
-			{#if sideVisible}
-				<div class="layout-keyboard-workspace-side">
-					{#if aside}
-						<div class="layout-keyboard-workspace-aside">
-							{@render aside()}
-						</div>
-					{/if}
-					{#if mappingsVisible && inputProfile}
-						<div class="layout-keyboard-workspace-mappings">
-							<InputMappingsPanel
-								profile={inputProfile}
-								{disabledMappingIds}
-								{onDisabledMappingIdsChange}
-							/>
-						</div>
+			{#if mappingsVisible}
+				<div class="layout-keyboard-workspace-mappings">
+					{#if mappings}
+						{@render mappings()}
+					{:else if inputProfile}
+						<InputMappingsPanel
+							profile={inputProfile}
+							{disabledMappingIds}
+							{onDisabledMappingIdsChange}
+						/>
 					{/if}
 				</div>
 			{/if}
@@ -184,7 +193,7 @@
 	}
 
 	.layout-keyboard-workspace-main,
-	.layout-keyboard-workspace-side,
+	.layout-keyboard-workspace-board,
 	.layout-keyboard-workspace-mappings {
 		min-width: 0;
 	}
@@ -192,6 +201,15 @@
 	.layout-keyboard-workspace-main {
 		display: flex;
 		justify-content: center;
+	}
+
+	.layout-keyboard-workspace-board {
+		display: grid;
+		grid-template-columns: minmax(0, max-content);
+		width: max-content;
+		max-width: 100%;
+		min-width: 0;
+		gap: clamp(0.75rem, 2vw, 1.5rem);
 	}
 
 	.layout-keyboard-workspace-cluster {
@@ -223,22 +241,18 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.layout-keyboard-workspace-side {
+	.layout-keyboard-workspace-aside {
+		display: flex;
+		justify-content: center;
+		margin-top: 1.25rem;
+	}
+
+	.layout-keyboard-workspace-mappings {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		width: 100%;
 		margin-top: 1.25rem;
-		margin-inline: auto;
-	}
-
-	.layout-keyboard-workspace-aside {
-		display: flex;
-		justify-content: center;
-	}
-
-	.layout-keyboard-workspace-mappings {
-		width: 100%;
 	}
 
 	.layout-keyboard-workspace-options {
@@ -266,19 +280,18 @@
 	}
 
 	@container layout-keyboard-workspace (min-width: 50rem) {
-		.layout-keyboard-workspace--with-aside {
-			--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-with-aside));
-			--keyboard-preview-key-gap: 0.45rem;
+		.layout-keyboard-workspace--with-aside .layout-keyboard-workspace-board {
 			grid-template-columns: max-content max-content;
 			align-items: center;
 		}
 
-		.layout-keyboard-workspace--with-aside .layout-keyboard-workspace-side {
-			width: max-content;
+		.layout-keyboard-workspace--with-aside .layout-keyboard-workspace-aside {
 			margin-top: 0;
-			margin-inline: 0;
-			justify-content: center;
-			align-items: center;
+		}
+
+		.layout-keyboard-workspace--with-aside:not(.layout-keyboard-workspace--with-mappings) {
+			--keyboard-preview-key-size: min(3.35rem, var(--keyboard-preview-key-size-with-aside));
+			--keyboard-preview-key-gap: 0.45rem;
 		}
 
 		.layout-keyboard-workspace--with-mappings {
@@ -291,11 +304,16 @@
 			align-items: start;
 		}
 
-		.layout-keyboard-workspace--with-mappings .layout-keyboard-workspace-side {
+		.layout-keyboard-workspace--with-mappings .layout-keyboard-workspace-mappings {
 			max-width: 14rem;
 			margin-top: 0;
-			margin-inline: 0;
-			align-items: stretch;
+		}
+
+		.layout-keyboard-workspace--with-aside.layout-keyboard-workspace--with-mappings {
+			--keyboard-preview-key-size: min(
+				3.35rem,
+				var(--keyboard-preview-key-size-with-aside-and-compact-mappings)
+			);
 		}
 	}
 
@@ -308,8 +326,15 @@
 			grid-template-columns: max-content 19.6875rem;
 		}
 
-		.layout-keyboard-workspace--with-mappings .layout-keyboard-workspace-side {
+		.layout-keyboard-workspace--with-mappings .layout-keyboard-workspace-mappings {
 			max-width: 19.6875rem;
+		}
+
+		.layout-keyboard-workspace--with-aside.layout-keyboard-workspace--with-mappings {
+			--keyboard-preview-key-size: min(
+				3.35rem,
+				var(--keyboard-preview-key-size-with-aside-and-wide-mappings)
+			);
 		}
 	}
 </style>

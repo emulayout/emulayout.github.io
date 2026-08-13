@@ -15,22 +15,35 @@ those drafts in the browser.
   `New layout`. Later saved drafts will appear as additional tabs, matching how saved views join
   All layouts and Selected layouts on the index.
 - The New layout canvas starts as a stagger QWERTY board named `New layout`. It is an in-memory
-  draft only; nothing is written to local storage yet.
-- The typing-practice keyboard slot shows the editable key editor instead of the presentation
-  preview. Base layout (optional) and keyboard type sit above that editor. Choosing a catalog
-  layout seeds the key grid and keyboard type; empty slots stay optional, so a draft may use fewer
-  or more assigned characters than the base. Printable keys replace the focused slot and advance,
-  Backspace/Delete clear, and arrows move among slots. Keyboard type is Ortho or Staggered.
-  Assigned values may repeat and stay on their own slots, so several keys can output the same
-  character. Empty slots are omitted from the live draft. Edits update the in-memory layout
-  immediately so Typing practice uses the current keys.
-- Magic key and Adaptive key add buttons sit to the right of the keyboard in the same centered
-  cluster typing practice uses for mappings. Either or both can be on. Magic adds a `*` trigger
-  (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag. Clicking an
-  active button removes that feature. Mapping editors for those keys are still deferred.
-- A later lock control will sit across from Input layout and swap the editable board for the
-  presentation-only preview (next-key highlighting, home-key coloring, and the rest of the
-  practice keyboard chrome). Until that exists, the board stays editable.
+  draft only; nothing is written to local storage yet. A layout name field sits above Input layout
+  with a lock beside it. The name updates the live draft; an empty value falls back to `New layout`.
+  Renaming does not regenerate the practice words. The New layout tab label stays fixed until
+  saved-draft naming exists.
+- Unlocked, the typing-practice keyboard slot shows the editable key editor instead of the
+  presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
+  catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
+  mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
+  the base. Printable keys replace the focused slot and advance, Backspace/Delete clear, and arrows
+  move among slots. Keyboard type is Ortho or Staggered. Assigned values may repeat and stay on
+  their own slots, so several keys can output the same character. Empty slots are omitted from the
+  live draft. Edits update the in-memory layout immediately so Typing practice uses the current
+  keys.
+- Locking the draft turns the name into a title and restores the presentation keyboard: next-key
+  highlighting, home-key coloring, and the catalog mapping panel. The key editor, base-layout and
+  keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until the
+  draft is unlocked again.
+- While unlocked, Magic key and Adaptive key add buttons sit to the right of the keyboard in their
+  own column, vertically centered with the board. Either or both can be on. Magic adds a `*`
+  trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
+  Clicking an active button removes that feature.
+- When a special key is on, its mapping editor appears in a separate column to the right of those
+  buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
+  Each panel can add, edit, and delete mappings,
+  add or delete labeled sections (Magic: extra triggers; Adaptive: schema groups), and temporarily
+  disable complete mappings with the same checkboxes as the catalog selectors. Each Magic section
+  also has the schema fallback: nothing (`no-op` / omitted), repeat previous, or fixed text. A
+  trigger can live on an emitting fallback alone. Incomplete rows stay in the draft and are omitted
+  from the live practice profile.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control, home-key
   coloring, next-key highlighting). Magic and Adaptive mapping controls appear when the draft has
@@ -41,23 +54,26 @@ those drafts in the browser.
 
 ## Deferred work
 
-- A lock control that switches the create keyboard between the editable editor and the
-  presentation preview.
 - Persist drafts in a versioned local-storage document and restore them as extra view tabs.
-- Board, Magic, Adaptive, and Repeat mapping editors beyond adding the keys themselves.
+- Repeat mapping editors.
 - Naming, duplicating, and deleting saved drafts.
 - Shareable creator URLs. Do not put draft names or key maps into GoatCounter paths or events.
 
 ## Code map
 
 - Default canvas, tab values, and key-editor conversion: `src/lib/layoutCreator.ts`
+- Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
+- Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
+- Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
+  `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`
 - App-bar Create layout control and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Pageview sanitization: `src/lib/goatcounter.ts`
-- Unit coverage: `tests/layoutCreator.test.ts`, `tests/goatcounter.test.ts`
+- Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
+  `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 
 ## Invariants

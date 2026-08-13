@@ -21,6 +21,7 @@
 	import {
 		collectReachableTargetCharacters,
 		typingPracticeWordsForReachability,
+		unreachableKeysKey,
 		unreachableTargetLayoutKeys
 	} from '$lib/layoutKeyReachability';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
@@ -68,10 +69,15 @@
 		knownMagicTriggers?: readonly string[];
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
+		keyboardHeaderStart?: Snippet;
 		keyboardHeaderEnd?: Snippet;
 		keyboard?: Snippet;
-		/** Sits beside the keyboard in the same centered cluster as mappings. */
+		/** Sits beside the keyboard in its own column, independent of mappings. */
 		keyboardAside?: Snippet;
+		/** Replaces the read-only mappings panel when provided. */
+		keyboardMappings?: Snippet;
+		/** Show `keyboardMappings` even before a compiled profile exists. */
+		showKeyboardMappings?: boolean;
 	}
 
 	const {
@@ -84,9 +90,12 @@
 		knownMagicTriggers = [],
 		practiceLesson,
 		onPracticeLessonChange,
+		keyboardHeaderStart,
 		keyboardHeaderEnd,
 		keyboard,
-		keyboardAside
+		keyboardAside,
+		keyboardMappings,
+		showKeyboardMappings = false
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
@@ -107,6 +116,7 @@
 		...unreachableTargetLayoutKeys(layout, reachableTargetCharacters)
 	]);
 	const unreachableKeySet = $derived(new Set(unreachableKeys));
+	const unreachableKeysSignature = $derived(unreachableKeysKey(unreachableKeys));
 
 	function createPracticeSession(excludedWords: readonly string[] = []) {
 		if (customPracticeText) {
@@ -286,8 +296,9 @@
 	$effect(() => {
 		// Input-layout / Simulate thumb changes refresh an untouched random lesson so
 		// unreachable letters stay out of the word pool. In-progress lessons wait for restart.
+		// Key the set by contents so a new layout object (rename) does not reshuffle words.
 		if (customPracticeText) return;
-		void unreachableKeySet;
+		void unreachableKeysSignature;
 		if (untrack(() => startedAtMilliseconds) !== null) return;
 		if (untrack(() => wordPool).length === 0) return;
 		setPracticeSession(untrack(() => createPracticeSession()));
@@ -496,12 +507,18 @@
 		{inputProfile}
 		{disabledMappingIds}
 		{onDisabledMappingIdsChange}
-		showMappings={showSpecialMappings}
+		showMappings={showKeyboardMappings || showSpecialMappings}
 		{keyboard}
 		aside={keyboardAside}
+		mappings={keyboardMappings}
 	>
 		{#snippet header()}
-			<KeyboardInputConfigControl />
+			<div class="typing-practice-header-lead">
+				{#if keyboardHeaderStart}
+					{@render keyboardHeaderStart()}
+				{/if}
+				<KeyboardInputConfigControl />
+			</div>
 			{#if keyboardHeaderEnd}
 				{@render keyboardHeaderEnd()}
 			{/if}
@@ -595,6 +612,15 @@
 {/if}
 
 <style>
+	.typing-practice-header-lead {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+	}
+
 	.typing-practice-simulate-thumbs-option {
 		display: flex;
 		width: max-content;
