@@ -57,7 +57,9 @@
 	} from '$lib/layoutCreatorStorage';
 	import {
 		cloneCreatorUrlSnapshot,
+		createDefaultCreatorUrlSnapshot,
 		creatorSearchFromSnapshot,
+		creatorUrlSnapshotsEqual,
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
 	import {
@@ -79,7 +81,7 @@
 	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
 	let activeSavedId = $state<string | null>(initialSession.savedId);
 	let layoutNameDraft = $state(initialSession.snapshot.name);
-	let layoutLocked = $state(initialSession.snapshot.locked);
+	let layoutPreview = $state(initialSession.snapshot.preview);
 	let disabledMappingIds = $state<string[]>([]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
 	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
@@ -106,9 +108,9 @@
 	const adaptiveIconActive = $derived(
 		includeAdaptiveKey && creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds)
 	);
-	const practiceMagicEnabled = $derived(layoutLocked ? magicDraftHasMappings : magicKeyEnabled);
+	const practiceMagicEnabled = $derived(layoutPreview ? magicDraftHasMappings : magicKeyEnabled);
 	const practiceAdaptiveEnabled = $derived(
-		layoutLocked ? adaptiveDraftHasMappings : includeAdaptiveKey
+		layoutPreview ? adaptiveDraftHasMappings : includeAdaptiveKey
 	);
 	const layout = $derived(
 		createLayoutFromKeyConfig(keyConfig, {
@@ -126,7 +128,7 @@
 		)
 	);
 	const showEditorMappings = $derived(magicKeyEnabled || includeAdaptiveKey);
-	const showLockedMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
+	const showPreviewMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
 	const testKeyMaps = $derived(
@@ -178,7 +180,7 @@
 	function currentCreatorSnapshot(): CreatorUrlSnapshot {
 		return {
 			name: layoutNameDraft,
-			locked: layoutLocked,
+			preview: layoutPreview,
 			includeMagicKey,
 			includeAdaptiveKey,
 			magicDraft,
@@ -201,7 +203,7 @@
 	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
 		const next = cloneCreatorUrlSnapshot(snapshot);
 		layoutNameDraft = next.name;
-		layoutLocked = next.locked;
+		layoutPreview = next.preview;
 		includeMagicKey = next.includeMagicKey;
 		includeAdaptiveKey = next.includeAdaptiveKey;
 		magicDraft = next.magicDraft;
@@ -355,8 +357,8 @@
 		layoutNameDraft = name;
 	}
 
-	function toggleLayoutLocked() {
-		layoutLocked = !layoutLocked;
+	function toggleLayoutPreview() {
+		layoutPreview = !layoutPreview;
 	}
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
@@ -398,6 +400,18 @@
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
+
+	function startNewLayout() {
+		if (
+			!activeSavedId &&
+			creatorUrlSnapshotsEqual(currentCreatorSnapshot(), createDefaultCreatorUrlSnapshot())
+		) {
+			return;
+		}
+		activeSavedId = null;
+		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		flushCreatorUrl();
+	}
 </script>
 
 <svelte:head>
@@ -425,12 +439,15 @@
 				</button>
 			{/snippet}
 		</Tabs>
+		<button type="button" class="layout-creator-new" onclick={startNewLayout}>
+			+ New layout
+		</button>
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
 		{#snippet creatorHeaderStart()}
-			<div class="layout-creator-name" class:layout-creator-name--locked={layoutLocked}>
-				{#if layoutLocked}
+			<div class="layout-creator-name">
+				{#if layoutPreview}
 					<h2 class="layout-creator-name-title">{layoutName}</h2>
 				{:else}
 					<label class="layout-creator-name-field">
@@ -445,32 +462,6 @@
 						/>
 					</label>
 				{/if}
-				<button
-					type="button"
-					class="layout-creator-lock"
-					class:layout-creator-lock--locked={layoutLocked}
-					aria-pressed={layoutLocked}
-					aria-label={layoutLocked ? 'Unlock layout' : 'Lock layout'}
-					onclick={toggleLayoutLocked}
-				>
-					<svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-					>
-						{#if layoutLocked}
-							<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-							<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-						{:else}
-							<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-							<path d="M7 11V7a5 5 0 0 1 9.9-1" />
-						{/if}
-					</svg>
-				</button>
 			</div>
 		{/snippet}
 
@@ -575,85 +566,128 @@
 				{inputProfile}
 				{disabledMappingIds}
 				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-				showKeyboardMappings={layoutLocked ? showLockedMappings : showEditorMappings}
+				showKeyboardMappings={layoutPreview ? showPreviewMappings : showEditorMappings}
 				{practiceLesson}
 				onPracticeLessonChange={setPracticeLesson}
 				keyboardHeaderStart={creatorHeaderStart}
-				keyboard={layoutLocked ? undefined : creatorKeyboard}
-				keyboardAside={layoutLocked ? undefined : creatorAside}
-				keyboardMappings={layoutLocked ? undefined : creatorMappings}
+				keyboard={layoutPreview ? undefined : creatorKeyboard}
+				keyboardAside={layoutPreview ? undefined : creatorAside}
+				keyboardMappings={layoutPreview ? undefined : creatorMappings}
 			/>
 		{/key}
 
-		<div class="layout-creator-save">
-			{#if showUpdateSplit}
-				<DropdownMenu
-					bind:open={saveMenuOpen}
-					placement="top-stretch"
-					rootClass="layout-creator-split-button"
-					menuLabel="More save options"
-				>
-					{#snippet trigger({ toggle, triggerProps })}
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-split-button-main"
-							onclick={() => {
-								saveMenuOpen = false;
-								saveCurrentLayout();
-							}}
-						>
-							Update layout
-						</button>
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-split-button-toggle"
-							aria-label="More save options"
-							{...triggerProps}
-							onclick={toggle}
-						>
-							<svg
-								class="layout-creator-split-button-caret"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								stroke-width="2.5"
-								aria-hidden="true"
-							>
-								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-							</svg>
-						</button>
-					{/snippet}
-					{#snippet children({ close })}
-						<button
-							type="button"
-							role="menuitem"
-							class="layout-creator-split-menu-item"
-							onclick={() => {
-								close();
-								saveAsNewLayout();
-							}}
-						>
-							Save as new layout
-						</button>
-					{/snippet}
-				</DropdownMenu>
-			{:else if showDuplicateButton}
+		<div class="layout-creator-actions">
+			<div class="layout-creator-actions-inner">
 				<button
 					type="button"
-					class="filter-reset-button layout-creator-save-button"
-					onclick={saveAsNewLayout}
+					class="filter-reset-button layout-creator-action-button"
+					class:layout-creator-action-button--preview={layoutPreview}
+					aria-pressed={layoutPreview}
+					onclick={toggleLayoutPreview}
 				>
-					Duplicate layout
+					{#if layoutPreview}
+						<svg
+							class="layout-creator-action-icon"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M12 20h9" />
+							<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+						</svg>
+						Edit
+					{:else}
+						<svg
+							class="layout-creator-action-icon"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+							<circle cx="12" cy="12" r="3" />
+						</svg>
+						Preview
+					{/if}
 				</button>
-			{:else}
-				<button
-					type="button"
-					class="filter-reset-button layout-creator-save-button"
-					onclick={saveCurrentLayout}
-				>
-					Save layout
-				</button>
-			{/if}
+				<div class="layout-creator-save">
+					{#if showUpdateSplit}
+						<DropdownMenu
+							bind:open={saveMenuOpen}
+							placement="top-stretch"
+							rootClass="layout-creator-split-button"
+							menuLabel="More save options"
+						>
+							{#snippet trigger({ toggle, triggerProps })}
+								<button
+									type="button"
+									class="filter-reset-button layout-creator-split-button-main"
+									onclick={() => {
+										saveMenuOpen = false;
+										saveCurrentLayout();
+									}}
+								>
+									Update layout
+								</button>
+								<button
+									type="button"
+									class="filter-reset-button layout-creator-split-button-toggle"
+									aria-label="More save options"
+									{...triggerProps}
+									onclick={toggle}
+								>
+									<svg
+										class="layout-creator-split-button-caret"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2.5"
+										aria-hidden="true"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
+							{/snippet}
+							{#snippet children({ close })}
+								<button
+									type="button"
+									role="menuitem"
+									class="layout-creator-split-menu-item"
+									onclick={() => {
+										close();
+										saveAsNewLayout();
+									}}
+								>
+									Save as new layout
+								</button>
+							{/snippet}
+						</DropdownMenu>
+					{:else if showDuplicateButton}
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-action-button"
+							onclick={saveAsNewLayout}
+						>
+							Duplicate layout
+						</button>
+					{:else}
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-action-button"
+							onclick={saveCurrentLayout}
+						>
+							Save layout
+						</button>
+					{/if}
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -683,8 +717,9 @@
 		display: flex;
 		align-items: stretch;
 		gap: 0.25rem;
+		flex: 1 1 auto;
 		min-width: 0;
-		width: 100%;
+		width: auto;
 		max-width: 100%;
 		overflow-x: auto;
 		overflow-y: hidden;
@@ -735,32 +770,100 @@
 		border-bottom-color: var(--accent);
 	}
 
+	.layout-creator-new {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 auto;
+		margin-bottom: -1px;
+		padding: 0.5rem 0.75rem;
+		border: none;
+		border-bottom: 2px solid transparent;
+		border-radius: 0;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.25;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: color 0.15s ease;
+	}
+
+	.layout-creator-new:hover {
+		color: var(--text-primary);
+	}
+
+	.layout-creator-new:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+		border-radius: 0.25rem;
+	}
+
 	.layout-creator-panel {
 		min-width: 0;
-		padding: 0.5rem 0.25rem 2rem;
+		padding: 0.5rem 0.25rem
+			calc(var(--app-chrome-height) + 0.5rem + env(safe-area-inset-bottom, 0px));
+	}
+
+	.layout-creator-actions {
+		position: fixed;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+		height: calc(var(--app-chrome-height) + env(safe-area-inset-bottom, 0px));
+		margin: 0;
+		padding: 0 0.75rem env(safe-area-inset-bottom, 0px);
+		border-top: 1px solid var(--border);
+		background-color: var(--bg-primary);
+	}
+
+	.layout-creator-actions-inner {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		max-width: 100%;
+	}
+
+	@media (min-width: 768px) {
+		.layout-creator-actions {
+			padding-right: 1.5rem;
+			padding-left: 1.5rem;
+		}
 	}
 
 	.layout-creator-save {
 		display: flex;
-		justify-content: flex-start;
-		margin-top: 1.25rem;
-		width: min(18rem, 100%);
 	}
 
-	.layout-creator-save-button {
-		width: 100%;
+	.layout-creator-action-button {
+		gap: 0.375rem;
 		min-height: 2.5rem;
 		padding: 0.5rem 0.75rem;
 		border-radius: 0.75rem;
 		font-size: 0.875rem;
 	}
 
+	.layout-creator-action-icon {
+		width: 1rem;
+		height: 1rem;
+		flex: none;
+	}
+
+	.layout-creator-action-button--preview {
+		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		color: var(--accent);
+	}
+
 	.layout-creator-save :global(.layout-creator-split-button) {
 		position: relative;
 		display: flex;
 		align-items: stretch;
-		width: 100%;
-		min-width: 0;
 	}
 
 	.layout-creator-split-button-main,
@@ -771,8 +874,6 @@
 	}
 
 	.layout-creator-split-button-main {
-		flex: 1 1 auto;
-		min-width: 0;
 		justify-content: center;
 		border-radius: 0.75rem 0 0 0.75rem;
 		border-right-width: 0;
@@ -817,13 +918,7 @@
 
 	.layout-creator-name {
 		display: flex;
-		align-items: flex-end;
-		gap: 0.5rem;
 		min-width: 0;
-	}
-
-	.layout-creator-name--locked {
-		align-items: center;
 	}
 
 	.layout-creator-name-field {
@@ -869,43 +964,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.layout-creator-lock {
-		display: inline-flex;
-		width: 2.375rem;
-		height: 2.375rem;
-		flex: none;
-		align-items: center;
-		justify-content: center;
-		margin: 0;
-		padding: 0;
-		border: 1px solid var(--border);
-		border-radius: 0.75rem;
-		background: var(--input-bg);
-		color: var(--text-secondary);
-		cursor: pointer;
-	}
-
-	.layout-creator-lock svg {
-		width: 1.125rem;
-		height: 1.125rem;
-	}
-
-	.layout-creator-lock:hover {
-		color: var(--text-primary);
-		border-color: color-mix(in srgb, var(--text-secondary) 55%, var(--border));
-	}
-
-	.layout-creator-lock:focus-visible {
-		outline: none;
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
-	}
-
-	.layout-creator-lock--locked {
-		color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 	}
 
 	.layout-creator-keyboard {

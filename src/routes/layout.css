@@ -28,8 +28,10 @@ html {
 	--analyzer-cmini: #3d6a8a;
 	--analyzer-cyanophage: #bc5e11;
 	--analyzer-mana2: #6b7c3a;
-	--accent: var(--analyzer-cyanophage);
-	--accent-hover: var(--analyzer-cyanophage);
+	/* App chrome — independent of analyzer identity colors */
+	--accent: #3d8c1a;
+	--accent-hover: #3d8c1a;
+	--accent-fg: white;
 	--filter-action: var(--analyzer-cmini);
 	--similar-diff: #7aa825;
 	--similar-active-fg: white;
@@ -40,7 +42,8 @@ html {
 	--key-shadow: #ccc5bc;
 	--key-filter-bg: #faf9f7;
 	--input-bg: #ffffff;
-	--app-bar-shadow-color: #bebebe;
+	--app-chrome-height: 60px;
+	--app-bar-bg: #ededed;
 	--stats-fg: var(--text-secondary);
 	--stats-fg-highlight: var(--accent);
 	--stats-fg-highlight-cmini: var(--analyzer-cmini);
@@ -73,8 +76,9 @@ html {
 	--analyzer-cmini: #7aa3c4;
 	--analyzer-cyanophage: #dc6e14;
 	--analyzer-mana2: #a3b86c;
-	--accent: var(--analyzer-cyanophage);
-	--accent-hover: var(--analyzer-cyanophage);
+	--accent: #5ebf26;
+	--accent-hover: #5ebf26;
+	--accent-fg: #100f0d;
 	--filter-action: var(--analyzer-cmini);
 	--similar-diff: #92c92c;
 	--similar-active-fg: #100f0d;
@@ -85,7 +89,7 @@ html {
 	--key-shadow: #0a0908;
 	--key-filter-bg: #13120f;
 	--input-bg: #1d1a19;
-	--app-bar-shadow-color: #000000;
+	--app-bar-bg: #080808;
 	--stats-fg: var(--text-caption);
 	--stats-fg-highlight: var(--accent);
 	--stats-fg-highlight-cmini: var(--analyzer-cmini);

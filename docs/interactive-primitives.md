@@ -67,8 +67,9 @@ When help hints are on, Layout feel paints a decorative `?` on its tab and uses 
 for the short explanation; do not put a focusable `Tooltip` button inside the tablist.
 
 The layout creator uses the same `Tabs` primitive as the index layout-view bar: an unsaved canvas
-tab, labeled with the draft name, plus a tab for each saved layout. Those tabs reveal the creator
-canvas rather than detail sections. See [`layout-creator.md`](./layout-creator.md).
+tab, labeled with the draft name, plus a tab for each saved layout. A `+ New layout` button sits
+outside the tablist on the far side of that bar. Those tabs reveal the creator canvas rather than
+detail sections. See [`layout-creator.md`](./layout-creator.md).
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
@@ -86,8 +87,8 @@ trigger on every dismissal path.
 The layout creator replaces the practice keyboard preview with that same key editor, plus the
 base-layout autocomplete and keyboard-type control, in the keyboard slot. It hides QWERTY
 placeholders and does not require unique assigned values, so a draft may keep any number of
-letters, including repeats. Empty slots are dropped from the live draft. A later lock control will
-swap this editor for the presentation-only preview.
+letters, including repeats. Empty slots are dropped from the live draft. **Preview** in the
+creator sticky bar swaps this editor for the presentation-only keyboard; **Edit** restores it.
 
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default

@@ -8,7 +8,7 @@
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import type { LayoutCardMetric } from '$lib/layoutStatsBlockModel';
 	import type { StatLimitOperator } from '$lib/filterStore.svelte';
-	import { layoutDetailNavigationState, layoutDetailPageHref } from '$lib/layoutDetailTabs';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 	import { resolveLayoutDetailStats } from '$lib/layoutDetails';
 	import { clampSearchResultIndex, findLayoutNameMatches } from '$lib/layoutNameSearch';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -158,10 +158,7 @@
 		onClose();
 		// href starts with route-aware resolve(); the helper appends only the canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		void goto(href, {
-			// window.location includes shallow-routed filter state that page.url may lack.
-			state: layoutDetailNavigationState(page.state, page.route.id, window.location)
-		});
+		void goto(href);
 	}
 
 	function showAppliedFilterSnackbar(

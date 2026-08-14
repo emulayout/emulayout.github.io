@@ -8,8 +8,8 @@ AI implementation context for the dedicated page that replaces the former expand
 - A catalog card's keyboard visualization is a prominent detail link. A clean click or keyboard
   activation opens the detail page, while dragging across its characters preserves native text
   selection and does not navigate. The separate action-toolbar link remains available.
-- The detail route replaces the index content while preserving the shared app bar, including Create
-  layout, Quick Find, Compare, help hints, theme controls, and the home link.
+- The detail route replaces the index content while preserving the shared app bar, including
+  Discover (current), Create, Quick Find, Compare, help hints, theme controls, and the home link.
 - Opening Compare from a detail page seeds that layout as the right-hand compare-to side and leaves
   the left picker free for choosing the comparison layout. Reset and hotkey-reset behavior is
   unchanged.
@@ -19,11 +19,11 @@ AI implementation context for the dedicated page that replaces the former expand
   `tab=feel`, or `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters,
   selections, and display state are reset while the detail route is active and cannot rewrite its
   URL. Missing, invalid, or mixed tab state is canonicalized to one valid `tab` value.
-- When a detail page was opened from the catalog, the untouched index URL is carried in history
-  state through any chain of detail-to-detail navigations (for example via Quick Find).
-  `All layouts` navigates to that URL as a new history entry, so browser Back still revisits each
-  detail page before returning to the original index view. Direct visits fall back to `/`,
-  including after Quick Find navigations that never touched the index.
+- When a detail page is opened from the catalog, the index URL — including filter, selection, and
+  display query — remains the previous history entry. Browser Back returns to that exact catalog
+  view. Detail-to-detail navigations such as Quick Find push additional entries, so Back steps
+  through each visited layout before restoring the catalog. Direct visits have no catalog history
+  entry; Back leaves the app, and Discover still goes to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
 - The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
@@ -87,8 +87,8 @@ small without weakening app-bar functionality.
   link remains unchanged.
 - The `Typing practice`, `Layout test area`, `Layout feel`, and `Stats` tabs sit at the top of the
   right column and control only that main content. The persistent layout card is not part of any tab
-  panel. Selecting a tab replaces the current detail history entry with its canonical query URL,
-  preserving the existing All layouts back-navigation behavior. When help hints are on, the Layout
+  panel. Selecting a tab replaces the current detail history entry with its canonical query URL, so
+  browser Back still returns to the previous page rather than earlier tabs. When help hints are on, the Layout
   feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
   practice, without adding a second focusable control inside the tablist.
 - `Typing practice` is the first and default tab. It presents ten random English 1k words or a
@@ -176,8 +176,8 @@ small without weakening app-bar functionality.
   current disabled mappings. A no-op Magic trigger has no active background, while each armed
   Adaptive swap colors both affected keys and optionally connects them. Resetting emulator history
   immediately restores the base keyboard state and removes every connector.
-- Detail pages use normal document scrolling at every viewport width. The All layouts header,
-  summary card, and active detail panel all move together with the page.
+- Detail pages use normal document scrolling at every viewport width. The summary card and active
+  detail panel all move together with the page.
 
 ## Code map
 
@@ -239,7 +239,8 @@ small without weakening app-bar functionality.
   links) dismisses the modal. Cmd/Ctrl+Enter in the search field and Cmd/Ctrl+click on a result
   open the layout's show page in a new tab and keep Quick Find open on the current page.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
-  is active. History state, rather than copied query parameters, restores the index state.
+  is active. Browser Back returns to the previous history entry, including the index URL with its
+  filter query, and popstate hydrates the filter store from that URL.
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.

@@ -5,10 +5,7 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		interface PageState {
-			/** Untouched index URL that opened this detail chain; see layoutDetailNavigationState. */
-			layoutIndexUrl?: string;
-		}
+		// interface PageState {}
 		// interface Platform {}
 	}
 }

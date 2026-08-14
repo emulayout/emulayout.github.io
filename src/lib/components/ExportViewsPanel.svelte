@@ -200,7 +200,7 @@
 	.views-button--primary {
 		border-color: var(--accent);
 		background: var(--accent);
-		color: white;
+		color: var(--accent-fg);
 	}
 
 	.views-button:focus-visible {

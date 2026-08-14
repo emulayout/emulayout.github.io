@@ -56,27 +56,32 @@ describe('creator URL state', () => {
 		});
 	});
 
-	test('round-trips a renamed locked draft with an edited key', () => {
+	test('round-trips a renamed preview draft with an edited key', () => {
 		const snapshot: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
 			name: 'Shared draft',
-			locked: true,
+			preview: true,
 			keyConfig: updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', 'w')
 		};
 
 		const params = writeCreatorUrlParams(snapshot);
 		expect(params.get('name')).toBe('Shared draft');
-		expect(params.get('locked')).toBe('1');
+		expect(params.get('preview')).toBe('1');
+		expect(params.has('locked')).toBe(false);
 		expect(params.get('keys')?.startsWith('v1:m;')).toBe(true);
 		expect(params.has('base')).toBe(false);
 
 		const restored = roundTrip(snapshot);
 		expect(restored.name).toBe('Shared draft');
-		expect(restored.locked).toBe(true);
+		expect(restored.preview).toBe(true);
 		expect(restored.keyConfig.baseLayoutName).toBe('QWERTY');
 		expect(restored.keyConfig.baseLayoutModified).toBe(true);
 		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')?.value).toBe('w');
+	});
+
+	test('reads a legacy locked query as preview', () => {
+		expect(readCreatorUrlSnapshot(new URLSearchParams('locked=1')).preview).toBe(true);
 	});
 
 	test('round-trips keyboard type, a catalog base, and a cleared board', () => {

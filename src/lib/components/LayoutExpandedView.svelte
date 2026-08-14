@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
@@ -57,7 +56,6 @@
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		onBackToLayouts?: (event: MouseEvent) => void;
 		detailStats?: LayoutDetailStats;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
@@ -72,7 +70,6 @@
 		layout,
 		authorName,
 		likeCount,
-		onBackToLayouts,
 		detailStats = {},
 		inputProfile,
 		disabledMappingIds = [],
@@ -437,29 +434,6 @@
 {/snippet}
 
 <article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
-	<header class="layout-detail-header">
-		<a
-			class="layout-detail-back"
-			href={resolve('/')}
-			onclick={onBackToLayouts}
-			aria-label="All layouts"
-		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="m15 18-6-6 6-6" />
-			</svg>
-			<span>All layouts</span>
-		</a>
-	</header>
-
 	<div class="layout-detail-scroll">
 		<div class="detail-columns">
 			<div class="detail-side">
@@ -760,36 +734,6 @@
 		width: 100%;
 	}
 
-	.layout-detail-header {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		flex-shrink: 0;
-		padding: 0.75rem 0.25rem 0.25rem;
-	}
-
-	.layout-detail-back {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		width: fit-content;
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		line-height: 1.25rem;
-		text-decoration: none;
-	}
-
-	.layout-detail-back:hover,
-	.layout-detail-back:focus-visible {
-		color: var(--accent);
-	}
-
-	.layout-detail-back:focus-visible {
-		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-		outline-offset: 0.2rem;
-		border-radius: 0.25rem;
-	}
-
 	.layout-detail-tabs-wrap {
 		flex-shrink: 0;
 		border-bottom: 1px solid var(--border);
@@ -854,7 +798,7 @@
 
 	.layout-detail-scroll {
 		min-height: 0;
-		padding: 0.5rem 0.25rem 2rem;
+		padding: 0.75rem 0.25rem 2rem;
 	}
 
 	.detail-practice-panel,

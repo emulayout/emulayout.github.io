@@ -244,7 +244,7 @@
 							style="
 								border-color: {selected ? 'var(--accent)' : 'var(--border)'};
 								background-color: {selected ? 'var(--accent)' : 'transparent'};
-								color: {selected ? 'white' : 'transparent'};
+								color: {selected ? 'var(--accent-fg)' : 'transparent'};
 							"
 							aria-hidden="true"
 						>

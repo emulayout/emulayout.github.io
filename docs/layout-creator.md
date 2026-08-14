@@ -6,22 +6,27 @@ drafts in the browser.
 
 ## Product model
 
-- The shared app bar includes a Create layout action between help hints and Compare. It is a plus
-  icon that links to `/create`. While that route is active the control uses `aria-current="page"`
-  and the same on-state treatment as enabled help hints.
+- The shared app bar includes **Discover** and **Create** choice-chip links to the right of the
+  logo. Discover goes to `/` and stays current on layout show pages. Create goes to `/create`.
+  Idle links are muted text with no chip. Hover shows a neutral pill and primary text. The
+  current route uses `aria-current="page"` with accent text on an accent-tinted pill. Below the
+  `md` breakpoint the Emulayout wordmark is hidden and the home link keeps only the logo icon.
 - `/create` replaces index or detail content while preserving the rest of the app bar, including
-  Quick Find, Compare, help hints, theme controls, and the home link.
+  Discover, Create, the Quick Find search field, Compare, help hints, theme controls, and the home
+  link. Quick Find is a pill search control that opens the existing modal; the other action icons
+  sit on the app-bar background and show a circular hover highlight.
 - The page uses index-style view tabs, not detail-page section tabs. An unsaved canvas is the first
   tab, labeled with the live draft name. Each saved layout is an additional tab labeled with its
   stored name (the live name while that tab is active). Saving the unsaved canvas turns it into a
-  saved tab. Switching tabs loads that layout's snapshot into the editor. A bare `/create` link
-  starts a new unsaved canvas alongside any saved tabs.
+  saved tab. Switching tabs loads that layout's snapshot into the editor. A `+ New layout` button
+  sits on the far side of the tab bar and starts a blank unsaved canvas without leaving `/create`.
+  A bare `/create` link does the same.
 - The New layout canvas starts as a stagger QWERTY board named `New layout`. A layout name field
-  sits above Input layout with a lock beside it. The name updates the live draft; an empty value
-  falls back to `New layout`. The document title and the active tab use that name. Renaming
-  does not regenerate the practice words.
+  sits above Input layout. The name updates the live draft; an empty value falls back to
+  `New layout`. The document title and the active tab use that name. Renaming does not regenerate
+  the practice words.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, base layout, keyboard type, key grid, lock, practice lesson, and Magic/Adaptive mappings
+  Name, base layout, keyboard type, key grid, preview, practice lesson, and Magic/Adaptive mappings
   (including incomplete rows) are written when they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
   params are omitted so the URL is `/create?id=<uuid>`. Dirty edits stay in the query alongside
@@ -31,7 +36,7 @@ drafts in the browser.
   that saved layout from local storage. Defaults are omitted, so an untouched unsaved canvas stays
   `/create`. Empty standard slots are omitted from `keys`; a cleared board is `keys=v1:-`. Do not
   put draft names, saved ids, or key maps into GoatCounter paths or events.
-- Unlocked, the typing-practice keyboard slot shows the editable key editor instead of the
+- In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
   mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
@@ -40,12 +45,13 @@ drafts in the browser.
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so Typing practice uses the current
   keys.
-- Locking the draft turns the name into a title and restores the presentation keyboard: next-key
+- Preview turns the name into a title and restores the presentation keyboard: next-key
   highlighting, home-key coloring, and the catalog mapping panel. The key editor, base-layout and
-  keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until the
-  draft is unlocked again. The catalog mapping panel still appears when the draft has complete
-  Magic or Adaptive mappings, even if those editors were closed in the unlocked view.
-- While unlocked, Magic key and Adaptive key add buttons sit to the right of the keyboard in their
+  keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until Edit
+  again. The catalog mapping panel still appears when the draft has complete Magic or Adaptive
+  mappings, even if those editors were closed in Edit. The sticky bar shows **Preview** while
+  editing, which opens the uneditable presentation, and **Edit** while previewing.
+- While in Edit, Magic key and Adaptive key add buttons sit to the right of the keyboard in their
   own column, vertically centered with the board. Either or both can be on. Magic adds a `*`
   trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
   Clicking an active button hides that editor without discarding the draft. The icon lights up only
@@ -68,11 +74,12 @@ drafts in the browser.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
-- Saved layouts persist in a versioned local-storage document, each with its own id. The bottom
-  save control follows the live canvas: **Save layout** on an unsaved draft; a split **Update
-  layout** with **Save as new layout** when a saved layout has changed; **Duplicate layout** only
-  when a saved layout matches its stored snapshot. Save, update, save-as-new, and duplicate use
-  the current layout name. They do not send analytics events.
+- Saved layouts persist in a versioned local-storage document, each with its own id. A sticky
+  bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
+  Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
+  **Save as new layout** when a saved layout has changed; **Duplicate layout** only when a saved
+  layout matches its stored snapshot. Save, update, save-as-new, and duplicate use the current
+  layout name. They do not send analytics events.
 
 ## Deferred work
 
@@ -90,7 +97,7 @@ drafts in the browser.
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
   `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`
-- App-bar Create layout control and document-scroll shell: `src/routes/+layout.svelte`
+- App-bar Discover and Create links and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Pageview sanitization: `src/lib/goatcounter.ts`
@@ -102,9 +109,9 @@ drafts in the browser.
 ## Invariants
 
 - The app remains client-only (`ssr = false`). `/create` is prerendered alongside the index.
-- The Create layout control is a link, not a modal, and stays available from every route.
+- Discover and Create are links, not modals, and stay available from every route.
 - Creator tabs use the shared `Tabs` primitive with automatic Arrow/Home/End activation and a
-  labelled tab/tabpanel pair.
+  labelled tab/tabpanel pair. `+ New layout` is a button beside the tablist, not a tab.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new

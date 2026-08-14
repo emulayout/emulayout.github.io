@@ -492,14 +492,6 @@ export class FilterStore {
 		this.#writeHistory(url, historyMode);
 	}
 
-	/**
-	 * Re-read index URL state after a forward navigation to the index, such as a
-	 * detail page's `All layouts` link. Only `popstate` hydrates automatically.
-	 */
-	restoreIndexUrlState() {
-		this.#hydrateFromUrl();
-	}
-
 	/** Clear index-only URL state without touching the index's browser-history entry. */
 	enterLayoutDetailRoute() {
 		this.#cancelFilterApply();

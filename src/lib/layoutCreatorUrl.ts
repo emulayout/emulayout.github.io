@@ -35,7 +35,8 @@ export const CREATOR_TYPE_PARAM = 'type';
 export const CREATOR_KEYS_PARAM = 'keys';
 export const CREATOR_MAGIC_PARAM = 'magic';
 export const CREATOR_ADAPTIVE_PARAM = 'adaptive';
-export const CREATOR_LOCKED_PARAM = 'locked';
+export const CREATOR_PREVIEW_PARAM = 'preview';
+const CREATOR_PREVIEW_PARAM_LEGACY = 'locked';
 
 const KEYS_VERSION = 'v1';
 const MAPPING_VERSION = 'v1';
@@ -46,7 +47,7 @@ const DEFAULT_BASE_LAYOUT_NAME = 'QWERTY';
 
 export type CreatorUrlSnapshot = {
 	name: string;
-	locked: boolean;
+	preview: boolean;
 	includeMagicKey: boolean;
 	includeAdaptiveKey: boolean;
 	magicDraft: CreatorMagicDraft;
@@ -371,7 +372,7 @@ function writeAdaptiveParam(params: URLSearchParams, snapshot: CreatorUrlSnapsho
 export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 	return {
 		name: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
-		locked: false,
+		preview: false,
 		includeMagicKey: false,
 		includeAdaptiveKey: false,
 		magicDraft: createEmptyCreatorMagicDraft(),
@@ -406,7 +407,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	writeMagicParam(params, snapshot);
 	writeAdaptiveParam(params, snapshot);
 	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
-	if (snapshot.locked) params.set(CREATOR_LOCKED_PARAM, ENABLED_FLAG);
+	if (snapshot.preview) params.set(CREATOR_PREVIEW_PARAM, ENABLED_FLAG);
 	return params;
 }
 
@@ -460,7 +461,9 @@ export function creatorSearchFromSnapshot(
 export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUrlSnapshot {
 	const defaults = createDefaultCreatorUrlSnapshot();
 	const name = searchParams.get(CREATOR_NAME_PARAM)?.trim() || defaults.name;
-	const locked = searchParams.get(CREATOR_LOCKED_PARAM) === ENABLED_FLAG;
+	const preview =
+		searchParams.get(CREATOR_PREVIEW_PARAM) === ENABLED_FLAG ||
+		searchParams.get(CREATOR_PREVIEW_PARAM_LEGACY) === ENABLED_FLAG;
 
 	const typeParam = searchParams.get(CREATOR_TYPE_PARAM);
 	const keyboardType: InputKeyboardType =
@@ -512,7 +515,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 
 	return {
 		name,
-		locked,
+		preview,
 		includeMagicKey,
 		includeAdaptiveKey,
 		magicDraft,

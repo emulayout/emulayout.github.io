@@ -37,7 +37,7 @@ test('opens a layout on its own route and returns to the preserved index view', 
 	await expect(page.getByRole('checkbox', { name: 'Select Colemak-DH' })).toHaveCount(0);
 	await expect(page.getByRole('tabpanel', { name: 'Layout results' })).toHaveCount(0);
 
-	await page.getByRole('link', { name: 'All layouts' }).click();
+	await page.goBack();
 
 	await expect(page).toHaveURL(indexUrl);
 	await expect(colemakSelection).toBeChecked();
@@ -168,7 +168,7 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 	await expect(corpus).toHaveValue('monkeyracer');
 	await expect(summaryStats.getByText('1.00%', { exact: true })).toBeVisible();
 
-	await page.getByRole('link', { name: 'All layouts' }).click();
+	await page.getByRole('link', { name: 'Discover' }).click();
 	await expect(page).toHaveURL('/');
 	await expect(corpus).toHaveValue('monkeyracer');
 	await corpus.selectOption('reddit');
@@ -416,7 +416,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=feel');
 	await expect(page.getByLabel('Layout feel input')).toBeFocused();
 
-	await page.getByRole('link', { name: 'All layouts' }).click();
+	await page.getByRole('link', { name: 'Discover' }).click();
 	await expect(
 		page.getByRole('radiogroup', { name: 'Analyzer' }).getByRole('radio', { name: 'cmini' })
 	).toHaveAttribute('aria-checked', 'true');

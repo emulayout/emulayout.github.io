@@ -102,7 +102,7 @@ describe('saved layout storage', () => {
 
 		const savedA = updated?.[0];
 		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited'), savedA)).toBe(false);
-		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited', { locked: true }), savedA)).toBe(true);
+		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited', { preview: true }), savedA)).toBe(true);
 	});
 
 	test('restores a saved layout from id and overlays dirty query params', () => {
@@ -120,10 +120,12 @@ describe('saved layout storage', () => {
 		expect(clean.savedId).toBe('id-a');
 		expect(clean.snapshot.name).toBe('Alpha');
 
-		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta&locked=1'), [saved]);
+		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta&preview=1'), [
+			saved
+		]);
 		expect(dirty.savedId).toBe('id-a');
 		expect(dirty.snapshot.name).toBe('Beta');
-		expect(dirty.snapshot.locked).toBe(true);
+		expect(dirty.snapshot.preview).toBe(true);
 
 		const unknown = resolveCreatorSession(new URLSearchParams('id=missing&name=Gamma'), [saved]);
 		expect(unknown.savedId).toBeNull();
