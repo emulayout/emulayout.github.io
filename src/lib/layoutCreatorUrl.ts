@@ -21,6 +21,12 @@ import {
 	type CreatorMagicRule,
 	type CreatorMagicSection
 } from '$lib/layoutCreatorMappings';
+import {
+	normalizeTypingPracticeLessonSettings,
+	typingPracticeLessonFromSearchParams,
+	writeTypingPracticeLessonParams,
+	type TypingPracticeLessonSettings
+} from '$lib/typingPracticeText';
 
 export const CREATOR_NAME_PARAM = 'name';
 export const CREATOR_BASE_PARAM = 'base';
@@ -45,6 +51,7 @@ export type CreatorUrlSnapshot = {
 	magicDraft: CreatorMagicDraft;
 	adaptiveDraft: CreatorAdaptiveDraft;
 	keyConfig: KeyboardInputConfig;
+	practiceLesson: TypingPracticeLessonSettings;
 };
 
 type MagicUrlSection = {
@@ -368,7 +375,8 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 		includeAdaptiveKey: false,
 		magicDraft: createEmptyCreatorMagicDraft(),
 		adaptiveDraft: createEmptyCreatorAdaptiveDraft(),
-		keyConfig: createDefaultKeyboardInputConfig()
+		keyConfig: createDefaultKeyboardInputConfig(),
+		practiceLesson: normalizeTypingPracticeLessonSettings(null)
 	};
 }
 
@@ -396,6 +404,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 
 	writeMagicParam(params, snapshot);
 	writeAdaptiveParam(params, snapshot);
+	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
 	if (snapshot.locked) params.set(CREATOR_LOCKED_PARAM, ENABLED_FLAG);
 	return params;
 }
@@ -465,6 +474,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 		includeAdaptiveKey,
 		magicDraft,
 		adaptiveDraft,
-		keyConfig
+		keyConfig,
+		practiceLesson: typingPracticeLessonFromSearchParams(searchParams)
 	};
 }

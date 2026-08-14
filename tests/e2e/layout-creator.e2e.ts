@@ -31,6 +31,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();
+	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toBeVisible();
 
 	const magicKey = panel.getByRole('button', { name: 'Add magic key' });
 	const adaptiveKey = panel.getByRole('button', { name: 'Add adaptive key' });
@@ -157,4 +158,23 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 		'aria-pressed',
 		'true'
 	);
+});
+
+test('lets the creator set a custom practice lesson', async ({ page }) => {
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Custom text' }).click();
+	await dialog.getByRole('textbox', { name: 'Practice text' }).fill('hello creator world');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+
+	await expect(page).toHaveURL(/text=hello(\+|%20)creator(\+|%20)world/);
+	await expect(panel.locator('[data-practice-word]')).toHaveText(['hello', 'creator', 'world']);
+	await expect(dialog).toHaveCount(0);
+
+	await page.reload();
+	const restored = page.getByRole('tabpanel', { name: 'New layout' });
+	await expect(restored.locator('[data-practice-word]')).toHaveText(['hello', 'creator', 'world']);
 });

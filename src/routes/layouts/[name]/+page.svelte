@@ -13,10 +13,7 @@
 	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
 	import {
-		normalizeTypingPracticeLessonSettings,
-		parseTypingPracticeSpecialWordsPercent,
-		TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
-		TYPING_PRACTICE_TEXT_PARAM,
+		typingPracticeLessonFromSearchParams,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
 	import { untrack } from 'svelte';
@@ -28,16 +25,7 @@
 		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
 	);
 
-	function practiceLessonFromUrl(searchParams: URLSearchParams): TypingPracticeLessonSettings {
-		return normalizeTypingPracticeLessonSettings({
-			customText: searchParams.get(TYPING_PRACTICE_TEXT_PARAM),
-			specialWordsPercent: parseTypingPracticeSpecialWordsPercent(
-				searchParams.get(TYPING_PRACTICE_SPECIAL_WORDS_PARAM)
-			)
-		});
-	}
-
-	const practiceLesson = $derived(practiceLessonFromUrl(page.url.searchParams));
+	const practiceLesson = $derived(typingPracticeLessonFromSearchParams(page.url.searchParams));
 	let disabledMappingIds = $state<string[]>([]);
 
 	filterStore.enterLayoutDetailRoute();
@@ -48,7 +36,7 @@
 			? layoutDetailPageHref(
 					pathname,
 					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
-					practiceLessonFromUrl(page.url.searchParams)
+					typingPracticeLessonFromSearchParams(page.url.searchParams)
 				)
 			: pathname;
 		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;

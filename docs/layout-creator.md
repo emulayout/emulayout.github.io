@@ -19,8 +19,8 @@ those drafts in the browser.
   falls back to `New layout`. The document title and the unsaved-canvas tab use that name. Renaming
   does not regenerate the practice words.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, base layout, keyboard type, key grid, lock, and Magic/Adaptive mappings (including
-  incomplete rows) are written when they differ from the blank canvas. Writes wait 300ms after the
+  Name, base layout, keyboard type, key grid, lock, practice lesson, and Magic/Adaptive mappings
+  (including incomplete rows) are written when they differ from the blank canvas. Writes wait 300ms after the
   last edit, matching the index filter URL persist, and flush on page hide so a refresh keeps the
   latest keystrokes. A bare `/create` link starts fresh. Reloading or opening the URL restores the
   draft. Defaults are omitted, so an untouched canvas stays `/create`. Empty standard slots are
@@ -55,8 +55,11 @@ those drafts in the browser.
   from the live practice profile.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control, home-key
-  coloring, next-key highlighting). Magic and Adaptive mapping controls appear when the draft has
-  those features, using the same workspace as the detail page.
+  coloring, next-key highlighting). The same Practice lesson settings control as the detail page
+  can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
+  `special`. Those params join the creator query and are omitted at their defaults. Magic and
+  Adaptive mapping controls appear when the draft has those features, using the same workspace as
+  the detail page.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.

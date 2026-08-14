@@ -7,7 +7,9 @@ and calculation logic outside the renderer.
 
 ## Product model
 
-- `Typing practice` is the first and default layout-detail tab.
+- `Typing practice` is the first and default layout-detail tab. The layout creator reuses the same
+  practice workspace, including Practice lesson settings for custom `text` and the `special`
+  Magic/Adaptive word balance.
 - Without custom text, each new lesson samples ten distinct words from the vendored English 1k
   list. The first remaining word is the active target.
   Random lessons also skip words that need a practiced-layout character with no physical mapping

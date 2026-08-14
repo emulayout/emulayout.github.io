@@ -41,3 +41,27 @@ export function normalizeTypingPracticeLessonSettings(
 			: clampTypingPracticeSpecialWordsPercent(settings?.specialWordsPercent ?? 0)
 	};
 }
+
+export function typingPracticeLessonFromSearchParams(
+	searchParams: URLSearchParams
+): TypingPracticeLessonSettings {
+	return normalizeTypingPracticeLessonSettings({
+		customText: searchParams.get(TYPING_PRACTICE_TEXT_PARAM),
+		specialWordsPercent: parseTypingPracticeSpecialWordsPercent(
+			searchParams.get(TYPING_PRACTICE_SPECIAL_WORDS_PARAM)
+		)
+	});
+}
+
+/** Write shareable `text` / `special` params. Defaults are omitted. */
+export function writeTypingPracticeLessonParams(
+	params: URLSearchParams,
+	settings?: Partial<TypingPracticeLessonSettings> | null
+): void {
+	const lesson = normalizeTypingPracticeLessonSettings(settings);
+	if (lesson.customText) {
+		params.set(TYPING_PRACTICE_TEXT_PARAM, lesson.customText);
+	} else if (lesson.specialWordsPercent > 0) {
+		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
+	}
+}

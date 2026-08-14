@@ -37,6 +37,7 @@ describe('goatcounterPageviewPath', () => {
 		expect(goatcounterPageviewPath('/create', '?name=Shared+draft&keys=v1:m;0,0::w')).toBe(
 			'/create'
 		);
+		expect(goatcounterPageviewPath('/create', '?text=hello+world&special=40')).toBe('/create');
 	});
 
 	test('keeps non-default detail tabs without layout names or practice text', () => {

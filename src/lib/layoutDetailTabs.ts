@@ -1,7 +1,5 @@
 import {
-	normalizeTypingPracticeLessonSettings,
-	TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
-	TYPING_PRACTICE_TEXT_PARAM,
+	writeTypingPracticeLessonParams,
 	type TypingPracticeLessonSettings
 } from '$lib/typingPracticeText';
 
@@ -44,11 +42,6 @@ export function layoutDetailPageHref(
 	practiceLesson?: Partial<TypingPracticeLessonSettings> | null
 ): string {
 	const params = new URLSearchParams([[LAYOUT_DETAIL_TAB_PARAM, section]]);
-	const lesson = normalizeTypingPracticeLessonSettings(practiceLesson);
-	if (lesson.customText) {
-		params.set(TYPING_PRACTICE_TEXT_PARAM, lesson.customText);
-	} else if (lesson.specialWordsPercent > 0) {
-		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
-	}
+	writeTypingPracticeLessonParams(params, practiceLesson);
 	return `${pathname}?${params}`;
 }

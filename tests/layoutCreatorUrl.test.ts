@@ -32,6 +32,30 @@ describe('creator URL state', () => {
 		expect(creatorSearchFromSnapshot(createDefaultCreatorUrlSnapshot())).toBe('');
 	});
 
+	test('round-trips custom practice text and a special-word balance', () => {
+		const custom: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40 }
+		};
+		const customParams = writeCreatorUrlParams(custom);
+		expect(customParams.get('text')).toBe('hello creator world');
+		expect(customParams.has('special')).toBe(false);
+		expect(roundTrip(custom).practiceLesson).toEqual({
+			customText: 'hello creator world',
+			specialWordsPercent: 0
+		});
+
+		const balanced: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			practiceLesson: { customText: null, specialWordsPercent: 40 }
+		};
+		expect(writeCreatorUrlParams(balanced).get('special')).toBe('40');
+		expect(roundTrip(balanced).practiceLesson).toEqual({
+			customText: null,
+			specialWordsPercent: 40
+		});
+	});
+
 	test('round-trips a renamed locked draft with an edited key', () => {
 		const snapshot: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),

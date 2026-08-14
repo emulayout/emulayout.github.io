@@ -46,6 +46,10 @@
 		readCreatorUrlSnapshot,
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
+	import {
+		normalizeTypingPracticeLessonSettings,
+		type TypingPracticeLessonSettings
+	} from '$lib/typingPracticeText';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -66,6 +70,7 @@
 	let magicDraft = $state.raw(initialSnapshot.magicDraft);
 	let adaptiveDraft = $state.raw(initialSnapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSnapshot.keyConfig);
+	let practiceLesson = $state.raw(initialSnapshot.practiceLesson);
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
@@ -143,7 +148,8 @@
 			includeAdaptiveKey,
 			magicDraft,
 			adaptiveDraft,
-			keyConfig
+			keyConfig,
+			practiceLesson
 		};
 	}
 
@@ -264,6 +270,10 @@
 
 	function toggleLayoutLocked() {
 		layoutLocked = !layoutLocked;
+	}
+
+	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
+		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
 	}
 </script>
 
@@ -442,6 +452,8 @@
 			{disabledMappingIds}
 			onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 			showKeyboardMappings={layoutLocked ? showLockedMappings : showEditorMappings}
+			{practiceLesson}
+			onPracticeLessonChange={setPracticeLesson}
 			keyboardHeaderStart={creatorHeaderStart}
 			keyboard={layoutLocked ? undefined : creatorKeyboard}
 			keyboardAside={layoutLocked ? undefined : creatorAside}
