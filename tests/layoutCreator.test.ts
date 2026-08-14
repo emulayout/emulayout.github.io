@@ -7,6 +7,7 @@ import {
 	LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 	createDefaultCreatorLayout,
 	createLayoutFromKeyConfig,
+	keyboardConfigGainedMagicTriggers,
 	keyboardConfigHasMagicKey,
 	removeMagicKeysFromConfig
 } from '../src/lib/layoutCreator';
@@ -81,6 +82,16 @@ describe('createLayoutFromKeyConfig', () => {
 		expect(reused.positionBySlot.has('1,11')).toBe(false);
 	});
 
+	test('does not inject * when the board already has @', () => {
+		const withAt = updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', '@');
+		const layout = createLayoutFromKeyConfig(withAt, { magicKey: true });
+
+		expect(layout.hasMagicKey).toBe(true);
+		expect(layout.hasRepeatKey).toBe(true);
+		expect(layout.keys['@']).toEqual({ row: 0, col: 0 });
+		expect(layout.keys['*']).toBeUndefined();
+	});
+
 	test('uses a custom layout name', () => {
 		const layout = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
 			name: 'Custom draft'
@@ -102,6 +113,22 @@ describe('createLayoutFromKeyConfig', () => {
 		expect(adaptiveOnly.hasMagicKey).toBe(false);
 		expect(both.hasAdaptiveSwap).toBe(true);
 		expect(both.hasMagicKey).toBe(true);
+	});
+});
+
+describe('keyboardConfigGainedMagicTriggers', () => {
+	test('reports newly assigned @ and * without treating clears as gains', () => {
+		const empty = createDefaultKeyboardInputConfig();
+		const withAt = updateKeyboardInputKey(empty, '0,0', '@');
+		const withStar = updateKeyboardInputKey(withAt, '0,1', '*');
+		const clearedAt = updateKeyboardInputKey(withStar, '0,0', '');
+		const otherKey = updateKeyboardInputKey(withAt, '0,1', 'w');
+
+		expect(keyboardConfigGainedMagicTriggers(empty, withAt)).toEqual(['@']);
+		expect(keyboardConfigGainedMagicTriggers(withAt, withStar)).toEqual(['*']);
+		expect(keyboardConfigGainedMagicTriggers(withStar, clearedAt)).toEqual([]);
+		expect(keyboardConfigGainedMagicTriggers(withAt, otherKey)).toEqual([]);
+		expect(keyboardConfigGainedMagicTriggers(withAt, withAt)).toEqual([]);
 	});
 });
 

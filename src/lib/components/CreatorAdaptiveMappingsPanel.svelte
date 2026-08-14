@@ -411,12 +411,47 @@
 	}
 
 	input[type='checkbox'] {
+		appearance: none;
+		-webkit-appearance: none;
+		box-sizing: border-box;
 		width: 1rem;
 		height: 1rem;
 		flex: 0 0 1rem;
 		margin: 0;
-		accent-color: var(--accent);
+		border: 1px solid var(--border);
+		border-radius: 0.2rem;
+		background-color: var(--bg-primary);
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: 0.7rem 0.7rem;
 		cursor: pointer;
+	}
+
+	input[type='checkbox']:checked,
+	input[type='checkbox']:indeterminate {
+		background-color: var(--adaptive-key);
+		border-color: var(--adaptive-key);
+	}
+
+	input[type='checkbox']:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	input[type='checkbox']:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) input[type='checkbox']:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) input[type='checkbox']:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	input[type='checkbox']:focus-visible {
+		outline: 2px solid var(--adaptive-key);
+		outline-offset: 1px;
 	}
 
 	input[type='checkbox']:disabled {

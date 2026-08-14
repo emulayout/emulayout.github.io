@@ -410,10 +410,10 @@
 	}
 
 	.keyboard-preview__swap-path {
-		stroke: var(--accent);
+		stroke: var(--adaptive-key);
 		stroke-width: 3;
 		stroke-linecap: round;
-		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--accent) 52%, transparent));
+		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--adaptive-key) 52%, transparent));
 		opacity: 0.82;
 		vector-effect: non-scaling-stroke;
 	}
@@ -535,16 +535,16 @@
 	}
 
 	.keyboard-preview__key--active {
-		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+		border-color: color-mix(in srgb, var(--adaptive-key) 70%, var(--border));
 		background: linear-gradient(
 			180deg,
-			color-mix(in srgb, var(--accent) 35%, var(--bg-primary)) 0%,
-			color-mix(in srgb, var(--accent) 20%, var(--bg-primary)) 100%
+			color-mix(in srgb, var(--adaptive-key) 35%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--adaptive-key) 20%, var(--bg-primary)) 100%
 		);
 		box-shadow:
 			inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
-			0 2px 0 color-mix(in srgb, var(--accent) 42%, black),
-			0 0 0.5rem color-mix(in srgb, var(--accent) 22%, transparent);
+			0 2px 0 color-mix(in srgb, var(--adaptive-key) 42%, black),
+			0 0 0.5rem color-mix(in srgb, var(--adaptive-key) 22%, transparent);
 		font-size: clamp(0.65rem, 1.45vw, 1rem);
 		letter-spacing: -0.02em;
 		white-space: nowrap;

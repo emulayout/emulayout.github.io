@@ -15,6 +15,7 @@ import {
 	type KeyboardInputConfig
 } from '$lib/keyboardInputConfig';
 import { THUMB_ROW } from '$lib/layoutDisplay';
+import { DEFAULT_REPEAT_KEY } from '$lib/repeatKeys';
 
 export const LAYOUT_CREATOR_NEW_TAB = 'new';
 export const LAYOUT_CREATOR_NEW_LAYOUT_NAME = 'New layout';
@@ -75,6 +76,24 @@ export function createDefaultCreatorLayout(name = LAYOUT_CREATOR_NEW_LAYOUT_NAME
 
 export function keyboardConfigHasMagicKey(config: KeyboardInputConfig): boolean {
 	return config.keys.some((key) => normalizeKeyboardInputValue(key.value) === CREATOR_MAGIC_KEY);
+}
+
+/** Triggers newly assigned on a slot. Clearing a slot never appears here. */
+export function keyboardConfigGainedMagicTriggers(
+	previous: KeyboardInputConfig,
+	next: KeyboardInputConfig
+): string[] {
+	const previousBySlot = new Map(
+		previous.keys.map((key) => [key.slot, normalizeKeyboardInputValue(key.value)])
+	);
+	const gained: string[] = [];
+	for (const key of next.keys) {
+		const value = normalizeKeyboardInputValue(key.value);
+		if (value !== CREATOR_MAGIC_KEY && value !== DEFAULT_REPEAT_KEY) continue;
+		if (previousBySlot.get(key.slot) === value) continue;
+		if (!gained.includes(value)) gained.push(value);
+	}
+	return gained;
 }
 
 /** Clear `*` from every editor slot so turning Magic off does not leave a trigger on the board. */
@@ -140,7 +159,11 @@ export function createLayoutFromKeyConfig(
 		}
 	}
 
-	if (options.magicKey && !keyChars.includes(CREATOR_MAGIC_KEY)) {
+	if (
+		options.magicKey &&
+		!keyChars.includes(CREATOR_MAGIC_KEY) &&
+		!keyChars.includes(DEFAULT_REPEAT_KEY)
+	) {
 		const extra = extraMagicKeySlot(assigned);
 		keyChars.push(CREATOR_MAGIC_KEY);
 		rows.push(extra.row);
@@ -160,8 +183,8 @@ export function createLayoutFromKeyConfig(
 	let flags = 0;
 	if (thumbs.length > 0) flags |= LAYOUT_FLAG_THUMB_KEYS;
 	if (letters.size === 26) flags |= LAYOUT_FLAG_ALL_LETTERS;
-	if (keyChars.includes(CREATOR_MAGIC_KEY)) flags |= LAYOUT_FLAG_MAGIC_KEY;
-	if (keyChars.includes('@')) flags |= LAYOUT_FLAG_REPEAT_KEY;
+	if (options.magicKey || keyChars.includes(CREATOR_MAGIC_KEY)) flags |= LAYOUT_FLAG_MAGIC_KEY;
+	if (keyChars.includes(DEFAULT_REPEAT_KEY)) flags |= LAYOUT_FLAG_REPEAT_KEY;
 	if (options.adaptiveKey) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP;
 
 	const compact: CompactLayout = [

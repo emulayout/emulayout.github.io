@@ -229,6 +229,7 @@ unavailable. Each typing surface resolves mapped triggers against its own curren
 emitted history and the page's shared disabled-mapping set:
 
 - Magic triggers use the `--magic-key` fill with `--magic-key-fg` glyph or label color;
+- Adaptive armed keys use the `--adaptive-key` fill; swap-path strokes use the same token;
 - when pressing the trigger would emit a value, the keycap displays that value;
 - when no rule or emitting fallback applies, the Magic symbol remains on the keycap;
 - turning the Layout test area preview off restores literal trigger characters and ordinary key

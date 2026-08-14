@@ -26,6 +26,7 @@
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
 		createLayoutFromKeyConfig,
+		keyboardConfigGainedMagicTriggers,
 		keyboardConfigHasMagicKey,
 		removeMagicKeysFromConfig,
 		savedCreatorTabId,
@@ -41,6 +42,7 @@
 		creatorDraftsFromSupplemental,
 		creatorMagicDraftHasEnabledMappings,
 		creatorMagicDraftHasMappings,
+		ensureCreatorMagicTrigger,
 		type CreatorAdaptiveDraft,
 		type CreatorMagicDraft
 	} from '$lib/layoutCreatorMappings';
@@ -108,6 +110,8 @@
 	const adaptiveIconActive = $derived(
 		includeAdaptiveKey && creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds)
 	);
+	const magicIconHasData = $derived(!magicKeyEnabled && magicDraftHasMappings);
+	const adaptiveIconHasData = $derived(!includeAdaptiveKey && adaptiveDraftHasMappings);
 	const practiceMagicEnabled = $derived(layoutPreview ? magicDraftHasMappings : magicKeyEnabled);
 	const practiceAdaptiveEnabled = $derived(
 		layoutPreview ? adaptiveDraftHasMappings : includeAdaptiveKey
@@ -319,7 +323,17 @@
 	}
 
 	function setKeyConfig(nextConfig: KeyboardInputConfig) {
+		const gainedTriggers = keyboardConfigGainedMagicTriggers(keyConfig, nextConfig);
+		const replaceUnusedPlaceholder = !includeMagicKey && !keyboardConfigHasMagicKey(keyConfig);
 		keyConfig = nextConfig;
+		if (gainedTriggers.length === 0) return;
+
+		let nextDraft = magicDraft;
+		for (const trigger of gainedTriggers) {
+			nextDraft = ensureCreatorMagicTrigger(nextDraft, trigger, { replaceUnusedPlaceholder });
+		}
+		if (nextDraft !== magicDraft) magicDraft = nextDraft;
+		includeMagicKey = true;
 	}
 
 	function toggleMagicKey() {
@@ -514,27 +528,29 @@
 					type="button"
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--magic={magicIconActive}
+					class:layout-creator-special-key--magic-data={magicIconHasData}
 					aria-pressed={magicKeyEnabled}
-					aria-label={magicKeyEnabled ? 'Remove magic key' : 'Add magic key'}
+					aria-label={magicKeyEnabled ? 'Remove magic' : 'Add magic'}
 					onclick={toggleMagicKey}
 				>
 					<span class="layout-creator-special-key__cap">
 						<LayoutInputFeatureIcon feature="magic" />
 					</span>
-					<span class="layout-creator-special-key__label">Magic key</span>
+					<span class="layout-creator-special-key__label">Magic</span>
 				</button>
 				<button
 					type="button"
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--adaptive={adaptiveIconActive}
+					class:layout-creator-special-key--adaptive-data={adaptiveIconHasData}
 					aria-pressed={includeAdaptiveKey}
-					aria-label={includeAdaptiveKey ? 'Remove adaptive key' : 'Add adaptive key'}
+					aria-label={includeAdaptiveKey ? 'Remove adaptive' : 'Add adaptive'}
 					onclick={toggleAdaptiveKey}
 				>
 					<span class="layout-creator-special-key__cap">
 						<LayoutInputFeatureIcon feature="adaptive" />
 					</span>
-					<span class="layout-creator-special-key__label">Adaptive key</span>
+					<span class="layout-creator-special-key__label">Adaptive</span>
 				</button>
 			</div>
 		{/snippet}
@@ -1019,7 +1035,7 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		gap: var(--keyboard-preview-key-gap, 0.45rem);
+		gap: 1rem;
 	}
 
 	.layout-creator-special-key {
@@ -1093,21 +1109,47 @@
 			0 2px 0 color-mix(in srgb, var(--magic-key) 62%, black);
 	}
 
+	.layout-creator-special-key--magic-data {
+		color: var(--magic-key);
+	}
+
+	.layout-creator-special-key--magic-data .layout-creator-special-key__cap {
+		color: var(--magic-key);
+		border-color: color-mix(in srgb, var(--magic-key) 40%, var(--border));
+	}
+
+	.layout-creator-special-key--magic-data:hover .layout-creator-special-key__cap {
+		border-color: color-mix(in srgb, var(--magic-key) 55%, var(--border));
+	}
+
 	.layout-creator-special-key--adaptive {
-		color: var(--accent);
+		color: var(--adaptive-key);
 	}
 
 	.layout-creator-special-key--adaptive .layout-creator-special-key__cap {
-		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+		border-color: color-mix(in srgb, var(--adaptive-key) 70%, black);
 		background: linear-gradient(
 			180deg,
-			color-mix(in srgb, var(--accent) 35%, var(--bg-primary)) 0%,
-			color-mix(in srgb, var(--accent) 20%, var(--bg-primary)) 100%
+			color-mix(in srgb, var(--adaptive-key) 82%, white) 0%,
+			var(--adaptive-key) 100%
 		);
-		color: var(--accent);
+		color: var(--adaptive-key-fg);
 		box-shadow:
-			inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
-			0 2px 0 color-mix(in srgb, var(--accent) 42%, black);
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--adaptive-key) 62%, black);
+	}
+
+	.layout-creator-special-key--adaptive-data {
+		color: var(--adaptive-key);
+	}
+
+	.layout-creator-special-key--adaptive-data .layout-creator-special-key__cap {
+		color: var(--adaptive-key);
+		border-color: color-mix(in srgb, var(--adaptive-key) 40%, var(--border));
+	}
+
+	.layout-creator-special-key--adaptive-data:hover .layout-creator-special-key__cap {
+		border-color: color-mix(in srgb, var(--adaptive-key) 55%, var(--border));
 	}
 
 	@media (max-width: 40rem) {

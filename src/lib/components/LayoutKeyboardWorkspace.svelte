@@ -31,6 +31,8 @@
 		optionsLabel?: string;
 		header?: Snippet;
 		options?: Snippet;
+		/** Prompt, input, and other content sized to the workspace width. */
+		above?: Snippet;
 		/** Replaces the presentation keyboard. Omit to keep the preview. */
 		keyboard?: Snippet;
 		/** Sits beside the keyboard in its own column, independent of mappings. */
@@ -54,6 +56,7 @@
 		optionsLabel = 'Keyboard options',
 		header,
 		options,
+		above,
 		keyboard,
 		aside,
 		mappings
@@ -124,6 +127,11 @@
 			class:layout-keyboard-workspace--with-mappings={mappingsVisible}
 			style={sizingStyle}
 		>
+			{#if above}
+				<div class="layout-keyboard-workspace-above">
+					{@render above()}
+				</div>
+			{/if}
 			<div class="layout-keyboard-workspace-board">
 				<div class="layout-keyboard-workspace-cluster">
 					<div class="layout-keyboard-workspace-preview-area">
@@ -224,6 +232,13 @@
 	.layout-keyboard-workspace-cluster :global(.keyboard-input-editor) {
 		width: max-content;
 		max-width: 100%;
+	}
+
+	.layout-keyboard-workspace-above {
+		grid-column: 1 / -1;
+		box-sizing: border-box;
+		width: 0;
+		min-width: 100%;
 	}
 
 	.layout-keyboard-workspace-preview-area {

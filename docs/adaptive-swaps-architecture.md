@@ -239,7 +239,7 @@ in the swapped output.
   (including a typed Magic literal alternate). It does not live-resolve target Magic while typing.
 - The detail page's styled keyboard accepts feature-neutral per-key feedback. After the current
   history ends in an Adaptive trigger, both keys in every enabled swap replace their base labels
-  with the values they would emit and gain the active accent background. The shared preview switch
+  with the values they would emit and gain the `--adaptive-key` background. The shared preview switch
   disables this presentation alongside prospective Magic output. Typing practice has a separate,
   default-off relevance filter that retains only an armed pair containing a physical key that can
   produce the next required lesson character; it uses the same fully resolved next-key candidates

@@ -10,6 +10,7 @@ import {
 	createCreatorMagicSection,
 	createEmptyCreatorAdaptiveDraft,
 	createEmptyCreatorMagicDraft,
+	ensureCreatorMagicTrigger,
 	creatorAdaptiveDraftHasEnabledMappings,
 	creatorAdaptiveDraftHasMappings,
 	creatorDraftsFromSupplemental,
@@ -90,6 +91,55 @@ describe('magicSourceFromDraft', () => {
 				'@': { rules: { a: 'o' }, fallback: 'repeat-last' }
 			}
 		});
+	});
+
+	test('replaces the unused * placeholder when the first trigger is @', () => {
+		const draft = createEmptyCreatorMagicDraft();
+		const next = ensureCreatorMagicTrigger(draft, '@', { replaceUnusedPlaceholder: true });
+
+		expect(next.sections.map((section) => section.trigger)).toEqual(['@']);
+		expect(next.sections[0].rules).toEqual([]);
+		expect(next.sections[0].fallbackKind).toBe('repeat-last');
+		expect(magicSourceFromDraft(next)).toEqual({
+			mappings: { '@': { rules: {}, fallback: 'repeat-last' } }
+		});
+	});
+
+	test('keeps an existing * section when Magic is already in use', () => {
+		const draft = createEmptyCreatorMagicDraft();
+		const next = ensureCreatorMagicTrigger(draft, '@');
+
+		expect(next.sections.map((section) => section.trigger)).toEqual(['*', '@']);
+		expect(next.sections[1].rules).toEqual([]);
+		expect(next.sections[1].fallbackKind).toBe('repeat-last');
+	});
+
+	test('adds a * section after an @-only draft', () => {
+		const draft = ensureCreatorMagicTrigger(createEmptyCreatorMagicDraft(), '@', {
+			replaceUnusedPlaceholder: true
+		});
+		const next = ensureCreatorMagicTrigger(draft, '*');
+
+		expect(next.sections.map((section) => section.trigger)).toEqual(['@', '*']);
+		expect(next.sections[1].fallbackKind).toBe('no-op');
+	});
+
+	test('leaves an existing trigger and its fallback unchanged', () => {
+		const draft = {
+			sections: [
+				{
+					...createCreatorMagicSection('@'),
+					rules: [{ ...createCreatorMagicRule(), after: 'a', emit: 'o' }],
+					fallbackKind: 'emit' as const,
+					fallbackEmit: 'the'
+				}
+			]
+		};
+
+		expect(ensureCreatorMagicTrigger(draft, '@', { replaceUnusedPlaceholder: true })).toBe(draft);
+		expect(
+			ensureCreatorMagicTrigger(draft, '*').sections.map((section) => section.trigger)
+		).toEqual(['@', '*']);
 	});
 
 	test('omits an incomplete emit fallback', () => {

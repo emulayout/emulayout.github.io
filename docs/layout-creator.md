@@ -41,7 +41,12 @@ drafts in the browser.
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
   mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
   the base. Printable keys replace the focused slot and advance, Backspace/Delete clear, and arrows
-  move among slots. Keyboard type is Ortho or Staggered. Assigned values may repeat and stay on
+  move among slots. Typing `@` or `*` into a slot adds that trigger to Magic mappings when it is not
+  already present, and turns Magic on. `@` starts as fallback-only (otherwise → repeat previous),
+  with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
+  is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
+  Clearing `@` or `*` from a slot does not remove its mapping.
+  Keyboard type is Ortho or Staggered. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so Typing practice uses the current
   keys.
@@ -51,22 +56,27 @@ drafts in the browser.
   again. The catalog mapping panel still appears when the draft has complete Magic or Adaptive
   mappings, even if those editors were closed in Edit. The sticky bar shows **Preview** while
   editing, which opens the uneditable presentation, and **Edit** while previewing.
-- While in Edit, Magic key and Adaptive key add buttons sit to the right of the keyboard in their
+- While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
   own column, vertically centered with the board. Either or both can be on. Magic adds a `*`
   trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
-  Clicking an active button hides that editor without discarding the draft. The icon lights up only
-  when that feature is on and at least one complete mapping is enabled.
+  Clicking an active button hides that editor without discarding the draft. The icon fill lights up
+  when that feature is on and at least one complete mapping is enabled. Closing the editor while
+  complete mappings remain tints the icon and label in the Magic or Adaptive color so the saved data
+  is still visible.
 - When a special key is on, its mapping editor appears in a separate column to the right of those
   buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
   Each panel can add, edit, and delete mappings,
   add or delete labeled sections (Magic: extra triggers; Adaptive: schema groups), and temporarily
   disable complete mappings with the same checkboxes as the catalog selectors. Each Magic section
-  also has the schema fallback: nothing (`no-op` / omitted), repeat previous, or fixed text. A
-  trigger can live on an emitting fallback alone. Incomplete rows stay in the draft and are omitted
-  from the live practice profile.
+  also has the schema fallback: nothing (`no-op` / omitted), repeat previous, or fixed text. Fixed
+  text stacks under the fallback selector in the same field column. Rule and fallback rows share
+  columns so the trigger and output line up; the preceding field fills the space before the trigger.
+  A trigger can live on an emitting
+  fallback alone. Incomplete rows stay in the draft and are omitted from the live practice profile.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control, home-key
-  coloring, next-key highlighting). The same Practice lesson settings control as the detail page
+  coloring, next-key highlighting). The prompt and input use that workspace's width. The same
+  Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
   Adaptive mapping controls appear when the draft has those features, using the same workspace as

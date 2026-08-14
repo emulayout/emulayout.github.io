@@ -918,6 +918,10 @@
 		text-decoration-color: var(--magic-key);
 	}
 
+	.typing-practice-character--adaptive-group {
+		text-decoration-color: var(--adaptive-key);
+	}
+
 	.typing-practice-input {
 		display: flex;
 		flex-direction: column;

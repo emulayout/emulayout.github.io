@@ -5,7 +5,7 @@ import {
 	type KeyboardInputConfig,
 	type KeyboardInputKey
 } from '$lib/keyboardInputConfig';
-import { CREATOR_MAGIC_KEY, LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
+import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
 	createCreatorAdaptiveSection,
@@ -13,6 +13,7 @@ import {
 	createCreatorMagicSection,
 	createEmptyCreatorAdaptiveDraft,
 	createEmptyCreatorMagicDraft,
+	isDefaultCreatorMagicDraft,
 	type CreatorAdaptiveDraft,
 	type CreatorAdaptiveRule,
 	type CreatorAdaptiveSection,
@@ -141,19 +142,6 @@ function magicSectionPayload(section: CreatorMagicSection): MagicUrlSection {
 
 function adaptiveRulePayload(rule: CreatorAdaptiveRule): [string, string, string] {
 	return [rule.trigger, rule.left, rule.right];
-}
-
-function isDefaultMagicDraft(draft: CreatorMagicDraft): boolean {
-	if (draft.sections.length !== 1) return false;
-	const [section] = draft.sections;
-	return (
-		section.trigger === CREATOR_MAGIC_KEY &&
-		section.fallbackKind === 'no-op' &&
-		section.fallbackEmit === '' &&
-		section.rules.length === 1 &&
-		section.rules[0].after === '' &&
-		section.rules[0].emit === ''
-	);
 }
 
 function isDefaultAdaptiveDraft(draft: CreatorAdaptiveDraft): boolean {
@@ -339,7 +327,7 @@ function adaptiveDraftFromPayload(value: unknown): CreatorAdaptiveDraft | null {
 
 function writeMagicParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
 	if (!snapshot.includeMagicKey) return;
-	if (isDefaultMagicDraft(snapshot.magicDraft)) {
+	if (isDefaultCreatorMagicDraft(snapshot.magicDraft)) {
 		params.set(CREATOR_MAGIC_PARAM, ENABLED_FLAG);
 		return;
 	}

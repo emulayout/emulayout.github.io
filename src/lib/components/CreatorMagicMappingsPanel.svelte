@@ -189,95 +189,112 @@
 				</button>
 			</div>
 
-			<div class="creator-mappings-list">
-				{#each section.rules as rule (rule.id)}
-					{@const mappingId = compiledRuleId(section.trigger, rule.after)}
-					<div
-						class="creator-mappings-row"
-						class:creator-mappings-row--disabled={mappingId !== null && disabledIds.has(mappingId)}
-					>
-						<input
-							type="checkbox"
-							checked={mappingId !== null && !disabledIds.has(mappingId)}
-							disabled={mappingId === null}
-							aria-label="Enable mapping"
-							onchange={(event) => {
-								if (mappingId) setMappingsEnabled([mappingId], event.currentTarget.checked);
-							}}
-						/>
-						<span class="creator-magic-mapping">
-							<input
-								class="creator-mappings-field"
-								value={rule.after}
-								aria-label="Preceding"
-								oninput={(event) =>
-									updateRule(section.id, rule.id, 'after', event.currentTarget.value)}
-							/>
-							<span class="creator-mappings-trigger">{section.trigger.trim() || '*'}</span>
-							<span class="creator-mappings-arrow" aria-hidden="true">→</span>
-							<input
-								class="creator-mappings-field"
-								value={rule.emit}
-								aria-label="Emit"
-								oninput={(event) =>
-									updateRule(section.id, rule.id, 'emit', event.currentTarget.value)}
-							/>
-						</span>
-						<button
-							type="button"
-							class="creator-mappings-icon-button"
-							aria-label="Delete mapping"
-							onclick={() => removeRule(section.id, rule.id)}
+			<table class="creator-mappings-list">
+				<tbody>
+					{#each section.rules as rule (rule.id)}
+						{@const mappingId = compiledRuleId(section.trigger, rule.after)}
+						<tr
+							class="creator-mappings-row"
+							class:creator-mappings-row--disabled={mappingId !== null &&
+								disabledIds.has(mappingId)}
 						>
-							<span aria-hidden="true">×</span>
-						</button>
-					</div>
-				{/each}
-				<div
-					class="creator-mappings-row"
-					class:creator-mappings-row--disabled={fallbackId !== null && disabledIds.has(fallbackId)}
-				>
-					<input
-						type="checkbox"
-						checked={fallbackId !== null && !disabledIds.has(fallbackId)}
-						disabled={fallbackId === null}
-						aria-label="Enable fallback"
-						onchange={(event) => {
-							if (fallbackId) setMappingsEnabled([fallbackId], event.currentTarget.checked);
-						}}
-					/>
-					<span class="creator-magic-mapping creator-magic-mapping--fallback">
-						<span class="creator-mappings-otherwise">otherwise</span>
-						<span class="creator-mappings-trigger">{section.trigger.trim() || '*'}</span>
-						<span class="creator-mappings-arrow" aria-hidden="true">→</span>
-						<span class="creator-magic-fallback-output">
-							<select
-								class="creator-mappings-field creator-mappings-field--fallback"
-								value={section.fallbackKind}
-								aria-label="Fallback"
-								onchange={(event) =>
-									updateFallbackKind(
-										section.id,
-										event.currentTarget.value as CreatorMagicFallbackKind
-									)}
-							>
-								{#each FALLBACK_OPTIONS as option (option.value)}
-									<option value={option.value}>{option.label}</option>
-								{/each}
-							</select>
-							{#if section.fallbackKind === 'emit'}
+							<td>
+								<input
+									type="checkbox"
+									checked={mappingId !== null && !disabledIds.has(mappingId)}
+									disabled={mappingId === null}
+									aria-label="Enable mapping"
+									onchange={(event) => {
+										if (mappingId) setMappingsEnabled([mappingId], event.currentTarget.checked);
+									}}
+								/>
+							</td>
+							<td class="creator-mappings-context">
+								<input
+									class="creator-mappings-field creator-mappings-field--after"
+									size="1"
+									value={rule.after}
+									aria-label="Preceding"
+									oninput={(event) =>
+										updateRule(section.id, rule.id, 'after', event.currentTarget.value)}
+								/>
+							</td>
+							<td class="creator-mappings-trigger">{section.trigger.trim() || '*'}</td>
+							<td class="creator-mappings-arrow" aria-hidden="true">→</td>
+							<td class="creator-mappings-output">
 								<input
 									class="creator-mappings-field"
-									value={section.fallbackEmit}
-									aria-label="Fallback text"
-									oninput={(event) => updateFallbackEmit(section.id, event.currentTarget.value)}
+									value={rule.emit}
+									aria-label="Emit"
+									oninput={(event) =>
+										updateRule(section.id, rule.id, 'emit', event.currentTarget.value)}
 								/>
-							{/if}
-						</span>
-					</span>
-					<span class="creator-mappings-icon-spacer" aria-hidden="true"></span>
-				</div>
-			</div>
+							</td>
+							<td>
+								<button
+									type="button"
+									class="creator-mappings-icon-button"
+									aria-label="Delete mapping"
+									onclick={() => removeRule(section.id, rule.id)}
+								>
+									<span aria-hidden="true">×</span>
+								</button>
+							</td>
+						</tr>
+					{/each}
+					<tr
+						class="creator-mappings-row creator-mappings-row--fallback"
+						class:creator-mappings-row--disabled={fallbackId !== null &&
+							disabledIds.has(fallbackId)}
+					>
+						<td>
+							<input
+								type="checkbox"
+								checked={fallbackId !== null && !disabledIds.has(fallbackId)}
+								disabled={fallbackId === null}
+								aria-label="Enable fallback"
+								onchange={(event) => {
+									if (fallbackId) setMappingsEnabled([fallbackId], event.currentTarget.checked);
+								}}
+							/>
+						</td>
+						<td class="creator-mappings-context">
+							<span class="creator-mappings-otherwise">otherwise</span>
+						</td>
+						<td class="creator-mappings-trigger">{section.trigger.trim() || '*'}</td>
+						<td class="creator-mappings-arrow" aria-hidden="true">→</td>
+						<td class="creator-mappings-output">
+							<span class="creator-magic-fallback-output">
+								<select
+									class="creator-mappings-field creator-mappings-field--fallback"
+									value={section.fallbackKind}
+									aria-label="Fallback"
+									onchange={(event) =>
+										updateFallbackKind(
+											section.id,
+											event.currentTarget.value as CreatorMagicFallbackKind
+										)}
+								>
+									{#each FALLBACK_OPTIONS as option (option.value)}
+										<option value={option.value}>{option.label}</option>
+									{/each}
+								</select>
+								{#if section.fallbackKind === 'emit'}
+									<input
+										class="creator-mappings-field"
+										value={section.fallbackEmit}
+										aria-label="Fallback text"
+										oninput={(event) => updateFallbackEmit(section.id, event.currentTarget.value)}
+									/>
+								{/if}
+							</span>
+						</td>
+						<td>
+							<span class="creator-mappings-icon-spacer" aria-hidden="true"></span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
 	{/each}
 
@@ -296,11 +313,19 @@
 	}
 
 	.creator-mappings-heading,
-	.creator-mappings-group-heading,
-	.creator-mappings-row {
+	.creator-mappings-group-heading {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.creator-mappings-row:has(.creator-magic-fallback-output input) td {
+		vertical-align: top;
+	}
+
+	.creator-mappings-row:has(.creator-magic-fallback-output input) td:first-child,
+	.creator-mappings-row:has(.creator-magic-fallback-output input) td:last-child {
+		padding-top: 0.375rem;
 	}
 
 	.creator-mappings-heading {
@@ -311,12 +336,20 @@
 		line-height: 1.25rem;
 	}
 
+	.creator-mappings-section {
+		display: grid;
+		grid-template-columns: 1.25rem minmax(0, 1fr) 1.5rem;
+		align-items: start;
+		min-width: 0;
+	}
+
 	.creator-mappings-section + .creator-mappings-section {
 		margin-top: 0.75rem;
 	}
 
 	.creator-mappings-section-header {
 		display: flex;
+		grid-column: 1 / -1;
 		align-items: center;
 		gap: 0.35rem;
 		margin-bottom: 0.3rem;
@@ -331,42 +364,62 @@
 	}
 
 	.creator-mappings-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-		padding-inline-start: 1.5rem;
-	}
-
-	.creator-mappings-row--disabled .creator-magic-mapping {
-		opacity: 0.45;
-	}
-
-	.creator-magic-mapping {
-		display: grid;
-		flex: 1;
+		grid-column: 2 / -1;
+		width: 100%;
 		min-width: 0;
-		grid-template-columns: minmax(2.5rem, 1fr) minmax(1ch, auto) 1rem minmax(2.5rem, 1fr);
-		align-items: center;
-		gap: 0.25rem;
+		margin: 0;
+		padding: 0;
+		border-collapse: collapse;
+		border-spacing: 0;
 		font-family: var(--font-mono);
 		font-size: 0.875rem;
 	}
 
-	.creator-magic-mapping--fallback {
-		grid-template-columns: auto minmax(1ch, auto) 1rem minmax(5rem, 1fr);
+	.creator-mappings-list td {
+		padding: 0.175rem 0.25rem;
+		vertical-align: middle;
+	}
+
+	.creator-mappings-list td:last-child {
+		width: 1.5rem;
+		padding-inline: 0;
+	}
+
+	.creator-mappings-row--disabled td:not(:first-child):not(:last-child) {
+		opacity: 0.45;
+	}
+
+	.creator-mappings-row--fallback {
 		color: var(--text-secondary);
+	}
+
+	.creator-mappings-context {
+		width: 1%;
+		white-space: nowrap;
+	}
+
+	.creator-mappings-output {
+		width: 100%;
 	}
 
 	.creator-magic-fallback-output {
 		display: flex;
-		min-width: 0;
-		align-items: center;
+		flex-direction: column;
+		align-items: stretch;
 		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.creator-magic-fallback-output .creator-mappings-field {
+		width: 100%;
 	}
 
 	.creator-mappings-otherwise {
+		display: block;
 		font-family: var(--font-sans);
 		font-size: 0.75rem;
+		line-height: 1.75rem;
+		white-space: nowrap;
 	}
 
 	.creator-mappings-field {
@@ -379,6 +432,14 @@
 		background-color: var(--input-bg);
 		color: var(--text-primary);
 		font: inherit;
+		text-align: start;
+	}
+
+	.creator-mappings-field--after {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 	}
 
 	.creator-mappings-field--trigger {
@@ -387,7 +448,7 @@
 
 	.creator-mappings-field--fallback {
 		min-width: 0;
-		flex: 1;
+		width: 100%;
 		cursor: pointer;
 	}
 
@@ -395,6 +456,13 @@
 		outline: none;
 		border-color: var(--accent);
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+
+	.creator-mappings-trigger,
+	.creator-mappings-arrow {
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+		white-space: nowrap;
 	}
 
 	.creator-mappings-trigger {
@@ -447,12 +515,47 @@
 	}
 
 	input[type='checkbox'] {
+		appearance: none;
+		-webkit-appearance: none;
+		box-sizing: border-box;
 		width: 1rem;
 		height: 1rem;
 		flex: 0 0 1rem;
 		margin: 0;
-		accent-color: var(--accent);
+		border: 1px solid var(--border);
+		border-radius: 0.2rem;
+		background-color: var(--bg-primary);
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: 0.7rem 0.7rem;
 		cursor: pointer;
+	}
+
+	input[type='checkbox']:checked,
+	input[type='checkbox']:indeterminate {
+		background-color: var(--magic-key);
+		border-color: var(--magic-key);
+	}
+
+	input[type='checkbox']:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	input[type='checkbox']:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) input[type='checkbox']:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) input[type='checkbox']:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	input[type='checkbox']:focus-visible {
+		outline: 2px solid var(--magic-key);
+		outline-offset: 1px;
 	}
 
 	input[type='checkbox']:disabled {

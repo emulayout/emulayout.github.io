@@ -62,6 +62,7 @@
 			<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
 				<input
 					type="checkbox"
+					class="input-mappings-checkbox--adaptive"
 					checked={!disabledIds.has(mappingId)}
 					onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
 				/>
@@ -82,6 +83,7 @@
 		<label class="input-mappings-heading">
 			<input
 				type="checkbox"
+				class="input-mappings-checkbox--magic"
 				checked={allEnabled(magicMappingIds)}
 				indeterminate={someEnabled(magicMappingIds) && !allEnabled(magicMappingIds)}
 				onchange={(event) => setMappingsEnabled(magicMappingIds, event.currentTarget.checked)}
@@ -95,6 +97,7 @@
 					<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
 						<input
 							type="checkbox"
+							class="input-mappings-checkbox--magic"
 							checked={!disabledIds.has(mappingId)}
 							onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
 						/>
@@ -123,6 +126,7 @@
 					>
 						<input
 							type="checkbox"
+							class="input-mappings-checkbox--magic"
 							checked={!disabledIds.has(mappingId)}
 							onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
 						/>
@@ -149,6 +153,7 @@
 		>
 			<input
 				type="checkbox"
+				class="input-mappings-checkbox--adaptive"
 				checked={allEnabled(adaptiveMappingIds)}
 				indeterminate={someEnabled(adaptiveMappingIds) && !allEnabled(adaptiveMappingIds)}
 				onchange={(event) => setMappingsEnabled(adaptiveMappingIds, event.currentTarget.checked)}
@@ -163,6 +168,7 @@
 			<label class="input-mappings-group-heading">
 				<input
 					type="checkbox"
+					class="input-mappings-checkbox--adaptive"
 					checked={allEnabled(groupMappingIds)}
 					indeterminate={someEnabled(groupMappingIds) && !allEnabled(groupMappingIds)}
 					onchange={(event) => setMappingsEnabled(groupMappingIds, event.currentTarget.checked)}
@@ -220,12 +226,62 @@
 	}
 
 	input[type='checkbox'] {
+		appearance: none;
+		-webkit-appearance: none;
+		box-sizing: border-box;
 		width: 1rem;
 		height: 1rem;
 		flex: 0 0 1rem;
 		margin: 0;
-		accent-color: var(--accent);
+		border: 1px solid var(--border);
+		border-radius: 0.2rem;
+		background-color: var(--bg-primary);
+		background-position: center;
+		background-repeat: no-repeat;
+		background-size: 0.7rem 0.7rem;
 		cursor: pointer;
+	}
+
+	.input-mappings-checkbox--magic:checked,
+	.input-mappings-checkbox--magic:indeterminate {
+		background-color: var(--magic-key);
+		border-color: var(--magic-key);
+	}
+
+	.input-mappings-checkbox--adaptive:checked,
+	.input-mappings-checkbox--adaptive:indeterminate {
+		background-color: var(--adaptive-key);
+		border-color: var(--adaptive-key);
+	}
+
+	.input-mappings-checkbox--magic:checked,
+	.input-mappings-checkbox--adaptive:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	.input-mappings-checkbox--magic:indeterminate,
+	.input-mappings-checkbox--adaptive:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) .input-mappings-checkbox--magic:checked,
+	:global(.dark) .input-mappings-checkbox--adaptive:checked {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+	}
+
+	:global(.dark) .input-mappings-checkbox--magic:indeterminate,
+	:global(.dark) .input-mappings-checkbox--adaptive:indeterminate {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
+	}
+
+	.input-mappings-checkbox--magic:focus-visible {
+		outline: 2px solid var(--magic-key);
+		outline-offset: 1px;
+	}
+
+	.input-mappings-checkbox--adaptive:focus-visible {
+		outline: 2px solid var(--adaptive-key);
+		outline-offset: 1px;
 	}
 
 	.magic-key-mappings-list,

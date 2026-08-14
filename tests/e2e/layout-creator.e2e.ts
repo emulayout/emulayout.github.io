@@ -39,8 +39,8 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Save layout' })).toBeVisible();
 
-	const magicKey = panel.getByRole('button', { name: 'Add magic key' });
-	const adaptiveKey = panel.getByRole('button', { name: 'Add adaptive key' });
+	const magicKey = panel.getByRole('button', { name: 'Add magic' });
+	const adaptiveKey = panel.getByRole('button', { name: 'Add adaptive' });
 	await expect(magicKey).toHaveAttribute('aria-pressed', 'false');
 	await expect(adaptiveKey).toHaveAttribute('aria-pressed', 'false');
 	await magicKey.click();
@@ -57,6 +57,33 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toBeVisible();
+});
+
+test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ page }) => {
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('@');
+	await expect(panel.getByRole('button', { name: 'Remove magic' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveCount(1);
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveValue('@');
+	await expect(panel.getByRole('textbox', { name: 'Preceding' })).toHaveCount(0);
+	await expect(panel.getByRole('combobox', { name: 'Fallback' })).toHaveValue('repeat-last');
+	await panel.getByRole('button', { name: 'Add mapping' }).click();
+	await expect(panel.getByRole('textbox', { name: 'Preceding' })).toHaveCount(1);
+
+	await panel.getByRole('textbox', { name: 'Row 1, key 2' }).fill('*');
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveCount(2);
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' }).nth(1)).toHaveValue('*');
+	await expect(panel.getByRole('combobox', { name: 'Fallback' }).nth(1)).toHaveValue('no-op');
+
+	await panel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('');
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveCount(2);
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' }).first()).toHaveValue('@');
 });
 
 test('selecting a base layout seeds its magic and adaptive mappings', async ({ page }) => {
@@ -136,10 +163,10 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	);
 	await namedPanel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('w');
 	await namedPanel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
-	await namedPanel.getByRole('button', { name: 'Add magic key' }).click();
+	await namedPanel.getByRole('button', { name: 'Add magic' }).click();
 	await namedPanel.getByRole('textbox', { name: 'Preceding' }).first().fill('c');
 	await namedPanel.getByRole('textbox', { name: 'Emit' }).first().fill('k');
-	await namedPanel.getByRole('button', { name: 'Add adaptive key' }).click();
+	await namedPanel.getByRole('button', { name: 'Add adaptive' }).click();
 
 	await expect(page).toHaveURL(/\/create\?/);
 	await expect(page).toHaveURL(/name=Shared(\+|%20)draft/);

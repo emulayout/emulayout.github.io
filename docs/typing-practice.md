@@ -34,7 +34,7 @@ and calculation logic outside the renderer.
   history, and increments progress. A premature space remains in the input and counts as an
   incorrect attempt without changing the rendered prompt text.
 - The prompt and input use the same monospace typography. The prompt stays on one clipped line;
-  words beyond the available width are hidden rather than wrapped.
+  words beyond the keyboard workspace width are hidden rather than wrapped.
 - The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
   lesson with ten newly sampled words that exclude every word from the previous lesson. For a
   custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
@@ -52,7 +52,8 @@ and calculation logic outside the renderer.
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
   precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
-  `--magic-key-fg` for contrast against that fill.
+  `--magic-key-fg` for contrast against that fill. Adaptive underlines, armed Adaptive keycaps, and
+  swap-path strokes use `--adaptive-key`.
 - Layouts with curated Adaptive mappings similarly add a default-off Underline adaptive group
   option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
   can produce after the full contextual-input pipeline resolves.

@@ -12,6 +12,7 @@ import type {
 	MagicKeyFallbackSource,
 	MagicKeyRules
 } from '$lib/magicKeys';
+import { DEFAULT_REPEAT_KEY } from '$lib/repeatKeys';
 
 export type CreatorMagicRule = {
 	id: string;
@@ -85,6 +86,49 @@ export function creatorMagicFallbackSource(
 
 export function createEmptyCreatorMagicDraft(): CreatorMagicDraft {
 	return { sections: [createCreatorMagicSection()] };
+}
+
+export function isDefaultCreatorMagicDraft(draft: CreatorMagicDraft): boolean {
+	if (draft.sections.length !== 1) return false;
+	const [section] = draft.sections;
+	return (
+		section.trigger === CREATOR_MAGIC_KEY &&
+		section.fallbackKind === 'no-op' &&
+		section.fallbackEmit === '' &&
+		section.rules.length === 1 &&
+		section.rules[0].after === '' &&
+		section.rules[0].emit === ''
+	);
+}
+
+export function creatorMagicDraftHasTrigger(draft: CreatorMagicDraft, trigger: string): boolean {
+	const normalized = trigger.trim();
+	return draft.sections.some((section) => section.trigger.trim() === normalized);
+}
+
+/** Add a Magic section for a typed trigger. Existing sections are never removed.
+ *  `@` starts as fallback-only; `*` keeps the empty mapping row. */
+export function ensureCreatorMagicTrigger(
+	draft: CreatorMagicDraft,
+	trigger: string,
+	options: { replaceUnusedPlaceholder?: boolean } = {}
+): CreatorMagicDraft {
+	const normalized = trigger.trim();
+	if (!normalized || creatorMagicDraftHasTrigger(draft, normalized)) return draft;
+
+	const section =
+		normalized === DEFAULT_REPEAT_KEY
+			? {
+					id: createCreatorMappingId('magic-section'),
+					trigger: normalized,
+					rules: [],
+					fallbackKind: 'repeat-last' as const,
+					fallbackEmit: ''
+				}
+			: createCreatorMagicSection(normalized);
+	const baseSections =
+		options.replaceUnusedPlaceholder && isDefaultCreatorMagicDraft(draft) ? [] : draft.sections;
+	return { sections: [...baseSections, section] };
 }
 
 export function createCreatorAdaptiveRule(): CreatorAdaptiveRule {
