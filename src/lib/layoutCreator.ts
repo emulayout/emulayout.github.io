@@ -22,6 +22,14 @@ export const CREATOR_MAGIC_KEY = '*';
 
 export type LayoutCreatorTabValue = typeof LAYOUT_CREATOR_NEW_TAB | `saved:${string}`;
 
+export function savedCreatorTabValue(id: string): LayoutCreatorTabValue {
+	return `saved:${id}`;
+}
+
+export function savedCreatorTabId(id: string): string {
+	return `layout-creator-tab-saved-${id}`;
+}
+
 export type CreatorSpecialKeys = {
 	magicKey?: boolean;
 	adaptiveKey?: boolean;
@@ -38,10 +46,7 @@ const DEFAULT_CREATOR_ROWS = [
 	['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
 ] as const;
 
-/**
- * Build the in-memory starter layout for a new creation.
- * Saved drafts will replace this factory once local-storage persistence exists.
- */
+/** Build the in-memory starter layout for a new creation. */
 export function createDefaultCreatorLayout(name = LAYOUT_CREATOR_NEW_LAYOUT_NAME): LayoutData {
 	const keyChars: string[] = [];
 	const rows: number[] = [];

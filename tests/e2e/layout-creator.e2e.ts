@@ -32,6 +32,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toBeVisible();
+	await expect(panel.getByRole('button', { name: 'Save layout' })).toBeVisible();
 
 	const magicKey = panel.getByRole('button', { name: 'Add magic key' });
 	const adaptiveKey = panel.getByRole('button', { name: 'Add adaptive key' });
@@ -177,4 +178,50 @@ test('lets the creator set a custom practice lesson', async ({ page }) => {
 	await page.reload();
 	const restored = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(restored.locator('[data-practice-word]')).toHaveText(['hello', 'creator', 'world']);
+});
+
+test('saves layouts locally and switches among them with tabs', async ({ page }) => {
+	await page.goto('/create');
+	const creations = page.getByRole('tablist', { name: 'Layout creations' });
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	const alphaPanel = page.getByRole('tabpanel', { name: 'Alpha' });
+	await alphaPanel.getByRole('button', { name: 'Save layout' }).click();
+
+	await expect(page).toHaveURL(/\/create\?id=/);
+	await expect(alphaPanel.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
+	await expect(creations.getByRole('tab')).toHaveCount(1);
+
+	await alphaPanel.getByRole('textbox', { name: 'Layout name' }).fill('Alpha edited');
+	const editedPanel = page.getByRole('tabpanel', { name: 'Alpha edited' });
+	await expect(editedPanel.getByRole('button', { name: 'Update layout' })).toBeVisible();
+	await editedPanel.getByRole('button', { name: 'More save options' }).click();
+	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
+
+	await expect(creations.getByRole('tab')).toHaveCount(2);
+	await expect(creations.getByRole('tab', { name: 'Alpha' })).toHaveAttribute(
+		'aria-selected',
+		'false'
+	);
+	await expect(creations.getByRole('tab', { name: 'Alpha edited' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(editedPanel.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
+
+	await creations.getByRole('tab', { name: 'Alpha' }).click();
+	const restoredAlpha = page.getByRole('tabpanel', { name: 'Alpha' });
+	await expect(restoredAlpha.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha');
+	await expect(creations.getByRole('tab', { name: 'Alpha' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+
+	await creations.getByRole('tab', { name: 'Alpha edited' }).click();
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'Alpha edited' })
+			.getByRole('textbox', { name: 'Layout name' })
+	).toHaveValue('Alpha edited');
 });

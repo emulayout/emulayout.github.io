@@ -1,8 +1,8 @@
 # Layout creator
 
 AI implementation context for the in-progress layout creator: a dedicated page where people
-draft layouts, try them with the same practice workspace as a catalog layout, and (later) save
-those drafts in the browser.
+draft layouts, try them with the same practice workspace as a catalog layout, and save those
+drafts in the browser.
 
 ## Product model
 
@@ -11,21 +11,26 @@ those drafts in the browser.
   and the same on-state treatment as enabled help hints.
 - `/create` replaces index or detail content while preserving the rest of the app bar, including
   Quick Find, Compare, help hints, theme controls, and the home link.
-- The page uses index-style view tabs, not detail-page section tabs. The first tab is the unsaved
-  canvas. Later saved drafts will appear as additional tabs, matching how saved views join All
-  layouts and Selected layouts on the index.
+- The page uses index-style view tabs, not detail-page section tabs. An unsaved canvas is the first
+  tab, labeled with the live draft name. Each saved layout is an additional tab labeled with its
+  stored name (the live name while that tab is active). Saving the unsaved canvas turns it into a
+  saved tab. Switching tabs loads that layout's snapshot into the editor. A bare `/create` link
+  starts a new unsaved canvas alongside any saved tabs.
 - The New layout canvas starts as a stagger QWERTY board named `New layout`. A layout name field
   sits above Input layout with a lock beside it. The name updates the live draft; an empty value
-  falls back to `New layout`. The document title and the unsaved-canvas tab use that name. Renaming
+  falls back to `New layout`. The document title and the active tab use that name. Renaming
   does not regenerate the practice words.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
   Name, base layout, keyboard type, key grid, lock, practice lesson, and Magic/Adaptive mappings
-  (including incomplete rows) are written when they differ from the blank canvas. Writes wait 300ms after the
-  last edit, matching the index filter URL persist, and flush on page hide so a refresh keeps the
-  latest keystrokes. A bare `/create` link starts fresh. Reloading or opening the URL restores the
-  draft. Defaults are omitted, so an untouched canvas stays `/create`. Empty standard slots are
-  omitted from `keys`; a cleared board is `keys=v1:-`. Do not put draft names or key maps into
-  GoatCounter paths or events.
+  (including incomplete rows) are written when they differ from the blank canvas. An active saved
+  layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
+  params are omitted so the URL is `/create?id=<uuid>`. Dirty edits stay in the query alongside
+  `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the index filter
+  URL persist, and flush on page hide so a refresh keeps the latest keystrokes. A bare `/create`
+  link starts fresh. Reloading or opening the URL restores the draft, and a known `id` restores
+  that saved layout from local storage. Defaults are omitted, so an untouched unsaved canvas stays
+  `/create`. Empty standard slots are omitted from `keys`; a cleared board is `keys=v1:-`. Do not
+  put draft names, saved ids, or key maps into GoatCounter paths or events.
 - Unlocked, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
@@ -63,17 +68,22 @@ those drafts in the browser.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
+- Saved layouts persist in a versioned local-storage document, each with its own id. The bottom
+  save control follows the live canvas: **Save layout** on an unsaved draft; a split **Update
+  layout** with **Save as new layout** when a saved layout has changed; **Duplicate layout** only
+  when a saved layout matches its stored snapshot. Save, update, save-as-new, and duplicate use
+  the current layout name. They do not send analytics events.
 
 ## Deferred work
 
-- Persist drafts in a versioned local-storage document and restore them as extra view tabs.
 - Repeat mapping editors.
-- Naming, duplicating, and deleting saved drafts.
+- Renaming and deleting saved drafts from the tab bar.
 
 ## Code map
 
 - Default canvas, tab values, and key-editor conversion: `src/lib/layoutCreator.ts`
 - Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
+- Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
@@ -85,7 +95,8 @@ those drafts in the browser.
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
-  `tests/layoutCreatorUrl.test.ts`, `tests/goatcounter.test.ts`
+  `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`,
+  `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 
 ## Invariants
@@ -97,4 +108,4 @@ those drafts in the browser.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new
-  canvas. Saved-draft tabs are still local-storage work.
+  canvas. Saved-layout tabs come from local storage; `id` in the query selects one when it exists.

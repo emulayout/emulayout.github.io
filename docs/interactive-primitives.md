@@ -66,9 +66,9 @@ values. The panels use layout-specific ids so their tab relationships remain uni
 When help hints are on, Layout feel paints a decorative `?` on its tab and uses the tab’s `title`
 for the short explanation; do not put a focusable `Tooltip` button inside the tablist.
 
-The layout creator uses the same `Tabs` primitive as the index layout-view bar: the unsaved canvas
-tab, labeled with the draft name, plus, later, saved drafts. Those tabs reveal the creator canvas
-rather than detail sections. See [`layout-creator.md`](./layout-creator.md).
+The layout creator uses the same `Tabs` primitive as the index layout-view bar: an unsaved canvas
+tab, labeled with the draft name, plus a tab for each saved layout. Those tabs reveal the creator
+canvas rather than detail sections. See [`layout-creator.md`](./layout-creator.md).
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /

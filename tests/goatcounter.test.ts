@@ -38,6 +38,7 @@ describe('goatcounterPageviewPath', () => {
 			'/create'
 		);
 		expect(goatcounterPageviewPath('/create', '?text=hello+world&special=40')).toBe('/create');
+		expect(goatcounterPageviewPath('/create', '?id=layout-uuid&name=Shared+draft')).toBe('/create');
 	});
 
 	test('keeps non-default detail tabs without layout names or practice text', () => {

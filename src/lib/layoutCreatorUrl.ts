@@ -28,6 +28,7 @@ import {
 	type TypingPracticeLessonSettings
 } from '$lib/typingPracticeText';
 
+export const CREATOR_ID_PARAM = 'id';
 export const CREATOR_NAME_PARAM = 'name';
 export const CREATOR_BASE_PARAM = 'base';
 export const CREATOR_TYPE_PARAM = 'type';
@@ -409,8 +410,50 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	return params;
 }
 
-export function creatorSearchFromSnapshot(snapshot: CreatorUrlSnapshot): string {
-	const query = writeCreatorUrlParams(snapshot).toString();
+export function creatorUrlSnapshotSignature(snapshot: CreatorUrlSnapshot): string {
+	return writeCreatorUrlParams(snapshot).toString();
+}
+
+export function cloneCreatorUrlSnapshot(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
+	return readCreatorUrlSnapshot(writeCreatorUrlParams(snapshot));
+}
+
+export function creatorUrlSnapshotsEqual(
+	left: CreatorUrlSnapshot,
+	right: CreatorUrlSnapshot
+): boolean {
+	return creatorUrlSnapshotSignature(left) === creatorUrlSnapshotSignature(right);
+}
+
+export function readCreatorSavedId(searchParams: URLSearchParams): string | null {
+	const id = searchParams.get(CREATOR_ID_PARAM)?.trim();
+	return id || null;
+}
+
+export function creatorUrlHasDraftParams(searchParams: URLSearchParams): boolean {
+	for (const key of searchParams.keys()) {
+		if (key !== CREATOR_ID_PARAM) return true;
+	}
+	return false;
+}
+
+export type CreatorSearchOptions = {
+	savedId?: string | null;
+	savedSnapshot?: CreatorUrlSnapshot | null;
+};
+
+export function creatorSearchFromSnapshot(
+	snapshot: CreatorUrlSnapshot,
+	options: CreatorSearchOptions = {}
+): string {
+	const savedId = options.savedId?.trim() || '';
+	const omitDraft =
+		Boolean(savedId) &&
+		Boolean(options.savedSnapshot) &&
+		creatorUrlSnapshotsEqual(snapshot, options.savedSnapshot as CreatorUrlSnapshot);
+	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
+	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
+	const query = params.toString();
 	return query ? `?${query}` : '';
 }
 

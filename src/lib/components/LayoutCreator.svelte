@@ -5,6 +5,7 @@
 	import type { PathnameWithSearchOrHash } from '$app/types';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
+	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
@@ -27,6 +28,8 @@
 		createLayoutFromKeyConfig,
 		keyboardConfigHasMagicKey,
 		removeMagicKeysFromConfig,
+		savedCreatorTabId,
+		savedCreatorTabValue,
 		type LayoutCreatorTabValue
 	} from '$lib/layoutCreator';
 	import {
@@ -42,8 +45,19 @@
 		type CreatorMagicDraft
 	} from '$lib/layoutCreatorMappings';
 	import {
+		addSavedLayout,
+		findSavedLayout,
+		isSavedLayoutDirty,
+		loadSavedLayouts,
+		persistSavedLayouts,
+		resolveCreatorSession,
+		savedCreatorLayoutName,
+		updateSavedLayout,
+		type SavedCreatorLayout
+	} from '$lib/layoutCreatorStorage';
+	import {
+		cloneCreatorUrlSnapshot,
 		creatorSearchFromSnapshot,
-		readCreatorUrlSnapshot,
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
 	import {
@@ -59,21 +73,30 @@
 	const PANEL_ID = 'layout-creator-panel';
 	const CREATOR_PATH = resolve('/create');
 	const CREATOR_URL_DEBOUNCE_MS = 300;
-	const initialSnapshot = readCreatorUrlSnapshot(page.url.searchParams);
+	const initialLayouts = loadSavedLayouts();
+	const initialSession = resolveCreatorSession(page.url.searchParams, initialLayouts);
 
-	let activeTab = $state<LayoutCreatorTabValue>(LAYOUT_CREATOR_NEW_TAB);
-	let layoutNameDraft = $state(initialSnapshot.name);
-	let layoutLocked = $state(initialSnapshot.locked);
+	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
+	let activeSavedId = $state<string | null>(initialSession.savedId);
+	let layoutNameDraft = $state(initialSession.snapshot.name);
+	let layoutLocked = $state(initialSession.snapshot.locked);
 	let disabledMappingIds = $state<string[]>([]);
-	let includeMagicKey = $state(initialSnapshot.includeMagicKey);
-	let includeAdaptiveKey = $state(initialSnapshot.includeAdaptiveKey);
-	let magicDraft = $state.raw(initialSnapshot.magicDraft);
-	let adaptiveDraft = $state.raw(initialSnapshot.adaptiveDraft);
-	let keyConfig = $state.raw(initialSnapshot.keyConfig);
-	let practiceLesson = $state.raw(initialSnapshot.practiceLesson);
+	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
+	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
+	let magicDraft = $state.raw(initialSession.snapshot.magicDraft);
+	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
+	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
+	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
+	let saveMenuOpen = $state(false);
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+	let lastWrittenSearch = page.url.search;
 	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+	const activeSavedLayout = $derived(findSavedLayout(savedLayouts, activeSavedId));
+	const activeTab = $derived<LayoutCreatorTabValue>(
+		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
+	);
+	const selectedTabId = $derived(activeSavedId ? savedCreatorTabId(activeSavedId) : NEW_TAB_ID);
 	const magicKeyEnabled = $derived(includeMagicKey || keyboardConfigHasMagicKey(keyConfig));
 	const magicDraftHasMappings = $derived(creatorMagicDraftHasMappings(magicDraft));
 	const adaptiveDraftHasMappings = $derived(creatorAdaptiveDraftHasMappings(adaptiveDraft));
@@ -109,14 +132,24 @@
 	const testKeyMaps = $derived(
 		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
 	);
-	const options: TabOption<LayoutCreatorTabValue>[] = $derived([
-		{
-			value: LAYOUT_CREATOR_NEW_TAB,
-			label: layoutName,
-			id: NEW_TAB_ID,
+	const options: TabOption<LayoutCreatorTabValue>[] = $derived.by(() => {
+		const savedTabs = savedLayouts.map((saved) => ({
+			value: savedCreatorTabValue(saved.id),
+			label: saved.id === activeSavedId ? layoutName : saved.name,
+			id: savedCreatorTabId(saved.id),
 			controls: PANEL_ID
-		}
-	]);
+		}));
+		if (activeSavedId) return savedTabs;
+		return [
+			{
+				value: LAYOUT_CREATOR_NEW_TAB,
+				label: layoutName,
+				id: NEW_TAB_ID,
+				controls: PANEL_ID
+			},
+			...savedTabs
+		];
+	});
 
 	let baseLayoutSeed = 0;
 
@@ -127,10 +160,12 @@
 
 	$effect(() => {
 		const snapshot = currentCreatorSnapshot();
+		const savedId = activeSavedId;
+		const savedSnapshot = findSavedLayout(savedLayouts, savedId)?.snapshot ?? null;
 		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
 		urlSyncTimeout = setTimeout(() => {
 			urlSyncTimeout = null;
-			writeCreatorHistory(snapshot);
+			writeCreatorHistory(snapshot, savedId, savedSnapshot);
 		}, CREATOR_URL_DEBOUNCE_MS);
 		return () => {
 			if (urlSyncTimeout) {
@@ -153,18 +188,56 @@
 		};
 	}
 
+	const isActiveSavedDirty = $derived(
+		isSavedLayoutDirty(currentCreatorSnapshot(), activeSavedLayout)
+	);
+	const showUpdateSplit = $derived(Boolean(activeSavedId && isActiveSavedDirty));
+	const showDuplicateButton = $derived(Boolean(activeSavedId && !isActiveSavedDirty));
+
+	$effect(() => {
+		if (!showUpdateSplit) saveMenuOpen = false;
+	});
+
+	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
+		const next = cloneCreatorUrlSnapshot(snapshot);
+		layoutNameDraft = next.name;
+		layoutLocked = next.locked;
+		includeMagicKey = next.includeMagicKey;
+		includeAdaptiveKey = next.includeAdaptiveKey;
+		magicDraft = next.magicDraft;
+		adaptiveDraft = next.adaptiveDraft;
+		keyConfig = next.keyConfig;
+		practiceLesson = next.practiceLesson;
+		disabledMappingIds = [];
+	}
+
+	function commitSavedLayouts(layouts: SavedCreatorLayout[], id: string) {
+		savedLayouts = layouts;
+		persistSavedLayouts(layouts);
+		activeSavedId = id;
+	}
+
 	function flushCreatorUrl() {
 		if (urlSyncTimeout) {
 			clearTimeout(urlSyncTimeout);
 			urlSyncTimeout = null;
 		}
-		writeCreatorHistory(currentCreatorSnapshot());
+		writeCreatorHistory(
+			currentCreatorSnapshot(),
+			activeSavedId,
+			findSavedLayout(savedLayouts, activeSavedId)?.snapshot ?? null
+		);
 	}
 
-	function writeCreatorHistory(snapshot: CreatorUrlSnapshot) {
+	function writeCreatorHistory(
+		snapshot: CreatorUrlSnapshot,
+		savedId: string | null,
+		savedSnapshot: CreatorUrlSnapshot | null
+	) {
 		if (typeof window === 'undefined') return;
 		if (page.url.pathname !== CREATOR_PATH) return;
-		const search = creatorSearchFromSnapshot(snapshot);
+		const search = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
+		lastWrittenSearch = search;
 		const next = createHistoryTarget({
 			pathname: CREATOR_PATH,
 			search,
@@ -184,10 +257,24 @@
 			pendingHistoryRetry = true;
 			setTimeout(() => {
 				pendingHistoryRetry = false;
-				writeCreatorHistory(currentCreatorSnapshot());
+				writeCreatorHistory(
+					currentCreatorSnapshot(),
+					activeSavedId,
+					findSavedLayout(savedLayouts, activeSavedId)?.snapshot ?? null
+				);
 			}, 0);
 		}
 	}
+
+	$effect(() => {
+		if (page.url.pathname !== CREATOR_PATH) return;
+		const search = page.url.search;
+		if (search === lastWrittenSearch) return;
+		const session = resolveCreatorSession(page.url.searchParams, savedLayouts);
+		activeSavedId = session.savedId;
+		applyCreatorSnapshot(session.snapshot);
+		lastWrittenSearch = search;
+	});
 
 	function applyEmptyMappingDrafts() {
 		magicDraft = createEmptyCreatorMagicDraft();
@@ -275,6 +362,42 @@
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
 		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
 	}
+
+	function changeCreatorTab(value: LayoutCreatorTabValue) {
+		if (value === activeTab) return;
+		if (value === LAYOUT_CREATOR_NEW_TAB) return;
+		const saved = findSavedLayout(savedLayouts, value.slice('saved:'.length));
+		if (!saved) return;
+		activeSavedId = saved.id;
+		applyCreatorSnapshot(saved.snapshot);
+		flushCreatorUrl();
+	}
+
+	function saveCurrentLayout() {
+		const snapshot = currentCreatorSnapshot();
+		const input = { name: savedCreatorLayoutName(snapshot), snapshot };
+		if (activeSavedId) {
+			const next = updateSavedLayout(savedLayouts, activeSavedId, input);
+			if (!next) return;
+			commitSavedLayouts(next, activeSavedId);
+		} else {
+			const result = addSavedLayout(savedLayouts, input);
+			commitSavedLayouts(result.layouts, result.id);
+		}
+		saveMenuOpen = false;
+		flushCreatorUrl();
+	}
+
+	function saveAsNewLayout() {
+		const snapshot = currentCreatorSnapshot();
+		const result = addSavedLayout(savedLayouts, {
+			name: savedCreatorLayoutName(snapshot),
+			snapshot
+		});
+		commitSavedLayouts(result.layouts, result.id);
+		saveMenuOpen = false;
+		flushCreatorUrl();
+	}
 </script>
 
 <svelte:head>
@@ -287,7 +410,7 @@
 	<div class="layout-creator-view-bar">
 		<Tabs
 			value={activeTab}
-			onChange={(value) => (activeTab = value)}
+			onChange={changeCreatorTab}
 			{options}
 			ariaLabel="Layout creations"
 			class="layout-creator-tabs"
@@ -304,7 +427,7 @@
 		</Tabs>
 	</div>
 
-	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={NEW_TAB_ID}>
+	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
 		{#snippet creatorHeaderStart()}
 			<div class="layout-creator-name" class:layout-creator-name--locked={layoutLocked}>
 				{#if layoutLocked}
@@ -444,21 +567,94 @@
 			{/if}
 		{/snippet}
 
-		<LayoutTypingPractice
-			{layout}
-			rows={displayRows}
-			keyMaps={testKeyMaps}
-			{inputProfile}
-			{disabledMappingIds}
-			onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-			showKeyboardMappings={layoutLocked ? showLockedMappings : showEditorMappings}
-			{practiceLesson}
-			onPracticeLessonChange={setPracticeLesson}
-			keyboardHeaderStart={creatorHeaderStart}
-			keyboard={layoutLocked ? undefined : creatorKeyboard}
-			keyboardAside={layoutLocked ? undefined : creatorAside}
-			keyboardMappings={layoutLocked ? undefined : creatorMappings}
-		/>
+		{#key activeTab}
+			<LayoutTypingPractice
+				{layout}
+				rows={displayRows}
+				keyMaps={testKeyMaps}
+				{inputProfile}
+				{disabledMappingIds}
+				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+				showKeyboardMappings={layoutLocked ? showLockedMappings : showEditorMappings}
+				{practiceLesson}
+				onPracticeLessonChange={setPracticeLesson}
+				keyboardHeaderStart={creatorHeaderStart}
+				keyboard={layoutLocked ? undefined : creatorKeyboard}
+				keyboardAside={layoutLocked ? undefined : creatorAside}
+				keyboardMappings={layoutLocked ? undefined : creatorMappings}
+			/>
+		{/key}
+
+		<div class="layout-creator-save">
+			{#if showUpdateSplit}
+				<DropdownMenu
+					bind:open={saveMenuOpen}
+					placement="top-stretch"
+					rootClass="layout-creator-split-button"
+					menuLabel="More save options"
+				>
+					{#snippet trigger({ toggle, triggerProps })}
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-split-button-main"
+							onclick={() => {
+								saveMenuOpen = false;
+								saveCurrentLayout();
+							}}
+						>
+							Update layout
+						</button>
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-split-button-toggle"
+							aria-label="More save options"
+							{...triggerProps}
+							onclick={toggle}
+						>
+							<svg
+								class="layout-creator-split-button-caret"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2.5"
+								aria-hidden="true"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					{/snippet}
+					{#snippet children({ close })}
+						<button
+							type="button"
+							role="menuitem"
+							class="layout-creator-split-menu-item"
+							onclick={() => {
+								close();
+								saveAsNewLayout();
+							}}
+						>
+							Save as new layout
+						</button>
+					{/snippet}
+				</DropdownMenu>
+			{:else if showDuplicateButton}
+				<button
+					type="button"
+					class="filter-reset-button layout-creator-save-button"
+					onclick={saveAsNewLayout}
+				>
+					Duplicate layout
+				</button>
+			{:else}
+				<button
+					type="button"
+					class="filter-reset-button layout-creator-save-button"
+					onclick={saveCurrentLayout}
+				>
+					Save layout
+				</button>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -542,6 +738,81 @@
 	.layout-creator-panel {
 		min-width: 0;
 		padding: 0.5rem 0.25rem 2rem;
+	}
+
+	.layout-creator-save {
+		display: flex;
+		justify-content: flex-start;
+		margin-top: 1.25rem;
+		width: min(18rem, 100%);
+	}
+
+	.layout-creator-save-button {
+		width: 100%;
+		min-height: 2.5rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.75rem;
+		font-size: 0.875rem;
+	}
+
+	.layout-creator-save :global(.layout-creator-split-button) {
+		position: relative;
+		display: flex;
+		align-items: stretch;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.layout-creator-split-button-main,
+	.layout-creator-split-button-toggle {
+		min-height: 2.5rem;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+	}
+
+	.layout-creator-split-button-main {
+		flex: 1 1 auto;
+		min-width: 0;
+		justify-content: center;
+		border-radius: 0.75rem 0 0 0.75rem;
+		border-right-width: 0;
+	}
+
+	.layout-creator-split-button-toggle {
+		flex: 0 0 auto;
+		width: 2.25rem;
+		padding-left: 0;
+		padding-right: 0;
+		border-radius: 0 0.75rem 0.75rem 0;
+	}
+
+	.layout-creator-split-button-caret {
+		width: 0.875rem;
+		height: 0.875rem;
+	}
+
+	.layout-creator-split-menu-item {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border: none;
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.layout-creator-split-menu-item:hover {
+		background-color: color-mix(in srgb, var(--filter-action) 12%, var(--bg-primary));
+	}
+
+	.layout-creator-split-menu-item:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--filter-action);
 	}
 
 	.layout-creator-name {
