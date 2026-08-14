@@ -33,6 +33,19 @@ describe('createDefaultCreatorLayout', () => {
 });
 
 describe('createLayoutFromKeyConfig', () => {
+	test('keeps duplicate thumb letters on opposite hands', () => {
+		const withDuplicateThumbs = ['3,0', '3,1'].reduce(
+			(config, slot) => updateKeyboardInputKey(config, slot, 'e'),
+			createDefaultKeyboardInputConfig()
+		);
+		const layout = createLayoutFromKeyConfig(withDuplicateThumbs);
+
+		expect(layout.thumbKeysByHand.l).toEqual([{ key: 'e', col: 0 }]);
+		expect(layout.thumbKeysByHand.r).toEqual([{ key: 'e', col: 1 }]);
+		expect(layout.positionBySlot.get('3,0')).toBe('e');
+		expect(layout.positionBySlot.get('3,1')).toBe('e');
+	});
+
 	test('keeps duplicate letters on their own slots for typing', () => {
 		const withDuplicates = ['0,0', '0,1', '0,2'].reduce(
 			(config, slot) => updateKeyboardInputKey(config, slot, 'e'),

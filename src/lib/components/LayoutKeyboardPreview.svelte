@@ -2,7 +2,14 @@
 	import { tick } from 'svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
-	import { layoutMainRowMaxColumn, thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
+	import {
+		ansiThumbDisplayColumn,
+		ansiThumbOffsetCss,
+		layoutMainRowMaxColumn,
+		splitThumbDisplayKeys,
+		thumbTargetColumns,
+		type DisplayCell
+	} from '$lib/layoutDisplay';
 	import type {
 		LayoutKeyboardFeedback,
 		LayoutKeyboardKeyFeedback,
@@ -70,9 +77,6 @@
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
-	const rightThumbKeys = $derived(
-		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
-	);
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
@@ -85,8 +89,9 @@
 
 			const rowNumber = Number(keys[0].slot.split(',')[0]);
 			const thumbs = rowNumber >= 3;
-			const leftKeys = keys.filter((key) => !rightThumbKeys.has(key.char.toLowerCase()));
-			const rightKeys = keys.filter((key) => rightThumbKeys.has(key.char.toLowerCase()));
+			const { left: leftKeys, right: rightKeys } = thumbs
+				? splitThumbDisplayKeys(keys, layout.thumbKeysByHand)
+				: { left: keys, right: [] };
 			const keyByColumn = thumbs
 				? new Map([
 						...thumbTargetColumns('left', leftKeys.length).map(
@@ -107,11 +112,11 @@
 			});
 			const ansiThumbKeys = [
 				...thumbTargetColumns('left', leftKeys.length).map((column, index) => ({
-					column: column - 0.5,
+					column: ansiThumbDisplayColumn(column),
 					key: leftKeys[index]
 				})),
 				...thumbTargetColumns('right', rightKeys.length).map((column, index) => ({
-					column: column - 0.5,
+					column: ansiThumbDisplayColumn(column),
 					key: rightKeys[index]
 				}))
 			];
@@ -129,7 +134,7 @@
 	}
 
 	function ansiThumbOffset(column: number): string {
-		return `calc(var(--preview-key-size) * ${column + 0.68} + var(--preview-key-gap) * ${column})`;
+		return ansiThumbOffsetCss(column, 'var(--preview-key-size)', 'var(--preview-key-gap)');
 	}
 
 	function isHighlightedKey(key: string): boolean {

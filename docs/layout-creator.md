@@ -46,7 +46,9 @@ drafts in the browser.
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
   is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
   Clearing `@` or `*` from a slot does not remove its mapping.
-  Keyboard type is Ortho or Staggered. Assigned values may repeat and stay on
+  Keyboard type is Ortho or Staggered. Thumb keys use the same left/right
+  separation as the presentation keyboard, with an empty spacebar-sized gap
+  between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so Typing practice uses the current
   keys.

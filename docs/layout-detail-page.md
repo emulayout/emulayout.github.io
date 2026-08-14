@@ -157,7 +157,8 @@ small without weakening app-bar functionality.
   independently of the label preview and disappear with the same history and mapping resets.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
-  Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
+  Thumb keys remain on their assigned left or right half in either geometry, even when both
+  hands emit the same character. Ortho thumbs align
   below their hand's index-finger column; angle and stagger thumbs align between their hand's
   adjacent bottom-row index positions. Both follow the card's anglemod state.
 - `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison

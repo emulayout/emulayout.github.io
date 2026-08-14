@@ -12,6 +12,11 @@
 		type KeyboardInputConfig,
 		type KeyboardInputKey
 	} from '$lib/keyboardInputConfig';
+	import {
+		ansiThumbDisplayColumn,
+		ansiThumbOffsetCss,
+		thumbTargetColumns
+	} from '$lib/layoutDisplay';
 
 	interface Props {
 		config: KeyboardInputConfig;
@@ -32,6 +37,14 @@
 	const rows = $derived(keyboardInputRows(config));
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
 	const orthoGeometry = $derived(config.keyboardType === 'ortho');
+	const rightSlotCount = $derived.by(() => {
+		let max = 9;
+		for (const key of config.keys) {
+			const position = parseKeyboardInputSlot(key.slot);
+			if (position && position.row < 3) max = Math.max(max, position.column);
+		}
+		return Math.max(5, max - 4);
+	});
 
 	function registerInput(node: HTMLInputElement, slot: string) {
 		inputBySlot.set(slot, node);
@@ -109,6 +122,44 @@
 		return { left, right };
 	}
 
+	function orthoThumbSlots(
+		keys: readonly KeyboardInputKey[],
+		hand: 'left' | 'right',
+		keyIndexOffset: number,
+		slotCount: number
+	) {
+		const startColumn = hand === 'left' ? 0 : 5;
+		const keyByColumn = new Map(
+			thumbTargetColumns(hand, keys.length).map(
+				(column, index) => [column, { key: keys[index], keyIndex: keyIndexOffset + index }] as const
+			)
+		);
+		return Array.from({ length: slotCount }, (_, index) => {
+			const column = startColumn + index;
+			const placed = keyByColumn.get(column);
+			return { column, key: placed?.key, keyIndex: placed?.keyIndex ?? keyIndexOffset };
+		});
+	}
+
+	function ansiThumbKeys(left: readonly KeyboardInputKey[], right: readonly KeyboardInputKey[]) {
+		return [
+			...thumbTargetColumns('left', left.length).map((column, index) => ({
+				column: ansiThumbDisplayColumn(column),
+				key: left[index],
+				keyIndex: index
+			})),
+			...thumbTargetColumns('right', right.length).map((column, index) => ({
+				column: ansiThumbDisplayColumn(column),
+				key: right[index],
+				keyIndex: left.length + index
+			}))
+		];
+	}
+
+	function ansiThumbOffset(column: number): string {
+		return ansiThumbOffsetCss(column, 'var(--editor-key-size)', 'var(--editor-key-gap)');
+	}
+
 	function isHomeKey(key: KeyboardInputKey): boolean {
 		const position = parseKeyboardInputSlot(key.slot);
 		return Boolean(position && isKeyboardInputHomeKeySlot(position.row, position.column));
@@ -119,7 +170,12 @@
 	}
 </script>
 
-{#snippet keyField(key: KeyboardInputKey, rowNumber: number, keyIndex: number)}
+{#snippet keyField(
+	key: KeyboardInputKey,
+	rowNumber: number,
+	keyIndex: number,
+	attrs: { style?: string; ansiThumb?: boolean; column?: number } = {}
+)}
 	<input
 		use:registerInput={key.slot}
 		type="text"
@@ -129,8 +185,11 @@
 		aria-invalid={invalidSlots.includes(key.slot) || undefined}
 		data-keyboard-input-slot={key.slot}
 		data-keyboard-input-inert={key.inert ? 'true' : undefined}
+		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
 		class:keyboard-input-editor__key--home={isHomeKey(key)}
 		class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
+		class:keyboard-input-editor__key--ansi-thumb={Boolean(attrs.ansiThumb)}
+		style={attrs.style}
 		autocomplete="off"
 		autocapitalize="off"
 		autocorrect="off"
@@ -147,27 +206,61 @@
 		{#each rows as row (row.row)}
 			{#if orthoGeometry}
 				{@const halves = orthoHalves(row.keys, row.row)}
+				{@const thumbs = row.row >= 3}
 				<div
 					class="keyboard-input-editor__row keyboard-input-editor__row--ortho"
-					class:keyboard-input-editor__row--thumbs={row.row >= 3}
+					class:keyboard-input-editor__row--thumbs={thumbs}
 					data-keyboard-input-row={row.row}
 				>
 					<div class="keyboard-input-editor__half keyboard-input-editor__half--left">
-						{#each halves.left as key, keyIndex (key.slot)}
-							{@render keyField(key, row.row, keyIndex)}
-						{/each}
+						{#if thumbs}
+							{#each orthoThumbSlots(halves.left, 'left', 0, 5) as slot (slot.column)}
+								{#if slot.key}
+									{@render keyField(slot.key, row.row, slot.keyIndex)}
+								{:else}
+									<span class="keyboard-input-editor__key-placeholder" aria-hidden="true"></span>
+								{/if}
+							{/each}
+						{:else}
+							{#each halves.left as key, keyIndex (key.slot)}
+								{@render keyField(key, row.row, keyIndex)}
+							{/each}
+						{/if}
 					</div>
 					<span class="keyboard-input-editor__hand-gap" aria-hidden="true"></span>
 					<div class="keyboard-input-editor__half keyboard-input-editor__half--right">
-						{#each halves.right as key, keyIndex (key.slot)}
-							{@render keyField(key, row.row, halves.left.length + keyIndex)}
-						{/each}
+						{#if thumbs}
+							{#each orthoThumbSlots(halves.right, 'right', halves.left.length, rightSlotCount) as slot (slot.column)}
+								{#if slot.key}
+									{@render keyField(slot.key, row.row, slot.keyIndex)}
+								{:else}
+									<span class="keyboard-input-editor__key-placeholder" aria-hidden="true"></span>
+								{/if}
+							{/each}
+						{:else}
+							{#each halves.right as key, keyIndex (key.slot)}
+								{@render keyField(key, row.row, halves.left.length + keyIndex)}
+							{/each}
+						{/if}
 					</div>
+				</div>
+			{:else if row.row >= 3}
+				{@const halves = orthoHalves(row.keys, row.row)}
+				<div
+					class="keyboard-input-editor__row keyboard-input-editor__row--thumbs keyboard-input-editor__row--ansi-thumbs"
+					data-keyboard-input-row={row.row}
+				>
+					{#each ansiThumbKeys(halves.left, halves.right) as thumb (thumb.key.slot)}
+						{@render keyField(thumb.key, row.row, thumb.keyIndex, {
+							ansiThumb: true,
+							column: thumb.column,
+							style: `left: ${ansiThumbOffset(thumb.column)};`
+						})}
+					{/each}
 				</div>
 			{:else}
 				<div
 					class="keyboard-input-editor__row"
-					class:keyboard-input-editor__row--thumbs={row.row >= 3}
 					class:keyboard-input-editor__row--stagger-home={row.row === 1}
 					class:keyboard-input-editor__row--stagger-bottom={row.row === 2}
 					data-keyboard-input-row={row.row}
@@ -234,9 +327,21 @@
 		margin-top: calc(var(--editor-key-gap) * 1.8);
 	}
 
-	.keyboard-input-editor__rows[data-keyboard-type='staggered'] .keyboard-input-editor__row--thumbs {
-		justify-content: center;
-		min-width: 100%;
+	.keyboard-input-editor__row--ansi-thumbs {
+		position: relative;
+		width: 100%;
+		height: var(--editor-key-size);
+	}
+
+	.keyboard-input-editor__key--ansi-thumb {
+		position: absolute;
+		top: 0;
+	}
+
+	.keyboard-input-editor__key-placeholder {
+		width: var(--editor-key-size);
+		height: var(--editor-key-size);
+		flex: none;
 	}
 
 	.keyboard-input-editor__half {

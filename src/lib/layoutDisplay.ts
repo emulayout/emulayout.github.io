@@ -79,6 +79,47 @@ export function thumbTargetColumns(hand: 'left' | 'right', count: number): numbe
 	return Array.from({ length: count }, (_, i) => start + i);
 }
 
+/** Shift ANSI/stagger thumbs a half column so they sit between bottom-row index keys. */
+export function ansiThumbDisplayColumn(gridColumn: number): number {
+	return gridColumn - 0.5;
+}
+
+export function ansiThumbOffsetCss(displayColumn: number, sizeVar: string, gapVar: string): string {
+	return `calc(${sizeVar} * ${displayColumn + 0.68} + ${gapVar} * ${displayColumn})`;
+}
+
+/**
+ * Split rendered thumb keys by assigned hand and slot, not by character.
+ * Duplicate letters on both thumbs stay on their own sides.
+ */
+export function splitThumbDisplayKeys<T extends { char: string; slot: string }>(
+	keys: readonly T[],
+	thumbKeysByHand: { l: { key: string; col: number }[]; r: { key: string; col: number }[] }
+): { left: T[]; right: T[] } {
+	const left: T[] = [];
+	const right: T[] = [];
+	for (const key of keys) {
+		if (thumbDisplayKeyHand(key, thumbKeysByHand) === 'r') right.push(key);
+		else left.push(key);
+	}
+	return { left, right };
+}
+
+function thumbDisplayKeyHand(
+	key: { char: string; slot: string },
+	thumbKeysByHand: { l: { key: string; col: number }[]; r: { key: string; col: number }[] }
+): 'l' | 'r' {
+	const parsed = parseDisplaySlot(key.slot);
+	const lower = key.char.toLowerCase();
+	if (!parsed) return 'l';
+	const onRight = thumbKeysByHand.r.some(
+		(entry) => entry.col === parsed.col && entry.key === lower
+	);
+	const onLeft = thumbKeysByHand.l.some((entry) => entry.col === parsed.col && entry.key === lower);
+	if (onRight !== onLeft) return onRight ? 'r' : 'l';
+	return parsed.col >= SPLIT_COL ? 'r' : 'l';
+}
+
 function parseDisplaySlot(slot: string): { row: number; col: number } | null {
 	const match = /^(\d+),(\d+)$/.exec(slot);
 	if (!match) return null;
