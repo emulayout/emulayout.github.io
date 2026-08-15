@@ -3,12 +3,14 @@
 	import {
 		createCreatorAdaptiveRule,
 		createCreatorAdaptiveSection,
+		creatorAdaptiveDraftErrors,
 		type CreatorAdaptiveDraft,
 		type CreatorAdaptiveRule
 	} from '$lib/layoutCreatorMappings';
 
 	interface Props {
 		draft: CreatorAdaptiveDraft;
+		availableKeys?: readonly string[];
 		disabledMappingIds?: readonly string[];
 		onDraftChange: (draft: CreatorAdaptiveDraft) => void;
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
@@ -16,13 +18,16 @@
 
 	const {
 		draft,
+		availableKeys,
 		disabledMappingIds = [],
 		onDraftChange,
 		onDisabledMappingIdsChange
 	}: Props = $props();
 	const disabledIds = $derived(new Set(disabledMappingIds));
+	const draftErrors = $derived(creatorAdaptiveDraftErrors(draft, availableKeys));
 
 	function compiledRuleId(rule: CreatorAdaptiveRule, groupId?: string): string | null {
+		if (draftErrors.has(rule.id)) return null;
 		const trigger = rule.trigger.trim().toLowerCase();
 		const left = rule.left.trim().toLowerCase();
 		const right = rule.right.trim().toLowerCase();
@@ -150,6 +155,8 @@
 	onRemove: () => void
 )}
 	{@const mappingId = compiledRuleId(rule, groupId)}
+	{@const ruleError = draftErrors.get(rule.id)}
+	{@const ruleErrorId = `creator-adaptive-rule-error-${rule.id}`}
 	<div
 		class="creator-mappings-row"
 		class:creator-mappings-row--disabled={mappingId !== null && disabledIds.has(mappingId)}
@@ -168,6 +175,8 @@
 				class="creator-mappings-field"
 				value={rule.trigger}
 				aria-label="Trigger"
+				aria-invalid={ruleError ? 'true' : undefined}
+				aria-describedby={ruleError ? ruleErrorId : undefined}
 				oninput={(event) => onField('trigger', event.currentTarget.value)}
 			/>
 			<span class="creator-mappings-punctuation" aria-hidden="true">:</span>
@@ -175,6 +184,8 @@
 				class="creator-mappings-field"
 				value={rule.left}
 				aria-label="Left"
+				aria-invalid={ruleError ? 'true' : undefined}
+				aria-describedby={ruleError ? ruleErrorId : undefined}
 				oninput={(event) => onField('left', event.currentTarget.value)}
 			/>
 			<span class="creator-mappings-arrow" aria-hidden="true">↔</span>
@@ -182,6 +193,8 @@
 				class="creator-mappings-field"
 				value={rule.right}
 				aria-label="Right"
+				aria-invalid={ruleError ? 'true' : undefined}
+				aria-describedby={ruleError ? ruleErrorId : undefined}
 				oninput={(event) => onField('right', event.currentTarget.value)}
 			/>
 		</span>
@@ -194,6 +207,9 @@
 			<span aria-hidden="true">×</span>
 		</button>
 	</div>
+	{#if ruleError}
+		<p id={ruleErrorId} class="creator-mappings-error">{ruleError}</p>
+	{/if}
 {/snippet}
 
 <section class="creator-mappings-panel" aria-label="Adaptive swap mappings">
@@ -284,6 +300,12 @@
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
 		background-color: var(--bg-primary);
+	}
+
+	.creator-mappings-error {
+		margin: 0.35rem 0 0 2rem;
+		color: var(--keyboard-input-validation-error);
+		font-size: 0.75rem;
 	}
 
 	.creator-mappings-heading,

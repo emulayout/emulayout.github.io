@@ -260,26 +260,114 @@ function isSingleCharacter(value: string): boolean {
 	return Array.from(value).length === 1;
 }
 
+function normalizedAvailableKeys(availableKeys: readonly string[] | undefined): Set<string> | null {
+	return availableKeys ? new Set(availableKeys.map((key) => key.toLowerCase())) : null;
+}
+
+function unavailableKeyError(
+	value: string,
+	label: string,
+	availableKeys: ReadonlySet<string> | null
+): string | null {
+	if (!availableKeys || availableKeys.has(value.toLowerCase())) return null;
+	return `${label} ${JSON.stringify(value)} is not assigned to the keyboard.`;
+}
+
+export function creatorMagicTriggerError(
+	trigger: string,
+	availableKeys?: readonly string[]
+): string | null {
+	const normalized = trigger.trim();
+	if (!normalized) return null;
+	if (!isSingleCharacter(normalized)) return 'A Magic trigger must be one key.';
+	return unavailableKeyError(normalized, 'Magic trigger', normalizedAvailableKeys(availableKeys));
+}
+
+function creatorAdaptiveRuleError(
+	rule: CreatorAdaptiveRule,
+	availableKeys: ReadonlySet<string> | null
+): string | null {
+	const fields = [rule.trigger.trim(), rule.left.trim(), rule.right.trim()];
+	if (fields.every((field) => !field)) return null;
+	if (fields.some((field) => !field)) return null;
+	if (fields.some((field) => !isSingleCharacter(field))) {
+		return 'Adaptive triggers and swap keys must each be one key.';
+	}
+	const [trigger, left, right] = fields;
+	if (left.toLowerCase() === right.toLowerCase()) {
+		return 'An adaptive swap must use two different keys.';
+	}
+	return (
+		unavailableKeyError(trigger, 'Adaptive trigger', availableKeys) ??
+		unavailableKeyError(left, 'Adaptive key', availableKeys) ??
+		unavailableKeyError(right, 'Adaptive key', availableKeys)
+	);
+}
+
+function allAdaptiveRules(draft: CreatorAdaptiveDraft): CreatorAdaptiveRule[] {
+	return [...draft.rules, ...draft.groups.flatMap((group) => group.rules)];
+}
+
+export function creatorAdaptiveDraftErrors(
+	draft: CreatorAdaptiveDraft,
+	availableKeys?: readonly string[]
+): ReadonlyMap<string, string> {
+	const errors = new Map<string, string>();
+	const keys = normalizedAvailableKeys(availableKeys);
+	const usedByTrigger = new Map<string, Set<string>>();
+	for (const rule of allAdaptiveRules(draft)) {
+		const error = creatorAdaptiveRuleError(rule, keys);
+		if (error) {
+			errors.set(rule.id, error);
+			continue;
+		}
+		const trigger = rule.trigger.trim().toLowerCase();
+		const left = rule.left.trim().toLowerCase();
+		const right = rule.right.trim().toLowerCase();
+		if (!trigger || !left || !right) continue;
+		const used = usedByTrigger.get(trigger) ?? new Set<string>();
+		if (used.has(left) || used.has(right)) {
+			errors.set(rule.id, 'A key can only belong to one swap for the same trigger.');
+			continue;
+		}
+		used.add(left);
+		used.add(right);
+		usedByTrigger.set(trigger, used);
+	}
+	return errors;
+}
+
 function mappingsFromAdaptiveRules(
-	rules: readonly CreatorAdaptiveRule[]
+	rules: readonly CreatorAdaptiveRule[],
+	availableKeys: ReadonlySet<string> | null,
+	usedByTrigger: Map<string, Set<string>>
 ): AdaptiveSwapMappings | undefined {
 	const mappings: Record<string, Record<string, string>> = {};
 	for (const rule of rules) {
 		const trigger = rule.trigger.trim();
 		const left = rule.left.trim();
 		const right = rule.right.trim();
-		if (!isSingleCharacter(trigger) || !isSingleCharacter(left) || !isSingleCharacter(right)) {
+		if (creatorAdaptiveRuleError(rule, availableKeys)) continue;
+		if (!isSingleCharacter(trigger) || !isSingleCharacter(left) || !isSingleCharacter(right))
 			continue;
-		}
-		if (left.toLowerCase() === right.toLowerCase()) continue;
+		const normalizedTrigger = trigger.toLowerCase();
+		const normalizedLeft = left.toLowerCase();
+		const normalizedRight = right.toLowerCase();
+		const used = usedByTrigger.get(normalizedTrigger) ?? new Set<string>();
+		if (used.has(normalizedLeft) || used.has(normalizedRight)) continue;
+		used.add(normalizedLeft);
+		used.add(normalizedRight);
+		usedByTrigger.set(normalizedTrigger, used);
 		const swaps = (mappings[trigger] ??= {});
-		if (swaps[left] !== undefined) continue;
 		swaps[left] = right;
 	}
 	return Object.keys(mappings).length > 0 ? mappings : undefined;
 }
 
-export function magicSourceFromDraft(draft: CreatorMagicDraft): MagicKeySource | undefined {
+export function magicSourceFromDraft(
+	draft: CreatorMagicDraft,
+	availableKeys?: readonly string[]
+): MagicKeySource | undefined {
 	const byTrigger = new Map<
 		string,
 		{ rules: Record<string, string>; fallback?: MagicKeyFallbackSource }
@@ -287,7 +375,7 @@ export function magicSourceFromDraft(draft: CreatorMagicDraft): MagicKeySource |
 
 	for (const section of draft.sections) {
 		const trigger = section.trigger.trim();
-		if (!trigger) continue;
+		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 
 		const current = byTrigger.get(trigger) ?? { rules: {} };
 		const seen = new Set(Object.keys(current.rules).map((after) => after.toLowerCase()));
@@ -315,12 +403,15 @@ export function magicSourceFromDraft(draft: CreatorMagicDraft): MagicKeySource |
 }
 
 export function adaptiveSourceFromDraft(
-	draft: CreatorAdaptiveDraft
+	draft: CreatorAdaptiveDraft,
+	availableKeys?: readonly string[]
 ): AdaptiveSwapSource | undefined {
-	const mappings = mappingsFromAdaptiveRules(draft.rules);
+	const keys = normalizedAvailableKeys(availableKeys);
+	const usedByTrigger = new Map<string, Set<string>>();
+	const mappings = mappingsFromAdaptiveRules(draft.rules, keys, usedByTrigger);
 	const groups = draft.groups.flatMap((group) => {
 		const label = group.label.trim();
-		const groupMappings = mappingsFromAdaptiveRules(group.rules);
+		const groupMappings = mappingsFromAdaptiveRules(group.rules, keys, usedByTrigger);
 		if (!label || !groupMappings) return [];
 		return [{ id: group.id, label, mappings: groupMappings }];
 	});
@@ -350,12 +441,18 @@ function compileFeatureProfile(
 	}
 }
 
-export function creatorMagicDraftHasMappings(draft: CreatorMagicDraft): boolean {
-	return Boolean(magicSourceFromDraft(draft));
+export function creatorMagicDraftHasMappings(
+	draft: CreatorMagicDraft,
+	availableKeys?: readonly string[]
+): boolean {
+	return Boolean(magicSourceFromDraft(draft, availableKeys));
 }
 
-export function creatorAdaptiveDraftHasMappings(draft: CreatorAdaptiveDraft): boolean {
-	return Boolean(adaptiveSourceFromDraft(draft));
+export function creatorAdaptiveDraftHasMappings(
+	draft: CreatorAdaptiveDraft,
+	availableKeys?: readonly string[]
+): boolean {
+	return Boolean(adaptiveSourceFromDraft(draft, availableKeys));
 }
 
 function someMappingEnabled(
@@ -370,18 +467,20 @@ function someMappingEnabled(
 /** True when the draft compiles at least one mapping that is not disabled. */
 export function creatorMagicDraftHasEnabledMappings(
 	draft: CreatorMagicDraft,
-	disabledMappingIds: readonly string[] = []
+	disabledMappingIds: readonly string[] = [],
+	availableKeys?: readonly string[]
 ): boolean {
-	const profile = compileFeatureProfile(magicSourceFromDraft(draft), undefined);
+	const profile = compileFeatureProfile(magicSourceFromDraft(draft, availableKeys), undefined);
 	return someMappingEnabled(magicProfileMappingIds(profile?.magicKeys), disabledMappingIds);
 }
 
 /** True when the draft compiles at least one mapping that is not disabled. */
 export function creatorAdaptiveDraftHasEnabledMappings(
 	draft: CreatorAdaptiveDraft,
-	disabledMappingIds: readonly string[] = []
+	disabledMappingIds: readonly string[] = [],
+	availableKeys?: readonly string[]
 ): boolean {
-	const profile = compileFeatureProfile(undefined, adaptiveSourceFromDraft(draft));
+	const profile = compileFeatureProfile(undefined, adaptiveSourceFromDraft(draft, availableKeys));
 	return someMappingEnabled(adaptiveProfileMappingIds(profile?.adaptiveSwaps), disabledMappingIds);
 }
 
@@ -390,10 +489,13 @@ export function compileCreatorInputProfile(
 	magicEnabled: boolean,
 	magicDraft: CreatorMagicDraft,
 	adaptiveEnabled: boolean,
-	adaptiveDraft: CreatorAdaptiveDraft
+	adaptiveDraft: CreatorAdaptiveDraft,
+	availableKeys?: readonly string[]
 ): LayoutInputProfile | undefined {
-	const magicKeys = magicEnabled ? magicSourceFromDraft(magicDraft) : undefined;
-	const adaptiveSwaps = adaptiveEnabled ? adaptiveSourceFromDraft(adaptiveDraft) : undefined;
+	const magicKeys = magicEnabled ? magicSourceFromDraft(magicDraft, availableKeys) : undefined;
+	const adaptiveSwaps = adaptiveEnabled
+		? adaptiveSourceFromDraft(adaptiveDraft, availableKeys)
+		: undefined;
 	const combined = compileFeatureProfile(magicKeys, adaptiveSwaps);
 	if (combined) return combined;
 	return (

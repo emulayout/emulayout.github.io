@@ -13,9 +13,11 @@ import {
 	ensureCreatorMagicTrigger,
 	creatorAdaptiveDraftHasEnabledMappings,
 	creatorAdaptiveDraftHasMappings,
+	creatorAdaptiveDraftErrors,
 	creatorDraftsFromSupplemental,
 	creatorMagicDraftHasEnabledMappings,
 	creatorMagicDraftHasMappings,
+	creatorMagicTriggerError,
 	magicDraftFromSource,
 	magicSourceFromDraft
 } from '../src/lib/layoutCreatorMappings';
@@ -156,6 +158,21 @@ describe('magicSourceFromDraft', () => {
 
 		expect(magicSourceFromDraft(draft)).toBeUndefined();
 	});
+
+	test('omits triggers that are not single assigned keyboard keys', () => {
+		const draft = {
+			sections: [
+				{
+					...createCreatorMagicSection('##'),
+					rules: [{ ...createCreatorMagicRule(), after: 'c', emit: 'k' }]
+				}
+			]
+		};
+
+		expect(creatorMagicTriggerError('##', ['#'])).toBe('A Magic trigger must be one key.');
+		expect(creatorMagicTriggerError('#', ['*'])).toContain('is not assigned');
+		expect(magicSourceFromDraft(draft, ['#'])).toBeUndefined();
+	});
 });
 
 describe('adaptiveSourceFromDraft', () => {
@@ -187,6 +204,21 @@ describe('adaptiveSourceFromDraft', () => {
 		).toEqual([{ trigger: 'l', left: 'y', right: 'j' }]);
 		expect(draft.groups[0]).toMatchObject({ id: 'comfort', label: 'Comfort' });
 		expect(adaptiveSourceFromDraft(draft)).toEqual(source);
+	});
+
+	test('omits conflicting or unavailable rules without dropping valid swaps', () => {
+		const first = { ...createCreatorAdaptiveRule(), trigger: 'l', left: 'y', right: 'j' };
+		const conflict = { ...createCreatorAdaptiveRule(), trigger: 'l', left: 'j', right: 'k' };
+		const unavailable = { ...createCreatorAdaptiveRule(), trigger: 'q', left: 'a', right: 'x' };
+		const draft = { rules: [first, conflict, unavailable], groups: [] };
+		const availableKeys = ['l', 'y', 'j', 'k', 'q', 'a'];
+
+		const errors = creatorAdaptiveDraftErrors(draft, availableKeys);
+		expect(errors.get(conflict.id)).toContain('one swap');
+		expect(errors.get(unavailable.id)).toContain('not assigned');
+		expect(adaptiveSourceFromDraft(draft, availableKeys)).toEqual({
+			mappings: { l: { y: 'j' } }
+		});
 	});
 });
 

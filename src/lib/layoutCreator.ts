@@ -74,8 +74,11 @@ export function createDefaultCreatorLayout(name = LAYOUT_CREATOR_NEW_LAYOUT_NAME
 	return decodeLayout(compact);
 }
 
-export function keyboardConfigHasMagicKey(config: KeyboardInputConfig): boolean {
-	return config.keys.some((key) => normalizeKeyboardInputValue(key.value) === CREATOR_MAGIC_KEY);
+export function keyboardConfigHasMagicTrigger(config: KeyboardInputConfig): boolean {
+	return config.keys.some((key) => {
+		const value = normalizeKeyboardInputValue(key.value);
+		return value === CREATOR_MAGIC_KEY || value === DEFAULT_REPEAT_KEY;
+	});
 }
 
 /** Triggers newly assigned on a slot. Clearing a slot never appears here. */
@@ -96,27 +99,6 @@ export function keyboardConfigGainedMagicTriggers(
 	return gained;
 }
 
-/** Clear `*` from every editor slot so turning Magic off does not leave a trigger on the board. */
-export function removeMagicKeysFromConfig(config: KeyboardInputConfig): KeyboardInputConfig {
-	let changed = false;
-	const keys = config.keys.map((key) => {
-		if (normalizeKeyboardInputValue(key.value) !== CREATOR_MAGIC_KEY) return key;
-		changed = true;
-		return {
-			slot: key.slot,
-			value: '',
-			...(key.inert ? { inert: true } : {}),
-			...(key.thumbHand ? { thumbHand: key.thumbHand } : {})
-		};
-	});
-	if (!changed) return config;
-	return {
-		...config,
-		baseLayoutModified: config.baseLayoutName ? true : config.baseLayoutModified,
-		keys
-	};
-}
-
 function extraMagicKeySlot(assigned: readonly { row: number; column: number }[]): {
 	row: number;
 	column: number;
@@ -127,6 +109,21 @@ function extraMagicKeySlot(assigned: readonly { row: number; column: number }[])
 		if (key.row === row) maxColumn = Math.max(maxColumn, key.column);
 	}
 	return { row, column: maxColumn + 1 };
+}
+
+/** Add an editable `*` key after the home row unless the board already has a Magic trigger. */
+export function addMagicKeyToConfig(config: KeyboardInputConfig): KeyboardInputConfig {
+	if (keyboardConfigHasMagicTrigger(config)) return config;
+	const assigned = config.keys.flatMap((key) => {
+		const position = parseKeyboardInputSlot(key.slot);
+		return position ? [position] : [];
+	});
+	const slot = extraMagicKeySlot(assigned);
+	return {
+		...config,
+		baseLayoutModified: config.baseLayoutName ? true : config.baseLayoutModified,
+		keys: [...config.keys, { slot: `${slot.row},${slot.column}`, value: CREATOR_MAGIC_KEY }]
+	};
 }
 
 /** Build a draft layout from the creator key editor. Empty slots are omitted. */
@@ -157,17 +154,6 @@ export function createLayoutFromKeyConfig(
 				hand: key.thumbHand ?? (key.column < 5 ? 'l' : 'r')
 			});
 		}
-	}
-
-	if (
-		options.magicKey &&
-		!keyChars.includes(CREATOR_MAGIC_KEY) &&
-		!keyChars.includes(DEFAULT_REPEAT_KEY)
-	) {
-		const extra = extraMagicKeySlot(assigned);
-		keyChars.push(CREATOR_MAGIC_KEY);
-		rows.push(extra.row);
-		cols.push(extra.column);
 	}
 
 	thumbs.sort((a, b) => a.col - b.col);

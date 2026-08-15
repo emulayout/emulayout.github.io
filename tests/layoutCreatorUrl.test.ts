@@ -5,7 +5,7 @@ import {
 	createDefaultKeyboardInputConfig,
 	updateKeyboardInputKey
 } from '../src/lib/keyboardInputConfig';
-import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '../src/lib/layoutCreator';
+import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, addMagicKeyToConfig } from '../src/lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
 	createCreatorAdaptiveSection,
@@ -182,8 +182,51 @@ describe('creator URL state', () => {
 		const params = writeCreatorUrlParams(snapshot);
 		expect(params.get('magic')).toBe('1');
 		expect(params.get('adaptive')).toBe('1');
+		expect(params.has('keys')).toBe(false);
 		expect(roundTrip(snapshot).includeMagicKey).toBe(true);
 		expect(roundTrip(snapshot).includeAdaptiveKey).toBe(true);
+	});
+
+	test('preserves a Magic key that was explicitly cleared from the editable board', () => {
+		const keyConfig = updateKeyboardInputKey(
+			addMagicKeyToConfig(createDefaultKeyboardInputConfig()),
+			'1,11',
+			''
+		);
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			keyConfig
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		const restored = readCreatorUrlSnapshot(params);
+
+		expect(params.get('keys')).toContain('1,11::');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '1,11')?.value).toBe('');
+	});
+
+	test('rejects duplicate keyboard slots from an untrusted URL', () => {
+		const restored = readCreatorUrlSnapshot(new URLSearchParams('keys=v1:m;0,0::a;0,0::b'));
+
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
+		expect(new Set(restored.keyConfig.keys.map((key) => key.slot)).size).toBe(
+			restored.keyConfig.keys.length
+		);
+	});
+
+	test('rejects duplicate adaptive group ids from an untrusted URL', () => {
+		const first = createCreatorAdaptiveSection('One');
+		const second = createCreatorAdaptiveSection('Two');
+		second.id = first.id;
+		const params = writeCreatorUrlParams({
+			...createDefaultCreatorUrlSnapshot(),
+			includeAdaptiveKey: true,
+			adaptiveDraft: { rules: [], groups: [first, second] }
+		});
+		const restored = readCreatorUrlSnapshot(params);
+
+		expect(restored.includeAdaptiveKey).toBe(false);
+		expect(restored.adaptiveDraft.groups).toEqual([]);
 	});
 
 	test('ignores malformed mapping and key params', () => {

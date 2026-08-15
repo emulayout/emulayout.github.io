@@ -225,9 +225,11 @@ function parseKeysParam(value: string): { modified: boolean; keys: KeyboardInput
 					.split(';')
 					.filter(Boolean);
 	const keys: KeyboardInputKey[] = [];
+	const slots = new Set<string>();
 	for (const entry of entries) {
 		const key = parseKeyEntry(entry);
-		if (!key) return null;
+		if (!key || slots.has(key.slot)) return null;
+		slots.add(key.slot);
 		keys.push(key);
 	}
 	return { modified: flag === KEYS_MODIFIED_FLAG, keys };
@@ -306,6 +308,7 @@ function adaptiveDraftFromPayload(value: unknown): CreatorAdaptiveDraft | null {
 	const rules = value.r === undefined ? [] : adaptiveRulesFromPayload(value.r);
 	if (!rules) return null;
 	const groups: CreatorAdaptiveSection[] = [];
+	const groupIds = new Set<string>();
 	if (value.g !== undefined) {
 		if (!Array.isArray(value.g)) return null;
 		for (const raw of value.g) {
@@ -313,7 +316,11 @@ function adaptiveDraftFromPayload(value: unknown): CreatorAdaptiveDraft | null {
 			const groupRules = adaptiveRulesFromPayload(raw.r);
 			if (!groupRules) return null;
 			const group = createCreatorAdaptiveSection(raw.l);
-			if (typeof raw.i === 'string' && raw.i.trim()) group.id = raw.i;
+			if (typeof raw.i === 'string' && raw.i.trim()) {
+				if (groupIds.has(raw.i)) return null;
+				group.id = raw.i;
+			}
+			groupIds.add(group.id);
 			group.rules = groupRules.length > 0 ? groupRules : [createCreatorAdaptiveRule()];
 			groups.push(group);
 		}
@@ -487,7 +494,6 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 			magicDraft = draft;
 		}
 	}
-
 	const adaptiveParam = searchParams.get(CREATOR_ADAPTIVE_PARAM);
 	let includeAdaptiveKey = false;
 	let adaptiveDraft = createEmptyCreatorAdaptiveDraft();

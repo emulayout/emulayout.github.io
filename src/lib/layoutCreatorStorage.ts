@@ -8,7 +8,7 @@ import {
 	type CreatorUrlSnapshot
 } from '$lib/layoutCreatorUrl';
 
-const STORAGE_KEY = 'emulayout:saved-layouts';
+export const SAVED_LAYOUTS_STORAGE_KEY = 'emulayout:saved-layouts';
 export const SAVED_LAYOUTS_SCHEMA_VERSION = 1;
 
 export interface SavedCreatorLayout {
@@ -88,9 +88,15 @@ export function parseSavedLayoutsDocument(value: unknown): SavedCreatorLayout[] 
 		return [];
 	}
 
-	return value.layouts
-		.map(parseSavedLayout)
-		.filter((entry): entry is SavedCreatorLayout => entry !== null);
+	const layouts: SavedCreatorLayout[] = [];
+	const ids = new Set<string>();
+	for (const rawLayout of value.layouts) {
+		const layout = parseSavedLayout(rawLayout);
+		if (!layout || ids.has(layout.id)) continue;
+		ids.add(layout.id);
+		layouts.push(layout);
+	}
+	return layouts;
 }
 
 export function serializeSavedLayoutsDocument(
@@ -115,7 +121,7 @@ export function serializeSavedLayoutsDocument(
 export function loadSavedLayouts(): SavedCreatorLayout[] {
 	try {
 		if (typeof localStorage === 'undefined') return [];
-		const raw = localStorage.getItem(STORAGE_KEY);
+		const raw = localStorage.getItem(SAVED_LAYOUTS_STORAGE_KEY);
 		if (!raw) return [];
 		return parseSavedLayoutsDocument(JSON.parse(raw) as unknown);
 	} catch {
@@ -123,17 +129,38 @@ export function loadSavedLayouts(): SavedCreatorLayout[] {
 	}
 }
 
-export function persistSavedLayouts(layouts: readonly SavedCreatorLayout[]): void {
+export function persistSavedLayouts(layouts: readonly SavedCreatorLayout[]): boolean {
 	try {
-		if (typeof localStorage === 'undefined') return;
+		if (typeof localStorage === 'undefined') return false;
 		if (layouts.length === 0) {
-			localStorage.removeItem(STORAGE_KEY);
-			return;
+			localStorage.removeItem(SAVED_LAYOUTS_STORAGE_KEY);
+			return true;
 		}
-		localStorage.setItem(STORAGE_KEY, serializeSavedLayoutsDocument(layouts));
+		localStorage.setItem(SAVED_LAYOUTS_STORAGE_KEY, serializeSavedLayoutsDocument(layouts));
+		return true;
 	} catch {
-		// ignore quota / private mode
+		return false;
 	}
+}
+
+/** Merge storage snapshots by stable id while retaining the first-seen tab order. */
+export function mergeSavedLayouts(
+	...collections: readonly (readonly SavedCreatorLayout[])[]
+): SavedCreatorLayout[] {
+	const merged: SavedCreatorLayout[] = [];
+	const indexById = new Map<string, number>();
+	for (const collection of collections) {
+		for (const layout of collection) {
+			const index = indexById.get(layout.id);
+			if (index === undefined) {
+				indexById.set(layout.id, merged.length);
+				merged.push(layout);
+			} else {
+				merged[index] = layout;
+			}
+		}
+	}
+	return merged;
 }
 
 export function addSavedLayout(

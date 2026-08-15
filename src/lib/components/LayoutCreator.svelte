@@ -25,10 +25,10 @@
 	import {
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
+		addMagicKeyToConfig,
 		createLayoutFromKeyConfig,
 		keyboardConfigGainedMagicTriggers,
-		keyboardConfigHasMagicKey,
-		removeMagicKeysFromConfig,
+		keyboardConfigHasMagicTrigger,
 		savedCreatorTabId,
 		savedCreatorTabValue,
 		type LayoutCreatorTabValue
@@ -51,8 +51,10 @@
 		findSavedLayout,
 		isSavedLayoutDirty,
 		loadSavedLayouts,
+		mergeSavedLayouts,
 		persistSavedLayouts,
 		resolveCreatorSession,
+		SAVED_LAYOUTS_STORAGE_KEY,
 		savedCreatorLayoutName,
 		updateSavedLayout,
 		type SavedCreatorLayout
@@ -87,11 +89,14 @@
 	let disabledMappingIds = $state<string[]>([]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
 	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
+	let magicPanelOpen = $state(initialSession.snapshot.includeMagicKey);
+	let adaptivePanelOpen = $state(initialSession.snapshot.includeAdaptiveKey);
 	let magicDraft = $state.raw(initialSession.snapshot.magicDraft);
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let saveMenuOpen = $state(false);
+	let saveError = $state<string | null>(null);
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
@@ -101,21 +106,8 @@
 		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
 	);
 	const selectedTabId = $derived(activeSavedId ? savedCreatorTabId(activeSavedId) : NEW_TAB_ID);
-	const magicKeyEnabled = $derived(includeMagicKey || keyboardConfigHasMagicKey(keyConfig));
-	const magicDraftHasMappings = $derived(creatorMagicDraftHasMappings(magicDraft));
-	const adaptiveDraftHasMappings = $derived(creatorAdaptiveDraftHasMappings(adaptiveDraft));
-	const magicIconActive = $derived(
-		magicKeyEnabled && creatorMagicDraftHasEnabledMappings(magicDraft, disabledMappingIds)
-	);
-	const adaptiveIconActive = $derived(
-		includeAdaptiveKey && creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds)
-	);
-	const magicIconHasData = $derived(!magicKeyEnabled && magicDraftHasMappings);
-	const adaptiveIconHasData = $derived(!includeAdaptiveKey && adaptiveDraftHasMappings);
-	const practiceMagicEnabled = $derived(layoutPreview ? magicDraftHasMappings : magicKeyEnabled);
-	const practiceAdaptiveEnabled = $derived(
-		layoutPreview ? adaptiveDraftHasMappings : includeAdaptiveKey
-	);
+	const practiceMagicEnabled = $derived(includeMagicKey);
+	const practiceAdaptiveEnabled = $derived(includeAdaptiveKey);
 	const layout = $derived(
 		createLayoutFromKeyConfig(keyConfig, {
 			name: layoutName,
@@ -123,15 +115,33 @@
 			adaptiveKey: practiceAdaptiveEnabled
 		})
 	);
+	const availableLayoutKeys = $derived(Object.keys(layout.keys));
+	const magicDraftHasMappings = $derived(
+		creatorMagicDraftHasMappings(magicDraft, availableLayoutKeys)
+	);
+	const adaptiveDraftHasMappings = $derived(
+		creatorAdaptiveDraftHasMappings(adaptiveDraft, availableLayoutKeys)
+	);
+	const magicIconActive = $derived(
+		magicPanelOpen &&
+			creatorMagicDraftHasEnabledMappings(magicDraft, disabledMappingIds, availableLayoutKeys)
+	);
+	const adaptiveIconActive = $derived(
+		adaptivePanelOpen &&
+			creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds, availableLayoutKeys)
+	);
+	const magicIconHasData = $derived(!magicPanelOpen && magicDraftHasMappings);
+	const adaptiveIconHasData = $derived(!adaptivePanelOpen && adaptiveDraftHasMappings);
 	const inputProfile = $derived(
 		compileCreatorInputProfile(
 			practiceMagicEnabled,
 			magicDraft,
 			practiceAdaptiveEnabled,
-			adaptiveDraft
+			adaptiveDraft,
+			availableLayoutKeys
 		)
 	);
-	const showEditorMappings = $derived(magicKeyEnabled || includeAdaptiveKey);
+	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen);
 	const showPreviewMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
@@ -210,17 +220,35 @@
 		layoutPreview = next.preview;
 		includeMagicKey = next.includeMagicKey;
 		includeAdaptiveKey = next.includeAdaptiveKey;
+		magicPanelOpen = next.includeMagicKey;
+		adaptivePanelOpen = next.includeAdaptiveKey;
 		magicDraft = next.magicDraft;
 		adaptiveDraft = next.adaptiveDraft;
 		keyConfig = next.keyConfig;
 		practiceLesson = next.practiceLesson;
 		disabledMappingIds = [];
+		saveError = null;
 	}
 
-	function commitSavedLayouts(layouts: SavedCreatorLayout[], id: string) {
+	function commitSavedLayouts(layouts: SavedCreatorLayout[], id: string): boolean {
+		if (!persistSavedLayouts(layouts)) {
+			saveError = 'Unable to save this layout in your browser. Your draft is still in the URL.';
+			flushCreatorUrl();
+			return false;
+		}
 		savedLayouts = layouts;
-		persistSavedLayouts(layouts);
 		activeSavedId = id;
+		saveError = null;
+		return true;
+	}
+
+	function savedLayoutsForWrite(): SavedCreatorLayout[] {
+		return mergeSavedLayouts(savedLayouts, loadSavedLayouts());
+	}
+
+	function handleSavedLayoutsStorage(event: StorageEvent) {
+		if (event.key !== SAVED_LAYOUTS_STORAGE_KEY && event.key !== null) return;
+		savedLayouts = loadSavedLayouts();
 	}
 
 	function flushCreatorUrl() {
@@ -293,7 +321,11 @@
 		magicDraft = seeded.magicDraft;
 		adaptiveDraft = seeded.adaptiveDraft;
 		if (seeded.hasMagicMappings) includeMagicKey = true;
-		if (seeded.hasAdaptiveMappings) includeAdaptiveKey = true;
+		if (seeded.hasMagicMappings) magicPanelOpen = true;
+		if (seeded.hasAdaptiveMappings) {
+			includeAdaptiveKey = true;
+			adaptivePanelOpen = true;
+		}
 		disabledMappingIds = [];
 	}
 
@@ -304,6 +336,8 @@
 		keyConfig = createKeyboardInputConfigFromLayout(nextLayout);
 		includeMagicKey = nextLayout.hasMagicKey;
 		includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
+		magicPanelOpen = nextLayout.hasMagicKey;
+		adaptivePanelOpen = nextLayout.hasAdaptiveSwap;
 		applyEmptyMappingDrafts();
 		await layoutsCatalog.ensureSupplementalLoaded();
 		if (seed !== baseLayoutSeed || keyConfig.baseLayoutName !== name) return;
@@ -315,6 +349,8 @@
 		keyConfig = clearKeyboardInputConfig(keyConfig);
 		includeMagicKey = false;
 		includeAdaptiveKey = false;
+		magicPanelOpen = false;
+		adaptivePanelOpen = false;
 		applyEmptyMappingDrafts();
 	}
 
@@ -324,7 +360,7 @@
 
 	function setKeyConfig(nextConfig: KeyboardInputConfig) {
 		const gainedTriggers = keyboardConfigGainedMagicTriggers(keyConfig, nextConfig);
-		const replaceUnusedPlaceholder = !includeMagicKey && !keyboardConfigHasMagicKey(keyConfig);
+		const replaceUnusedPlaceholder = !includeMagicKey && !keyboardConfigHasMagicTrigger(keyConfig);
 		keyConfig = nextConfig;
 		if (gainedTriggers.length === 0) return;
 
@@ -334,22 +370,30 @@
 		}
 		if (nextDraft !== magicDraft) magicDraft = nextDraft;
 		includeMagicKey = true;
+		magicPanelOpen = true;
 	}
 
 	function toggleMagicKey() {
-		if (magicKeyEnabled) {
-			includeMagicKey = false;
-			keyConfig = removeMagicKeysFromConfig(keyConfig);
+		if (magicPanelOpen) {
+			magicPanelOpen = false;
 			return;
 		}
+		const addingFeature = !includeMagicKey;
 		includeMagicKey = true;
+		magicPanelOpen = true;
+		if (addingFeature) keyConfig = addMagicKeyToConfig(keyConfig);
 		if (magicDraft.sections.length === 0) {
 			magicDraft = createEmptyCreatorMagicDraft();
 		}
 	}
 
 	function toggleAdaptiveKey() {
-		includeAdaptiveKey = !includeAdaptiveKey;
+		if (adaptivePanelOpen) {
+			adaptivePanelOpen = false;
+			return;
+		}
+		includeAdaptiveKey = true;
+		adaptivePanelOpen = true;
 		if (
 			includeAdaptiveKey &&
 			adaptiveDraft.rules.length === 0 &&
@@ -390,27 +434,30 @@
 	}
 
 	function saveCurrentLayout() {
+		saveError = null;
 		const snapshot = currentCreatorSnapshot();
 		const input = { name: savedCreatorLayoutName(snapshot), snapshot };
+		const layouts = savedLayoutsForWrite();
 		if (activeSavedId) {
-			const next = updateSavedLayout(savedLayouts, activeSavedId, input);
+			const next = updateSavedLayout(layouts, activeSavedId, input);
 			if (!next) return;
-			commitSavedLayouts(next, activeSavedId);
+			if (!commitSavedLayouts(next, activeSavedId)) return;
 		} else {
-			const result = addSavedLayout(savedLayouts, input);
-			commitSavedLayouts(result.layouts, result.id);
+			const result = addSavedLayout(layouts, input);
+			if (!commitSavedLayouts(result.layouts, result.id)) return;
 		}
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
 
 	function saveAsNewLayout() {
+		saveError = null;
 		const snapshot = currentCreatorSnapshot();
-		const result = addSavedLayout(savedLayouts, {
+		const result = addSavedLayout(savedLayoutsForWrite(), {
 			name: savedCreatorLayoutName(snapshot),
 			snapshot
 		});
-		commitSavedLayouts(result.layouts, result.id);
+		if (!commitSavedLayouts(result.layouts, result.id)) return;
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
@@ -432,7 +479,7 @@
 	<title>{layoutName} · Emulayout</title>
 </svelte:head>
 
-<svelte:window onpagehide={flushCreatorUrl} />
+<svelte:window onpagehide={flushCreatorUrl} onstorage={handleSavedLayoutsStorage} />
 
 <div class="layout-creator">
 	<div class="layout-creator-view-bar">
@@ -529,8 +576,12 @@
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--magic={magicIconActive}
 					class:layout-creator-special-key--magic-data={magicIconHasData}
-					aria-pressed={magicKeyEnabled}
-					aria-label={magicKeyEnabled ? 'Remove magic' : 'Add magic'}
+					aria-pressed={magicPanelOpen}
+					aria-label={magicPanelOpen
+						? 'Hide magic mappings'
+						: includeMagicKey
+							? 'Show magic mappings'
+							: 'Add magic'}
 					onclick={toggleMagicKey}
 				>
 					<span class="layout-creator-special-key__cap">
@@ -543,8 +594,12 @@
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--adaptive={adaptiveIconActive}
 					class:layout-creator-special-key--adaptive-data={adaptiveIconHasData}
-					aria-pressed={includeAdaptiveKey}
-					aria-label={includeAdaptiveKey ? 'Remove adaptive' : 'Add adaptive'}
+					aria-pressed={adaptivePanelOpen}
+					aria-label={adaptivePanelOpen
+						? 'Hide adaptive mappings'
+						: includeAdaptiveKey
+							? 'Show adaptive mappings'
+							: 'Add adaptive'}
 					onclick={toggleAdaptiveKey}
 				>
 					<span class="layout-creator-special-key__cap">
@@ -556,17 +611,19 @@
 		{/snippet}
 
 		{#snippet creatorMappings()}
-			{#if magicKeyEnabled}
+			{#if magicPanelOpen}
 				<CreatorMagicMappingsPanel
 					draft={magicDraft}
+					availableKeys={availableLayoutKeys}
 					{disabledMappingIds}
 					onDraftChange={setMagicDraft}
 					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 				/>
 			{/if}
-			{#if includeAdaptiveKey}
+			{#if adaptivePanelOpen}
 				<CreatorAdaptiveMappingsPanel
 					draft={adaptiveDraft}
+					availableKeys={availableLayoutKeys}
 					{disabledMappingIds}
 					onDraftChange={setAdaptiveDraft}
 					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
@@ -593,6 +650,9 @@
 		{/key}
 
 		<div class="layout-creator-actions">
+			{#if saveError}
+				<p class="layout-creator-save-error" role="alert">{saveError}</p>
+			{/if}
 			<div class="layout-creator-actions-inner">
 				<button
 					type="button"
@@ -714,6 +774,13 @@
 		flex-direction: column;
 		min-width: 0;
 		width: 100%;
+	}
+
+	.layout-creator-save-error {
+		margin: 0 0 0.5rem;
+		color: var(--keyboard-input-validation-error);
+		font-size: 0.875rem;
+		text-align: center;
 	}
 
 	.layout-creator-view-bar {

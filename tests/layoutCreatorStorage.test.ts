@@ -6,6 +6,7 @@ import {
 import {
 	addSavedLayout,
 	isSavedLayoutDirty,
+	mergeSavedLayouts,
 	parseSavedLayoutsDocument,
 	resolveCreatorSession,
 	SAVED_LAYOUTS_SCHEMA_VERSION,
@@ -72,6 +73,32 @@ describe('saved layout storage', () => {
 				layouts: [{ id: 'future', name: 'Future', createdAt: 1, query: '' }]
 			})
 		).toEqual([]);
+	});
+
+	test('deduplicates stored ids and merges newer tab snapshots without dropping layouts', () => {
+		const first = addSavedLayout(
+			[],
+			{ name: 'Alpha', snapshot: namedSnapshot('Alpha') },
+			{ createId: () => 'id-a', now: () => 1 }
+		).layouts[0];
+		const updated = { ...first, name: 'Alpha updated', snapshot: namedSnapshot('Alpha updated') };
+		const second = addSavedLayout(
+			[],
+			{ name: 'Beta', snapshot: namedSnapshot('Beta') },
+			{ createId: () => 'id-b', now: () => 2 }
+		).layouts[0];
+		if (!first || !second) throw new Error('expected saved layouts');
+
+		expect(mergeSavedLayouts([first], [updated, second])).toEqual([updated, second]);
+		expect(
+			parseSavedLayoutsDocument({
+				version: SAVED_LAYOUTS_SCHEMA_VERSION,
+				layouts: [
+					{ id: 'id-a', name: 'Alpha', createdAt: 1, query: 'name=Alpha' },
+					{ id: 'id-a', name: 'Duplicate', createdAt: 2, query: 'name=Duplicate' }
+				]
+			})
+		).toHaveLength(1);
 	});
 
 	test('adds, updates, and reports dirty state by id rather than name', () => {

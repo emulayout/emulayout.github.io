@@ -19,7 +19,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(createLink).toHaveAttribute('aria-current', 'page');
 
 	const creations = page.getByRole('tablist', { name: 'Layout creations' });
-	const newLayoutTab = creations.getByRole('tab', { name: 'New layout' });
+	const newLayoutTab = creations.getByRole('tab', { name: 'New layout', exact: true });
 	await expect(newLayoutTab).toHaveAttribute('aria-selected', 'true');
 	await expect(newLayoutTab).toHaveAttribute('aria-controls', 'layout-creator-panel');
 	await expect(page.getByRole('button', { name: '+ New layout' })).toBeVisible();
@@ -44,15 +44,16 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(magicKey).toHaveAttribute('aria-pressed', 'false');
 	await expect(adaptiveKey).toHaveAttribute('aria-pressed', 'false');
 	await magicKey.click();
-	await expect(panel.getByRole('button', { name: 'Remove magic key' })).toHaveAttribute(
+	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
+	await expect(panel.locator('[data-keyboard-input-slot="1,11"]')).toHaveValue('*');
 	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
 	await expect(panel.getByRole('combobox', { name: 'Fallback' })).toHaveValue('no-op');
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toHaveCount(0);
 	await adaptiveKey.click();
-	await expect(panel.getByRole('button', { name: 'Remove adaptive key' })).toHaveAttribute(
+	await expect(panel.getByRole('button', { name: 'Hide adaptive mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -63,8 +64,8 @@ test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ p
 	await page.goto('/create');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 
-	await panel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('@');
-	await expect(panel.getByRole('button', { name: 'Remove magic' })).toHaveAttribute(
+	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('@');
+	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -76,12 +77,12 @@ test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ p
 	await panel.getByRole('button', { name: 'Add mapping' }).click();
 	await expect(panel.getByRole('textbox', { name: 'Preceding' })).toHaveCount(1);
 
-	await panel.getByRole('textbox', { name: 'Row 1, key 2' }).fill('*');
+	await panel.getByRole('textbox', { name: 'Row 1, key 2', exact: true }).fill('*');
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveCount(2);
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' }).nth(1)).toHaveValue('*');
 	await expect(panel.getByRole('combobox', { name: 'Fallback' }).nth(1)).toHaveValue('no-op');
 
-	await panel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('');
+	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('');
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveCount(2);
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' }).first()).toHaveValue('@');
 });
@@ -93,7 +94,7 @@ test('selecting a base layout seeds its magic and adaptive mappings', async ({ p
 
 	await baseLayout.fill('vylet');
 	await panel.getByRole('option', { name: 'vylet', exact: true }).click();
-	await expect(panel.getByRole('button', { name: 'Remove magic key' })).toHaveAttribute(
+	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -109,7 +110,7 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 
 	await nameField.fill('Custom draft');
 	await expect(page).toHaveTitle('Custom draft · Emulayout');
-	await expect(page.getByRole('tab', { name: 'Custom draft' })).toHaveAttribute(
+	await expect(page.getByRole('tab', { name: 'Custom draft', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
@@ -130,7 +131,7 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 	await expect(namedPanel.getByRole('textbox', { name: 'Layout name' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('group', { name: 'Layout keys' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveCount(0);
-	await expect(namedPanel.getByRole('button', { name: 'Remove magic key' })).toHaveCount(0);
+	await expect(namedPanel.getByRole('button', { name: 'Hide magic mappings' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('textbox', { name: 'Preceding' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('combobox', { name: 'Fallback' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
@@ -143,7 +144,8 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 	await expect(namedPanel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 	await expect(namedPanel.getByRole('textbox', { name: 'Preceding' }).first()).toHaveValue('c');
 
-	await namedPanel.getByRole('button', { name: 'Remove magic key' }).click();
+	await namedPanel.getByRole('button', { name: 'Hide magic mappings' }).click();
+	await expect(namedPanel.getByRole('button', { name: 'Show magic mappings' })).toBeVisible();
 	await expect(namedPanel.getByRole('region', { name: 'Magic key mappings' })).toHaveCount(0);
 	await namedPanel.getByRole('button', { name: 'Preview' }).click();
 	await expect(namedPanel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
@@ -157,16 +159,20 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Shared draft');
 	await expect(page).toHaveTitle('Shared draft · Emulayout');
 	const namedPanel = page.getByRole('tabpanel', { name: 'Shared draft' });
-	await expect(page.getByRole('tab', { name: 'Shared draft' })).toHaveAttribute(
+	await expect(page.getByRole('tab', { name: 'Shared draft', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
-	await namedPanel.getByRole('textbox', { name: 'Row 1, key 1' }).fill('w');
+	await namedPanel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('w');
 	await namedPanel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
 	await namedPanel.getByRole('button', { name: 'Add magic' }).click();
 	await namedPanel.getByRole('textbox', { name: 'Preceding' }).first().fill('c');
 	await namedPanel.getByRole('textbox', { name: 'Emit' }).first().fill('k');
 	await namedPanel.getByRole('button', { name: 'Add adaptive' }).click();
+	await namedPanel.getByRole('button', { name: 'Hide magic mappings' }).click();
+	await namedPanel.getByRole('button', { name: 'Hide adaptive mappings' }).click();
+	await expect(namedPanel.getByRole('button', { name: 'Show magic mappings' })).toBeVisible();
+	await expect(namedPanel.getByRole('button', { name: 'Show adaptive mappings' })).toBeVisible();
 
 	await expect(page).toHaveURL(/\/create\?/);
 	await expect(page).toHaveURL(/name=Shared(\+|%20)draft/);
@@ -179,15 +185,17 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	await expect(page).toHaveTitle('Shared draft · Emulayout');
 	const restored = page.getByRole('tabpanel', { name: 'Shared draft' });
 	await expect(restored.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Shared draft');
-	await expect(restored.getByRole('textbox', { name: 'Row 1, key 1' })).toHaveValue('w');
+	await expect(restored.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue(
+		'w'
+	);
 	await expect(restored.getByRole('combobox', { name: 'Keyboard type' })).toHaveValue('ortho');
-	await expect(restored.getByRole('button', { name: 'Remove magic key' })).toHaveAttribute(
+	await expect(restored.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
 	await expect(restored.getByRole('textbox', { name: 'Preceding' }).first()).toHaveValue('c');
 	await expect(restored.getByRole('textbox', { name: 'Emit' }).first()).toHaveValue('k');
-	await expect(restored.getByRole('button', { name: 'Remove adaptive key' })).toHaveAttribute(
+	await expect(restored.getByRole('button', { name: 'Hide adaptive mappings' })).toHaveAttribute(
 		'aria-pressed',
 		'true'
 	);
@@ -232,25 +240,25 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
 
 	await expect(creations.getByRole('tab')).toHaveCount(2);
-	await expect(creations.getByRole('tab', { name: 'Alpha' })).toHaveAttribute(
+	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'false'
 	);
-	await expect(creations.getByRole('tab', { name: 'Alpha edited' })).toHaveAttribute(
+	await expect(creations.getByRole('tab', { name: 'Alpha edited', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
 	await expect(editedPanel.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
 
-	await creations.getByRole('tab', { name: 'Alpha' }).click();
+	await creations.getByRole('tab', { name: 'Alpha', exact: true }).click();
 	const restoredAlpha = page.getByRole('tabpanel', { name: 'Alpha' });
 	await expect(restoredAlpha.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha');
-	await expect(creations.getByRole('tab', { name: 'Alpha' })).toHaveAttribute(
+	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
 
-	await creations.getByRole('tab', { name: 'Alpha edited' }).click();
+	await creations.getByRole('tab', { name: 'Alpha edited', exact: true }).click();
 	await expect(
 		page
 			.getByRole('tabpanel', { name: 'Alpha edited' })
@@ -258,13 +266,52 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	).toHaveValue('Alpha edited');
 
 	await page.getByRole('button', { name: '+ New layout' }).click();
-	await expect(creations.getByRole('tab', { name: 'New layout' })).toHaveAttribute(
+	await expect(creations.getByRole('tab', { name: 'New layout', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
 	);
-	await expect(creations.getByRole('tab', { name: 'Alpha' })).toBeVisible();
-	await expect(creations.getByRole('tab', { name: 'Alpha edited' })).toBeVisible();
+	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
+	await expect(creations.getByRole('tab', { name: 'Alpha edited', exact: true })).toBeVisible();
 	await expect(
 		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('button', { name: 'Save layout' })
 	).toBeVisible();
+});
+
+test('keeps a recoverable URL when browser storage rejects a save', async ({ page }) => {
+	await page.addInitScript(() => {
+		const setItem = Storage.prototype.setItem;
+		Storage.prototype.setItem = function (key: string, value: string) {
+			if (key === 'emulayout:saved-layouts') {
+				throw new DOMException('Storage unavailable', 'QuotaExceededError');
+			}
+			return setItem.call(this, key, value);
+		};
+	});
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Unsaved recovery');
+	const renamedPanel = page.getByRole('tabpanel', { name: 'Unsaved recovery' });
+	await renamedPanel.getByRole('button', { name: 'Save layout' }).click();
+
+	await expect(renamedPanel.getByRole('alert')).toContainText('Your draft is still in the URL');
+	await expect(page).toHaveURL(/name=Unsaved(\+|%20)recovery/);
+	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
+	await page.reload();
+	await expect(page).toHaveTitle('Unsaved recovery · Emulayout');
+});
+
+test('merges saved layouts created in two open tabs', async ({ page, context }) => {
+	const secondPage = await context.newPage();
+	await Promise.all([page.goto('/create'), secondPage.goto('/create')]);
+
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await page.getByRole('button', { name: 'Save layout' }).click();
+	await expect(secondPage.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
+
+	await secondPage.getByRole('textbox', { name: 'Layout name' }).fill('Beta');
+	await secondPage.getByRole('button', { name: 'Save layout' }).click();
+	await expect(secondPage.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
+	await expect(secondPage.getByRole('tab', { name: 'Beta', exact: true })).toBeVisible();
+	await expect(page.getByRole('tab', { name: 'Beta', exact: true })).toBeVisible();
 });

@@ -65,6 +65,9 @@ drafts in the browser.
   when that feature is on and at least one complete mapping is enabled. Closing the editor while
   complete mappings remain tints the icon and label in the Magic or Adaptive color so the saved data
   is still visible.
+  Panel visibility is transient UI state, separate from the persisted feature flags and mapping
+  drafts. Reopening Magic or Adaptive restores the same data; hiding a panel never removes its URL
+  or saved-layout payload.
 - When a special key is on, its mapping editor appears in a separate column to the right of those
   buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
   Each panel can add, edit, and delete mappings,
@@ -91,7 +94,10 @@ drafts in the browser.
   Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
   **Save as new layout** when a saved layout has changed; **Duplicate layout** only when a saved
   layout matches its stored snapshot. Save, update, save-as-new, and duplicate use the current
-  layout name. They do not send analytics events.
+  layout name. A save is only acknowledged after local storage confirms the write. If storage is
+  unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
+  switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
+  stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
 
 ## Deferred work
 

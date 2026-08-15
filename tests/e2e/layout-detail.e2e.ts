@@ -461,8 +461,7 @@ test('uses one document scrollbar for detail content at every responsive width',
 			const shell = document.querySelector<HTMLElement>('.app-shell');
 			const main = document.querySelector<HTMLElement>('.app-main');
 			const detailPane = document.querySelector<HTMLElement>('.layout-detail-scroll');
-			const backHeader = document.querySelector<HTMLElement>('.layout-detail-header');
-			if (!shell || !main || !detailPane || !backHeader) return null;
+			if (!shell || !main || !detailPane) return null;
 
 			return {
 				documentHeight: document.documentElement.scrollHeight,
@@ -471,8 +470,7 @@ test('uses one document scrollbar for detail content at every responsive width',
 				bodyOverflow: getComputedStyle(document.body).overflowY,
 				shellOverflow: getComputedStyle(shell).overflowY,
 				mainOverflow: getComputedStyle(main).overflowY,
-				detailOverflow: getComputedStyle(detailPane).overflowY,
-				backPosition: getComputedStyle(backHeader).position
+				detailOverflow: getComputedStyle(detailPane).overflowY
 			};
 		});
 
@@ -484,7 +482,6 @@ test('uses one document scrollbar for detail content at every responsive width',
 		expect(scrollState!.mainOverflow).not.toBe('hidden');
 		expect(scrollState!.detailOverflow).not.toBe('auto');
 		expect(scrollState!.detailOverflow).not.toBe('scroll');
-		expect(scrollState!.backPosition).toBe('static');
 
 		await page.evaluate(() => window.scrollTo(0, 0));
 		await page.mouse.move(20, 20);

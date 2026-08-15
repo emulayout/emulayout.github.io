@@ -5,11 +5,10 @@ import {
 } from '../src/lib/keyboardInputConfig';
 import {
 	LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+	addMagicKeyToConfig,
 	createDefaultCreatorLayout,
 	createLayoutFromKeyConfig,
-	keyboardConfigGainedMagicTriggers,
-	keyboardConfigHasMagicKey,
-	removeMagicKeysFromConfig
+	keyboardConfigGainedMagicTriggers
 } from '../src/lib/layoutCreator';
 import { computeDisplayRows, displayRowsToString } from '../src/lib/layoutDisplay';
 import { createLayoutTestKeyMaps } from '../src/lib/layoutTestEmulator';
@@ -77,8 +76,9 @@ describe('createLayoutFromKeyConfig', () => {
 		expect(maps.keyMap.KeyE).toBe('e');
 	});
 
-	test('adds a magic key without duplicating an existing *', () => {
-		const layout = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
+	test('adds an editable magic key without duplicating an existing trigger', () => {
+		const withAddedStar = addMagicKeyToConfig(createDefaultKeyboardInputConfig());
+		const layout = createLayoutFromKeyConfig(withAddedStar, {
 			magicKey: true
 		});
 		const withExistingStar = updateKeyboardInputKey(
@@ -86,10 +86,13 @@ describe('createLayoutFromKeyConfig', () => {
 			'1,10',
 			'*'
 		);
-		const reused = createLayoutFromKeyConfig(withExistingStar, { magicKey: true });
+		const reusedConfig = addMagicKeyToConfig(withExistingStar);
+		const reused = createLayoutFromKeyConfig(reusedConfig, { magicKey: true });
 
 		expect(layout.hasMagicKey).toBe(true);
+		expect(withAddedStar.keys.find((key) => key.slot === '1,11')?.value).toBe('*');
 		expect(layout.positionBySlot.get('1,11')).toBe('*');
+		expect(reusedConfig).toBe(withExistingStar);
 		expect(reused.hasMagicKey).toBe(true);
 		expect(reused.positionBySlot.get('1,10')).toBe('*');
 		expect(reused.positionBySlot.has('1,11')).toBe(false);
@@ -97,8 +100,10 @@ describe('createLayoutFromKeyConfig', () => {
 
 	test('does not inject * when the board already has @', () => {
 		const withAt = updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', '@');
-		const layout = createLayoutFromKeyConfig(withAt, { magicKey: true });
+		const withMagic = addMagicKeyToConfig(withAt);
+		const layout = createLayoutFromKeyConfig(withMagic, { magicKey: true });
 
+		expect(withMagic).toBe(withAt);
 		expect(layout.hasMagicKey).toBe(true);
 		expect(layout.hasRepeatKey).toBe(true);
 		expect(layout.keys['@']).toEqual({ row: 0, col: 0 });
@@ -142,17 +147,5 @@ describe('keyboardConfigGainedMagicTriggers', () => {
 		expect(keyboardConfigGainedMagicTriggers(withStar, clearedAt)).toEqual([]);
 		expect(keyboardConfigGainedMagicTriggers(withAt, otherKey)).toEqual([]);
 		expect(keyboardConfigGainedMagicTriggers(withAt, withAt)).toEqual([]);
-	});
-});
-
-describe('removeMagicKeysFromConfig', () => {
-	test('clears * from editor slots', () => {
-		const withStar = updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', '*');
-
-		expect(keyboardConfigHasMagicKey(withStar)).toBe(true);
-		expect(keyboardConfigHasMagicKey(removeMagicKeysFromConfig(withStar))).toBe(false);
-		expect(removeMagicKeysFromConfig(withStar).keys.find((key) => key.slot === '0,0')?.value).toBe(
-			''
-		);
 	});
 });

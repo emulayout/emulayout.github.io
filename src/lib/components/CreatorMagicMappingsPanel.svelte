@@ -4,6 +4,7 @@
 		createCreatorMagicRule,
 		createCreatorMagicSection,
 		creatorMagicFallbackSource,
+		creatorMagicTriggerError,
 		type CreatorMagicDraft,
 		type CreatorMagicFallbackKind,
 		type CreatorMagicSection
@@ -17,6 +18,7 @@
 
 	interface Props {
 		draft: CreatorMagicDraft;
+		availableKeys?: readonly string[];
 		disabledMappingIds?: readonly string[];
 		onDraftChange: (draft: CreatorMagicDraft) => void;
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
@@ -24,6 +26,7 @@
 
 	const {
 		draft,
+		availableKeys,
 		disabledMappingIds = [],
 		onDraftChange,
 		onDisabledMappingIdsChange
@@ -33,13 +36,20 @@
 	function compiledRuleId(trigger: string, after: string): string | null {
 		const nextTrigger = trigger.trim();
 		const nextAfter = after.trim().toLowerCase();
-		if (!nextTrigger || !nextAfter) return null;
+		if (!nextTrigger || !nextAfter || creatorMagicTriggerError(nextTrigger, availableKeys))
+			return null;
 		return magicRuleMappingId(nextTrigger, nextAfter);
 	}
 
 	function compiledFallbackId(section: CreatorMagicSection): string | null {
 		const trigger = section.trigger.trim();
-		if (!trigger || !creatorMagicFallbackSource(section)) return null;
+		if (
+			!trigger ||
+			creatorMagicTriggerError(trigger, availableKeys) ||
+			!creatorMagicFallbackSource(section)
+		) {
+			return null;
+		}
 		return magicFallbackMappingId(trigger);
 	}
 
@@ -153,6 +163,8 @@
 	{#each draft.sections as section (section.id)}
 		{@const sectionIds = sectionMappingIds(section)}
 		{@const fallbackId = compiledFallbackId(section)}
+		{@const triggerError = creatorMagicTriggerError(section.trigger, availableKeys)}
+		{@const triggerErrorId = `creator-magic-trigger-error-${section.id}`}
 		<div class="creator-mappings-section">
 			<div class="creator-mappings-section-header">
 				<div class="creator-mappings-group-heading">
@@ -168,6 +180,8 @@
 						class="creator-mappings-field creator-mappings-field--trigger"
 						value={section.trigger}
 						aria-label="Magic trigger"
+						aria-invalid={triggerError ? 'true' : undefined}
+						aria-describedby={triggerError ? triggerErrorId : undefined}
 						placeholder="*"
 						oninput={(event) => updateSection(section.id, { trigger: event.currentTarget.value })}
 					/>
@@ -188,6 +202,9 @@
 					<span aria-hidden="true">×</span>
 				</button>
 			</div>
+			{#if triggerError}
+				<p id={triggerErrorId} class="creator-mappings-error">{triggerError}</p>
+			{/if}
 
 			<table class="creator-mappings-list">
 				<tbody>
@@ -310,6 +327,12 @@
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
 		background-color: var(--bg-primary);
+	}
+
+	.creator-mappings-error {
+		margin: 0.35rem 0 0;
+		color: var(--keyboard-input-validation-error);
+		font-size: 0.75rem;
 	}
 
 	.creator-mappings-heading,
