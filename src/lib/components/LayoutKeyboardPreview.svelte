@@ -16,6 +16,11 @@
 		LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
 	import { isLayoutThumbKey, unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
+	import {
+		EMPTY_KEYBOARD_SWAP_PATH_LAYER,
+		measureKeyboardSwapPaths,
+		type KeyboardSwapPathLayer
+	} from '$lib/layoutKeyboardSwapPathLayer';
 	import { isTypingPracticeHomeKeySlot } from '$lib/typingPracticeKeyboard';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
@@ -51,19 +56,6 @@
 		ansiThumbKeys: PreviewThumbKey[];
 		thumbs: boolean;
 	};
-	type RenderedSwapPath = LayoutKeyboardSwapPath & {
-		id: string;
-		x1: number;
-		y1: number;
-		x2: number;
-		y2: number;
-	};
-	type SwapPathLayer = {
-		width: number;
-		height: number;
-		paths: RenderedSwapPath[];
-	};
-
 	const {
 		layout,
 		rows,
@@ -75,7 +67,7 @@
 		horizontalAlignment = 'center'
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
-	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
+	let swapPathLayer = $state<KeyboardSwapPathLayer>(EMPTY_KEYBOARD_SWAP_PATH_LAYER);
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
@@ -161,75 +153,18 @@
 		return undefined;
 	}
 
-	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
-		const horizontal = unitX === 0 ? Number.POSITIVE_INFINITY : rect.width / 2 / Math.abs(unitX);
-		const vertical = unitY === 0 ? Number.POSITIVE_INFINITY : rect.height / 2 / Math.abs(unitY);
-		return Math.min(horizontal, vertical);
-	}
-
-	function measureSwapPaths(
-		container: HTMLDivElement,
-		paths: readonly LayoutKeyboardSwapPath[]
-	): SwapPathLayer {
-		const containerRect = container.getBoundingClientRect();
-		const keyByChar = new Map(
-			Array.from(container.querySelectorAll<HTMLElement>('[data-key-char]')).map((key) => [
-				key.dataset.keyChar ?? '',
-				key
-			])
-		);
-		const renderedPaths = paths.flatMap((path): RenderedSwapPath[] => {
-			const fromKey = keyByChar.get(path.from);
-			const toKey = keyByChar.get(path.to);
-			if (!fromKey || !toKey) return [];
-
-			const fromRect = fromKey.getBoundingClientRect();
-			const toRect = toKey.getBoundingClientRect();
-			const fromCenterX = fromRect.left + fromRect.width / 2;
-			const fromCenterY = fromRect.top + fromRect.height / 2;
-			const toCenterX = toRect.left + toRect.width / 2;
-			const toCenterY = toRect.top + toRect.height / 2;
-			const deltaX = toCenterX - fromCenterX;
-			const deltaY = toCenterY - fromCenterY;
-			const distance = Math.hypot(deltaX, deltaY);
-			if (distance === 0) return [];
-
-			const unitX = deltaX / distance;
-			const unitY = deltaY / distance;
-			const fromEdge = edgeDistance(fromRect, unitX, unitY);
-			const toEdge = edgeDistance(toRect, unitX, unitY);
-
-			return [
-				{
-					...path,
-					id: `${path.from}:${path.to}`,
-					x1: fromCenterX - containerRect.left + unitX * fromEdge,
-					y1: fromCenterY - containerRect.top + unitY * fromEdge,
-					x2: toCenterX - containerRect.left - unitX * toEdge,
-					y2: toCenterY - containerRect.top - unitY * toEdge
-				}
-			];
-		});
-
-		return {
-			width: containerRect.width,
-			height: containerRect.height,
-			paths: renderedPaths
-		};
-	}
-
 	$effect(() => {
 		const container = keysElement;
 		const paths = swapPaths;
 		void rows;
 		if (!container || paths.length === 0) {
-			swapPathLayer = { width: 0, height: 0, paths: [] };
+			swapPathLayer = EMPTY_KEYBOARD_SWAP_PATH_LAYER;
 			return;
 		}
 
 		let disposed = false;
 		const update = () => {
-			if (!disposed) swapPathLayer = measureSwapPaths(container, paths);
+			if (!disposed) swapPathLayer = measureKeyboardSwapPaths(container, paths);
 		};
 		void tick().then(update);
 		const resizeObserver = new ResizeObserver(update);

@@ -10,7 +10,11 @@
 	} from '$lib/layoutDisplay';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
-	import type { LayoutKeyboardFeedback, LayoutKeyboardSwapPath } from '$lib/layoutKeyboardFeedback';
+	import type {
+		LayoutKeyboardFeedback,
+		LayoutKeyboardPresentation,
+		LayoutKeyboardSwapPath
+	} from '$lib/layoutKeyboardFeedback';
 
 	const FULL_KEY_GAP_REM = 0.45;
 	const COMPACT_KEY_GAP_REM = 0.25;
@@ -39,7 +43,7 @@
 		/** Prompt, input, and other content sized to the workspace width. */
 		above?: Snippet;
 		/** Replaces the presentation keyboard. Omit to keep the preview. */
-		keyboard?: Snippet;
+		keyboard?: Snippet<[LayoutKeyboardPresentation]>;
 		/** Sits above the keyboard, still in the preview column. */
 		keyboardLead?: Snippet;
 		/** When the editor is showing, size keys to its full slot grid. */
@@ -133,6 +137,13 @@
 
 	const mappingsVisible = $derived(showMappings && (Boolean(mappings) || Boolean(inputProfile)));
 	const asideVisible = $derived(Boolean(aside));
+	const keyboardPresentation = $derived({
+		feedback: feedback ?? new Map(),
+		swapPaths,
+		highlightedKeys,
+		unreachableKeys,
+		highlightHomeKeys
+	} satisfies LayoutKeyboardPresentation);
 </script>
 
 <div class="layout-keyboard-workspace-region">
@@ -163,7 +174,7 @@
 						{/if}
 						<div class="layout-keyboard-workspace-keys">
 							{#if keyboard}
-								{@render keyboard()}
+								{@render keyboard(keyboardPresentation)}
 							{:else}
 								<LayoutKeyboardPreview
 									{layout}

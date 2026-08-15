@@ -76,6 +76,7 @@
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
+	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import type { TabOption } from '$lib/tabs';
@@ -672,12 +673,17 @@
 			</div>
 		{/snippet}
 
-		{#snippet creatorKeyboard()}
+		{#snippet creatorKeyboard(presentation: LayoutKeyboardPresentation)}
 			<KeyboardInputEditor
 				config={keyConfig}
 				showPlaceholders={false}
 				ariaLabel="Layout keys"
 				onConfigChange={setKeyConfig}
+				feedback={presentation.feedback}
+				swapPaths={presentation.swapPaths}
+				highlightedKeys={presentation.highlightedKeys}
+				unreachableKeys={presentation.unreachableKeys}
+				highlightHomeKeys={presentation.highlightHomeKeys}
 			/>
 		{/snippet}
 

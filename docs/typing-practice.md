@@ -43,8 +43,10 @@ and calculation logic outside the renderer.
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
 - The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
   switches below the keyboard can highlight the next valid key, color the eight resting home keys,
-  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
-  guidance respects shifted and contextual input output and is withheld while the current input
+  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. The
+  layout creator Edit keyboard receives the same option presentation as the preview keyboard.
+  Next-key guidance respects shifted and contextual input output and is withheld while the current
+  input
   contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
   and active contextual-key styles. Home-key coloring is enabled by default.
 - Layouts with curated Magic mappings add a default-on Underline magic group option. It underlines
@@ -204,6 +206,8 @@ The successful-space path is intentionally ordered:
   `src/lib/layoutKeyReachability.ts`
 - Shared responsive keyboard, options, and mappings workspace:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
+- Shared swap-path measurement for preview and edit keyboards:
+  `src/lib/layoutKeyboardSwapPathLayer.ts`
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`

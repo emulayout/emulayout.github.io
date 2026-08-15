@@ -151,7 +151,9 @@ route- or feature-specific preference imports.
 - Runtime target-map compiler: `src/lib/layoutTestEmulator.ts`
 - Reusable modal trigger: `src/lib/components/KeyboardInputConfigControl.svelte`
 - Catalog-backed modal: `src/lib/components/KeyboardInputConfigModal.svelte`
-- Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`
+- Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`.
+  Optional presentation props (`feedback`, `swapPaths`, `highlightedKeys`, `unreachableKeys`,
+  `highlightHomeKeys`) apply the same workspace option visuals as the practice preview.
 - Consumers: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutFeel.svelte`, `src/lib/components/LayoutExpandedView.svelte`,
   `src/lib/components/LayoutCard.svelte`

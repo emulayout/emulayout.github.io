@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
+	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import { SPLIT_COL } from '$lib/cmini/keyboard';
 	import {
 		isKeyboardInputHomeKeySlot,
@@ -17,6 +19,19 @@
 		ansiThumbOffsetCss,
 		thumbTargetColumns
 	} from '$lib/layoutDisplay';
+	import type {
+		LayoutKeyboardFeedback,
+		LayoutKeyboardKeyFeedback,
+		LayoutKeyboardSwapPath
+	} from '$lib/layoutKeyboardFeedback';
+	import { unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
+	import {
+		EMPTY_KEYBOARD_SWAP_PATH_LAYER,
+		measureKeyboardSwapPaths,
+		type KeyboardSwapPathLayer
+	} from '$lib/layoutKeyboardSwapPathLayer';
+
+	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
 
 	interface Props {
 		config: KeyboardInputConfig;
@@ -25,6 +40,11 @@
 		/** When false, empty keys stay blank instead of showing QWERTY fallbacks. */
 		showPlaceholders?: boolean;
 		ariaLabel?: string;
+		feedback?: LayoutKeyboardFeedback;
+		swapPaths?: readonly LayoutKeyboardSwapPath[];
+		highlightedKeys?: readonly string[];
+		unreachableKeys?: readonly string[];
+		highlightHomeKeys?: boolean;
 	}
 
 	let {
@@ -32,11 +52,18 @@
 		invalidSlots = [],
 		onConfigChange,
 		showPlaceholders = true,
-		ariaLabel = 'Input keyboard mapping'
+		ariaLabel = 'Input keyboard mapping',
+		feedback = EMPTY_FEEDBACK,
+		swapPaths = [],
+		highlightedKeys = [],
+		unreachableKeys = [],
+		highlightHomeKeys = false
 	}: Props = $props();
 	const rows = $derived(keyboardInputRows(config));
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
 	const orthoGeometry = $derived(config.keyboardType === 'ortho');
+	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
+	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const rightSlotCount = $derived.by(() => {
 		let max = 9;
 		for (const key of config.keys) {
@@ -45,6 +72,9 @@
 		}
 		return Math.max(5, max - 4);
 	});
+	let keysElement: HTMLDivElement | null = $state(null);
+	let focusedSlot = $state<string | null>(null);
+	let swapPathLayer = $state<KeyboardSwapPathLayer>(EMPTY_KEYBOARD_SWAP_PATH_LAYER);
 
 	function registerInput(node: HTMLInputElement, slot: string) {
 		inputBySlot.set(slot, node);
@@ -165,9 +195,69 @@
 		return Boolean(position && isKeyboardInputHomeKeySlot(position.row, position.column));
 	}
 
+	function isHighlightedKey(value: string): boolean {
+		return Boolean(value) && highlightedKeySet.has(value.toLowerCase());
+	}
+
+	function isUnreachableKey(value: string): boolean {
+		return Boolean(value) && unreachableKeySet.has(value.toLowerCase());
+	}
+
+	function keyFeedback(key: KeyboardInputKey): LayoutKeyboardKeyFeedback | undefined {
+		if (!key.value) return undefined;
+		return feedback.get(key.value);
+	}
+
+	function keyTitle(
+		key: KeyboardInputKey,
+		rowNumber: number,
+		state: LayoutKeyboardKeyFeedback | undefined
+	): string | undefined {
+		if (isUnreachableKey(key.value)) {
+			return unreachableLayoutKeyTitle({ isThumb: rowNumber >= 3 });
+		}
+		if (state?.value) return `${key.value} emits ${state.value}`;
+		return undefined;
+	}
+
 	function keyLabel(row: number, index: number): string {
 		return row >= 3 ? `Thumb key ${index + 1}` : `Row ${row + 1}, key ${index + 1}`;
 	}
+
+	function keyOverlay(
+		key: KeyboardInputKey,
+		state: LayoutKeyboardKeyFeedback | undefined
+	): 'icon' | 'value' | null {
+		if (focusedSlot === key.slot || !state) return null;
+		if (state.kind === 'magic' && !state.value) return 'icon';
+		if (state.value) return 'value';
+		return null;
+	}
+
+	$effect(() => {
+		const container = keysElement;
+		const paths = swapPaths;
+		void rows;
+		if (!container || paths.length === 0) {
+			swapPathLayer = EMPTY_KEYBOARD_SWAP_PATH_LAYER;
+			return;
+		}
+
+		let disposed = false;
+		const update = () => {
+			if (!disposed) swapPathLayer = measureKeyboardSwapPaths(container, paths);
+		};
+		void tick().then(update);
+		const resizeObserver = new ResizeObserver(update);
+		resizeObserver.observe(container);
+		window.addEventListener('resize', update);
+
+		return () => {
+			disposed = true;
+			resizeObserver.disconnect();
+			window.removeEventListener('resize', update);
+		};
+	});
 </script>
 
 {#snippet keyField(
@@ -176,34 +266,95 @@
 	keyIndex: number,
 	attrs: { style?: string; ansiThumb?: boolean; column?: number } = {}
 )}
-	<input
-		use:registerInput={key.slot}
-		type="text"
-		value={key.value}
-		placeholder={showPlaceholders && !key.inert ? keyboardInputPlaceholderValue(key.slot) : ''}
-		aria-label={keyLabel(rowNumber, keyIndex)}
-		aria-invalid={invalidSlots.includes(key.slot) || undefined}
-		data-keyboard-input-slot={key.slot}
-		data-keyboard-input-inert={key.inert ? 'true' : undefined}
-		size="1"
-		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
-		class:keyboard-input-editor__key--home={isHomeKey(key)}
-		class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
+	{@const assigned = Boolean(key.value)}
+	{@const state = keyFeedback(key)}
+	{@const home = isHomeKey(key)}
+	{@const next = assigned && isHighlightedKey(key.value)}
+	{@const unreachable = assigned && isUnreachableKey(key.value)}
+	{@const overlay = keyOverlay(key, state)}
+	<span
+		class="keyboard-input-editor__key"
 		class:keyboard-input-editor__key--ansi-thumb={Boolean(attrs.ansiThumb)}
+		class:keyboard-input-editor__key--home={home}
+		class:keyboard-input-editor__key--home-colored={highlightHomeKeys && home}
+		class:keyboard-input-editor__key--next={next}
+		class:keyboard-input-editor__key--magic={state?.kind === 'magic'}
+		class:keyboard-input-editor__key--active={Boolean(state?.active)}
+		class:keyboard-input-editor__key--unreachable={unreachable}
+		class:keyboard-input-editor__key--overlay={Boolean(overlay)}
+		data-key-char={assigned ? key.value : undefined}
+		data-key-feedback={state?.kind}
+		data-key-feedback-active={state?.active ? 'true' : undefined}
+		data-key-home={highlightHomeKeys && home ? 'true' : undefined}
+		data-key-next={next ? 'true' : undefined}
+		data-key-unreachable={unreachable ? 'true' : undefined}
+		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
 		style={attrs.style}
-		autocomplete="off"
-		autocapitalize="off"
-		autocorrect="off"
-		spellcheck="false"
-		onkeydown={(event) => handleKeyDown(event, key)}
-		oninput={(event) => handleInput(event, key)}
-		onfocus={(event) => event.currentTarget.select()}
-		onclick={(event) => event.currentTarget.select()}
-	/>
+	>
+		<input
+			use:registerInput={key.slot}
+			type="text"
+			value={key.value}
+			placeholder={showPlaceholders && !key.inert ? keyboardInputPlaceholderValue(key.slot) : ''}
+			aria-label={keyLabel(rowNumber, keyIndex)}
+			aria-invalid={invalidSlots.includes(key.slot) || undefined}
+			title={assigned ? keyTitle(key, rowNumber, state) : undefined}
+			data-keyboard-input-slot={key.slot}
+			data-keyboard-input-inert={key.inert ? 'true' : undefined}
+			size="1"
+			class:keyboard-input-editor__field--invalid={invalidSlots.includes(key.slot)}
+			autocomplete="off"
+			autocapitalize="off"
+			autocorrect="off"
+			spellcheck="false"
+			onkeydown={(event) => handleKeyDown(event, key)}
+			oninput={(event) => handleInput(event, key)}
+			onfocus={(event) => {
+				focusedSlot = key.slot;
+				event.currentTarget.select();
+			}}
+			onblur={() => {
+				if (focusedSlot === key.slot) focusedSlot = null;
+			}}
+			onclick={(event) => event.currentTarget.select()}
+		/>
+		{#if overlay === 'icon'}
+			<span class="keyboard-input-editor__key-overlay" aria-hidden="true">
+				<span class="keyboard-input-editor__magic-icon">
+					<LayoutInputFeatureIcon feature="magic" />
+				</span>
+			</span>
+		{:else if overlay === 'value' && state?.value}
+			<span class="keyboard-input-editor__key-overlay" aria-hidden="true">{state.value}</span>
+		{/if}
+	</span>
 {/snippet}
 
 <div class="keyboard-input-editor" role="group" aria-label={ariaLabel}>
-	<div class="keyboard-input-editor__rows" data-keyboard-type={config.keyboardType}>
+	<div
+		class="keyboard-input-editor__rows"
+		data-keyboard-type={config.keyboardType}
+		bind:this={keysElement}
+	>
+		{#if swapPathLayer.paths.length > 0}
+			<svg
+				class="keyboard-input-editor__swap-paths"
+				viewBox={`0 0 ${swapPathLayer.width} ${swapPathLayer.height}`}
+				preserveAspectRatio="none"
+				aria-hidden="true"
+			>
+				{#each swapPathLayer.paths as path (path.id)}
+					<line
+						class="keyboard-input-editor__swap-path"
+						data-swap-path={path.id}
+						x1={path.x1}
+						y1={path.y1}
+						x2={path.x2}
+						y2={path.y2}
+					/>
+				{/each}
+			</svg>
+		{/if}
 		{#each rows as row (row.row)}
 			{#if orthoGeometry}
 				{@const halves = orthoHalves(row.keys, row.row)}
@@ -286,12 +437,32 @@
 	.keyboard-input-editor__rows {
 		--editor-key-size: var(--keyboard-preview-key-size, clamp(2.25rem, 5vw, 3.25rem));
 		--editor-key-gap: var(--keyboard-preview-key-gap, clamp(0.25rem, 0.7vw, 0.5rem));
+		position: relative;
 		width: max-content;
 		min-width: 0;
 	}
 
 	.keyboard-input-editor__rows[data-keyboard-type='ortho'] {
 		margin-inline: auto;
+	}
+
+	.keyboard-input-editor__swap-paths {
+		position: absolute;
+		z-index: 2;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+		pointer-events: none;
+	}
+
+	.keyboard-input-editor__swap-path {
+		stroke: var(--adaptive-key);
+		stroke-width: 3;
+		stroke-linecap: round;
+		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--adaptive-key) 52%, transparent));
+		opacity: 0.82;
+		vector-effect: non-scaling-stroke;
 	}
 
 	.keyboard-input-editor__row {
@@ -329,15 +500,21 @@
 		height: var(--editor-key-size);
 	}
 
-	.keyboard-input-editor__key--ansi-thumb {
-		position: absolute;
-		top: 0;
-	}
-
+	.keyboard-input-editor__key,
 	.keyboard-input-editor__key-placeholder {
 		width: var(--editor-key-size);
 		height: var(--editor-key-size);
 		flex: none;
+	}
+
+	.keyboard-input-editor__key {
+		position: relative;
+		display: inline-flex;
+	}
+
+	.keyboard-input-editor__key--ansi-thumb {
+		position: absolute;
+		top: 0;
 	}
 
 	.keyboard-input-editor__half {
@@ -361,10 +538,9 @@
 
 	.keyboard-input-editor input {
 		box-sizing: border-box;
-		width: var(--editor-key-size);
+		width: 100%;
 		min-width: 0;
-		height: var(--editor-key-size);
-		flex: none;
+		height: 100%;
 		padding: 0;
 		border: 1px solid var(--border);
 		border-radius: 0.45rem;
@@ -383,7 +559,8 @@
 	.keyboard-input-editor input:hover {
 		border-color: color-mix(in srgb, var(--text-secondary) 55%, var(--border));
 	}
-	.keyboard-input-editor input.keyboard-input-editor__key--home {
+
+	.keyboard-input-editor__key--home input {
 		border-color: color-mix(in srgb, var(--text-primary) 42%, var(--border));
 	}
 
@@ -397,14 +574,130 @@
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 	}
 
-	.keyboard-input-editor input.keyboard-input-editor__key--invalid,
-	.keyboard-input-editor input.keyboard-input-editor__key--invalid:hover,
-	.keyboard-input-editor input.keyboard-input-editor__key--invalid:focus {
+	.keyboard-input-editor input.keyboard-input-editor__field--invalid,
+	.keyboard-input-editor input.keyboard-input-editor__field--invalid:hover,
+	.keyboard-input-editor input.keyboard-input-editor__field--invalid:focus {
 		border-color: var(--keyboard-input-validation-error);
 	}
 
-	.keyboard-input-editor input.keyboard-input-editor__key--invalid:focus {
+	.keyboard-input-editor input.keyboard-input-editor__field--invalid:focus {
 		box-shadow: 0 0 0 2px
 			color-mix(in srgb, var(--keyboard-input-validation-error) 35%, transparent);
+	}
+
+	.keyboard-input-editor__key--home-colored input {
+		border-color: color-mix(in srgb, var(--typing-practice-home-key) 82%, var(--border));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--typing-practice-home-key) 76%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--typing-practice-home-key) 52%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--typing-practice-home-key) 68%, black),
+			0 0 0.4rem color-mix(in srgb, var(--typing-practice-home-key) 24%, transparent);
+	}
+
+	.keyboard-input-editor__key--active input {
+		border-color: color-mix(in srgb, var(--adaptive-key) 70%, var(--border));
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--adaptive-key) 35%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--adaptive-key) 20%, var(--bg-primary)) 100%
+		);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
+			0 2px 0 color-mix(in srgb, var(--adaptive-key) 42%, black),
+			0 0 0.5rem color-mix(in srgb, var(--adaptive-key) 22%, transparent);
+		font-size: clamp(0.65rem, 1.45vw, 1rem);
+		letter-spacing: -0.02em;
+	}
+
+	.keyboard-input-editor__key--magic input {
+		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--magic-key) 82%, white) 0%,
+			var(--magic-key) 100%
+		);
+		color: var(--magic-key-fg);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
+			0 2px 0 color-mix(in srgb, var(--magic-key) 62%, black),
+			0 0 0.4rem color-mix(in srgb, var(--magic-key) 32%, transparent);
+	}
+
+	.keyboard-input-editor__key--next {
+		z-index: 1;
+		filter: drop-shadow(
+			0 0 0.35rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent)
+		);
+	}
+
+	.keyboard-input-editor__key--next input {
+		outline: 2px solid var(--typing-practice-next-key-decoration);
+		outline-offset: -1px;
+	}
+
+	.keyboard-input-editor__key--overlay input {
+		color: transparent;
+		caret-color: var(--text-primary);
+	}
+
+	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--magic input {
+		caret-color: var(--magic-key-fg);
+	}
+
+	.keyboard-input-editor__key-overlay {
+		position: absolute;
+		inset: 0;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+		font-size: clamp(1rem, 2vw, 1.35rem);
+		font-weight: 600;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.keyboard-input-editor__key--active .keyboard-input-editor__key-overlay {
+		font-size: clamp(0.65rem, 1.45vw, 1rem);
+		letter-spacing: -0.02em;
+	}
+
+	.keyboard-input-editor__key--magic .keyboard-input-editor__key-overlay {
+		color: var(--magic-key-fg);
+	}
+
+	.keyboard-input-editor__magic-icon {
+		display: inline-flex;
+		width: clamp(1.05rem, 2.2vw, 1.35rem);
+		height: clamp(1.05rem, 2.2vw, 1.35rem);
+		align-items: center;
+		justify-content: center;
+		color: inherit;
+	}
+
+	.keyboard-input-editor__magic-icon :global(svg) {
+		width: 100%;
+		height: 100%;
+	}
+
+	.keyboard-input-editor__key--unreachable::after {
+		content: '';
+		position: absolute;
+		inset: 12%;
+		z-index: 1;
+		background: linear-gradient(
+			to top right,
+			transparent calc(50% - 0.09rem),
+			var(--typing-practice-incorrect) calc(50% - 0.09rem),
+			var(--typing-practice-incorrect) calc(50% + 0.09rem),
+			transparent calc(50% + 0.09rem)
+		);
+		pointer-events: none;
 	}
 </style>

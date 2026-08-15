@@ -59,9 +59,11 @@ drafts in the browser.
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so Typing practice uses the current
-  keys.
-- Preview turns the name into a title and restores the presentation keyboard: next-key
-  highlighting, home-key coloring, and the catalog mapping panel. The preview always draws the 10
+  keys. The same workspace options paint that editor: next-key outline, home-key coloring,
+  special-key fills and emitted values, Adaptive swap paths, and unreachable slashes. While a key
+  field is focused, the typed value stays visible instead of the contextual overlay.
+- Preview turns the name into a title and restores the presentation keyboard and the catalog
+  mapping panel. The preview always draws the 10
   keys on each letter row and empty keycaps for unassigned slots between letters so remaining keys
   keep their physical columns. The key editor, base-layout and
   keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until Edit
@@ -97,8 +99,8 @@ drafts in the browser.
   letters does not scroll the page sideways. The warning stays visible in Edit and Preview, even
   when the mapping panels are closed.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
-  progress and elapsed time, and the shared keyboard workspace (input-layout control, home-key
-  coloring, next-key highlighting). The prompt and input use that workspace's width. The same
+  progress and elapsed time, and the shared keyboard workspace (input-layout control and the same
+  keyboard options in Edit and Preview). The prompt and input use that workspace's width. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
@@ -138,6 +140,9 @@ drafts in the browser.
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
+- Shared keyboard option presentation and swap-path measurement:
+  `src/lib/layoutKeyboardFeedback.ts` (`LayoutKeyboardPresentation`),
+  `src/lib/layoutKeyboardSwapPathLayer.ts`
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
   `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`,

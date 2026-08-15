@@ -128,6 +128,40 @@ test('selecting a base layout seeds its magic and adaptive mappings', async ({ p
 	await expect(panel.getByRole('textbox', { name: 'Emit' }).first()).toHaveValue('k');
 });
 
+test('applies keyboard options to the edit keyboard', async ({ page }) => {
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	const editor = panel.getByRole('group', { name: 'Layout keys' });
+	const options = panel.getByRole('group', { name: 'Keyboard options' });
+	const nextKeyToggle = options.getByRole('switch', { name: 'Highlight next key' });
+	const homeKeyToggle = options.getByRole('switch', { name: 'Color home keys' });
+	const practiceWords = panel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(10);
+	const targetWord = (await practiceWords.first().textContent())!;
+	const nextCharacter = Array.from(targetWord)[0]!;
+
+	await expect(homeKeyToggle).toBeChecked();
+	await expect(editor.locator('[data-key-home="true"]')).toHaveCount(8);
+	await expect(
+		editor.locator('[data-keyboard-input-row="1"] [data-key-char="g"]')
+	).not.toHaveAttribute('data-key-home', 'true');
+	await homeKeyToggle.uncheck();
+	await expect(editor.locator('[data-key-home="true"]')).toHaveCount(0);
+	await homeKeyToggle.check();
+
+	await expect(nextKeyToggle).not.toBeChecked();
+	await expect(editor.locator('[data-key-next="true"]')).toHaveCount(0);
+	await nextKeyToggle.check();
+	await expect(editor.locator(`[data-key-char="${nextCharacter}"]`)).toHaveAttribute(
+		'data-key-next',
+		'true'
+	);
+
+	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('@');
+	await expect(options.getByRole('switch', { name: 'Show special keys' })).toBeChecked();
+	await expect(editor.locator('[data-key-char="@"]')).toHaveAttribute('data-key-feedback', 'magic');
+});
+
 test('previewing a draft restores the practice keyboard and mapping preview', async ({ page }) => {
 	await page.goto('/create');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });

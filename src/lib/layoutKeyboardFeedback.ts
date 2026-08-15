@@ -18,6 +18,15 @@ export interface LayoutKeyboardSwapPath {
 	to: string;
 }
 
+/** Presentation passed to a custom keyboard snippet in the shared workspace. */
+export interface LayoutKeyboardPresentation {
+	feedback: LayoutKeyboardFeedback;
+	swapPaths: readonly LayoutKeyboardSwapPath[];
+	highlightedKeys: readonly string[];
+	unreachableKeys: readonly string[];
+	highlightHomeKeys: boolean;
+}
+
 /**
  * Build the current styled-keyboard presentation for every Magic trigger.
  * This remains independently composable with Adaptive/keyswap feedback.

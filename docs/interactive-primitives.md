@@ -88,8 +88,10 @@ trigger on every dismissal path.
 The layout creator replaces the practice keyboard preview with that same key editor, plus the
 base-layout autocomplete and keyboard-type control, in the keyboard slot. It hides QWERTY
 placeholders and does not require unique assigned values, so a draft may keep any number of
-letters, including repeats. Empty slots are dropped from the live draft. **Preview** in the
-creator sticky bar swaps this editor for the presentation-only keyboard; **Edit** restores it.
+letters, including repeats. Empty slots are dropped from the live draft. The editor still
+receives the workspace option presentation (next-key, home-key coloring, special-key feedback,
+swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
+for the presentation-only keyboard; **Edit** restores it.
 
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default

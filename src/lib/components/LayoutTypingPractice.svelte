@@ -16,7 +16,8 @@
 	import {
 		buildAdaptiveKeyboardSwapPathsFromFeedback,
 		buildLayoutKeyboardFeedback,
-		filterAdaptiveKeyboardFeedbackByKeys
+		filterAdaptiveKeyboardFeedbackByKeys,
+		type LayoutKeyboardPresentation
 	} from '$lib/layoutKeyboardFeedback';
 	import { withKeyboardInputConfig, type LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import {
@@ -72,7 +73,7 @@
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
 		keyboardHeaderStart?: Snippet;
 		keyboardHeaderEnd?: Snippet;
-		keyboard?: Snippet;
+		keyboard?: Snippet<[LayoutKeyboardPresentation]>;
 		/** Sits above the keyboard, still in the preview column. */
 		keyboardLead?: Snippet;
 		/** When the editor is showing, size keys to its full slot grid. */
