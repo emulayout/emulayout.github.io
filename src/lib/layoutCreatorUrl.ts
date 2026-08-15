@@ -37,6 +37,7 @@ export const CREATOR_TYPE_PARAM = 'type';
 export const CREATOR_KEYS_PARAM = 'keys';
 export const CREATOR_MAGIC_PARAM = 'magic';
 export const CREATOR_ADAPTIVE_PARAM = 'adaptive';
+export const CREATOR_EDIT_PARAM = 'edit';
 export const CREATOR_PREVIEW_PARAM = 'preview';
 export const CREATOR_DISABLED_PARAM = 'off';
 const CREATOR_PREVIEW_PARAM_LEGACY = 'locked';
@@ -429,7 +430,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	writeAdaptiveParam(params, snapshot);
 	writeDisabledParam(params, snapshot);
 	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
-	if (snapshot.preview) params.set(CREATOR_PREVIEW_PARAM, ENABLED_FLAG);
+	if (!snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
 	return params;
 }
 
@@ -456,16 +457,19 @@ export function creatorUrlContentEqual(
 	return creatorUrlSnapshotsEqual({ ...left, preview: false }, { ...right, preview: false });
 }
 
+export function readCreatorEditFlag(searchParams: URLSearchParams): boolean {
+	return searchParams.get(CREATOR_EDIT_PARAM) === ENABLED_FLAG;
+}
+
+/** Preview is the default view. `edit=1` is Edit. Legacy `preview=1` / `locked=1` stay Preview. */
 export function readCreatorPreviewFlag(searchParams: URLSearchParams): boolean {
-	return (
-		searchParams.get(CREATOR_PREVIEW_PARAM) === ENABLED_FLAG ||
-		searchParams.get(CREATOR_PREVIEW_PARAM_LEGACY) === ENABLED_FLAG
-	);
+	return !readCreatorEditFlag(searchParams);
 }
 
 function isCreatorViewParam(key: string): boolean {
 	return (
 		key === CREATOR_ID_PARAM ||
+		key === CREATOR_EDIT_PARAM ||
 		key === CREATOR_PREVIEW_PARAM ||
 		key === CREATOR_PREVIEW_PARAM_LEGACY
 	);
@@ -499,7 +503,7 @@ export function creatorSearchFromSnapshot(
 		creatorUrlContentEqual(snapshot, options.savedSnapshot as CreatorUrlSnapshot);
 	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
 	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
-	if (omitDraft && snapshot.preview) params.set(CREATOR_PREVIEW_PARAM, ENABLED_FLAG);
+	if (omitDraft && !snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
 	const query = params.toString();
 	return query ? `?${query}` : '';
 }
@@ -508,9 +512,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 	const defaults = createDefaultCreatorUrlSnapshot();
 	const name = searchParams.get(CREATOR_NAME_PARAM)?.trim() || defaults.name;
 	const author = searchParams.get(CREATOR_AUTHOR_PARAM)?.trim() || defaults.author;
-	const preview =
-		searchParams.get(CREATOR_PREVIEW_PARAM) === ENABLED_FLAG ||
-		searchParams.get(CREATOR_PREVIEW_PARAM_LEGACY) === ENABLED_FLAG;
+	const preview = readCreatorPreviewFlag(searchParams);
 
 	const typeParam = searchParams.get(CREATOR_TYPE_PARAM);
 	const keyboardType: InputKeyboardType =

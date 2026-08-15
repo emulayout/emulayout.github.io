@@ -163,6 +163,8 @@ describe('saved layout storage', () => {
 		const clean = resolveCreatorSession(new URLSearchParams('id=id-a'), [saved]);
 		expect(clean.savedId).toBe('id-a');
 		expect(clean.snapshot.name).toBe('Alpha');
+		expect(clean.snapshot.preview).toBe(true);
+		expect(isSavedLayoutDirty(clean.snapshot, saved)).toBe(false);
 
 		const previewOnly = resolveCreatorSession(new URLSearchParams('id=id-a&preview=1'), [saved]);
 		expect(previewOnly.savedId).toBe('id-a');
@@ -170,12 +172,15 @@ describe('saved layout storage', () => {
 		expect(previewOnly.snapshot.preview).toBe(true);
 		expect(isSavedLayoutDirty(previewOnly.snapshot, saved)).toBe(false);
 
-		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta&preview=1'), [
-			saved
-		]);
+		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta'), [saved]);
 		expect(dirty.savedId).toBe('id-a');
 		expect(dirty.snapshot.name).toBe('Beta');
 		expect(dirty.snapshot.preview).toBe(true);
+
+		const dirtyEdit = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta&edit=1'), [
+			saved
+		]);
+		expect(dirtyEdit.snapshot.preview).toBe(false);
 
 		const unknown = resolveCreatorSession(new URLSearchParams('id=missing&name=Gamma'), [saved]);
 		expect(unknown.savedId).toBeNull();
@@ -210,7 +215,7 @@ describe('creator URL saved id', () => {
 	test('omits the draft query when a saved layout is unchanged', () => {
 		const snapshot = namedSnapshot('Alpha');
 		expect(creatorSearchFromSnapshot(snapshot, { savedId: 'id-a', savedSnapshot: snapshot })).toBe(
-			'?id=id-a'
+			'?id=id-a&edit=1'
 		);
 		expect(
 			creatorSearchFromSnapshot(
@@ -220,12 +225,12 @@ describe('creator URL saved id', () => {
 					savedSnapshot: snapshot
 				}
 			)
-		).toBe('?id=id-a&preview=1');
+		).toBe('?id=id-a');
 		expect(
 			creatorSearchFromSnapshot(namedSnapshot('Beta'), {
 				savedId: 'id-a',
 				savedSnapshot: snapshot
 			})
-		).toBe('?name=Beta&id=id-a');
+		).toBe('?name=Beta&edit=1&id=id-a');
 	});
 });

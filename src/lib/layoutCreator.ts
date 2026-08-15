@@ -20,6 +20,17 @@ import { DEFAULT_REPEAT_KEY } from '$lib/repeatKeys';
 export const LAYOUT_CREATOR_NEW_TAB = 'new';
 export const LAYOUT_CREATOR_NEW_LAYOUT_NAME = 'New layout';
 export const CREATOR_MAGIC_KEY = '*';
+const TRAILING_COPY_NUMBER = /^(.*)\s(\d+)$/;
+
+/** Next name for a duplicated layout: increment a trailing copy number, or append 2. */
+export function nextDuplicatedLayoutName(name: string): string {
+	const trimmed = name.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME;
+	const match = trimmed.match(TRAILING_COPY_NUMBER);
+	if (!match) return `${trimmed} 2`;
+	return `${match[1]} ${Number(match[2]) + 1}`;
+}
+/** Summary-card subtitle when a local draft has no analyzer stats. */
+export const LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL = 'Local layouts have no analyzer stats.';
 
 export type LayoutCreatorTabValue = typeof LAYOUT_CREATOR_NEW_TAB | `saved:${string}`;
 

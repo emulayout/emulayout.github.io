@@ -32,6 +32,8 @@
 		mode?: 'focused' | 'detailed';
 		/** Allows a wide Highlights row in detail-page summary cards only. */
 		wideFocusedLayout?: boolean;
+		/** Replaces the analyzer-specific unavailable subtitle when stats are missing. */
+		unavailableDetail?: string;
 	}
 
 	const {
@@ -45,17 +47,28 @@
 		onFilterFingerUsage,
 		onSortMetric,
 		mode = 'focused',
-		wideFocusedLayout = false
+		wideFocusedLayout = false,
+		unavailableDetail
 	}: Props = $props();
 
+	function fallbackText(model: LayoutStatsBlockModel) {
+		if (!unavailableDetail) return model.fallback;
+		const lines = model.fallback.split('\n');
+		if (lines.length > 1) lines[1] = unavailableDetail;
+		return lines.join('\n');
+	}
+
 	function fallbackCopy(model: LayoutStatsBlockModel) {
-		const lines = model.fallback
+		const lines = fallbackText(model)
 			.split('\n')
 			.map((line) => line.trim())
 			.filter((line) => line && line !== '…');
 		return {
 			title: model.loading ? 'Loading stats' : 'Stats unavailable',
-			detail: lines[1] ?? (model.loading ? 'Preparing this analyzer' : 'No data for this layout')
+			detail:
+				unavailableDetail ??
+				lines[1] ??
+				(model.loading ? 'Preparing this analyzer' : 'No data for this layout')
 		};
 	}
 </script>
@@ -101,7 +114,7 @@
 {#snippet statsItem(model: LayoutStatsBlockModel)}
 	<LayoutStatsBlock
 		lines={model.lines}
-		fallback={model.fallback}
+		fallback={fallbackText(model)}
 		unavailable={!model.loading}
 		mana2={model.mana2}
 		shrink

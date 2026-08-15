@@ -33,13 +33,16 @@
 		onSelectAuthor
 	}: Props = $props();
 
-	const updatedLabel = $derived(
-		new Date(layout.updatedAt).toLocaleDateString(undefined, {
+	const updatedLabel = $derived.by(() => {
+		if (!layout.updatedAt) return '';
+		const updatedAt = new Date(layout.updatedAt);
+		if (Number.isNaN(updatedAt.getTime())) return '';
+		return updatedAt.toLocaleDateString(undefined, {
 			month: 'short',
 			day: 'numeric',
 			year: 'numeric'
-		})
-	);
+		});
+	});
 </script>
 
 {#snippet layoutTitle()}
@@ -153,21 +156,25 @@
 		class="text-xs layout-meta flex items-center gap-1 min-w-0"
 		style="color: var(--text-secondary);"
 	>
-		<span class="shrink-0">{layout.board} · by</span>
-		{#if authorInteractive}
-			<button
-				type="button"
-				onclick={onSelectAuthor}
-				class="hover:underline cursor-pointer truncate min-w-0"
-				style="color: var(--text-secondary);"
-				title={authorName}
-			>
-				{authorName}
-			</button>
-		{:else}
-			<span class="truncate min-w-0" title={authorName}>{authorName}</span>
+		<span class="shrink-0">{authorName ? `${layout.board} · by` : layout.board}</span>
+		{#if authorName}
+			{#if authorInteractive}
+				<button
+					type="button"
+					onclick={onSelectAuthor}
+					class="hover:underline cursor-pointer truncate min-w-0"
+					style="color: var(--text-secondary);"
+					title={authorName}
+				>
+					{authorName}
+				</button>
+			{:else}
+				<span class="truncate min-w-0" title={authorName}>{authorName}</span>
+			{/if}
 		{/if}
-		<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
+		{#if updatedLabel}
+			<span class="shrink-0" title={layout.updatedAt}>· {updatedLabel}</span>
+		{/if}
 	</p>
 </div>
 

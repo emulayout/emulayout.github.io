@@ -27,9 +27,12 @@ function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
 }
 
 describe('creator URL state', () => {
-	test('omits defaults so a blank canvas stays /create', () => {
-		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).toString()).toBe('');
-		expect(creatorSearchFromSnapshot(createDefaultCreatorUrlSnapshot())).toBe('');
+	test('writes edit=1 for the default Edit canvas and omits Preview', () => {
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).toString()).toBe('edit=1');
+		expect(creatorSearchFromSnapshot(createDefaultCreatorUrlSnapshot())).toBe('?edit=1');
+		expect(
+			writeCreatorUrlParams({ ...createDefaultCreatorUrlSnapshot(), preview: true }).toString()
+		).toBe('');
 	});
 
 	test('round-trips custom practice text and a special-word balance', () => {
@@ -78,7 +81,8 @@ describe('creator URL state', () => {
 
 		const params = writeCreatorUrlParams(snapshot);
 		expect(params.get('name')).toBe('Shared draft');
-		expect(params.get('preview')).toBe('1');
+		expect(params.has('edit')).toBe(false);
+		expect(params.has('preview')).toBe(false);
 		expect(params.has('locked')).toBe(false);
 		expect(params.get('keys')?.startsWith('v1:m;')).toBe(true);
 		expect(params.has('base')).toBe(false);
@@ -92,8 +96,12 @@ describe('creator URL state', () => {
 		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')?.value).toBe('w');
 	});
 
-	test('reads a legacy locked query as preview', () => {
+	test('defaults to Preview and reads edit=1 as Edit', () => {
+		expect(readCreatorUrlSnapshot(new URLSearchParams()).preview).toBe(true);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('preview=1')).preview).toBe(true);
 		expect(readCreatorUrlSnapshot(new URLSearchParams('locked=1')).preview).toBe(true);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1')).preview).toBe(false);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1&preview=1')).preview).toBe(false);
 	});
 
 	test('round-trips keyboard type, a catalog base, and a cleared board', () => {
@@ -124,7 +132,7 @@ describe('creator URL state', () => {
 		const clearedParams = writeCreatorUrlParams(cleared);
 		expect(clearedParams.get('name')).toBe('Magic lela');
 		expect(clearedParams.get('keys')).toBe('v1:-');
-		expect(clearedParams.toString()).toBe('name=Magic+lela&keys=v1%3A-');
+		expect(clearedParams.toString()).toBe('name=Magic+lela&keys=v1%3A-&edit=1');
 
 		const restoredCleared = roundTrip(cleared);
 		expect(restoredCleared.keyConfig.baseLayoutName).toBeNull();

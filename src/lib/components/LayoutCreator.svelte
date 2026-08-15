@@ -10,6 +10,7 @@
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
+	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
@@ -30,8 +31,10 @@
 	import {
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
+		LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL,
 		addMagicKeyToConfig,
 		createLayoutFromKeyConfig,
+		nextDuplicatedLayoutName,
 		keyboardConfigGainedMagicTriggers,
 		keyboardConfigHasMagicTrigger,
 		savedCreatorTabId,
@@ -61,6 +64,7 @@
 		persistSavedLayouts,
 		removeSavedLayout,
 		resolveCreatorSession,
+		snapshotForSavedLayoutView,
 		SAVED_LAYOUTS_STORAGE_KEY,
 		savedCreatorLayoutName,
 		updateSavedLayout,
@@ -77,9 +81,8 @@
 		normalizeTypingPracticeLessonSettings,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
-	import { authorFilterIndexSearch } from '$lib/filterUrlCodec';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
-	import { resolveAuthorByName } from '$lib/layoutDetails';
+	import { DEFAULT_LAYOUT_DETAIL_SECTION, type LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -109,6 +112,7 @@
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let typingMode = $state<TypingWorkspaceMode>('practice');
+	let previewSection = $state<LayoutDetailSection>(DEFAULT_LAYOUT_DETAIL_SECTION);
 	let saveMenuOpen = $state(false);
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
@@ -123,8 +127,6 @@
 			a.localeCompare(b, undefined, { sensitivity: 'base' })
 		)
 	);
-	const knownAuthor = $derived(resolveAuthorByName(layoutsCatalog.authorsData, layoutAuthor));
-	const knownAuthorSearch = $derived(knownAuthor ? authorFilterIndexSearch(knownAuthor.id) : '');
 	const activeSavedLayout = $derived(findSavedLayout(savedLayouts, activeSavedId));
 	const activeTab = $derived<LayoutCreatorTabValue>(
 		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
@@ -173,7 +175,6 @@
 			disabledMappingIds
 		)
 	);
-	const showPreviewMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
 	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
@@ -468,6 +469,11 @@
 
 	function toggleLayoutPreview() {
 		layoutPreview = !layoutPreview;
+		if (layoutPreview) previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+	}
+
+	function setPreviewSection(section: LayoutDetailSection) {
+		previewSection = section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
 	}
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
@@ -486,7 +492,8 @@
 		const saved = findSavedLayout(savedLayouts, value.slice('saved:'.length));
 		if (!saved) return;
 		activeSavedId = saved.id;
-		applyCreatorSnapshot(saved.snapshot);
+		applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
+		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
@@ -519,6 +526,21 @@
 		flushCreatorUrl();
 	}
 
+	function duplicateSavedLayout() {
+		saveError = null;
+		const snapshot = cloneCreatorUrlSnapshot(currentCreatorSnapshot());
+		snapshot.name = nextDuplicatedLayoutName(savedCreatorLayoutName(snapshot));
+		snapshot.preview = false;
+		const result = addSavedLayout(savedLayoutsForWrite(), {
+			name: snapshot.name,
+			snapshot
+		});
+		if (!commitSavedLayouts(result.layouts, result.id)) return;
+		applyCreatorSnapshot(snapshot);
+		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		flushCreatorUrl();
+	}
+
 	function undoSavedLayoutChanges() {
 		const saved = findSavedLayout(savedLayouts, activeSavedId);
 		if (!saved) return;
@@ -538,6 +560,7 @@
 		}
 		activeSavedId = null;
 		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
@@ -667,44 +690,30 @@
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
 		{#snippet creatorHeaderStart()}
 			<div class="layout-creator-name">
-				{#if layoutPreview}
-					<div class="layout-creator-name-preview">
-						<h2 class="layout-creator-name-title">{layoutName}</h2>
-						{#if knownAuthor && knownAuthorSearch}
-							<a
-								class="layout-creator-author-title layout-creator-author-title--link"
-								href="{resolve('/')}?{knownAuthorSearch}">{knownAuthor.name}</a
-							>
-						{:else}
-							<p class="layout-creator-author-title">{layoutAuthor}</p>
-						{/if}
-					</div>
-				{:else}
-					<label class="layout-creator-name-field">
-						<span class="layout-creator-name-label">Layout name</span>
-						<input
-							type="text"
-							value={layoutNameDraft}
-							autocomplete="off"
-							spellcheck="false"
-							aria-label="Layout name"
-							oninput={(event) => setLayoutName(event.currentTarget.value)}
-						/>
-					</label>
-					<div class="layout-creator-name-field">
-						<span class="layout-creator-name-label">Author name</span>
-						<AuthorAutocomplete
-							authors={authorNames}
-							id="layout-creator-author"
-							label="Author name"
-							placeholder="Search or add author"
-							selected={layoutAuthorDraft}
-							onChange={setLayoutAuthor}
-							onClear={() => setLayoutAuthor('')}
-							loading={layoutsCatalog.loading && authorNames.length === 0}
-						/>
-					</div>
-				{/if}
+				<label class="layout-creator-name-field">
+					<span class="layout-creator-name-label">Layout name</span>
+					<input
+						type="text"
+						value={layoutNameDraft}
+						autocomplete="off"
+						spellcheck="false"
+						aria-label="Layout name"
+						oninput={(event) => setLayoutName(event.currentTarget.value)}
+					/>
+				</label>
+				<div class="layout-creator-name-field">
+					<span class="layout-creator-name-label">Author name</span>
+					<AuthorAutocomplete
+						authors={authorNames}
+						id="layout-creator-author"
+						label="Author name"
+						placeholder="Search or add author"
+						selected={layoutAuthorDraft}
+						onChange={setLayoutAuthor}
+						onClear={() => setLayoutAuthor('')}
+						loading={layoutsCatalog.loading && authorNames.length === 0}
+					/>
+				</div>
 			</div>
 		{/snippet}
 
@@ -844,26 +853,43 @@
 		{/snippet}
 
 		{#key activeTab}
-			<LayoutTypingPractice
-				{layout}
-				rows={displayRows}
-				keyMaps={testKeyMaps}
-				{inputProfile}
-				{disabledMappingIds}
-				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-				showKeyboardMappings={layoutPreview ? showPreviewMappings : showEditorMappings}
-				{practiceLesson}
-				onPracticeLessonChange={setPracticeLesson}
-				keyboardHeaderStart={creatorHeaderStart}
-				keyboard={layoutPreview ? undefined : creatorKeyboard}
-				keyboardLead={layoutPreview ? undefined : creatorKeyboardLead}
-				keyboardWidthTerms={layoutPreview ? undefined : editorWidthTerms}
-				keyboardAside={layoutPreview ? undefined : creatorAside}
-				keyboardBelow={creatorKeyboardBelow}
-				keyboardMappings={layoutPreview ? undefined : creatorMappings}
-				{typingMode}
-				modeSwitcher={creatorTypingModeSwitcher}
-			/>
+			{#if layoutPreview}
+				<LayoutExpandedView
+					{layout}
+					authorName={layoutAuthor}
+					likeCount={0}
+					{inputProfile}
+					{disabledMappingIds}
+					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+					activeSection={previewSection}
+					onActiveSectionChange={setPreviewSection}
+					{practiceLesson}
+					onPracticeLessonChange={setPracticeLesson}
+					localPreview
+					statsUnavailableDetail={LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL}
+				/>
+			{:else}
+				<LayoutTypingPractice
+					{layout}
+					rows={displayRows}
+					keyMaps={testKeyMaps}
+					{inputProfile}
+					{disabledMappingIds}
+					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+					showKeyboardMappings={showEditorMappings}
+					{practiceLesson}
+					onPracticeLessonChange={setPracticeLesson}
+					keyboardHeaderStart={creatorHeaderStart}
+					keyboard={creatorKeyboard}
+					keyboardLead={creatorKeyboardLead}
+					keyboardWidthTerms={editorWidthTerms}
+					keyboardAside={creatorAside}
+					keyboardBelow={creatorKeyboardBelow}
+					keyboardMappings={creatorMappings}
+					{typingMode}
+					modeSwitcher={creatorTypingModeSwitcher}
+				/>
+			{/if}
 		{/key}
 
 		<div class="layout-creator-actions">
@@ -973,7 +999,7 @@
 						<button
 							type="button"
 							class="filter-reset-button layout-creator-action-button"
-							onclick={saveAsNewLayout}
+							onclick={duplicateSavedLayout}
 						>
 							Duplicate layout
 						</button>
@@ -1339,55 +1365,6 @@
 	.layout-creator-name-field input:focus-visible {
 		border-color: var(--accent);
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
-	}
-
-	.layout-creator-name-preview {
-		display: flex;
-		min-width: 0;
-		flex-direction: column;
-		gap: 0.15rem;
-	}
-
-	.layout-creator-name-title,
-	.layout-creator-author-title {
-		min-width: 0;
-		margin: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.layout-creator-name-title {
-		color: var(--text-primary);
-		font-size: 1.125rem;
-		font-weight: 600;
-		line-height: 1.3;
-	}
-
-	.layout-creator-author-title {
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 500;
-		line-height: 1.3;
-	}
-
-	.layout-creator-author-title--link {
-		width: fit-content;
-		max-width: 100%;
-		text-decoration: none;
-	}
-
-	.layout-creator-author-title--link:hover,
-	.layout-creator-author-title--link:focus-visible {
-		text-decoration: underline;
-	}
-
-	.layout-creator-author-title--link:focus-visible {
-		outline: none;
-	}
-
-	.layout-creator-author-title:empty {
-		display: none;
 	}
 
 	.layout-creator-keyboard-fields {

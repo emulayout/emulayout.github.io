@@ -4,7 +4,6 @@ import {
 	creatorUrlContentEqual,
 	creatorUrlHasDraftParams,
 	creatorUrlSnapshotSignature,
-	readCreatorPreviewFlag,
 	readCreatorSavedId,
 	readCreatorUrlSnapshot,
 	type CreatorUrlSnapshot
@@ -227,9 +226,14 @@ export function resolveCreatorSession(
 	if (creatorUrlHasDraftParams(searchParams)) {
 		return { snapshot: readCreatorUrlSnapshot(searchParams), savedId: saved.id };
 	}
-	const snapshot = cloneCreatorUrlSnapshot(saved.snapshot);
-	snapshot.preview = readCreatorPreviewFlag(searchParams);
-	return { snapshot, savedId: saved.id };
+	return { snapshot: snapshotForSavedLayoutView(saved.snapshot), savedId: saved.id };
+}
+
+/** Opening a saved layout starts in Preview. Edit is only for new canvases and explicit edits. */
+export function snapshotForSavedLayoutView(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
+	const next = cloneCreatorUrlSnapshot(snapshot);
+	next.preview = true;
+	return next;
 }
 
 export function isSavedLayoutDirty(

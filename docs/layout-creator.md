@@ -7,7 +7,8 @@ drafts in the browser.
 ## Product model
 
 - The shared app bar includes **Discover** and **Create** choice-chip links to the right of the
-  logo. Discover goes to `/` and stays current on layout show pages. Create goes to `/create`.
+  logo. Discover goes to `/` and stays current on layout show pages. Create goes to
+  `/create?edit=1`.
   Idle links are muted text with no chip. Hover shows a neutral pill and primary text. The
   current route uses `aria-current="page"` with accent text on an accent-tinted pill. Below the
   `md` breakpoint the Emulayout wordmark is hidden and the home link keeps only the logo icon.
@@ -20,8 +21,8 @@ drafts in the browser.
   stored name (the live name while that tab is active). Saving the unsaved canvas turns it into a
   saved tab. Switching tabs loads that layout's snapshot into the editor. When at least one saved
   layout exists, a `+ New layout` button sits on the far side of the tab bar and starts a blank
-  unsaved canvas without leaving `/create`. It is hidden while there are no saved layouts, because
-  the unsaved canvas tab is already showing. A bare `/create` link does the same. Saved tabs include the same pointer X as index view tabs;
+  unsaved canvas in Edit (`/create?edit=1`) without leaving `/create`. It is hidden while there are
+  no saved layouts, because the unsaved canvas tab is already showing. Saved tabs include the same pointer X as index view tabs;
   Delete or Backspace on a focused saved tab opens the same style of confirmation. Deleting a
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
@@ -32,22 +33,28 @@ drafts in the browser.
   to `New layout`. Author is optional and stays empty until typed. The author field is a
   combobox over catalog authors: type to search, use the chevron for the full list, and keep a
   freeform name if it is not in the catalog. The document title and the
-  active tab use the layout name. Renaming does not regenerate the practice words. Preview keeps
-  the layout name as a title and shows the author under it in a smaller font. A catalog author
-  becomes a link to Discover filtered to that author; a freeform name stays plain text.
+  active tab use the layout name. Renaming does not regenerate the practice words. Preview uses the
+  same two-column show-page layout as `/layouts/[name]`: a summary card on the left and Typing
+  practice, Layout test area, and Layout feel on the right. The card shows the live name and
+  author. Local drafts have no analyzer stats, so the card uses the unavailable presentation with
+  the subtitle `Local layouts have no analyzer stats.` There is no card analyzer selector, no Stats
+  tab, and no cminibrowser link. Cyanophage and Colemak Camp links stay when they can be built from
+  the live keymap.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
   Name, author, base layout, keyboard type, key grid, preview, practice lesson, Magic/Adaptive
   mappings (including incomplete rows), and which complete special mappings are disabled are
   written when they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
-  params are omitted so the URL is `/create?id=<uuid>`. Preview mode keeps that id URL and only
-  adds `preview=1`; it does not count as a saveable change. Dirty edits stay in the query alongside
-  `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the index filter
-  URL persist, and flush on page hide so a refresh keeps the latest keystrokes. A bare `/create`
-  link starts fresh. Reloading or opening the URL restores the draft, and a known `id` restores
-  that saved layout from local storage. Defaults are omitted, so an untouched unsaved canvas stays
-  `/create`. Empty standard slots are omitted from `keys`; a cleared board is `keys=v1:-`. Do not
-  put draft names, saved ids, or key maps into GoatCounter paths or events.
+  params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL, or switching
+  to a saved tab, starts in Preview. Preview is the default view and is not written to the query.
+  Edit writes `edit=1` and does not count as a saveable change. Dirty edits stay in the query
+  alongside `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the
+  index filter URL persist, and flush on page hide so a refresh keeps the latest keystrokes. The
+  Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A bare
+  `/create` opens Preview of the default canvas. Reloading or opening the URL restores the draft,
+  and a known `id` restores that saved layout from local storage. Empty standard slots are omitted
+  from `keys`; a cleared board is `keys=v1:-`. Do not put draft names, saved ids, or key maps into
+  GoatCounter paths or events.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
@@ -67,14 +74,17 @@ drafts in the browser.
   keys. The same workspace options paint that editor: next-key outline, home-key coloring,
   special-key fills and emitted values, Adaptive swap paths, and unreachable slashes. While a key
   field is focused, the typed value stays visible instead of the contextual overlay.
-- Preview turns the name into a title and restores the presentation keyboard and the catalog
-  mapping panel. The preview always draws the 10
-  keys on each letter row and empty keycaps for unassigned slots between letters so remaining keys
-  keep their physical columns. The key editor, base-layout and
-  keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until Edit
-  again. The catalog mapping panel still appears when the draft has complete Magic or Adaptive
-  mappings, even if those editors were closed in Edit. The sticky bar shows **Preview** while
-  editing, which opens the uneditable presentation, and **Edit** while previewing.
+- Preview replaces the editor workspace with `LayoutExpandedView` in local-preview mode. The
+  summary card and right-hand tabs match the catalog show page, except stats stay unavailable, the
+  card analyzer selector and Stats tab are omitted, and the cminibrowser link is hidden. Preview section state is local and
+  defaults to Typing practice; it is not written to the `/create` query. The preview keyboard still
+  draws the 10 keys on each letter row and empty keycaps for unassigned slots between letters so
+  remaining keys keep their physical columns. The key editor, name and author fields, base-layout
+  and keyboard-type fields, Type freely switcher, special-key add buttons, missing-letter warning,
+  and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
+  in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
+  editors were closed in Edit. The sticky bar shows **Preview** while editing, which opens this
+  show-page preview, and **Edit** while previewing.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
   own column, top-aligned with the first keyboard row. Either or both can be on. Magic adds a `*`
   trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
@@ -101,13 +111,13 @@ drafts in the browser.
   missing from the keyboard. A Magic emit or emit fallback can cover a missing letter only when
   that trigger is on the board and the mapping is enabled. Mapping keys that are not letters,
   including a missing Magic trigger, are not listed. The key list wraps inside the keyboard width
-  so a long set of missing letters does not scroll the page sideways. The warning stays visible in
-  Edit and Preview, even when the mapping panels are closed.
-- The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
-  progress and elapsed time, and the shared keyboard workspace (input-layout control and the same
-  keyboard options in Edit and Preview). A **Typing mode** switcher above the field, top right,
-  can replace that lesson with **Type freely**, the same multiline test area as a catalog layout.
-  Switching to Type freely resets practice input, progress, and the timer on the current words.
+  so a long set of missing letters does not scroll the page sideways. The warning is Edit-only.
+- In Edit, the main panel reuses Typing practice: a generated English 1k lesson, the layout-aware
+  input, progress and elapsed time, and the shared keyboard workspace (input-layout control and the
+  same keyboard options). A **Typing mode** switcher above the field, top right, can replace that
+  lesson with **Type freely**, the same multiline test area as a catalog layout. Switching to Type
+  freely resets practice input, progress, and the timer on the current words. Preview uses the
+  show-page tabs instead of that switcher.
   The prompt and input use that workspace's width. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
@@ -121,10 +131,11 @@ drafts in the browser.
   bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
   Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
   **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of
-  that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Undo
-  restores the stored snapshot and keeps the current Preview/Edit mode. It is hidden on an
-  unsaved canvas and while a saved layout is clean. Save, update, save-as-new, and duplicate use
-  the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
+  that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Duplicate
+  saves a new copy, opens it in Edit, and increments a trailing copy number: `My layout` becomes
+  `My layout 2`, `Vylet v5` becomes `Vylet v5 2`, and `Test 3` becomes `Test 4`. Undo restores the
+  stored snapshot and keeps the current Preview/Edit mode. It is hidden on an unsaved canvas and
+  while a saved layout is clean. Save, update, and save-as-new use the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
@@ -136,9 +147,10 @@ drafts in the browser.
 
 ## Code map
 
-- Default canvas, tab values, and key-editor conversion: `src/lib/layoutCreator.ts`
+- Default canvas, tab values, duplicate names, and key-editor conversion: `src/lib/layoutCreator.ts`
 - Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
+  (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
@@ -154,6 +166,7 @@ drafts in the browser.
 - App-bar Discover and Create links and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
+- Show-page preview: `src/lib/components/LayoutExpandedView.svelte` (`localPreview`)
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Shared keyboard option presentation and swap-path measurement:
   `src/lib/layoutKeyboardFeedback.ts` (`LayoutKeyboardPresentation`),
@@ -173,5 +186,6 @@ drafts in the browser.
   appears when a saved layout exists.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, author names, key maps, lesson text, or WPM.
-- A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new
-  canvas. Saved-layout tabs come from local storage; `id` in the query selects one when it exists.
+- A copied `/create` query restores the draft. Create and `+ New layout` open Edit
+  (`/create?edit=1`). A bare `/create` link opens Preview of the default canvas. Saved-layout tabs
+  come from local storage; `id` in the query selects one when it exists.

@@ -10,6 +10,7 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import { hasOpenModal } from '$lib/modalScrollLock';
+	import { CREATOR_EDIT_PARAM } from '$lib/layoutCreatorUrl';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { onMount } from 'svelte';
 
@@ -206,7 +207,7 @@
 						Discover
 					</a>
 					<a
-						href={resolve('/create')}
+						href="{resolve('/create')}?{CREATOR_EDIT_PARAM}=1"
 						class="app-header-nav-link"
 						aria-current={onCreatePage ? 'page' : undefined}
 					>

@@ -64,6 +64,9 @@
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
+		/** Creator preview: show-page chrome without catalog stats or cminibrowser. */
+		localPreview?: boolean;
+		statsUnavailableDetail?: string;
 	}
 
 	const {
@@ -77,7 +80,9 @@
 		activeSection,
 		onActiveSectionChange,
 		practiceLesson,
-		onPracticeLessonChange
+		onPracticeLessonChange,
+		localPreview = false,
+		statsUnavailableDetail
 	}: Props = $props();
 
 	const cminiLabel =
@@ -115,8 +120,13 @@
 		},
 		{ value: 'test', label: 'Layout test area', id: testTabId, controls: testPanelId },
 		{ value: 'feel', label: 'Layout feel', id: feelTabId, controls: feelPanelId },
-		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
+		...(localPreview
+			? []
+			: [{ value: 'stats' as const, label: 'Stats', id: statsTabId, controls: statsPanelId }])
 	]);
+	const resolvedSection = $derived(
+		localPreview && activeSection === 'stats' ? 'practice' : activeSection
+	);
 	const isAngleBoard = $derived(layout.board === 'angle');
 	const baseDisplayRows = $derived(computeDisplayRows(layout));
 	const displayRows = $derived.by((): DisplayCell[][] => {
@@ -202,11 +212,17 @@
 	const embeddedStats = $derived(
 		resolveLayoutDetailStats(detailStats, layoutStatsStore.activeCorpus)
 	);
-	const cminiCompact = $derived(layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini);
-	const cyanophageCompact = $derived(
-		layoutStatsStore.maps.cyanophage?.[layout.name] ?? embeddedStats.cyanophage
+	const cminiCompact = $derived(
+		localPreview ? undefined : (layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini)
 	);
-	const mana2Compact = $derived(layoutStatsStore.maps.mana2?.[layout.name] ?? embeddedStats.mana2);
+	const cyanophageCompact = $derived(
+		localPreview
+			? undefined
+			: (layoutStatsStore.maps.cyanophage?.[layout.name] ?? embeddedStats.cyanophage)
+	);
+	const mana2Compact = $derived(
+		localPreview ? undefined : (layoutStatsStore.maps.mana2?.[layout.name] ?? embeddedStats.mana2)
+	);
 
 	const cminiLoading = $derived(showCmini && layoutStatsStore.isLoading(CMINI_ANALYZER));
 	const cyanophageLoading = $derived(
@@ -267,7 +283,7 @@
 	}
 
 	$effect(() => {
-		if (!uiPrefs.hydrated || analyzerPrefsInitialized) return;
+		if (localPreview || !uiPrefs.hydrated || analyzerPrefsInitialized) return;
 		untrack(() => {
 			const persisted = uiPrefs.layoutDetailStatsAnalyzers;
 			if (persisted === null) {
@@ -286,7 +302,7 @@
 	});
 
 	$effect(() => {
-		if (!analyzerPrefsInitialized) return;
+		if (localPreview || !analyzerPrefsInitialized) return;
 		const missing = STAT_ANALYZERS.flatMap(({ value }) => {
 			if (value === CMINI_ANALYZER && showCmini && !hasAnalyzerData(value)) return [value];
 			if (value === CYANOPHAGE_ANALYZER && showCyanophage && !hasAnalyzerData(value))
@@ -400,7 +416,9 @@
 		compactCyanophageStats={cyanophageCompact}
 		compactMana2Stats={mana2Compact}
 		statsAnalyzer={summaryStatsAnalyzer}
-		onStatsAnalyzerChange={(analyzer) => (summaryStatsAnalyzer = analyzer)}
+		onStatsAnalyzerChange={localPreview
+			? undefined
+			: (analyzer) => (summaryStatsAnalyzer = analyzer)}
 		{inputProfile}
 		{disabledMappingIds}
 		{onDisabledMappingIdsChange}
@@ -408,6 +426,7 @@
 		showAnglemodAction
 		onAnglemodTransformChange={(active) => (anglemodTransformActive = active)}
 		variant="summary"
+		statsUnavailableDetail={localPreview ? statsUnavailableDetail : undefined}
 	/>
 	<nav class="layout-detail-links" aria-label={`${layout.name} external links`}>
 		{#if cyanophageUrl}
@@ -418,12 +437,14 @@
 				<span aria-hidden="true">↗</span>
 			</a>
 		{/if}
-		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-		<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
-			See more stats on cminibrowser
-			<span aria-hidden="true">↗</span>
-		</a>
+		{#if !localPreview}
+			<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
+				See more stats on cminibrowser
+				<span aria-hidden="true">↗</span>
+			</a>
+		{/if}
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
@@ -443,7 +464,7 @@
 			<div class="detail-main">
 				<div class="layout-detail-tabs-wrap">
 					<Tabs
-						value={activeSection}
+						value={resolvedSection}
 						onChange={onActiveSectionChange}
 						options={sections}
 						ariaLabel="Layout detail sections"
@@ -468,7 +489,7 @@
 					</Tabs>
 				</div>
 
-				{#if activeSection === 'practice'}
+				{#if resolvedSection === 'practice'}
 					<div
 						id={practicePanelId}
 						class="detail-practice-panel detail-panel-content"
@@ -487,7 +508,7 @@
 							{onPracticeLessonChange}
 						/>
 					</div>
-				{:else if activeSection === 'test'}
+				{:else if resolvedSection === 'test'}
 					<div
 						id={testPanelId}
 						class="detail-test-panel detail-panel-content"
@@ -518,7 +539,7 @@
 							options={testKeyboardOptions}
 						/>
 					</div>
-				{:else if activeSection === 'feel'}
+				{:else if resolvedSection === 'feel'}
 					<div
 						id={feelPanelId}
 						class="detail-feel-panel detail-panel-content"
@@ -537,7 +558,7 @@
 							{onPracticeLessonChange}
 						/>
 					</div>
-				{:else}
+				{:else if !localPreview}
 					<div
 						id={statsPanelId}
 						class="detail-stats-panel detail-panel-content"

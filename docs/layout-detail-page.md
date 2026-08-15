@@ -28,7 +28,8 @@ AI implementation context for the dedicated page that replaces the former expand
   to the index rather than leaving a blank page.
 - The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
   and `Stats`. The `tab` query parameter is their source of truth, including for direct links and
-  reloads; missing or invalid values default to Typing practice.
+  reloads; missing or invalid values default to Typing practice. Creator Preview reuses the same
+  expanded view without Stats or the cminibrowser link; see [`layout-creator.md`](./layout-creator.md).
 
 ## Data loading
 
@@ -194,7 +195,8 @@ small without weakening app-bar functionality.
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content, external links, corpus selector, and analyzer controls:
-  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/cminibrowser.ts`,
+  `src/lib/components/LayoutExpandedView.svelte` (`localPreview` for creator Preview),
+  `src/lib/cminibrowser.ts`,
   `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`

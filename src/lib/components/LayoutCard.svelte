@@ -109,6 +109,8 @@
 		/** Render the catalog-style anglemod action as the summary card's only action. */
 		showAnglemodAction?: boolean;
 		onAnglemodTransformChange?: (active: boolean) => void;
+		/** Replaces the analyzer-specific unavailable subtitle when stats are missing. */
+		statsUnavailableDetail?: string;
 	}
 
 	const {
@@ -138,7 +140,8 @@
 		variant = 'catalog',
 		anglemodTransformActive,
 		showAnglemodAction = false,
-		onAnglemodTransformChange
+		onAnglemodTransformChange,
+		statsUnavailableDetail
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
@@ -590,6 +593,7 @@
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}
 					wideFocusedLayout={variant === 'summary'}
+					unavailableDetail={statsUnavailableDetail}
 				/>
 				{#if variant === 'summary' && onStatsAnalyzerChange}
 					<div class="layout-card-analyzer-switch">

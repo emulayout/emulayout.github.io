@@ -8,10 +8,21 @@ import {
 	addMagicKeyToConfig,
 	createDefaultCreatorLayout,
 	createLayoutFromKeyConfig,
-	keyboardConfigGainedMagicTriggers
+	keyboardConfigGainedMagicTriggers,
+	nextDuplicatedLayoutName
 } from '../src/lib/layoutCreator';
 import { computeDisplayRows, displayRowsToString } from '../src/lib/layoutDisplay';
 import { createLayoutTestKeyMaps } from '../src/lib/layoutTestEmulator';
+
+describe('nextDuplicatedLayoutName', () => {
+	test('appends 2, or increments a trailing copy number', () => {
+		expect(nextDuplicatedLayoutName('My layout')).toBe('My layout 2');
+		expect(nextDuplicatedLayoutName('Vylet v5')).toBe('Vylet v5 2');
+		expect(nextDuplicatedLayoutName('Test 3')).toBe('Test 4');
+		expect(nextDuplicatedLayoutName('  Test 3  ')).toBe('Test 4');
+		expect(nextDuplicatedLayoutName('')).toBe('New layout 2');
+	});
+});
 
 describe('createDefaultCreatorLayout', () => {
 	test('starts from a stagger QWERTY canvas named New layout', () => {
