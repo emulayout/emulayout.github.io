@@ -185,6 +185,7 @@
 		aria-invalid={invalidSlots.includes(key.slot) || undefined}
 		data-keyboard-input-slot={key.slot}
 		data-keyboard-input-inert={key.inert ? 'true' : undefined}
+		size="1"
 		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
 		class:keyboard-input-editor__key--home={isHomeKey(key)}
 		class:keyboard-input-editor__key--invalid={invalidSlots.includes(key.slot)}
@@ -286,16 +287,11 @@
 		--editor-key-size: var(--keyboard-preview-key-size, clamp(2.25rem, 5vw, 3.25rem));
 		--editor-key-gap: var(--keyboard-preview-key-gap, clamp(0.25rem, 0.7vw, 0.5rem));
 		width: max-content;
-		min-width: 100%;
+		min-width: 0;
 	}
 
 	.keyboard-input-editor__rows[data-keyboard-type='ortho'] {
-		min-width: 0;
 		margin-inline: auto;
-	}
-
-	.keyboard-input-editor__rows[data-keyboard-type='staggered'] {
-		min-width: 0;
 	}
 
 	.keyboard-input-editor__row {
@@ -364,7 +360,9 @@
 	}
 
 	.keyboard-input-editor input {
+		box-sizing: border-box;
 		width: var(--editor-key-size);
+		min-width: 0;
 		height: var(--editor-key-size);
 		flex: none;
 		padding: 0;

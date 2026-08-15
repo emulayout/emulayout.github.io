@@ -18,6 +18,7 @@ import {
 	creatorMagicDraftHasEnabledMappings,
 	creatorMagicDraftHasMappings,
 	creatorMagicTriggerError,
+	creatorLayoutMissingKeys,
 	magicDraftFromSource,
 	magicSourceFromDraft
 } from '../src/lib/layoutCreatorMappings';
@@ -343,5 +344,46 @@ describe('compileCreatorInputProfile', () => {
 
 		expect(profile?.magicKeys?.triggers['*']?.fallback).toEqual({ kind: 'repeat-last' });
 		expect(profile?.magicKeys?.triggers['*']?.rules).toEqual([]);
+	});
+});
+
+describe('creatorLayoutMissingKeys', () => {
+	const alphabet = [...'abcdefghijklmnopqrstuvwxyz'];
+
+	function keysWithout(...removed: string[]): string[] {
+		const skip = new Set(removed);
+		return alphabet.filter((letter) => !skip.has(letter));
+	}
+
+	test('lists letters missing from the keyboard', () => {
+		expect(creatorLayoutMissingKeys(undefined, keysWithout('s'))).toEqual(['s']);
+	});
+
+	test('covers a missing letter with magic emit only when the trigger is on the keyboard', () => {
+		const magicDraft = createEmptyCreatorMagicDraft();
+		magicDraft.sections[0].trigger = '*';
+		magicDraft.sections[0].rules = [{ ...createCreatorMagicRule(), after: 't', emit: 's' }];
+
+		expect(creatorLayoutMissingKeys(magicDraft, [...keysWithout('s'), '*'])).toEqual([]);
+		expect(creatorLayoutMissingKeys(magicDraft, keysWithout('s'))).toEqual(['s']);
+	});
+
+	test('covers a missing letter with a magic emit fallback', () => {
+		const magicDraft = createEmptyCreatorMagicDraft();
+		magicDraft.sections[0] = {
+			...magicDraft.sections[0],
+			rules: [],
+			fallbackKind: 'emit',
+			fallbackEmit: 's'
+		};
+
+		expect(creatorLayoutMissingKeys(magicDraft, [...keysWithout('s'), '*'])).toEqual([]);
+	});
+
+	test('does not warn about a magic trigger that is not on the keyboard', () => {
+		const magicDraft = createEmptyCreatorMagicDraft();
+		magicDraft.sections[0].trigger = '#';
+
+		expect(creatorLayoutMissingKeys(magicDraft, alphabet)).toEqual([]);
 	});
 });

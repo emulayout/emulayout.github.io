@@ -5,12 +5,14 @@
 	import type { PathnameWithSearchOrHash } from '$app/types';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
+	import DeleteSavedLayoutModal from '$lib/components/DeleteSavedLayoutModal.svelte';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
 		createHistoryTarget,
 		isRouterNotReadyError,
@@ -19,6 +21,7 @@
 	import {
 		clearKeyboardInputConfig,
 		createKeyboardInputConfigFromLayout,
+		keyboardInputEditorWidthTerms,
 		type InputKeyboardType,
 		type KeyboardInputConfig
 	} from '$lib/keyboardInputConfig';
@@ -42,6 +45,7 @@
 		creatorDraftsFromSupplemental,
 		creatorMagicDraftHasEnabledMappings,
 		creatorMagicDraftHasMappings,
+		creatorLayoutMissingKeys,
 		ensureCreatorMagicTrigger,
 		type CreatorAdaptiveDraft,
 		type CreatorMagicDraft
@@ -53,6 +57,7 @@
 		loadSavedLayouts,
 		mergeSavedLayouts,
 		persistSavedLayouts,
+		removeSavedLayout,
 		resolveCreatorSession,
 		SAVED_LAYOUTS_STORAGE_KEY,
 		savedCreatorLayoutName,
@@ -86,7 +91,7 @@
 	let activeSavedId = $state<string | null>(initialSession.savedId);
 	let layoutNameDraft = $state(initialSession.snapshot.name);
 	let layoutPreview = $state(initialSession.snapshot.preview);
-	let disabledMappingIds = $state<string[]>([]);
+	let disabledMappingIds = $state<string[]>([...initialSession.snapshot.disabledMappingIds]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
 	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
 	let magicPanelOpen = $state(initialSession.snapshot.includeMagicKey);
@@ -97,6 +102,8 @@
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let saveMenuOpen = $state(false);
 	let saveError = $state<string | null>(null);
+	let deleteSavedLayoutId = $state<string | null>(null);
+	let deleteSavedLayoutName = $state('');
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
@@ -142,7 +149,11 @@
 		)
 	);
 	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen);
+	const missingLetters = $derived(
+		creatorLayoutMissingKeys(includeMagicKey ? magicDraft : undefined, availableLayoutKeys)
+	);
 	const showPreviewMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
+	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
 	const displayRows = $derived(computeDisplayRows(layout));
 	const displayValue = $derived(displayRowsToString(displayRows));
 	const testKeyMaps = $derived(
@@ -166,6 +177,9 @@
 			...savedTabs
 		];
 	});
+	const savedLayoutByValue = $derived(
+		new Map(savedLayouts.map((saved) => [savedCreatorTabValue(saved.id), saved] as const))
+	);
 
 	let baseLayoutSeed = 0;
 
@@ -200,7 +214,8 @@
 			magicDraft,
 			adaptiveDraft,
 			keyConfig,
-			practiceLesson
+			practiceLesson,
+			disabledMappingIds
 		};
 	}
 
@@ -226,7 +241,7 @@
 		adaptiveDraft = next.adaptiveDraft;
 		keyConfig = next.keyConfig;
 		practiceLesson = next.practiceLesson;
-		disabledMappingIds = [];
+		disabledMappingIds = [...next.disabledMappingIds];
 		saveError = null;
 	}
 
@@ -249,6 +264,11 @@
 	function handleSavedLayoutsStorage(event: StorageEvent) {
 		if (event.key !== SAVED_LAYOUTS_STORAGE_KEY && event.key !== null) return;
 		savedLayouts = loadSavedLayouts();
+		if (activeSavedId && !findSavedLayout(savedLayouts, activeSavedId)) {
+			activeSavedId = null;
+			applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+			flushCreatorUrl();
+		}
 	}
 
 	function flushCreatorUrl() {
@@ -473,6 +493,57 @@
 		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
 		flushCreatorUrl();
 	}
+
+	function requestDeleteSavedLayout(id: string, name: string) {
+		deleteSavedLayoutId = id;
+		deleteSavedLayoutName = name;
+	}
+
+	function closeDeleteSavedLayoutModal() {
+		deleteSavedLayoutId = null;
+		deleteSavedLayoutName = '';
+		requestAnimationFrame(() => {
+			document
+				.querySelector<HTMLElement>('.layout-creator-tabs [role="tab"][aria-selected="true"]')
+				?.focus();
+		});
+	}
+
+	function handleSavedTabKeydown(
+		event: KeyboardEvent,
+		saved: SavedCreatorLayout,
+		handleTabKeydown: (event: KeyboardEvent) => void
+	) {
+		if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			requestDeleteSavedLayout(saved.id, saved.id === activeSavedId ? layoutName : saved.name);
+			return;
+		}
+		handleTabKeydown(event);
+	}
+
+	function confirmDeleteSavedLayout() {
+		if (!deleteSavedLayoutId) return;
+		const id = deleteSavedLayoutId;
+		const wasActive = activeSavedId === id;
+		const result = removeSavedLayout(savedLayoutsForWrite(), id);
+		if (!result.removed) {
+			closeDeleteSavedLayoutModal();
+			return;
+		}
+		if (!persistSavedLayouts(result.layouts)) {
+			saveError = 'Unable to delete this layout in your browser.';
+			closeDeleteSavedLayoutModal();
+			return;
+		}
+		savedLayouts = result.layouts;
+		saveError = null;
+		closeDeleteSavedLayoutModal();
+		if (!wasActive) return;
+		activeSavedId = null;
+		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		flushCreatorUrl();
+	}
 </script>
 
 <svelte:head>
@@ -491,18 +562,59 @@
 			class="layout-creator-tabs"
 		>
 			{#snippet item({ option, selected, tabProps })}
-				<button
-					{...tabProps}
-					class="layout-creator-tab"
-					class:layout-creator-tab--selected={selected}
-				>
-					{option.label}
-				</button>
+				{@const saved = savedLayoutByValue.get(option.value)}
+				{#if saved}
+					<div class="layout-creator-saved" class:layout-creator-saved--selected={selected}>
+						<button
+							{...tabProps}
+							aria-label={`${option.label}. Press Delete to delete this layout.`}
+							onkeydown={(event) => handleSavedTabKeydown(event, saved, tabProps.onkeydown)}
+							class="layout-creator-tab layout-creator-tab--saved"
+							class:layout-creator-tab--selected={selected}
+						>
+							<span class="layout-creator-tab-label">{option.label}</span>
+						</button>
+						<!-- Pointer shortcut; the focused tab exposes the same action via Delete/Backspace. -->
+						<span
+							class="layout-creator-tab-delete"
+							aria-hidden="true"
+							title={`Delete layout ${saved.id === activeSavedId ? layoutName : saved.name}`}
+							onclick={(event) => {
+								event.stopPropagation();
+								requestDeleteSavedLayout(
+									saved.id,
+									saved.id === activeSavedId ? layoutName : saved.name
+								);
+							}}
+						>
+							<svg
+								class="layout-creator-tab-delete-icon"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								aria-hidden="true"
+							>
+								<path d="M18 6L6 18M6 6l12 12" />
+							</svg>
+						</span>
+					</div>
+				{:else}
+					<button
+						{...tabProps}
+						class="layout-creator-tab"
+						class:layout-creator-tab--selected={selected}
+					>
+						{option.label}
+					</button>
+				{/if}
 			{/snippet}
 		</Tabs>
-		<button type="button" class="layout-creator-new" onclick={startNewLayout}>
-			+ New layout
-		</button>
+		{#if savedLayouts.length > 0}
+			<button type="button" class="layout-creator-new" onclick={startNewLayout}>
+				+ New layout
+			</button>
+		{/if}
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
@@ -526,47 +638,47 @@
 			</div>
 		{/snippet}
 
-		{#snippet creatorKeyboard()}
-			<div class="layout-creator-keyboard">
-				<div class="layout-creator-keyboard-fields">
-					<div class="layout-creator-keyboard-field">
-						<span id="layout-creator-base-label">Base layout (optional)</span>
-						<LayoutAutocomplete
-							layouts={layoutsCatalog.layouts}
-							id="layout-creator-base"
-							label="Base layout (optional)"
-							placeholder="Search layouts…"
-							selected={keyConfig.baseLayoutName}
-							onSelect={selectBaseLayout}
-							onClear={clearBaseLayout}
-							loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
-						/>
-						{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
-							<p class="layout-creator-keyboard-error" role="alert">
-								Unable to load the layout catalog.
-							</p>
-						{/if}
-					</div>
-
-					<label class="layout-creator-keyboard-field">
-						<span>Keyboard type</span>
-						<select
-							value={keyConfig.keyboardType}
-							onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
-						>
-							<option value="ortho">Ortho</option>
-							<option value="staggered">Staggered</option>
-						</select>
-					</label>
+		{#snippet creatorKeyboardLead()}
+			<div class="layout-creator-keyboard-fields">
+				<div class="layout-creator-keyboard-field">
+					<span id="layout-creator-base-label">Base layout (optional)</span>
+					<LayoutAutocomplete
+						layouts={layoutsCatalog.layouts}
+						id="layout-creator-base"
+						label="Base layout (optional)"
+						placeholder="Search layouts…"
+						selected={keyConfig.baseLayoutName}
+						onSelect={selectBaseLayout}
+						onClear={clearBaseLayout}
+						loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
+					/>
+					{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
+						<p class="layout-creator-keyboard-error" role="alert">
+							Unable to load the layout catalog.
+						</p>
+					{/if}
 				</div>
 
-				<KeyboardInputEditor
-					config={keyConfig}
-					showPlaceholders={false}
-					ariaLabel="Layout keys"
-					onConfigChange={setKeyConfig}
-				/>
+				<label class="layout-creator-keyboard-field">
+					<span>Keyboard type</span>
+					<select
+						value={keyConfig.keyboardType}
+						onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
+					>
+						<option value="ortho">Ortho</option>
+						<option value="staggered">Staggered</option>
+					</select>
+				</label>
 			</div>
+		{/snippet}
+
+		{#snippet creatorKeyboard()}
+			<KeyboardInputEditor
+				config={keyConfig}
+				showPlaceholders={false}
+				ariaLabel="Layout keys"
+				onConfigChange={setKeyConfig}
+			/>
 		{/snippet}
 
 		{#snippet creatorAside()}
@@ -631,6 +743,25 @@
 			{/if}
 		{/snippet}
 
+		{#snippet creatorKeyboardBelow()}
+			{#if missingLetters.length > 0}
+				<div class="layout-creator-missing-keys" role="status" data-creator-missing-mapping-keys>
+					<Tooltip
+						variant="caution"
+						text="This layout is missing these letters. A Magic mapping can cover a letter if its trigger is on the keyboard and it emits that letter."
+					/>
+					<p>
+						<span>Missing from this layout:</span>
+						<span class="layout-creator-missing-keys__list">
+							{#each missingLetters as key (key)}
+								<kbd>{key}</kbd>
+							{/each}
+						</span>
+					</p>
+				</div>
+			{/if}
+		{/snippet}
+
 		{#key activeTab}
 			<LayoutTypingPractice
 				{layout}
@@ -644,7 +775,10 @@
 				onPracticeLessonChange={setPracticeLesson}
 				keyboardHeaderStart={creatorHeaderStart}
 				keyboard={layoutPreview ? undefined : creatorKeyboard}
+				keyboardLead={layoutPreview ? undefined : creatorKeyboardLead}
+				keyboardWidthTerms={layoutPreview ? undefined : editorWidthTerms}
 				keyboardAside={layoutPreview ? undefined : creatorAside}
+				keyboardBelow={creatorKeyboardBelow}
 				keyboardMappings={layoutPreview ? undefined : creatorMappings}
 			/>
 		{/key}
@@ -768,6 +902,13 @@
 	</div>
 </div>
 
+<DeleteSavedLayoutModal
+	open={deleteSavedLayoutId !== null}
+	layoutName={deleteSavedLayoutName}
+	onClose={closeDeleteSavedLayoutModal}
+	onConfirm={confirmDeleteSavedLayout}
+/>
+
 <style>
 	.layout-creator {
 		display: flex;
@@ -835,6 +976,69 @@
 		transition:
 			color 0.15s ease,
 			border-color 0.15s ease;
+	}
+
+	.layout-creator-tab--saved {
+		padding-right: 0.25rem;
+	}
+
+	.layout-creator-saved {
+		display: inline-flex;
+		align-items: center;
+		flex: 0 0 auto;
+		margin-bottom: -1px;
+		border-bottom: 2px solid transparent;
+		min-width: 0;
+	}
+
+	.layout-creator-saved--selected {
+		border-bottom-color: var(--accent);
+	}
+
+	.layout-creator-saved .layout-creator-tab {
+		margin-bottom: 0;
+		border-bottom: none;
+	}
+
+	.layout-creator-tab-label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 10rem;
+	}
+
+	.layout-creator-tab-delete {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 1.25rem;
+		height: 1.25rem;
+		margin-right: 0.25rem;
+		padding: 0;
+		border: none;
+		border-radius: 0.25rem;
+		background: transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease;
+	}
+
+	.layout-creator-tab-delete:hover {
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 10%, transparent);
+	}
+
+	.layout-creator-tab-delete:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.layout-creator-tab-delete-icon {
+		width: 0.875rem;
+		height: 0.875rem;
 	}
 
 	.layout-creator-tab:hover {
@@ -1049,13 +1253,6 @@
 		white-space: nowrap;
 	}
 
-	.layout-creator-keyboard {
-		display: flex;
-		min-width: 0;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
 	.layout-creator-keyboard-fields {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.45fr);
@@ -1101,7 +1298,7 @@
 	.layout-creator-special-keys {
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
+		justify-content: flex-start;
 		gap: 1rem;
 	}
 
@@ -1217,6 +1414,51 @@
 
 	.layout-creator-special-key--adaptive-data:hover .layout-creator-special-key__cap {
 		border-color: color-mix(in srgb, var(--adaptive-key) 55%, var(--border));
+	}
+
+	.layout-creator-missing-keys {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		min-width: 0;
+		max-width: 100%;
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		line-height: 1.4;
+	}
+
+	.layout-creator-missing-keys p {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 0.35rem;
+		min-width: 0;
+		flex: 1 1 auto;
+		margin: 0;
+	}
+
+	.layout-creator-missing-keys__list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		min-width: 0;
+		flex: 1 1 8rem;
+	}
+
+	.layout-creator-missing-keys kbd {
+		display: inline-flex;
+		min-width: 1.35rem;
+		min-height: 1.35rem;
+		align-items: center;
+		justify-content: center;
+		padding: 0.1rem 0.3rem;
+		border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+		border-radius: 0.3rem;
+		background: color-mix(in srgb, var(--warning) 12%, var(--bg-primary));
+		color: var(--text-primary);
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		font-weight: 600;
 	}
 
 	@media (max-width: 40rem) {

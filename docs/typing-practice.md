@@ -85,7 +85,10 @@ and calculation logic outside the renderer.
   stays centered. At intermediate widths the mappings column narrows and presents one mapping per
   line. The keyboard derives its intrinsic width from the current board's actual row geometry and
   retains full-size keys until that board no longer fits beside the mappings or within the stacked
-  region; only then does it scale down. Regions without room for both columns place that compact
+  region; only then does it scale down. Sparse boards still include the 10 keys on each letter row
+  and empty keycaps for gaps between assigned letters, so a one-key creator preview keeps that
+  width.
+  Regions without room for both columns place that compact
   mappings panel beneath the keyboard and expand it to the full width of the shared keyboard area.
   At phone widths the keys and gaps continue scaling with the practice region, keeping the full
   keyboard inside the detail column instead of widening the page.
@@ -201,6 +204,7 @@ The successful-space path is intentionally ordered:
   `src/lib/layoutKeyReachability.ts`
 - Shared responsive keyboard, options, and mappings workspace:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
+- Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`

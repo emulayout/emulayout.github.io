@@ -1,8 +1,10 @@
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
 import {
 	cloneCreatorUrlSnapshot,
-	creatorUrlSnapshotSignature,
+	creatorUrlContentEqual,
 	creatorUrlHasDraftParams,
+	creatorUrlSnapshotSignature,
+	readCreatorPreviewFlag,
 	readCreatorSavedId,
 	readCreatorUrlSnapshot,
 	type CreatorUrlSnapshot
@@ -184,6 +186,17 @@ export function addSavedLayout(
 	};
 }
 
+export function removeSavedLayout(
+	layouts: readonly SavedCreatorLayout[],
+	id: string
+): { layouts: SavedCreatorLayout[]; removed: boolean } {
+	const next = layouts.filter((entry) => entry.id !== id);
+	return {
+		layouts: next,
+		removed: next.length !== layouts.length
+	};
+}
+
 export function updateSavedLayout(
 	layouts: readonly SavedCreatorLayout[],
 	id: string,
@@ -214,7 +227,9 @@ export function resolveCreatorSession(
 	if (creatorUrlHasDraftParams(searchParams)) {
 		return { snapshot: readCreatorUrlSnapshot(searchParams), savedId: saved.id };
 	}
-	return { snapshot: cloneCreatorUrlSnapshot(saved.snapshot), savedId: saved.id };
+	const snapshot = cloneCreatorUrlSnapshot(saved.snapshot);
+	snapshot.preview = readCreatorPreviewFlag(searchParams);
+	return { snapshot, savedId: saved.id };
 }
 
 export function isSavedLayoutDirty(
@@ -222,5 +237,5 @@ export function isSavedLayoutDirty(
 	saved: SavedCreatorLayout | undefined
 ): boolean {
 	if (!saved) return false;
-	return creatorUrlSnapshotSignature(snapshot) !== creatorUrlSnapshotSignature(saved.snapshot);
+	return !creatorUrlContentEqual(snapshot, saved.snapshot);
 }

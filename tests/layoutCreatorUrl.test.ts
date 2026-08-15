@@ -171,6 +171,19 @@ describe('creator URL state', () => {
 		});
 	});
 
+	test('round-trips disabled special mappings and treats them as a draft change', () => {
+		const disabledMappingIds = ['["magic-fallback","*"]', '["adaptive-rule","","l","y","j"]'];
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			disabledMappingIds
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.has('off')).toBe(true);
+		expect(roundTrip(snapshot).disabledMappingIds).toEqual([...disabledMappingIds].sort());
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('off')).toBe(false);
+	});
+
 	test('stores feature flags without mapping payloads for empty drafts', () => {
 		const snapshot: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),

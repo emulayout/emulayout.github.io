@@ -1,4 +1,9 @@
+import type { Locator } from '@playwright/test';
 import { expect, test } from './fixtures/test';
+
+function savedLayoutTab(creations: Locator, name: string): Locator {
+	return creations.getByRole('tab', { name: `${name}. Press Delete to delete this layout.` });
+}
 
 test('opens the layout creator from the app bar with practice and keyboard chrome', async ({
 	page
@@ -22,7 +27,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	const newLayoutTab = creations.getByRole('tab', { name: 'New layout', exact: true });
 	await expect(newLayoutTab).toHaveAttribute('aria-selected', 'true');
 	await expect(newLayoutTab).toHaveAttribute('aria-controls', 'layout-creator-panel');
-	await expect(page.getByRole('button', { name: '+ New layout' })).toBeVisible();
+	await expect(page.getByRole('button', { name: '+ New layout' })).toHaveCount(0);
 
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(panel).toBeVisible();
@@ -58,6 +63,26 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toBeVisible();
+	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toHaveCount(0);
+});
+
+test('warns when a letter is missing from the layout', async ({ page }) => {
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	const warning = panel.locator('[data-creator-missing-mapping-keys]');
+	await expect(warning).toHaveCount(0);
+
+	await panel.getByRole('textbox', { name: 'Row 2, key 2', exact: true }).fill('');
+	await expect(warning).toBeVisible();
+	await expect(warning.getByText('Missing from this layout:')).toBeVisible();
+	await expect(warning.locator('kbd')).toHaveText('s');
+
+	await panel.getByRole('textbox', { name: 'Row 2, key 2', exact: true }).fill('s');
+	await expect(warning).toHaveCount(0);
+
+	await panel.getByRole('button', { name: 'Add magic' }).click();
+	await panel.getByRole('textbox', { name: 'Magic trigger' }).fill('#');
+	await expect(warning).toHaveCount(0);
 });
 
 test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ page }) => {
@@ -240,25 +265,16 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
 
 	await expect(creations.getByRole('tab')).toHaveCount(2);
-	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toHaveAttribute(
-		'aria-selected',
-		'false'
-	);
-	await expect(creations.getByRole('tab', { name: 'Alpha edited', exact: true })).toHaveAttribute(
-		'aria-selected',
-		'true'
-	);
+	await expect(savedLayoutTab(creations, 'Alpha')).toHaveAttribute('aria-selected', 'false');
+	await expect(savedLayoutTab(creations, 'Alpha edited')).toHaveAttribute('aria-selected', 'true');
 	await expect(editedPanel.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
 
-	await creations.getByRole('tab', { name: 'Alpha', exact: true }).click();
+	await savedLayoutTab(creations, 'Alpha').click();
 	const restoredAlpha = page.getByRole('tabpanel', { name: 'Alpha' });
 	await expect(restoredAlpha.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha');
-	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toHaveAttribute(
-		'aria-selected',
-		'true'
-	);
+	await expect(savedLayoutTab(creations, 'Alpha')).toHaveAttribute('aria-selected', 'true');
 
-	await creations.getByRole('tab', { name: 'Alpha edited', exact: true }).click();
+	await savedLayoutTab(creations, 'Alpha edited').click();
 	await expect(
 		page
 			.getByRole('tabpanel', { name: 'Alpha edited' })
@@ -270,11 +286,36 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 		'aria-selected',
 		'true'
 	);
-	await expect(creations.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
-	await expect(creations.getByRole('tab', { name: 'Alpha edited', exact: true })).toBeVisible();
+	await expect(savedLayoutTab(creations, 'Alpha')).toBeVisible();
+	await expect(savedLayoutTab(creations, 'Alpha edited')).toBeVisible();
 	await expect(
 		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('button', { name: 'Save layout' })
 	).toBeVisible();
+});
+
+test('restores an unchecked Adaptive swap after saving and reloading', async ({ page }) => {
+	await page.goto('/create');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Disabled swap');
+	const namedPanel = page.getByRole('tabpanel', { name: 'Disabled swap' });
+	await namedPanel.getByRole('button', { name: 'Add adaptive' }).click();
+	await namedPanel.getByRole('textbox', { name: 'Trigger' }).fill('l');
+	await namedPanel.getByRole('textbox', { name: 'Left' }).fill('y');
+	await namedPanel.getByRole('textbox', { name: 'Right' }).fill('j');
+	const enableMapping = namedPanel.getByRole('checkbox', { name: 'Enable mapping' });
+	await expect(enableMapping).toBeChecked();
+	await enableMapping.uncheck();
+	await namedPanel.getByRole('button', { name: 'Save layout' }).click();
+
+	await expect(page).toHaveURL(/\/create\?id=/);
+	await expect(namedPanel.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
+
+	await page.reload();
+	const restored = page.getByRole('tabpanel', { name: 'Disabled swap' });
+	await expect(restored.getByRole('checkbox', { name: 'Enable mapping' })).not.toBeChecked();
+	await expect(restored.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
+	await expect(restored.getByRole('button', { name: 'Update layout' })).toHaveCount(0);
 });
 
 test('keeps a recoverable URL when browser storage rejects a save', async ({ page }) => {
@@ -307,11 +348,54 @@ test('merges saved layouts created in two open tabs', async ({ page, context }) 
 
 	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
 	await page.getByRole('button', { name: 'Save layout' }).click();
-	await expect(secondPage.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
+	await expect(
+		savedLayoutTab(secondPage.getByRole('tablist', { name: 'Layout creations' }), 'Alpha')
+	).toBeVisible();
 
 	await secondPage.getByRole('textbox', { name: 'Layout name' }).fill('Beta');
 	await secondPage.getByRole('button', { name: 'Save layout' }).click();
-	await expect(secondPage.getByRole('tab', { name: 'Alpha', exact: true })).toBeVisible();
-	await expect(secondPage.getByRole('tab', { name: 'Beta', exact: true })).toBeVisible();
-	await expect(page.getByRole('tab', { name: 'Beta', exact: true })).toBeVisible();
+	const firstCreations = page.getByRole('tablist', { name: 'Layout creations' });
+	const secondCreations = secondPage.getByRole('tablist', { name: 'Layout creations' });
+	await expect(savedLayoutTab(secondCreations, 'Alpha')).toBeVisible();
+	await expect(savedLayoutTab(secondCreations, 'Beta')).toBeVisible();
+	await expect(savedLayoutTab(firstCreations, 'Beta')).toBeVisible();
+});
+
+test('deletes a saved layout from its tab', async ({ page }) => {
+	await page.goto('/create');
+	const creations = page.getByRole('tablist', { name: 'Layout creations' });
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await page.getByRole('button', { name: 'Save layout' }).click();
+	await expect(savedLayoutTab(creations, 'Alpha')).toHaveAttribute('aria-selected', 'true');
+
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Beta');
+	await page.getByRole('button', { name: 'More save options' }).click();
+	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
+	await expect(savedLayoutTab(creations, 'Beta')).toHaveAttribute('aria-selected', 'true');
+
+	await savedLayoutTab(creations, 'Alpha').focus();
+	await savedLayoutTab(creations, 'Alpha').press('Delete');
+	const dialog = page.getByRole('dialog', { name: 'Delete layout' });
+	await expect(dialog).toContainText('Delete Alpha?');
+	await dialog.getByRole('button', { name: 'Delete' }).click();
+	await expect(dialog).toHaveCount(0);
+	await expect(savedLayoutTab(creations, 'Alpha')).toHaveCount(0);
+	await expect(savedLayoutTab(creations, 'Beta')).toHaveAttribute('aria-selected', 'true');
+
+	await savedLayoutTab(creations, 'Beta').press('Delete');
+	await page
+		.getByRole('dialog', { name: 'Delete layout' })
+		.getByRole('button', { name: 'Delete' })
+		.click();
+	await expect(creations.getByRole('tab', { name: 'New layout', exact: true })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(page).toHaveURL('/create');
+	await expect(
+		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('button', { name: 'Save layout' })
+	).toBeVisible();
+	await expect(page.getByRole('button', { name: '+ New layout' })).toHaveCount(0);
 });

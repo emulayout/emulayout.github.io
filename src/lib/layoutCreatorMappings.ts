@@ -337,6 +337,55 @@ export function creatorAdaptiveDraftErrors(
 	return errors;
 }
 
+const ENGLISH_LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+
+function addEnglishLetters(target: Set<string>, value: string) {
+	for (const character of value.toLowerCase()) {
+		if (character >= 'a' && character <= 'z') target.add(character);
+	}
+}
+
+/** Letters a Magic draft can produce when its trigger is on the keyboard. */
+function magicEmittedLetters(
+	draft: CreatorMagicDraft,
+	availableKeys: readonly string[]
+): Set<string> {
+	const letters = new Set<string>();
+	for (const section of draft.sections) {
+		if (creatorMagicTriggerError(section.trigger, availableKeys)) continue;
+		for (const rule of section.rules) {
+			if (!rule.after.trim() || !rule.emit.trim()) continue;
+			addEnglishLetters(letters, rule.emit);
+		}
+		if (section.fallbackKind === 'emit' && section.fallbackEmit.trim()) {
+			addEnglishLetters(letters, section.fallbackEmit);
+		}
+	}
+	return letters;
+}
+
+/**
+ * A–Z letters that are not on the keyboard and are not produced by a Magic
+ * mapping whose trigger is on the keyboard.
+ */
+export function creatorLayoutMissingKeys(
+	magicDraft: CreatorMagicDraft | undefined,
+	availableKeys: readonly string[]
+): string[] {
+	const covered = new Set(availableKeys.map((key) => key.toLowerCase()));
+	if (magicDraft) {
+		for (const letter of magicEmittedLetters(magicDraft, availableKeys)) {
+			covered.add(letter);
+		}
+	}
+
+	const missing: string[] = [];
+	for (const letter of ENGLISH_LETTERS) {
+		if (!covered.has(letter)) missing.push(letter);
+	}
+	return missing;
+}
+
 function mappingsFromAdaptiveRules(
 	rules: readonly CreatorAdaptiveRule[],
 	availableKeys: ReadonlySet<string> | null,

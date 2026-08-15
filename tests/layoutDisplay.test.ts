@@ -1,10 +1,33 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	clearKeyboardInputConfig,
+	createDefaultKeyboardInputConfig,
+	updateKeyboardInputKey,
+	type KeyboardInputConfig
+} from '../src/lib/keyboardInputConfig';
+import { createLayoutFromKeyConfig } from '../src/lib/layoutCreator';
+import {
 	ansiThumbDisplayColumn,
 	ansiThumbOffsetCss,
+	computeDisplayRows,
+	fillPreviewKeyboardRows,
 	splitThumbDisplayKeys,
-	thumbTargetColumns
+	thumbTargetColumns,
+	type DisplayCell
 } from '../src/lib/layoutDisplay';
+
+function previewRowsFromConfig(
+	update: (config: KeyboardInputConfig) => KeyboardInputConfig
+): DisplayCell[][] {
+	const layout = createLayoutFromKeyConfig(update(createDefaultKeyboardInputConfig()));
+	return fillPreviewKeyboardRows(computeDisplayRows(layout));
+}
+
+function slottedRow(rows: DisplayCell[][], rowNumber: number): DisplayCell[] {
+	return (
+		rows.find((row) => row.some((cell) => cell.slot?.startsWith(`${rowNumber},`))) ?? []
+	).filter((cell): cell is DisplayCell & { slot: string } => cell.slot !== null);
+}
 
 describe('thumbTargetColumns', () => {
 	test('places a single pair under the index-finger columns with a gap between them', () => {
@@ -50,5 +73,81 @@ describe('splitThumbDisplayKeys', () => {
 		expect(split.right).toEqual([{ char: 'e', slot: '3,1' }]);
 		expect(thumbTargetColumns('left', split.left.length)).toEqual([3]);
 		expect(thumbTargetColumns('right', split.right.length)).toEqual([6]);
+	});
+});
+
+function emptyLetterRow(row: number): DisplayCell[] {
+	return Array.from({ length: 10 }, (_, col) => ({ char: '', slot: `${row},${col}` }));
+}
+
+describe('fillPreviewKeyboardRows', () => {
+	test('places empty keys around a lone letter so it keeps its column', () => {
+		const rows = previewRowsFromConfig((config) =>
+			updateKeyboardInputKey(clearKeyboardInputConfig(config), '0,2', 'e')
+		);
+
+		expect(slottedRow(rows, 0)).toEqual([
+			{ char: '', slot: '0,0' },
+			{ char: '', slot: '0,1' },
+			{ char: 'e', slot: '0,2' },
+			...emptyLetterRow(0).slice(3)
+		]);
+		expect(slottedRow(rows, 1)).toEqual(emptyLetterRow(1));
+		expect(slottedRow(rows, 2)).toEqual(emptyLetterRow(2));
+	});
+
+	test('fills an unassigned key between letters and pads the letter row to 10', () => {
+		const rows = previewRowsFromConfig((config) => {
+			const cleared = clearKeyboardInputConfig(config);
+			return updateKeyboardInputKey(updateKeyboardInputKey(cleared, '0,0', 'q'), '0,2', 'e');
+		});
+
+		expect(slottedRow(rows, 0)).toEqual([
+			{ char: 'q', slot: '0,0' },
+			{ char: '', slot: '0,1' },
+			{ char: 'e', slot: '0,2' },
+			...emptyLetterRow(0).slice(3)
+		]);
+	});
+
+	test('keeps a complete home row unchanged', () => {
+		const rows = previewRowsFromConfig((config) => config);
+
+		expect(slottedRow(rows, 1).slice(0, 10)).toEqual([
+			{ char: 'a', slot: '1,0' },
+			{ char: 's', slot: '1,1' },
+			{ char: 'd', slot: '1,2' },
+			{ char: 'f', slot: '1,3' },
+			{ char: 'g', slot: '1,4' },
+			{ char: 'h', slot: '1,5' },
+			{ char: 'j', slot: '1,6' },
+			{ char: 'k', slot: '1,7' },
+			{ char: 'l', slot: '1,8' },
+			{ char: ';', slot: '1,9' }
+		]);
+	});
+
+	test('does not invent empty thumb keys', () => {
+		const rows = previewRowsFromConfig((config) =>
+			updateKeyboardInputKey(clearKeyboardInputConfig(config), '3,0', 'e')
+		);
+
+		expect(slottedRow(rows, 3)).toEqual([{ char: 'e', slot: '3,0' }]);
+	});
+
+	test('shows the three letter rows on an empty board', () => {
+		expect(fillPreviewKeyboardRows([])).toEqual([
+			emptyLetterRow(0),
+			emptyLetterRow(1),
+			emptyLetterRow(2)
+		]);
+	});
+
+	test('is unchanged when applied twice', () => {
+		const once = previewRowsFromConfig((config) =>
+			updateKeyboardInputKey(clearKeyboardInputConfig(config), '0,2', 'e')
+		);
+
+		expect(fillPreviewKeyboardRows(once)).toEqual(once);
 	});
 });

@@ -13,14 +13,24 @@
 		titleTooltip?: string;
 		/** Optional trailing content before the close button. */
 		actions?: Snippet;
+		/** Bottom border under the title. Omit for compact confirmations. */
+		divider?: boolean;
 	}
 
-	let { titleId, title = '', onClose, titleClass = '', titleTooltip, actions }: Props = $props();
+	let {
+		titleId,
+		title = '',
+		onClose,
+		titleClass = '',
+		titleTooltip,
+		actions,
+		divider = true
+	}: Props = $props();
 </script>
 
 <div
-	class="modal-header flex items-center justify-between gap-3 border-b px-5 py-4"
-	style="border-color: var(--border);"
+	class={['modal-header flex items-center justify-between gap-3 px-5 py-4', divider && 'border-b']}
+	style={divider ? 'border-color: var(--border);' : undefined}
 >
 	<h2
 		id={titleId}

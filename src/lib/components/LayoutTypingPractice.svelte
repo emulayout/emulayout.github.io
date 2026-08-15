@@ -5,6 +5,7 @@
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import TypingPracticeLessonModal from '$lib/components/TypingPracticeLessonModal.svelte';
+	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import type { LayoutData } from '$lib/layout';
 	import type { DisplayCell } from '$lib/layoutDisplay';
 	import {
@@ -72,8 +73,14 @@
 		keyboardHeaderStart?: Snippet;
 		keyboardHeaderEnd?: Snippet;
 		keyboard?: Snippet;
+		/** Sits above the keyboard, still in the preview column. */
+		keyboardLead?: Snippet;
+		/** When the editor is showing, size keys to its full slot grid. */
+		keyboardWidthTerms?: KeyboardWidthTerms;
 		/** Sits beside the keyboard in its own column, independent of mappings. */
 		keyboardAside?: Snippet;
+		/** Sits under the keyboard, before the option toggles. */
+		keyboardBelow?: Snippet;
 		/** Replaces the read-only mappings panel when provided. */
 		keyboardMappings?: Snippet;
 		/** Show `keyboardMappings` even before a compiled profile exists. */
@@ -93,7 +100,10 @@
 		keyboardHeaderStart,
 		keyboardHeaderEnd,
 		keyboard,
+		keyboardLead,
+		keyboardWidthTerms,
 		keyboardAside,
+		keyboardBelow,
 		keyboardMappings,
 		showKeyboardMappings = false
 	}: Props = $props();
@@ -403,7 +413,10 @@
 		{onDisabledMappingIdsChange}
 		showMappings={showKeyboardMappings || showSpecialMappings}
 		{keyboard}
+		{keyboardLead}
+		{keyboardWidthTerms}
 		aside={keyboardAside}
+		belowKeyboard={keyboardBelow}
 		mappings={keyboardMappings}
 	>
 		{#snippet above()}

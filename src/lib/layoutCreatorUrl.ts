@@ -37,6 +37,7 @@ export const CREATOR_KEYS_PARAM = 'keys';
 export const CREATOR_MAGIC_PARAM = 'magic';
 export const CREATOR_ADAPTIVE_PARAM = 'adaptive';
 export const CREATOR_PREVIEW_PARAM = 'preview';
+export const CREATOR_DISABLED_PARAM = 'off';
 const CREATOR_PREVIEW_PARAM_LEGACY = 'locked';
 
 const KEYS_VERSION = 'v1';
@@ -55,6 +56,7 @@ export type CreatorUrlSnapshot = {
 	adaptiveDraft: CreatorAdaptiveDraft;
 	keyConfig: KeyboardInputConfig;
 	practiceLesson: TypingPracticeLessonSettings;
+	disabledMappingIds: string[];
 };
 
 type MagicUrlSection = {
@@ -344,6 +346,24 @@ function writeMagicParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) 
 	);
 }
 
+export function normalizeDisabledMappingIds(ids: readonly string[]): string[] {
+	return [...new Set(ids.map((id) => id.trim()).filter(Boolean))].sort();
+}
+
+function writeDisabledParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
+	const ids = normalizeDisabledMappingIds(snapshot.disabledMappingIds ?? []);
+	if (ids.length === 0) return;
+	params.set(CREATOR_DISABLED_PARAM, encodeJsonParam(ids));
+}
+
+function readDisabledMappingIds(searchParams: URLSearchParams): string[] {
+	const raw = searchParams.get(CREATOR_DISABLED_PARAM);
+	if (!raw) return [];
+	const decoded = decodeJsonParam(raw);
+	if (!Array.isArray(decoded)) return [];
+	return normalizeDisabledMappingIds(decoded.filter((id): id is string => typeof id === 'string'));
+}
+
 function writeAdaptiveParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
 	if (!snapshot.includeAdaptiveKey) return;
 	if (isDefaultAdaptiveDraft(snapshot.adaptiveDraft)) {
@@ -373,7 +393,8 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 		magicDraft: createEmptyCreatorMagicDraft(),
 		adaptiveDraft: createEmptyCreatorAdaptiveDraft(),
 		keyConfig: createDefaultKeyboardInputConfig(),
-		practiceLesson: normalizeTypingPracticeLessonSettings(null)
+		practiceLesson: normalizeTypingPracticeLessonSettings(null),
+		disabledMappingIds: []
 	};
 }
 
@@ -401,6 +422,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 
 	writeMagicParam(params, snapshot);
 	writeAdaptiveParam(params, snapshot);
+	writeDisabledParam(params, snapshot);
 	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
 	if (snapshot.preview) params.set(CREATOR_PREVIEW_PARAM, ENABLED_FLAG);
 	return params;
@@ -421,6 +443,29 @@ export function creatorUrlSnapshotsEqual(
 	return creatorUrlSnapshotSignature(left) === creatorUrlSnapshotSignature(right);
 }
 
+/** Compare saved-layout content, ignoring Edit/Preview view state. */
+export function creatorUrlContentEqual(
+	left: CreatorUrlSnapshot,
+	right: CreatorUrlSnapshot
+): boolean {
+	return creatorUrlSnapshotsEqual({ ...left, preview: false }, { ...right, preview: false });
+}
+
+export function readCreatorPreviewFlag(searchParams: URLSearchParams): boolean {
+	return (
+		searchParams.get(CREATOR_PREVIEW_PARAM) === ENABLED_FLAG ||
+		searchParams.get(CREATOR_PREVIEW_PARAM_LEGACY) === ENABLED_FLAG
+	);
+}
+
+function isCreatorViewParam(key: string): boolean {
+	return (
+		key === CREATOR_ID_PARAM ||
+		key === CREATOR_PREVIEW_PARAM ||
+		key === CREATOR_PREVIEW_PARAM_LEGACY
+	);
+}
+
 export function readCreatorSavedId(searchParams: URLSearchParams): string | null {
 	const id = searchParams.get(CREATOR_ID_PARAM)?.trim();
 	return id || null;
@@ -428,7 +473,7 @@ export function readCreatorSavedId(searchParams: URLSearchParams): string | null
 
 export function creatorUrlHasDraftParams(searchParams: URLSearchParams): boolean {
 	for (const key of searchParams.keys()) {
-		if (key !== CREATOR_ID_PARAM) return true;
+		if (!isCreatorViewParam(key)) return true;
 	}
 	return false;
 }
@@ -446,9 +491,10 @@ export function creatorSearchFromSnapshot(
 	const omitDraft =
 		Boolean(savedId) &&
 		Boolean(options.savedSnapshot) &&
-		creatorUrlSnapshotsEqual(snapshot, options.savedSnapshot as CreatorUrlSnapshot);
+		creatorUrlContentEqual(snapshot, options.savedSnapshot as CreatorUrlSnapshot);
 	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
 	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
+	if (omitDraft && snapshot.preview) params.set(CREATOR_PREVIEW_PARAM, ENABLED_FLAG);
 	const query = params.toString();
 	return query ? `?${query}` : '';
 }
@@ -515,6 +561,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 		magicDraft,
 		adaptiveDraft,
 		keyConfig,
-		practiceLesson: typingPracticeLessonFromSearchParams(searchParams)
+		practiceLesson: typingPracticeLessonFromSearchParams(searchParams),
+		disabledMappingIds: readDisabledMappingIds(searchParams)
 	};
 }

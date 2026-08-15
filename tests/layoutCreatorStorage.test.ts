@@ -7,6 +7,7 @@ import {
 	addSavedLayout,
 	isSavedLayoutDirty,
 	mergeSavedLayouts,
+	removeSavedLayout,
 	parseSavedLayoutsDocument,
 	resolveCreatorSession,
 	SAVED_LAYOUTS_SCHEMA_VERSION,
@@ -129,7 +130,20 @@ describe('saved layout storage', () => {
 
 		const savedA = updated?.[0];
 		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited'), savedA)).toBe(false);
-		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited', { preview: true }), savedA)).toBe(true);
+		expect(isSavedLayoutDirty(namedSnapshot('Alpha edited', { preview: true }), savedA)).toBe(
+			false
+		);
+		expect(
+			isSavedLayoutDirty(
+				namedSnapshot('Alpha edited', { disabledMappingIds: ['["magic-fallback","*"]'] }),
+				savedA
+			)
+		).toBe(true);
+
+		const removed = removeSavedLayout(updated ?? [], 'id-a');
+		expect(removed.removed).toBe(true);
+		expect(removed.layouts.map((entry) => entry.id)).toEqual(['id-b']);
+		expect(removeSavedLayout(removed.layouts, 'missing').removed).toBe(false);
 	});
 
 	test('restores a saved layout from id and overlays dirty query params', () => {
@@ -147,6 +161,12 @@ describe('saved layout storage', () => {
 		expect(clean.savedId).toBe('id-a');
 		expect(clean.snapshot.name).toBe('Alpha');
 
+		const previewOnly = resolveCreatorSession(new URLSearchParams('id=id-a&preview=1'), [saved]);
+		expect(previewOnly.savedId).toBe('id-a');
+		expect(previewOnly.snapshot.name).toBe('Alpha');
+		expect(previewOnly.snapshot.preview).toBe(true);
+		expect(isSavedLayoutDirty(previewOnly.snapshot, saved)).toBe(false);
+
 		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta&preview=1'), [
 			saved
 		]);
@@ -158,6 +178,29 @@ describe('saved layout storage', () => {
 		expect(unknown.savedId).toBeNull();
 		expect(unknown.snapshot.name).toBe('Gamma');
 	});
+
+	test('restores disabled Adaptive mappings from an id-only saved session', () => {
+		const disabledMappingIds = ['["adaptive-rule","","l","y","j"]'];
+		const snapshot = namedSnapshot('Alpha', {
+			includeAdaptiveKey: true,
+			disabledMappingIds
+		});
+		const saved = addSavedLayout(
+			[],
+			{ name: 'Alpha', snapshot },
+			{
+				createId: () => 'id-a',
+				now: () => 1
+			}
+		).layouts[0];
+		if (!saved) throw new Error('expected a saved layout');
+
+		const clean = resolveCreatorSession(new URLSearchParams('id=id-a'), [saved]);
+		expect(clean.savedId).toBe('id-a');
+		expect(clean.snapshot.includeAdaptiveKey).toBe(true);
+		expect(clean.snapshot.disabledMappingIds).toEqual(disabledMappingIds);
+		expect(isSavedLayoutDirty(clean.snapshot, saved)).toBe(false);
+	});
 });
 
 describe('creator URL saved id', () => {
@@ -166,6 +209,15 @@ describe('creator URL saved id', () => {
 		expect(creatorSearchFromSnapshot(snapshot, { savedId: 'id-a', savedSnapshot: snapshot })).toBe(
 			'?id=id-a'
 		);
+		expect(
+			creatorSearchFromSnapshot(
+				{ ...snapshot, preview: true },
+				{
+					savedId: 'id-a',
+					savedSnapshot: snapshot
+				}
+			)
+		).toBe('?id=id-a&preview=1');
 		expect(
 			creatorSearchFromSnapshot(namedSnapshot('Beta'), {
 				savedId: 'id-a',

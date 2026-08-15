@@ -23,7 +23,7 @@ retain domain-specific markup and styling.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
   dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
   focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
-  title and close-button chrome.
+  title and close-button chrome. Confirmation dialogs may omit the header divider.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
   Escape dismissal, and body portal placement. Help triggers normally follow the global hint
   preference; a consumer may keep essential interaction guidance available with `alwaysVisible`.
@@ -67,9 +67,10 @@ When help hints are on, Layout feel paints a decorative `?` on its tab and uses 
 for the short explanation; do not put a focusable `Tooltip` button inside the tablist.
 
 The layout creator uses the same `Tabs` primitive as the index layout-view bar: an unsaved canvas
-tab, labeled with the draft name, plus a tab for each saved layout. A `+ New layout` button sits
-outside the tablist on the far side of that bar. Those tabs reveal the creator canvas rather than
-detail sections. See [`layout-creator.md`](./layout-creator.md).
+tab, labeled with the draft name, plus a tab for each saved layout. Saved tabs reuse the view-tab
+delete pattern: a pointer X and Delete/Backspace open a confirmation modal. When saved layouts
+exist, a `+ New layout` button sits outside the tablist on the far side of that bar. Those tabs
+reveal the creator canvas rather than detail sections. See [`layout-creator.md`](./layout-creator.md).
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /

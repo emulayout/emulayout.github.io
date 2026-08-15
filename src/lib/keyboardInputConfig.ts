@@ -239,6 +239,50 @@ export function isKeyboardInputHomeKeySlot(row: number, column: number): boolean
 	return isHomeKeySlot(row, column);
 }
 
+export type KeyboardWidthTerms = { keyUnits: number; gapCount: number };
+
+const KEYBOARD_WIDTH_KEY_REM = 3.35;
+const KEYBOARD_WIDTH_GAP_REM = 0.45;
+
+/**
+ * Intrinsic key/gap counts for the editable board, including empty QWERTY
+ * topology slots. The presentation preview keeps the three letter rows and gap keys.
+ */
+export function keyboardInputEditorWidthTerms(config: KeyboardInputConfig): KeyboardWidthTerms {
+	if (config.keyboardType === 'ortho') {
+		let maxColumn = 9;
+		for (const key of config.keys) {
+			const position = parseKeyboardInputSlot(key.slot);
+			if (position && position.row < 3) maxColumn = Math.max(maxColumn, position.column);
+		}
+		const rightSlotCount = Math.max(5, maxColumn - 4);
+		return {
+			keyUnits: 5 + rightSlotCount + 0.48,
+			gapCount: rightSlotCount + 3
+		};
+	}
+
+	const rowTerms = keyboardInputRows(config).flatMap((row) => {
+		if (row.row >= 3 || row.keys.length === 0) return [];
+		const rowOffset = row.row === 1 ? 0.28 : row.row === 2 ? 0.68 : 0;
+		return [
+			{
+				keyUnits: row.keys.length + rowOffset,
+				gapCount: Math.max(row.keys.length - 1, 0)
+			}
+		];
+	});
+
+	return (
+		rowTerms.sort(
+			(a, b) =>
+				b.keyUnits * KEYBOARD_WIDTH_KEY_REM +
+				b.gapCount * KEYBOARD_WIDTH_GAP_REM -
+				(a.keyUnits * KEYBOARD_WIDTH_KEY_REM + a.gapCount * KEYBOARD_WIDTH_GAP_REM)
+		)[0] ?? { keyUnits: 13, gapCount: 12 }
+	);
+}
+
 export function keyboardInputRows(config: KeyboardInputConfig): KeyboardInputRow[] {
 	const rows = new Map<number, KeyboardInputKey[]>();
 	for (const key of config.keys) {

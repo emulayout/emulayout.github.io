@@ -262,25 +262,26 @@
 		style?: string;
 	} = {}
 )}
-	{@const keyFeedback = feedback.get(key.char)}
-	{@const unreachable = isUnreachableKey(key.char)}
+	{@const assigned = Boolean(key.char)}
+	{@const keyFeedback = assigned ? feedback.get(key.char) : undefined}
+	{@const unreachable = assigned && isUnreachableKey(key.char)}
 	<span
 		class="keyboard-preview__key"
 		class:keyboard-preview__key--ansi-thumb={Boolean(attrs.ansiThumb)}
 		class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 		class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 		class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
-		class:keyboard-preview__key--next={isHighlightedKey(key.char)}
+		class:keyboard-preview__key--next={assigned && isHighlightedKey(key.char)}
 		class:keyboard-preview__key--unreachable={unreachable}
-		data-key-char={key.char}
+		data-key-char={assigned ? key.char : undefined}
 		data-key-column={attrs.column}
 		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
 		data-key-feedback={keyFeedback?.kind}
 		data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 		data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
-		data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
+		data-key-next={assigned && isHighlightedKey(key.char) ? 'true' : undefined}
 		data-key-unreachable={unreachable ? 'true' : undefined}
-		title={keyTitle(key, keyFeedback)}
+		title={assigned ? keyTitle(key, keyFeedback) : undefined}
 		style={attrs.style}
 	>
 		{@render keyContent(key, keyFeedback)}

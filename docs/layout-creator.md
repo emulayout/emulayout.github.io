@@ -18,18 +18,25 @@ drafts in the browser.
 - The page uses index-style view tabs, not detail-page section tabs. An unsaved canvas is the first
   tab, labeled with the live draft name. Each saved layout is an additional tab labeled with its
   stored name (the live name while that tab is active). Saving the unsaved canvas turns it into a
-  saved tab. Switching tabs loads that layout's snapshot into the editor. A `+ New layout` button
-  sits on the far side of the tab bar and starts a blank unsaved canvas without leaving `/create`.
-  A bare `/create` link does the same.
+  saved tab. Switching tabs loads that layout's snapshot into the editor. When at least one saved
+  layout exists, a `+ New layout` button sits on the far side of the tab bar and starts a blank
+  unsaved canvas without leaving `/create`. It is hidden while there are no saved layouts, because
+  the unsaved canvas tab is already showing. A bare `/create` link does the same. Saved tabs include the same pointer X as index view tabs;
+  Delete or Backspace on a focused saved tab opens the same style of confirmation. Deleting a
+  saved layout removes it from local storage. Deleting the active layout starts a new canvas;
+  deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
+  control.
 - The New layout canvas starts as a stagger QWERTY board named `New layout`. A layout name field
   sits above Input layout. The name updates the live draft; an empty value falls back to
   `New layout`. The document title and the active tab use that name. Renaming does not regenerate
   the practice words.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, base layout, keyboard type, key grid, preview, practice lesson, and Magic/Adaptive mappings
-  (including incomplete rows) are written when they differ from the blank canvas. An active saved
+  Name, base layout, keyboard type, key grid, preview, practice lesson, Magic/Adaptive mappings
+  (including incomplete rows), and which complete special mappings are disabled are written when
+  they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
-  params are omitted so the URL is `/create?id=<uuid>`. Dirty edits stay in the query alongside
+  params are omitted so the URL is `/create?id=<uuid>`. Preview mode keeps that id URL and only
+  adds `preview=1`; it does not count as a saveable change. Dirty edits stay in the query alongside
   `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the index filter
   URL persist, and flush on page hide so a refresh keeps the latest keystrokes. A bare `/create`
   link starts fresh. Reloading or opening the URL restores the draft, and a known `id` restores
@@ -40,7 +47,8 @@ drafts in the browser.
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
   mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
-  the base. Printable keys replace the focused slot and advance, Backspace/Delete clear, and arrows
+  the base. The editor keeps the full QWERTY slot grid and sizes that grid to the page, so unused
+  punctuation columns do not overflow. Printable keys replace the focused slot and advance, Backspace/Delete clear, and arrows
   move among slots. Typing `@` or `*` into a slot adds that trigger to Magic mappings when it is not
   already present, and turns Magic on. `@` starts as fallback-only (otherwise → repeat previous),
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
@@ -53,13 +61,15 @@ drafts in the browser.
   live draft. Edits update the in-memory layout immediately so Typing practice uses the current
   keys.
 - Preview turns the name into a title and restores the presentation keyboard: next-key
-  highlighting, home-key coloring, and the catalog mapping panel. The key editor, base-layout and
+  highlighting, home-key coloring, and the catalog mapping panel. The preview always draws the 10
+  keys on each letter row and empty keycaps for unassigned slots between letters so remaining keys
+  keep their physical columns. The key editor, base-layout and
   keyboard-type fields, special-key add buttons, and editable mapping panels are hidden until Edit
   again. The catalog mapping panel still appears when the draft has complete Magic or Adaptive
   mappings, even if those editors were closed in Edit. The sticky bar shows **Preview** while
   editing, which opens the uneditable presentation, and **Edit** while previewing.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
-  own column, vertically centered with the board. Either or both can be on. Magic adds a `*`
+  own column, top-aligned with the first keyboard row. Either or both can be on. Magic adds a `*`
   trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
   Clicking an active button hides that editor without discarding the draft. The icon fill lights up
   when that feature is on and at least one complete mapping is enabled. Closing the editor while
@@ -72,12 +82,20 @@ drafts in the browser.
   buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
   Each panel can add, edit, and delete mappings,
   add or delete labeled sections (Magic: extra triggers; Adaptive: schema groups), and temporarily
-  disable complete mappings with the same checkboxes as the catalog selectors. Each Magic section
+  disable complete mappings with the same checkboxes as the catalog selectors. Those enabled and
+  disabled states are part of the draft: they stay in the URL, count as a saveable change, and
+  restore with a saved layout. Each Magic section
   also has the schema fallback: nothing (`no-op` / omitted), repeat previous, or fixed text. Fixed
   text stacks under the fallback selector in the same field column. Rule and fallback rows share
   columns so the trigger and output line up; the preceding field fills the space before the trigger.
   A trigger can live on an emitting
   fallback alone. Incomplete rows stay in the draft and are omitted from the live practice profile.
+  A caution warning sits under the keyboard, before the workspace options. It lists A–Z letters
+  missing from the keyboard. A Magic emit or emit fallback can cover a missing letter only when
+  that trigger is on the board. Mapping keys that are not letters, including a missing Magic
+  trigger, are not listed. The key list wraps inside the keyboard width so a long set of missing
+  letters does not scroll the page sideways. The warning stays visible in Edit and Preview, even
+  when the mapping panels are closed.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control, home-key
   coloring, next-key highlighting). The prompt and input use that workspace's width. The same
@@ -102,7 +120,7 @@ drafts in the browser.
 ## Deferred work
 
 - Repeat mapping editors.
-- Renaming and deleting saved drafts from the tab bar.
+- Renaming saved drafts from the tab bar.
 
 ## Code map
 
@@ -112,16 +130,18 @@ drafts in the browser.
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
+- Saved-layout delete confirmation: `src/lib/components/DeleteSavedLayoutModal.svelte`
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
   `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`
 - App-bar Discover and Create links and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
+- Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
   `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`,
-  `tests/goatcounter.test.ts`
+  `tests/layoutDisplay.test.ts`, `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 
 ## Invariants
@@ -129,7 +149,8 @@ drafts in the browser.
 - The app remains client-only (`ssr = false`). `/create` is prerendered alongside the index.
 - Discover and Create are links, not modals, and stay available from every route.
 - Creator tabs use the shared `Tabs` primitive with automatic Arrow/Home/End activation and a
-  labelled tab/tabpanel pair. `+ New layout` is a button beside the tablist, not a tab.
+  labelled tab/tabpanel pair. `+ New layout` is a button beside the tablist, not a tab, and only
+  appears when a saved layout exists.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new

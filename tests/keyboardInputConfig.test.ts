@@ -4,6 +4,7 @@ import {
 	cloneKeyboardInputConfig,
 	createDefaultKeyboardInputConfig,
 	createKeyboardInputConfigFromLayout,
+	keyboardInputEditorWidthTerms,
 	keyboardInputConfigLabel,
 	keyboardInputConfigError,
 	keyboardInputEffectiveValue,
@@ -173,6 +174,18 @@ describe('keyboard input configuration', () => {
 		expect(navigateKeyboardInputSlot(rows, '0,1', 'down')).toBe('1,1');
 		expect(navigateKeyboardInputSlot(rows, '1,2', 'up')).toBe('0,1');
 		expect(navigateKeyboardInputSlot(rows, '0,0', 'left')).toBeNull();
+	});
+
+	test('sizes the editor to the full QWERTY slot grid, not just assigned keys', () => {
+		const staggered = createDefaultKeyboardInputConfig();
+		expect(keyboardInputEditorWidthTerms(staggered)).toEqual({ keyUnits: 13, gapCount: 12 });
+		expect(keyboardInputEditorWidthTerms(clearKeyboardInputConfig(staggered))).toEqual({
+			keyUnits: 13,
+			gapCount: 12
+		});
+
+		const ortho = { ...staggered, keyboardType: 'ortho' as const };
+		expect(keyboardInputEditorWidthTerms(ortho)).toEqual({ keyUnits: 13.48, gapCount: 11 });
 	});
 
 	test('recognizes the eight resting home-key slots', () => {

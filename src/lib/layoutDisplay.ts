@@ -2,6 +2,8 @@ import type { BoardType, KeyInfo } from '$lib/layout';
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 
 export const THUMB_ROW = 3;
+/** Standard letter-row key count, always shown on the presentation keyboard. */
+export const PREVIEW_MAIN_ROW_KEYS = 10;
 
 /** One character in the monospace layout display; `slot` is `"row,col"` for real keys. */
 export type DisplayCell = {
@@ -124,6 +126,58 @@ function parseDisplaySlot(slot: string): { row: number; col: number } | null {
 	const match = /^(\d+),(\d+)$/.exec(slot);
 	if (!match) return null;
 	return { row: Number(match[1]), col: Number(match[2]) };
+}
+
+function emptyPreviewKey(row: number, col: number): DisplayCell {
+	return { char: '', slot: `${row},${col}` };
+}
+
+/**
+ * Keep presentation-keyboard geometry when a board is sparse: always include
+ * the 10 keys on each letter row, and fill unassigned slots between (and
+ * before) letters so remaining keys stay in their physical columns.
+ */
+export function fillPreviewKeyboardRows(rows: readonly DisplayCell[][]): DisplayCell[][] {
+	const keysByRow = new Map<number, Map<number, DisplayCell>>();
+	for (const row of rows) {
+		for (const cell of row) {
+			if (!cell.slot) continue;
+			const parsed = parseDisplaySlot(cell.slot);
+			if (!parsed) continue;
+			let columns = keysByRow.get(parsed.row);
+			if (!columns) {
+				columns = new Map();
+				keysByRow.set(parsed.row, columns);
+			}
+			columns.set(parsed.col, { char: cell.char, slot: cell.slot });
+		}
+	}
+
+	for (let row = 0; row < THUMB_ROW; row++) {
+		let columns = keysByRow.get(row);
+		if (!columns) {
+			columns = new Map();
+			keysByRow.set(row, columns);
+		}
+		for (let col = 0; col < PREVIEW_MAIN_ROW_KEYS; col++) {
+			if (!columns.has(col)) columns.set(col, emptyPreviewKey(row, col));
+		}
+	}
+
+	return [...keysByRow.keys()]
+		.sort((left, right) => left - right)
+		.map((rowNumber) => {
+			const columns = keysByRow.get(rowNumber) ?? new Map();
+			if (rowNumber >= THUMB_ROW) {
+				return [...columns.entries()]
+					.sort((left, right) => left[0] - right[0])
+					.map(([, cell]) => cell);
+			}
+			const maxCol = Math.max(PREVIEW_MAIN_ROW_KEYS - 1, ...columns.keys());
+			return Array.from({ length: maxCol + 1 }, (_, col) => {
+				return columns.get(col) ?? emptyPreviewKey(rowNumber, col);
+			});
+		});
 }
 
 function thumbHandForSlot(
