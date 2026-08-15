@@ -14,6 +14,7 @@
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import TypingModeTabs from '$lib/components/TypingModeTabs.svelte';
 	import {
 		createHistoryTarget,
 		isRouterNotReadyError,
@@ -82,7 +83,9 @@
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
+	import { trackGoatCounterEvent } from '$lib/goatcounter';
 	import type { TabOption } from '$lib/tabs';
+	import type { TypingWorkspaceMode } from '$lib/typingWorkspace';
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
@@ -105,6 +108,7 @@
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
+	let typingMode = $state<TypingWorkspaceMode>('practice');
 	let saveMenuOpen = $state(false);
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
@@ -163,7 +167,11 @@
 	);
 	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen);
 	const missingLetters = $derived(
-		creatorLayoutMissingKeys(includeMagicKey ? magicDraft : undefined, availableLayoutKeys)
+		creatorLayoutMissingKeys(
+			includeMagicKey ? magicDraft : undefined,
+			availableLayoutKeys,
+			disabledMappingIds
+		)
 	);
 	const showPreviewMappings = $derived(magicDraftHasMappings || adaptiveDraftHasMappings);
 	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
@@ -278,10 +286,14 @@
 
 	function handleSavedLayoutsStorage(event: StorageEvent) {
 		if (event.key !== SAVED_LAYOUTS_STORAGE_KEY && event.key !== null) return;
-		savedLayouts = loadSavedLayouts();
-		if (activeSavedId && !findSavedLayout(savedLayouts, activeSavedId)) {
+		const currentSnapshot = currentCreatorSnapshot();
+		const previousSaved = findSavedLayout(savedLayouts, activeSavedId);
+		const preserveAsUnsaved = isSavedLayoutDirty(currentSnapshot, previousSaved);
+		const nextLayouts = loadSavedLayouts();
+		savedLayouts = nextLayouts;
+		if (activeSavedId && !findSavedLayout(nextLayouts, activeSavedId)) {
 			activeSavedId = null;
-			applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+			if (!preserveAsUnsaved) applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
 			flushCreatorUrl();
 		}
 	}
@@ -460,6 +472,12 @@
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
 		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
+	}
+
+	function setTypingMode(mode: TypingWorkspaceMode) {
+		if (mode === typingMode) return;
+		typingMode = mode;
+		trackGoatCounterEvent(mode === 'free' ? 'practice-mode-free' : 'practice-mode-practice');
 	}
 
 	function changeCreatorTab(value: LayoutCreatorTabValue) {
@@ -819,6 +837,12 @@
 			{/if}
 		{/snippet}
 
+		{#snippet creatorTypingModeSwitcher()}
+			<div class="layout-creator-typing-mode">
+				<TypingModeTabs value={typingMode} onChange={setTypingMode} />
+			</div>
+		{/snippet}
+
 		{#key activeTab}
 			<LayoutTypingPractice
 				{layout}
@@ -837,6 +861,8 @@
 				keyboardAside={layoutPreview ? undefined : creatorAside}
 				keyboardBelow={creatorKeyboardBelow}
 				keyboardMappings={layoutPreview ? undefined : creatorMappings}
+				{typingMode}
+				modeSwitcher={creatorTypingModeSwitcher}
 			/>
 		{/key}
 
@@ -986,6 +1012,12 @@
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
 		text-align: center;
+	}
+
+	.layout-creator-typing-mode {
+		display: flex;
+		justify-content: flex-end;
+		margin: 0 0 0.75rem;
 	}
 
 	.layout-creator-view-bar {

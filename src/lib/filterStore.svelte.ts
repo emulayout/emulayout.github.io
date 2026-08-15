@@ -275,7 +275,7 @@ export class FilterStore {
 		if (typeof window !== 'undefined') {
 			this.consumeSharedViewFromUrl();
 			window.addEventListener('popstate', () => {
-				this.#hydrateFromUrl();
+				this.hydrateFromCurrentUrl();
 			});
 		}
 	}
@@ -305,6 +305,12 @@ export class FilterStore {
 		this.#loadFromUrl();
 		this.#applyFiltersNow();
 		this.consumeSharedViewFromUrl();
+	}
+
+	/** Reapply index filters when SPA navigation enters Discover with a new query. */
+	hydrateFromCurrentUrl() {
+		if (typeof window === 'undefined') return;
+		this.#hydrateFromUrl();
 	}
 
 	#persistSavedFilters() {

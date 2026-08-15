@@ -94,6 +94,10 @@ receives the workspace option presentation (next-key, home-key coloring, special
 swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
 for the presentation-only keyboard; **Edit** restores it.
 
+`TextAutocomplete` owns the shared string combobox, listbox, loading, clear, focus, and keyboard
+behavior. `LayoutAutocomplete` and `AuthorAutocomplete` are domain adapters that supply their
+option data, copy, and selection policy rather than forking that interaction code.
+
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
@@ -103,7 +107,7 @@ without a catalog pick restores the committed layout name. Consumers that supply
 optional loading state renders an accessible spinner in the trailing field controls without adding
 content below the field or changing the consumer's layout.
 
-`AuthorAutocomplete` uses the same combobox, chevron, clear, and loading pattern over catalog
+`AuthorAutocomplete` uses that same combobox, chevron, clear, and loading pattern over catalog
 author names. Typing or choosing a listed name commits it, and a name that is not in the catalog
 stays as freeform text on blur and Enter. Escape restores the value from when the field was
 focused. The layout creator Preview turns a catalog match into a Discover link filtered to that

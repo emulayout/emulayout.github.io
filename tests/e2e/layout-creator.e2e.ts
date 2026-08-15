@@ -225,9 +225,9 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 
 	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Shared draft');
-	await panel.getByRole('combobox', { name: 'Author name' }).fill('derek');
 	await expect(page).toHaveTitle('Shared draft · Emulayout');
 	const namedPanel = page.getByRole('tabpanel', { name: 'Shared draft' });
+	await namedPanel.getByRole('combobox', { name: 'Author name' }).fill('derek');
 	await expect(page.getByRole('tab', { name: 'Shared draft', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
@@ -461,6 +461,38 @@ test('merges saved layouts created in two open tabs', async ({ page, context }) 
 	await expect(savedLayoutTab(firstCreations, 'Beta')).toBeVisible();
 });
 
+test('preserves dirty edits when another tab deletes the saved layout', async ({
+	page,
+	context
+}) => {
+	await page.goto('/create');
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await page.getByRole('button', { name: 'Save layout' }).click();
+	const savedUrl = page.url();
+
+	const secondPage = await context.newPage();
+	await secondPage.goto(savedUrl);
+	await expect(
+		savedLayoutTab(secondPage.getByRole('tablist', { name: 'Layout creations' }), 'Alpha')
+	).toHaveAttribute('aria-selected', 'true');
+
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha draft');
+	await savedLayoutTab(
+		secondPage.getByRole('tablist', { name: 'Layout creations' }),
+		'Alpha'
+	).press('Delete');
+	await secondPage
+		.getByRole('dialog', { name: 'Delete layout' })
+		.getByRole('button', { name: 'Delete' })
+		.click();
+
+	await expect(page.getByRole('tabpanel', { name: 'Alpha draft' })).toBeVisible();
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha draft');
+	await expect(page.getByRole('button', { name: 'Save layout' })).toBeVisible();
+	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
+	await expect(page).toHaveURL(/name=Alpha(?:\+|%20)draft/);
+});
+
 test('deletes a saved layout from its tab', async ({ page }) => {
 	await page.goto('/create');
 	const creations = page.getByRole('tablist', { name: 'Layout creations' });
@@ -514,9 +546,11 @@ test('preview links a catalog author to Discover and leaves freeform names as te
 	await expect(panel.getByRole('link', { name: 'derek', exact: true })).toHaveCount(0);
 
 	await panel.getByRole('button', { name: 'Edit' }).click();
-	await authorField.fill('cmini');
-	await expect(panel.getByRole('option', { name: 'cmini', exact: true })).toBeVisible();
-	await panel.getByRole('option', { name: 'cmini', exact: true }).click();
+	await authorField.fill('mini');
+	const authorOptions = panel.getByRole('listbox', { name: 'Author name' });
+	await expect(authorOptions.getByRole('option')).toHaveCount(1);
+	await expect(authorOptions.getByRole('option', { name: 'cmini', exact: true })).toBeVisible();
+	await authorOptions.getByRole('option', { name: 'cmini', exact: true }).click();
 	await panel.getByRole('button', { name: 'Preview' }).click();
 
 	const authorLink = panel.getByRole('link', { name: 'cmini', exact: true });

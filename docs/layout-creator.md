@@ -99,10 +99,10 @@ drafts in the browser.
   fallback alone. Incomplete rows stay in the draft and are omitted from the live practice profile.
   A caution warning sits under the keyboard, before the workspace options. It lists A–Z letters
   missing from the keyboard. A Magic emit or emit fallback can cover a missing letter only when
-  that trigger is on the board. Mapping keys that are not letters, including a missing Magic
-  trigger, are not listed. The key list wraps inside the keyboard width so a long set of missing
-  letters does not scroll the page sideways. The warning stays visible in Edit and Preview, even
-  when the mapping panels are closed.
+  that trigger is on the board and the mapping is enabled. Mapping keys that are not letters,
+  including a missing Magic trigger, are not listed. The key list wraps inside the keyboard width
+  so a long set of missing letters does not scroll the page sideways. The warning stays visible in
+  Edit and Preview, even when the mapping panels are closed.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control and the same
   keyboard options in Edit and Preview). A **Typing mode** switcher above the field, top right,
@@ -142,7 +142,9 @@ drafts in the browser.
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
-- Author combobox (catalog search plus freeform): `src/lib/components/AuthorAutocomplete.svelte`
+- Shared string autocomplete and domain adapters: `src/lib/components/TextAutocomplete.svelte`,
+  `src/lib/components/LayoutAutocomplete.svelte`,
+  `src/lib/components/AuthorAutocomplete.svelte`
 - Catalog author lookup and Discover author-filter query: `src/lib/layoutDetails.ts`
   (`resolveAuthorByName`), `src/lib/filterUrlCodec.ts` (`authorFilterIndexSearch`)
 - Saved-layout delete confirmation: `src/lib/components/DeleteSavedLayoutModal.svelte`

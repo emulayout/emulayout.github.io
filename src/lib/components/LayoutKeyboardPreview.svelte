@@ -76,10 +76,11 @@
 		const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 
 		return rows.flatMap((row) => {
-			const keys = row.filter((cell): cell is PreviewKey => cell.slot !== null);
-			if (keys.length === 0) return [];
+			const slottedCells = row.filter((cell): cell is PreviewKey => cell.slot !== null);
+			if (slottedCells.length === 0) return [];
 
-			const rowNumber = Number(keys[0].slot.split(',')[0]);
+			const rowNumber = Number(slottedCells[0].slot.split(',')[0]);
+			const keys = orthoGeometry ? slottedCells.filter((cell) => Boolean(cell.char)) : slottedCells;
 			const thumbs = rowNumber >= 3;
 			const { left: leftKeys, right: rightKeys } = thumbs
 				? splitThumbDisplayKeys(keys, layout.thumbKeysByHand)

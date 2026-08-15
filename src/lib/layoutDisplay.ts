@@ -469,11 +469,14 @@ function rotateBottomRowLeftHandCells(
 
 	if (tokens.length < SPLIT_COL) return rows;
 
-	const leftHand =
+	const transformedCharacters =
 		direction === 'left'
-			? [tokens[1], tokens[2], tokens[3], tokens[4], tokens[0]]
-			: [tokens[4], tokens[0], tokens[1], tokens[2], tokens[3]];
-	const transformed = [...leftHand, ...tokens.slice(SPLIT_COL)];
+			? [tokens[1].char, tokens[2].char, tokens[3].char, tokens[4].char, tokens[0].char]
+			: [tokens[4].char, tokens[0].char, tokens[1].char, tokens[2].char, tokens[3].char];
+	const transformed = tokens.map((token, index) => ({
+		...token,
+		char: transformedCharacters[index] ?? token.char
+	}));
 
 	const rebuilt: DisplayCell[] = [...leading];
 	for (let t = 0; t < transformed.length; t++) {

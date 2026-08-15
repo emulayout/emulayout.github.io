@@ -91,9 +91,7 @@ small without weakening app-bar functionality.
   browser Back still returns to the previous page rather than earlier tabs. When help hints are on, the Layout
   feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
   practice, without adding a second focusable control inside the tablist.
-- `Typing practice` is the first and default tab. A **Typing mode** switcher above the field can
-  keep the lesson or switch to **Type freely**, the same multiline textarea as Layout test area.
-  It presents ten random English 1k words or a
+- `Typing practice` is the first and default tab. It presents ten random English 1k words or a
   URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time, completion
   Accuracy/WPM, and the board-aware keyboard workspace. Typed characters color the current target
   green or red. Exact non-final words advance on Space; the final word completes immediately without
@@ -242,8 +240,9 @@ small without weakening app-bar functionality.
   links) dismisses the modal. Cmd/Ctrl+Enter in the search field and Cmd/Ctrl+click on a result
   open the layout's show page in a new tab and keep Quick Find open on the current page.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
-  is active. Browser Back returns to the previous history entry, including the index URL with its
-  filter query, and popstate hydrates the filter store from that URL.
+  is active. Entering Discover through SPA navigation, including creator preview links, hydrates
+  the filter store from that index URL. Browser Back returns to the previous history entry,
+  including the index URL with its filter query, and popstate hydrates it the same way.
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.

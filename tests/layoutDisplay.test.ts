@@ -7,10 +7,12 @@ import {
 } from '../src/lib/keyboardInputConfig';
 import { createLayoutFromKeyConfig } from '../src/lib/layoutCreator';
 import {
+	applyAnglemodToDisplayRows,
 	ansiThumbDisplayColumn,
 	ansiThumbOffsetCss,
 	computeDisplayRows,
 	fillPreviewKeyboardRows,
+	removeAnglemodFromDisplayRows,
 	splitThumbDisplayKeys,
 	thumbTargetColumns,
 	type DisplayCell
@@ -55,6 +57,31 @@ describe('ansiThumbOffsetCss', () => {
 		expect(ansiThumbOffsetCss(2.5, 'var(--preview-key-size)', 'var(--preview-key-gap)')).toBe(
 			'calc(var(--preview-key-size) * 3.18 + var(--preview-key-gap) * 2.5)'
 		);
+	});
+});
+
+describe('anglemod display rows', () => {
+	test('rotates characters while keeping them attached to their visual slots', () => {
+		const layout = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig());
+		const rows = computeDisplayRows(layout);
+		const applied = applyAnglemodToDisplayRows(rows);
+
+		expect(
+			slottedRow(applied, 2)
+				.slice(0, 5)
+				.map(({ char, slot }) => ({ char, slot }))
+		).toEqual([
+			{ char: 'x', slot: '2,0' },
+			{ char: 'c', slot: '2,1' },
+			{ char: 'v', slot: '2,2' },
+			{ char: 'b', slot: '2,3' },
+			{ char: 'z', slot: '2,4' }
+		]);
+		expect(
+			slottedRow(removeAnglemodFromDisplayRows(applied), 2)
+				.slice(0, 5)
+				.map(({ char }) => char)
+		).toEqual(['z', 'x', 'c', 'v', 'b']);
 	});
 });
 

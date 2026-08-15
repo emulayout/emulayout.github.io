@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { magicRuleMappingId } from '../src/lib/inputMappingControls';
+import { magicFallbackMappingId, magicRuleMappingId } from '../src/lib/inputMappingControls';
 import {
 	adaptiveDraftFromSource,
 	adaptiveSourceFromDraft,
@@ -378,6 +378,33 @@ describe('creatorLayoutMissingKeys', () => {
 		};
 
 		expect(creatorLayoutMissingKeys(magicDraft, [...keysWithout('s'), '*'])).toEqual([]);
+	});
+
+	test('does not count disabled magic mappings as letter coverage', () => {
+		const magicDraft = createEmptyCreatorMagicDraft();
+		magicDraft.sections[0] = {
+			...magicDraft.sections[0],
+			rules: [{ ...createCreatorMagicRule(), after: 't', emit: 's' }],
+			fallbackKind: 'emit',
+			fallbackEmit: 'x'
+		};
+		const availableKeys = [...keysWithout('s', 'x'), '*'];
+
+		expect(creatorLayoutMissingKeys(magicDraft, availableKeys)).toEqual([]);
+		expect(
+			creatorLayoutMissingKeys(magicDraft, availableKeys, [
+				magicRuleMappingId('*', 't'),
+				magicFallbackMappingId('*')
+			])
+		).toEqual(['s', 'x']);
+	});
+
+	test('does not count mappings without a trigger as letter coverage', () => {
+		const magicDraft = createEmptyCreatorMagicDraft();
+		magicDraft.sections[0].trigger = '';
+		magicDraft.sections[0].rules = [{ ...createCreatorMagicRule(), after: 't', emit: 's' }];
+
+		expect(creatorLayoutMissingKeys(magicDraft, keysWithout('s'))).toEqual(['s']);
 	});
 
 	test('does not warn about a magic trigger that is not on the keyboard', () => {

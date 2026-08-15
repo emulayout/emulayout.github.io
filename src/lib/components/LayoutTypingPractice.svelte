@@ -4,7 +4,6 @@
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import TypingModeTabs, { type TypingWorkspaceMode } from '$lib/components/TypingModeTabs.svelte';
 	import TypingPracticeLessonModal from '$lib/components/TypingPracticeLessonModal.svelte';
 	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import type { LayoutData } from '$lib/layout';
@@ -60,6 +59,7 @@
 	import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
 	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 	import { trackGoatCounterEvent } from '$lib/goatcounter';
+	import type { TypingWorkspaceMode } from '$lib/typingWorkspace';
 	import { untrack, type Snippet } from 'svelte';
 
 	interface Props {
@@ -87,6 +87,10 @@
 		keyboardMappings?: Snippet;
 		/** Show `keyboardMappings` even before a compiled profile exists. */
 		showKeyboardMappings?: boolean;
+		/** Optional controlled typing mode. Consumers remain practice-only by default. */
+		typingMode?: TypingWorkspaceMode;
+		/** Optional controls rendered above the typing field. */
+		modeSwitcher?: Snippet;
 	}
 
 	const {
@@ -107,7 +111,9 @@
 		keyboardAside,
 		keyboardBelow,
 		keyboardMappings,
-		showKeyboardMappings = false
+		showKeyboardMappings = false,
+		typingMode = 'practice',
+		modeSwitcher
 	}: Props = $props();
 
 	const PRACTICE_WORD_COUNT = 10;
@@ -118,7 +124,6 @@
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
 	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
-	let typingMode = $state<TypingWorkspaceMode>('practice');
 	let freeInputHistory = $state('');
 	const isFreeType = $derived(typingMode === 'free');
 	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
@@ -159,6 +164,7 @@
 	let startedAtMilliseconds = $state<number | null>(null);
 	let endedAtMilliseconds = $state<number | null>(null);
 	let currentTimeMilliseconds = $state(0);
+	let previousTypingMode: TypingWorkspaceMode = 'practice';
 
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
@@ -276,6 +282,12 @@
 			currentTimeMilliseconds = Date.now();
 		}, 250);
 		return () => window.clearInterval(interval);
+	});
+
+	$effect(() => {
+		const nextMode = typingMode;
+		if (nextMode === 'free' && previousTypingMode !== 'free') resetPracticeProgress();
+		previousTypingMode = nextMode;
 	});
 
 	$effect(() => {
@@ -403,13 +415,6 @@
 		return session.input;
 	}
 
-	function setTypingMode(mode: TypingWorkspaceMode) {
-		if (mode === typingMode) return;
-		if (mode === 'free') resetPracticeProgress();
-		typingMode = mode;
-		trackGoatCounterEvent(mode === 'free' ? 'practice-mode-free' : 'practice-mode-practice');
-	}
-
 	function resolvePracticeInput(history: string, inputText: string): LayoutInputResult {
 		if (inputText === ' ') {
 			const simulatedThumb = resolveSimulatedTypingPracticeThumbInput(
@@ -425,17 +430,11 @@
 	}
 </script>
 
-{#snippet typingModeSwitcher()}
-	<div class="typing-practice-mode-row">
-		<TypingModeTabs value={typingMode} onChange={setTypingMode} />
-	</div>
-{/snippet}
-
 {#if !showPracticeWorkspace && wordPoolStatus === 'error'}
-	{@render typingModeSwitcher()}
+	{#if modeSwitcher}{@render modeSwitcher()}{/if}
 	<p class="typing-practice-load-status" role="alert">Unable to load practice words.</p>
 {:else if !showPracticeWorkspace}
-	{@render typingModeSwitcher()}
+	{#if modeSwitcher}{@render modeSwitcher()}{/if}
 	<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
 {:else}
 	<LayoutKeyboardWorkspace
@@ -458,7 +457,7 @@
 		mappings={keyboardMappings}
 	>
 		{#snippet above()}
-			{@render typingModeSwitcher()}
+			{#if modeSwitcher}{@render modeSwitcher()}{/if}
 			<div>
 				{#if isFreeType}
 					<LayoutTestArea
@@ -687,12 +686,6 @@
 {/if}
 
 <style>
-	.typing-practice-mode-row {
-		display: flex;
-		justify-content: flex-end;
-		margin: 0 0 0.75rem;
-	}
-
 	.typing-practice-header-lead {
 		display: flex;
 		min-width: 0;

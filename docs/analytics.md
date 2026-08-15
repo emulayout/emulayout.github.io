@@ -126,8 +126,8 @@ threshold or selected author.
 | --------------------------- | ------------------------------------------------------------------------------- |
 | `practice-complete`         | A lesson actually finishes                                                      |
 | `practice-setting-<option>` | A practice display toggle is flipped (`practice-setting-highlight-next-key`, …) |
-| `practice-mode-practice`    | The Typing mode switcher selects Typing practice                                |
-| `practice-mode-free`        | The Typing mode switcher selects Type freely                                    |
+| `practice-mode-practice`    | The creator Typing mode switcher selects Typing practice                        |
+| `practice-mode-free`        | The creator Typing mode switcher selects Type freely                            |
 
 Visiting the Typing practice tab is already a pageview (`/layouts`). `practice-complete` is the
 signal that someone used the feature rather than glanced at the tab.

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { SegmentedOption } from '$lib/segmentedControl';
-
-	export type TypingWorkspaceMode = 'practice' | 'free';
+	import type { TypingWorkspaceMode } from '$lib/typingWorkspace';
 
 	interface Props {
 		value: TypingWorkspaceMode;

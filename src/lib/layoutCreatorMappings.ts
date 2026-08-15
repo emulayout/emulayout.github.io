@@ -1,5 +1,10 @@
 import type { AdaptiveSwapMappings, AdaptiveSwapSource } from '$lib/adaptiveSwaps';
-import { adaptiveProfileMappingIds, magicProfileMappingIds } from '$lib/inputMappingControls';
+import {
+	adaptiveProfileMappingIds,
+	magicFallbackMappingId,
+	magicProfileMappingIds,
+	magicRuleMappingId
+} from '$lib/inputMappingControls';
 import { compileLayoutInputProfile, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { CREATOR_MAGIC_KEY } from '$lib/layoutCreator';
 import {
@@ -348,16 +353,26 @@ function addEnglishLetters(target: Set<string>, value: string) {
 /** Letters a Magic draft can produce when its trigger is on the keyboard. */
 function magicEmittedLetters(
 	draft: CreatorMagicDraft,
-	availableKeys: readonly string[]
+	availableKeys: readonly string[],
+	disabledMappingIds: readonly string[]
 ): Set<string> {
 	const letters = new Set<string>();
+	const disabledIds = new Set(disabledMappingIds);
 	for (const section of draft.sections) {
-		if (creatorMagicTriggerError(section.trigger, availableKeys)) continue;
+		const trigger = section.trigger.trim();
+		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 		for (const rule of section.rules) {
-			if (!rule.after.trim() || !rule.emit.trim()) continue;
+			const after = rule.after.trim().toLowerCase();
+			if (!after || !rule.emit.trim() || disabledIds.has(magicRuleMappingId(trigger, after))) {
+				continue;
+			}
 			addEnglishLetters(letters, rule.emit);
 		}
-		if (section.fallbackKind === 'emit' && section.fallbackEmit.trim()) {
+		if (
+			section.fallbackKind === 'emit' &&
+			section.fallbackEmit.trim() &&
+			!disabledIds.has(magicFallbackMappingId(trigger))
+		) {
 			addEnglishLetters(letters, section.fallbackEmit);
 		}
 	}
@@ -370,11 +385,12 @@ function magicEmittedLetters(
  */
 export function creatorLayoutMissingKeys(
 	magicDraft: CreatorMagicDraft | undefined,
-	availableKeys: readonly string[]
+	availableKeys: readonly string[],
+	disabledMappingIds: readonly string[] = []
 ): string[] {
 	const covered = new Set(availableKeys.map((key) => key.toLowerCase()));
 	if (magicDraft) {
-		for (const letter of magicEmittedLetters(magicDraft, availableKeys)) {
+		for (const letter of magicEmittedLetters(magicDraft, availableKeys, disabledMappingIds)) {
 			covered.add(letter);
 		}
 	}

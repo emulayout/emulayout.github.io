@@ -32,43 +32,49 @@ export function measureKeyboardSwapPaths(
 	paths: readonly LayoutKeyboardSwapPath[]
 ): KeyboardSwapPathLayer {
 	const containerRect = container.getBoundingClientRect();
-	const keyByChar = new Map(
-		Array.from(container.querySelectorAll<HTMLElement>('[data-key-char]')).map((key) => [
-			key.dataset.keyChar ?? '',
-			key
-		])
-	);
+	const keysByChar = new Map<string, HTMLElement[]>();
+	for (const key of container.querySelectorAll<HTMLElement>('[data-key-char]')) {
+		const character = key.dataset.keyChar ?? '';
+		const matches = keysByChar.get(character) ?? [];
+		matches.push(key);
+		keysByChar.set(character, matches);
+	}
 	const renderedPaths = paths.flatMap((path): RenderedKeyboardSwapPath[] => {
-		const fromKey = keyByChar.get(path.from);
-		const toKey = keyByChar.get(path.to);
-		if (!fromKey || !toKey) return [];
+		const fromKeys = keysByChar.get(path.from) ?? [];
+		const toKeys = keysByChar.get(path.to) ?? [];
+		const needsIndexedId = fromKeys.length > 1 || toKeys.length > 1;
+		return fromKeys.flatMap((fromKey, fromIndex) =>
+			toKeys.flatMap((toKey, toIndex): RenderedKeyboardSwapPath[] => {
+				const fromRect = fromKey.getBoundingClientRect();
+				const toRect = toKey.getBoundingClientRect();
+				const fromCenterX = fromRect.left + fromRect.width / 2;
+				const fromCenterY = fromRect.top + fromRect.height / 2;
+				const toCenterX = toRect.left + toRect.width / 2;
+				const toCenterY = toRect.top + toRect.height / 2;
+				const deltaX = toCenterX - fromCenterX;
+				const deltaY = toCenterY - fromCenterY;
+				const distance = Math.hypot(deltaX, deltaY);
+				if (distance === 0) return [];
 
-		const fromRect = fromKey.getBoundingClientRect();
-		const toRect = toKey.getBoundingClientRect();
-		const fromCenterX = fromRect.left + fromRect.width / 2;
-		const fromCenterY = fromRect.top + fromRect.height / 2;
-		const toCenterX = toRect.left + toRect.width / 2;
-		const toCenterY = toRect.top + toRect.height / 2;
-		const deltaX = toCenterX - fromCenterX;
-		const deltaY = toCenterY - fromCenterY;
-		const distance = Math.hypot(deltaX, deltaY);
-		if (distance === 0) return [];
+				const unitX = deltaX / distance;
+				const unitY = deltaY / distance;
+				const fromEdge = edgeDistance(fromRect, unitX, unitY);
+				const toEdge = edgeDistance(toRect, unitX, unitY);
 
-		const unitX = deltaX / distance;
-		const unitY = deltaY / distance;
-		const fromEdge = edgeDistance(fromRect, unitX, unitY);
-		const toEdge = edgeDistance(toRect, unitX, unitY);
-
-		return [
-			{
-				...path,
-				id: `${path.from}:${path.to}`,
-				x1: fromCenterX - containerRect.left + unitX * fromEdge,
-				y1: fromCenterY - containerRect.top + unitY * fromEdge,
-				x2: toCenterX - containerRect.left - unitX * toEdge,
-				y2: toCenterY - containerRect.top - unitY * toEdge
-			}
-		];
+				return [
+					{
+						...path,
+						id: needsIndexedId
+							? `${path.from}:${path.to}:${fromIndex}:${toIndex}`
+							: `${path.from}:${path.to}`,
+						x1: fromCenterX - containerRect.left + unitX * fromEdge,
+						y1: fromCenterY - containerRect.top + unitY * fromEdge,
+						x2: toCenterX - containerRect.left - unitX * toEdge,
+						y2: toCenterY - containerRect.top - unitY * toEdge
+					}
+				];
+			})
+		);
 	});
 
 	return {

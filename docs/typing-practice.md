@@ -9,11 +9,12 @@ and calculation logic outside the renderer.
 
 - `Typing practice` is the first and default layout-detail tab. The layout creator reuses the same
   practice workspace, including Practice lesson settings for custom `text` and the `special`
-  Magic/Adaptive word balance. A segmented **Typing mode** control sits above the field, top
-  right: **Typing practice** (default) or **Type freely**. Type freely replaces the lesson prompt
-  and single-line field with the same multiline layout-aware textarea as the Layout test area.
-  Switching to Type freely resets the current practice lesson: same words, cleared input, and a
-  stopped timer. Free-type text stays independent. Do not send typed free-type text to analytics.
+  Magic/Adaptive word balance. Only the creator composes a segmented **Typing mode** control above
+  that workspace: **Typing practice** (default) or **Type freely**. Type freely replaces the lesson
+  prompt and single-line field with the same multiline layout-aware textarea as the Layout test
+  area. Switching to Type freely resets the current practice lesson: same words, cleared input,
+  and a stopped timer. Free-type text stays independent. Do not send typed free-type text to
+  analytics. Catalog layout detail pages remain practice-only.
 - Without custom text, each new lesson samples ten distinct words from the vendored English 1k
   list. The first remaining word is the active target.
   Random lessons also skip words that need a practiced-layout character with no physical mapping
@@ -204,7 +205,9 @@ The successful-space path is intentionally ordered:
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
-- Typing practice / Type freely switcher: `src/lib/components/TypingModeTabs.svelte`
+- Creator-only Typing practice / Type freely switcher:
+  `src/lib/components/TypingModeTabs.svelte`, composed by
+  `src/lib/components/LayoutCreator.svelte`; mode contract: `src/lib/typingWorkspace.ts`
 - Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,
   `src/lib/components/LayoutFeel.svelte`
 - Input-layout reachability, unreachable key titles, and random-word filtering:
