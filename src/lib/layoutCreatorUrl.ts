@@ -31,6 +31,7 @@ import {
 
 export const CREATOR_ID_PARAM = 'id';
 export const CREATOR_NAME_PARAM = 'name';
+export const CREATOR_AUTHOR_PARAM = 'author';
 export const CREATOR_BASE_PARAM = 'base';
 export const CREATOR_TYPE_PARAM = 'type';
 export const CREATOR_KEYS_PARAM = 'keys';
@@ -49,6 +50,7 @@ const DEFAULT_BASE_LAYOUT_NAME = 'QWERTY';
 
 export type CreatorUrlSnapshot = {
 	name: string;
+	author: string;
 	preview: boolean;
 	includeMagicKey: boolean;
 	includeAdaptiveKey: boolean;
@@ -387,6 +389,7 @@ function writeAdaptiveParam(params: URLSearchParams, snapshot: CreatorUrlSnapsho
 export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 	return {
 		name: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+		author: '',
 		preview: false,
 		includeMagicKey: false,
 		includeAdaptiveKey: false,
@@ -405,6 +408,8 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	if (name && name !== LAYOUT_CREATOR_NEW_LAYOUT_NAME) {
 		params.set(CREATOR_NAME_PARAM, name);
 	}
+	const author = snapshot.author.trim();
+	if (author) params.set(CREATOR_AUTHOR_PARAM, author);
 
 	const baseName = snapshot.keyConfig.baseLayoutName?.trim() ?? '';
 	if (baseName && baseName !== DEFAULT_BASE_LAYOUT_NAME) {
@@ -502,6 +507,7 @@ export function creatorSearchFromSnapshot(
 export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUrlSnapshot {
 	const defaults = createDefaultCreatorUrlSnapshot();
 	const name = searchParams.get(CREATOR_NAME_PARAM)?.trim() || defaults.name;
+	const author = searchParams.get(CREATOR_AUTHOR_PARAM)?.trim() || defaults.author;
 	const preview =
 		searchParams.get(CREATOR_PREVIEW_PARAM) === ENABLED_FLAG ||
 		searchParams.get(CREATOR_PREVIEW_PARAM_LEGACY) === ENABLED_FLAG;
@@ -555,6 +561,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 
 	return {
 		name,
+		author,
 		preview,
 		includeMagicKey,
 		includeAdaptiveKey,

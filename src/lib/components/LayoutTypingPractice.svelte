@@ -4,6 +4,7 @@
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import ToggleSwitch from '$lib/components/ToggleSwitch.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import TypingModeTabs, { type TypingWorkspaceMode } from '$lib/components/TypingModeTabs.svelte';
 	import TypingPracticeLessonModal from '$lib/components/TypingPracticeLessonModal.svelte';
 	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import type { LayoutData } from '$lib/layout';
@@ -117,6 +118,9 @@
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
 	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
+	let typingMode = $state<TypingWorkspaceMode>('practice');
+	let freeInputHistory = $state('');
+	const isFreeType = $derived(typingMode === 'free');
 	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
 	const reachableTargetCharacters = $derived(
 		collectReachableTargetCharacters(keyMaps, layout, keyboardInputStore.config, {
@@ -176,6 +180,14 @@
 		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config, {
 			includeThumbKeys: !simulateThumbKeys
 		})
+	);
+	const freeTypeKeyMaps = $derived(
+		withKeyboardInputConfig(keyMaps, layout, keyboardInputStore.config, {
+			includeThumbKeys: true
+		})
+	);
+	const showPracticeWorkspace = $derived(
+		isFreeType || Boolean(customPracticeText) || wordPoolStatus === 'ready'
 	);
 	const thumbKeys = $derived([
 		...layout.thumbKeysByHand.l.map(({ key }) => key),
@@ -240,11 +252,11 @@
 					displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
 						? inputProfile?.adaptiveSwaps
 						: undefined,
-				inputHistory,
+				inputHistory: isFreeType ? freeInputHistory : inputHistory,
 				disabledMappingIds,
 				knownMagicTriggers: displayOptions.showSpecialKeys ? knownMagicTriggers : []
 			}),
-			displayOptions.onlyRelevantAdaptiveSwaps ? validNextPracticeKeys : undefined
+			displayOptions.onlyRelevantAdaptiveSwaps && !isFreeType ? validNextPracticeKeys : undefined
 		)
 	);
 	const keyboardSwapPaths = $derived(
@@ -254,7 +266,9 @@
 			? buildAdaptiveKeyboardSwapPathsFromFeedback(keyboardFeedback)
 			: []
 	);
-	const nextPracticeKeys = $derived(displayOptions.highlightNextKey ? validNextPracticeKeys : []);
+	const nextPracticeKeys = $derived(
+		!isFreeType && displayOptions.highlightNextKey ? validNextPracticeKeys : []
+	);
 
 	$effect(() => {
 		if (startedAtMilliseconds === null || endedAtMilliseconds !== null) return;
@@ -343,6 +357,14 @@
 		return session.input;
 	}
 
+	function resetPracticeProgress() {
+		if (lessonWords.length > 0) {
+			setPracticeSession(createTypingPracticeSession(lessonWords));
+			return;
+		}
+		setPracticeSession(createPracticeSession());
+	}
+
 	function savePracticeLesson(lesson: TypingPracticeLessonSettings) {
 		lessonModalOpen = false;
 		onPracticeLessonChange?.(lesson);
@@ -381,6 +403,13 @@
 		return session.input;
 	}
 
+	function setTypingMode(mode: TypingWorkspaceMode) {
+		if (mode === typingMode) return;
+		if (mode === 'free') resetPracticeProgress();
+		typingMode = mode;
+		trackGoatCounterEvent(mode === 'free' ? 'practice-mode-free' : 'practice-mode-practice');
+	}
+
 	function resolvePracticeInput(history: string, inputText: string): LayoutInputResult {
 		if (inputText === ' ') {
 			const simulatedThumb = resolveSimulatedTypingPracticeThumbInput(
@@ -396,10 +425,18 @@
 	}
 </script>
 
-{#if wordPoolStatus === 'loading' && !customPracticeText}
-	<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
-{:else if wordPoolStatus === 'error'}
+{#snippet typingModeSwitcher()}
+	<div class="typing-practice-mode-row">
+		<TypingModeTabs value={typingMode} onChange={setTypingMode} />
+	</div>
+{/snippet}
+
+{#if !showPracticeWorkspace && wordPoolStatus === 'error'}
+	{@render typingModeSwitcher()}
 	<p class="typing-practice-load-status" role="alert">Unable to load practice words.</p>
+{:else if !showPracticeWorkspace}
+	{@render typingModeSwitcher()}
+	<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
 {:else}
 	<LayoutKeyboardWorkspace
 		{layout}
@@ -421,110 +458,127 @@
 		mappings={keyboardMappings}
 	>
 		{#snippet above()}
-			<div class="typing-practice-prompt-row">
-				<div class="typing-practice-copy" aria-label="Practice words">
-					{#if prompt.length > 0}
-						{#each prompt as word (word.id)}
-							<span
-								data-practice-word={word.word}
-								data-current-word={word.current ? 'true' : undefined}
-							>
-								{#each word.characters as character, characterIndex (characterIndex)}
+			{@render typingModeSwitcher()}
+			<div>
+				{#if isFreeType}
+					<LayoutTestArea
+						keyMaps={freeTypeKeyMaps}
+						{inputProfile}
+						{disabledMappingIds}
+						variant="page"
+						placeholder="Layout test area"
+						ariaLabel="Type freely"
+						focusOnMount
+						onInputHistoryChange={(history) => (freeInputHistory = history)}
+					/>
+				{:else}
+					<div class="typing-practice-prompt-row">
+						<div class="typing-practice-copy" aria-label="Practice words">
+							{#if prompt.length > 0}
+								{#each prompt as word (word.id)}
 									<span
-										class:typing-practice-character--correct={character.status === 'correct'}
-										class:typing-practice-character--incorrect={character.status === 'incorrect'}
-										class:typing-practice-character--magic-group={magicGroupIndexes
-											.get(word.id)
-											?.has(characterIndex)}
-										class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
-											.get(word.id)
-											?.has(characterIndex)}
-										data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
-											? 'true'
-											: undefined}
-										data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
-											? 'true'
-											: undefined}
-										data-character-status={character.status}>{character.character}</span
+										data-practice-word={word.word}
+										data-current-word={word.current ? 'true' : undefined}
 									>
+										{#each word.characters as character, characterIndex (characterIndex)}
+											<span
+												class:typing-practice-character--correct={character.status === 'correct'}
+												class:typing-practice-character--incorrect={character.status ===
+													'incorrect'}
+												class:typing-practice-character--magic-group={magicGroupIndexes
+													.get(word.id)
+													?.has(characterIndex)}
+												class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
+													.get(word.id)
+													?.has(characterIndex)}
+												data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
+													? 'true'
+													: undefined}
+												data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
+													? 'true'
+													: undefined}
+												data-character-status={character.status}>{character.character}</span
+											>
+										{/each}
+									</span>
 								{/each}
-							</span>
-						{/each}
-					{:else}
-						<span>Press esc to restart</span>
-					{/if}
-				</div>
-				{#if onPracticeLessonChange}
-					<button
-						type="button"
-						class="typing-practice-lesson-action"
-						aria-label="Practice lesson settings"
-						title="Practice lesson settings"
-						onclick={() => (lessonModalOpen = true)}
-					>
-						<svg
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<circle cx="12" cy="12" r="3" />
-							<path
-								d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-							/>
-						</svg>
-					</button>
-				{/if}
-			</div>
+							{:else}
+								<span>Press esc to restart</span>
+							{/if}
+						</div>
+						{#if onPracticeLessonChange}
+							<button
+								type="button"
+								class="typing-practice-lesson-action"
+								aria-label="Practice lesson settings"
+								title="Practice lesson settings"
+								onclick={() => (lessonModalOpen = true)}
+							>
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<circle cx="12" cy="12" r="3" />
+									<path
+										d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+									/>
+								</svg>
+							</button>
+						{/if}
+					</div>
 
-			<div class="typing-practice-input">
-				<LayoutTestArea
-					keyMaps={practiceKeyMaps}
-					{inputProfile}
-					{disabledMappingIds}
-					variant="practice"
-					placeholder=""
-					ariaLabel="Typing practice input"
-					focusOnMount
-					invalid={inputHasError}
-					value={session.input}
-					onValueChange={handleValueChange}
-					resolveInput={simulateThumbKeys ? resolvePracticeInput : undefined}
-					onResolvedInput={handleResolvedInput}
-					onInputHistoryChange={(history) => (inputHistory = history)}
-					onEscape={restartPractice}
-				/>
-				<div class="typing-practice-status" aria-label="Typing practice status">
-					<span
-						class="typing-practice-status__count"
-						aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
-						>{session.completedWordCount}/{session.totalWordCount}</span
-					>
-					{#if !customPracticeText}
-						<span class="typing-practice-status__credit">
-							Word bank source:<br />
-							<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
-								monkeytype <span aria-hidden="true">↗</span>
-							</a>
-							(english_1k)
-						</span>
-					{/if}
-					<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
-						>{elapsedTime}</span
-					>
-				</div>
-				<div
-					class="typing-practice-results"
-					class:typing-practice-results--hidden={!practiceComplete}
-					aria-label={practiceComplete ? 'Typing practice results' : undefined}
-					aria-hidden={!practiceComplete}
-				>
-					<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
-					<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
-				</div>
+					<div class="typing-practice-input">
+						<LayoutTestArea
+							keyMaps={practiceKeyMaps}
+							{inputProfile}
+							{disabledMappingIds}
+							variant="practice"
+							placeholder=""
+							ariaLabel="Typing practice input"
+							focusOnMount
+							invalid={inputHasError}
+							value={session.input}
+							onValueChange={handleValueChange}
+							resolveInput={simulateThumbKeys ? resolvePracticeInput : undefined}
+							onResolvedInput={handleResolvedInput}
+							onInputHistoryChange={(history) => (inputHistory = history)}
+							onEscape={restartPractice}
+						/>
+						<div class="typing-practice-status" aria-label="Typing practice status">
+							<span
+								class="typing-practice-status__count"
+								aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
+								>{session.completedWordCount}/{session.totalWordCount}</span
+							>
+							{#if !customPracticeText}
+								<span class="typing-practice-status__credit">
+									Word bank source:<br />
+									<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
+										monkeytype <span aria-hidden="true">↗</span>
+									</a>
+									(english_1k)
+								</span>
+							{/if}
+							<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
+								>{elapsedTime}</span
+							>
+						</div>
+						<div
+							class="typing-practice-results"
+							class:typing-practice-results--hidden={!practiceComplete}
+							aria-label={practiceComplete ? 'Typing practice results' : undefined}
+							aria-hidden={!practiceComplete}
+						>
+							<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
+							<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
+						</div>
+					</div>
+				{/if}
 			</div>
 		{/snippet}
 		{#snippet header()}
@@ -539,19 +593,21 @@
 			{/if}
 		{/snippet}
 		{#snippet options()}
-			<ToggleSwitch
-				checked={displayOptions.highlightNextKey}
-				label="Highlight next key"
-				onCheckedChange={(checked) =>
-					uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
-			/>
+			{#if !isFreeType}
+				<ToggleSwitch
+					checked={displayOptions.highlightNextKey}
+					label="Highlight next key"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('highlightNextKey', checked)}
+				/>
+			{/if}
 			<ToggleSwitch
 				checked={displayOptions.colorHomeKeys}
 				label="Color home keys"
 				onCheckedChange={(checked) =>
 					uiPrefs.setTypingPracticeDisplayOption('colorHomeKeys', checked)}
 			/>
-			{#if layout.hasThumbKeys}
+			{#if !isFreeType && layout.hasThumbKeys}
 				<div class="typing-practice-simulate-thumbs-option" data-simulate-thumb-keys-option>
 					<ToggleSwitch
 						checked={displayOptions.simulateThumbKeys}
@@ -573,7 +629,7 @@
 						uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
 				/>
 			{/if}
-			{#if hasMagicGroupPreview}
+			{#if !isFreeType && hasMagicGroupPreview}
 				<ToggleSwitch
 					checked={displayOptions.underlineMagicGroups}
 					label="Underline magic group"
@@ -588,19 +644,23 @@
 					onCheckedChange={(checked) =>
 						uiPrefs.setTypingPracticeDisplayOption('showAdaptiveSwaps', checked)}
 				/>
-				<ToggleSwitch
-					checked={displayOptions.underlineAdaptiveGroups}
-					label="Underline adaptive group"
-					onCheckedChange={(checked) =>
-						uiPrefs.setTypingPracticeDisplayOption('underlineAdaptiveGroups', checked)}
-				/>
-				{#if displayOptions.showAdaptiveSwaps}
+				{#if !isFreeType}
 					<ToggleSwitch
-						checked={displayOptions.onlyRelevantAdaptiveSwaps}
-						label="Only show relevant swaps"
+						checked={displayOptions.underlineAdaptiveGroups}
+						label="Underline adaptive group"
 						onCheckedChange={(checked) =>
-							uiPrefs.setTypingPracticeDisplayOption('onlyRelevantAdaptiveSwaps', checked)}
+							uiPrefs.setTypingPracticeDisplayOption('underlineAdaptiveGroups', checked)}
 					/>
+				{/if}
+				{#if displayOptions.showAdaptiveSwaps}
+					{#if !isFreeType}
+						<ToggleSwitch
+							checked={displayOptions.onlyRelevantAdaptiveSwaps}
+							label="Only show relevant swaps"
+							onCheckedChange={(checked) =>
+								uiPrefs.setTypingPracticeDisplayOption('onlyRelevantAdaptiveSwaps', checked)}
+						/>
+					{/if}
 					<ToggleSwitch
 						checked={displayOptions.showSwapPaths}
 						label="Show swap paths"
@@ -627,6 +687,12 @@
 {/if}
 
 <style>
+	.typing-practice-mode-row {
+		display: flex;
+		justify-content: flex-end;
+		margin: 0 0 0.75rem;
+	}
+
 	.typing-practice-header-lead {
 		display: flex;
 		min-width: 0;

@@ -53,6 +53,7 @@ panel. Tabs use automatic activation: moving focus with an arrow also selects th
 Use `SegmentedControl` for mutually exclusive settings that change presentation or select a mode
 without a tabpanel. It uses radiogroup/radio semantics. Both primitives leave the selected option as
 the sole Tab stop and fall back to the first option if persisted runtime state is invalid.
+`AnalyzerTabs`, `StatsDisplayTabs`, and `TypingModeTabs` are toolbar-styled consumers.
 
 The Settings modal uses `Tabs` to switch among its Display settings, Import views, and Export views
 panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
@@ -96,10 +97,17 @@ for the presentation-only keyboard; **Edit** restores it.
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
-that default list. Selection closes the list but retains input focus. Consumers that supply
+that default list. Selection closes the list but retains input focus. Escape or leaving the field
+without a catalog pick restores the committed layout name. Consumers that supply
 `onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
 optional loading state renders an accessible spinner in the trailing field controls without adding
 content below the field or changing the consumer's layout.
+
+`AuthorAutocomplete` uses the same combobox, chevron, clear, and loading pattern over catalog
+author names. Typing or choosing a listed name commits it, and a name that is not in the catalog
+stays as freeform text on blur and Enter. Escape restores the value from when the field was
+focused. The layout creator Preview turns a catalog match into a Discover link filtered to that
+author.
 
 ## Invariants
 

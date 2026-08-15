@@ -206,7 +206,7 @@
 	class:layout-test-area--invalid={variant === 'practice' && invalid}
 	style="
 		height: {variant === 'page'
-		? 'clamp(12rem, 32vh, 22rem)'
+		? 'clamp(12rem, 23vh, 22rem)'
 		: variant === 'practice'
 			? '4.5rem'
 			: `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};

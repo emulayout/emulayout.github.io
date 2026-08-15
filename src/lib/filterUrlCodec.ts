@@ -230,6 +230,13 @@ export function writeViewFilterUrlState(
 	if (fingerWorkloadSerialized) params.set('fingerWorkload', fingerWorkloadSerialized);
 }
 
+/** Index query that shows only layouts by one catalog author. */
+export function authorFilterIndexSearch(authorId: number): string {
+	const snapshot = createDefaultViewSnapshot();
+	snapshot.selectedAuthors = [authorId];
+	return encodeViewFilterSnapshot(snapshot);
+}
+
 /** Compact query-string encoding of a view snapshot (shareable; not global URL state). */
 export function encodeViewFilterSnapshot(
 	snapshot: ViewFilterSnapshot,

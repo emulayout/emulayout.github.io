@@ -26,14 +26,19 @@ drafts in the browser.
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
   control.
-- The New layout canvas starts as a stagger QWERTY board named `New layout`. A layout name field
-  sits above Input layout. The name updates the live draft; an empty value falls back to
-  `New layout`. The document title and the active tab use that name. Renaming does not regenerate
-  the practice words.
+- The New layout canvas starts as a stagger QWERTY board named `New layout`. Layout name and
+  author name fields sit above Input layout. On a wide header they share the row equally; when
+  that space is too narrow they stack. The name updates the live draft; an empty value falls back
+  to `New layout`. Author is optional and stays empty until typed. The author field is a
+  combobox over catalog authors: type to search, use the chevron for the full list, and keep a
+  freeform name if it is not in the catalog. The document title and the
+  active tab use the layout name. Renaming does not regenerate the practice words. Preview keeps
+  the layout name as a title and shows the author under it in a smaller font. A catalog author
+  becomes a link to Discover filtered to that author; a freeform name stays plain text.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, base layout, keyboard type, key grid, preview, practice lesson, Magic/Adaptive mappings
-  (including incomplete rows), and which complete special mappings are disabled are written when
-  they differ from the blank canvas. An active saved
+  Name, author, base layout, keyboard type, key grid, preview, practice lesson, Magic/Adaptive
+  mappings (including incomplete rows), and which complete special mappings are disabled are
+  written when they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
   params are omitted so the URL is `/create?id=<uuid>`. Preview mode keeps that id URL and only
   adds `preview=1`; it does not count as a saveable change. Dirty edits stay in the query alongside
@@ -100,7 +105,10 @@ drafts in the browser.
   when the mapping panels are closed.
 - The main panel reuses Typing practice: a generated English 1k lesson, the layout-aware input,
   progress and elapsed time, and the shared keyboard workspace (input-layout control and the same
-  keyboard options in Edit and Preview). The prompt and input use that workspace's width. The same
+  keyboard options in Edit and Preview). A **Typing mode** switcher above the field, top right,
+  can replace that lesson with **Type freely**, the same multiline test area as a catalog layout.
+  Switching to Type freely resets practice input, progress, and the timer on the current words.
+  The prompt and input use that workspace's width. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
@@ -112,9 +120,11 @@ drafts in the browser.
 - Saved layouts persist in a versioned local-storage document, each with its own id. A sticky
   bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
   Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
-  **Save as new layout** when a saved layout has changed; **Duplicate layout** only when a saved
-  layout matches its stored snapshot. Save, update, save-as-new, and duplicate use the current
-  layout name. A save is only acknowledged after local storage confirms the write. If storage is
+  **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of
+  that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Undo
+  restores the stored snapshot and keeps the current Preview/Edit mode. It is hidden on an
+  unsaved canvas and while a saved layout is clean. Save, update, save-as-new, and duplicate use
+  the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
@@ -132,6 +142,9 @@ drafts in the browser.
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
+- Author combobox (catalog search plus freeform): `src/lib/components/AuthorAutocomplete.svelte`
+- Catalog author lookup and Discover author-filter query: `src/lib/layoutDetails.ts`
+  (`resolveAuthorByName`), `src/lib/filterUrlCodec.ts` (`authorFilterIndexSearch`)
 - Saved-layout delete confirmation: `src/lib/components/DeleteSavedLayoutModal.svelte`
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
   `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
@@ -157,6 +170,6 @@ drafts in the browser.
   labelled tab/tabpanel pair. `+ New layout` is a button beside the tablist, not a tab, and only
   appears when a saved layout exists.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
-  names, key maps, lesson text, or WPM.
+  names, author names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Navigating to a bare `/create` link starts a new
   canvas. Saved-layout tabs come from local storage; `id` in the query selects one when it exists.

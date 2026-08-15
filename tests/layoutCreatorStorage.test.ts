@@ -32,6 +32,7 @@ function namedSnapshot(name: string, extra: Partial<CreatorUrlSnapshot> = {}): C
 describe('saved layout storage', () => {
 	test('writes and reads the versioned document using compact query snapshots', () => {
 		const snapshot = namedSnapshot('Magic lela', {
+			author: 'derek',
 			keyConfig: updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', 'w')
 		});
 		const layout: SavedCreatorLayout = {
@@ -49,12 +50,14 @@ describe('saved layout storage', () => {
 
 		expect(document.version).toBe(SAVED_LAYOUTS_SCHEMA_VERSION);
 		expect(document.layouts[0]?.query).toContain('name=Magic+lela');
+		expect(document.layouts[0]?.query).toContain('author=derek');
 		expect(document.layouts[0]?.query).toContain('keys=');
 
 		const restored = parseSavedLayoutsDocument(document);
 		expect(restored).toHaveLength(1);
 		expect(restored[0]?.id).toBe('layout-1');
 		expect(restored[0]?.name).toBe('Magic lela');
+		expect(restored[0]?.snapshot.author).toBe('derek');
 		expect(restored[0]?.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 	});
 

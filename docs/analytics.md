@@ -40,7 +40,7 @@ Never send:
   workload rankings, similarity percents).
 - Typing-practice lesson text, WPM, accuracy, timings, or per-keystroke data.
 - Configured input-layout names or key maps.
-- Creator draft names, key maps, or saved-creation identities.
+- Creator draft names, author names, key maps, or saved-creation identities.
 - Saved-view names, share-URL payloads, or clipboard contents.
 - Free-text of any kind.
 
@@ -126,6 +126,8 @@ threshold or selected author.
 | --------------------------- | ------------------------------------------------------------------------------- |
 | `practice-complete`         | A lesson actually finishes                                                      |
 | `practice-setting-<option>` | A practice display toggle is flipped (`practice-setting-highlight-next-key`, …) |
+| `practice-mode-practice`    | The Typing mode switcher selects Typing practice                                |
+| `practice-mode-free`        | The Typing mode switcher selects Type freely                                    |
 
 Visiting the Typing practice tab is already a pageview (`/layouts`). `practice-complete` is the
 signal that someone used the feature rather than glanced at the tab.

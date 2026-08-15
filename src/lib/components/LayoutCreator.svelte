@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
+	import AuthorAutocomplete from '$lib/components/AuthorAutocomplete.svelte';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
 	import DeleteSavedLayoutModal from '$lib/components/DeleteSavedLayoutModal.svelte';
@@ -75,7 +76,9 @@
 		normalizeTypingPracticeLessonSettings,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
+	import { authorFilterIndexSearch } from '$lib/filterUrlCodec';
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
+	import { resolveAuthorByName } from '$lib/layoutDetails';
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -91,6 +94,7 @@
 	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
 	let activeSavedId = $state<string | null>(initialSession.savedId);
 	let layoutNameDraft = $state(initialSession.snapshot.name);
+	let layoutAuthorDraft = $state(initialSession.snapshot.author);
 	let layoutPreview = $state(initialSession.snapshot.preview);
 	let disabledMappingIds = $state<string[]>([...initialSession.snapshot.disabledMappingIds]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
@@ -109,6 +113,14 @@
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
 	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+	const layoutAuthor = $derived(layoutAuthorDraft.trim());
+	const authorNames = $derived(
+		Object.keys(layoutsCatalog.authorsData).toSorted((a, b) =>
+			a.localeCompare(b, undefined, { sensitivity: 'base' })
+		)
+	);
+	const knownAuthor = $derived(resolveAuthorByName(layoutsCatalog.authorsData, layoutAuthor));
+	const knownAuthorSearch = $derived(knownAuthor ? authorFilterIndexSearch(knownAuthor.id) : '');
 	const activeSavedLayout = $derived(findSavedLayout(savedLayouts, activeSavedId));
 	const activeTab = $derived<LayoutCreatorTabValue>(
 		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
@@ -209,6 +221,7 @@
 	function currentCreatorSnapshot(): CreatorUrlSnapshot {
 		return {
 			name: layoutNameDraft,
+			author: layoutAuthorDraft,
 			preview: layoutPreview,
 			includeMagicKey,
 			includeAdaptiveKey,
@@ -233,6 +246,7 @@
 	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
 		const next = cloneCreatorUrlSnapshot(snapshot);
 		layoutNameDraft = next.name;
+		layoutAuthorDraft = next.author;
 		layoutPreview = next.preview;
 		includeMagicKey = next.includeMagicKey;
 		includeAdaptiveKey = next.includeAdaptiveKey;
@@ -436,6 +450,10 @@
 		layoutNameDraft = name;
 	}
 
+	function setLayoutAuthor(author: string) {
+		layoutAuthorDraft = author;
+	}
+
 	function toggleLayoutPreview() {
 		layoutPreview = !layoutPreview;
 	}
@@ -479,6 +497,16 @@
 			snapshot
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
+		saveMenuOpen = false;
+		flushCreatorUrl();
+	}
+
+	function undoSavedLayoutChanges() {
+		const saved = findSavedLayout(savedLayouts, activeSavedId);
+		if (!saved) return;
+		const next = cloneCreatorUrlSnapshot(saved.snapshot);
+		next.preview = layoutPreview;
+		applyCreatorSnapshot(next);
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
@@ -622,7 +650,17 @@
 		{#snippet creatorHeaderStart()}
 			<div class="layout-creator-name">
 				{#if layoutPreview}
-					<h2 class="layout-creator-name-title">{layoutName}</h2>
+					<div class="layout-creator-name-preview">
+						<h2 class="layout-creator-name-title">{layoutName}</h2>
+						{#if knownAuthor && knownAuthorSearch}
+							<a
+								class="layout-creator-author-title layout-creator-author-title--link"
+								href="{resolve('/')}?{knownAuthorSearch}">{knownAuthor.name}</a
+							>
+						{:else}
+							<p class="layout-creator-author-title">{layoutAuthor}</p>
+						{/if}
+					</div>
 				{:else}
 					<label class="layout-creator-name-field">
 						<span class="layout-creator-name-label">Layout name</span>
@@ -635,6 +673,19 @@
 							oninput={(event) => setLayoutName(event.currentTarget.value)}
 						/>
 					</label>
+					<div class="layout-creator-name-field">
+						<span class="layout-creator-name-label">Author name</span>
+						<AuthorAutocomplete
+							authors={authorNames}
+							id="layout-creator-author"
+							label="Author name"
+							placeholder="Search or add author"
+							selected={layoutAuthorDraft}
+							onChange={setLayoutAuthor}
+							onClear={() => setLayoutAuthor('')}
+							loading={layoutsCatalog.loading && authorNames.length === 0}
+						/>
+					</div>
 				{/if}
 			</div>
 		{/snippet}
@@ -885,6 +936,13 @@
 								</button>
 							{/snippet}
 						</DropdownMenu>
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-action-button"
+							onclick={undoSavedLayoutChanges}
+						>
+							Undo changes
+						</button>
 					{:else if showDuplicateButton}
 						<button
 							type="button"
@@ -1132,6 +1190,8 @@
 
 	.layout-creator-save {
 		display: flex;
+		align-items: center;
+		gap: 0.75rem;
 	}
 
 	.layout-creator-action-button {
@@ -1210,8 +1270,11 @@
 	}
 
 	.layout-creator-name {
-		display: flex;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+		gap: 0.75rem;
 		min-width: 0;
+		flex: 1;
 	}
 
 	.layout-creator-name-field {
@@ -1246,17 +1309,53 @@
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 	}
 
-	.layout-creator-name-title {
+	.layout-creator-name-preview {
+		display: flex;
 		min-width: 0;
-		flex: 1;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.layout-creator-name-title,
+	.layout-creator-author-title {
+		min-width: 0;
 		margin: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.layout-creator-name-title {
 		color: var(--text-primary);
 		font-size: 1.125rem;
 		font-weight: 600;
 		line-height: 1.3;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+	}
+
+	.layout-creator-author-title {
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.3;
+	}
+
+	.layout-creator-author-title--link {
+		width: fit-content;
+		max-width: 100%;
+		text-decoration: none;
+	}
+
+	.layout-creator-author-title--link:hover,
+	.layout-creator-author-title--link:focus-visible {
+		text-decoration: underline;
+	}
+
+	.layout-creator-author-title--link:focus-visible {
+		outline: none;
+	}
+
+	.layout-creator-author-title:empty {
+		display: none;
 	}
 
 	.layout-creator-keyboard-fields {

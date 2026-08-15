@@ -56,6 +56,18 @@ describe('creator URL state', () => {
 		});
 	});
 
+	test('round-trips a custom author and omits the empty default', () => {
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('author')).toBe(false);
+
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			author: '  derek  '
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.get('author')).toBe('derek');
+		expect(roundTrip(snapshot).author).toBe('derek');
+	});
+
 	test('round-trips a renamed preview draft with an edited key', () => {
 		const snapshot: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
