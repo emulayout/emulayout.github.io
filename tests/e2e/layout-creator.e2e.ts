@@ -31,11 +31,15 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(panel).toBeVisible();
-	const typingMode = panel.getByRole('radiogroup', { name: 'Typing mode' });
-	await expect(typingMode.getByRole('radio', { name: 'Typing practice' })).toHaveAttribute(
-		'aria-checked',
+	const sectionTabs = panel.getByRole('tablist', { name: 'Layout detail sections' });
+	await expect(sectionTabs.getByRole('tab', { name: 'Typing practice' })).toHaveAttribute(
+		'aria-selected',
 		'true'
 	);
+	await expect(sectionTabs.getByRole('tab', { name: 'Layout test area' })).toBeVisible();
+	await expect(sectionTabs.getByRole('tab', { name: 'Layout feel' })).toBeVisible();
+	await expect(sectionTabs.getByRole('tab', { name: 'Stats' })).toHaveCount(0);
+	await expect(panel.getByRole('radiogroup', { name: 'Typing mode' })).toHaveCount(0);
 	await expect(panel.getByRole('textbox', { name: 'Typing practice input' })).toBeFocused();
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
@@ -410,32 +414,58 @@ test('duplicates a saved layout into Edit with an incremented name', async ({ pa
 	await expect(page).toHaveURL(/edit=1/);
 });
 
-test('switches the creator typing area to a free-type field', async ({ page }) => {
+test('switches the creator typing area to the layout test area', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
-	const typingMode = panel.getByRole('radiogroup', { name: 'Typing mode' });
+	const sectionTabs = panel.getByRole('tablist', { name: 'Layout detail sections' });
 	const practiceInput = panel.getByRole('textbox', { name: 'Typing practice input' });
 	await practiceInput.press('q');
 	await expect(practiceInput).toHaveValue('q');
 
-	await typingMode.getByRole('radio', { name: 'Type freely' }).click();
-	const freeField = panel.getByRole('textbox', { name: 'Type freely' });
-	await expect(freeField).toBeFocused();
+	await sectionTabs.getByRole('tab', { name: 'Layout test area' }).click();
+	const testField = panel.getByRole('textbox', { name: 'Layout test area' });
+	await expect(sectionTabs.getByRole('tab', { name: 'Layout test area' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(testField).toBeVisible();
 	await expect(panel.getByRole('textbox', { name: 'Typing practice input' })).toHaveCount(0);
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(0);
 	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toHaveCount(0);
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toBeVisible();
 
-	await freeField.press('q');
-	await expect(freeField).toHaveValue('q');
+	await testField.press('q');
+	await expect(testField).toHaveValue('q');
 
-	await typingMode.getByRole('radio', { name: 'Typing practice' }).click();
+	await panel.getByRole('button', { name: 'Preview' }).click();
+	await expect(sectionTabs.getByRole('tab', { name: 'Layout test area' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(panel.getByRole('textbox', { name: 'Layout test area' })).toBeVisible();
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toHaveCount(0);
+	await panel.getByRole('button', { name: 'Edit' }).click();
+	await expect(sectionTabs.getByRole('tab', { name: 'Layout test area' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+
+	await sectionTabs.getByRole('tab', { name: 'Layout feel' }).click();
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toBeVisible();
+	await sectionTabs.getByRole('tab', { name: 'Layout test area' }).click();
+
+	await sectionTabs.getByRole('tab', { name: 'Typing practice' }).click();
 	const restoredInput = panel.getByRole('textbox', { name: 'Typing practice input' });
 	await expect(restoredInput).toBeFocused();
 	await expect(restoredInput).toHaveValue('');
 	await expect(panel.getByLabel('Elapsed time: 00:00')).toBeVisible();
 	await expect(panel.getByLabel('0 of 10 words complete')).toBeVisible();
-	await expect(panel.getByRole('textbox', { name: 'Type freely' })).toHaveCount(0);
+	await expect(panel.getByRole('textbox', { name: 'Layout test area' })).toHaveCount(0);
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 });
 
 test('restores an unchecked Adaptive swap after saving and reloading', async ({ page }) => {

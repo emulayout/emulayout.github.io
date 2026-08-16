@@ -70,17 +70,17 @@ drafts in the browser.
   separation as the presentation keyboard, with an empty spacebar-sized gap
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
-  live draft. Edits update the in-memory layout immediately so Typing practice uses the current
-  keys. The same workspace options paint that editor: next-key outline, home-key coloring,
+  live draft. Edits update the in-memory layout immediately so every Edit typing tab uses the
+  current keys. The same workspace options paint that editor: next-key outline, home-key coloring,
   special-key fills and emitted values, Adaptive swap paths, and unreachable slashes. While a key
   field is focused, the typed value stays visible instead of the contextual overlay.
-- Preview replaces the editor workspace with `LayoutExpandedView` in local-preview mode. The
-  summary card and right-hand tabs match the catalog show page, except stats stay unavailable, the
-  card analyzer selector and Stats tab are omitted, and the cminibrowser link is hidden. Preview section state is local and
-  defaults to Typing practice; it is not written to the `/create` query. The preview keyboard still
+- Preview keeps `LayoutExpandedView` in local-preview mode and shows the summary card. The card
+  and right-hand tabs match the catalog show page, except stats stay unavailable, the card analyzer
+  selector and Stats tab are omitted, and the cminibrowser link is hidden. Edit hides that summary
+  column so the tabs and workspace fill the panel. The preview keyboard still
   draws the 10 keys on each letter row and empty keycaps for unassigned slots between letters so
   remaining keys keep their physical columns. The key editor, name and author fields, base-layout
-  and keyboard-type fields, Type freely switcher, special-key add buttons, missing-letter warning,
+  and keyboard-type fields, special-key add buttons, missing-letter warning,
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
   in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
   editors were closed in Edit. The sticky bar shows **Preview** while editing, which opens this
@@ -112,13 +112,17 @@ drafts in the browser.
   that trigger is on the board and the mapping is enabled. Mapping keys that are not letters,
   including a missing Magic trigger, are not listed. The key list wraps inside the keyboard width
   so a long set of missing letters does not scroll the page sideways. The warning is Edit-only.
-- In Edit, the main panel reuses Typing practice: a generated English 1k lesson, the layout-aware
-  input, progress and elapsed time, and the shared keyboard workspace (input-layout control and the
-  same keyboard options). A **Typing mode** switcher above the field, top right, can replace that
-  lesson with **Type freely**, the same multiline test area as a catalog layout. Switching to Type
-  freely resets practice input, progress, and the timer on the current words. Preview uses the
-  show-page tabs instead of that switcher.
-  The prompt and input use that workspace's width. The same
+- Edit and Preview share the show-page **Layout detail sections** tabs: Typing practice, Layout
+  test area, and Layout feel. There is no Stats tab. Section state is local and is not written to
+  the `/create` query. Toggling Preview/Edit keeps the selected tab. Opening a saved layout, a new
+  canvas, or a duplicate resets to Typing practice. In Edit, every section keeps the key editor,
+  name and author fields, base-layout and keyboard-type fields, special-key add buttons,
+  missing-letter warning, and editable mapping panels, so the user can test the live draft in
+  Typing practice, Layout test area, or Layout feel. Typing practice and Layout feel share the
+  page-session leftover lesson words; leaving either tab during a test refills a random lesson to
+  ten words and clears the timer. Layout test area keeps its own free-typing surface.
+  Each tab still uses its own keyboard options. Preview swaps that editor for the presentation keyboard.
+  The prompt and input span the full panel width. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
@@ -166,7 +170,8 @@ drafts in the browser.
 - App-bar Discover and Create links and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
-- Show-page preview: `src/lib/components/LayoutExpandedView.svelte` (`localPreview`)
+- Show-page preview and shared creator tabs: `src/lib/components/LayoutExpandedView.svelte`
+  (`localPreview`, `hideSummary`, optional Edit keyboard snippets)
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Shared keyboard option presentation and swap-path measurement:
   `src/lib/layoutKeyboardFeedback.ts` (`LayoutKeyboardPresentation`),

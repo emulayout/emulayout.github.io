@@ -234,10 +234,6 @@
 			)}
 		{/each}
 	</div>
-	<button type="button" class="creator-mappings-text-button" onclick={addUngroupedRule}>
-		Add mapping
-	</button>
-
 	{#each draft.groups as group (group.id)}
 		{@const sectionIds = ruleIds(group.rules, group.id)}
 		<div class="creator-mappings-section">
@@ -288,9 +284,14 @@
 		</div>
 	{/each}
 
-	<button type="button" class="creator-mappings-text-button" onclick={addSection}>
-		Add section
-	</button>
+	<div class="creator-mappings-panel-actions">
+		<button type="button" class="creator-mappings-text-button" onclick={addUngroupedRule}>
+			Add mapping
+		</button>
+		<button type="button" class="creator-mappings-text-button" onclick={addSection}>
+			Add section
+		</button>
+	</div>
 </section>
 
 <style>
@@ -347,6 +348,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
+	}
+
+	.creator-mappings-panel-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem 1rem;
 	}
 
 	.creator-mappings-section .creator-mappings-list {

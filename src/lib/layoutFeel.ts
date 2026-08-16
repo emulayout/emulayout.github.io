@@ -550,3 +550,26 @@ export function feelSourceCorrectCharacterCount(
 		.slice(0, feelCorrectPrefixLength(plan, feelInput))
 		.reduce((total, keystroke) => total + Array.from(keystroke.emitted).length, 0);
 }
+
+/** Preferred feel labels covering a correct source-character prefix. */
+export function feelInputFromSourceCorrectCount(
+	plan: FeelWordPlan,
+	sourceCorrectCount: number
+): string {
+	let covered = 0;
+	const labels: string[] = [];
+	for (const keystroke of plan.keystrokes) {
+		const emitLength = Array.from(keystroke.emitted).length;
+		if (covered + emitLength > sourceCorrectCount) break;
+		covered += emitLength;
+		labels.push(keystroke.feel);
+	}
+	return labels.join('');
+}
+
+/** Source-word prefix produced by the correct feel-input prefix. */
+export function sourceInputFromFeelInput(plan: FeelWordPlan, feelInput: string): string {
+	return Array.from(plan.sourceWord)
+		.slice(0, feelSourceCorrectCharacterCount(plan, feelInput))
+		.join('');
+}

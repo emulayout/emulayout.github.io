@@ -28,8 +28,9 @@ AI implementation context for the dedicated page that replaces the former expand
   to the index rather than leaving a blank page.
 - The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
   and `Stats`. The `tab` query parameter is their source of truth, including for direct links and
-  reloads; missing or invalid values default to Typing practice. Creator Preview reuses the same
-  expanded view without Stats or the cminibrowser link; see [`layout-creator.md`](./layout-creator.md).
+  reloads; missing or invalid values default to Typing practice. The layout creator reuses the same
+  expanded view for Edit and Preview without Stats or the cminibrowser link; see
+  [`layout-creator.md`](./layout-creator.md).
 
 ## Data loading
 
@@ -102,7 +103,10 @@ small without weakening app-bar functionality.
   prompt guidance, and extension boundaries.
 - `Layout feel` sits between Layout test area and Stats. It reuses Typing practice’s lesson flow,
   prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text` and
-  `special` query state is shared with Typing practice and preserved across detail tabs. Each source
+  `special` query state is shared with Typing practice and preserved across detail tabs. The live
+  source word list is also shared. Switching away from an in-progress Practice or Feel test keeps
+  the words that have not been entered correctly, appends new random words to restore a ten-word
+  lesson, and clears the timer, input, and `0/10` progress. Each source
   word is planned on the page layout first — including
   enabled Magic and Adaptive shortcuts — then each planned keystroke is remapped to the user’s
   configured input-layout label on that physical slot. Example: with input layout QWERTY on
@@ -110,7 +114,8 @@ small without weakening app-bar functionality.
   remapped prompt includes those trigger/base keystrokes instead of spelling every emitted letter.
   The remapped prompt is the typing target (identity input, no live target resolve); the original
   English words sit above it in a quieter secondary line — the active word plus a more muted preview
-  of the next word — and advance with the lesson. That source row keeps its height when the lesson
+  of the next word — and advance with the lesson. The lesson settings control sits on the remapped
+  prompt row, not the source-word line. That source row keeps its height when the lesson
   finishes so the remapped prompt does not jump. As each remapped keystroke is entered correctly,
   the corresponding source letters turn primary color. Magic and Adaptive underlines mark the
   remapped keystroke spans; next-key highlights still land on the practiced layout’s keycaps. When
@@ -195,10 +200,12 @@ small without weakening app-bar functionality.
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content, external links, corpus selector, and analyzer controls:
-  `src/lib/components/LayoutExpandedView.svelte` (`localPreview` for creator Preview),
+  `src/lib/components/LayoutExpandedView.svelte` (`localPreview`, `hideSummary`, and Edit keyboard
+  snippets for the creator),
   `src/lib/cminibrowser.ts`,
   `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
+  `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
 - Layout-feel session UI and physical-key remapping: `src/lib/components/LayoutFeel.svelte`,
   `src/lib/layoutFeel.ts`

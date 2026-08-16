@@ -53,7 +53,7 @@ panel. Tabs use automatic activation: moving focus with an arrow also selects th
 Use `SegmentedControl` for mutually exclusive settings that change presentation or select a mode
 without a tabpanel. It uses radiogroup/radio semantics. Both primitives leave the selected option as
 the sole Tab stop and fall back to the first option if persisted runtime state is invalid.
-`AnalyzerTabs`, `StatsDisplayTabs`, and `TypingModeTabs` are toolbar-styled consumers.
+`AnalyzerTabs` and `StatsDisplayTabs` are toolbar-styled consumers.
 
 The Settings modal uses `Tabs` to switch among its Display settings, Import views, and Export views
 panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
@@ -71,7 +71,9 @@ The layout creator uses the same `Tabs` primitive as the index layout-view bar: 
 tab, labeled with the draft name, plus a tab for each saved layout. Saved tabs reuse the view-tab
 delete pattern: a pointer X and Delete/Backspace open a confirmation modal. When saved layouts
 exist, a `+ New layout` button sits outside the tablist on the far side of that bar. Those tabs
-reveal the creator canvas rather than detail sections. See [`layout-creator.md`](./layout-creator.md).
+reveal the creator canvas rather than detail sections. Inside that canvas, Edit and Preview reuse
+the layout-detail section tabs (Typing practice, Layout test area, Layout feel) without a Stats
+tab or `tab` query. See [`layout-creator.md`](./layout-creator.md).
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /

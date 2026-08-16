@@ -11,7 +11,8 @@
 	import {
 		buildAdaptiveKeyboardSwapPathsFromFeedback,
 		buildLayoutKeyboardFeedback,
-		filterAdaptiveKeyboardFeedbackByKeys
+		filterAdaptiveKeyboardFeedbackByKeys,
+		type LayoutKeyboardPresentation
 	} from '$lib/layoutKeyboardFeedback';
 	import { type LayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import {
@@ -40,25 +41,29 @@
 		unreachableKeysKey,
 		unreachableTargetLayoutKeys
 	} from '$lib/layoutKeyReachability';
+	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		calculateTypingPracticeResults,
 		countTypingPracticeTestCharacters,
 		formatTypingPracticeElapsed
 	} from '$lib/typingPracticeMetrics';
-	import { createTypingPracticeSession, type TypingPracticeSession } from '$lib/typingPractice';
 	import {
 		filterTypingPracticeSpecialWords,
 		selectTypingPracticeLessonWords
 	} from '$lib/typingPracticeSpecialWords';
 	import {
+		TYPING_PRACTICE_LESSON_WORD_COUNT,
+		type SharedTypingPracticeLessonSource
+	} from '$lib/typingPracticeLesson';
+	import type { SharedTypingPracticeLesson } from '$lib/typingPracticeLesson.svelte';
+	import {
 		typingPracticeWordsFromText,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
-	import { ENGLISH_1K_WORD_POOL_URL, loadTypingPracticeWords } from '$lib/typingPracticeWords';
 	import { trackGoatCounterEvent } from '$lib/goatcounter';
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack, type Snippet } from 'svelte';
 
 	interface Props {
 		layout: LayoutData;
@@ -70,6 +75,15 @@
 		knownMagicTriggers?: readonly string[];
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
+		sharedLesson: SharedTypingPracticeLesson;
+		keyboardHeaderStart?: Snippet;
+		keyboard?: Snippet<[LayoutKeyboardPresentation]>;
+		keyboardLead?: Snippet;
+		keyboardWidthTerms?: KeyboardWidthTerms;
+		keyboardAside?: Snippet;
+		keyboardBelow?: Snippet;
+		keyboardMappings?: Snippet;
+		showKeyboardMappings?: boolean;
 	}
 
 	const {
@@ -81,27 +95,35 @@
 		onDisabledMappingIdsChange,
 		knownMagicTriggers = [],
 		practiceLesson,
-		onPracticeLessonChange
+		onPracticeLessonChange,
+		sharedLesson,
+		keyboardHeaderStart,
+		keyboard,
+		keyboardLead,
+		keyboardWidthTerms,
+		keyboardAside,
+		keyboardBelow,
+		keyboardMappings,
+		showKeyboardMappings = false
 	}: Props = $props();
-
-	const PRACTICE_WORD_COUNT = 10;
-	type WordPoolStatus = 'loading' | 'ready' | 'error';
-	let wordPool = $state<string[]>([]);
-	let wordPoolStatus = $state<WordPoolStatus>('loading');
 
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
+	const wordPool = $derived(sharedLesson.wordPool);
+	const wordPoolStatus = $derived(sharedLesson.wordPoolStatus);
+	const sourceLessonWords = $derived(sharedLesson.sourceWords);
 
-	let sourceLessonWords = $state<string[]>([]);
 	let lessonPlans = $state<FeelWordPlan[]>([]);
-	let session = $state<TypingPracticeSession>(createTypingPracticeSession([]));
+	const session = $derived(sharedLesson.toFeelSession(lessonPlans));
 	let lessonModalOpen = $state(false);
-	let testCharacterCount = $state(0);
-	let correctAttemptCount = $state(0);
-	let incorrectAttemptCount = $state(0);
-	let startedAtMilliseconds = $state<number | null>(null);
-	let endedAtMilliseconds = $state<number | null>(null);
-	let currentTimeMilliseconds = $state(0);
+	const testCharacterCount = $derived(
+		countTypingPracticeTestCharacters(lessonPlans.map((plan) => plan.feelWord))
+	);
+	const correctAttemptCount = $derived(sharedLesson.correctAttemptCount);
+	const incorrectAttemptCount = $derived(sharedLesson.incorrectAttemptCount);
+	const startedAtMilliseconds = $derived(sharedLesson.startedAtMilliseconds);
+	const endedAtMilliseconds = $derived(sharedLesson.endedAtMilliseconds);
+	const currentTimeMilliseconds = $derived(sharedLesson.currentTimeMilliseconds);
 	let incorrectFlashIndex = $state<number | null>(null);
 	let incorrectFlashGeneration = $state(0);
 	let incorrectFlashTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -244,7 +266,7 @@
 		}
 		return selectTypingPracticeLessonWords({
 			words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
-			count: PRACTICE_WORD_COUNT,
+			count: TYPING_PRACTICE_LESSON_WORD_COUNT,
 			specialWordsPercent,
 			profile: inputProfile,
 			disabledMappingIds,
@@ -275,9 +297,46 @@
 	$effect(() => {
 		if (startedAtMilliseconds === null || endedAtMilliseconds !== null) return;
 		const interval = window.setInterval(() => {
-			currentTimeMilliseconds = Date.now();
+			sharedLesson.currentTimeMilliseconds = Date.now();
 		}, 250);
 		return () => window.clearInterval(interval);
+	});
+
+	function currentLessonSource(customText: string | null): SharedTypingPracticeLessonSource {
+		return {
+			customText,
+			specialWordsPercent,
+			specialCandidateSignature: specialCandidateWords.join('\0'),
+			unreachableKeysSignature
+		};
+	}
+
+	function replacePracticeLesson(excludedWords: readonly string[] = []) {
+		const sourceWords = selectSourceLessonWords(excludedWords);
+		sharedLesson.replaceLesson(
+			sourceWords,
+			untrack(() => currentLessonSource(customPracticeText))
+		);
+		lessonPlans = buildLessonPlans(sourceWords);
+	}
+
+	function selectAdditionalLessonWords(count: number, excludedWords: readonly string[]) {
+		return selectTypingPracticeLessonWords({
+			words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
+			count,
+			specialWordsPercent,
+			profile: inputProfile,
+			disabledMappingIds,
+			excludedWords
+		});
+	}
+
+	onDestroy(() => {
+		sharedLesson.prepareForTabChange({
+			customText: customPracticeText,
+			customWords: customPracticeText ? typingPracticeWordsFromText(customPracticeText) : [],
+			selectAdditionalWords: selectAdditionalLessonWords
+		});
 	});
 
 	$effect(() => {
@@ -286,38 +345,32 @@
 		void specialWordsPercent;
 
 		if (customPracticeText) {
-			wordPoolStatus = 'ready';
-			setPracticeSession(untrack(() => selectSourceLessonWords()));
+			if (!untrack(() => sharedLesson.matchesLesson(customPracticeText, specialWordsPercent))) {
+				replacePracticeLesson();
+			}
 			return;
 		}
 
+		sharedLesson.ensureWordPool(fetch);
 		if (wordPool.length > 0) {
-			wordPoolStatus = 'ready';
-			setPracticeSession(untrack(() => selectSourceLessonWords()));
-			return;
+			if (!untrack(() => sharedLesson.matchesLesson(null, specialWordsPercent))) {
+				replacePracticeLesson();
+			}
 		}
-
-		wordPoolStatus = 'loading';
-		const controller = new AbortController();
-		void loadTypingPracticeWords(fetch, ENGLISH_1K_WORD_POOL_URL, controller.signal)
-			.then((words) => {
-				if (controller.signal.aborted) return;
-				wordPool = words;
-			})
-			.catch(() => {
-				if (!controller.signal.aborted) wordPoolStatus = 'error';
-			});
-		return () => controller.abort();
 	});
 
-	$effect(() => {
-		// Re-plan when the known→target map changes (input layout / anglemod / thumb sim).
-		// Once typing starts, keep the current lesson until restart.
-		const targetToKnown = feelCharMap;
-		if (untrack(() => startedAtMilliseconds) !== null) return;
-		const sources = untrack(() => sourceLessonWords);
-		if (sources.length === 0) return;
-		applyFeelTranslation(sources, targetToKnown);
+	$effect.pre(() => {
+		// Re-plan when the known→target map or source words change.
+		// Once typing starts, keep the current remapping until restart.
+		const sources = sourceLessonWords;
+		if (sources.length === 0) {
+			if (untrack(() => lessonPlans.length) > 0) lessonPlans = [];
+			return;
+		}
+		if (untrack(() => sharedLesson.hasStarted) && untrack(() => lessonPlans.length) > 0) {
+			return;
+		}
+		lessonPlans = buildLessonPlans(sources, feelCharMap);
 	});
 
 	$effect(() => {
@@ -326,22 +379,29 @@
 		// Key the set by contents so a new layout object (rename) does not reshuffle words.
 		if (customPracticeText) return;
 		void unreachableKeysSignature;
-		if (untrack(() => startedAtMilliseconds) !== null) return;
+		if (untrack(() => sharedLesson.hasStarted)) return;
 		if (untrack(() => wordPool).length === 0) return;
-		setPracticeSession(untrack(() => selectSourceLessonWords(untrack(() => sourceLessonWords))));
+		if (
+			untrack(() =>
+				sharedLesson.matchesUntouchedRandomSignatures(
+					specialCandidateWords.join('\0'),
+					unreachableKeysSignature
+				)
+			)
+		) {
+			return;
+		}
+		replacePracticeLesson(untrack(() => sourceLessonWords));
 	});
 
 	$effect(() => {
 		// Mapping enable/disable rewrites an untouched lesson only.
 		void inputProfile;
 		void disabledMappingIds;
-		if (untrack(() => startedAtMilliseconds) !== null) return;
+		if (untrack(() => sharedLesson.hasStarted)) return;
 		const sources = untrack(() => sourceLessonWords);
 		if (sources.length === 0) return;
-		applyFeelTranslation(
-			sources,
-			untrack(() => feelCharMap)
-		);
+		lessonPlans = buildLessonPlans(sources);
 	});
 
 	$effect(() => {
@@ -349,47 +409,22 @@
 		// refresh an untouched lesson so its words match the enabled mappings.
 		// Once typing starts, the next restart picks up the change instead.
 		if (customPracticeText || specialWordsPercent <= 0) return;
-		void specialCandidateWords;
-		if (untrack(() => startedAtMilliseconds) !== null) return;
-		setPracticeSession(untrack(() => selectSourceLessonWords()));
+		if (wordPool.length === 0) return;
+		const candidateSignature = specialCandidateWords.join('\0');
+		if (untrack(() => sharedLesson.hasStarted)) return;
+		if (
+			untrack(() =>
+				sharedLesson.matchesUntouchedRandomSignatures(candidateSignature, unreachableKeysSignature)
+			)
+		) {
+			return;
+		}
+		replacePracticeLesson();
 	});
 
-	function recordAttempts(correct: number, incorrect: number, now: number) {
-		if (correct + incorrect === 0) return;
-		if (startedAtMilliseconds === null) {
-			startedAtMilliseconds = now;
-			currentTimeMilliseconds = now;
-		}
-		correctAttemptCount += correct;
-		incorrectAttemptCount += incorrect;
-	}
-
-	function applyFeelTranslation(
-		sourceWords: readonly string[],
-		targetToKnown: typeof feelCharMap = feelCharMap
-	) {
-		const plans = buildLessonPlans(sourceWords, targetToKnown);
-		lessonPlans = plans;
-		const nextSession = createTypingPracticeSession(plans.map((plan) => plan.feelWord));
-		session = nextSession;
-		testCharacterCount = countTypingPracticeTestCharacters(
-			nextSession.remainingWords.map(({ text }) => text)
-		);
-		correctAttemptCount = 0;
-		incorrectAttemptCount = 0;
-		startedAtMilliseconds = null;
-		endedAtMilliseconds = null;
-		currentTimeMilliseconds = 0;
-	}
-
-	function setPracticeSession(sourceWords: readonly string[]) {
-		sourceLessonWords = [...sourceWords];
-		applyFeelTranslation(sourceWords);
-	}
-
 	function restartPractice(): string {
-		setPracticeSession(selectSourceLessonWords(customPracticeText ? [] : sourceLessonWords));
-		return session.input;
+		replacePracticeLesson(customPracticeText ? [] : sourceLessonWords);
+		return sharedLesson.toFeelSession(lessonPlans).input;
 	}
 
 	function saveFeelLesson(lesson: TypingPracticeLessonSettings) {
@@ -412,8 +447,7 @@
 	}
 
 	function markFeelComplete(now: number) {
-		endedAtMilliseconds = now;
-		currentTimeMilliseconds = now;
+		sharedLesson.markComplete(now);
 		trackGoatCounterEvent('feel-complete');
 	}
 
@@ -436,7 +470,7 @@
 					triggerIncorrectFlash(feelCorrectPrefixLength(plan, session.input));
 					// Discarded wrong inserts still lower accuracy; correct chars in the
 					// rejected change were not applied, so only incorrect attempts count.
-					recordAttempts(0, attempts.incorrect, now);
+					sharedLesson.recordAttempts(0, attempts.incorrect, now);
 				}
 			}
 			return session.input;
@@ -447,14 +481,15 @@
 			if (attempts.incorrect > 0) {
 				triggerIncorrectFlash(feelCorrectPrefixLength(plan, session.input));
 			}
-			recordAttempts(attempts.correct, attempts.incorrect, now);
+			sharedLesson.recordAttempts(attempts.correct, attempts.incorrect, now);
 		}
 		const completedWordCount = session.completedWordCount;
-		session = updateFeelPracticeInput(session, input, plan);
-		if (session.completedWordCount === session.totalWordCount) {
+		const nextSession = updateFeelPracticeInput(session, input, plan);
+		sharedLesson.applyFeelProgress(nextSession.completedWordCount, plan, nextSession.input);
+		if (nextSession.completedWordCount === nextSession.totalWordCount) {
 			markFeelComplete(now);
 		}
-		return session.completedWordCount > completedWordCount ? session.input : undefined;
+		return nextSession.completedWordCount > completedWordCount ? nextSession.input : undefined;
 	}
 
 	function handleResolvedInput(result: LayoutInputResult): string | undefined {
@@ -462,21 +497,20 @@
 			return undefined;
 		}
 		const now = Date.now();
-		recordAttempts(1, 0, now);
-		session = advanceFeelPracticeWord(session, activePlan);
-		if (session.completedWordCount === session.totalWordCount) {
+		sharedLesson.recordAttempts(1, 0, now);
+		const nextSession = advanceFeelPracticeWord(session, activePlan);
+		sharedLesson.applyFeelProgress(nextSession.completedWordCount, undefined, '');
+		if (nextSession.completedWordCount === nextSession.totalWordCount) {
 			markFeelComplete(now);
 		}
-		return session.input;
+		return nextSession.input;
 	}
 
 	function setIgnoreWrongKeyPresses(checked: boolean) {
 		uiPrefs.setTypingPracticeDisplayOption('ignoreWrongKeyPresses', checked);
 		if (!checked || !activePlan || !hasFeelInputError(activePlan, session.input)) return;
-		session = {
-			...session,
-			input: feelCorrectInputPrefix(activePlan, session.input)
-		};
+		const prefix = feelCorrectInputPrefix(activePlan, session.input);
+		sharedLesson.applyFeelProgress(session.completedWordCount, activePlan, prefix);
 	}
 
 	function resolveFeelInput(_history: string, inputText: string): LayoutInputResult {
@@ -505,12 +539,16 @@
 	}
 </script>
 
-{#if wordPoolStatus === 'loading' && !customPracticeText}
+{#if wordPoolStatus === 'loading' && !customPracticeText && !keyboard}
 	<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
-{:else if wordPoolStatus === 'error'}
+{:else if wordPoolStatus === 'error' && !keyboard}
 	<p class="typing-practice-load-status" role="alert">Unable to load layout feel words.</p>
 {:else}
-	<div class="typing-practice-prompt-row">
+	{#if wordPoolStatus === 'loading' && !customPracticeText}
+		<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
+	{:else if wordPoolStatus === 'error'}
+		<p class="typing-practice-load-status" role="alert">Unable to load layout feel words.</p>
+	{:else}
 		<div class="layout-feel-prompt-stack">
 			{#if showSourceWordsRow}
 				<div class="layout-feel-source-words" aria-label="Original words">
@@ -533,110 +571,112 @@
 					{/if}
 				</div>
 			{/if}
-			<div class="typing-practice-copy" aria-label="Layout feel words">
-				{#if prompt.length > 0}
-					{#each prompt as word (word.id)}
-						<span
-							data-practice-word={word.word}
-							data-current-word={word.current ? 'true' : undefined}
+			<div class="typing-practice-prompt-row">
+				<div class="typing-practice-copy" aria-label="Layout feel words">
+					{#if prompt.length > 0}
+						{#each prompt as word (word.id)}
+							<span
+								data-practice-word={word.word}
+								data-current-word={word.current ? 'true' : undefined}
+							>
+								{#each word.characters as character, characterIndex (characterIndex)}
+									<span
+										class:typing-practice-character--correct={character.status === 'correct'}
+										class:typing-practice-character--incorrect={character.status === 'incorrect'}
+										class:layout-feel-character--incorrect-flash={word.current &&
+											incorrectFlashIndex === characterIndex}
+										class:typing-practice-character--magic-group={magicGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
+										data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
+										data-character-status={character.status}>{character.character}</span
+									>
+								{/each}
+							</span>
+						{/each}
+					{:else}
+						<span>Press esc to restart</span>
+					{/if}
+				</div>
+				{#if onPracticeLessonChange}
+					<button
+						type="button"
+						class="typing-practice-lesson-action"
+						aria-label="Layout feel lesson settings"
+						title="Layout feel lesson settings"
+						onclick={() => (lessonModalOpen = true)}
+					>
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
 						>
-							{#each word.characters as character, characterIndex (characterIndex)}
-								<span
-									class:typing-practice-character--correct={character.status === 'correct'}
-									class:typing-practice-character--incorrect={character.status === 'incorrect'}
-									class:layout-feel-character--incorrect-flash={word.current &&
-										incorrectFlashIndex === characterIndex}
-									class:typing-practice-character--magic-group={magicGroupIndexes
-										.get(word.id)
-										?.has(characterIndex)}
-									class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
-										.get(word.id)
-										?.has(characterIndex)}
-									data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
-										? 'true'
-										: undefined}
-									data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
-										? 'true'
-										: undefined}
-									data-character-status={character.status}>{character.character}</span
-								>
-							{/each}
-						</span>
-					{/each}
-				{:else}
-					<span>Press esc to restart</span>
+							<circle cx="12" cy="12" r="3" />
+							<path
+								d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+							/>
+						</svg>
+					</button>
 				{/if}
 			</div>
 		</div>
-		{#if onPracticeLessonChange}
-			<button
-				type="button"
-				class="typing-practice-lesson-action"
-				aria-label="Layout feel lesson settings"
-				title="Layout feel lesson settings"
-				onclick={() => (lessonModalOpen = true)}
-			>
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<circle cx="12" cy="12" r="3" />
-					<path
-						d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-					/>
-				</svg>
-			</button>
-		{/if}
-	</div>
 
-	<div class="typing-practice-input">
-		<LayoutTestArea
-			keyMaps={practiceKeyMaps}
-			variant="practice"
-			placeholder=""
-			ariaLabel="Layout feel input"
-			focusOnMount
-			invalid={inputHasError}
-			value={session.input}
-			onValueChange={handleValueChange}
-			resolveInput={resolveFeelInput}
-			onResolvedInput={handleResolvedInput}
-			onEscape={restartPractice}
-		/>
-		<div class="typing-practice-status" aria-label="Layout feel status">
-			<span
-				class="typing-practice-status__count"
-				aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
-				>{session.completedWordCount}/{session.totalWordCount}</span
+		<div class="typing-practice-input">
+			<LayoutTestArea
+				keyMaps={practiceKeyMaps}
+				variant="practice"
+				placeholder=""
+				ariaLabel="Layout feel input"
+				focusOnMount
+				invalid={inputHasError}
+				value={session.input}
+				onValueChange={handleValueChange}
+				resolveInput={resolveFeelInput}
+				onResolvedInput={handleResolvedInput}
+				onEscape={restartPractice}
+			/>
+			<div class="typing-practice-status" aria-label="Layout feel status">
+				<span
+					class="typing-practice-status__count"
+					aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
+					>{session.completedWordCount}/{session.totalWordCount}</span
+				>
+				{#if !customPracticeText}
+					<span class="typing-practice-status__credit">
+						Word bank source:<br />
+						<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
+							monkeytype <span aria-hidden="true">↗</span>
+						</a>
+						(english_1k)
+					</span>
+				{/if}
+				<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
+					>{elapsedTime}</span
+				>
+			</div>
+			<div
+				class="typing-practice-results"
+				class:typing-practice-results--hidden={!practiceComplete}
+				aria-label={practiceComplete ? 'Layout feel results' : undefined}
+				aria-hidden={!practiceComplete}
 			>
-			{#if !customPracticeText}
-				<span class="typing-practice-status__credit">
-					Word bank source:<br />
-					<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
-						monkeytype <span aria-hidden="true">↗</span>
-					</a>
-					(english_1k)
-				</span>
-			{/if}
-			<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
-				>{elapsedTime}</span
-			>
+				<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
+				<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
+			</div>
 		</div>
-		<div
-			class="typing-practice-results"
-			class:typing-practice-results--hidden={!practiceComplete}
-			aria-label={practiceComplete ? 'Layout feel results' : undefined}
-			aria-hidden={!practiceComplete}
-		>
-			<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
-			<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
-		</div>
-	</div>
+	{/if}
 
 	<LayoutKeyboardWorkspace
 		{layout}
@@ -649,10 +689,21 @@
 		{inputProfile}
 		{disabledMappingIds}
 		{onDisabledMappingIdsChange}
-		showMappings={showSpecialMappings}
+		showMappings={showKeyboardMappings || showSpecialMappings}
+		{keyboard}
+		{keyboardLead}
+		{keyboardWidthTerms}
+		aside={keyboardAside}
+		belowKeyboard={keyboardBelow}
+		mappings={keyboardMappings}
 	>
 		{#snippet header()}
-			<KeyboardInputConfigControl />
+			<div class="layout-feel-header-lead">
+				{#if keyboardHeaderStart}
+					{@render keyboardHeaderStart()}
+				{/if}
+				<KeyboardInputConfigControl />
+			</div>
 		{/snippet}
 		{#snippet options()}
 			<ToggleSwitch
@@ -748,6 +799,15 @@
 {/if}
 
 <style>
+	.layout-feel-header-lead {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+	}
+
 	.typing-practice-simulate-thumbs-option {
 		display: flex;
 		width: max-content;
@@ -785,8 +845,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.2rem;
+		width: 100%;
 		min-width: 0;
-		flex: 1 1 auto;
 	}
 
 	.layout-feel-source-words {
@@ -926,7 +986,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		margin-top: clamp(0.75rem, 2vh, 1.5rem);
+		margin-top: 0;
 		min-width: 0;
 	}
 

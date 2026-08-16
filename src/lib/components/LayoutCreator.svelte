@@ -12,10 +12,8 @@
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
-	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import TypingModeTabs from '$lib/components/TypingModeTabs.svelte';
 	import {
 		createHistoryTarget,
 		isRouterNotReadyError,
@@ -81,14 +79,10 @@
 		normalizeTypingPracticeLessonSettings,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
-	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import { DEFAULT_LAYOUT_DETAIL_SECTION, type LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
-	import { createLayoutTestKeyMaps } from '$lib/layoutTestEmulator';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
-	import { trackGoatCounterEvent } from '$lib/goatcounter';
 	import type { TabOption } from '$lib/tabs';
-	import type { TypingWorkspaceMode } from '$lib/typingWorkspace';
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
@@ -111,8 +105,7 @@
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
-	let typingMode = $state<TypingWorkspaceMode>('practice');
-	let previewSection = $state<LayoutDetailSection>(DEFAULT_LAYOUT_DETAIL_SECTION);
+	let activeSection = $state<LayoutDetailSection>(DEFAULT_LAYOUT_DETAIL_SECTION);
 	let saveMenuOpen = $state(false);
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
@@ -176,11 +169,6 @@
 		)
 	);
 	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
-	const displayRows = $derived(computeDisplayRows(layout));
-	const displayValue = $derived(displayRowsToString(displayRows));
-	const testKeyMaps = $derived(
-		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
-	);
 	const options: TabOption<LayoutCreatorTabValue>[] = $derived.by(() => {
 		const savedTabs = savedLayouts.map((saved) => ({
 			value: savedCreatorTabValue(saved.id),
@@ -469,21 +457,14 @@
 
 	function toggleLayoutPreview() {
 		layoutPreview = !layoutPreview;
-		if (layoutPreview) previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 	}
 
-	function setPreviewSection(section: LayoutDetailSection) {
-		previewSection = section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
+	function setActiveSection(section: LayoutDetailSection) {
+		activeSection = section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
 	}
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
 		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
-	}
-
-	function setTypingMode(mode: TypingWorkspaceMode) {
-		if (mode === typingMode) return;
-		typingMode = mode;
-		trackGoatCounterEvent(mode === 'free' ? 'practice-mode-free' : 'practice-mode-practice');
 	}
 
 	function changeCreatorTab(value: LayoutCreatorTabValue) {
@@ -493,7 +474,7 @@
 		if (!saved) return;
 		activeSavedId = saved.id;
 		applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
-		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
@@ -537,7 +518,7 @@
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
 		applyCreatorSnapshot(snapshot);
-		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
@@ -560,7 +541,7 @@
 		}
 		activeSavedId = null;
 		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
-		previewSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
@@ -846,50 +827,30 @@
 			{/if}
 		{/snippet}
 
-		{#snippet creatorTypingModeSwitcher()}
-			<div class="layout-creator-typing-mode">
-				<TypingModeTabs value={typingMode} onChange={setTypingMode} />
-			</div>
-		{/snippet}
-
 		{#key activeTab}
-			{#if layoutPreview}
-				<LayoutExpandedView
-					{layout}
-					authorName={layoutAuthor}
-					likeCount={0}
-					{inputProfile}
-					{disabledMappingIds}
-					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-					activeSection={previewSection}
-					onActiveSectionChange={setPreviewSection}
-					{practiceLesson}
-					onPracticeLessonChange={setPracticeLesson}
-					localPreview
-					statsUnavailableDetail={LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL}
-				/>
-			{:else}
-				<LayoutTypingPractice
-					{layout}
-					rows={displayRows}
-					keyMaps={testKeyMaps}
-					{inputProfile}
-					{disabledMappingIds}
-					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-					showKeyboardMappings={showEditorMappings}
-					{practiceLesson}
-					onPracticeLessonChange={setPracticeLesson}
-					keyboardHeaderStart={creatorHeaderStart}
-					keyboard={creatorKeyboard}
-					keyboardLead={creatorKeyboardLead}
-					keyboardWidthTerms={editorWidthTerms}
-					keyboardAside={creatorAside}
-					keyboardBelow={creatorKeyboardBelow}
-					keyboardMappings={creatorMappings}
-					{typingMode}
-					modeSwitcher={creatorTypingModeSwitcher}
-				/>
-			{/if}
+			<LayoutExpandedView
+				{layout}
+				authorName={layoutAuthor}
+				likeCount={0}
+				{inputProfile}
+				{disabledMappingIds}
+				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+				{activeSection}
+				onActiveSectionChange={setActiveSection}
+				{practiceLesson}
+				onPracticeLessonChange={setPracticeLesson}
+				localPreview
+				statsUnavailableDetail={LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL}
+				hideSummary={!layoutPreview}
+				keyboardHeaderStart={layoutPreview ? undefined : creatorHeaderStart}
+				keyboard={layoutPreview ? undefined : creatorKeyboard}
+				keyboardLead={layoutPreview ? undefined : creatorKeyboardLead}
+				keyboardWidthTerms={layoutPreview ? undefined : editorWidthTerms}
+				keyboardAside={layoutPreview ? undefined : creatorAside}
+				keyboardBelow={layoutPreview ? undefined : creatorKeyboardBelow}
+				keyboardMappings={layoutPreview ? undefined : creatorMappings}
+				showKeyboardMappings={layoutPreview ? false : showEditorMappings}
+			/>
 		{/key}
 
 		<div class="layout-creator-actions">
@@ -1038,12 +999,6 @@
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
 		text-align: center;
-	}
-
-	.layout-creator-typing-mode {
-		display: flex;
-		justify-content: flex-end;
-		margin: 0 0 0.75rem;
 	}
 
 	.layout-creator-view-bar {

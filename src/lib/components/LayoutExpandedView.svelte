@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
@@ -39,17 +39,20 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
+	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		buildAdaptiveKeyboardSwapPaths,
-		buildLayoutKeyboardFeedback
+		buildLayoutKeyboardFeedback,
+		type LayoutKeyboardPresentation
 	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { createCminibrowserLayoutURL } from '$lib/cminibrowser';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import type { TypingPracticeLessonSettings } from '$lib/typingPracticeText';
+	import { SharedTypingPracticeLesson } from '$lib/typingPracticeLesson.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
@@ -67,6 +70,18 @@
 		/** Creator preview: show-page chrome without catalog stats or cminibrowser. */
 		localPreview?: boolean;
 		statsUnavailableDetail?: string;
+		/** Creator Edit: hide the summary card and external links. */
+		hideSummary?: boolean;
+		/** Creator Edit: name and author fields above the input-layout control. */
+		keyboardHeaderStart?: Snippet;
+		/** Creator Edit: replaces the presentation keyboard on every section. */
+		keyboard?: Snippet<[LayoutKeyboardPresentation]>;
+		keyboardLead?: Snippet;
+		keyboardWidthTerms?: KeyboardWidthTerms;
+		keyboardAside?: Snippet;
+		keyboardBelow?: Snippet;
+		keyboardMappings?: Snippet;
+		showKeyboardMappings?: boolean;
 	}
 
 	const {
@@ -82,7 +97,16 @@
 		practiceLesson,
 		onPracticeLessonChange,
 		localPreview = false,
-		statsUnavailableDetail
+		statsUnavailableDetail,
+		hideSummary = false,
+		keyboardHeaderStart,
+		keyboard,
+		keyboardLead,
+		keyboardWidthTerms,
+		keyboardAside,
+		keyboardBelow,
+		keyboardMappings,
+		showKeyboardMappings = false
 	}: Props = $props();
 
 	const cminiLabel =
@@ -101,6 +125,7 @@
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let anglemodTransformActive = $state(false);
 	let layoutInputHistory = $state('');
+	const sharedLesson = new SharedTypingPracticeLesson();
 	const testDisplayOptions = $derived(uiPrefs.layoutTestAreaDisplayOptions);
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const practiceTabId = $derived(`${titleId}-tab-practice`);
@@ -380,7 +405,12 @@
 {/snippet}
 
 {#snippet testKeyboardHeader()}
-	<KeyboardInputConfigControl />
+	<div class="layout-detail-keyboard-header-lead">
+		{#if keyboardHeaderStart}
+			{@render keyboardHeaderStart()}
+		{/if}
+		<KeyboardInputConfigControl />
+	</div>
 {/snippet}
 
 {#snippet sharedHeaders()}
@@ -454,12 +484,19 @@
 	</nav>
 {/snippet}
 
-<article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
+<article
+	class="layout-detail-page"
+	class:layout-detail-page--workspace-only={hideSummary}
+	data-layout-detail
+	aria-label={`${layout.name} details`}
+>
 	<div class="layout-detail-scroll">
-		<div class="detail-columns">
-			<div class="detail-side">
-				{@render layoutSummary()}
-			</div>
+		<div class="detail-columns" class:detail-columns--workspace-only={hideSummary}>
+			{#if !hideSummary}
+				<div class="detail-side">
+					{@render layoutSummary()}
+				</div>
+			{/if}
 
 			<div class="detail-main">
 				<div class="layout-detail-tabs-wrap">
@@ -506,6 +543,15 @@
 							knownMagicTriggers={conventionalMagicTriggers}
 							{practiceLesson}
 							{onPracticeLessonChange}
+							{sharedLesson}
+							{keyboardHeaderStart}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							{keyboardAside}
+							{keyboardBelow}
+							{keyboardMappings}
+							{showKeyboardMappings}
 						/>
 					</div>
 				{:else if resolvedSection === 'test'}
@@ -534,9 +580,16 @@
 							{inputProfile}
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
-							showMappings={testDisplayOptions.showSpecialKeys && hasSpecialMappings}
+							showMappings={showKeyboardMappings ||
+								(testDisplayOptions.showSpecialKeys && hasSpecialMappings)}
 							header={testKeyboardHeader}
 							options={testKeyboardOptions}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							aside={keyboardAside}
+							belowKeyboard={keyboardBelow}
+							mappings={keyboardMappings}
 						/>
 					</div>
 				{:else if resolvedSection === 'feel'}
@@ -556,6 +609,15 @@
 							knownMagicTriggers={conventionalMagicTriggers}
 							{practiceLesson}
 							{onPracticeLessonChange}
+							{sharedLesson}
+							{keyboardHeaderStart}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							{keyboardAside}
+							{keyboardBelow}
+							{keyboardMappings}
+							{showKeyboardMappings}
 						/>
 					</div>
 				{:else if !localPreview}
@@ -886,9 +948,12 @@
 		min-width: 0;
 	}
 
-	.detail-practice-panel,
-	.detail-feel-panel {
+	.detail-practice-panel {
 		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
+	}
+
+	.detail-feel-panel {
+		padding-block: 0 0.5rem;
 	}
 
 	.detail-test-area-wrap {
@@ -954,6 +1019,24 @@
 			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
 			gap: 1.5rem;
 		}
+
+		.detail-columns--workspace-only {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	.layout-detail-page--workspace-only .detail-practice-panel,
+	.layout-detail-page--workspace-only .detail-feel-panel {
+		padding-block: 0;
+	}
+
+	.layout-detail-keyboard-header-lead {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
 	}
 
 	.shared-stats {
