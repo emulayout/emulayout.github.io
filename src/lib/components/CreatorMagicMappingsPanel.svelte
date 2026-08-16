@@ -330,9 +330,12 @@
 	}
 
 	.creator-mappings-error {
-		margin: 0.35rem 0 0;
+		grid-column: 1 / -1;
+		min-width: 0;
+		margin: 0.15rem 0 0.35rem;
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.75rem;
+		line-height: 1.35;
 	}
 
 	.creator-mappings-heading,
