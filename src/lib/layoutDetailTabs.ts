@@ -14,6 +14,14 @@ export function parseLayoutDetailSection(value: string | null | undefined): Layo
 		: DEFAULT_LAYOUT_DETAIL_SECTION;
 }
 
+/** Creator has no Stats tab; invalid or `stats` values fall back to Typing practice. */
+export function parseCreatorDetailSection(
+	value: string | null | undefined
+): Exclude<LayoutDetailSection, 'stats'> {
+	const section = parseLayoutDetailSection(value);
+	return section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
+}
+
 /** Build the canonical page URL from the layout-detail state that is safe to share. */
 export function layoutDetailPageHref(
 	pathname: string,

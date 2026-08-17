@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { layoutDetailPageHref } from '../src/lib/layoutDetailTabs';
+import { layoutDetailPageHref, parseCreatorDetailSection } from '../src/lib/layoutDetailTabs';
 
 describe('layoutDetailPageHref', () => {
 	test('carries custom practice text and drops an unused special-word balance', () => {
@@ -31,5 +31,15 @@ describe('layoutDetailPageHref', () => {
 				specialWordsPercent: 40
 			})
 		).toBe('/layouts/lela?tab=feel&text=hello+world');
+	});
+});
+
+describe('parseCreatorDetailSection', () => {
+	test('keeps Practice, Test, and Feel and maps Stats to Practice', () => {
+		expect(parseCreatorDetailSection(null)).toBe('practice');
+		expect(parseCreatorDetailSection('test')).toBe('test');
+		expect(parseCreatorDetailSection('feel')).toBe('feel');
+		expect(parseCreatorDetailSection('stats')).toBe('practice');
+		expect(parseCreatorDetailSection('nope')).toBe('practice');
 	});
 });

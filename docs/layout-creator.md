@@ -41,13 +41,17 @@ drafts in the browser.
   tab, and no cminibrowser link. Cyanophage and Colemak Camp links stay when they can be built from
   the live keymap.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, author, base layout, keyboard type, key grid, preview, practice lesson, Magic/Adaptive
+  Name, author, base layout, keyboard type, key grid, preview, practice lesson, the Practice /
+  Test / Feel `tab`, Magic/Adaptive
   mappings (including incomplete rows), and which complete special mappings are disabled are
   written when they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
   params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL, or switching
   to a saved tab, starts in Preview. Preview is the default view and is not written to the query.
-  Edit writes `edit=1` and does not count as a saveable change. Dirty edits stay in the query
+  Edit writes `edit=1` and does not count as a saveable change. The shared show-page `tab`
+  param keeps Typing practice, Layout test area, or Layout feel across refresh; it is omitted
+  at Typing practice and is not a saveable change. Invalid or `stats` values become Typing
+  practice. Dirty edits stay in the query
   alongside `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the
   index filter URL persist, and flush on page hide so a refresh keeps the latest keystrokes. The
   Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A bare
@@ -113,8 +117,9 @@ drafts in the browser.
   including a missing Magic trigger, are not listed. The key list wraps inside the keyboard width
   so a long set of missing letters does not scroll the page sideways. The warning is Edit-only.
 - Edit and Preview share the show-page **Layout detail sections** tabs: Typing practice, Layout
-  test area, and Layout feel. There is no Stats tab. Section state is local and is not written to
-  the `/create` query. Toggling Preview/Edit keeps the selected tab. Opening a saved layout, a new
+  test area, and Layout feel. There is no Stats tab. The selected tab is the `tab` query
+  parameter, matching catalog show pages, so a refresh or shared `/create` link keeps it.
+  Toggling Preview/Edit keeps the selected tab. Opening a saved layout, a new
   canvas, or a duplicate resets to Typing practice. In Edit, every section keeps the key editor,
   name and author fields, base-layout and keyboard-type fields, special-key add buttons,
   missing-letter warning, and editable mapping panels, so the user can test the live draft in
@@ -122,7 +127,12 @@ drafts in the browser.
   page-session leftover lesson words; leaving either tab during a test refills a random lesson to
   ten words and clears the timer. Layout test area keeps its own free-typing surface.
   Each tab still uses its own keyboard options. Preview swaps that editor for the presentation keyboard.
-  The prompt and input span the full panel width. The same
+  Edit-only Practice and Feel use a compact scale for the prompt, input, and score
+  stats so they sit more tightly above the key editor. Edit Layout test area free
+  typing uses a 130px field instead of the tall show-page surface. Preview and
+  catalog show pages keep the large practice typography and tall test area. In
+  Edit the section tabs, prompt, and input match the key-editor workspace width.
+  Preview keeps the show-page column. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
@@ -171,7 +181,7 @@ drafts in the browser.
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Show-page preview and shared creator tabs: `src/lib/components/LayoutExpandedView.svelte`
-  (`localPreview`, `hideSummary`, optional Edit keyboard snippets)
+  (`localPreview`, `hideSummary`, `compactPractice`, optional Edit keyboard snippets)
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Shared keyboard option presentation and swap-path measurement:
   `src/lib/layoutKeyboardFeedback.ts` (`LayoutKeyboardPresentation`),

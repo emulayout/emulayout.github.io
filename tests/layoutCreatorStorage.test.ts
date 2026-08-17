@@ -185,6 +185,11 @@ describe('saved layout storage', () => {
 		const unknown = resolveCreatorSession(new URLSearchParams('id=missing&name=Gamma'), [saved]);
 		expect(unknown.savedId).toBeNull();
 		expect(unknown.snapshot.name).toBe('Gamma');
+
+		const cleanFeel = resolveCreatorSession(new URLSearchParams('id=id-a&tab=feel'), [saved]);
+		expect(cleanFeel.snapshot.section).toBe('feel');
+		expect(cleanFeel.snapshot.preview).toBe(true);
+		expect(isSavedLayoutDirty(cleanFeel.snapshot, saved)).toBe(false);
 	});
 
 	test('restores disabled Adaptive mappings from an id-only saved session', () => {
@@ -226,6 +231,12 @@ describe('creator URL saved id', () => {
 				}
 			)
 		).toBe('?id=id-a');
+		expect(
+			creatorSearchFromSnapshot(
+				{ ...snapshot, section: 'test' },
+				{ savedId: 'id-a', savedSnapshot: snapshot }
+			)
+		).toBe('?id=id-a&edit=1&tab=test');
 		expect(
 			creatorSearchFromSnapshot(namedSnapshot('Beta'), {
 				savedId: 'id-a',

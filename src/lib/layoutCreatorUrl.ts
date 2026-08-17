@@ -23,6 +23,12 @@ import {
 	type CreatorMagicSection
 } from '$lib/layoutCreatorMappings';
 import {
+	DEFAULT_LAYOUT_DETAIL_SECTION,
+	LAYOUT_DETAIL_TAB_PARAM,
+	parseCreatorDetailSection,
+	type LayoutDetailSection
+} from '$lib/layoutDetailTabs';
+import {
 	normalizeTypingPracticeLessonSettings,
 	typingPracticeLessonFromSearchParams,
 	writeTypingPracticeLessonParams,
@@ -53,6 +59,7 @@ export type CreatorUrlSnapshot = {
 	name: string;
 	author: string;
 	preview: boolean;
+	section: Exclude<LayoutDetailSection, 'stats'>;
 	includeMagicKey: boolean;
 	includeAdaptiveKey: boolean;
 	magicDraft: CreatorMagicDraft;
@@ -387,11 +394,18 @@ function writeAdaptiveParam(params: URLSearchParams, snapshot: CreatorUrlSnapsho
 	params.set(CREATOR_ADAPTIVE_PARAM, encodeJsonParam(payload));
 }
 
+function writeCreatorSectionParam(params: URLSearchParams, section: CreatorUrlSnapshot['section']) {
+	const resolved = parseCreatorDetailSection(section);
+	if (resolved === DEFAULT_LAYOUT_DETAIL_SECTION) return;
+	params.set(LAYOUT_DETAIL_TAB_PARAM, resolved);
+}
+
 export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 	return {
 		name: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		author: '',
 		preview: false,
+		section: DEFAULT_LAYOUT_DETAIL_SECTION,
 		includeMagicKey: false,
 		includeAdaptiveKey: false,
 		magicDraft: createEmptyCreatorMagicDraft(),
@@ -430,6 +444,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	writeAdaptiveParam(params, snapshot);
 	writeDisabledParam(params, snapshot);
 	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
+	writeCreatorSectionParam(params, snapshot.section);
 	if (!snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
 	return params;
 }
@@ -454,7 +469,10 @@ export function creatorUrlContentEqual(
 	left: CreatorUrlSnapshot,
 	right: CreatorUrlSnapshot
 ): boolean {
-	return creatorUrlSnapshotsEqual({ ...left, preview: false }, { ...right, preview: false });
+	return creatorUrlSnapshotsEqual(
+		{ ...left, preview: false, section: DEFAULT_LAYOUT_DETAIL_SECTION },
+		{ ...right, preview: false, section: DEFAULT_LAYOUT_DETAIL_SECTION }
+	);
 }
 
 export function readCreatorEditFlag(searchParams: URLSearchParams): boolean {
@@ -471,7 +489,8 @@ function isCreatorViewParam(key: string): boolean {
 		key === CREATOR_ID_PARAM ||
 		key === CREATOR_EDIT_PARAM ||
 		key === CREATOR_PREVIEW_PARAM ||
-		key === CREATOR_PREVIEW_PARAM_LEGACY
+		key === CREATOR_PREVIEW_PARAM_LEGACY ||
+		key === LAYOUT_DETAIL_TAB_PARAM
 	);
 }
 
@@ -504,6 +523,7 @@ export function creatorSearchFromSnapshot(
 	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
 	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
 	if (omitDraft && !snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
+	if (omitDraft) writeCreatorSectionParam(params, snapshot.section);
 	const query = params.toString();
 	return query ? `?${query}` : '';
 }
@@ -565,6 +585,7 @@ export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUr
 		name,
 		author,
 		preview,
+		section: parseCreatorDetailSection(searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
 		includeMagicKey,
 		includeAdaptiveKey,
 		magicDraft,

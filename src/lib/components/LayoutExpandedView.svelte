@@ -82,6 +82,8 @@
 		keyboardBelow?: Snippet;
 		keyboardMappings?: Snippet;
 		showKeyboardMappings?: boolean;
+		/** Smaller Practice, Feel, and test-area chrome for the layout-creator Edit workspace. */
+		compactPractice?: boolean;
 	}
 
 	const {
@@ -106,7 +108,8 @@
 		keyboardAside,
 		keyboardBelow,
 		keyboardMappings,
-		showKeyboardMappings = false
+		showKeyboardMappings = false,
+		compactPractice = false
 	}: Props = $props();
 
 	const cminiLabel =
@@ -339,6 +342,39 @@
 			for (const analyzer of missing) void layoutStatsStore.ensureLoaded(analyzer);
 		});
 	});
+
+	let detailMainEl: HTMLDivElement | undefined = $state();
+	let editWorkspaceWidthPx = $state<number | null>(null);
+
+	$effect(() => {
+		void resolvedSection;
+		const main = detailMainEl;
+		if (!hideSummary || !main) {
+			editWorkspaceWidthPx = null;
+			return;
+		}
+
+		let observer: ResizeObserver | undefined;
+		const frame = window.requestAnimationFrame(() => {
+			const workspace = main.querySelector<HTMLElement>('.layout-keyboard-workspace');
+			if (!workspace) {
+				editWorkspaceWidthPx = null;
+				return;
+			}
+			const update = () => {
+				const width = workspace.getBoundingClientRect().width;
+				editWorkspaceWidthPx = width > 0 ? width : null;
+			};
+			update();
+			observer = new ResizeObserver(update);
+			observer.observe(workspace);
+		});
+
+		return () => {
+			window.cancelAnimationFrame(frame);
+			observer?.disconnect();
+		};
+	});
 </script>
 
 {#snippet analyzerToggle(analyzer: StatsAnalyzer, label: string, checked: boolean, accent: string)}
@@ -498,7 +534,13 @@
 				</div>
 			{/if}
 
-			<div class="detail-main">
+			<div
+				class="detail-main"
+				bind:this={detailMainEl}
+				style={hideSummary && editWorkspaceWidthPx
+					? `--edit-workspace-width: ${editWorkspaceWidthPx}px`
+					: undefined}
+			>
 				<div class="layout-detail-tabs-wrap">
 					<Tabs
 						value={resolvedSection}
@@ -552,6 +594,7 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
+							compact={compactPractice}
 						/>
 					</div>
 				{:else if resolvedSection === 'test'}
@@ -567,6 +610,7 @@
 								{inputProfile}
 								{disabledMappingIds}
 								variant="page"
+								compact={compactPractice}
 								onInputHistoryChange={(history) => (layoutInputHistory = history)}
 							/>
 						</div>
@@ -618,6 +662,7 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
+							compact={compactPractice}
 						/>
 					</div>
 				{:else if !localPreview}
@@ -1028,6 +1073,17 @@
 	.layout-detail-page--workspace-only .detail-practice-panel,
 	.layout-detail-page--workspace-only .detail-feel-panel {
 		padding-block: 0;
+	}
+
+	.layout-detail-page--workspace-only .layout-detail-tabs-wrap,
+	.layout-detail-page--workspace-only .detail-test-area-wrap,
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-surface),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.layout-feel-prompt-stack),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-input),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-status) {
+		width: var(--edit-workspace-width, 100%);
+		max-width: 100%;
+		margin-inline: auto;
 	}
 
 	.layout-detail-keyboard-header-lead {

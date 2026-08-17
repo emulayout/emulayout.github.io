@@ -38,7 +38,10 @@ and calculation logic outside the renderer.
   incorrect attempt without changing the rendered prompt text.
 - The prompt and input use the same monospace typography and span the full panel width, matching
   Layout feel and Layout test area. The prompt stays on one clipped line; words beyond that width
-  are hidden rather than wrapped.
+  are hidden rather than wrapped. Creator Edit matches the section tabs, prompt, and input to
+  the key-editor workspace width. Creator Edit also passes `compact` so Practice and Feel shrink the prompt,
+  field, and score stats; Preview and catalog show pages keep the default large scale. Edit also
+  shrinks Layout test area free typing to 130px.
 - The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
   lesson with ten newly sampled words that exclude every word from the previous lesson. For a
   custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
@@ -230,6 +233,7 @@ The successful-space path is intentionally ordered:
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
+  (`compact` on the practice variant)
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutFeel.test.ts`,
   `tests/layoutKeyReachability.test.ts`, `tests/layoutTestAreaPrefs.test.ts`

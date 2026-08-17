@@ -104,6 +104,21 @@ describe('creator URL state', () => {
 		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1&preview=1')).preview).toBe(false);
 	});
 
+	test('writes and restores the Practice, Test, and Feel tab', () => {
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('tab')).toBe(false);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1')).section).toBe('practice');
+		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=stats')).section).toBe('practice');
+		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=nope')).section).toBe('practice');
+
+		const feel: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			section: 'feel'
+		};
+		expect(writeCreatorUrlParams(feel).get('tab')).toBe('feel');
+		expect(roundTrip(feel).section).toBe('feel');
+		expect(creatorSearchFromSnapshot({ ...feel, preview: true })).toBe('?tab=feel');
+	});
+
 	test('round-trips keyboard type, a catalog base, and a cleared board', () => {
 		const fromBase: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),

@@ -8,6 +8,7 @@ import {
 	readCreatorUrlSnapshot,
 	type CreatorUrlSnapshot
 } from '$lib/layoutCreatorUrl';
+import { LAYOUT_DETAIL_TAB_PARAM, parseCreatorDetailSection } from '$lib/layoutDetailTabs';
 
 export const SAVED_LAYOUTS_STORAGE_KEY = 'emulayout:saved-layouts';
 export const SAVED_LAYOUTS_SCHEMA_VERSION = 1;
@@ -226,7 +227,9 @@ export function resolveCreatorSession(
 	if (creatorUrlHasDraftParams(searchParams)) {
 		return { snapshot: readCreatorUrlSnapshot(searchParams), savedId: saved.id };
 	}
-	return { snapshot: snapshotForSavedLayoutView(saved.snapshot), savedId: saved.id };
+	const snapshot = snapshotForSavedLayoutView(saved.snapshot);
+	snapshot.section = parseCreatorDetailSection(searchParams.get(LAYOUT_DETAIL_TAB_PARAM));
+	return { snapshot, savedId: saved.id };
 }
 
 /** Opening a saved layout starts in Preview. Edit is only for new canvases and explicit edits. */

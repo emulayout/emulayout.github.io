@@ -79,7 +79,11 @@
 		normalizeTypingPracticeLessonSettings,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
-	import { DEFAULT_LAYOUT_DETAIL_SECTION, type LayoutDetailSection } from '$lib/layoutDetailTabs';
+	import {
+		DEFAULT_LAYOUT_DETAIL_SECTION,
+		parseCreatorDetailSection,
+		type LayoutDetailSection
+	} from '$lib/layoutDetailTabs';
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import type { TabOption } from '$lib/tabs';
@@ -105,7 +109,7 @@
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
-	let activeSection = $state<LayoutDetailSection>(DEFAULT_LAYOUT_DETAIL_SECTION);
+	let activeSection = $state<LayoutDetailSection>(initialSession.snapshot.section);
 	let saveMenuOpen = $state(false);
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
@@ -220,6 +224,7 @@
 			name: layoutNameDraft,
 			author: layoutAuthorDraft,
 			preview: layoutPreview,
+			section: parseCreatorDetailSection(activeSection),
 			includeMagicKey,
 			includeAdaptiveKey,
 			magicDraft,
@@ -245,6 +250,7 @@
 		layoutNameDraft = next.name;
 		layoutAuthorDraft = next.author;
 		layoutPreview = next.preview;
+		activeSection = next.section;
 		includeMagicKey = next.includeMagicKey;
 		includeAdaptiveKey = next.includeAdaptiveKey;
 		magicPanelOpen = next.includeMagicKey;
@@ -460,7 +466,7 @@
 	}
 
 	function setActiveSection(section: LayoutDetailSection) {
-		activeSection = section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
+		activeSection = parseCreatorDetailSection(section);
 	}
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
@@ -527,6 +533,7 @@
 		if (!saved) return;
 		const next = cloneCreatorUrlSnapshot(saved.snapshot);
 		next.preview = layoutPreview;
+		next.section = parseCreatorDetailSection(activeSection);
 		applyCreatorSnapshot(next);
 		saveMenuOpen = false;
 		flushCreatorUrl();
@@ -850,6 +857,7 @@
 				keyboardBelow={layoutPreview ? undefined : creatorKeyboardBelow}
 				keyboardMappings={layoutPreview ? undefined : creatorMappings}
 				showKeyboardMappings={layoutPreview ? false : showEditorMappings}
+				compactPractice={!layoutPreview}
 			/>
 		{/key}
 

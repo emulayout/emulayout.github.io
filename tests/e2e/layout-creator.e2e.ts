@@ -42,6 +42,9 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('radiogroup', { name: 'Typing mode' })).toHaveCount(0);
 	await expect(panel.getByRole('textbox', { name: 'Typing practice input' })).toBeFocused();
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
+	await expect(panel.locator('.typing-practice-copy')).toHaveCSS('font-size', '22px');
+	await expect(panel.locator('.layout-test-area')).toHaveCSS('height', '40px');
+	await expect(panel.getByLabel('Typing practice status')).toHaveCSS('font-size', '14px');
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: 'Preview' })).toHaveAttribute(
@@ -215,6 +218,8 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 		namedPanel.getByRole('link', { name: 'See more stats on cminibrowser' })
 	).toHaveCount(0);
 	await expect(namedPanel.getByRole('radiogroup', { name: 'Typing mode' })).toHaveCount(0);
+	await expect(namedPanel.locator('.typing-practice-copy')).toHaveCSS('font-size', '40px');
+	await expect(namedPanel.locator('.layout-test-area')).toHaveCSS('height', '72px');
 	await expect(namedPanel.getByRole('textbox', { name: 'Layout name' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('combobox', { name: 'Author name' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('group', { name: 'Layout keys' })).toHaveCount(0);
@@ -423,6 +428,7 @@ test('switches the creator typing area to the layout test area', async ({ page }
 	await expect(practiceInput).toHaveValue('q');
 
 	await sectionTabs.getByRole('tab', { name: 'Layout test area' }).click();
+	await expect(page).toHaveURL(/tab=test/);
 	const testField = panel.getByRole('textbox', { name: 'Layout test area' });
 	await expect(sectionTabs.getByRole('tab', { name: 'Layout test area' })).toHaveAttribute(
 		'aria-selected',
@@ -452,17 +458,29 @@ test('switches the creator typing area to the layout test area', async ({ page }
 	);
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 
-	await sectionTabs.getByRole('tab', { name: 'Layout feel' }).click();
-	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
-	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toBeVisible();
-	await sectionTabs.getByRole('tab', { name: 'Layout test area' }).click();
+	await page.reload();
+	const restoredPanel = page.getByRole('tabpanel', { name: 'New layout' });
+	const restoredTabs = restoredPanel.getByRole('tablist', { name: 'Layout detail sections' });
+	await expect(page).toHaveURL(/tab=test/);
+	await expect(restoredTabs.getByRole('tab', { name: 'Layout test area' })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(restoredPanel.getByRole('textbox', { name: 'Layout test area' })).toBeVisible();
 
-	await sectionTabs.getByRole('tab', { name: 'Typing practice' }).click();
-	const restoredInput = panel.getByRole('textbox', { name: 'Typing practice input' });
+	await restoredTabs.getByRole('tab', { name: 'Layout feel' }).click();
+	await expect(page).toHaveURL(/tab=feel/);
+	await expect(restoredPanel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+	await expect(restoredPanel.getByRole('textbox', { name: 'Layout name' })).toBeVisible();
+	await restoredTabs.getByRole('tab', { name: 'Layout test area' }).click();
+
+	await restoredTabs.getByRole('tab', { name: 'Typing practice' }).click();
+	await expect(page).not.toHaveURL(/tab=/);
+	const restoredInput = restoredPanel.getByRole('textbox', { name: 'Typing practice input' });
 	await expect(restoredInput).toBeFocused();
 	await expect(restoredInput).toHaveValue('');
-	await expect(panel.getByLabel('Elapsed time: 00:00')).toBeVisible();
-	await expect(panel.getByLabel('0 of 10 words complete')).toBeVisible();
+	await expect(restoredPanel.getByLabel('Elapsed time: 00:00')).toBeVisible();
+	await expect(restoredPanel.getByLabel('0 of 10 words complete')).toBeVisible();
 	await expect(panel.getByRole('textbox', { name: 'Layout test area' })).toHaveCount(0);
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
