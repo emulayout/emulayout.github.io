@@ -117,8 +117,10 @@ option data, copy, and selection policy rather than forking that interaction cod
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
-that default list. Selection closes the list but retains input focus. Escape or leaving the field
-without a catalog pick restores the committed layout name. Consumers that supply
+that default list. Consumers may place known catalog layouts before the alphabetical remainder;
+both Base layout fields use this to keep QWERTY readily available. Selection closes the list but
+retains input focus. Escape or leaving the field without a catalog pick restores the committed
+layout name. Consumers that supply
 `onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
 optional loading state renders an accessible spinner in the trailing field controls without adding
 content below the field or changing the consumer's layout.

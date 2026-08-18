@@ -56,7 +56,11 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
-	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveValue('');
+	const baseLayout = panel.getByRole('combobox', { name: 'Base layout (optional)' });
+	await expect(baseLayout).toHaveValue('');
+	await panel.getByRole('button', { name: 'Show layout options' }).click();
+	await expect(panel.getByRole('option').first()).toHaveText('QWERTY');
+	await panel.getByRole('button', { name: 'Hide layout options' }).click();
 	await expect(panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue('');
 	await expect(panel.getByRole('textbox', { name: 'Row 3, key 10', exact: true })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();

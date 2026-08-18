@@ -9,6 +9,8 @@
 		label?: string;
 		id?: string;
 		maxResults?: number;
+		/** Catalog layouts to place before the default alphabetical list. */
+		preferredLayouts?: readonly string[];
 		/** Committed selection shown in the field when not actively searching. */
 		selected?: string | null;
 		/** Fires with the highlighted option while browsing; `null` when preview ends. */
@@ -26,6 +28,7 @@
 		label = 'Find layout',
 		id = 'layout-autocomplete',
 		maxResults = 50,
+		preferredLayouts = [],
 		selected = null,
 		onHighlight,
 		onSelect,
@@ -50,6 +53,7 @@
 	{label}
 	{id}
 	{maxResults}
+	preferredOptions={preferredLayouts}
 	{onHighlight}
 	{onSelect}
 	{onClear}

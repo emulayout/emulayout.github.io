@@ -83,6 +83,7 @@
 					<span id="keyboard-input-base-label">Base layout (optional)</span>
 					<LayoutAutocomplete
 						layouts={layoutsCatalog.layouts}
+						preferredLayouts={['QWERTY']}
 						id="keyboard-input-base"
 						label="Base layout (optional)"
 						placeholder="Search layouts…"

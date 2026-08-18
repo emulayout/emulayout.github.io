@@ -13,6 +13,8 @@
 		label: string;
 		id: string;
 		maxResults?: number;
+		/** Existing options to place before the default alphabetical list. */
+		preferredOptions?: readonly string[];
 		kind: 'layout' | 'author';
 		emptyText: string;
 		loadingText: string;
@@ -34,6 +36,7 @@
 		label,
 		id,
 		maxResults = 50,
+		preferredOptions = [],
 		kind,
 		emptyText,
 		loadingText,
@@ -65,10 +68,20 @@
 		const names = [...options].toSorted((a, b) =>
 			a.localeCompare(b, undefined, { sensitivity: 'base' })
 		);
-		if (!committed) return names.slice(0, maxResults);
+		const preferredNames = preferredOptions.flatMap((preferred) => {
+			const normalizedPreferred = preferred.toLowerCase();
+			const match = names.find((name) => name.toLowerCase() === normalizedPreferred);
+			return match ? [match] : [];
+		});
+		const preferredNameSet = new Set(preferredNames.map((name) => name.toLowerCase()));
+		const orderedNames = [
+			...preferredNames,
+			...names.filter((name) => !preferredNameSet.has(name.toLowerCase()))
+		];
+		if (!committed) return orderedNames.slice(0, maxResults);
 		const normalizedCommitted = committed.toLowerCase();
-		const exact = names.find((name) => name.toLowerCase() === normalizedCommitted);
-		const rest = names.filter((name) => name.toLowerCase() !== normalizedCommitted);
+		const exact = orderedNames.find((name) => name.toLowerCase() === normalizedCommitted);
+		const rest = orderedNames.filter((name) => name.toLowerCase() !== normalizedCommitted);
 		return [exact ?? committed, ...rest].slice(0, maxResults);
 	});
 	const matches = $derived(

@@ -826,6 +826,7 @@
 					<div class="layout-creator-base-row">
 						<LayoutAutocomplete
 							layouts={layoutsCatalog.layouts}
+							preferredLayouts={['QWERTY']}
 							id="layout-creator-base"
 							label="Base layout (optional)"
 							placeholder="Search layouts…"
