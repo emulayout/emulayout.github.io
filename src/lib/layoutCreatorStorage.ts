@@ -6,6 +6,7 @@ import {
 	creatorUrlHasDraftParams,
 	creatorSnapshotFromContent,
 	readCreatorSavedId,
+	readCreatorPreviewFlag,
 	readCreatorUrlSnapshot,
 	type CreatorContentSnapshot,
 	type CreatorUrlSnapshot
@@ -233,11 +234,12 @@ export function resolveCreatorSession(
 		return { snapshot: readCreatorUrlSnapshot(searchParams), savedId: saved.id };
 	}
 	const snapshot = snapshotForSavedLayoutView(saved.snapshot);
+	snapshot.preview = readCreatorPreviewFlag(searchParams);
 	snapshot.section = parseCreatorDetailSection(searchParams.get(LAYOUT_DETAIL_TAB_PARAM));
 	return { snapshot, savedId: saved.id };
 }
 
-/** Opening a saved layout starts in Preview. Edit is only for new canvases and explicit edits. */
+/** Build a saved-layout view; callers may then overlay URL-owned view state. */
 export function snapshotForSavedLayoutView(snapshot: CreatorContentSnapshot): CreatorUrlSnapshot {
 	return creatorSnapshotFromContent(snapshot, {
 		preview: true,

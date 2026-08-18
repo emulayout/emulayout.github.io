@@ -22,12 +22,24 @@ export const LAYOUT_CREATOR_NEW_LAYOUT_NAME = 'New layout';
 export const CREATOR_MAGIC_KEY = '*';
 const TRAILING_COPY_NUMBER = /^(.*)\s(\d+)$/;
 
-/** Next name for a duplicated layout: increment a trailing copy number, or append 2. */
-export function nextDuplicatedLayoutName(name: string): string {
+function incrementDuplicatedLayoutName(name: string): string {
 	const trimmed = name.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME;
 	const match = trimmed.match(TRAILING_COPY_NUMBER);
 	if (!match) return `${trimmed} 2`;
-	return `${match[1]} ${Number(match[2]) + 1}`;
+	return `${match[1]} ${BigInt(match[2]) + 1n}`;
+}
+
+/** First unused duplicate name: increment a trailing copy number, or append 2. */
+export function nextDuplicatedLayoutName(
+	name: string,
+	existingNames: readonly string[] = []
+): string {
+	const usedNames = new Set(existingNames.map((candidate) => candidate.trim().toLowerCase()));
+	let candidate = incrementDuplicatedLayoutName(name);
+	while (usedNames.has(candidate.toLowerCase())) {
+		candidate = incrementDuplicatedLayoutName(candidate);
+	}
+	return candidate;
 }
 /** Summary-card subtitle when a local draft has no analyzer stats. */
 export const LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL = 'Local layouts have no analyzer stats.';

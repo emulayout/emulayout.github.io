@@ -46,9 +46,10 @@ drafts in the browser.
   mappings (including incomplete rows), and which complete special mappings are disabled are
   written when they differ from the blank canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
-  params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL, or switching
-  to a saved tab, starts in Preview. Preview is the default view and is not written to the query.
-  Edit writes `edit=1` and does not count as a saveable change. The shared show-page `tab`
+  params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL starts in
+  Preview unless `edit=1` requests Edit; switching to a saved tab starts in Preview. Preview is the
+  default view and is not written to the query. Edit writes `edit=1` and does not count as a
+  saveable change. The shared show-page `tab`
   param keeps Typing practice, Layout test area, or Layout feel across refresh; it is omitted
   at Typing practice and is not a saveable change. Invalid or `stats` values become Typing
   practice. Dirty edits stay in the query
@@ -130,7 +131,8 @@ drafts in the browser.
   ten words and clears the timer. Layout test area keeps its own free-typing surface.
   Each tab still uses its own keyboard options. Preview swaps that editor for the presentation keyboard.
   Edit-only Practice and Feel use a compact scale for the prompt, input, and score
-  stats so they sit more tightly above the key editor. Edit Layout test area free
+  stats so they sit more tightly above the key editor. Their typing fields do not autofocus in Edit,
+  so loading the editor cannot steal focus from a layout field. Edit Layout test area free
   typing uses a 130px field instead of the tall show-page surface. Preview and
   catalog show pages keep the large practice typography and tall test area. In
   Edit the section tabs, prompt, and input match the key-editor workspace width.
@@ -149,8 +151,11 @@ drafts in the browser.
   Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
   **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of
   that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Duplicate
-  saves a new copy, opens it in Edit, and increments a trailing copy number: `My layout` becomes
-  `My layout 2`, `Vylet v5` becomes `Vylet v5 2`, and `Test 3` becomes `Test 4`. Undo restores the
+  saves a new copy, opens it in Edit, and advances a trailing copy number until its name is unused:
+  `My layout` becomes `My layout 2`, `Vylet v5` becomes `Vylet v5 2`, and `Test 3` becomes `Test 4`.
+  Switching saved tabs or starting a new canvas asks for confirmation when the current layout has
+  unsaved content; Preview/Edit and detail-tab changes do not count. Deleting the active dirty
+  layout includes the same discard warning in its delete confirmation. Undo restores the
   stored snapshot and keeps the current Preview/Edit mode. It is hidden on an unsaved canvas and
   while a saved layout is clean. Save, update, and save-as-new use the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
@@ -176,7 +181,9 @@ drafts in the browser.
   `src/lib/components/AuthorAutocomplete.svelte`
 - Catalog author lookup and Discover author-filter query: `src/lib/layoutDetails.ts`
   (`resolveAuthorByName`), `src/lib/filterUrlCodec.ts` (`authorFilterIndexSearch`)
-- Saved-layout delete confirmation: `src/lib/components/DeleteSavedLayoutModal.svelte`
+- Saved-layout delete and dirty-navigation confirmations:
+  `src/lib/components/DeleteSavedLayoutModal.svelte`,
+  `src/lib/components/DiscardCreatorChangesModal.svelte`
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
   `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`

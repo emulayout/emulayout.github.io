@@ -22,6 +22,16 @@ describe('nextDuplicatedLayoutName', () => {
 		expect(nextDuplicatedLayoutName('  Test 3  ')).toBe('Test 4');
 		expect(nextDuplicatedLayoutName('')).toBe('New layout 2');
 	});
+
+	test('advances until the duplicate name is unused, case-insensitively', () => {
+		expect(nextDuplicatedLayoutName('My layout', ['My layout', 'My layout 2', 'my layout 3'])).toBe(
+			'My layout 4'
+		);
+		expect(nextDuplicatedLayoutName('Test 3', ['Test 4', 'Test 6'])).toBe('Test 5');
+		expect(nextDuplicatedLayoutName('Big 9007199254740992', ['Big 9007199254740992'])).toBe(
+			'Big 9007199254740993'
+		);
+	});
 });
 
 describe('createDefaultCreatorLayout', () => {

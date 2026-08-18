@@ -75,6 +75,10 @@ reveal the creator canvas rather than detail sections. Inside that canvas, Edit 
 the layout-detail section tabs (Typing practice, Layout test area, Layout feel) without a Stats
 tab. Their selection uses the same shareable `tab` query as layout detail pages. See
 [`layout-creator.md`](./layout-creator.md).
+Switching saved layouts or starting a new canvas while the current layout has unsaved content opens
+a `ModalShell` confirmation. Cancel restores focus to the still-selected tab; confirming discards
+the draft and focuses the newly selected tab. Preview/Edit and detail-tab changes are view state and
+do not trigger this confirmation.
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /

@@ -7,6 +7,7 @@
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
 	import DeleteSavedLayoutModal from '$lib/components/DeleteSavedLayoutModal.svelte';
+	import DiscardCreatorChangesModal from '$lib/components/DiscardCreatorChangesModal.svelte';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
@@ -72,6 +73,7 @@
 		createDefaultCreatorUrlSnapshot,
 		creatorSearchFromSnapshot,
 		creatorSnapshotFromContent,
+		creatorUrlContentEqual,
 		creatorUrlSnapshotsEqual,
 		type CreatorContentSnapshot,
 		type CreatorUrlSnapshot
@@ -88,6 +90,10 @@
 	import type { LayoutKeyboardPresentation } from '$lib/layoutKeyboardFeedback';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import type { TabOption } from '$lib/tabs';
+
+	type PendingCreatorNavigation =
+		| { kind: 'saved'; savedId: string; destinationName: string }
+		| { kind: 'new' };
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
@@ -117,6 +123,7 @@
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
 	let deleteSavedLayoutName = $state('');
+	let pendingCreatorNavigation = $state<PendingCreatorNavigation | null>(null);
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
@@ -240,6 +247,19 @@
 
 	const isActiveSavedDirty = $derived(
 		isSavedLayoutDirty(currentCreatorSnapshot(), activeSavedLayout)
+	);
+	const hasUnsavedCreatorChanges = $derived(
+		activeSavedId
+			? isActiveSavedDirty
+			: !creatorUrlContentEqual(currentCreatorSnapshot(), createDefaultCreatorUrlSnapshot())
+	);
+	const discardDestination = $derived(
+		pendingCreatorNavigation?.kind === 'saved'
+			? `open ${pendingCreatorNavigation.destinationName}`
+			: 'start a new layout'
+	);
+	const deleteDiscardsUnsavedChanges = $derived(
+		deleteSavedLayoutId !== null && deleteSavedLayoutId === activeSavedId && isActiveSavedDirty
 	);
 	const showUpdateSplit = $derived(Boolean(activeSavedId && isActiveSavedDirty));
 	const showDuplicateButton = $derived(Boolean(activeSavedId && !isActiveSavedDirty));
@@ -474,15 +494,27 @@
 		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
 	}
 
+	function openSavedLayout(saved: SavedCreatorLayout) {
+		activeSavedId = saved.id;
+		applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
+		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		flushCreatorUrl();
+	}
+
 	function changeCreatorTab(value: LayoutCreatorTabValue) {
 		if (value === activeTab) return;
 		if (value === LAYOUT_CREATOR_NEW_TAB) return;
 		const saved = findSavedLayout(savedLayouts, value.slice('saved:'.length));
 		if (!saved) return;
-		activeSavedId = saved.id;
-		applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
-		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
-		flushCreatorUrl();
+		if (hasUnsavedCreatorChanges) {
+			pendingCreatorNavigation = {
+				kind: 'saved',
+				savedId: saved.id,
+				destinationName: saved.name
+			};
+			return;
+		}
+		openSavedLayout(saved);
 	}
 
 	function saveCurrentLayout() {
@@ -516,9 +548,13 @@
 	function duplicateSavedLayout() {
 		saveError = null;
 		const snapshot = cloneCreatorUrlSnapshot(currentCreatorSnapshot());
-		snapshot.name = nextDuplicatedLayoutName(savedCreatorLayoutName(snapshot));
+		const layouts = savedLayoutsForWrite();
+		snapshot.name = nextDuplicatedLayoutName(
+			savedCreatorLayoutName(snapshot),
+			layouts.map((saved) => saved.name)
+		);
 		snapshot.preview = false;
-		const result = addSavedLayout(savedLayoutsForWrite(), {
+		const result = addSavedLayout(layouts, {
 			snapshot
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
@@ -539,6 +575,13 @@
 		flushCreatorUrl();
 	}
 
+	function startNewLayoutNow() {
+		activeSavedId = null;
+		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		flushCreatorUrl();
+	}
+
 	function startNewLayout() {
 		if (
 			!activeSavedId &&
@@ -546,10 +589,37 @@
 		) {
 			return;
 		}
-		activeSavedId = null;
-		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
-		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
-		flushCreatorUrl();
+		if (hasUnsavedCreatorChanges) {
+			pendingCreatorNavigation = { kind: 'new' };
+			return;
+		}
+		startNewLayoutNow();
+	}
+
+	function focusSelectedCreatorTab() {
+		requestAnimationFrame(() => {
+			document
+				.querySelector<HTMLElement>('.layout-creator-tabs [role="tab"][aria-selected="true"]')
+				?.focus();
+		});
+	}
+
+	function closeDiscardChangesModal() {
+		pendingCreatorNavigation = null;
+		focusSelectedCreatorTab();
+	}
+
+	function confirmDiscardChanges() {
+		const navigation = pendingCreatorNavigation;
+		pendingCreatorNavigation = null;
+		if (!navigation) return;
+		if (navigation.kind === 'new') {
+			startNewLayoutNow();
+		} else {
+			const saved = findSavedLayout(savedLayouts, navigation.savedId);
+			if (saved) openSavedLayout(saved);
+		}
+		focusSelectedCreatorTab();
 	}
 
 	function requestDeleteSavedLayout(id: string, name: string) {
@@ -560,11 +630,7 @@
 	function closeDeleteSavedLayoutModal() {
 		deleteSavedLayoutId = null;
 		deleteSavedLayoutName = '';
-		requestAnimationFrame(() => {
-			document
-				.querySelector<HTMLElement>('.layout-creator-tabs [role="tab"][aria-selected="true"]')
-				?.focus();
-		});
+		focusSelectedCreatorTab();
 	}
 
 	function handleSavedTabKeydown(
@@ -995,8 +1061,17 @@
 <DeleteSavedLayoutModal
 	open={deleteSavedLayoutId !== null}
 	layoutName={deleteSavedLayoutName}
+	discardsUnsavedChanges={deleteDiscardsUnsavedChanges}
 	onClose={closeDeleteSavedLayoutModal}
 	onConfirm={confirmDeleteSavedLayout}
+/>
+
+<DiscardCreatorChangesModal
+	open={pendingCreatorNavigation !== null}
+	{layoutName}
+	destination={discardDestination}
+	onClose={closeDiscardChangesModal}
+	onConfirm={confirmDiscardChanges}
 />
 
 <style>

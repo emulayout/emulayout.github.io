@@ -656,7 +656,7 @@
 				{compact}
 				placeholder=""
 				ariaLabel="Layout feel input"
-				focusOnMount
+				focusOnMount={!keyboard}
 				invalid={inputHasError}
 				value={session.input}
 				onValueChange={handleValueChange}

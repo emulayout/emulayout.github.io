@@ -515,7 +515,7 @@
 					{compact}
 					placeholder=""
 					ariaLabel="Typing practice input"
-					focusOnMount
+					focusOnMount={!keyboard}
 					invalid={inputHasError}
 					value={session.input}
 					onValueChange={handleValueChange}

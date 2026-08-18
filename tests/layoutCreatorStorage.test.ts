@@ -178,6 +178,12 @@ describe('saved layout storage', () => {
 		expect(previewOnly.snapshot.preview).toBe(true);
 		expect(isSavedLayoutDirty(previewOnly.snapshot, saved)).toBe(false);
 
+		const cleanEdit = resolveCreatorSession(new URLSearchParams('id=id-a&edit=1'), [saved]);
+		expect(cleanEdit.savedId).toBe('id-a');
+		expect(cleanEdit.snapshot.name).toBe('Alpha');
+		expect(cleanEdit.snapshot.preview).toBe(false);
+		expect(isSavedLayoutDirty(cleanEdit.snapshot, saved)).toBe(false);
+
 		const dirty = resolveCreatorSession(new URLSearchParams('id=id-a&name=Beta'), [saved]);
 		expect(dirty.savedId).toBe('id-a');
 		expect(dirty.snapshot.name).toBe('Beta');

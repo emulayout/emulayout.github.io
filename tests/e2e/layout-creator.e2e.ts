@@ -40,7 +40,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(sectionTabs.getByRole('tab', { name: 'Layout feel' })).toBeVisible();
 	await expect(sectionTabs.getByRole('tab', { name: 'Stats' })).toHaveCount(0);
 	await expect(panel.getByRole('radiogroup', { name: 'Typing mode' })).toHaveCount(0);
-	await expect(panel.getByRole('textbox', { name: 'Typing practice input' })).toBeFocused();
+	await expect(panel.getByRole('textbox', { name: 'Typing practice input' })).toBeVisible();
 	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
 	await expect(panel.locator('.typing-practice-copy')).toHaveCSS('font-size', '22px');
 	await expect(panel.locator('.layout-test-area')).toHaveCSS('height', '40px');
@@ -412,7 +412,9 @@ test('undoes dirty edits on a saved layout', async ({ page }) => {
 	await expect(page).not.toHaveURL(/name=/);
 });
 
-test('duplicates a saved layout into Edit with an incremented name', async ({ page }) => {
+test('duplicates a saved layout into Edit with the first unused incremented name', async ({
+	page
+}) => {
 	await page.goto('/create?edit=1');
 	const creations = page.getByRole('tablist', { name: 'Layout creations' });
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
@@ -429,6 +431,65 @@ test('duplicates a saved layout into Edit with an incremented name', async ({ pa
 	await expect(savedLayoutTab(creations, 'Test 4')).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL(/\/create\?id=/);
 	await expect(page).toHaveURL(/edit=1/);
+
+	await page.reload();
+	const restoredCopy = page.getByRole('tabpanel', { name: 'Test 4' });
+	await expect(restoredCopy.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Test 4');
+	await expect(restoredCopy.getByRole('button', { name: 'Preview' })).toBeVisible();
+
+	await savedLayoutTab(creations, 'Test 3').click();
+	await page
+		.getByRole('tabpanel', { name: 'Test 3' })
+		.getByRole('button', { name: 'Duplicate layout' })
+		.click();
+	const secondCopy = page.getByRole('tabpanel', { name: 'Test 5' });
+	await expect(secondCopy.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Test 5');
+	await expect(savedLayoutTab(creations, 'Test 4')).toBeVisible();
+	await expect(savedLayoutTab(creations, 'Test 5')).toHaveAttribute('aria-selected', 'true');
+});
+
+test('confirms before switching away from unsaved creator changes', async ({ page }) => {
+	await page.goto('/create?edit=1');
+	const creations = page.getByRole('tablist', { name: 'Layout creations' });
+	const initialPanel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await initialPanel.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	const alphaPanel = page.getByRole('tabpanel', { name: 'Alpha' });
+	await alphaPanel.getByRole('button', { name: 'Save layout' }).click();
+	await alphaPanel.getByRole('textbox', { name: 'Layout name' }).fill('Beta');
+	const betaPanel = page.getByRole('tabpanel', { name: 'Beta' });
+	await betaPanel.getByRole('button', { name: 'More save options' }).click();
+	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
+
+	await savedLayoutTab(creations, 'Alpha').click();
+	const restoredAlpha = page.getByRole('tabpanel', { name: 'Alpha' });
+	await restoredAlpha.getByRole('button', { name: 'Edit' }).click();
+	await restoredAlpha.getByRole('textbox', { name: 'Layout name' }).fill('Alpha draft');
+
+	await savedLayoutTab(creations, 'Beta').click();
+	const discardDialog = page.getByRole('dialog', { name: 'Discard changes?' });
+	await expect(discardDialog).toContainText(
+		'Discard unsaved changes to Alpha draft and open Beta?'
+	);
+	await discardDialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(page.getByRole('tabpanel', { name: 'Alpha draft' })).toBeVisible();
+	await expect(savedLayoutTab(creations, 'Alpha draft')).toHaveAttribute('aria-selected', 'true');
+	await expect(savedLayoutTab(creations, 'Alpha draft')).toBeFocused();
+
+	await savedLayoutTab(creations, 'Beta').click();
+	await discardDialog.getByRole('button', { name: 'Discard changes' }).click();
+	const restoredBeta = page.getByRole('tabpanel', { name: 'Beta' });
+	await expect(restoredBeta.getByRole('heading', { name: 'Beta' })).toBeVisible();
+
+	await restoredBeta.getByRole('button', { name: 'Edit' }).click();
+	await restoredBeta.getByRole('textbox', { name: 'Layout name' }).fill('Beta draft');
+	await page.getByRole('button', { name: '+ New layout' }).click();
+	await expect(discardDialog).toContainText(
+		'Discard unsaved changes to Beta draft and start a new layout?'
+	);
+	await discardDialog.getByRole('button', { name: 'Discard changes' }).click();
+	await expect(page.getByRole('tabpanel', { name: 'New layout' })).toBeVisible();
+	await expect(page).toHaveURL('/create?edit=1');
 });
 
 test('switches the creator typing area to the layout test area', async ({ page }) => {
@@ -486,10 +547,11 @@ test('switches the creator typing area to the layout test area', async ({ page }
 	await expect(restoredPanel.getByRole('textbox', { name: 'Layout name' })).toBeVisible();
 	await restoredTabs.getByRole('tab', { name: 'Layout test area' }).click();
 
-	await restoredTabs.getByRole('tab', { name: 'Typing practice' }).click();
+	const restoredPracticeTab = restoredTabs.getByRole('tab', { name: 'Typing practice' });
+	await restoredPracticeTab.click();
 	await expect(page).not.toHaveURL(/tab=/);
 	const restoredInput = restoredPanel.getByRole('textbox', { name: 'Typing practice input' });
-	await expect(restoredInput).toBeFocused();
+	await expect(restoredPracticeTab).toBeFocused();
 	await expect(restoredInput).toHaveValue('');
 	await expect(restoredPanel.getByLabel('Elapsed time: 00:00')).toBeVisible();
 	await expect(restoredPanel.getByLabel('0 of 10 words complete')).toBeVisible();
@@ -518,9 +580,8 @@ test('restores an unchecked Adaptive swap after saving and reloading', async ({ 
 
 	await page.reload();
 	const restored = page.getByRole('tabpanel', { name: 'Disabled swap' });
-	await expect(restored.getByRole('heading', { name: 'Disabled swap' })).toBeVisible();
-	await expect(restored.getByRole('button', { name: 'Edit' })).toBeVisible();
-	await restored.getByRole('button', { name: 'Edit' }).click();
+	await expect(restored.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Disabled swap');
+	await expect(restored.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(restored.getByRole('checkbox', { name: 'Enable mapping' })).not.toBeChecked();
 	await expect(restored.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();
 	await expect(restored.getByRole('button', { name: 'Update layout' })).toHaveCount(0);
@@ -624,11 +685,13 @@ test('deletes a saved layout from its tab', async ({ page }) => {
 	await expect(savedLayoutTab(creations, 'Alpha')).toHaveCount(0);
 	await expect(savedLayoutTab(creations, 'Beta')).toHaveAttribute('aria-selected', 'true');
 
-	await savedLayoutTab(creations, 'Beta').press('Delete');
-	await page
-		.getByRole('dialog', { name: 'Delete layout' })
-		.getByRole('button', { name: 'Delete' })
-		.click();
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Beta draft');
+	await savedLayoutTab(creations, 'Beta draft').press('Delete');
+	const dirtyDeleteDialog = page.getByRole('dialog', { name: 'Delete layout' });
+	await expect(dirtyDeleteDialog).toContainText(
+		'Unsaved changes to this layout will also be discarded.'
+	);
+	await dirtyDeleteDialog.getByRole('button', { name: 'Delete' }).click();
 	await expect(creations.getByRole('tab', { name: 'New layout', exact: true })).toHaveAttribute(
 		'aria-selected',
 		'true'
