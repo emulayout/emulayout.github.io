@@ -92,7 +92,11 @@
 				{@render layoutTitle()}
 			{/if}
 			{#if showNewIndicator}
-				<span class="new-layout-dot shrink-0" title="New layout" aria-label="New layout"></span>
+				<span
+					class="new-layout-dot shrink-0"
+					title="New or updated layout"
+					aria-label="New or updated layout"
+				></span>
 			{/if}
 		</div>
 		{#if showLikes}

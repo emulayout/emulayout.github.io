@@ -40,8 +40,8 @@
 		<div class="display-settings-section-options">
 			{@render displaySetting(
 				'new-layout-display-label',
-				'New layout indicator',
-				'Mark layouts added by the latest sync with a red dot.',
+				'New or updated layout indicator',
+				'Mark layouts added or updated by the latest sync with a red dot.',
 				!filterStore.hideNewLayoutIndicator,
 				(enabled) => filterStore.setHideNewLayoutIndicator(!enabled)
 			)}
