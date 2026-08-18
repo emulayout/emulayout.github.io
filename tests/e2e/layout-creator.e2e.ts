@@ -47,10 +47,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByLabel('Typing practice status')).toHaveCSS('font-size', '14px');
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
-	await expect(panel.getByRole('button', { name: 'Preview' })).toHaveAttribute(
-		'aria-pressed',
-		'false'
-	);
+	await expect(panel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();
@@ -60,11 +57,11 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 
 	const magicKey = panel.getByRole('button', { name: 'Add magic' });
 	const adaptiveKey = panel.getByRole('button', { name: 'Add adaptive' });
-	await expect(magicKey).toHaveAttribute('aria-pressed', 'false');
-	await expect(adaptiveKey).toHaveAttribute('aria-pressed', 'false');
+	await expect(magicKey).toHaveAttribute('aria-expanded', 'false');
+	await expect(adaptiveKey).toHaveAttribute('aria-expanded', 'false');
 	await magicKey.click();
 	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 	await expect(panel.locator('[data-keyboard-input-slot="1,11"]')).toHaveCount(0);
@@ -73,11 +70,36 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toHaveCount(0);
 	await adaptiveKey.click();
 	await expect(panel.getByRole('button', { name: 'Hide adaptive mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toBeVisible();
 	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toHaveCount(0);
+});
+
+test('keeps editing and custom lessons available when the shared word list fails', async ({
+	page
+}) => {
+	await page.route('**/languages/english1k.json', async (route) => {
+		await route.fulfill({ status: 503, body: 'Unavailable' });
+	});
+	await page.goto('/create?edit=1');
+
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	await expect(panel.getByRole('alert')).toHaveText('Unable to load practice words.');
+	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+
+	await panel.getByRole('button', { name: 'Use custom text' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Custom text' }).click();
+	await dialog.getByRole('textbox', { name: 'Practice text' }).fill('hello world');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(panel.locator('[data-practice-word]')).toHaveText(['hello', 'world']);
+
+	await panel.getByRole('tab', { name: 'Layout feel' }).click();
+	await expect(panel.getByRole('textbox', { name: 'Layout feel input' })).toBeVisible();
+	await panel.getByRole('button', { name: 'Preview' }).click();
+	await expect(panel.getByRole('textbox', { name: 'Layout feel input' })).toBeVisible();
 });
 
 test('warns when a letter is missing from the layout', async ({ page }) => {
@@ -105,7 +127,7 @@ test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ p
 
 	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('@');
 	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
@@ -134,7 +156,7 @@ test('selecting a base layout seeds its magic and adaptive mappings', async ({ p
 	await baseLayout.fill('vylet');
 	await panel.getByRole('option', { name: 'vylet', exact: true }).click();
 	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
@@ -198,10 +220,7 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 	await expect(namedPanel.getByRole('textbox', { name: 'Preceding' }).first()).toBeVisible();
 
 	await namedPanel.getByRole('button', { name: 'Preview' }).click();
-	await expect(namedPanel.getByRole('button', { name: 'Edit' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
+	await expect(namedPanel.getByRole('button', { name: 'Edit' })).toBeVisible();
 	await expect(namedPanel.getByRole('heading', { name: 'Custom draft' })).toBeVisible();
 	await expect(
 		namedPanel.getByRole('img', { name: 'Custom draft keyboard preview' })
@@ -291,13 +310,13 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	);
 	await expect(restored.getByRole('combobox', { name: 'Keyboard type' })).toHaveValue('ortho');
 	await expect(restored.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 	await expect(restored.getByRole('textbox', { name: 'Preceding' }).first()).toHaveValue('c');
 	await expect(restored.getByRole('textbox', { name: 'Emit' }).first()).toHaveValue('k');
 	await expect(restored.getByRole('button', { name: 'Hide adaptive mappings' })).toHaveAttribute(
-		'aria-pressed',
+		'aria-expanded',
 		'true'
 	);
 });
@@ -350,19 +369,13 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await savedLayoutTab(creations, 'Alpha').click();
 	const restoredAlpha = page.getByRole('tabpanel', { name: 'Alpha' });
 	await expect(restoredAlpha.getByRole('heading', { name: 'Alpha' })).toBeVisible();
-	await expect(restoredAlpha.getByRole('button', { name: 'Edit' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
+	await expect(restoredAlpha.getByRole('button', { name: 'Edit' })).toBeVisible();
 	await expect(savedLayoutTab(creations, 'Alpha')).toHaveAttribute('aria-selected', 'true');
 
 	await savedLayoutTab(creations, 'Alpha edited').click();
 	const restoredEdited = page.getByRole('tabpanel', { name: 'Alpha edited' });
 	await expect(restoredEdited.getByRole('heading', { name: 'Alpha edited' })).toBeVisible();
-	await expect(restoredEdited.getByRole('button', { name: 'Edit' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
+	await expect(restoredEdited.getByRole('button', { name: 'Edit' })).toBeVisible();
 
 	await page.getByRole('button', { name: '+ New layout' }).click();
 	await expect(creations.getByRole('tab', { name: 'New layout', exact: true })).toHaveAttribute(
@@ -373,10 +386,7 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await expect(savedLayoutTab(creations, 'Alpha edited')).toBeVisible();
 	const newPanel = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(newPanel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
-	await expect(newPanel.getByRole('button', { name: 'Preview' })).toHaveAttribute(
-		'aria-pressed',
-		'false'
-	);
+	await expect(newPanel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Save layout' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Undo changes' })).toHaveCount(0);
 });
@@ -414,10 +424,7 @@ test('duplicates a saved layout into Edit with an incremented name', async ({ pa
 
 	const copyPanel = page.getByRole('tabpanel', { name: 'Test 4' });
 	await expect(copyPanel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Test 4');
-	await expect(copyPanel.getByRole('button', { name: 'Preview' })).toHaveAttribute(
-		'aria-pressed',
-		'false'
-	);
+	await expect(copyPanel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(savedLayoutTab(creations, 'Test 3')).toBeVisible();
 	await expect(savedLayoutTab(creations, 'Test 4')).toHaveAttribute('aria-selected', 'true');
 	await expect(page).toHaveURL(/\/create\?id=/);
@@ -512,10 +519,7 @@ test('restores an unchecked Adaptive swap after saving and reloading', async ({ 
 	await page.reload();
 	const restored = page.getByRole('tabpanel', { name: 'Disabled swap' });
 	await expect(restored.getByRole('heading', { name: 'Disabled swap' })).toBeVisible();
-	await expect(restored.getByRole('button', { name: 'Edit' })).toHaveAttribute(
-		'aria-pressed',
-		'true'
-	);
+	await expect(restored.getByRole('button', { name: 'Edit' })).toBeVisible();
 	await restored.getByRole('button', { name: 'Edit' }).click();
 	await expect(restored.getByRole('checkbox', { name: 'Enable mapping' })).not.toBeChecked();
 	await expect(restored.getByRole('button', { name: 'Duplicate layout' })).toBeVisible();

@@ -17,6 +17,7 @@ import {
 } from '../src/lib/layoutCreatorStorage';
 import {
 	createDefaultCreatorUrlSnapshot,
+	creatorContentFromSnapshot,
 	creatorSearchFromSnapshot,
 	type CreatorUrlSnapshot
 } from '../src/lib/layoutCreatorUrl';
@@ -38,7 +39,7 @@ describe('saved layout storage', () => {
 		const layout: SavedCreatorLayout = {
 			id: 'layout-1',
 			name: 'Magic lela',
-			snapshot,
+			snapshot: creatorContentFromSnapshot(snapshot),
 			createdAt: 123
 		};
 
@@ -52,12 +53,14 @@ describe('saved layout storage', () => {
 		expect(document.layouts[0]?.query).toContain('name=Magic+lela');
 		expect(document.layouts[0]?.query).toContain('author=derek');
 		expect(document.layouts[0]?.query).toContain('keys=');
+		expect(document.layouts[0]?.query).not.toContain('edit=');
 
 		const restored = parseSavedLayoutsDocument(document);
 		expect(restored).toHaveLength(1);
 		expect(restored[0]?.id).toBe('layout-1');
 		expect(restored[0]?.name).toBe('Magic lela');
 		expect(restored[0]?.snapshot.author).toBe('derek');
+		expect('preview' in (restored[0]?.snapshot ?? {})).toBe(false);
 		expect(restored[0]?.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 	});
 
@@ -82,13 +85,17 @@ describe('saved layout storage', () => {
 	test('deduplicates stored ids and merges newer tab snapshots without dropping layouts', () => {
 		const first = addSavedLayout(
 			[],
-			{ name: 'Alpha', snapshot: namedSnapshot('Alpha') },
+			{ snapshot: namedSnapshot('Alpha') },
 			{ createId: () => 'id-a', now: () => 1 }
 		).layouts[0];
-		const updated = { ...first, name: 'Alpha updated', snapshot: namedSnapshot('Alpha updated') };
+		const updated = {
+			...first,
+			name: 'Alpha updated',
+			snapshot: creatorContentFromSnapshot(namedSnapshot('Alpha updated'))
+		};
 		const second = addSavedLayout(
 			[],
-			{ name: 'Beta', snapshot: namedSnapshot('Beta') },
+			{ snapshot: namedSnapshot('Beta') },
 			{ createId: () => 'id-b', now: () => 2 }
 		).layouts[0];
 		if (!first || !second) throw new Error('expected saved layouts');
@@ -108,7 +115,7 @@ describe('saved layout storage', () => {
 	test('adds, updates, and reports dirty state by id rather than name', () => {
 		const first = addSavedLayout(
 			[],
-			{ name: 'Alpha', snapshot: namedSnapshot('Alpha') },
+			{ snapshot: namedSnapshot('Alpha') },
 			{
 				createId: () => 'id-a',
 				now: () => 1
@@ -116,7 +123,7 @@ describe('saved layout storage', () => {
 		);
 		const second = addSavedLayout(
 			first.layouts,
-			{ name: 'Alpha', snapshot: namedSnapshot('Alpha') },
+			{ snapshot: namedSnapshot('Alpha') },
 			{ createId: () => 'id-b', now: () => 2 }
 		);
 
@@ -124,7 +131,6 @@ describe('saved layout storage', () => {
 		expect(second.layouts.map((entry) => entry.id)).toEqual(['id-a', 'id-b']);
 
 		const updated = updateSavedLayout(second.layouts, 'id-a', {
-			name: 'Alpha edited',
 			snapshot: namedSnapshot('Alpha edited')
 		});
 		expect(updated?.[0]?.name).toBe('Alpha edited');
@@ -152,7 +158,7 @@ describe('saved layout storage', () => {
 	test('restores a saved layout from id and overlays dirty query params', () => {
 		const saved = addSavedLayout(
 			[],
-			{ name: 'Alpha', snapshot: namedSnapshot('Alpha') },
+			{ snapshot: namedSnapshot('Alpha') },
 			{
 				createId: () => 'id-a',
 				now: () => 1
@@ -200,7 +206,7 @@ describe('saved layout storage', () => {
 		});
 		const saved = addSavedLayout(
 			[],
-			{ name: 'Alpha', snapshot },
+			{ snapshot },
 			{
 				createId: () => 'id-a',
 				now: () => 1

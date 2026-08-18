@@ -55,11 +55,9 @@ const KEYS_MODIFIED_FLAG = 'm';
 const KEYS_UNMODIFIED_FLAG = '-';
 const DEFAULT_BASE_LAYOUT_NAME = 'QWERTY';
 
-export type CreatorUrlSnapshot = {
+export type CreatorContentSnapshot = {
 	name: string;
 	author: string;
-	preview: boolean;
-	section: Exclude<LayoutDetailSection, 'stats'>;
 	includeMagicKey: boolean;
 	includeAdaptiveKey: boolean;
 	magicDraft: CreatorMagicDraft;
@@ -68,6 +66,13 @@ export type CreatorUrlSnapshot = {
 	practiceLesson: TypingPracticeLessonSettings;
 	disabledMappingIds: string[];
 };
+
+export type CreatorViewState = {
+	preview: boolean;
+	section: Exclude<LayoutDetailSection, 'stats'>;
+};
+
+export type CreatorUrlSnapshot = CreatorContentSnapshot & CreatorViewState;
 
 type MagicUrlSection = {
 	t: string;
@@ -457,6 +462,43 @@ export function cloneCreatorUrlSnapshot(snapshot: CreatorUrlSnapshot): CreatorUr
 	return readCreatorUrlSnapshot(writeCreatorUrlParams(snapshot));
 }
 
+export function creatorContentFromSnapshot(snapshot: CreatorUrlSnapshot): CreatorContentSnapshot {
+	const normalized = cloneCreatorUrlSnapshot({
+		...snapshot,
+		preview: true,
+		section: DEFAULT_LAYOUT_DETAIL_SECTION
+	});
+	return {
+		name: normalized.name,
+		author: normalized.author,
+		includeMagicKey: normalized.includeMagicKey,
+		includeAdaptiveKey: normalized.includeAdaptiveKey,
+		magicDraft: normalized.magicDraft,
+		adaptiveDraft: normalized.adaptiveDraft,
+		keyConfig: normalized.keyConfig,
+		practiceLesson: normalized.practiceLesson,
+		disabledMappingIds: normalized.disabledMappingIds
+	};
+}
+
+export function creatorSnapshotFromContent(
+	content: CreatorContentSnapshot,
+	view: CreatorViewState = {
+		preview: true,
+		section: DEFAULT_LAYOUT_DETAIL_SECTION
+	}
+): CreatorUrlSnapshot {
+	return cloneCreatorUrlSnapshot({ ...content, ...view });
+}
+
+export function creatorContentSnapshotSignature(content: CreatorContentSnapshot): string {
+	return creatorUrlSnapshotSignature({
+		...content,
+		preview: true,
+		section: DEFAULT_LAYOUT_DETAIL_SECTION
+	});
+}
+
 export function creatorUrlSnapshotsEqual(
 	left: CreatorUrlSnapshot,
 	right: CreatorUrlSnapshot
@@ -466,13 +508,10 @@ export function creatorUrlSnapshotsEqual(
 
 /** Compare saved-layout content, ignoring Edit/Preview view state. */
 export function creatorUrlContentEqual(
-	left: CreatorUrlSnapshot,
-	right: CreatorUrlSnapshot
+	left: CreatorUrlSnapshot | CreatorContentSnapshot,
+	right: CreatorUrlSnapshot | CreatorContentSnapshot
 ): boolean {
-	return creatorUrlSnapshotsEqual(
-		{ ...left, preview: false, section: DEFAULT_LAYOUT_DETAIL_SECTION },
-		{ ...right, preview: false, section: DEFAULT_LAYOUT_DETAIL_SECTION }
-	);
+	return creatorContentSnapshotSignature(left) === creatorContentSnapshotSignature(right);
 }
 
 export function readCreatorEditFlag(searchParams: URLSearchParams): boolean {
@@ -508,7 +547,7 @@ export function creatorUrlHasDraftParams(searchParams: URLSearchParams): boolean
 
 export type CreatorSearchOptions = {
 	savedId?: string | null;
-	savedSnapshot?: CreatorUrlSnapshot | null;
+	savedSnapshot?: CreatorContentSnapshot | null;
 };
 
 export function creatorSearchFromSnapshot(
@@ -519,7 +558,7 @@ export function creatorSearchFromSnapshot(
 	const omitDraft =
 		Boolean(savedId) &&
 		Boolean(options.savedSnapshot) &&
-		creatorUrlContentEqual(snapshot, options.savedSnapshot as CreatorUrlSnapshot);
+		creatorUrlContentEqual(snapshot, options.savedSnapshot as CreatorContentSnapshot);
 	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
 	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
 	if (omitDraft && !snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);

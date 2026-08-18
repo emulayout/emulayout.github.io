@@ -245,18 +245,27 @@
 		}
 
 		let disposed = false;
+		let updateFrame: number | null = null;
 		const update = () => {
 			if (!disposed) swapPathLayer = measureKeyboardSwapPaths(container, paths);
 		};
-		void tick().then(update);
-		const resizeObserver = new ResizeObserver(update);
+		const scheduleUpdate = () => {
+			if (disposed || updateFrame !== null) return;
+			updateFrame = window.requestAnimationFrame(() => {
+				updateFrame = null;
+				update();
+			});
+		};
+		void tick().then(scheduleUpdate);
+		const resizeObserver = new ResizeObserver(scheduleUpdate);
 		resizeObserver.observe(container);
-		window.addEventListener('resize', update);
+		window.addEventListener('resize', scheduleUpdate);
 
 		return () => {
 			disposed = true;
+			if (updateFrame !== null) window.cancelAnimationFrame(updateFrame);
 			resizeObserver.disconnect();
-			window.removeEventListener('resize', update);
+			window.removeEventListener('resize', scheduleUpdate);
 		};
 	});
 </script>

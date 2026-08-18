@@ -143,7 +143,8 @@ drafts in the browser.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
-- Saved layouts persist in a versioned local-storage document, each with its own id. A sticky
+- Saved layouts persist only layout and lesson content in a versioned local-storage document, each
+  with its own id; Preview/Edit mode and the selected detail tab remain URL view state. A sticky
   bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
   Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
   **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of

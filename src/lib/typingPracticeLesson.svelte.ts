@@ -102,6 +102,7 @@ export class SharedTypingPracticeLesson {
 	prepareForTabChange(options: {
 		customText: string | null;
 		customWords?: readonly string[];
+		source: SharedTypingPracticeLessonSource;
 		selectAdditionalWords: (count: number, excludedWords: readonly string[]) => string[];
 	}) {
 		const nextWords = sharedLessonWordsAfterTabChange({
@@ -113,15 +114,7 @@ export class SharedTypingPracticeLesson {
 			selectAdditionalWords: options.selectAdditionalWords
 		});
 		if (!nextWords) return;
-		this.replaceLesson(
-			nextWords,
-			this.source ?? {
-				customText: options.customText,
-				specialWordsPercent: 0,
-				specialCandidateSignature: '',
-				unreachableKeysSignature: ''
-			}
-		);
+		this.replaceLesson(nextWords, options.source);
 	}
 
 	replaceLesson(sourceWords: readonly string[], source: SharedTypingPracticeLessonSource) {

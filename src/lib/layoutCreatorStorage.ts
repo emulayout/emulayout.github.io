@@ -1,14 +1,20 @@
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
 import {
-	cloneCreatorUrlSnapshot,
+	creatorContentFromSnapshot,
+	creatorContentSnapshotSignature,
 	creatorUrlContentEqual,
 	creatorUrlHasDraftParams,
-	creatorUrlSnapshotSignature,
+	creatorSnapshotFromContent,
 	readCreatorSavedId,
 	readCreatorUrlSnapshot,
+	type CreatorContentSnapshot,
 	type CreatorUrlSnapshot
 } from '$lib/layoutCreatorUrl';
-import { LAYOUT_DETAIL_TAB_PARAM, parseCreatorDetailSection } from '$lib/layoutDetailTabs';
+import {
+	DEFAULT_LAYOUT_DETAIL_SECTION,
+	LAYOUT_DETAIL_TAB_PARAM,
+	parseCreatorDetailSection
+} from '$lib/layoutDetailTabs';
 
 export const SAVED_LAYOUTS_STORAGE_KEY = 'emulayout:saved-layouts';
 export const SAVED_LAYOUTS_SCHEMA_VERSION = 1;
@@ -16,12 +22,11 @@ export const SAVED_LAYOUTS_SCHEMA_VERSION = 1;
 export interface SavedCreatorLayout {
 	id: string;
 	name: string;
-	snapshot: CreatorUrlSnapshot;
+	snapshot: CreatorContentSnapshot;
 	createdAt: number;
 }
 
 export interface SavedCreatorLayoutInput {
-	name: string;
 	snapshot: CreatorUrlSnapshot;
 }
 
@@ -72,7 +77,7 @@ function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
 	return {
 		id: value.id,
 		name: value.name.trim(),
-		snapshot: readCreatorUrlSnapshot(new URLSearchParams(value.query)),
+		snapshot: creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query))),
 		createdAt: value.createdAt
 	};
 }
@@ -112,7 +117,7 @@ export function serializeSavedLayoutsDocument(
 				id: layout.id,
 				name: layout.name,
 				createdAt: layout.createdAt,
-				query: creatorUrlSnapshotSignature(layout.snapshot)
+				query: creatorContentSnapshotSignature(layout.snapshot)
 			}))
 		},
 		null,
@@ -179,7 +184,7 @@ export function addSavedLayout(
 			{
 				id,
 				name: savedCreatorLayoutName(input.snapshot),
-				snapshot: cloneCreatorUrlSnapshot(input.snapshot),
+				snapshot: creatorContentFromSnapshot(input.snapshot),
 				createdAt
 			}
 		]
@@ -209,7 +214,7 @@ export function updateSavedLayout(
 	next[index] = {
 		id: existing.id,
 		name: savedCreatorLayoutName(input.snapshot),
-		snapshot: cloneCreatorUrlSnapshot(input.snapshot),
+		snapshot: creatorContentFromSnapshot(input.snapshot),
 		createdAt: existing.createdAt
 	};
 	return next;
@@ -233,10 +238,11 @@ export function resolveCreatorSession(
 }
 
 /** Opening a saved layout starts in Preview. Edit is only for new canvases and explicit edits. */
-export function snapshotForSavedLayoutView(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
-	const next = cloneCreatorUrlSnapshot(snapshot);
-	next.preview = true;
-	return next;
+export function snapshotForSavedLayoutView(snapshot: CreatorContentSnapshot): CreatorUrlSnapshot {
+	return creatorSnapshotFromContent(snapshot, {
+		preview: true,
+		section: DEFAULT_LAYOUT_DETAIL_SECTION
+	});
 }
 
 export function isSavedLayoutDirty(

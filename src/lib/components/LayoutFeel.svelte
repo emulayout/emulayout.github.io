@@ -84,6 +84,7 @@
 		keyboardBelow?: Snippet;
 		keyboardMappings?: Snippet;
 		showKeyboardMappings?: boolean;
+		onWorkspaceWidthChange?: (width: number | null) => void;
 		/** Smaller prompt, field, and stats for the layout-creator Edit workspace. */
 		compact?: boolean;
 	}
@@ -107,6 +108,7 @@
 		keyboardBelow,
 		keyboardMappings,
 		showKeyboardMappings = false,
+		onWorkspaceWidthChange,
 		compact = false
 	}: Props = $props();
 
@@ -114,6 +116,7 @@
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
 	const wordPool = $derived(sharedLesson.wordPool);
 	const wordPoolStatus = $derived(sharedLesson.wordPoolStatus);
+	const showFeelLesson = $derived(Boolean(customPracticeText) || wordPoolStatus === 'ready');
 	const sourceLessonWords = $derived(sharedLesson.sourceWords);
 
 	let lessonPlans = $state<FeelWordPlan[]>([]);
@@ -340,6 +343,7 @@
 		sharedLesson.prepareForTabChange({
 			customText: customPracticeText,
 			customWords: customPracticeText ? typingPracticeWordsFromText(customPracticeText) : [],
+			source: untrack(() => currentLessonSource(customPracticeText)),
 			selectAdditionalWords: selectAdditionalLessonWords
 		});
 	});
@@ -545,146 +549,153 @@
 </script>
 
 <div class="layout-feel" class:layout-feel--compact={compact}>
-	{#if wordPoolStatus === 'loading' && !customPracticeText && !keyboard}
-		<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
-	{:else if wordPoolStatus === 'error' && !keyboard}
-		<p class="typing-practice-load-status" role="alert">Unable to load layout feel words.</p>
+	{#if !showFeelLesson}
+		<div class="typing-practice-load-state">
+			{#if wordPoolStatus === 'error'}
+				<p class="typing-practice-load-status" role="alert">Unable to load layout feel words.</p>
+				{#if onPracticeLessonChange}
+					<button
+						type="button"
+						class="typing-practice-load-action"
+						onclick={() => (lessonModalOpen = true)}>Use custom text</button
+					>
+				{/if}
+			{:else}
+				<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
+			{/if}
+		</div>
 	{:else}
-		{#if wordPoolStatus === 'loading' && !customPracticeText}
-			<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
-		{:else if wordPoolStatus === 'error'}
-			<p class="typing-practice-load-status" role="alert">Unable to load layout feel words.</p>
-		{:else}
-			<div class="layout-feel-prompt-stack">
-				{#if showSourceWordsRow}
-					<div class="layout-feel-source-words" aria-label="Original words">
-						{#if activeSourceWord}
-							<span data-source-word={activeSourceWord} data-source-word-role="active">
-								{#each Array.from(activeSourceWord) as character, characterIndex (characterIndex)}
+		<div class="layout-feel-prompt-stack">
+			{#if showSourceWordsRow}
+				<div class="layout-feel-source-words" aria-label="Original words">
+					{#if activeSourceWord}
+						<span data-source-word={activeSourceWord} data-source-word-role="active">
+							{#each Array.from(activeSourceWord) as character, characterIndex (characterIndex)}
+								<span
+									class:layout-feel-source-character--revealed={characterIndex <
+										sourceCorrectCharacterCount}>{character}</span
+								>
+							{/each}
+						</span>
+						{#if nextSourceWord}
+							<span data-source-word={nextSourceWord} data-source-word-role="next"
+								>{nextSourceWord}</span
+							>
+						{/if}
+					{:else}
+						<span class="layout-feel-source-words__spacer" aria-hidden="true">&nbsp;</span>
+					{/if}
+				</div>
+			{/if}
+			<div class="typing-practice-prompt-row">
+				<div class="typing-practice-copy" aria-label="Layout feel words">
+					{#if prompt.length > 0}
+						{#each prompt as word (word.id)}
+							<span
+								data-practice-word={word.word}
+								data-current-word={word.current ? 'true' : undefined}
+							>
+								{#each word.characters as character, characterIndex (characterIndex)}
 									<span
-										class:layout-feel-source-character--revealed={characterIndex <
-											sourceCorrectCharacterCount}>{character}</span
+										class:typing-practice-character--correct={character.status === 'correct'}
+										class:typing-practice-character--incorrect={character.status === 'incorrect'}
+										class:layout-feel-character--incorrect-flash={word.current &&
+											incorrectFlashIndex === characterIndex}
+										class:typing-practice-character--magic-group={magicGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
+										data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
+										data-character-status={character.status}>{character.character}</span
 									>
 								{/each}
 							</span>
-							{#if nextSourceWord}
-								<span data-source-word={nextSourceWord} data-source-word-role="next"
-									>{nextSourceWord}</span
-								>
-							{/if}
-						{:else}
-							<span class="layout-feel-source-words__spacer" aria-hidden="true">&nbsp;</span>
-						{/if}
-					</div>
-				{/if}
-				<div class="typing-practice-prompt-row">
-					<div class="typing-practice-copy" aria-label="Layout feel words">
-						{#if prompt.length > 0}
-							{#each prompt as word (word.id)}
-								<span
-									data-practice-word={word.word}
-									data-current-word={word.current ? 'true' : undefined}
-								>
-									{#each word.characters as character, characterIndex (characterIndex)}
-										<span
-											class:typing-practice-character--correct={character.status === 'correct'}
-											class:typing-practice-character--incorrect={character.status === 'incorrect'}
-											class:layout-feel-character--incorrect-flash={word.current &&
-												incorrectFlashIndex === characterIndex}
-											class:typing-practice-character--magic-group={magicGroupIndexes
-												.get(word.id)
-												?.has(characterIndex)}
-											class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
-												.get(word.id)
-												?.has(characterIndex)}
-											data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
-												? 'true'
-												: undefined}
-											data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
-												? 'true'
-												: undefined}
-											data-character-status={character.status}>{character.character}</span
-										>
-									{/each}
-								</span>
-							{/each}
-						{:else}
-							<span>Press esc to restart</span>
-						{/if}
-					</div>
-					{#if onPracticeLessonChange}
-						<button
-							type="button"
-							class="typing-practice-lesson-action"
-							aria-label="Layout feel lesson settings"
-							title="Layout feel lesson settings"
-							onclick={() => (lessonModalOpen = true)}
+						{/each}
+					{:else}
+						<span>Press esc to restart</span>
+					{/if}
+				</div>
+				{#if onPracticeLessonChange}
+					<button
+						type="button"
+						class="typing-practice-lesson-action"
+						aria-label="Layout feel lesson settings"
+						title="Layout feel lesson settings"
+						onclick={() => (lessonModalOpen = true)}
+					>
+						<svg
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
 						>
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-							>
-								<circle cx="12" cy="12" r="3" />
-								<path
-									d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-								/>
-							</svg>
-						</button>
-					{/if}
-				</div>
+							<circle cx="12" cy="12" r="3" />
+							<path
+								d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+							/>
+						</svg>
+					</button>
+				{/if}
 			</div>
+		</div>
 
-			<div class="typing-practice-input">
-				<LayoutTestArea
-					keyMaps={practiceKeyMaps}
-					variant="practice"
-					{compact}
-					placeholder=""
-					ariaLabel="Layout feel input"
-					focusOnMount
-					invalid={inputHasError}
-					value={session.input}
-					onValueChange={handleValueChange}
-					resolveInput={resolveFeelInput}
-					onResolvedInput={handleResolvedInput}
-					onEscape={restartPractice}
-				/>
-				<div class="typing-practice-status" aria-label="Layout feel status">
-					<span
-						class="typing-practice-status__count"
-						aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
-						>{session.completedWordCount}/{session.totalWordCount}</span
-					>
-					{#if !customPracticeText}
-						<span class="typing-practice-status__credit">
-							Word bank source:<br />
-							<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
-								monkeytype <span aria-hidden="true">↗</span>
-							</a>
-							(english_1k)
-						</span>
-					{/if}
-					<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
-						>{elapsedTime}</span
-					>
-				</div>
-				<div
-					class="typing-practice-results"
-					class:typing-practice-results--hidden={!practiceComplete}
-					aria-label={practiceComplete ? 'Layout feel results' : undefined}
-					aria-hidden={!practiceComplete}
+		<div class="typing-practice-input">
+			<LayoutTestArea
+				keyMaps={practiceKeyMaps}
+				variant="practice"
+				{compact}
+				placeholder=""
+				ariaLabel="Layout feel input"
+				focusOnMount
+				invalid={inputHasError}
+				value={session.input}
+				onValueChange={handleValueChange}
+				resolveInput={resolveFeelInput}
+				onResolvedInput={handleResolvedInput}
+				onEscape={restartPractice}
+			/>
+			<div class="typing-practice-status" aria-label="Layout feel status">
+				<span
+					class="typing-practice-status__count"
+					aria-label={`${session.completedWordCount} of ${session.totalWordCount} words complete`}
+					>{session.completedWordCount}/{session.totalWordCount}</span
 				>
-					<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
-					<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
-				</div>
+				{#if !customPracticeText}
+					<span class="typing-practice-status__credit">
+						Word bank source:<br />
+						<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
+							monkeytype <span aria-hidden="true">↗</span>
+						</a>
+						(english_1k)
+					</span>
+				{/if}
+				<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
+					>{elapsedTime}</span
+				>
 			</div>
-		{/if}
+			<div
+				class="typing-practice-results"
+				class:typing-practice-results--hidden={!practiceComplete}
+				aria-label={practiceComplete ? 'Layout feel results' : undefined}
+				aria-hidden={!practiceComplete}
+			>
+				<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
+				<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
+			</div>
+		</div>
+	{/if}
 
+	{#if showFeelLesson || keyboard}
 		<LayoutKeyboardWorkspace
 			{layout}
 			{rows}
@@ -703,6 +714,7 @@
 			aside={keyboardAside}
 			belowKeyboard={keyboardBelow}
 			mappings={keyboardMappings}
+			onWidthChange={onWorkspaceWidthChange}
 		>
 			{#snippet header()}
 				<div class="layout-feel-header-lead">
@@ -828,6 +840,27 @@
 	.typing-practice-simulate-thumbs-option :global(.toggle-switch) {
 		width: auto;
 		flex: 0 1 auto;
+	}
+
+	.typing-practice-load-state {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.typing-practice-load-action {
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		padding: 0.45rem 0.7rem;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.typing-practice-load-action:hover {
+		border-color: var(--accent);
 	}
 
 	.typing-practice-load-status {

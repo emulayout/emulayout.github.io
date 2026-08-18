@@ -54,6 +54,8 @@
 		aside?: Snippet;
 		/** Replaces the read-only mappings panel when provided. */
 		mappings?: Snippet;
+		/** Reports the rendered workspace width to an owning layout. */
+		onWidthChange?: (width: number | null) => void;
 	}
 
 	const {
@@ -77,8 +79,39 @@
 		keyboardWidthTerms: keyboardWidthTermsOverride,
 		belowKeyboard,
 		aside,
-		mappings
+		mappings,
+		onWidthChange
 	}: Props = $props();
+
+	let workspaceElement: HTMLDivElement | undefined = $state();
+
+	$effect(() => {
+		const element = workspaceElement;
+		const notify = onWidthChange;
+		if (!element || !notify) return;
+
+		const reportWidth = () => {
+			const width = element.getBoundingClientRect().width;
+			notify(width > 0 ? width : null);
+		};
+		let reportFrame: number | null = null;
+		const scheduleReport = () => {
+			if (reportFrame !== null) return;
+			reportFrame = window.requestAnimationFrame(() => {
+				reportFrame = null;
+				reportWidth();
+			});
+		};
+		const observer = new ResizeObserver(scheduleReport);
+		observer.observe(element);
+		reportWidth();
+
+		return () => {
+			if (reportFrame !== null) window.cancelAnimationFrame(reportFrame);
+			observer.disconnect();
+			notify(null);
+		};
+	});
 
 	const previewDisplayRows = $derived(fillPreviewKeyboardRows(rows));
 
@@ -149,6 +182,7 @@
 <div class="layout-keyboard-workspace-region">
 	<div class="layout-keyboard-workspace-main">
 		<div
+			bind:this={workspaceElement}
 			class="layout-keyboard-workspace"
 			class:layout-keyboard-workspace--with-aside={asideVisible}
 			class:layout-keyboard-workspace--with-mappings={mappingsVisible}

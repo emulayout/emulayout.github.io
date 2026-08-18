@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick, untrack, type Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
@@ -357,52 +357,11 @@
 		});
 	});
 
-	let detailMainEl: HTMLDivElement | undefined = $state();
 	let editWorkspaceWidthPx = $state<number | null>(null);
 
-	$effect(() => {
-		void resolvedSection;
-		void showKeyboardMappings;
-		const main = detailMainEl;
-		if (!hideSummary || !main) {
-			editWorkspaceWidthPx = null;
-			return;
-		}
-
-		let workspace: HTMLElement | null = null;
-		const resizeObserver = new ResizeObserver(() => {
-			if (!workspace) return;
-			const width = workspace.getBoundingClientRect().width;
-			editWorkspaceWidthPx = width > 0 ? width : null;
-		});
-
-		const attach = () => {
-			const next = main.querySelector<HTMLElement>('.layout-keyboard-workspace');
-			if (next === workspace) return;
-			resizeObserver.disconnect();
-			workspace = next;
-			if (!workspace) {
-				editWorkspaceWidthPx = null;
-				return;
-			}
-			resizeObserver.observe(workspace);
-			const width = workspace.getBoundingClientRect().width;
-			editWorkspaceWidthPx = width > 0 ? width : null;
-		};
-
-		let disposed = false;
-		void tick().then(() => {
-			if (!disposed) attach();
-		});
-		const mutationObserver = new MutationObserver(attach);
-		mutationObserver.observe(main, { childList: true, subtree: true });
-
-		return () => {
-			disposed = true;
-			resizeObserver.disconnect();
-			mutationObserver.disconnect();
-		};
-	});
+	function handleWorkspaceWidthChange(width: number | null) {
+		editWorkspaceWidthPx = hideSummary ? width : null;
+	}
 </script>
 
 {#snippet analyzerToggle(analyzer: StatsAnalyzer, label: string, checked: boolean, accent: string)}
@@ -564,7 +523,6 @@
 
 			<div
 				class="detail-main"
-				bind:this={detailMainEl}
 				style={hideSummary && editWorkspaceWidthPx
 					? `--edit-workspace-width: ${editWorkspaceWidthPx}px`
 					: undefined}
@@ -622,6 +580,7 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
+							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
 							compact={compactPractice}
 						/>
 					</div>
@@ -662,6 +621,7 @@
 							aside={keyboardAside}
 							belowKeyboard={keyboardBelow}
 							mappings={keyboardMappings}
+							onWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
 						/>
 					</div>
 				{:else if resolvedSection === 'feel'}
@@ -690,6 +650,7 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
+							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
 							compact={compactPractice}
 						/>
 					</div>
@@ -1108,6 +1069,7 @@
 	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-surface),
 	.layout-detail-page--workspace-only .detail-panel-content :global(.layout-feel-prompt-stack),
 	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-input),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-state),
 	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-status) {
 		box-sizing: border-box;
 		width: var(--edit-workspace-width, 100%);

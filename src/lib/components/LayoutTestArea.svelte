@@ -123,7 +123,11 @@
 	$effect(() => {
 		if (!focusOnMount || !inputElement) return;
 		const element = inputElement;
-		const frame = window.requestAnimationFrame(() => element.focus({ preventScroll: true }));
+		const activeElement = document.activeElement;
+		const frame = window.requestAnimationFrame(() => {
+			if (document.activeElement !== activeElement) return;
+			element.focus({ preventScroll: true });
+		});
 		return () => window.cancelAnimationFrame(frame);
 	});
 

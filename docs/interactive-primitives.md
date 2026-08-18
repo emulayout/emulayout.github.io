@@ -73,7 +73,8 @@ delete pattern: a pointer X and Delete/Backspace open a confirmation modal. When
 exist, a `+ New layout` button sits outside the tablist on the far side of that bar. Those tabs
 reveal the creator canvas rather than detail sections. Inside that canvas, Edit and Preview reuse
 the layout-detail section tabs (Typing practice, Layout test area, Layout feel) without a Stats
-tab or `tab` query. See [`layout-creator.md`](./layout-creator.md).
+tab. Their selection uses the same shareable `tab` query as layout detail pages. See
+[`layout-creator.md`](./layout-creator.md).
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
@@ -112,8 +113,8 @@ content below the field or changing the consumer's layout.
 `AuthorAutocomplete` uses that same combobox, chevron, clear, and loading pattern over catalog
 author names. Typing or choosing a listed name commits it, and a name that is not in the catalog
 stays as freeform text on blur and Enter. Escape restores the value from when the field was
-focused. The layout creator Preview turns a catalog match into a Discover link filtered to that
-author.
+focused. The layout creator Preview presents the author as plain text, including when it matches a
+catalog author.
 
 ## Invariants
 

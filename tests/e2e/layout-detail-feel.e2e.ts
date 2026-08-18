@@ -90,9 +90,9 @@ test('keeps leftover custom-lesson words and clears input when switching tabs', 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
 	await expect(practicePanel.locator('[data-practice-word]')).toHaveText(['hello', 'world']);
-	await practiceInput.press('h');
-	await practiceInput.press('e');
-	await practiceInput.press('l');
+	await practiceInput.press('m');
+	await practiceInput.press('k');
+	await practiceInput.press('u');
 	await expect(practiceInput).toHaveValue('hel');
 
 	await page.getByRole('tab', { name: 'Layout feel' }).click();

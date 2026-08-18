@@ -71,7 +71,9 @@
 		cloneCreatorUrlSnapshot,
 		createDefaultCreatorUrlSnapshot,
 		creatorSearchFromSnapshot,
+		creatorSnapshotFromContent,
 		creatorUrlSnapshotsEqual,
+		type CreatorContentSnapshot,
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
 	import {
@@ -89,6 +91,8 @@
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
+	const MAGIC_MAPPINGS_PANEL_ID = 'layout-creator-magic-mappings';
+	const ADAPTIVE_MAPPINGS_PANEL_ID = 'layout-creator-adaptive-mappings';
 	const CREATOR_PATH = resolve('/create');
 	const CREATOR_URL_DEBOUNCE_MS = 300;
 	const initialLayouts = loadSavedLayouts();
@@ -307,7 +311,7 @@
 	function writeCreatorHistory(
 		snapshot: CreatorUrlSnapshot,
 		savedId: string | null,
-		savedSnapshot: CreatorUrlSnapshot | null
+		savedSnapshot: CreatorContentSnapshot | null
 	) {
 		if (typeof window === 'undefined') return;
 		if (page.url.pathname !== CREATOR_PATH) return;
@@ -484,7 +488,7 @@
 	function saveCurrentLayout() {
 		saveError = null;
 		const snapshot = currentCreatorSnapshot();
-		const input = { name: savedCreatorLayoutName(snapshot), snapshot };
+		const input = { snapshot };
 		const layouts = savedLayoutsForWrite();
 		if (activeSavedId) {
 			const next = updateSavedLayout(layouts, activeSavedId, input);
@@ -502,7 +506,6 @@
 		saveError = null;
 		const snapshot = currentCreatorSnapshot();
 		const result = addSavedLayout(savedLayoutsForWrite(), {
-			name: savedCreatorLayoutName(snapshot),
 			snapshot
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
@@ -516,7 +519,6 @@
 		snapshot.name = nextDuplicatedLayoutName(savedCreatorLayoutName(snapshot));
 		snapshot.preview = false;
 		const result = addSavedLayout(savedLayoutsForWrite(), {
-			name: snapshot.name,
 			snapshot
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
@@ -528,9 +530,10 @@
 	function undoSavedLayoutChanges() {
 		const saved = findSavedLayout(savedLayouts, activeSavedId);
 		if (!saved) return;
-		const next = cloneCreatorUrlSnapshot(saved.snapshot);
-		next.preview = layoutPreview;
-		next.section = parseCreatorDetailSection(activeSection);
+		const next = creatorSnapshotFromContent(saved.snapshot, {
+			preview: layoutPreview,
+			section: parseCreatorDetailSection(activeSection)
+		});
 		applyCreatorSnapshot(next);
 		saveMenuOpen = false;
 		flushCreatorUrl();
@@ -757,7 +760,8 @@
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--magic={magicIconActive}
 					class:layout-creator-special-key--magic-data={magicIconHasData}
-					aria-pressed={magicPanelOpen}
+					aria-expanded={magicPanelOpen}
+					aria-controls={MAGIC_MAPPINGS_PANEL_ID}
 					aria-label={magicPanelOpen
 						? 'Hide magic mappings'
 						: includeMagicKey
@@ -775,7 +779,8 @@
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--adaptive={adaptiveIconActive}
 					class:layout-creator-special-key--adaptive-data={adaptiveIconHasData}
-					aria-pressed={adaptivePanelOpen}
+					aria-expanded={adaptivePanelOpen}
+					aria-controls={ADAPTIVE_MAPPINGS_PANEL_ID}
 					aria-label={adaptivePanelOpen
 						? 'Hide adaptive mappings'
 						: includeAdaptiveKey
@@ -793,22 +798,26 @@
 
 		{#snippet creatorMappings()}
 			{#if magicPanelOpen}
-				<CreatorMagicMappingsPanel
-					draft={magicDraft}
-					availableKeys={availableLayoutKeys}
-					{disabledMappingIds}
-					onDraftChange={setMagicDraft}
-					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-				/>
+				<div id={MAGIC_MAPPINGS_PANEL_ID}>
+					<CreatorMagicMappingsPanel
+						draft={magicDraft}
+						availableKeys={availableLayoutKeys}
+						{disabledMappingIds}
+						onDraftChange={setMagicDraft}
+						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+					/>
+				</div>
 			{/if}
 			{#if adaptivePanelOpen}
-				<CreatorAdaptiveMappingsPanel
-					draft={adaptiveDraft}
-					availableKeys={availableLayoutKeys}
-					{disabledMappingIds}
-					onDraftChange={setAdaptiveDraft}
-					onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-				/>
+				<div id={ADAPTIVE_MAPPINGS_PANEL_ID}>
+					<CreatorAdaptiveMappingsPanel
+						draft={adaptiveDraft}
+						availableKeys={availableLayoutKeys}
+						{disabledMappingIds}
+						onDraftChange={setAdaptiveDraft}
+						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+					/>
+				</div>
 			{/if}
 		{/snippet}
 
@@ -867,7 +876,6 @@
 					type="button"
 					class="filter-reset-button layout-creator-action-button"
 					class:layout-creator-action-button--preview={layoutPreview}
-					aria-pressed={layoutPreview}
 					onclick={toggleLayoutPreview}
 				>
 					{#if layoutPreview}

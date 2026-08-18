@@ -90,6 +90,7 @@
 		keyboardMappings?: Snippet;
 		/** Show `keyboardMappings` even before a compiled profile exists. */
 		showKeyboardMappings?: boolean;
+		onWorkspaceWidthChange?: (width: number | null) => void;
 		/** Smaller prompt, field, and stats for the layout-creator Edit workspace. */
 		compact?: boolean;
 	}
@@ -114,6 +115,7 @@
 		keyboardBelow,
 		keyboardMappings,
 		showKeyboardMappings = false,
+		onWorkspaceWidthChange,
 		compact = false
 	}: Props = $props();
 
@@ -304,6 +306,7 @@
 		sharedLesson.prepareForTabChange({
 			customText: customPracticeText,
 			customWords: customPracticeText ? typingPracticeWordsFromText(customPracticeText) : [],
+			source: untrack(() => currentLessonSource(customPracticeText)),
 			selectAdditionalWords: selectAdditionalLessonWords
 		});
 	});
@@ -427,10 +430,21 @@
 </script>
 
 <div class="typing-practice" class:typing-practice--compact={compact}>
-	{#if !showPracticeWorkspace && wordPoolStatus === 'error'}
-		<p class="typing-practice-load-status" role="alert">Unable to load practice words.</p>
-	{:else if !showPracticeWorkspace}
-		<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
+	{#if !showPracticeWorkspace}
+		<div class="typing-practice-load-state">
+			{#if wordPoolStatus === 'error'}
+				<p class="typing-practice-load-status" role="alert">Unable to load practice words.</p>
+				{#if onPracticeLessonChange}
+					<button
+						type="button"
+						class="typing-practice-load-action"
+						onclick={() => (lessonModalOpen = true)}>Use custom text</button
+					>
+				{/if}
+			{:else}
+				<p class="typing-practice-load-status" aria-live="polite">Loading...</p>
+			{/if}
+		</div>
 	{:else}
 		<div class="typing-practice-surface">
 			<div class="typing-practice-prompt-row">
@@ -540,7 +554,9 @@
 				</div>
 			</div>
 		</div>
+	{/if}
 
+	{#if showPracticeWorkspace || keyboard}
 		<LayoutKeyboardWorkspace
 			{layout}
 			{rows}
@@ -559,6 +575,7 @@
 			aside={keyboardAside}
 			belowKeyboard={keyboardBelow}
 			mappings={keyboardMappings}
+			onWidthChange={onWorkspaceWidthChange}
 		>
 			{#snippet header()}
 				<div class="typing-practice-header-lead">
@@ -664,6 +681,27 @@
 	.typing-practice-surface {
 		min-width: 0;
 		width: 100%;
+	}
+
+	.typing-practice-load-state {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	.typing-practice-load-action {
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		padding: 0.45rem 0.7rem;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.typing-practice-load-action:hover {
+		border-color: var(--accent);
 	}
 
 	.typing-practice-header-lead {
