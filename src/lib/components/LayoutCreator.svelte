@@ -11,6 +11,7 @@
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
 	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
+	import LayoutBackupsMenu from '$lib/components/LayoutBackupsMenu.svelte';
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
@@ -68,6 +69,7 @@
 		updateSavedLayout,
 		type SavedCreatorLayout
 	} from '$lib/layoutCreatorStorage';
+	import { mergeSavedLayoutsBackup, type SavedLayoutsImportMode } from '$lib/savedLayoutsBackup';
 	import {
 		cloneCreatorUrlSnapshot,
 		createDefaultCreatorUrlSnapshot,
@@ -300,6 +302,42 @@
 
 	function savedLayoutsForWrite(): SavedCreatorLayout[] {
 		return mergeSavedLayouts(savedLayouts, loadSavedLayouts());
+	}
+
+	function importSavedLayoutBackup(
+		importedLayouts: SavedCreatorLayout[],
+		mode: SavedLayoutsImportMode
+	): boolean {
+		const currentSnapshot = currentCreatorSnapshot();
+		const previousSaved = findSavedLayout(savedLayouts, activeSavedId);
+		const preserveDraft = isSavedLayoutDirty(currentSnapshot, previousSaved);
+		const merged = mergeSavedLayoutsBackup(savedLayoutsForWrite(), importedLayouts, mode);
+		if (!persistSavedLayouts(merged.layouts)) {
+			saveError = 'Unable to import layouts in this browser. Your current draft is unchanged.';
+			return false;
+		}
+
+		savedLayouts = merged.layouts;
+		saveError = null;
+		if (!activeSavedId) {
+			flushCreatorUrl();
+			return true;
+		}
+
+		const active = findSavedLayout(merged.layouts, activeSavedId);
+		if (!active) {
+			activeSavedId = null;
+			if (!preserveDraft) applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		} else if (!preserveDraft && merged.importedIds.has(activeSavedId)) {
+			applyCreatorSnapshot(
+				creatorSnapshotFromContent(active.snapshot, {
+					preview: layoutPreview,
+					section: parseCreatorDetailSection(activeSection)
+				})
+			);
+		}
+		flushCreatorUrl();
+		return true;
 	}
 
 	function handleSavedLayoutsStorage(event: StorageEvent) {
@@ -739,6 +777,7 @@
 				+ New layout
 			</button>
 		{/if}
+		<LayoutBackupsMenu layouts={savedLayouts} onImport={importSavedLayoutBackup} />
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>

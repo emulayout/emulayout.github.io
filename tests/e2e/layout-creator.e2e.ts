@@ -5,6 +5,12 @@ function savedLayoutTab(creations: Locator, name: string): Locator {
 	return creations.getByRole('tab', { name: `${name}. Press Delete to delete this layout.` });
 }
 
+function backupLayout(id: string, name: string, author = '') {
+	const query = new URLSearchParams({ name });
+	if (author) query.set('author', author);
+	return { id, name, createdAt: 100, query: query.toString() };
+}
+
 test('opens the layout creator from the app bar with practice and keyboard chrome', async ({
 	page
 }) => {
@@ -28,6 +34,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(newLayoutTab).toHaveAttribute('aria-selected', 'true');
 	await expect(newLayoutTab).toHaveAttribute('aria-controls', 'layout-creator-panel');
 	await expect(page.getByRole('button', { name: '+ New layout' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Layout backup settings' })).toBeVisible();
 
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(panel).toBeVisible();
@@ -389,6 +396,79 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await expect(newPanel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Save layout' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Undo changes' })).toHaveCount(0);
+});
+
+test('selectively exports layouts and preserves a dirty draft while restoring a backup', async ({
+	page
+}) => {
+	await page.goto('/create?edit=1');
+	const creations = page.getByRole('tablist', { name: 'Layout creations' });
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await page.getByRole('button', { name: 'Save layout' }).click();
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Beta');
+	await page.getByRole('button', { name: 'More save options' }).click();
+	await page.getByRole('menuitem', { name: 'Save as new layout' }).click();
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Beta draft');
+
+	const newLayoutButton = page.getByRole('button', { name: '+ New layout' });
+	const backupButton = page.getByRole('button', { name: 'Layout backup settings' });
+	const newLayoutBox = await newLayoutButton.boundingBox();
+	const backupBox = await backupButton.boundingBox();
+	expect(newLayoutBox).not.toBeNull();
+	expect(backupBox).not.toBeNull();
+	expect(backupBox!.x).toBeGreaterThan(newLayoutBox!.x);
+
+	await backupButton.click();
+	const dialog = page.getByRole('dialog', { name: 'Layout backups' });
+	const exportPanel = dialog.getByRole('tabpanel', { name: 'Export layouts' });
+	await expect(exportPanel.getByRole('checkbox', { name: 'Alpha' })).toBeChecked();
+	await expect(exportPanel.getByRole('checkbox', { name: 'Beta' })).toBeChecked();
+	await exportPanel.getByRole('checkbox', { name: 'Beta' }).uncheck();
+	const exported = JSON.parse(await exportPanel.getByLabel('Backup JSON').inputValue()) as {
+		layouts: { name: string; query: string }[];
+	};
+	expect(exported.layouts.map((layout) => layout.name)).toEqual(['Alpha']);
+	expect(exported.layouts[0].query).not.toContain('edit=');
+	const downloadStarted = page.waitForEvent('download');
+	await exportPanel.getByRole('button', { name: 'Download file' }).click();
+	const download = await downloadStarted;
+	expect(download.suggestedFilename()).toMatch(/^emulayout-layouts-\d{4}-\d{2}-\d{2}\.json$/);
+
+	await dialog.getByRole('tab', { name: 'Import layouts' }).click();
+	const importPanel = dialog.getByRole('tabpanel', { name: 'Import layouts' });
+	const incomingBackup = {
+		version: 1,
+		layouts: [backupLayout('restored', 'Restored layout', 'Backup author')]
+	};
+	await importPanel.getByLabel('Backup JSON').fill(JSON.stringify(incomingBackup));
+	await importPanel.getByRole('button', { name: 'Review pasted layouts' }).click();
+	await importPanel.getByRole('radio', { name: /Replace all layouts/ }).check();
+	await importPanel.getByRole('button', { name: 'Import layout' }).click();
+	await expect(dialog.getByRole('status')).toContainText(
+		'1 layout imported, replacing the previous collection.'
+	);
+	await dialog.getByRole('button', { name: 'Close' }).click();
+
+	await expect(creations.getByRole('tab', { name: 'Beta draft', exact: true })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Beta draft');
+	await expect(savedLayoutTab(creations, 'Restored layout')).toBeVisible();
+	await expect(savedLayoutTab(creations, 'Alpha')).toHaveCount(0);
+	await expect(savedLayoutTab(creations, 'Beta')).toHaveCount(0);
+	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
+	await expect(page).toHaveURL(/name=Beta(?:\+|%20)draft/);
+
+	await savedLayoutTab(creations, 'Restored layout').click();
+	await page
+		.getByRole('dialog', { name: 'Discard changes?' })
+		.getByRole('button', { name: 'Discard changes' })
+		.click();
+	const restoredPanel = page.getByRole('tabpanel', { name: 'Restored layout' });
+	await expect(restoredPanel.getByText('Backup author', { exact: true })).toBeVisible();
 });
 
 test('undoes dirty edits on a saved layout', async ({ page }) => {

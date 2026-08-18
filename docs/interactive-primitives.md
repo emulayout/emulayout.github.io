@@ -59,6 +59,9 @@ The Settings modal uses `Tabs` to switch among its Display settings, Import view
 panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
 consistent as the panel content changes. A successful view import resets the import form, restores
 focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
+The layout creator backup gear opens a smaller modal built from the same shared import/export panels
+and selection list. Its tabs are Export layouts and Import layouts; it opens on Export, restores
+focus to the gear on close, and uses the same post-import focus and snackbar behavior.
 
 The layout detail page uses `Tabs` for its Typing practice, Layout test area, Layout feel, and Stats
 panels. Its canonical `tab` query parameter owns the selected value across direct links, reloads,

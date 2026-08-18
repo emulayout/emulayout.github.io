@@ -22,7 +22,9 @@ drafts in the browser.
   saved tab. Switching tabs loads that layout's snapshot into the editor. When at least one saved
   layout exists, a `+ New layout` button sits on the far side of the tab bar and starts a blank
   unsaved canvas in Edit (`/create?edit=1`) without leaving `/create`. It is hidden while there are
-  no saved layouts, because the unsaved canvas tab is already showing. Saved tabs include the same pointer X as index view tabs;
+  no saved layouts, because the unsaved canvas tab is already showing. A gear button follows it
+  (and remains available when no layouts are saved) to open layout backup settings. Saved tabs
+  include the same pointer X as index view tabs;
   Delete or Backspace on a focused saved tab opens the same style of confirmation. Deleting a
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
@@ -161,6 +163,15 @@ drafts in the browser.
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
+- **Layout backup settings** mirrors the custom-view backup UI. It opens on **Export layouts**,
+  where any subset of saved layouts can be copied as versioned JSON or downloaded as
+  `emulayout-layouts-YYYY-MM-DD.json`. **Import layouts** accepts pasted JSON or a `.json` file,
+  validates each entry, allows selecting a subset, and can either add to the local collection or
+  replace it. Add mode refreshes case-insensitive name or id matches while retaining the matching
+  local id so existing creator URLs stay valid. Invalid entries are skipped and reported. Replacing
+  a collection never discards the live canvas: a dirty active saved layout becomes an unsaved URL
+  draft if its stored entry is removed, while a clean removed layout returns to the default canvas.
+  Failed persistence leaves both the current draft and stored collection unchanged.
 
 ## Deferred work
 
@@ -173,6 +184,7 @@ drafts in the browser.
 - Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
   (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
+- Saved-layout backup parsing and merge rules: `src/lib/savedLayoutsBackup.ts`
 - Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
@@ -184,6 +196,9 @@ drafts in the browser.
 - Saved-layout delete and dirty-navigation confirmations:
   `src/lib/components/DeleteSavedLayoutModal.svelte`,
   `src/lib/components/DiscardCreatorChangesModal.svelte`
+- Layout backup gear and modal: `src/lib/components/LayoutBackupsMenu.svelte`; shared custom-view
+  and layout backup panels: `src/lib/components/BackupImportPanel.svelte`,
+  `src/lib/components/BackupExportPanel.svelte`
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
   `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`
@@ -208,7 +223,8 @@ drafts in the browser.
 - Discover and Create are links, not modals, and stay available from every route.
 - Creator tabs use the shared `Tabs` primitive with automatic Arrow/Home/End activation and a
   labelled tab/tabpanel pair. `+ New layout` is a button beside the tablist, not a tab, and only
-  appears when a saved layout exists.
+  appears when a saved layout exists. Layout backup settings is an adjacent dialog button and stays
+  available with an empty collection so a backup can be restored on a fresh browser.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, author names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Create and `+ New layout` open Edit
