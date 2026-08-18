@@ -36,6 +36,7 @@
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
+		readOnlyMappings?: boolean;
 		showMappings?: boolean;
 		optionsLabel?: string;
 		header?: Snippet;
@@ -69,6 +70,7 @@
 		inputProfile,
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
+		readOnlyMappings = false,
 		showMappings = false,
 		optionsLabel = 'Keyboard options',
 		header,
@@ -249,6 +251,7 @@
 							profile={inputProfile}
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
+							readOnly={readOnlyMappings}
 						/>
 					{/if}
 				</div>

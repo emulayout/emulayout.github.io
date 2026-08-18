@@ -424,6 +424,88 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	);
 });
 
+test('shares a complete creator layout as a reviewed local-save offer', async ({ page }) => {
+	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+	await page.goto('/create?edit=1');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Portable layout');
+	const portablePanel = page.getByRole('tabpanel', { name: 'Portable layout' });
+	await portablePanel.getByRole('combobox', { name: 'Author name' }).fill('Layout author');
+	await portablePanel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('z');
+	await portablePanel.getByRole('textbox', { name: 'Row 1, key 2', exact: true }).fill('*');
+	await portablePanel.getByRole('textbox', { name: 'Preceding' }).first().fill('c');
+	await portablePanel.getByRole('textbox', { name: 'Emit' }).first().fill('k');
+	await portablePanel.getByRole('button', { name: 'Add adaptive' }).click();
+	await portablePanel.getByRole('textbox', { name: 'Trigger', exact: true }).first().fill('l');
+	await portablePanel.getByRole('textbox', { name: 'Left' }).first().fill('y');
+	await portablePanel.getByRole('textbox', { name: 'Right' }).first().fill('j');
+
+	const shareButton = portablePanel.getByRole('button', { name: 'Share' });
+	const previewButton = portablePanel.getByRole('button', { name: 'Preview' });
+	const shareBox = await shareButton.boundingBox();
+	const previewBox = await previewButton.boundingBox();
+	expect(shareBox).not.toBeNull();
+	expect(previewBox).not.toBeNull();
+	expect(shareBox!.x).toBeLessThan(previewBox!.x);
+
+	await shareButton.click();
+	await expect(portablePanel.getByRole('button', { name: 'Link copied' })).toBeVisible();
+	const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
+	const sharedParams = new URL(sharedUrl).searchParams;
+	expect(sharedParams.get('share')).toBe('1');
+	expect(sharedParams.get('name')).toBe('Portable layout');
+	expect(sharedParams.get('author')).toBe('Layout author');
+	expect(sharedParams.has('keys')).toBe(true);
+	expect(sharedParams.has('magic')).toBe(true);
+	expect(sharedParams.has('adaptive')).toBe(true);
+	expect(sharedParams.has('id')).toBe(false);
+
+	await page.goto(sharedUrl);
+	let dialog = page.getByRole('dialog', { name: 'Shared layout' });
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Portable layout');
+	await expect(dialog.getByText('Layout author', { exact: true })).toBeVisible();
+	await expect(dialog.getByRole('img', { name: 'Portable layout keyboard preview' })).toBeVisible();
+	await expect(dialog.getByRole('region', { name: 'Input mappings' })).toBeVisible();
+	await expect(dialog.getByText('Magic key mappings', { exact: true })).toBeVisible();
+	await expect(dialog.getByText('Adaptive swap mappings', { exact: true })).toBeVisible();
+	await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+	await expect(dialog.locator('.magic-key-mapping').first()).toContainText('c');
+	await expect(dialog.locator('.adaptive-swap-mapping').first()).toContainText('l');
+
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(dialog).toHaveCount(0);
+	await expect(
+		page.getByRole('tablist', { name: 'Layout creations' }).getByRole('tab')
+	).toHaveCount(1);
+
+	await page.goto(sharedUrl);
+	dialog = page.getByRole('dialog', { name: 'Shared layout' });
+	await dialog.getByRole('textbox', { name: 'Layout name' }).fill('Imported layout');
+	await dialog.getByRole('button', { name: 'Save layout' }).click();
+
+	await expect(dialog).toHaveCount(0);
+	await expect(page).toHaveURL(/\/create\?id=/);
+	const importedPanel = page.getByRole('tabpanel', { name: 'Imported layout' });
+	await expect(importedPanel.getByRole('heading', { name: 'Imported layout' })).toBeVisible();
+	await expect(importedPanel.getByText('Layout author', { exact: true })).toBeVisible();
+	await importedPanel.getByRole('button', { name: 'Edit' }).click();
+	await expect(
+		importedPanel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })
+	).toHaveValue('z');
+	await expect(
+		importedPanel.getByRole('textbox', { name: 'Row 1, key 2', exact: true })
+	).toHaveValue('*');
+	await expect(importedPanel.getByRole('textbox', { name: 'Preceding' }).first()).toHaveValue('c');
+	await expect(importedPanel.getByRole('textbox', { name: 'Emit' }).first()).toHaveValue('k');
+	await expect(
+		importedPanel.getByRole('textbox', { name: 'Trigger', exact: true }).first()
+	).toHaveValue('l');
+	await expect(importedPanel.getByRole('textbox', { name: 'Left' }).first()).toHaveValue('y');
+	await expect(importedPanel.getByRole('textbox', { name: 'Right' }).first()).toHaveValue('j');
+});
+
 test('lets the creator set a custom practice lesson', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });

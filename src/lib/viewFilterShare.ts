@@ -1,3 +1,5 @@
+export { copyTextToClipboard } from '$lib/clipboard';
+
 /** Query params for shareable views — never applied by normal filter URL hydrate. */
 export const SHARE_VIEW_NAME_PARAM = 'viewName';
 export const SHARE_VIEW_FILTERS_PARAM = 'viewFilters';
@@ -49,31 +51,5 @@ export function stripShareViewParamsFromUrl(): void {
 		window.history.replaceState(window.history.state, '', next);
 	} catch {
 		// ignore
-	}
-}
-
-export async function copyTextToClipboard(text: string): Promise<boolean> {
-	try {
-		if (navigator.clipboard?.writeText) {
-			await navigator.clipboard.writeText(text);
-			return true;
-		}
-	} catch {
-		// fall through
-	}
-
-	try {
-		const textarea = document.createElement('textarea');
-		textarea.value = text;
-		textarea.setAttribute('readonly', '');
-		textarea.style.position = 'fixed';
-		textarea.style.left = '-9999px';
-		document.body.appendChild(textarea);
-		textarea.select();
-		const ok = document.execCommand('copy');
-		document.body.removeChild(textarea);
-		return ok;
-	} catch {
-		return false;
 	}
 }

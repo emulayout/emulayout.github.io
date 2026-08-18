@@ -110,6 +110,12 @@ closes the modal, and restores focus to the trigger; Cancel, Close, Escape, and 
 make no changes and restore the same focus. Grid parsing stays in `keyboardInputConfig.ts`, not in
 the modal or editor component.
 
+Opening a creator share link uses `ModalShell` and `ModalHeader` for a **Shared layout** review.
+Layout name receives initial focus and is the only editable payload field. The keyboard uses the
+presentation preview, and `InputMappingsPanel`'s read-only mode renders mapping text without
+checkboxes or mutation callbacks. Cancel, Close, Escape, and backdrop dismissal discard the offer;
+Save creates a new browser-local layout and closes the modal.
+
 `TextAutocomplete` owns the shared string combobox, listbox, loading, clear, focus, and keyboard
 behavior. `LayoutAutocomplete` and `AuthorAutocomplete` are domain adapters that supply their
 option data, copy, and selection policy rather than forking that interaction code.

@@ -14,9 +14,15 @@
 		profile: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
+		readOnly?: boolean;
 	}
 
-	const { profile, disabledMappingIds = [], onDisabledMappingIdsChange }: Props = $props();
+	const {
+		profile,
+		disabledMappingIds = [],
+		onDisabledMappingIdsChange,
+		readOnly = false
+	}: Props = $props();
 	const triggerGroups = $derived(Object.entries(profile.magicKeys?.triggers ?? {}));
 	const label = $derived(inputProfileMappingsLabel(profile));
 	const accessibleLabel = $derived(label.charAt(0).toUpperCase() + label.slice(1));
@@ -59,55 +65,88 @@
 	>
 		{#each rules as rule (`${rule.trigger}:${rule.left}:${rule.right}`)}
 			{@const mappingId = adaptiveRuleMappingId(groupId, rule)}
-			<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
-				<input
-					type="checkbox"
-					class="input-mappings-checkbox--adaptive"
-					checked={!disabledIds.has(mappingId)}
-					onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
-				/>
-				<span class="adaptive-swap-mapping">
-					<span class="mapping-trigger">{rule.trigger}</span>
-					<span class="mapping-punctuation" aria-hidden="true">:</span>
-					<span>{rule.left}</span>
-					<span class="mapping-arrow" aria-hidden="true">↔</span>
-					<span>{rule.right}</span>
-				</span>
-			</label>
+			{#if readOnly}
+				<p
+					class="mapping-row mapping-row--readonly"
+					class:mapping-row--disabled={disabledIds.has(mappingId)}
+				>
+					<span class="adaptive-swap-mapping">
+						<span class="mapping-trigger">{rule.trigger}</span>
+						<span class="mapping-punctuation" aria-hidden="true">:</span>
+						<span>{rule.left}</span>
+						<span class="mapping-arrow" aria-hidden="true">↔</span>
+						<span>{rule.right}</span>
+					</span>
+				</p>
+			{:else}
+				<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
+					<input
+						type="checkbox"
+						class="input-mappings-checkbox--adaptive"
+						checked={!disabledIds.has(mappingId)}
+						onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
+					/>
+					<span class="adaptive-swap-mapping">
+						<span class="mapping-trigger">{rule.trigger}</span>
+						<span class="mapping-punctuation" aria-hidden="true">:</span>
+						<span>{rule.left}</span>
+						<span class="mapping-arrow" aria-hidden="true">↔</span>
+						<span>{rule.right}</span>
+					</span>
+				</label>
+			{/if}
 		{/each}
 	</div>
 {/snippet}
 
 <section class="input-mappings-panel" aria-label={accessibleLabel}>
 	{#if profile.magicKeys}
-		<label class="input-mappings-heading">
-			<input
-				type="checkbox"
-				class="input-mappings-checkbox--magic"
-				checked={allEnabled(magicMappingIds)}
-				indeterminate={someEnabled(magicMappingIds) && !allEnabled(magicMappingIds)}
-				onchange={(event) => setMappingsEnabled(magicMappingIds, event.currentTarget.checked)}
-			/>
-			<span>Magic key mappings</span>
-		</label>
+		{#if readOnly}
+			<h3 class="input-mappings-heading input-mappings-heading--readonly">Magic key mappings</h3>
+		{:else}
+			<label class="input-mappings-heading">
+				<input
+					type="checkbox"
+					class="input-mappings-checkbox--magic"
+					checked={allEnabled(magicMappingIds)}
+					indeterminate={someEnabled(magicMappingIds) && !allEnabled(magicMappingIds)}
+					onchange={(event) => setMappingsEnabled(magicMappingIds, event.currentTarget.checked)}
+				/>
+				<span>Magic key mappings</span>
+			</label>
+		{/if}
 		<div class="magic-key-mappings-list">
 			{#each triggerGroups as [trigger, definition] (trigger)}
 				{#each definition.rules as rule (rule.after)}
 					{@const mappingId = magicRuleMappingId(trigger, rule.after)}
-					<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
-						<input
-							type="checkbox"
-							class="input-mappings-checkbox--magic"
-							checked={!disabledIds.has(mappingId)}
-							onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
-						/>
-						<span class="magic-key-mapping">
-							<span>{rule.after}</span>
-							<span class="mapping-trigger">{trigger}</span>
-							<span class="mapping-arrow" aria-hidden="true">→</span>
-							<span>{rule.after}{rule.emit}</span>
-						</span>
-					</label>
+					{#if readOnly}
+						<p
+							class="mapping-row mapping-row--readonly"
+							class:mapping-row--disabled={disabledIds.has(mappingId)}
+						>
+							<span class="magic-key-mapping">
+								<span>{rule.after}</span>
+								<span class="mapping-trigger">{trigger}</span>
+								<span class="mapping-arrow" aria-hidden="true">→</span>
+								<span>{rule.after}{rule.emit}</span>
+							</span>
+						</p>
+					{:else}
+						<label class="mapping-row" class:mapping-row--disabled={disabledIds.has(mappingId)}>
+							<input
+								type="checkbox"
+								class="input-mappings-checkbox--magic"
+								checked={!disabledIds.has(mappingId)}
+								onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
+							/>
+							<span class="magic-key-mapping">
+								<span>{rule.after}</span>
+								<span class="mapping-trigger">{trigger}</span>
+								<span class="mapping-arrow" aria-hidden="true">→</span>
+								<span>{rule.after}{rule.emit}</span>
+							</span>
+						</label>
+					{/if}
 				{/each}
 				{#if definition.fallback?.kind === 'no-op'}
 					<p class="mapping-row mapping-row--full mapping-row--static">
@@ -120,61 +159,94 @@
 					</p>
 				{:else if definition.fallback}
 					{@const mappingId = magicFallbackMappingId(trigger)}
-					<label
-						class="mapping-row mapping-row--full"
-						class:mapping-row--disabled={disabledIds.has(mappingId)}
-					>
-						<input
-							type="checkbox"
-							class="input-mappings-checkbox--magic"
-							checked={!disabledIds.has(mappingId)}
-							onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
-						/>
-						<span class="magic-key-mapping magic-key-mapping--fallback">
-							<span>otherwise</span>
-							<span class="mapping-trigger">{trigger}</span>
-							<span class="mapping-arrow" aria-hidden="true">→</span>
-							<span>
-								{definition.fallback.kind === 'repeat-last'
-									? 'repeat previous'
-									: definition.fallback.text}
+					{#if readOnly}
+						<p
+							class="mapping-row mapping-row--full mapping-row--readonly"
+							class:mapping-row--disabled={disabledIds.has(mappingId)}
+						>
+							<span class="magic-key-mapping magic-key-mapping--fallback">
+								<span>otherwise</span>
+								<span class="mapping-trigger">{trigger}</span>
+								<span class="mapping-arrow" aria-hidden="true">→</span>
+								<span>
+									{definition.fallback.kind === 'repeat-last'
+										? 'repeat previous'
+										: definition.fallback.text}
+								</span>
 							</span>
-						</span>
-					</label>
+						</p>
+					{:else}
+						<label
+							class="mapping-row mapping-row--full"
+							class:mapping-row--disabled={disabledIds.has(mappingId)}
+						>
+							<input
+								type="checkbox"
+								class="input-mappings-checkbox--magic"
+								checked={!disabledIds.has(mappingId)}
+								onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
+							/>
+							<span class="magic-key-mapping magic-key-mapping--fallback">
+								<span>otherwise</span>
+								<span class="mapping-trigger">{trigger}</span>
+								<span class="mapping-arrow" aria-hidden="true">→</span>
+								<span>
+									{definition.fallback.kind === 'repeat-last'
+										? 'repeat previous'
+										: definition.fallback.text}
+								</span>
+							</span>
+						</label>
+					{/if}
 				{/if}
 			{/each}
 		</div>
 	{/if}
 
 	{#if profile.adaptiveSwaps}
-		<label
-			class="input-mappings-heading"
-			class:input-mappings-heading--separated={Boolean(profile.magicKeys)}
-		>
-			<input
-				type="checkbox"
-				class="input-mappings-checkbox--adaptive"
-				checked={allEnabled(adaptiveMappingIds)}
-				indeterminate={someEnabled(adaptiveMappingIds) && !allEnabled(adaptiveMappingIds)}
-				onchange={(event) => setMappingsEnabled(adaptiveMappingIds, event.currentTarget.checked)}
-			/>
-			<span>Adaptive swap mappings</span>
-		</label>
+		{#if readOnly}
+			<h3
+				class="input-mappings-heading input-mappings-heading--readonly"
+				class:input-mappings-heading--separated={Boolean(profile.magicKeys)}
+			>
+				Adaptive swap mappings
+			</h3>
+		{:else}
+			<label
+				class="input-mappings-heading"
+				class:input-mappings-heading--separated={Boolean(profile.magicKeys)}
+			>
+				<input
+					type="checkbox"
+					class="input-mappings-checkbox--adaptive"
+					checked={allEnabled(adaptiveMappingIds)}
+					indeterminate={someEnabled(adaptiveMappingIds) && !allEnabled(adaptiveMappingIds)}
+					onchange={(event) => setMappingsEnabled(adaptiveMappingIds, event.currentTarget.checked)}
+				/>
+				<span>Adaptive swap mappings</span>
+			</label>
+		{/if}
 		{#if profile.adaptiveSwaps.rules.length > 0}
 			{@render adaptiveRules(profile.adaptiveSwaps.rules)}
 		{/if}
 		{#each profile.adaptiveSwaps.groups as group (group.id)}
 			{@const groupMappingIds = adaptiveGroupMappingIds.get(group.id) ?? []}
-			<label class="input-mappings-group-heading">
-				<input
-					type="checkbox"
-					class="input-mappings-checkbox--adaptive"
-					checked={allEnabled(groupMappingIds)}
-					indeterminate={someEnabled(groupMappingIds) && !allEnabled(groupMappingIds)}
-					onchange={(event) => setMappingsEnabled(groupMappingIds, event.currentTarget.checked)}
-				/>
-				<span>{group.label}</span>
-			</label>
+			{#if readOnly}
+				<h4 class="input-mappings-group-heading input-mappings-group-heading--readonly">
+					{group.label}
+				</h4>
+			{:else}
+				<label class="input-mappings-group-heading">
+					<input
+						type="checkbox"
+						class="input-mappings-checkbox--adaptive"
+						checked={allEnabled(groupMappingIds)}
+						indeterminate={someEnabled(groupMappingIds) && !allEnabled(groupMappingIds)}
+						onchange={(event) => setMappingsEnabled(groupMappingIds, event.currentTarget.checked)}
+					/>
+					<span>{group.label}</span>
+				</label>
+			{/if}
 			{@render adaptiveRules(group.rules, group.id)}
 		{/each}
 	{/if}
@@ -216,6 +288,21 @@
 		margin-top: 0.875rem;
 		padding-top: 0.75rem;
 		border-top: 1px solid var(--border);
+	}
+
+	.input-mappings-heading--readonly,
+	.input-mappings-group-heading--readonly,
+	.mapping-row--readonly {
+		margin-inline: 0;
+		cursor: default;
+	}
+
+	.input-mappings-heading--readonly {
+		margin-block-start: 0;
+	}
+
+	.mapping-row--readonly {
+		margin-block: 0;
 	}
 
 	.input-mappings-group-heading {

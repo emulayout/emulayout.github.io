@@ -3,8 +3,10 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
+	import { onDestroy } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import AuthorAutocomplete from '$lib/components/AuthorAutocomplete.svelte';
+	import { copyTextToClipboard } from '$lib/clipboard';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
 	import DeleteSavedLayoutModal from '$lib/components/DeleteSavedLayoutModal.svelte';
@@ -16,6 +18,7 @@
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import LayoutKeyImportModal from '$lib/components/LayoutKeyImportModal.svelte';
+	import SharedCreatorLayoutModal from '$lib/components/SharedCreatorLayoutModal.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
@@ -82,6 +85,7 @@
 		type CreatorContentSnapshot,
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
+	import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
 	import {
 		normalizeTypingPracticeLessonSettings,
 		type TypingPracticeLessonSettings
@@ -106,7 +110,11 @@
 	const CREATOR_PATH = resolve('/create');
 	const CREATOR_URL_DEBOUNCE_MS = 300;
 	const initialLayouts = loadSavedLayouts();
-	const initialSession = resolveCreatorSession(page.url.searchParams, initialLayouts);
+	const initialSharedLayout = readCreatorShareFromSearch(page.url.searchParams);
+	const initialSession = resolveCreatorSession(
+		initialSharedLayout ? new URLSearchParams() : page.url.searchParams,
+		initialLayouts
+	);
 
 	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
 	let activeSavedId = $state<string | null>(initialSession.savedId);
@@ -131,11 +139,14 @@
 	let saveMenuOpen = $state(false);
 	let keyImportOpen = $state(false);
 	let saveError = $state<string | null>(null);
+	let pendingSharedLayout = $state.raw<CreatorUrlSnapshot | null>(initialSharedLayout);
+	let shareCopied = $state(false);
 	let deleteSavedLayoutId = $state<string | null>(null);
 	let deleteSavedLayoutName = $state('');
 	let pendingCreatorNavigation = $state<PendingCreatorNavigation | null>(null);
 	let pendingHistoryRetry = false;
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+	let shareCopiedTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
 	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
 	const layoutAuthor = $derived(layoutAuthorDraft.trim());
@@ -222,7 +233,12 @@
 		void layoutsCatalog.ensureSupplementalLoaded();
 	});
 
+	onDestroy(() => {
+		if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
+	});
+
 	$effect(() => {
+		if (pendingSharedLayout) return;
 		const snapshot = currentCreatorSnapshot();
 		const savedId = activeSavedId;
 		const savedSnapshot = findSavedLayout(savedLayouts, savedId)?.snapshot ?? null;
@@ -289,8 +305,15 @@
 		const epoch = layoutNameFocusEpoch;
 		if (epoch === 0 || epoch === consumedLayoutNameFocusEpoch) return;
 		consumedLayoutNameFocusEpoch = epoch;
-		node.focus();
-		if (node.value === LAYOUT_CREATOR_NEW_LAYOUT_NAME) node.select();
+		const focus = () => {
+			if (!node.isConnected || epoch !== layoutNameFocusEpoch) return;
+			node.focus();
+			if (node.value === LAYOUT_CREATOR_NEW_LAYOUT_NAME) node.select();
+		};
+		focus();
+		// A closing confirmation restores its trigger after the new field mounts.
+		// Reassert the creator's documented destination focus on the next frame.
+		requestAnimationFrame(focus);
 	};
 
 	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
@@ -431,6 +454,13 @@
 		if (page.url.pathname !== CREATOR_PATH) return;
 		const search = page.url.search;
 		if (search === lastWrittenSearch) return;
+		const sharedLayout = readCreatorShareFromSearch(page.url.searchParams);
+		if (sharedLayout) {
+			pendingSharedLayout = sharedLayout;
+			saveError = null;
+			lastWrittenSearch = search;
+			return;
+		}
 		const session = resolveCreatorSession(page.url.searchParams, savedLayouts);
 		activeSavedId = session.savedId;
 		applyCreatorSnapshot(session.snapshot);
@@ -554,6 +584,22 @@
 		autofocusFirstKey = false;
 	}
 
+	async function shareCreatorLayout() {
+		const url = buildCreatorShareUrl(currentCreatorSnapshot());
+		const copied = await copyTextToClipboard(url);
+		if (!copied) {
+			saveError = 'Unable to copy the share link. Copy the current URL from your browser instead.';
+			return;
+		}
+		saveError = null;
+		shareCopied = true;
+		if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
+		shareCopiedTimeout = setTimeout(() => {
+			shareCopied = false;
+			shareCopiedTimeout = null;
+		}, 1600);
+	}
+
 	function setActiveSection(section: LayoutDetailSection) {
 		activeSection = parseCreatorDetailSection(section);
 	}
@@ -610,6 +656,29 @@
 		});
 		if (!commitSavedLayouts(result.layouts, result.id)) return;
 		saveMenuOpen = false;
+		flushCreatorUrl();
+	}
+
+	function closeSharedLayout() {
+		pendingSharedLayout = null;
+		saveError = null;
+		flushCreatorUrl();
+	}
+
+	function saveSharedLayout(name: string) {
+		const pending = pendingSharedLayout;
+		if (!pending) return;
+		const snapshot = cloneCreatorUrlSnapshot({
+			...pending,
+			name,
+			preview: true,
+			section: DEFAULT_LAYOUT_DETAIL_SECTION
+		});
+		const result = addSavedLayout(savedLayoutsForWrite(), { snapshot });
+		if (!commitSavedLayouts(result.layouts, result.id)) return;
+		const saved = findSavedLayout(result.layouts, result.id);
+		if (saved) applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
+		pendingSharedLayout = null;
 		flushCreatorUrl();
 	}
 
@@ -1025,6 +1094,45 @@
 				<button
 					type="button"
 					class="filter-reset-button layout-creator-action-button"
+					class:layout-creator-action-button--copied={shareCopied}
+					onclick={shareCreatorLayout}
+				>
+					{#if shareCopied}
+						<svg
+							class="layout-creator-action-icon"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M20 6L9 17l-5-5" />
+						</svg>
+						Link copied
+					{:else}
+						<svg
+							class="layout-creator-action-icon"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<circle cx="18" cy="5" r="3" />
+							<circle cx="6" cy="12" r="3" />
+							<circle cx="18" cy="19" r="3" />
+							<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+						</svg>
+						Share
+					{/if}
+				</button>
+				<button
+					type="button"
+					class="filter-reset-button layout-creator-action-button"
 					class:layout-creator-action-button--preview={layoutPreview}
 					onclick={toggleLayoutPreview}
 				>
@@ -1171,6 +1279,14 @@
 	destination={discardDestination}
 	onClose={closeDiscardChangesModal}
 	onConfirm={confirmDiscardChanges}
+/>
+
+<SharedCreatorLayoutModal
+	open={pendingSharedLayout !== null}
+	snapshot={pendingSharedLayout}
+	{saveError}
+	onClose={closeSharedLayout}
+	onSave={saveSharedLayout}
 />
 
 <style>
@@ -1411,6 +1527,11 @@
 	.layout-creator-action-button--preview {
 		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 		color: var(--accent);
+	}
+
+	.layout-creator-action-button--copied {
+		border-color: color-mix(in srgb, var(--success, #15803d) 55%, var(--border));
+		color: var(--success, #15803d);
 	}
 
 	.layout-creator-save :global(.layout-creator-split-button) {

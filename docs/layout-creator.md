@@ -67,6 +67,20 @@ drafts in the browser.
   equivalent empty encoding) and the default board omits `keys` and `base`. The legacy `keys=v1:-`
   form still restores an empty board. Do not put draft names, saved ids, or key maps into GoatCounter
   paths or events.
+- The sticky action bar places **Share** immediately before **Preview** in Edit and immediately
+  before **Edit** in Preview. Share copies an absolute `/create` URL containing the normalized
+  content snapshot: layout name, author, keyboard type and keys, Magic and Adaptive drafts,
+  disabled mappings, and practice settings. It never includes a browser-local saved-layout `id`
+  or transient Edit/Preview/detail-tab state. The link uses `share=1` to distinguish a portable
+  layout offer from an ordinary creator draft URL.
+- Opening a `share=1` creator URL does not apply the payload to the live canvas. It opens a
+  **Shared layout** modal with an editable Layout name, read-only author, presentation keyboard,
+  and read-only compiled Magic/Adaptive mappings. The share query stays intact while the offer is
+  open, then is replaced by the current creator URL when the modal closes. Cancel discards the
+  offer without writing local storage. **Save layout** creates a new local saved-layout tab under
+  the possibly edited name, opens it in Preview, and writes its local `id` URL. Invalid or
+  incomplete mapping rows remain in the portable payload and local snapshot even though only
+  complete mappings appear in the read-only preview.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
@@ -100,9 +114,9 @@ drafts in the browser.
   and keyboard-type fields, special-key add buttons, missing-letter warning,
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
   in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
-  editors were closed in Edit. The sticky bar shows **Preview** while editing, which opens this
-  show-page preview, and **Edit** while previewing. **Edit** focuses the first editable key, not
-  Layout name or a practice field.
+  editors were closed in Edit. The sticky bar shows **Share**, then **Preview**, while editing;
+  Preview opens this show-page preview. It shows **Share**, then **Edit**, while previewing.
+  **Edit** focuses the first editable key, not Layout name or a practice field.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
   own column, top-aligned with the first keyboard row. Either or both can be on. Magic opens the
   mapping editor without adding a key to the board; Adaptive sets the draft's adaptive-swap flag.
