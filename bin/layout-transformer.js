@@ -5,7 +5,7 @@
 
 import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
 import { THUMB_ROW } from '../src/lib/layoutDisplay.ts';
-import { hasMagicKeyMarker, hasRepeatKey } from './layout-features.js';
+import { hasRepeatKey } from './layout-features.js';
 
 const SPLIT_COL = 5;
 
@@ -41,7 +41,8 @@ export function transformLayout(layout) {
 		hasThumbKeys: computeHasThumbKeys(stripped),
 		characterSet: computeCharacterSet(stripped),
 		hasAllLetters: computeHasAllLetters(stripped),
-		hasMagicKey: hasMagicKeyMarker(stripped.keys),
+		// Catalog sync replaces this after joining cminibrowser's canonical mappings.
+		hasMagicKey: false,
 		hasRepeatKey: hasRepeatKey(stripped.keys),
 		cyanophageCompatible: isCyanophageCompatible(keys),
 		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined

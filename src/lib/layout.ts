@@ -28,7 +28,7 @@ export interface LayoutData {
 	hasMagicKey: boolean;
 	/** The layout contains an unclaimed `@`, which repeats the previous character by default. */
 	hasRepeatKey: boolean;
-	/** A curated profile is available in the separately loaded mappings payload. */
+	/** A canonical profile is available in the separately loaded mappings payload. */
 	hasMagicKeyMappings: boolean;
 	/** The default Magic profile cannot currently be modeled by Cyanophage. */
 	cyanophageStatsNeedMagicMappings: boolean;

@@ -34,7 +34,7 @@ describe('local static-data bootstrap', () => {
 		]);
 	});
 
-	test('uses offline catalog sync only when the meme filter dump is cached', () => {
+	test('uses offline catalog sync only when all cminibrowser inputs are cached', () => {
 		expect(catalogSyncArgsForBootstrap(true)).toEqual(['--offline']);
 		expect(catalogSyncArgsForBootstrap(false)).toEqual([]);
 	});

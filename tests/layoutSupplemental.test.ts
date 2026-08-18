@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	defaultVariant,
 	IMPLICIT_VARIANT_ID,
-	validateLayoutSupplemental,
-	variantLayoutKeys
+	validateLayoutSupplemental
 } from '$lib/layoutSupplemental';
 
 describe('supplemental layout data format', () => {
@@ -161,27 +160,5 @@ describe('supplemental layout data format', () => {
 		expect(validateLayoutSupplemental(published, { derived: true }).variants[0]).toMatchObject({
 			stale: true
 		});
-	});
-
-	test('collects the layout keys a variant needs, lowercasing adaptive sides', () => {
-		const [variant] = validateLayoutSupplemental({
-			schema: 1,
-			magicKeys: { mappings: { '*': { c: 'k' }, '#': { a: 'o' } } },
-			adaptiveSwaps: {
-				mappings: { L: { Y: 'j' } },
-				groups: [{ id: 'more', label: 'More', mappings: { n: { b: 'p' } } }]
-			}
-		}).variants;
-
-		expect([...variantLayoutKeys(variant)].sort()).toEqual([
-			'#',
-			'*',
-			'b',
-			'j',
-			'l',
-			'n',
-			'p',
-			'y'
-		]);
 	});
 });

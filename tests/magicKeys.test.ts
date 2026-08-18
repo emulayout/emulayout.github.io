@@ -16,9 +16,34 @@ import {
 	repeatKeyMappingId
 } from '$lib/inputMappingControls';
 import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
-import vyletData from '../data/layouts/vylet.json';
-import whirlData from '../data/layouts/whirl.json';
-import vyletV4Data from '../data/layouts/vylet-v4.json';
+
+const vyletData = {
+	schema: 1,
+	magicKeys: {
+		mappings: {
+			'*': {
+				rules: { c: 'k', "'": 'l', l: 'l' },
+				fallback: 'repeat-last' as const
+			}
+		}
+	}
+};
+const whirlData = {
+	schema: 1,
+	magicKeys: {
+		mappings: { '*': { rules: { w: 'h' }, fallback: 'repeat-last' as const } }
+	}
+};
+const vyletV4Data = {
+	schema: 1,
+	adaptiveSwaps: {
+		mappings: { l: { y: 'j' }, n: { l: 'b', "'": 'h', y: 'r' } },
+		groups: [
+			{ id: 'slides', label: 'Slides', mappings: { p: { h: 'm' }, u: { e: 'o' } } },
+			{ id: 'comfort', label: 'Comfort', mappings: { w: { s: 'm' } } }
+		]
+	}
+};
 
 function typeLogicalKeys(
 	profile: LayoutInputProfile,
@@ -40,8 +65,7 @@ function typeLogicalKeys(
 }
 
 describe('layout input registry', () => {
-	// Normalize first so the registry sees exactly what sync publishes, not the
-	// curated source shorthand.
+	// Normalize first so the registry sees exactly what sync publishes.
 	const profiles = compileLayoutInputRegistry({
 		vylet: validateLayoutSupplemental(vyletData),
 		whirl: validateLayoutSupplemental(whirlData),

@@ -4,12 +4,12 @@
  * Compute Cyanophage effort stats for layouts in the local cmini catalog cache.
  *
  * Requires a prior catalog-sync so `.cache/cmini-repo/layouts` exists.
- * Reads curated Magic mappings from `data/layouts/` when present.
+ * Reads canonical Magic mappings from cminibrowser when present.
  */
 
 import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { loadLayoutSupplementalData } from './layout-data.js';
+import { loadCminibrowserMagicRules } from './cminibrowser-magic-rules.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -54,11 +54,16 @@ async function run() {
 		offlineEnv: 'CYANOPHAGE_SYNC_OFFLINE',
 		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
 	});
-	console.log('→ Loading cminibrowser meme filter...');
-	const memeFilter = await loadMemeFilterExclusions({ offline, force });
+	console.log('→ Loading cminibrowser inputs...');
+	const [memeFilter, magicRules] = await Promise.all([
+		loadMemeFilterExclusions({ offline, force }),
+		loadCminibrowserMagicRules({ offline, force })
+	]);
 	const excludedLayouts = memeFilter.excluded;
 	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
-	const supplementalByLayout = await loadLayoutSupplementalData();
+	console.log(
+		`  ✔ Magic and Adaptive mappings for ${magicRules.supplementalByLayoutId.size} layouts`
+	);
 	const layoutFiles = (await readdir(cacheLayoutsDir)).filter((f) => f.endsWith('.json'));
 
 	/** @type {Record<string, number[]>} */
@@ -78,7 +83,7 @@ async function run() {
 		}
 
 		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
-		const variants = supplementalByLayout.get(rawLayout.name)?.variants ?? [];
+		const variants = magicRules.supplementalByLayoutId.get(layoutName)?.variants ?? [];
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
 			magicMappings: defaultMagicMappings(variants)
 		});

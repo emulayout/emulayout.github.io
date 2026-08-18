@@ -159,7 +159,7 @@ export function compileLayoutSupplementalRegistry(
 
 /**
  * The profile each layout loads by default: its first variant, or a repeat-only
- * profile for a layout whose `@` needs no curated data.
+ * profile for a layout whose `@` needs no exported mapping data.
  */
 export function compileLayoutInputRegistry(
 	value: unknown,

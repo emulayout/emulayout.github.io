@@ -34,7 +34,6 @@
 - `docs/interactive-primitives.md` covers shared interactive primitives, keyboard and focus models, ARIA contracts, and their consumers. Read it before changing shared accordions, menus, listboxes, tabs, segmented controls, modals, tooltips, or portal behavior. Update it whenever one of these primitives is added, removed, or materially changes its API or behavior.
 - `docs/magic-keys-architecture.md` covers Magic-key and Repeat-key metadata, runtime behavior, composition, filtering, and analyzer boundaries.
 - `docs/adaptive-swaps-architecture.md` covers contextual input data ownership, source formats, runtime resolution, UI boundaries, and deferred work.
-- `docs/layout-supplemental-data.md` covers the curated `data/layouts/<layout>.json` format: open `meta`, mapping variants, staleness, validation strictness, and the published payload. Read it before changing curated layout data, its validation, or its wire format.
 - `docs/layout-creator.md` covers the layout creator route, app-bar Discover and Create links, draft
   tabs, the reused typing-practice workspace, and deferred local-storage persistence.
 - `docs/analytics.md` covers GoatCounter pageviews and feature events, privacy invariants, and the code map. Read it before adding or changing analytics. Do not send layout names, typed values, lesson text, or other personal data.
@@ -55,7 +54,6 @@
 - After changing Svelte or TypeScript code, also run `bun run check`.
 - After changing behavior, run `bun test`; add or update a focused test when practical.
 - Run a focused Playwright test while iterating and `bun run test:e2e` before handoff for changes to critical user flows, routing, focus/keyboard behavior, or interactions spanning multiple components.
-- Run `bun run validate:mappings` after editing files under `data/layouts/`.
 - Do not claim a check passed unless it was run successfully. If a required check cannot run, report the command and the blocker explicitly.
 
 ## Generated data and repository hygiene

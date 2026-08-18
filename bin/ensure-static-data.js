@@ -9,6 +9,7 @@ import {
 	STATS_DATASETS
 } from '../src/lib/statsAnalyzers.ts';
 import { cminibrowserCachePath } from './cminibrowser-cache.js';
+import { CMINIBROWSER_MAGIC_RULES_PATH } from './cminibrowser-magic-rules.js';
 import { CMINIBROWSER_MEME_FILTER_PATH } from './cminibrowser-meme-filter.js';
 
 const CATALOG_FILES = [
@@ -48,14 +49,14 @@ export function analyzerTasksForMissingStaticData(missingFiles) {
 }
 
 /**
- * Prefer offline catalog sync when the meme-filter dump is already cached.
- * Otherwise an online sync is required to fetch it before layouts can be filtered.
+ * Prefer offline catalog sync when both cminibrowser inputs are already cached.
+ * Otherwise an online sync is required to fetch the missing input.
  *
- * @param {boolean} memeFilterCached
+ * @param {boolean} catalogInputsCached
  * @returns {string[]}
  */
-export function catalogSyncArgsForBootstrap(memeFilterCached) {
-	return memeFilterCached ? ['--offline'] : [];
+export function catalogSyncArgsForBootstrap(catalogInputsCached) {
+	return catalogInputsCached ? ['--offline'] : [];
 }
 
 /** @param {string} path */
@@ -79,14 +80,17 @@ async function run() {
 		console.log(`  - ${file}`);
 	}
 
-	const memeFilterCached = await exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH));
-	const catalogArgs = catalogSyncArgsForBootstrap(memeFilterCached);
+	const catalogInputsCached = (
+		await Promise.all([
+			exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH)),
+			exists(cminibrowserCachePath(CMINIBROWSER_MAGIC_RULES_PATH))
+		])
+	).every(Boolean);
+	const catalogArgs = catalogSyncArgsForBootstrap(catalogInputsCached);
 	if (catalogArgs.includes('--offline')) {
 		console.log('→ Generating from cached sources...');
 	} else {
-		console.log(
-			'→ Meme filter dump missing from cache; running catalog sync online to fetch it...'
-		);
+		console.log('→ Catalog input missing from cache; running catalog sync online to fetch it...');
 	}
 
 	await $`bun run ./bin/catalog-sync.js ${catalogArgs}`;
