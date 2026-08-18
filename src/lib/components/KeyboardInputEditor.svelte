@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 	import { SvelteMap } from 'svelte/reactivity';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import { SPLIT_COL } from '$lib/cmini/keyboard';
@@ -46,6 +47,8 @@
 		highlightedKeys?: readonly string[];
 		unreachableKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
+		/** Focus and select the first slot after the editor mounts. */
+		autofocusFirst?: boolean;
 	}
 
 	let {
@@ -58,9 +61,11 @@
 		swapPaths = [],
 		highlightedKeys = [],
 		unreachableKeys = [],
-		highlightHomeKeys = false
+		highlightHomeKeys = false,
+		autofocusFirst = false
 	}: Props = $props();
 	const rows = $derived(keyboardInputRows(config));
+	const firstEditableSlot = $derived(rows[0]?.keys[0]?.slot ?? null);
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
 	const orthoGeometry = $derived(config.keyboardType === 'ortho');
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
@@ -92,6 +97,11 @@
 		input?.focus();
 		input?.select();
 	}
+
+	const focusFirstEditableKey: Attachment<HTMLInputElement> = (node) => {
+		node.focus();
+		node.select();
+	};
 
 	function move(slot: string, direction: 'left' | 'right' | 'up' | 'down') {
 		focusSlot(navigateKeyboardInputSlot(rows, slot, direction));
@@ -304,6 +314,7 @@
 	>
 		<input
 			use:registerInput={key.slot}
+			{@attach autofocusFirst && key.slot === firstEditableSlot ? focusFirstEditableKey : undefined}
 			type="text"
 			value={key.value}
 			placeholder={showPlaceholders && !key.inert ? keyboardInputPlaceholderValue(key.slot) : ''}

@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
+	import type { Attachment } from 'svelte/attachments';
 	import AuthorAutocomplete from '$lib/components/AuthorAutocomplete.svelte';
 	import CreatorAdaptiveMappingsPanel from '$lib/components/CreatorAdaptiveMappingsPanel.svelte';
 	import CreatorMagicMappingsPanel from '$lib/components/CreatorMagicMappingsPanel.svelte';
@@ -112,6 +113,11 @@
 	let layoutNameDraft = $state(initialSession.snapshot.name);
 	let layoutAuthorDraft = $state(initialSession.snapshot.author);
 	let layoutPreview = $state(initialSession.snapshot.preview);
+	let layoutNameFocusEpoch = $state(
+		!initialSession.savedId && !initialSession.snapshot.preview ? 1 : 0
+	);
+	let consumedLayoutNameFocusEpoch = 0;
+	let autofocusFirstKey = $state(false);
 	let disabledMappingIds = $state<string[]>([...initialSession.snapshot.disabledMappingIds]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
 	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
@@ -279,6 +285,14 @@
 		if (!showUpdateSplit) saveMenuOpen = false;
 	});
 
+	const focusNewLayoutName: Attachment<HTMLInputElement> = (node) => {
+		const epoch = layoutNameFocusEpoch;
+		if (epoch === 0 || epoch === consumedLayoutNameFocusEpoch) return;
+		consumedLayoutNameFocusEpoch = epoch;
+		node.focus();
+		if (node.value === LAYOUT_CREATOR_NEW_LAYOUT_NAME) node.select();
+	};
+
 	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
 		const next = cloneCreatorUrlSnapshot(snapshot);
 		layoutNameDraft = next.name;
@@ -295,6 +309,7 @@
 		practiceLesson = next.practiceLesson;
 		disabledMappingIds = [...next.disabledMappingIds];
 		saveError = null;
+		autofocusFirstKey = false;
 	}
 
 	function commitSavedLayouts(layouts: SavedCreatorLayout[], id: string): boolean {
@@ -530,7 +545,13 @@
 	}
 
 	function toggleLayoutPreview() {
-		layoutPreview = !layoutPreview;
+		if (layoutPreview) {
+			layoutPreview = false;
+			autofocusFirstKey = true;
+			return;
+		}
+		layoutPreview = true;
+		autofocusFirstKey = false;
 	}
 
 	function setActiveSection(section: LayoutDetailSection) {
@@ -627,6 +648,7 @@
 		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
 		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
+		layoutNameFocusEpoch += 1;
 	}
 
 	function startNewLayout() {
@@ -662,10 +684,10 @@
 		if (!navigation) return;
 		if (navigation.kind === 'new') {
 			startNewLayoutNow();
-		} else {
-			const saved = findSavedLayout(savedLayouts, navigation.savedId);
-			if (saved) openSavedLayout(saved);
+			return;
 		}
+		const saved = findSavedLayout(savedLayouts, navigation.savedId);
+		if (saved) openSavedLayout(saved);
 		focusSelectedCreatorTab();
 	}
 
@@ -674,10 +696,10 @@
 		deleteSavedLayoutName = name;
 	}
 
-	function closeDeleteSavedLayoutModal() {
+	function closeDeleteSavedLayoutModal(restoreTabFocus = true) {
 		deleteSavedLayoutId = null;
 		deleteSavedLayoutName = '';
-		focusSelectedCreatorTab();
+		if (restoreTabFocus) focusSelectedCreatorTab();
 	}
 
 	function handleSavedTabKeydown(
@@ -709,11 +731,12 @@
 		}
 		savedLayouts = result.layouts;
 		saveError = null;
-		closeDeleteSavedLayoutModal();
+		closeDeleteSavedLayoutModal(!wasActive);
 		if (!wasActive) return;
 		activeSavedId = null;
 		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
 		flushCreatorUrl();
+		layoutNameFocusEpoch += 1;
 	}
 </script>
 
@@ -795,6 +818,7 @@
 				<label class="layout-creator-name-field">
 					<span class="layout-creator-name-label">Layout name</span>
 					<input
+						{@attach !activeSavedId && focusNewLayoutName}
 						type="text"
 						value={layoutNameDraft}
 						autocomplete="off"
@@ -875,6 +899,7 @@
 				highlightedKeys={presentation.highlightedKeys}
 				unreachableKeys={presentation.unreachableKeys}
 				highlightHomeKeys={presentation.highlightHomeKeys}
+				autofocusFirst={autofocusFirstKey}
 			/>
 		{/snippet}
 

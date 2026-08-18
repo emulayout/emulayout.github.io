@@ -20,8 +20,8 @@ drafts in the browser.
   tab, labeled with the live draft name. Each saved layout is an additional tab labeled with its
   stored name (the live name while that tab is active). Saving the unsaved canvas turns it into a
   saved tab. Switching tabs loads that layout's snapshot into the editor. When at least one saved
-  layout exists, a `+ New layout` button sits on the far side of the tab bar and starts a blank
-  unsaved canvas in Edit (`/create?edit=1`) without leaving `/create`. It is hidden while there are
+  layout exists, a `+ New layout` button sits on the far side of the tab bar and starts a new
+  unsaved QWERTY canvas in Edit (`/create?edit=1`) without leaving `/create`. It is hidden while there are
   no saved layouts, because the unsaved canvas tab is already showing. A gear button follows it
   (and remains available when no layouts are saved) to open layout backup settings. Saved tabs
   include the same pointer X as index view tabs;
@@ -29,7 +29,10 @@ drafts in the browser.
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
   control.
-- The New layout canvas starts as an empty staggered board named `New layout`. Layout name and
+- The New layout canvas starts as staggered QWERTY named `New layout`. Opening that unsaved canvas
+  in Edit focuses Layout name and selects the default name so it can be replaced immediately. Create,
+  `+ New layout`, discarding dirty edits to start a new canvas, and deleting the active saved layout
+  all take this path. Layout name and
   author name fields sit above Input layout. On a wide header they share the row equally; when
   that space is too narrow they stack. The name updates the live draft; an empty value falls back
   to `New layout`. Author is optional and stays empty until typed. The author field is a
@@ -46,7 +49,7 @@ drafts in the browser.
   Name, author, base layout, keyboard type, key grid, preview, practice lesson, the Practice /
   Test / Feel `tab`, Magic/Adaptive
   mappings (including incomplete rows), and which complete special mappings are disabled are
-  written when they differ from the blank canvas. An active saved
+  written when they differ from the default QWERTY canvas. An active saved
   layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
   params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL starts in
   Preview unless `edit=1` requests Edit; switching to a saved tab starts in Preview. Preview is the
@@ -60,9 +63,10 @@ drafts in the browser.
   Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A bare
   `/create` opens Preview of the default canvas. Reloading or opening the URL restores the draft,
   and a known `id` restores that saved layout from local storage. Empty standard slots are omitted
-  from `keys`; because the default canvas is empty, a cleared board needs no `keys` parameter. The
-  legacy `keys=v1:-` form still restores an empty board. Do not put draft names, saved ids, or key
-  maps into GoatCounter paths or events.
+  from `keys`; because the default canvas is QWERTY, a cleared board writes `keys=v1:-` (or the
+  equivalent empty encoding) and the default board omits `keys` and `base`. The legacy `keys=v1:-`
+  form still restores an empty board. Do not put draft names, saved ids, or key maps into GoatCounter
+  paths or events.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
@@ -97,7 +101,8 @@ drafts in the browser.
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
   in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
   editors were closed in Edit. The sticky bar shows **Preview** while editing, which opens this
-  show-page preview, and **Edit** while previewing.
+  show-page preview, and **Edit** while previewing. **Edit** focuses the first editable key, not
+  Layout name or a practice field.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
   own column, top-aligned with the first keyboard row. Either or both can be on. Magic opens the
   mapping editor without adding a key to the board; Adaptive sets the draft's adaptive-swap flag.
@@ -172,8 +177,8 @@ drafts in the browser.
   **Clear all keys** is available only on the unsaved canvas. It blanks the key grid, clears the
   selected base layout, and removes all Magic and Adaptive rules while preserving the name, author,
   keyboard type, and practice lesson. It is disabled when those key and mapping fields are already
-  empty. Saved-layout storage version 2 uses the empty default; version 1 entries without explicit
-  keys are migrated as QWERTY layouts so existing saved layouts are not cleared by the new default.
+  empty. Saved-layout storage version 2 uses the QWERTY default. Version 1 entries without explicit
+  keys restore the same QWERTY board.
 - **Layout backup settings** mirrors the custom-view backup UI. It opens on **Export layouts**,
   where any subset of saved layouts can be copied as versioned JSON or downloaded as
   `emulayout-layouts-YYYY-MM-DD.json`. **Import layouts** accepts pasted JSON or a `.json` file,

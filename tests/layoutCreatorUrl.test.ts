@@ -29,8 +29,8 @@ function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
 describe('creator URL state', () => {
 	test('writes edit=1 for the default Edit canvas and omits Preview', () => {
 		const defaults = createDefaultCreatorUrlSnapshot();
-		expect(defaults.keyConfig.baseLayoutName).toBeNull();
-		expect(defaults.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+		expect(defaults.keyConfig.baseLayoutName).toBe('QWERTY');
+		expect(defaults.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
 		expect(writeCreatorUrlParams(defaults).toString()).toBe('edit=1');
 		expect(creatorSearchFromSnapshot(defaults)).toBe('?edit=1');
 		expect(
@@ -88,16 +88,16 @@ describe('creator URL state', () => {
 		expect(params.has('edit')).toBe(false);
 		expect(params.has('preview')).toBe(false);
 		expect(params.has('locked')).toBe(false);
-		expect(params.get('keys')?.startsWith('v1:-;')).toBe(true);
+		expect(params.get('keys')?.startsWith('v1:m;')).toBe(true);
 		expect(params.has('base')).toBe(false);
 
 		const restored = roundTrip(snapshot);
 		expect(restored.name).toBe('Shared draft');
 		expect(restored.preview).toBe(true);
-		expect(restored.keyConfig.baseLayoutName).toBeNull();
-		expect(restored.keyConfig.baseLayoutModified).toBe(false);
+		expect(restored.keyConfig.baseLayoutName).toBe('QWERTY');
+		expect(restored.keyConfig.baseLayoutModified).toBe(true);
 		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
-		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')?.value).toBe('');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')?.value).toBe('w');
 	});
 
 	test('defaults to Preview and reads edit=1 as Edit', () => {
@@ -129,7 +129,8 @@ describe('creator URL state', () => {
 			keyConfig: createDefaultKeyboardInputConfig()
 		};
 		const qwertyParams = writeCreatorUrlParams(qwertyBase);
-		expect(qwertyParams.get('base')).toBe('QWERTY');
+		expect(qwertyParams.has('base')).toBe(false);
+		expect(qwertyParams.has('keys')).toBe(false);
 		expect(roundTrip(qwertyBase).keyConfig.baseLayoutName).toBe('QWERTY');
 
 		const fromBase: CreatorUrlSnapshot = {
@@ -158,8 +159,9 @@ describe('creator URL state', () => {
 		};
 		const clearedParams = writeCreatorUrlParams(cleared);
 		expect(clearedParams.get('name')).toBe('Magic lela');
-		expect(clearedParams.has('keys')).toBe(false);
-		expect(clearedParams.toString()).toBe('name=Magic+lela&edit=1');
+		expect(clearedParams.get('keys')).toBe('v1:-');
+		expect(clearedParams.has('base')).toBe(false);
+		expect(clearedParams.toString()).toBe('name=Magic+lela&keys=v1%3A-&edit=1');
 
 		const restoredCleared = roundTrip(cleared);
 		expect(restoredCleared.keyConfig.baseLayoutName).toBeNull();
@@ -268,7 +270,7 @@ describe('creator URL state', () => {
 	test('rejects duplicate keyboard slots from an untrusted URL', () => {
 		const restored = readCreatorUrlSnapshot(new URLSearchParams('keys=v1:m;0,0::a;0,0::b'));
 
-		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
 		expect(new Set(restored.keyConfig.keys.map((key) => key.slot)).size).toBe(
 			restored.keyConfig.keys.length
 		);
@@ -304,7 +306,7 @@ describe('creator URL state', () => {
 			includeAdaptiveKey: false
 		});
 		expect(restored.keyConfig.keyboardType).toBe('staggered');
-		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
 	});
 
 	test('preserves a semicolon key value through the query string', () => {

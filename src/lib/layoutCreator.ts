@@ -10,7 +10,6 @@ import {
 	type CompactLayout
 } from '$lib/layoutCodec';
 import {
-	clearKeyboardInputConfig,
 	createDefaultKeyboardInputConfig,
 	normalizeKeyboardInputValue,
 	parseKeyboardInputSlot,
@@ -65,9 +64,9 @@ export type CreateLayoutFromKeyConfigOptions = CreatorSpecialKeys & {
 	name?: string;
 };
 
-/** Empty staggered key grid used for every new creator canvas. */
+/** Staggered QWERTY grid used for every new creator canvas. */
 export function createDefaultCreatorKeyConfig(): KeyboardInputConfig {
-	return clearKeyboardInputConfig(createDefaultKeyboardInputConfig());
+	return createDefaultKeyboardInputConfig();
 }
 
 /** Build the in-memory starter layout for a new creation. */

@@ -35,17 +35,21 @@ describe('nextDuplicatedLayoutName', () => {
 });
 
 describe('createDefaultCreatorLayout', () => {
-	test('starts from an empty staggered canvas named New layout', () => {
+	test('starts from staggered QWERTY named New layout', () => {
 		const layout = createDefaultCreatorLayout();
+		const qwerty = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
+			name: LAYOUT_CREATOR_NEW_LAYOUT_NAME
+		});
 
+		expect(layout).toEqual(qwerty);
 		expect(layout.name).toBe(LAYOUT_CREATOR_NEW_LAYOUT_NAME);
 		expect(layout.board).toBe('stagger');
-		expect(layout.hasAllLetters).toBe(false);
+		expect(layout.hasAllLetters).toBe(true);
 		expect(layout.hasMagicKey).toBe(false);
 		expect(layout.hasAdaptiveSwap).toBe(false);
 		expect(layout.hasThumbKeys).toBe(false);
-		expect(layout.keys).toEqual({});
-		expect(layout.positionBySlot.size).toBe(0);
+		expect(layout.keys['q']).toBeDefined();
+		expect(layout.positionBySlot.get('0,0')).toBe('q');
 	});
 });
 

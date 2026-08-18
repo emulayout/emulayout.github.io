@@ -1,5 +1,4 @@
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
-import { createDefaultKeyboardInputConfig } from '$lib/keyboardInputConfig';
 import {
 	creatorContentFromSnapshot,
 	creatorContentSnapshotSignature,
@@ -76,7 +75,7 @@ export function findSavedLayout(
 	return id ? layouts.find((entry) => entry.id === id) : undefined;
 }
 
-function parseSavedLayout(value: unknown, legacyQwertyDefault: boolean): SavedCreatorLayout | null {
+function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
 	if (!isPlainObject(value)) return null;
 	if (typeof value.id !== 'string' || !value.id) return null;
 	if (typeof value.name !== 'string' || !value.name.trim()) return null;
@@ -86,11 +85,7 @@ function parseSavedLayout(value: unknown, legacyQwertyDefault: boolean): SavedCr
 	return {
 		id: value.id,
 		name: value.name.trim(),
-		snapshot: creatorContentFromSnapshot(
-			readCreatorUrlSnapshot(new URLSearchParams(value.query), {
-				...(legacyQwertyDefault ? { defaultKeyConfig: createDefaultKeyboardInputConfig() } : {})
-			})
-		),
+		snapshot: creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query))),
 		createdAt: value.createdAt
 	};
 }
@@ -110,9 +105,8 @@ export function parseSavedLayoutsDocument(value: unknown): SavedCreatorLayout[] 
 
 	const layouts: SavedCreatorLayout[] = [];
 	const ids = new Set<string>();
-	const legacyQwertyDefault = value.version === LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION;
 	for (const rawLayout of value.layouts) {
-		const layout = parseSavedLayout(rawLayout, legacyQwertyDefault);
+		const layout = parseSavedLayout(rawLayout);
 		if (!layout || ids.has(layout.id)) continue;
 		ids.add(layout.id);
 		layouts.push(layout);

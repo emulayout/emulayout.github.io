@@ -53,20 +53,21 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.locator('.layout-test-area')).toHaveCSS('height', '40px');
 	await expect(panel.getByLabel('Typing practice status')).toHaveCSS('font-size', '14px');
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
+	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toBeFocused();
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 	const baseLayout = panel.getByRole('combobox', { name: 'Base layout (optional)' });
-	await expect(baseLayout).toHaveValue('');
+	await expect(baseLayout).toHaveValue('QWERTY');
 	await panel.getByRole('button', { name: 'Show layout options' }).click();
 	await expect(panel.getByRole('option').first()).toHaveText('QWERTY');
 	await panel.getByRole('button', { name: 'Hide layout options' }).click();
-	await expect(panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue('');
-	await expect(panel.getByRole('textbox', { name: 'Row 3, key 10', exact: true })).toHaveValue('');
+	await expect(panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue('q');
+	await expect(panel.getByRole('textbox', { name: 'Row 3, key 10', exact: true })).toHaveValue('/');
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Save layout' })).toBeVisible();
-	await expect(panel.getByRole('button', { name: 'Clear all keys' })).toBeDisabled();
+	await expect(panel.getByRole('button', { name: 'Clear all keys' })).toBeEnabled();
 	await expect(panel.getByRole('button', { name: 'Undo changes' })).toHaveCount(0);
 
 	const magicKey = panel.getByRole('button', { name: 'Add magic' });
@@ -88,7 +89,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toBeVisible();
-	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toBeVisible();
+	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toHaveCount(0);
 });
 
 test('clears every key and special mapping from a new layout', async ({ page }) => {
@@ -97,7 +98,6 @@ test('clears every key and special mapping from a new layout', async ({ page }) 
 	const clearAllKeys = panel.getByRole('button', { name: 'Clear all keys' });
 
 	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Scratch layout');
-	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('q');
 	await panel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
 	await panel.getByRole('button', { name: 'Add magic' }).click();
 	await panel.getByRole('textbox', { name: 'Magic trigger' }).fill('#');
@@ -157,8 +157,6 @@ test('warns when a letter is missing from the layout', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 	const warning = panel.locator('[data-creator-missing-mapping-keys]');
-	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
-	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	await expect(warning).toHaveCount(0);
 
 	await panel.getByRole('textbox', { name: 'Row 2, key 2', exact: true }).fill('');
@@ -269,8 +267,6 @@ test('selecting a base layout seeds its magic and adaptive mappings', async ({ p
 test('applies keyboard options to the edit keyboard', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
-	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
-	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	const editor = panel.getByRole('group', { name: 'Layout keys' });
 	const options = panel.getByRole('group', { name: 'Keyboard options' });
 	const nextKeyToggle = options.getByRole('switch', { name: 'Highlight next key' });
@@ -362,6 +358,9 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 	await expect(namedPanel.getByRole('textbox', { name: 'Layout name' })).toHaveValue(
 		'Custom draft'
 	);
+	await expect(
+		namedPanel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })
+	).toBeFocused();
 	await expect(namedPanel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
 	await expect(namedPanel.getByRole('textbox', { name: 'Preceding' }).first()).toHaveValue('c');
 
@@ -490,6 +489,7 @@ test('saves layouts locally and switches among them with tabs', async ({ page })
 	await expect(savedLayoutTab(creations, 'Alpha edited')).toBeVisible();
 	const newPanel = page.getByRole('tabpanel', { name: 'New layout' });
 	await expect(newPanel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
+	await expect(newPanel.getByRole('textbox', { name: 'Layout name' })).toBeFocused();
 	await expect(newPanel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Save layout' })).toBeVisible();
 	await expect(newPanel.getByRole('button', { name: 'Undo changes' })).toHaveCount(0);
@@ -667,13 +667,14 @@ test('confirms before switching away from unsaved creator changes', async ({ pag
 	await discardDialog.getByRole('button', { name: 'Discard changes' }).click();
 	await expect(page.getByRole('tabpanel', { name: 'New layout' })).toBeVisible();
 	await expect(page).toHaveURL('/create?edit=1');
+	await expect(
+		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('textbox', { name: 'Layout name' })
+	).toBeFocused();
 });
 
 test('switches the creator typing area to the layout test area', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
-	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
-	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	const sectionTabs = panel.getByRole('tablist', { name: 'Layout detail sections' });
 	const practiceInput = panel.getByRole('textbox', { name: 'Typing practice input' });
 	await practiceInput.press('q');
@@ -709,6 +710,7 @@ test('switches the creator typing area to the layout test area', async ({ page }
 		'true'
 	);
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
+	await expect(panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toBeFocused();
 
 	await page.reload();
 	const restoredPanel = page.getByRole('tabpanel', { name: 'New layout' });
@@ -881,6 +883,9 @@ test('deletes a saved layout from its tab', async ({ page }) => {
 	await expect(
 		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('button', { name: 'Save layout' })
 	).toBeVisible();
+	await expect(
+		page.getByRole('tabpanel', { name: 'New layout' }).getByRole('textbox', { name: 'Layout name' })
+	).toBeFocused();
 	await expect(page.getByRole('button', { name: '+ New layout' })).toHaveCount(0);
 });
 

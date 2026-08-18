@@ -64,7 +64,7 @@ describe('saved layout storage', () => {
 		expect(restored[0]?.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 	});
 
-	test('migrates version-one implicit QWERTY layouts while version two defaults to empty', () => {
+	test('treats omitted keys as QWERTY in version one and the current schema', () => {
 		const entry = { id: 'layout-1', name: 'Legacy', createdAt: 1, query: 'name=Legacy' };
 		const legacy = parseSavedLayoutsDocument({ version: 1, layouts: [entry] })[0]!;
 		const current = parseSavedLayoutsDocument({
@@ -74,8 +74,8 @@ describe('saved layout storage', () => {
 
 		expect(legacy.snapshot.keyConfig.baseLayoutName).toBe('QWERTY');
 		expect(legacy.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
-		expect(current.snapshot.keyConfig.baseLayoutName).toBeNull();
-		expect(current.snapshot.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+		expect(current.snapshot.keyConfig.baseLayoutName).toBe('QWERTY');
+		expect(current.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
 		expect(JSON.parse(serializeSavedLayoutsDocument([legacy])).version).toBe(
 			SAVED_LAYOUTS_SCHEMA_VERSION
 		);

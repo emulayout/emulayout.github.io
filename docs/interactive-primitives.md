@@ -79,9 +79,9 @@ the layout-detail section tabs (Typing practice, Layout test area, Layout feel) 
 tab. Their selection uses the same shareable `tab` query as layout detail pages. See
 [`layout-creator.md`](./layout-creator.md).
 Switching saved layouts or starting a new canvas while the current layout has unsaved content opens
-a `ModalShell` confirmation. Cancel restores focus to the still-selected tab; confirming discards
-the draft and focuses the newly selected tab. Preview/Edit and detail-tab changes are view state and
-do not trigger this confirmation.
+a `ModalShell` confirmation. Cancel restores focus to the still-selected tab. Confirming a saved tab
+discards the draft and focuses that tab. Confirming a new canvas focuses Layout name. Preview/Edit
+and detail-tab changes are view state and do not trigger this confirmation.
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
@@ -102,7 +102,7 @@ placeholders and does not require unique assigned values, so a draft may keep an
 letters, including repeats. Empty slots are dropped from the live draft. The editor still
 receives the workspace option presentation (next-key, home-key coloring, special-key feedback,
 swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
-for the presentation-only keyboard; **Edit** restores it.
+for the presentation-only keyboard; **Edit** restores it and focuses the first editable key.
 
 The creator's **Import** button beside Base layout opens a `ModalShell` with a multiline key-grid
 field. The field receives initial focus. Import applies the parsed grid to the creator draft,
