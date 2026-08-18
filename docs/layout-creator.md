@@ -29,7 +29,7 @@ drafts in the browser.
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
   control.
-- The New layout canvas starts as a stagger QWERTY board named `New layout`. Layout name and
+- The New layout canvas starts as an empty staggered board named `New layout`. Layout name and
   author name fields sit above Input layout. On a wide header they share the row equally; when
   that space is too narrow they stack. The name updates the live draft; an empty value falls back
   to `New layout`. Author is optional and stays empty until typed. The author field is a
@@ -60,16 +60,21 @@ drafts in the browser.
   Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A bare
   `/create` opens Preview of the default canvas. Reloading or opening the URL restores the draft,
   and a known `id` restores that saved layout from local storage. Empty standard slots are omitted
-  from `keys`; a cleared board is `keys=v1:-`. Do not put draft names, saved ids, or key maps into
-  GoatCounter paths or events.
+  from `keys`; because the default canvas is empty, a cleared board needs no `keys` parameter. The
+  legacy `keys=v1:-` form still restores an empty board. Do not put draft names, saved ids, or key
+  maps into GoatCounter paths or events.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
   catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
   mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
   the base. The editor keeps the full QWERTY slot grid and sizes that grid to the page, so unused
-  punctuation columns do not overflow. Printable keys replace the focused slot and advance, Backspace/Delete clear, and arrows
-  move among slots. Typing `@` or `*` into a slot adds that trigger to Magic mappings when it is not
-  already present, and turns Magic on. `@` starts as fallback-only (otherwise → repeat previous),
+  punctuation columns do not overflow. Printable keys replace the focused slot and advance,
+  Backspace/Delete clear, and arrows move among slots. The **Import** button beside Base layout
+  opens a modal with a multiline Layout keys field. It accepts plain rows, bracketed rows, and
+  Markdown-linked `[row](url)` text, with whitespace between keys. Imported rows start at the
+  keyboard's left edge; every imported row clears its unfilled trailing slots, while rows omitted
+  from the import stay unchanged. Typing or importing `@` or `*` adds that trigger to Magic
+  mappings when it is not already present, and turns Magic on. `@` starts as fallback-only (otherwise → repeat previous),
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
   is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
   Clearing `@` or `*` from a slot does not remove its mapping.
@@ -150,7 +155,8 @@ drafts in the browser.
 - Saved layouts persist only layout and lesson content in a versioned local-storage document, each
   with its own id; Preview/Edit mode and the selected detail tab remain URL view state. A sticky
   bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
-  Save follows the live canvas: **Save layout** on an unsaved draft; a split **Update layout** with
+  Save follows the live canvas: **Save layout** on an unsaved draft, with **Clear all keys** beside
+  it; a split **Update layout** with
   **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of
   that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Duplicate
   saves a new copy, opens it in Edit, and advances a trailing copy number until its name is unused:
@@ -163,6 +169,11 @@ drafts in the browser.
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
+  **Clear all keys** is available only on the unsaved canvas. It blanks the key grid, clears the
+  selected base layout, and removes all Magic and Adaptive rules while preserving the name, author,
+  keyboard type, and practice lesson. It is disabled when those key and mapping fields are already
+  empty. Saved-layout storage version 2 uses the empty default; version 1 entries without explicit
+  keys are migrated as QWERTY layouts so existing saved layouts are not cleared by the new default.
 - **Layout backup settings** mirrors the custom-view backup UI. It opens on **Export layouts**,
   where any subset of saved layouts can be copied as versioned JSON or downloaded as
   `emulayout-layouts-YYYY-MM-DD.json`. **Import layouts** accepts pasted JSON or a `.json` file,

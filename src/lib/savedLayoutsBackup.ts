@@ -1,5 +1,5 @@
 import {
-	SAVED_LAYOUTS_SCHEMA_VERSION,
+	isSupportedSavedLayoutsSchemaVersion,
 	parseSavedLayoutsDocument,
 	type SavedCreatorLayout
 } from '$lib/layoutCreatorStorage';
@@ -23,7 +23,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 function backupEntries(value: unknown): unknown[] | null {
 	if (
 		isPlainObject(value) &&
-		value.version === SAVED_LAYOUTS_SCHEMA_VERSION &&
+		isSupportedSavedLayoutsSchemaVersion(value.version) &&
 		Array.isArray(value.layouts)
 	) {
 		return value.layouts;

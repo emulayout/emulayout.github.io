@@ -104,6 +104,12 @@ receives the workspace option presentation (next-key, home-key coloring, special
 swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
 for the presentation-only keyboard; **Edit** restores it.
 
+The creator's **Import** button beside Base layout opens a `ModalShell` with a multiline key-grid
+field. The field receives initial focus. Import applies the parsed grid to the creator draft,
+closes the modal, and restores focus to the trigger; Cancel, Close, Escape, and backdrop dismissal
+make no changes and restore the same focus. Grid parsing stays in `keyboardInputConfig.ts`, not in
+the modal or editor component.
+
 `TextAutocomplete` owns the shared string combobox, listbox, loading, clear, focus, and keyboard
 behavior. `LayoutAutocomplete` and `AuthorAutocomplete` are domain adapters that supply their
 option data, copy, and selection policy rather than forking that interaction code.

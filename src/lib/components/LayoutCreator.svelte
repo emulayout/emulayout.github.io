@@ -14,6 +14,7 @@
 	import LayoutBackupsMenu from '$lib/components/LayoutBackupsMenu.svelte';
 	import LayoutExpandedView from '$lib/components/LayoutExpandedView.svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
+	import LayoutKeyImportModal from '$lib/components/LayoutKeyImportModal.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
@@ -122,6 +123,7 @@
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let activeSection = $state<LayoutDetailSection>(initialSession.snapshot.section);
 	let saveMenuOpen = $state(false);
+	let keyImportOpen = $state(false);
 	let saveError = $state<string | null>(null);
 	let deleteSavedLayoutId = $state<string | null>(null);
 	let deleteSavedLayoutName = $state('');
@@ -265,6 +267,13 @@
 	);
 	const showUpdateSplit = $derived(Boolean(activeSavedId && isActiveSavedDirty));
 	const showDuplicateButton = $derived(Boolean(activeSavedId && !isActiveSavedDirty));
+	const canClearNewLayout = $derived(
+		!activeSavedId &&
+			(Boolean(keyConfig.baseLayoutName) ||
+				keyConfig.keys.some((key) => Boolean(key.value)) ||
+				includeMagicKey ||
+				includeAdaptiveKey)
+	);
 
 	$effect(() => {
 		if (!showUpdateSplit) saveMenuOpen = false;
@@ -447,7 +456,7 @@
 		applySupplementalDrafts(name);
 	}
 
-	function clearBaseLayout() {
+	function clearAllKeys() {
 		baseLayoutSeed += 1;
 		keyConfig = clearKeyboardInputConfig(keyConfig);
 		includeMagicKey = false;
@@ -814,16 +823,26 @@
 			<div class="layout-creator-keyboard-fields">
 				<div class="layout-creator-keyboard-field">
 					<span id="layout-creator-base-label">Base layout (optional)</span>
-					<LayoutAutocomplete
-						layouts={layoutsCatalog.layouts}
-						id="layout-creator-base"
-						label="Base layout (optional)"
-						placeholder="Search layouts…"
-						selected={keyConfig.baseLayoutName}
-						onSelect={selectBaseLayout}
-						onClear={clearBaseLayout}
-						loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
-					/>
+					<div class="layout-creator-base-row">
+						<LayoutAutocomplete
+							layouts={layoutsCatalog.layouts}
+							id="layout-creator-base"
+							label="Base layout (optional)"
+							placeholder="Search layouts…"
+							selected={keyConfig.baseLayoutName}
+							onSelect={selectBaseLayout}
+							onClear={clearAllKeys}
+							loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
+						/>
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-import-button"
+							aria-haspopup="dialog"
+							onclick={() => (keyImportOpen = true)}
+						>
+							Import
+						</button>
+					</div>
 					{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
 						<p class="layout-creator-keyboard-error" role="alert">
 							Unable to load the layout catalog.
@@ -1090,12 +1109,27 @@
 						>
 							Save layout
 						</button>
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-action-button"
+							disabled={!canClearNewLayout}
+							onclick={clearAllKeys}
+						>
+							Clear all keys
+						</button>
 					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
+
+<LayoutKeyImportModal
+	open={keyImportOpen}
+	config={keyConfig}
+	onClose={() => (keyImportOpen = false)}
+	onImport={setKeyConfig}
+/>
 
 <DeleteSavedLayoutModal
 	open={deleteSavedLayoutId !== null}
@@ -1464,6 +1498,25 @@
 		color: var(--text-secondary);
 		font-size: 0.875rem;
 		font-weight: 600;
+	}
+
+	.layout-creator-base-row {
+		display: flex;
+		min-width: 0;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.layout-creator-base-row :global(.text-autocomplete) {
+		flex: 1;
+	}
+
+	.layout-creator-import-button {
+		flex: none;
+		height: 2.375rem;
+		padding: 0 0.875rem;
+		border-radius: 0.75rem;
+		font-size: 0.875rem;
 	}
 
 	.layout-creator-keyboard-field select {

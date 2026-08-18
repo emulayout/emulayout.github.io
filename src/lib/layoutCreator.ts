@@ -10,6 +10,8 @@ import {
 	type CompactLayout
 } from '$lib/layoutCodec';
 import {
+	clearKeyboardInputConfig,
+	createDefaultKeyboardInputConfig,
 	normalizeKeyboardInputValue,
 	parseKeyboardInputSlot,
 	type KeyboardInputConfig
@@ -63,38 +65,14 @@ export type CreateLayoutFromKeyConfigOptions = CreatorSpecialKeys & {
 	name?: string;
 };
 
-/** Standard stagger QWERTY used as the unsaved creator canvas. */
-const DEFAULT_CREATOR_ROWS = [
-	['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\'],
-	['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'"],
-	['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
-] as const;
+/** Empty staggered key grid used for every new creator canvas. */
+export function createDefaultCreatorKeyConfig(): KeyboardInputConfig {
+	return clearKeyboardInputConfig(createDefaultKeyboardInputConfig());
+}
 
 /** Build the in-memory starter layout for a new creation. */
 export function createDefaultCreatorLayout(name = LAYOUT_CREATOR_NEW_LAYOUT_NAME): LayoutData {
-	const keyChars: string[] = [];
-	const rows: number[] = [];
-	const cols: number[] = [];
-
-	for (let row = 0; row < DEFAULT_CREATOR_ROWS.length; row++) {
-		for (let col = 0; col < DEFAULT_CREATOR_ROWS[row].length; col++) {
-			keyChars.push(DEFAULT_CREATOR_ROWS[row][col]);
-			rows.push(row);
-			cols.push(col);
-		}
-	}
-
-	const compact: CompactLayout = [
-		name,
-		0,
-		BOARD_CODE.stagger,
-		'',
-		LAYOUT_FLAG_ALL_LETTERS,
-		keyChars,
-		rows,
-		cols
-	];
-	return decodeLayout(compact);
+	return createLayoutFromKeyConfig(createDefaultCreatorKeyConfig(), { name });
 }
 
 export function keyboardConfigHasMagicTrigger(config: KeyboardInputConfig): boolean {

@@ -56,10 +56,13 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: 'Preview' })).toBeVisible();
 	await expect(panel.getByRole('group', { name: 'Layout keys' })).toBeVisible();
-	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toBeVisible();
+	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveValue('');
+	await expect(panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue('');
+	await expect(panel.getByRole('textbox', { name: 'Row 3, key 10', exact: true })).toHaveValue('');
 	await expect(panel.getByRole('button', { name: /^Input layout:/ })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Practice lesson settings' })).toBeVisible();
 	await expect(panel.getByRole('button', { name: 'Save layout' })).toBeVisible();
+	await expect(panel.getByRole('button', { name: 'Clear all keys' })).toBeDisabled();
 	await expect(panel.getByRole('button', { name: 'Undo changes' })).toHaveCount(0);
 
 	const magicKey = panel.getByRole('button', { name: 'Add magic' });
@@ -81,7 +84,44 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 		'true'
 	);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toBeVisible();
-	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toHaveCount(0);
+	await expect(panel.locator('[data-creator-missing-mapping-keys]')).toBeVisible();
+});
+
+test('clears every key and special mapping from a new layout', async ({ page }) => {
+	await page.goto('/create?edit=1');
+	const panel = page.locator('#layout-creator-panel');
+	const clearAllKeys = panel.getByRole('button', { name: 'Clear all keys' });
+
+	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Scratch layout');
+	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('q');
+	await panel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
+	await panel.getByRole('button', { name: 'Add magic' }).click();
+	await panel.getByRole('textbox', { name: 'Magic trigger' }).fill('#');
+	await panel.getByRole('button', { name: 'Add adaptive' }).click();
+	await expect(clearAllKeys).toBeEnabled();
+
+	await clearAllKeys.click();
+
+	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Scratch layout');
+	await expect(panel.getByRole('combobox', { name: 'Keyboard type' })).toHaveValue('ortho');
+	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveValue('');
+	expect(
+		await panel
+			.locator('[data-keyboard-input-slot]')
+			.evaluateAll((keys) => keys.every((key) => (key as HTMLInputElement).value === ''))
+	).toBe(true);
+	await expect(panel.getByRole('button', { name: 'Add magic' })).toHaveAttribute(
+		'aria-expanded',
+		'false'
+	);
+	await expect(panel.getByRole('button', { name: 'Add adaptive' })).toHaveAttribute(
+		'aria-expanded',
+		'false'
+	);
+	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toHaveCount(0);
+	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toHaveCount(0);
+	await expect(clearAllKeys).toBeDisabled();
+	await expect.poll(() => new URL(page.url()).searchParams.get('name')).toBe('Scratch layout');
 });
 
 test('keeps editing and custom lessons available when the shared word list fails', async ({
@@ -113,6 +153,8 @@ test('warns when a letter is missing from the layout', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
 	const warning = panel.locator('[data-creator-missing-mapping-keys]');
+	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
+	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	await expect(warning).toHaveCount(0);
 
 	await panel.getByRole('textbox', { name: 'Row 2, key 2', exact: true }).fill('');
@@ -155,6 +197,55 @@ test('typing @ onto a key adds a magic mapping with repeat fallback', async ({ p
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' }).first()).toHaveValue('@');
 });
 
+test('imports keyboard rows from the dedicated modal', async ({ page }) => {
+	await page.goto('/create?edit=1');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	const importedText = `[z l * w q  j f o u ,](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)
+[n r t s g  b h a e i](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)
+[p x m c v  k d ' y .](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)`;
+
+	const importTrigger = panel.getByRole('button', { name: 'Import', exact: true });
+	await importTrigger.click();
+	const dialog = page.getByRole('dialog', { name: 'Import layout' });
+	await expect(dialog).toBeVisible();
+	const layoutKeys = dialog.getByRole('textbox', { name: 'Layout keys' });
+	await expect(layoutKeys).toBeFocused();
+	await expect(dialog.getByRole('button', { name: 'Import', exact: true })).toBeDisabled();
+	await layoutKeys.fill(importedText);
+	await dialog.getByRole('button', { name: 'Import', exact: true }).click();
+	await expect(dialog).toHaveCount(0);
+	await expect(importTrigger).toBeFocused();
+
+	const expectedRows = [
+		['z', 'l', '*', 'w', 'q', 'j', 'f', 'o', 'u', ',', '', '', ''],
+		['n', 'r', 't', 's', 'g', 'b', 'h', 'a', 'e', 'i', ''],
+		['p', 'x', 'm', 'c', 'v', 'k', 'd', "'", 'y', '.']
+	];
+	for (const [rowIndex, expectedValues] of expectedRows.entries()) {
+		for (const [keyIndex, expectedValue] of expectedValues.entries()) {
+			await expect(
+				panel.getByRole('textbox', {
+					name: `Row ${rowIndex + 1}, key ${keyIndex + 1}`,
+					exact: true
+				})
+			).toHaveValue(expectedValue);
+		}
+	}
+	await expect(panel.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
+		'aria-expanded',
+		'true'
+	);
+	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveValue('*');
+	await expect(page).toHaveURL(/keys=/);
+
+	await page.reload();
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'New layout' })
+			.getByRole('textbox', { name: 'Row 1, key 1', exact: true })
+	).toHaveValue('z');
+});
+
 test('selecting a base layout seeds its magic and adaptive mappings', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
@@ -174,6 +265,8 @@ test('selecting a base layout seeds its magic and adaptive mappings', async ({ p
 test('applies keyboard options to the edit keyboard', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
+	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	const editor = panel.getByRole('group', { name: 'Layout keys' });
 	const options = panel.getByRole('group', { name: 'Keyboard options' });
 	const nextKeyToggle = options.getByRole('switch', { name: 'Highlight next key' });
@@ -575,6 +668,8 @@ test('confirms before switching away from unsaved creator changes', async ({ pag
 test('switches the creator typing area to the layout test area', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	await panel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
+	await panel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	const sectionTabs = panel.getByRole('tablist', { name: 'Layout detail sections' });
 	const practiceInput = panel.getByRole('textbox', { name: 'Typing practice input' });
 	await practiceInput.press('q');
@@ -646,6 +741,8 @@ test('restores an unchecked Adaptive swap after saving and reloading', async ({ 
 
 	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Disabled swap');
 	const namedPanel = page.getByRole('tabpanel', { name: 'Disabled swap' });
+	await namedPanel.getByRole('combobox', { name: 'Base layout (optional)' }).fill('QWERTY');
+	await namedPanel.getByRole('option', { name: 'QWERTY', exact: true }).click();
 	await namedPanel.getByRole('button', { name: 'Add adaptive' }).click();
 	await namedPanel.getByRole('textbox', { name: 'Trigger' }).fill('l');
 	await namedPanel.getByRole('textbox', { name: 'Left' }).fill('y');

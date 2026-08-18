@@ -1,4 +1,5 @@
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
+import { createDefaultKeyboardInputConfig } from '$lib/keyboardInputConfig';
 import {
 	creatorContentFromSnapshot,
 	creatorContentSnapshotSignature,
@@ -18,7 +19,14 @@ import {
 } from '$lib/layoutDetailTabs';
 
 export const SAVED_LAYOUTS_STORAGE_KEY = 'emulayout:saved-layouts';
-export const SAVED_LAYOUTS_SCHEMA_VERSION = 1;
+const LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION = 1;
+export const SAVED_LAYOUTS_SCHEMA_VERSION = 2;
+
+export function isSupportedSavedLayoutsSchemaVersion(value: unknown): value is number {
+	return (
+		value === LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION || value === SAVED_LAYOUTS_SCHEMA_VERSION
+	);
+}
 
 export interface SavedCreatorLayout {
 	id: string;
@@ -68,7 +76,7 @@ export function findSavedLayout(
 	return id ? layouts.find((entry) => entry.id === id) : undefined;
 }
 
-function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
+function parseSavedLayout(value: unknown, legacyQwertyDefault: boolean): SavedCreatorLayout | null {
 	if (!isPlainObject(value)) return null;
 	if (typeof value.id !== 'string' || !value.id) return null;
 	if (typeof value.name !== 'string' || !value.name.trim()) return null;
@@ -78,7 +86,11 @@ function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
 	return {
 		id: value.id,
 		name: value.name.trim(),
-		snapshot: creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query))),
+		snapshot: creatorContentFromSnapshot(
+			readCreatorUrlSnapshot(new URLSearchParams(value.query), {
+				...(legacyQwertyDefault ? { defaultKeyConfig: createDefaultKeyboardInputConfig() } : {})
+			})
+		),
 		createdAt: value.createdAt
 	};
 }
@@ -90,7 +102,7 @@ function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
 export function parseSavedLayoutsDocument(value: unknown): SavedCreatorLayout[] {
 	if (
 		!isPlainObject(value) ||
-		value.version !== SAVED_LAYOUTS_SCHEMA_VERSION ||
+		!isSupportedSavedLayoutsSchemaVersion(value.version) ||
 		!Array.isArray(value.layouts)
 	) {
 		return [];
@@ -98,8 +110,9 @@ export function parseSavedLayoutsDocument(value: unknown): SavedCreatorLayout[] 
 
 	const layouts: SavedCreatorLayout[] = [];
 	const ids = new Set<string>();
+	const legacyQwertyDefault = value.version === LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION;
 	for (const rawLayout of value.layouts) {
-		const layout = parseSavedLayout(rawLayout);
+		const layout = parseSavedLayout(rawLayout, legacyQwertyDefault);
 		if (!layout || ids.has(layout.id)) continue;
 		ids.add(layout.id);
 		layouts.push(layout);

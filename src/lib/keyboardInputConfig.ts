@@ -326,6 +326,65 @@ export function updateKeyboardInputKey(
 	};
 }
 
+function unwrapKeyboardInputImportRow(line: string): string {
+	const trimmed = line.trim();
+	if (!trimmed.startsWith('[')) return trimmed;
+
+	const markdownLinkEnd = trimmed.lastIndexOf('](');
+	if (markdownLinkEnd > 0 && trimmed.endsWith(')')) {
+		return trimmed.slice(1, markdownLinkEnd);
+	}
+	if (trimmed.endsWith(']')) {
+		return trimmed.slice(1, -1);
+	}
+	return trimmed;
+}
+
+/** Parse whitespace-separated keyboard rows, including Markdown-linked `[row](url)` text. */
+export function parseKeyboardInputImportRows(text: string): string[][] | null {
+	const trimmed = text.trim();
+	if (!trimmed) return null;
+
+	let hasInvalidValue = false;
+	const importedRows = trimmed.split(/\r?\n/u).map((line) => {
+		const content = unwrapKeyboardInputImportRow(line);
+		if (!content) return [];
+		const rawValues = content.split(/\s+/u);
+		hasInvalidValue ||= rawValues.some((value) => Array.from(value).length !== 1);
+		return rawValues.map((value) => normalizeKeyboardInputValue(value));
+	});
+	if (importedRows.flat().length === 0 || hasInvalidValue) return null;
+	return importedRows;
+}
+
+/**
+ * Import rows from the top-left key. Every supplied row clears its remaining slots instead of
+ * retaining keys from the previous mapping.
+ */
+export function applyKeyboardInputImport(
+	config: KeyboardInputConfig,
+	text: string
+): KeyboardInputConfig | null {
+	const importedRows = parseKeyboardInputImportRows(text);
+	if (!importedRows) return null;
+
+	const configRows = keyboardInputRows(config);
+	let next = config;
+	for (let importedRowIndex = 0; importedRowIndex < importedRows.length; importedRowIndex++) {
+		const targetRow = configRows[importedRowIndex];
+		if (!targetRow) break;
+		const importedValues = importedRows[importedRowIndex];
+		for (let keyIndex = 0; keyIndex < targetRow.keys.length; keyIndex++) {
+			next = updateKeyboardInputKey(
+				next,
+				targetRow.keys[keyIndex].slot,
+				importedValues[keyIndex] ?? ''
+			);
+		}
+	}
+	return next;
+}
+
 export function navigateKeyboardInputSlot(
 	rows: readonly KeyboardInputRow[],
 	currentSlot: string,

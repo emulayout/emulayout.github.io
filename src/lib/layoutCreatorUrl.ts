@@ -1,11 +1,10 @@
 import {
 	buildKeyboardInputConfig,
-	createDefaultKeyboardInputConfig,
 	type InputKeyboardType,
 	type KeyboardInputConfig,
 	type KeyboardInputKey
 } from '$lib/keyboardInputConfig';
-import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
+import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, createDefaultCreatorKeyConfig } from '$lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
 	createCreatorAdaptiveSection,
@@ -415,7 +414,7 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 		includeAdaptiveKey: false,
 		magicDraft: createEmptyCreatorMagicDraft(),
 		adaptiveDraft: createEmptyCreatorAdaptiveDraft(),
-		keyConfig: createDefaultKeyboardInputConfig(),
+		keyConfig: createDefaultCreatorKeyConfig(),
 		practiceLesson: normalizeTypingPracticeLessonSettings(null),
 		disabledMappingIds: []
 	};
@@ -432,7 +431,7 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	if (author) params.set(CREATOR_AUTHOR_PARAM, author);
 
 	const baseName = snapshot.keyConfig.baseLayoutName?.trim() ?? '';
-	if (baseName && baseName !== DEFAULT_BASE_LAYOUT_NAME) {
+	if (baseName && baseName !== defaults.keyConfig.baseLayoutName) {
 		params.set(CREATOR_BASE_PARAM, baseName);
 	}
 	if (snapshot.keyConfig.keyboardType !== defaults.keyConfig.keyboardType) {
@@ -567,8 +566,14 @@ export function creatorSearchFromSnapshot(
 	return query ? `?${query}` : '';
 }
 
-export function readCreatorUrlSnapshot(searchParams: URLSearchParams): CreatorUrlSnapshot {
-	const defaults = createDefaultCreatorUrlSnapshot();
+export function readCreatorUrlSnapshot(
+	searchParams: URLSearchParams,
+	options: { defaultKeyConfig?: KeyboardInputConfig } = {}
+): CreatorUrlSnapshot {
+	const defaults = {
+		...createDefaultCreatorUrlSnapshot(),
+		...(options.defaultKeyConfig ? { keyConfig: options.defaultKeyConfig } : {})
+	};
 	const name = searchParams.get(CREATOR_NAME_PARAM)?.trim() || defaults.name;
 	const author = searchParams.get(CREATOR_AUTHOR_PARAM)?.trim() || defaults.author;
 	const preview = readCreatorPreviewFlag(searchParams);
