@@ -67,7 +67,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 		'aria-pressed',
 		'true'
 	);
-	await expect(panel.locator('[data-keyboard-input-slot="1,11"]')).toHaveValue('*');
+	await expect(panel.locator('[data-keyboard-input-slot="1,11"]')).toHaveCount(0);
 	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toBeVisible();
 	await expect(panel.getByRole('combobox', { name: 'Fallback' })).toHaveValue('no-op');
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toHaveCount(0);
@@ -173,7 +173,12 @@ test('applies keyboard options to the edit keyboard', async ({ page }) => {
 
 	await panel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('@');
 	await expect(options.getByRole('switch', { name: 'Show special keys' })).toBeChecked();
-	await expect(editor.locator('[data-key-char="@"]')).toHaveAttribute('data-key-feedback', 'magic');
+	await expect(editor.locator('[data-key-char="@"]')).toHaveAttribute(
+		'data-key-feedback',
+		'repeat'
+	);
+	await panel.getByRole('textbox', { name: 'Row 1, key 2', exact: true }).fill('*');
+	await expect(editor.locator('[data-key-char="*"]')).toHaveAttribute('data-key-feedback', 'magic');
 });
 
 test('previewing a draft restores the practice keyboard and mapping preview', async ({ page }) => {

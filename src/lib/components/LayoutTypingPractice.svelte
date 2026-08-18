@@ -164,7 +164,8 @@
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
-			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+			layout.hasRepeatKey ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.repeatKey)
 	);
 	const hasSpecialMappings = $derived(
 		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
@@ -246,6 +247,7 @@
 					displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
 						? inputProfile?.adaptiveSwaps
 						: undefined,
+				repeatKey: displayOptions.showSpecialKeys ? inputProfile?.repeatKey : undefined,
 				inputHistory,
 				disabledMappingIds,
 				knownMagicTriggers: displayOptions.showSpecialKeys ? knownMagicTriggers : []

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
+	import { tick, untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
@@ -84,6 +84,16 @@
 		showKeyboardMappings?: boolean;
 		/** Smaller Practice, Feel, and test-area chrome for the layout-creator Edit workspace. */
 		compactPractice?: boolean;
+	}
+
+	function contextualPreviewLabel(magic: boolean, repeat: boolean, adaptive: boolean): string {
+		if (magic && repeat && adaptive) return 'Preview Magic, Repeat, and Adaptive output';
+		if (magic && adaptive) return 'Preview Magic and Adaptive output';
+		if (magic && repeat) return 'Preview Magic and Repeat output';
+		if (repeat && adaptive) return 'Preview Repeat and Adaptive output';
+		if (adaptive) return 'Preview Adaptive swaps';
+		if (repeat) return 'Preview Repeat key output';
+		return 'Preview Magic key output';
 	}
 
 	const {
@@ -176,7 +186,8 @@
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
-			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+			layout.hasRepeatKey ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.repeatKey)
 	);
 	const conventionalMagicTriggers = $derived(
 		layout.hasMagicKey && Object.prototype.hasOwnProperty.call(layout.keys, '*') ? ['*'] : []
@@ -184,14 +195,13 @@
 	const hasMagicKeyPreview = $derived(
 		conventionalMagicTriggers.length > 0 || Boolean(inputProfile?.magicKeys)
 	);
+	const hasRepeatKeyPreview = $derived(Boolean(inputProfile?.repeatKey));
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
-	const hasContextualKeyPreview = $derived(hasMagicKeyPreview || hasAdaptiveSwapPreview);
+	const hasContextualKeyPreview = $derived(
+		hasMagicKeyPreview || hasRepeatKeyPreview || hasAdaptiveSwapPreview
+	);
 	const contextualKeyPreviewLabel = $derived(
-		hasMagicKeyPreview && hasAdaptiveSwapPreview
-			? 'Preview Magic and Adaptive output'
-			: hasAdaptiveSwapPreview
-				? 'Preview Adaptive swaps'
-				: 'Preview Magic key output'
+		contextualPreviewLabel(hasMagicKeyPreview, hasRepeatKeyPreview, hasAdaptiveSwapPreview)
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
@@ -202,6 +212,10 @@
 			adaptiveSwaps:
 				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
 					? inputProfile?.adaptiveSwaps
+					: undefined,
+			repeatKey:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.repeatKey
 					: undefined,
 			inputHistory: layoutInputHistory,
 			disabledMappingIds,
@@ -348,31 +362,45 @@
 
 	$effect(() => {
 		void resolvedSection;
+		void showKeyboardMappings;
 		const main = detailMainEl;
 		if (!hideSummary || !main) {
 			editWorkspaceWidthPx = null;
 			return;
 		}
 
-		let observer: ResizeObserver | undefined;
-		const frame = window.requestAnimationFrame(() => {
-			const workspace = main.querySelector<HTMLElement>('.layout-keyboard-workspace');
+		let workspace: HTMLElement | null = null;
+		const resizeObserver = new ResizeObserver(() => {
+			if (!workspace) return;
+			const width = workspace.getBoundingClientRect().width;
+			editWorkspaceWidthPx = width > 0 ? width : null;
+		});
+
+		const attach = () => {
+			const next = main.querySelector<HTMLElement>('.layout-keyboard-workspace');
+			if (next === workspace) return;
+			resizeObserver.disconnect();
+			workspace = next;
 			if (!workspace) {
 				editWorkspaceWidthPx = null;
 				return;
 			}
-			const update = () => {
-				const width = workspace.getBoundingClientRect().width;
-				editWorkspaceWidthPx = width > 0 ? width : null;
-			};
-			update();
-			observer = new ResizeObserver(update);
-			observer.observe(workspace);
+			resizeObserver.observe(workspace);
+			const width = workspace.getBoundingClientRect().width;
+			editWorkspaceWidthPx = width > 0 ? width : null;
+		};
+
+		let disposed = false;
+		void tick().then(() => {
+			if (!disposed) attach();
 		});
+		const mutationObserver = new MutationObserver(attach);
+		mutationObserver.observe(main, { childList: true, subtree: true });
 
 		return () => {
-			window.cancelAnimationFrame(frame);
-			observer?.disconnect();
+			disposed = true;
+			resizeObserver.disconnect();
+			mutationObserver.disconnect();
 		};
 	});
 </script>
@@ -1081,6 +1109,7 @@
 	.layout-detail-page--workspace-only .detail-panel-content :global(.layout-feel-prompt-stack),
 	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-input),
 	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-status) {
+		box-sizing: border-box;
 		width: var(--edit-workspace-width, 100%);
 		max-width: 100%;
 		margin-inline: auto;

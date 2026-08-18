@@ -10,10 +10,11 @@
 		thumbTargetColumns,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
-	import type {
-		LayoutKeyboardFeedback,
-		LayoutKeyboardKeyFeedback,
-		LayoutKeyboardSwapPath
+	import {
+		isSpecialTriggerFeedback,
+		type LayoutKeyboardFeedback,
+		type LayoutKeyboardKeyFeedback,
+		type LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
 	import { isLayoutThumbKey, unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
 	import {
@@ -181,9 +182,9 @@
 </script>
 
 {#snippet keyContent(key: PreviewKey, keyFeedback: LayoutKeyboardKeyFeedback | undefined)}
-	{#if keyFeedback?.kind === 'magic' && !keyFeedback.value}
+	{#if isSpecialTriggerFeedback(keyFeedback?.kind) && !keyFeedback.value}
 		<span class="keyboard-preview__magic-icon">
-			<LayoutInputFeatureIcon feature="magic" />
+			<LayoutInputFeatureIcon feature={keyFeedback.kind} />
 		</span>
 	{:else}
 		{keyFeedback?.value ?? key.char}
@@ -205,6 +206,7 @@
 		class="keyboard-preview__key"
 		class:keyboard-preview__key--ansi-thumb={Boolean(attrs.ansiThumb)}
 		class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+		class:keyboard-preview__key--repeat={keyFeedback?.kind === 'repeat'}
 		class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 		class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
 		class:keyboard-preview__key--next={assigned && isHighlightedKey(key.char)}
@@ -492,7 +494,8 @@
 		white-space: nowrap;
 	}
 
-	.keyboard-preview__key--magic {
+	.keyboard-preview__key--magic,
+	.keyboard-preview__key--repeat {
 		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
 		background: linear-gradient(
 			180deg,

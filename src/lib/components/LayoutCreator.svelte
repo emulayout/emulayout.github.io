@@ -30,7 +30,6 @@
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
 		LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL,
-		addMagicKeyToConfig,
 		createLayoutFromKeyConfig,
 		nextDuplicatedLayoutName,
 		keyboardConfigGainedMagicTriggers,
@@ -420,10 +419,8 @@
 			magicPanelOpen = false;
 			return;
 		}
-		const addingFeature = !includeMagicKey;
 		includeMagicKey = true;
 		magicPanelOpen = true;
-		if (addingFeature) keyConfig = addMagicKeyToConfig(keyConfig);
 		if (magicDraft.sections.length === 0) {
 			magicDraft = createEmptyCreatorMagicDraft();
 		}

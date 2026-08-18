@@ -19,10 +19,11 @@
 		ansiThumbOffsetCss,
 		thumbTargetColumns
 	} from '$lib/layoutDisplay';
-	import type {
-		LayoutKeyboardFeedback,
-		LayoutKeyboardKeyFeedback,
-		LayoutKeyboardSwapPath
+	import {
+		isSpecialTriggerFeedback,
+		type LayoutKeyboardFeedback,
+		type LayoutKeyboardKeyFeedback,
+		type LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
 	import { unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
 	import {
@@ -229,7 +230,7 @@
 		state: LayoutKeyboardKeyFeedback | undefined
 	): 'icon' | 'value' | null {
 		if (focusedSlot === key.slot || !state) return null;
-		if (state.kind === 'magic' && !state.value) return 'icon';
+		if (isSpecialTriggerFeedback(state.kind) && !state.value) return 'icon';
 		if (state.value) return 'value';
 		return null;
 	}
@@ -279,6 +280,7 @@
 		class:keyboard-input-editor__key--home-colored={highlightHomeKeys && home}
 		class:keyboard-input-editor__key--next={next}
 		class:keyboard-input-editor__key--magic={state?.kind === 'magic'}
+		class:keyboard-input-editor__key--repeat={state?.kind === 'repeat'}
 		class:keyboard-input-editor__key--active={Boolean(state?.active)}
 		class:keyboard-input-editor__key--unreachable={unreachable}
 		class:keyboard-input-editor__key--overlay={Boolean(overlay)}
@@ -318,10 +320,10 @@
 			}}
 			onclick={(event) => event.currentTarget.select()}
 		/>
-		{#if overlay === 'icon'}
+		{#if overlay === 'icon' && isSpecialTriggerFeedback(state?.kind)}
 			<span class="keyboard-input-editor__key-overlay" aria-hidden="true">
 				<span class="keyboard-input-editor__magic-icon">
-					<LayoutInputFeatureIcon feature="magic" />
+					<LayoutInputFeatureIcon feature={state.kind} />
 				</span>
 			</span>
 		{:else if overlay === 'value' && state?.value}
@@ -613,7 +615,8 @@
 		letter-spacing: -0.02em;
 	}
 
-	.keyboard-input-editor__key--magic input {
+	.keyboard-input-editor__key--magic input,
+	.keyboard-input-editor__key--repeat input {
 		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
 		background: linear-gradient(
 			180deg,
@@ -644,7 +647,8 @@
 		caret-color: var(--text-primary);
 	}
 
-	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--magic input {
+	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--magic input,
+	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--repeat input {
 		caret-color: var(--magic-key-fg);
 	}
 
@@ -668,7 +672,8 @@
 		letter-spacing: -0.02em;
 	}
 
-	.keyboard-input-editor__key--magic .keyboard-input-editor__key-overlay {
+	.keyboard-input-editor__key--magic .keyboard-input-editor__key-overlay,
+	.keyboard-input-editor__key--repeat .keyboard-input-editor__key-overlay {
 		color: var(--magic-key-fg);
 	}
 

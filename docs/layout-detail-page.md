@@ -152,8 +152,10 @@ small without weakening app-bar functionality.
   contextual previews. Home-key coloring defaults on, and every option in this workspace persists
   across layouts and reloads in a dedicated versioned local-storage document.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
-  trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
-  an output, then shows that next output on an accent-colored keycap. A persisted switch restores the
+  Magic trigger uses the card's Magic symbol until the current uninterrupted test-area history gives
+  it an output, then shows that next output on an accent-colored keycap. A default Repeat `@`, and
+  `@` that is only a repeat-last Magic fallback, use the Repeat symbol instead. Mapped `@` rules stay
+  Magic. A persisted switch restores the
   literal trigger characters and ordinary key styling. An unmapped conventional `*` still gets the
   neutral Magic symbol but cannot show a prospective output.
   Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both

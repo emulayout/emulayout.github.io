@@ -1,7 +1,13 @@
 import { resolveAdaptiveSwap, type AdaptiveSwapProfile } from '$lib/adaptiveSwaps';
-import { resolveMagicKeyOutput, type MagicKeyProfile } from '$lib/magicKeys';
+import { magicFallbackMappingId, magicRuleMappingId } from '$lib/inputMappingControls';
+import {
+	resolveMagicKeyOutput,
+	type CompiledMagicKeyTrigger,
+	type MagicKeyProfile
+} from '$lib/magicKeys';
+import { DEFAULT_REPEAT_KEY, resolveRepeatKeyOutput, type RepeatKeyProfile } from '$lib/repeatKeys';
 
-export type LayoutKeyboardFeedbackKind = 'magic' | 'adaptive';
+export type LayoutKeyboardFeedbackKind = 'magic' | 'adaptive' | 'repeat';
 
 export interface LayoutKeyboardKeyFeedback {
 	kind: LayoutKeyboardFeedbackKind;
@@ -12,6 +18,31 @@ export interface LayoutKeyboardKeyFeedback {
 }
 
 export type LayoutKeyboardFeedback = ReadonlyMap<string, LayoutKeyboardKeyFeedback>;
+
+/** Magic and Repeat keycaps share the special-key fill; Adaptive uses its own. */
+export function isSpecialTriggerFeedback(
+	kind: LayoutKeyboardFeedbackKind | undefined
+): kind is 'magic' | 'repeat' {
+	return kind === 'magic' || kind === 'repeat';
+}
+
+/**
+ * `@` with only repeat-last fallback is Repeat presentation. Mapped `@` rules
+ * stay Magic, as does any other trigger.
+ */
+function magicTriggerFeedbackKind(
+	trigger: string,
+	definition: CompiledMagicKeyTrigger | undefined,
+	disabled: ReadonlySet<string>
+): 'magic' | 'repeat' {
+	if (trigger !== DEFAULT_REPEAT_KEY || !definition) return 'magic';
+	if (definition.fallback?.kind !== 'repeat-last') return 'magic';
+	if (disabled.has(magicFallbackMappingId(trigger))) return 'magic';
+	const hasEnabledRule = definition.rules.some(
+		(rule) => !disabled.has(magicRuleMappingId(trigger, rule.after))
+	);
+	return hasEnabledRule ? 'magic' : 'repeat';
+}
 
 export interface LayoutKeyboardSwapPath {
 	from: string;
@@ -38,18 +69,44 @@ export function buildMagicKeyboardFeedback(
 	knownTriggers: readonly string[] = []
 ): LayoutKeyboardFeedback {
 	const feedback = new Map<string, LayoutKeyboardKeyFeedback>();
-	for (const trigger of knownTriggers) feedback.set(trigger, { kind: 'magic' });
+	const disabledMappings = new Set(disabledMappingIds);
+	for (const trigger of knownTriggers) {
+		feedback.set(trigger, {
+			kind: magicTriggerFeedbackKind(trigger, profile?.triggers[trigger], disabledMappings)
+		});
+	}
 	if (!profile) return feedback;
 
-	const disabledMappings = new Set(disabledMappingIds);
 	for (const trigger of Object.keys(profile.triggers)) {
 		const result = resolveMagicKeyOutput(profile, inputHistory, trigger, disabledMappings);
 		feedback.set(trigger, {
-			kind: 'magic',
+			kind: magicTriggerFeedbackKind(trigger, profile.triggers[trigger], disabledMappings),
 			...(result.text ? { value: result.text, active: true } : {})
 		});
 	}
 
+	return feedback;
+}
+
+/** Build the current styled-keyboard presentation for the default Repeat key. */
+export function buildRepeatKeyboardFeedback(
+	profile: RepeatKeyProfile | undefined,
+	inputHistory: string,
+	disabledMappingIds: readonly string[] = []
+): LayoutKeyboardFeedback {
+	const feedback = new Map<string, LayoutKeyboardKeyFeedback>();
+	if (!profile) return feedback;
+
+	const result = resolveRepeatKeyOutput(
+		profile,
+		inputHistory,
+		profile.trigger,
+		new Set(disabledMappingIds)
+	);
+	feedback.set(profile.trigger, {
+		kind: 'repeat',
+		...(result.matched ? { value: result.text, active: true } : {})
+	});
 	return feedback;
 }
 
@@ -133,6 +190,7 @@ export function buildAdaptiveKeyboardSwapPaths(
 export interface LayoutKeyboardFeedbackOptions {
 	magicKeys?: MagicKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
+	repeatKey?: RepeatKeyProfile;
 	inputHistory: string;
 	disabledMappingIds?: readonly string[];
 	knownMagicTriggers?: readonly string[];
@@ -141,17 +199,34 @@ export interface LayoutKeyboardFeedbackOptions {
 /**
  * Compose contextual feedback in input-resolution order. An armed Adaptive
  * swap replaces presentation for the physical key because it changes that
- * key before Magic behavior is considered.
+ * key before Magic behavior is considered. Repeat fills `@` only when Magic
+ * has not claimed that trigger as a mapped key.
  */
 export function buildLayoutKeyboardFeedback({
 	magicKeys,
 	adaptiveSwaps,
+	repeatKey,
 	inputHistory,
 	disabledMappingIds = [],
 	knownMagicTriggers = []
 }: LayoutKeyboardFeedbackOptions): LayoutKeyboardFeedback {
-	return new Map([
-		...buildMagicKeyboardFeedback(magicKeys, inputHistory, disabledMappingIds, knownMagicTriggers),
-		...buildAdaptiveKeyboardFeedback(adaptiveSwaps, inputHistory, disabledMappingIds)
-	]);
+	const feedback = new Map(
+		buildMagicKeyboardFeedback(magicKeys, inputHistory, disabledMappingIds, knownMagicTriggers)
+	);
+	for (const [key, state] of buildRepeatKeyboardFeedback(
+		repeatKey,
+		inputHistory,
+		disabledMappingIds
+	)) {
+		if (feedback.get(key)?.kind === 'magic') continue;
+		feedback.set(key, state);
+	}
+	for (const [key, state] of buildAdaptiveKeyboardFeedback(
+		adaptiveSwaps,
+		inputHistory,
+		disabledMappingIds
+	)) {
+		feedback.set(key, state);
+	}
+	return feedback;
 }

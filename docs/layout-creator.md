@@ -76,7 +76,8 @@ drafts in the browser.
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so every Edit typing tab uses the
   current keys. The same workspace options paint that editor: next-key outline, home-key coloring,
-  special-key fills and emitted values, Adaptive swap paths, and unreachable slashes. While a key
+  special-key fills and emitted values (Magic sparkles on mapped triggers, the Repeat glyph on `@`
+  when it is Repeat or repeat-last-only), Adaptive swap paths, and unreachable slashes. While a key
   field is focused, the typed value stays visible instead of the contextual overlay.
 - Preview keeps `LayoutExpandedView` in local-preview mode and shows the summary card. The card
   and right-hand tabs match the catalog show page, except stats stay unavailable, the card analyzer
@@ -90,8 +91,9 @@ drafts in the browser.
   editors were closed in Edit. The sticky bar shows **Preview** while editing, which opens this
   show-page preview, and **Edit** while previewing.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
-  own column, top-aligned with the first keyboard row. Either or both can be on. Magic adds a `*`
-  trigger (or keeps one already on the board); Adaptive sets the draft's adaptive-swap flag.
+  own column, top-aligned with the first keyboard row. Either or both can be on. Magic opens the
+  mapping editor without adding a key to the board; Adaptive sets the draft's adaptive-swap flag.
+  Typing `@` or `*` into a slot still adds that trigger and turns Magic on.
   Clicking an active button hides that editor without discarding the draft. The icon fill lights up
   when that feature is on and at least one complete mapping is enabled. Closing the editor while
   complete mappings remain tints the icon and label in the Magic or Adaptive color so the saved data
