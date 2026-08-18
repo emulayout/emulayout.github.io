@@ -7,8 +7,8 @@ import {
 /**
  * What a Magic key does when the preceding output matches no rule. Authored as
  * a keyword for the parameterless behaviors and as `{ "emit": "the" }` for
- * fixed text. Omitting it means `no-op`, which is what an uncurated Magic key
- * does; spelling `no-op` out records that an author confirmed it.
+ * fixed text. Omitting it means `no-op`; spelling `no-op` out makes that
+ * behavior explicit.
  */
 export type MagicKeyFallbackSource = 'repeat-last' | 'no-op' | { emit: string };
 

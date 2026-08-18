@@ -56,14 +56,14 @@ and calculation logic outside the renderer.
   input
   contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
   and active contextual-key styles. Home-key coloring is enabled by default.
-- Layouts with curated Magic mappings add a default-on Underline magic group option. It underlines
+- Layouts with cminiBrowser Magic mappings add a default-on Underline magic group option. It underlines
   each target substring that can be entered with a Magic key, including the preceding rule context
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
   precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
   `--magic-key-fg` for contrast against that fill. Adaptive underlines, armed Adaptive keycaps, and
   swap-path strokes use `--adaptive-key`.
-- Layouts with curated Adaptive mappings similarly add a default-off Underline adaptive group
+- Layouts with cminiBrowser Adaptive mappings similarly add a default-off Underline adaptive group
   option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
   can produce after the full contextual-input pipeline resolves.
 - The input-layout control opens a shared keyboard configuration modal. A user may seed every key,

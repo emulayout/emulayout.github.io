@@ -14,23 +14,20 @@ import { createHash } from 'node:crypto';
 import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
-import { loadLayoutSupplementalData } from './layout-data.js';
-import { validateSupplementalDataForLayouts } from './input-mapping-validation.js';
 import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
 import {
 	defaultMagicMappings,
 	hasAdaptiveSwapMappings,
 	hasMagicKeyMappings,
-	hasMagicKeyMarker,
 	hasRepeatKey
 } from './layout-features.js';
 import { CMINI_CACHE_DIR, LAYOUTS_FILE, parseOfflineForceArgs } from './sync-shared.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
+import { loadCminibrowserMagicRules } from './cminibrowser-magic-rules.js';
 
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const LIKES_FILE = 'static/layout-likes.json';
-const ADAPTIVE_LAYOUTS_FILE = 'adaptive-layouts.txt';
 const SYNCED_HEAD_FILE = join(process.cwd(), '.cache', 'cmini-synced-head');
 const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json'];
 /** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
@@ -47,30 +44,6 @@ async function resolveDefaultBranch() {
 		if (main.exitCode === 0) return 'main';
 		return 'master';
 	}
-}
-
-async function loadAdaptiveLayoutNames() {
-	const content = await readFile(ADAPTIVE_LAYOUTS_FILE, 'utf-8');
-	return new Set(
-		content
-			.split('\n')
-			.map((line) => line.trim())
-			.filter((line) => line && !line.startsWith('#'))
-	);
-}
-
-/**
- * @param {import('../src/lib/layoutSupplemental.ts').LayoutSupplemental} supplemental
- * @param {ReadonlySet<string> | undefined} staleIds
- */
-function markStaleVariants(supplemental, staleIds) {
-	if (!staleIds?.size) return supplemental;
-	return {
-		...supplemental,
-		variants: supplemental.variants.map((variant) =>
-			staleIds.has(variant.id) ? { ...variant, stale: true } : variant
-		)
-	};
 }
 
 /**
@@ -206,9 +179,17 @@ async function run() {
 			')'
 	);
 
+	console.log('→ Loading cminibrowser Magic and Adaptive mappings...');
+	const magicRules = await loadCminibrowserMagicRules({ offline, force });
+	console.log(
+		`  ✔ Input mappings for ${magicRules.supplementalByLayoutId.size} layouts` +
+			(magicRules.updated ? ' (dump updated)' : '')
+	);
+
 	if (
 		!cminiChanged &&
 		!memeFilter.updated &&
+		!magicRules.updated &&
 		skipIfUnchanged &&
 		(await pathExists(LAYOUTS_FILE)) &&
 		(await pathExists(SUPPLEMENTAL_FILE)) &&
@@ -216,14 +197,12 @@ async function run() {
 		(await pathExists('static/authors.json'))
 	) {
 		console.log(
-			`✔ cmini HEAD and meme filter unchanged (${head.slice(0, 12)}); skipping catalog rebuild`
+			`✔ cmini HEAD and cminibrowser inputs unchanged (${head.slice(0, 12)}); skipping catalog rebuild`
 		);
 		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
 		return;
 	}
-
-	const adaptiveLayoutNames = await loadAdaptiveLayoutNames();
 
 	let beforeLayouts = [];
 	try {
@@ -239,47 +218,10 @@ async function run() {
 	const cacheFiles = await readdir(cacheLayoutsDir);
 	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
 	const layoutFileSet = new Set(layoutFiles);
-	const supplementalByLayout = await loadLayoutSupplementalData();
-
-	for (const layoutName of adaptiveLayoutNames) {
-		const filename = `${layoutName}.json`;
-		if (!layoutFileSet.has(filename)) {
-			console.warn(
-				`  ⚠ Adaptive layout ${layoutName} has no matching Cmini layout file; ignoring stale presence entry`
-			);
-			continue;
-		}
-		if (isExcludedLayout(layoutName, excludedLayouts)) {
-			throw new Error(`Adaptive layout ${layoutName} is meme-filtered`);
-		}
-		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
-		if (rawLayout.name !== layoutName) {
-			throw new Error(
-				`Adaptive layout ${layoutName} matched layout named ${JSON.stringify(rawLayout.name)}`
-			);
-		}
-	}
-
-	const supplementalValidation = await validateSupplementalDataForLayouts({
-		layoutsDir: cacheLayoutsDir,
-		layoutFiles,
-		excludedLayouts,
-		supplementalByLayout,
-		allowOrphanedProfiles: true,
-		allowStaleVariants: true
-	});
-	for (const orphanedProfile of supplementalValidation.orphanedProfiles) {
+	for (const layoutId of magicRules.layoutIds) {
+		if (layoutFileSet.has(`${layoutId}.json`)) continue;
 		console.warn(
-			`  ⚠ Supplemental data ${orphanedProfile} has no matching Cmini layout file; skipping it`
-		);
-	}
-	/** @type {Map<string, Set<string>>} */
-	const staleVariantIds = new Map();
-	for (const { layoutName, variantId, missingKeys } of supplementalValidation.staleVariants) {
-		if (!staleVariantIds.has(layoutName)) staleVariantIds.set(layoutName, new Set());
-		staleVariantIds.get(layoutName).add(variantId);
-		console.warn(
-			`  ⚠ ${layoutName} variant ${variantId} references ${missingKeys.join(', ')}, no longer on the layout; marking it stale`
+			`  ⚠ cminibrowser input mappings ${layoutId} have no matching Cmini layout file; skipping them`
 		);
 	}
 
@@ -287,32 +229,34 @@ async function run() {
 	const layoutTimestamps = await buildLayoutTimestamps(CMINI_CACHE_DIR, layoutFiles);
 
 	const transformedLayouts = [];
+	const publishedSupplementalByName = new Map();
 
 	/**
 	 * @param {string} filename
 	 */
 	async function processLayoutFile(filename) {
-		const layoutName = filename.replace('.json', '');
-		if (isExcludedLayout(layoutName, excludedLayouts)) return null;
+		const layoutId = filename.replace('.json', '');
+		if (isExcludedLayout(layoutId, excludedLayouts)) return null;
 
 		const originalContent = await readFile(join(cacheLayoutsDir, filename), 'utf-8');
 		const rawLayout = JSON.parse(originalContent);
 		const transformedLayout = transformLayout(rawLayout);
-		const variants = supplementalByLayout.get(rawLayout.name)?.variants ?? [];
+		const supplemental = magicRules.supplementalByLayoutId.get(layoutId);
+		const variants = supplemental?.variants ?? [];
 		transformedLayout.updatedAt = layoutTimestamps[filename];
 		transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
-		transformedLayout.hasMagicKey =
-			hasMagicKeyMarker(rawLayout.keys) || transformedLayout.hasMagicKeyMappings;
+		transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
 		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
 		transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
 			defaultMagicMappings(variants),
 			rawLayout.keys
 		);
 		transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
-		transformedLayout.hasAdaptiveSwap =
-			adaptiveLayoutNames.has(rawLayout.name) || transformedLayout.hasAdaptiveSwapMappings;
+		transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
 
-		return encodeLayout(transformedLayout);
+		const encoded = encodeLayout(transformedLayout);
+		if (supplemental) publishedSupplementalByName.set(rawLayout.name, supplemental);
+		return encoded;
 	}
 
 	for (let i = 0; i < layoutFiles.length; i += SYNC_CONCURRENCY) {
@@ -335,13 +279,7 @@ async function run() {
 
 	const validLayoutNames = new Set(transformedLayouts.map((layout) => layout[0]));
 	const publishedSupplemental = Object.fromEntries(
-		[...supplementalByLayout.keys()]
-			.filter((name) => validLayoutNames.has(name))
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [
-				name,
-				markStaleVariants(supplementalByLayout.get(name), staleVariantIds.get(name))
-			])
+		[...publishedSupplementalByName.entries()].sort(([left], [right]) => left.localeCompare(right))
 	);
 	await writeFile(SUPPLEMENTAL_FILE, JSON.stringify(publishedSupplemental) + '\n', 'utf-8');
 	console.log(`  ✔ Catalog: ${transformedLayouts.length} layouts`);

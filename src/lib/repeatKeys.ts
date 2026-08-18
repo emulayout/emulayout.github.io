@@ -20,7 +20,7 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
 }
 
 /**
- * `@` is a repeat key by convention unless a curated magic mapping explicitly
+ * `@` is a repeat key by convention unless a Magic mapping explicitly
  * claims that trigger.
  */
 export function hasDefaultRepeatKey(rawLayoutKeys: unknown, rawMagicMappings?: unknown): boolean {

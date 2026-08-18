@@ -8,8 +8,8 @@
  * Non-interactive flags (skip the TUI):
  *   --catalog --cmini-stats --mana2-stats --cyanophage --details
  *   --all                     all of the above
- *   --force                   re-download cminibrowser dumps (stats tasks)
- *   --offline                 reuse caches; no network (catalog + dump stats)
+ *   --force                   re-download cminibrowser dumps
+ *   --offline                 reuse caches; no network
  *   --yes / -y                accept defaults without prompting
  *
  * Corpus selection belongs to the individual dump-import scripts. This wrapper
@@ -67,7 +67,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'force',
 		label: 'Force',
-		hint: 're-download cminibrowser dumps (stats tasks)'
+		hint: 're-download cminibrowser dumps'
 	},
 	{
 		value: 'offline',
@@ -76,8 +76,10 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	}
 ]);
 
-/** Targets that accept --force / --offline dump flags. */
-const DUMP_TARGETS = new Set(/** @type {SyncTarget[]} */ (['cmini-stats', 'mana2-stats']));
+/** Targets that accept --force / --offline cminibrowser dump flags. */
+const DUMP_TARGETS = new Set(
+	/** @type {SyncTarget[]} */ (['catalog', 'cmini-stats', 'mana2-stats', 'cyanophage'])
+);
 /** Targets that accept --offline for the cmini git cache. */
 const CATALOG_TARGETS = new Set(/** @type {SyncTarget[]} */ (['catalog']));
 const SYNC_OPTIONS = new Set([

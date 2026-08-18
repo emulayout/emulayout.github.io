@@ -156,7 +156,7 @@ describe('Cyanophage Magic / Repeat rewrite', () => {
 		expect(prepared!.rewrite('scape')).toBe('s*ape');
 	});
 
-	test('does not prepare a Magic rewrite without curated mappings', () => {
+	test('does not prepare a Magic rewrite without exported mappings', () => {
 		expect(prepareCyanophageContextualRewrite(undefined, { '*': { row: 1, col: 5 } })).toBeNull();
 	});
 
@@ -189,10 +189,10 @@ describe('Cyanophage Magic / Repeat rewrite', () => {
 		).toBeNull();
 	});
 
-	test('bases the mappings-required state on the default profile', () => {
+	test('bases the mappings-required state on the exported profile', () => {
 		const keys = { '*': { row: 1, col: 5 }, s: { row: 1, col: 3 } };
 
-		expect(cyanophageStatsNeedMagicMappings(undefined, keys)).toBe(true);
+		expect(cyanophageStatsNeedMagicMappings(undefined, keys)).toBe(false);
 		expect(cyanophageStatsNeedMagicMappings({ '*': { s: 'c' } }, keys)).toBe(false);
 	});
 

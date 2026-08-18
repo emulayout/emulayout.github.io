@@ -11,7 +11,7 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
 
 /**
- * Shown when a layout has a Magic key but Cyanophage stats need curated mappings
+ * Shown when a layout has a Magic key but Cyanophage cannot model its exported mappings
  * before Emulayout will measure it.
  */
 export const CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL = 'Cyanophage stats need Magic key mappings';

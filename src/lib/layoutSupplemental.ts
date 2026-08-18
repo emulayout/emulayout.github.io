@@ -1,7 +1,7 @@
 import { validateAdaptiveSwapSource, type AdaptiveSwapSource } from '$lib/adaptiveSwaps';
 import { validateMagicKeyMappings, type MagicKeyMappings } from '$lib/magicKeys';
 
-/** Bumped only when a migration of `data/layouts/*.json` is required. */
+/** Version of the generated supplemental payload consumed by the client. */
 export const LAYOUT_SUPPLEMENTAL_SCHEMA = 1;
 
 /** Variant id given to a file that declares one mapping set without `variants`. */
@@ -26,7 +26,7 @@ export interface LayoutSupplementalVariant {
 	id: string;
 	label?: string;
 	description?: string;
-	/** Author-declared: still valid, but no longer their intent for this layout. */
+	/** Source-declared: still valid, but no longer the preferred variant. */
 	outdated?: boolean;
 	/** Derived during sync: references a key the layout no longer has. */
 	stale?: boolean;
@@ -49,8 +49,7 @@ export type LayoutSupplementalByLayout = Readonly<Record<string, LayoutSupplemen
 
 export interface ValidateLayoutSupplementalOptions {
 	/**
-	 * Accept fields that sync derives rather than authors. Curated source files
-	 * are validated without this so a stray `stale` fails like any other typo.
+	 * Accept fields that may appear only in generated payloads.
 	 */
 	derived?: boolean;
 }
@@ -185,8 +184,8 @@ function validateVariants(
 }
 
 /**
- * Validate one curated `data/layouts/<layout>.json` file or its published
- * equivalent, normalizing the single-mapping-set shorthand into one variant.
+ * Validate generated supplemental data, normalizing the single-mapping-set
+ * shorthand used by sync into one variant.
  */
 export function validateLayoutSupplemental(
 	value: unknown,
@@ -233,29 +232,6 @@ export function validateLayoutSupplemental(
 		...(meta ? { meta } : {}),
 		variants
 	};
-}
-
-/**
- * Layout keys a variant needs in order to work. Magic-key preceding sequences
- * are emitted output rather than physical keys, so only triggers are required.
- * Adaptive keys are lowercased to match how the resolver compiles them.
- */
-export function variantLayoutKeys(variant: LayoutSupplementalVariant): readonly string[] {
-	const keys = new Set<string>(Object.keys(variant.magicKeys?.mappings ?? {}));
-	const adaptiveMappings = [
-		variant.adaptiveSwaps?.mappings,
-		...(variant.adaptiveSwaps?.groups ?? []).map((group) => group.mappings)
-	];
-	for (const mappings of adaptiveMappings) {
-		for (const [trigger, swaps] of Object.entries(mappings ?? {})) {
-			keys.add(trigger.toLowerCase());
-			for (const [left, right] of Object.entries(swaps)) {
-				keys.add(left.toLowerCase());
-				keys.add(right.toLowerCase());
-			}
-		}
-	}
-	return [...keys];
 }
 
 /** The variant the runtime loads by default: the first one the file lists. */

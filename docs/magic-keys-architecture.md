@@ -24,44 +24,43 @@ separate features even though both use the same contextual-input engine.
 
 The conventions are deliberately overridable:
 
-- a layout containing `*` is considered a Magic-key layout even before its mappings are curated;
-- any symbol becomes a Magic key when a curated mapping uses it as a trigger;
-- `@` is a Repeat key only when no curated Magic mapping claims `@`;
-- a curated `@` Magic mapping completely overrides default Repeat-key behavior;
-- an author who wants mapped `@` rules plus repeat fallback must explicitly set
-  `"fallback": "repeat-last"`.
+- any symbol becomes a Magic key when cminiBrowser exports it as a trigger;
+- `@` is a Repeat key when it is present on the layout and cminiBrowser provides no mapped `@`
+  rules;
+- mapped `@` rules completely override default Repeat-key behavior;
+- mapped `@` rules may still use cminiBrowser's `repeat_previous` default.
 
 This makes unconfigured `@` deterministic without preventing authors from using it as an ordinary
 Magic trigger.
 
 ## Presence and mapping metadata
 
-Compact layout metadata keeps these facts separate:
+Compact layout metadata carries these facts:
 
-- `hasMagicKey`: the layout contains `*`, or any curated variant defines a trigger;
-- `hasRepeatKey`: the layout contains `@` and the first variant does not define `@`;
-- `hasMagicKeyMappings`: any curated variant carries Magic mappings;
+- `hasMagicKey`: cminiBrowser provides a Magic profile;
+- `hasRepeatKey`: the layout contains `@` and cminiBrowser does not provide mapped `@` rules;
+- `hasMagicKeyMappings`: same source boundary as `hasMagicKey`;
 - `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage;
 - Adaptive-swap presence and mapping availability use their own flags.
 
 `hasRepeatKey` has a dedicated compact wire flag. The generated metadata, rather than the client
-inspecting `@`, is authoritative because the catalog generator has access to the curated profiles.
-This prevents a missing or invalid runtime sidecar from accidentally reclassifying an author-mapped
+inspecting `@`, is authoritative because the catalog generator has access to the canonical profile.
+This prevents a missing or invalid runtime sidecar from accidentally reclassifying a mapped
 `@` as a Repeat key.
 
 Names are never used to infer either behavior.
 
-## Curated Magic format
+## Generated Magic format
 
-Magic mappings live under `magicKeys` in the layout's supplemental file, stored by exact Cmini layout
-name:
+Magic and Adaptive mappings come exclusively from cminiBrowser's daily export:
 
 ```text
-data/layouts/<layout-name>.json
+https://cminibrowser.com/data/magic_rules_export.json
 ```
 
-See [`layout-supplemental-data.md`](./layout-supplemental-data.md) for the surrounding file,
-including metadata and mapping variants.
+See [`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md#source-adaptation) for the
+source-to-runtime conversion. The normalized client payload stores each Magic trigger under
+`magicKeys.mappings`.
 
 Inside `mappings`, each key is a Magic trigger and each rule maps preceding emitted text to the text
 emitted by the trigger:
@@ -113,21 +112,17 @@ Explicit rules take precedence over the fallback. Emitted output enters history,
 fixed text needs no history and always applies. A Magic key never types its own trigger symbol, so a
 consumed press adds nothing to history and leaves later matching undisturbed.
 
-Omitting `fallback` and writing `"no-op"` behave identically. The keyword exists so curated data can
-record that an author confirmed the behavior rather than leaving it unspecified. Because it produces
-no output, `no-op` gets no toggle in the mappings panel and cannot on its own justify a trigger: a
+Omitting `fallback` and writing `"no-op"` behave identically. Because it produces no output, `no-op`
+gets no toggle in the mappings panel and cannot on its own justify a trigger: a
 trigger needs at least one rule or an emitting fallback. A trigger whose only behavior is its
 fallback may use an empty `rules` object.
 
 The inner key is `rules` rather than `mappings` so it does not collide with the feature-level
-`mappings` wrapper. The same extended form is available for `*` or any other Magic trigger. Repeat
-fallback is never injected into a curated Magic profile implicitly.
+`mappings` wrapper. The same extended form is available for `*` or any other Magic trigger.
 
-Validation rejects malformed or empty triggers, rule sets that neither define a rule nor emit from a
-fallback, unrecognized fallback keywords or options, empty preceding sequences or outputs, and
-preceding sequences that collide after lowercase normalization. Sync also verifies that the layout
-and every configured trigger exist in Cmini. A mapped trigger is valid regardless of which symbol it
-uses.
+The importer rejects a malformed export before replacing the last good cached copy. Runtime
+validation also rejects malformed or empty triggers, unusable rule sets or fallbacks, empty contexts
+or outputs, and contexts that collide after lowercase normalization.
 
 Mana2's historical extended CLI adapter expanded `repeat-last` and single-character `{ "emit": … }`
 fallbacks into bigram rules. Emulayout no longer runs that adapter; published Mana2 stats come from
@@ -135,19 +130,19 @@ cminibrowser dumps of the base layout.
 
 ## Runtime data and compilation
 
-Sync publishes curated Magic and Adaptive mappings in:
+Sync publishes cminiBrowser Magic and Adaptive mappings in:
 
 ```text
 static/layout-supplemental.json
 ```
 
-The detail-data generation step also copies the matching layout's normalized supplemental record,
-including every variant, into its `static/layout-details/<id>.json` payload. The aggregate payload
+The detail-data generation step also copies the matching layout's normalized supplemental record
+into its `static/layout-details/<id>.json` payload. The aggregate payload
 remains authoritative for the layout index; the per-layout copy lets direct detail and Quick Find
 views avoid downloading it.
 
-Repeat keys do not need per-layout source records. The client combines the first variant of the
-optional sidecar with the authoritative compact layout metadata into one `LayoutInputProfile`:
+Repeat keys do not need per-layout source records. The client combines the optional behavior
+sidecar with authoritative compact layout metadata into one `LayoutInputProfile`:
 
 ```text
 magicKeys? + repeatKey? + adaptiveSwaps?
@@ -155,12 +150,9 @@ magicKeys? + repeatKey? + adaptiveSwaps?
 
 Magic profiles remain mapping-driven. Repeat profiles contain only the conventional `@` trigger.
 If the behavior sidecar cannot be loaded, Repeat behavior still works from compact metadata while
-curated Magic behavior is reported as unavailable.
+cminiBrowser behavior is reported as unavailable.
 
-Pull-request validation rejects mapping files without a current Cmini layout. If Cmini removes a
-layout after a mapping has merged, production sync warns and omits the orphan profile instead of
-failing deployment. If Cmini removes only a trigger a variant uses, sync publishes that variant with
-`stale` so it stays usable.
+If an exported layout ID has no current Cmini layout file, sync warns and omits that profile.
 
 ## Resolution and history
 
@@ -209,13 +201,10 @@ Magic and Adaptive behavior use the shared mappings window. Repeat toggles the e
 directly and never opens a mappings window. All three use the same borderless feature-control
 component and `on`, `off`, and `unavailable` visual language; Repeat uses only `on` and `off`.
 
-Recognized `*` markers whose mappings are unavailable remain muted and noninteractive. A layout
-containing an unmapped `*` and a default `@` therefore exposes working Repeat behavior while
-separately showing unavailable Magic behavior.
-
 Filters are also independent:
 
-- the Magic filter can require any Magic layout or only layouts with curated mappings;
+- the Magic filter retains its presence and known-mappings choices for saved-filter and wire
+  compatibility, though both resolve to the same cminiBrowser-backed set;
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
@@ -224,8 +213,8 @@ Repeat stays enabled there and has no detail-page toggle.
 
 The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
 default. While enabled, every known Magic trigger is rendered with the Magic symbol used by layout
-cards instead of its literal marker. This includes a conventional `*` whose mappings are
-unavailable. A default Repeat `@` uses the Repeat symbol from the same feature-icon set, not the
+cards instead of its literal marker. A default Repeat `@` uses the Repeat symbol from the same
+feature-icon set, not the
 Magic sparkles. `@` that is only a repeat-last Magic fallback (no enabled mapping rules) also uses
 the Repeat symbol. Mapped `@` rules stay Magic. Each typing surface resolves mapped triggers against
 its own current uninterrupted emitted history and the page's shared disabled-mapping set:
@@ -259,16 +248,15 @@ multi-character Magic emits stay preferred-only. Do not add Adaptive literal alt
 
 Cmini stats describe the base layout and do not incorporate contextual behavior.
 
-Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when the first
-curated variant has a supported Magic profile (and optionally a default Repeat key):
+Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when cminiBrowser provides a
+supported Magic profile (and optionally a default Repeat key):
 
 - corpus words are rewritten before scoring (`letter + expansion` → `letter + magic key`,
   and doubled letters → `letter + @` for Repeat);
 - only single-character preceding Magic contexts are applied; multi-character contexts and
   Emulayout fallbacks are ignored so results stay comparable to Cyanophage's Magic page;
 - profiles with multiple Magic triggers are not measured, because Cyanophage models only one;
-- a layout that contains `*` is measured only when curated Magic mappings are available;
-  otherwise Cyanophage stats stay unavailable with an explicit card explanation;
+- Magic layouts are measured when the exported profile fits Cyanophage's supported subset;
 - layouts measured this way may still be playground-incompatible for deep-links;
 - Adaptive swaps are not included.
 
@@ -279,14 +267,14 @@ Magic and Repeat profiles are not folded into published Mana2 metrics.
 
 - Magic and Repeat are separate domain concepts, metadata flags, controls, filters, and analysis
   results.
-- `*` implies Magic presence; `@` implies Repeat only when the first variant does not claim `@`.
-- Any curated trigger symbol establishes Magic behavior.
+- cminiBrowser's export is authoritative for Magic presence and behavior.
+- `@` implies Repeat only when cminiBrowser does not provide mapped `@` rules.
+- Any exported trigger symbol establishes Magic behavior.
 - Explicit `@` Magic mappings override default Repeat behavior completely.
 - Repeat fallback inside a Magic profile is always explicit.
 - A Magic trigger never types its own symbol; an unmatched press emits nothing.
 - Compact metadata is authoritative for feature classification.
-- Mapping availability spans every variant; Repeat classification follows the first variant.
-- The first variant a layout lists is the one the runtime loads; ordering carries no quality ranking.
+- Magic and Adaptive presence always include mappings because both come from the same export.
 - Matching uses uninterrupted emitted history, never text near the caret.
 - The longest matching Magic preceding sequence wins.
 - Adaptive swaps run before Magic, which runs before Repeat.
