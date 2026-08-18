@@ -8,8 +8,8 @@ AI implementation context for the dedicated page that replaces the former expand
 - A catalog card's keyboard visualization is a prominent detail link. A clean click or keyboard
   activation opens the detail page, while dragging across its characters preserves native text
   selection and does not navigate. The separate action-toolbar link remains available.
-- The detail route replaces the index content while preserving the shared app bar, including Quick
-  Find, Compare, help hints, theme controls, and the home link.
+- The detail route replaces the index content while preserving the shared app bar, including
+  Discover (current), Create, Quick Find, Compare, help hints, theme controls, and the home link.
 - Opening Compare from a detail page seeds that layout as the right-hand compare-to side and leaves
   the left picker free for choosing the comparison layout. Reset and hotkey-reset behavior is
   unchanged.
@@ -19,16 +19,18 @@ AI implementation context for the dedicated page that replaces the former expand
   `tab=feel`, or `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters,
   selections, and display state are reset while the detail route is active and cannot rewrite its
   URL. Missing, invalid, or mixed tab state is canonicalized to one valid `tab` value.
-- When a detail page was opened from the catalog, the untouched index URL is carried in history
-  state through any chain of detail-to-detail navigations (for example via Quick Find).
-  `All layouts` navigates to that URL as a new history entry, so browser Back still revisits each
-  detail page before returning to the original index view. Direct visits fall back to `/`,
-  including after Quick Find navigations that never touched the index.
+- When a detail page is opened from the catalog, the index URL — including filter, selection, and
+  display query — remains the previous history entry. Browser Back returns to that exact catalog
+  view. Detail-to-detail navigations such as Quick Find push additional entries, so Back steps
+  through each visited layout before restoring the catalog. Direct visits have no catalog history
+  entry; Back leaves the app, and Discover still goes to `/`.
 - Direct links are first-class. An unknown name renders an in-page not-found state with a route back
   to the index rather than leaving a blank page.
 - The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
   and `Stats`. The `tab` query parameter is their source of truth, including for direct links and
-  reloads; missing or invalid values default to Typing practice.
+  reloads; missing or invalid values default to Typing practice. The layout creator reuses the same
+  expanded view and `tab` query for Edit and Preview without Stats or the cminibrowser link; see
+  [`layout-creator.md`](./layout-creator.md).
 
 ## Data loading
 
@@ -87,8 +89,8 @@ small without weakening app-bar functionality.
   link remains unchanged.
 - The `Typing practice`, `Layout test area`, `Layout feel`, and `Stats` tabs sit at the top of the
   right column and control only that main content. The persistent layout card is not part of any tab
-  panel. Selecting a tab replaces the current detail history entry with its canonical query URL,
-  preserving the existing All layouts back-navigation behavior. When help hints are on, the Layout
+  panel. Selecting a tab replaces the current detail history entry with its canonical query URL, so
+  browser Back still returns to the previous page rather than earlier tabs. When help hints are on, the Layout
   feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
   practice, without adding a second focusable control inside the tablist.
 - `Typing practice` is the first and default tab. It presents ten random English 1k words or a
@@ -101,7 +103,10 @@ small without weakening app-bar functionality.
   prompt guidance, and extension boundaries.
 - `Layout feel` sits between Layout test area and Stats. It reuses Typing practice’s lesson flow,
   prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text` and
-  `special` query state is shared with Typing practice and preserved across detail tabs. Each source
+  `special` query state is shared with Typing practice and preserved across detail tabs. The live
+  source word list is also shared. Switching away from an in-progress Practice or Feel test keeps
+  the words that have not been entered correctly, appends new random words to restore a ten-word
+  lesson, and clears the timer, input, and `0/10` progress. Each source
   word is planned on the page layout first — including
   enabled Magic and Adaptive shortcuts — then each planned keystroke is remapped to the user’s
   configured input-layout label on that physical slot. Example: with input layout QWERTY on
@@ -109,7 +114,8 @@ small without weakening app-bar functionality.
   remapped prompt includes those trigger/base keystrokes instead of spelling every emitted letter.
   The remapped prompt is the typing target (identity input, no live target resolve); the original
   English words sit above it in a quieter secondary line — the active word plus a more muted preview
-  of the next word — and advance with the lesson. That source row keeps its height when the lesson
+  of the next word — and advance with the lesson. The lesson settings control sits on the remapped
+  prompt row, not the source-word line. That source row keeps its height when the lesson
   finishes so the remapped prompt does not jump. As each remapped keystroke is entered correctly,
   the corresponding source letters turn primary color. Magic and Adaptive underlines mark the
   remapped keystroke spans; next-key highlights still land on the practiced layout’s keycaps. When
@@ -146,8 +152,10 @@ small without weakening app-bar functionality.
   contextual previews. Home-key coloring defaults on, and every option in this workspace persists
   across layouts and reloads in a dedicated versioned local-storage document.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
-  trigger uses the card's Magic symbol until the current uninterrupted test-area history gives it
-  an output, then shows that next output on an accent-colored keycap. A persisted switch restores the
+  Magic trigger uses the card's Magic symbol until the current uninterrupted test-area history gives
+  it an output, then shows that next output on an accent-colored keycap. A default Repeat `@`, and
+  `@` that is only a repeat-last Magic fallback, use the Repeat symbol instead. Mapped `@` rules stay
+  Magic. A persisted switch restores the
   literal trigger characters and ordinary key styling. An unmapped conventional `*` still gets the
   neutral Magic symbol but cannot show a prospective output.
   Adaptive layouts use the same switch. After a trigger arms one or more enabled swaps, both
@@ -157,7 +165,8 @@ small without weakening app-bar functionality.
   independently of the label preview and disappear with the same history and mapping resets.
   Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
   seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
-  Thumb keys remain on their assigned left or right half in either geometry. Ortho thumbs align
+  Thumb keys remain on their assigned left or right half in either geometry, even when both
+  hands emit the same character. Ortho thumbs align
   below their hand's index-finger column; angle and stagger thumbs align between their hand's
   adjacent bottom-row index positions. Both follow the card's anglemod state.
 - `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison
@@ -176,8 +185,8 @@ small without weakening app-bar functionality.
   current disabled mappings. A no-op Magic trigger has no active background, while each armed
   Adaptive swap colors both affected keys and optionally connects them. Resetting emulator history
   immediately restores the base keyboard state and removes every connector.
-- Detail pages use normal document scrolling at every viewport width. The All layouts header,
-  summary card, and active detail panel all move together with the page.
+- Detail pages use normal document scrolling at every viewport width. The summary card and active
+  detail panel all move together with the page.
 
 ## Code map
 
@@ -193,9 +202,12 @@ small without weakening app-bar functionality.
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content, external links, corpus selector, and analyzer controls:
-  `src/lib/components/LayoutExpandedView.svelte`, `src/lib/cminibrowser.ts`,
+  `src/lib/components/LayoutExpandedView.svelte` (`localPreview`, `hideSummary`, `compactPractice`,
+  and Edit keyboard snippets for the creator),
+  `src/lib/cminibrowser.ts`,
   `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,
+  `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`,
   `src/lib/components/LayoutTypingPractice.svelte`, `src/lib/components/LayoutTestArea.svelte`
 - Layout-feel session UI and physical-key remapping: `src/lib/components/LayoutFeel.svelte`,
   `src/lib/layoutFeel.ts`
@@ -239,7 +251,9 @@ small without weakening app-bar functionality.
   links) dismisses the modal. Cmd/Ctrl+Enter in the search field and Cmd/Ctrl+click on a result
   open the layout's show page in a new tab and keep Quick Find open on the current page.
 - Index URL state never appears in a detail URL or persists in the filter store while a detail route
-  is active. History state, rather than copied query parameters, restores the index state.
+  is active. Entering Discover through SPA navigation, including creator preview links, hydrates
+  the filter store from that index URL. Browser Back returns to the previous history entry,
+  including the index URL with its filter query, and popstate hydrates it the same way.
 - Navigating between index and detail pages never hides or disables app-bar features.
 - Detail routes never create a viewport-height internal vertical scroll container; the document
   owns vertical scrolling at every breakpoint.

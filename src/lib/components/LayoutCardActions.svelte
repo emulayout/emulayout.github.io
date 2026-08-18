@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
-	import { layoutDetailNavigationState, layoutDetailPageHref } from '$lib/layoutDetailTabs';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 
 	interface Props {
 		markFirstAction: boolean;
@@ -71,10 +70,7 @@
 		event.preventDefault();
 		// The route is resolved before layoutDetailPageHref appends its canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		void goto(layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName })), {
-			// window.location includes shallow-routed filter state that page.url may lack.
-			state: layoutDetailNavigationState(page.state, page.route.id, window.location)
-		});
+		void goto(layoutDetailPageHref(resolve(expandTarget, { name: expandLayoutName })));
 	}
 </script>
 
@@ -264,10 +260,9 @@
 		line-height: 1.25rem;
 		cursor: pointer;
 		text-decoration: none;
-		color: var(--text-primary);
-		background-color: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
-		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-		box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 8%, transparent);
+		color: var(--text-secondary);
+		background-color: var(--bg-primary);
+		border: 1px solid var(--border);
 		transition:
 			background-color 0.12s ease,
 			border-color 0.12s ease,
@@ -277,16 +272,16 @@
 	}
 
 	.card-action-button:hover:not(:disabled) {
-		color: var(--accent);
-		background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-primary));
-		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
+		border-color: var(--border);
 	}
 
 	.card-action-button:active:not(:disabled) {
 		transform: translateY(1px);
 		box-shadow: none;
-		background-color: color-mix(in srgb, var(--accent) 26%, var(--bg-primary));
-		border-color: var(--accent);
+		background-color: color-mix(in srgb, var(--text-primary) 12%, var(--bg-primary));
+		border-color: var(--border);
 	}
 
 	.card-action-button:focus-visible {
@@ -301,14 +296,14 @@
 	}
 
 	.card-action-button--accent {
-		color: white;
+		color: var(--accent-fg);
 		background-color: var(--accent);
 		border-color: var(--accent);
 		box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 18%, transparent);
 	}
 
 	.card-action-button--accent:hover:not(:disabled) {
-		color: white;
+		color: var(--accent-fg);
 		background-color: color-mix(in srgb, var(--accent) 88%, black);
 		border-color: color-mix(in srgb, var(--accent) 88%, black);
 	}

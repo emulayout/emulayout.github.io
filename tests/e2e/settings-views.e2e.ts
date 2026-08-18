@@ -43,7 +43,7 @@ test('selectively exports and replaces custom views from pasted backup text', as
 
 	await dialog.getByRole('tab', { name: 'Import views' }).click();
 	const importPanel = dialog.getByRole('tabpanel', { name: 'Import views' });
-	await expect(importPanel.locator('.views-file-button svg')).toHaveCount(1);
+	await expect(importPanel.locator('.backup-file-button svg')).toHaveCount(1);
 	const incomingBackup = {
 		version: 1,
 		filters: [backupView('new-one', 'New one'), backupView('new-two', 'New two')]

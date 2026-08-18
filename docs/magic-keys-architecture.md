@@ -223,14 +223,18 @@ The layout detail page shows Magic and Adaptive mapping controls in the active t
 Repeat stays enabled there and has no detail-page toggle.
 
 The detail page's styled keyboard provides an optional prospective Magic preview, enabled by
-default. While enabled, every known trigger is rendered with the same Magic symbol used by layout
+default. While enabled, every known Magic trigger is rendered with the Magic symbol used by layout
 cards instead of its literal marker. This includes a conventional `*` whose mappings are
-unavailable. Each typing surface resolves mapped triggers against its own current uninterrupted
-emitted history and the page's shared disabled-mapping set:
+unavailable. A default Repeat `@` uses the Repeat symbol from the same feature-icon set, not the
+Magic sparkles. `@` that is only a repeat-last Magic fallback (no enabled mapping rules) also uses
+the Repeat symbol. Mapped `@` rules stay Magic. Each typing surface resolves mapped triggers against
+its own current uninterrupted emitted history and the page's shared disabled-mapping set:
 
 - Magic triggers use the `--magic-key` fill with `--magic-key-fg` glyph or label color;
+- Repeat keys use the same fill with the Repeat glyph until they can emit;
+- Adaptive armed keys use the `--adaptive-key` fill; swap-path strokes use the same token;
 - when pressing the trigger would emit a value, the keycap displays that value;
-- when no rule or emitting fallback applies, the Magic symbol remains on the keycap;
+- when no rule or emitting fallback applies, the Magic or Repeat symbol remains on the keycap;
 - turning the Layout test area preview off restores literal trigger characters and ordinary key
   styling; Typing practice and Layout feel suppress this feedback when Show special keys is off.
 

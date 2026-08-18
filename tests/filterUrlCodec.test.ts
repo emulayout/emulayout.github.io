@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	authorFilterIndexSearch,
 	decodeViewFilterSnapshot,
 	encodeViewFilterSnapshot,
 	parseStatLimitsParam,
@@ -236,6 +237,10 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.sortBy).toBe('similarity');
 		expect(decoded.snapshot.similarityMirrorMode).toBe('excluded');
 		expect(decoded.sourceLayoutNames).toBeNull();
+	});
+
+	test('encodes a Discover query for one catalog author', () => {
+		expect(authorFilterIndexSearch(42)).toBe('authors=42');
 	});
 });
 

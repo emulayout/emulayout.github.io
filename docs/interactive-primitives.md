@@ -23,7 +23,7 @@ retain domain-specific markup and styling.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
   dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
   focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
-  title and close-button chrome.
+  title and close-button chrome. Confirmation dialogs may omit the header divider.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
   Escape dismissal, and body portal placement. Help triggers normally follow the global hint
   preference; a consumer may keep essential interaction guidance available with `alwaysVisible`.
@@ -53,11 +53,15 @@ panel. Tabs use automatic activation: moving focus with an arrow also selects th
 Use `SegmentedControl` for mutually exclusive settings that change presentation or select a mode
 without a tabpanel. It uses radiogroup/radio semantics. Both primitives leave the selected option as
 the sole Tab stop and fall back to the first option if persisted runtime state is invalid.
+`AnalyzerTabs` and `StatsDisplayTabs` are toolbar-styled consumers.
 
 The Settings modal uses `Tabs` to switch among its Display settings, Import views, and Export views
 panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
 consistent as the panel content changes. A successful view import resets the import form, restores
 focus to the backup text field, and announces completion in a short-lived polite-status snackbar.
+The layout creator backup gear opens a smaller modal built from the same shared import/export panels
+and selection list. Its tabs are Export layouts and Import layouts; it opens on Export, restores
+focus to the gear on close, and uses the same post-import focus and snackbar behavior.
 
 The layout detail page uses `Tabs` for its Typing practice, Layout test area, Layout feel, and Stats
 panels. Its canonical `tab` query parameter owns the selected value across direct links, reloads,
@@ -65,6 +69,19 @@ clicks, and automatic keyboard activation; Typing practice is the fallback for m
 values. The panels use layout-specific ids so their tab relationships remain unique for every route.
 When help hints are on, Layout feel paints a decorative `?` on its tab and uses the tab’s `title`
 for the short explanation; do not put a focusable `Tooltip` button inside the tablist.
+
+The layout creator uses the same `Tabs` primitive as the index layout-view bar: an unsaved canvas
+tab, labeled with the draft name, plus a tab for each saved layout. Saved tabs reuse the view-tab
+delete pattern: a pointer X and Delete/Backspace open a confirmation modal. When saved layouts
+exist, a `+ New layout` button sits outside the tablist on the far side of that bar. Those tabs
+reveal the creator canvas rather than detail sections. Inside that canvas, Edit and Preview reuse
+the layout-detail section tabs (Typing practice, Layout test area, Layout feel) without a Stats
+tab. Their selection uses the same shareable `tab` query as layout detail pages. See
+[`layout-creator.md`](./layout-creator.md).
+Switching saved layouts or starting a new canvas while the current layout has unsaved content opens
+a `ModalShell` confirmation. Cancel restores focus to the still-selected tab; confirming discards
+the draft and focuses the newly selected tab. Preview/Edit and detail-tab changes are view state and
+do not trigger this confirmation.
 
 Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
@@ -79,13 +96,40 @@ select the nearest key in the adjacent row, and entering one printable key advan
 field. The modal validates a unique effective source-key map before Save and restores focus to its
 trigger on every dismissal path.
 
+The layout creator replaces the practice keyboard preview with that same key editor, plus the
+base-layout autocomplete and keyboard-type control, in the keyboard slot. It hides QWERTY
+placeholders and does not require unique assigned values, so a draft may keep any number of
+letters, including repeats. Empty slots are dropped from the live draft. The editor still
+receives the workspace option presentation (next-key, home-key coloring, special-key feedback,
+swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
+for the presentation-only keyboard; **Edit** restores it.
+
+The creator's **Import** button beside Base layout opens a `ModalShell` with a multiline key-grid
+field. The field receives initial focus. Import applies the parsed grid to the creator draft,
+closes the modal, and restores focus to the trigger; Cancel, Close, Escape, and backdrop dismissal
+make no changes and restore the same focus. Grid parsing stays in `keyboardInputConfig.ts`, not in
+the modal or editor component.
+
+`TextAutocomplete` owns the shared string combobox, listbox, loading, clear, focus, and keyboard
+behavior. `LayoutAutocomplete` and `AuthorAutocomplete` are domain adapters that supply their
+option data, copy, and selection policy rather than forking that interaction code.
+
 `LayoutAutocomplete` exposes its listbox affordance with a focusable trailing chevron. Its first
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
-that default list. Selection closes the list but retains input focus. Consumers that supply
+that default list. Consumers may place known catalog layouts before the alphabetical remainder;
+both Base layout fields use this to keep QWERTY readily available. Selection closes the list but
+retains input focus. Escape or leaving the field without a catalog pick restores the committed
+layout name. Consumers that supply
 `onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
 optional loading state renders an accessible spinner in the trailing field controls without adding
 content below the field or changing the consumer's layout.
+
+`AuthorAutocomplete` uses that same combobox, chevron, clear, and loading pattern over catalog
+author names. Typing or choosing a listed name commits it, and a name that is not in the catalog
+stays as freeform text on blur and Enter. Escape restores the value from when the field was
+focused. The layout creator Preview presents the author as plain text, including when it matches a
+catalog author.
 
 ## Invariants
 

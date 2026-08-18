@@ -6,6 +6,7 @@ import {
 	collectReachableTargetCharacters,
 	filterWordsByReachableCharacters,
 	typingPracticeWordsForReachability,
+	unreachableKeysKey,
 	unreachableLayoutKeyTitle,
 	unreachableTargetLayoutKeys
 } from '$lib/layoutKeyReachability';
@@ -68,6 +69,11 @@ describe('layout key reachability', () => {
 			'rare',
 			'error'
 		]);
+	});
+
+	test('treats equivalent unreachable-key sets as the same lesson key', () => {
+		expect(unreachableKeysKey(new Set(['r', 'e']))).toBe(unreachableKeysKey(['e', 'r']));
+		expect(unreachableKeysKey(new Set(['r']))).not.toBe(unreachableKeysKey(new Set(['e'])));
 	});
 
 	test('adds a Simulate thumb keys hint for unreachable thumbs', () => {

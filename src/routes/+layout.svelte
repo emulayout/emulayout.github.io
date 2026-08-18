@@ -5,15 +5,14 @@
 	import { page } from '$app/state';
 	import CompareLayoutsModal from '$lib/components/CompareLayoutsModal.svelte';
 	import QuickFindModal from '$lib/components/QuickFindModal.svelte';
-	import { LAYOUT_SPLIT_MIN_WIDTH, TAILWIND_BREAKPOINTS } from '$lib/constants';
 	import { trackGoatCounterEvent, trackGoatCounterPageview } from '$lib/goatcounter';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import { hasOpenModal } from '$lib/modalScrollLock';
+	import { CREATOR_EDIT_PARAM } from '$lib/layoutCreatorUrl';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { onMount } from 'svelte';
-	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children } = $props();
 
@@ -32,10 +31,13 @@
 	/** Detail-page layout to seed as the compare-to side, when opened from a detail route. */
 	let compareSeedName = $state<string | null>(null);
 	let compareSession = $state(0);
-	let debugEnabled = $state(false);
 
 	const layouts = $derived(layoutsCatalog.layouts);
-	const usesDocumentScroll = $derived(page.route.id === '/layouts/[name]');
+	const usesDocumentScroll = $derived(
+		page.route.id === '/layouts/[name]' || page.route.id === '/create'
+	);
+	const onDiscoverPage = $derived(page.route.id === '/' || page.route.id === '/layouts/[name]');
+	const onCreatePage = $derived(page.route.id === '/create');
 	const authorsData = $derived(layoutsCatalog.authorsData);
 	const statsMaps = $derived(layoutStatsStore.maps);
 	const authorById = $derived(
@@ -46,39 +48,12 @@
 		return authorById.get(userId) ?? 'Unknown';
 	}
 
-	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
-	const mdUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.md}px)`);
-	const lgUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.lg}px)`);
-	const xlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.xl}px)`);
-	const xxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['2xl']}px)`);
-	const xxxlUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS['3xl']}px)`);
-
-	const debugBreakpoint = $derived.by(() => {
-		if (!debugEnabled) return '';
-		if (xxxlUp.current) return `3xl (≥${TAILWIND_BREAKPOINTS['3xl']})`;
-		if (xxlUp.current) return `2xl (≥${TAILWIND_BREAKPOINTS['2xl']})`;
-		if (xlUp.current) return `xl (≥${TAILWIND_BREAKPOINTS.xl})`;
-		if (lgUp.current) return `lg (≥${TAILWIND_BREAKPOINTS.lg})`;
-		if (mdUp.current) return `md (≥${TAILWIND_BREAKPOINTS.md})`;
-		if (smUp.current) return `sm (≥${TAILWIND_BREAKPOINTS.sm})`;
-		return `<sm (<${TAILWIND_BREAKPOINTS.sm})`;
-	});
-
-	const debugLayoutMode = $derived(
-		!debugEnabled
-			? ''
-			: mdUp.current
-				? `split (≥${LAYOUT_SPLIT_MIN_WIDTH})`
-				: `stack (<${LAYOUT_SPLIT_MIN_WIDTH})`
-	);
-
 	const dark = $derived.by(() => {
 		return themeMode === 'dark' || (themeMode === 'system' && systemPrefersDark);
 	});
 
 	// Initialize theme mode and follow OS changes while in system mode.
 	onMount(() => {
-		debugEnabled = localStorage.getItem('debug') === 'true';
 		uiPrefs.hydrate();
 		keyboardInputStore.hydrate();
 
@@ -211,46 +186,67 @@
 </svelte:head>
 
 <div class="app-shell" class:app-shell--document-scroll={usesDocumentScroll}>
-	<header class="app-header px-3 py-3 md:px-6">
-		<div class="flex w-full items-center justify-between gap-3">
-			<div class="flex min-w-0 items-center gap-3">
+	<header class="app-header px-3 md:px-6">
+		<div class="flex h-full w-full items-center justify-between gap-3">
+			<div class="flex h-full min-w-0 items-center gap-6">
 				<a
 					href={resolve('/')}
 					data-sveltekit-reload
-					class="flex min-w-0 items-center gap-3 no-underline hover:opacity-90 transition-opacity"
+					class="flex items-center gap-3 no-underline hover:opacity-90 transition-opacity"
+					aria-label="Emulayout"
 				>
 					<img src="/keycap.png" alt="" width="71" height="72" class="shrink-0 h-8 w-auto" />
-					<h1
-						class="truncate text-3xl font-bold tracking-tight"
-						style="color: var(--text-primary);"
-					>
-						Emulayout
-					</h1>
+					<h1 class="app-header-title text-2xl font-bold tracking-tight">Emulayout</h1>
 				</a>
-				{#if debugEnabled}
-					<span
-						class="shrink-0 font-mono text-xs"
-						style="color: var(--text-caption);"
-						title="Temporary layout debug label"
+				<nav class="app-header-nav" aria-label="Primary">
+					<a
+						href={resolve('/')}
+						class="app-header-nav-link"
+						aria-current={onDiscoverPage ? 'page' : undefined}
 					>
-						{debugBreakpoint} · {debugLayoutMode}
-					</span>
-				{/if}
+						Discover
+					</a>
+					<a
+						href="{resolve('/create')}?{CREATOR_EDIT_PARAM}=1"
+						class="app-header-nav-link"
+						aria-current={onCreatePage ? 'page' : undefined}
+					>
+						Create
+					</a>
+				</nav>
 			</div>
-			<div class="flex shrink-0 justify-end gap-2">
+			<div class="app-header-actions">
+				<button
+					type="button"
+					onclick={openQuickFind}
+					class="app-header-search"
+					aria-label="Quick find layouts"
+					title="Quick find (⌘K / Ctrl+K)"
+				>
+					<svg
+						class="app-header-search-icon"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+					</svg>
+					<span class="app-header-search-label">Search layouts</span>
+					<kbd class="app-header-search-shortcut" aria-hidden="true">⌘/Ctrl K</kbd>
+				</button>
+				<span class="app-header-actions-divider" aria-hidden="true"></span>
 				<button
 					type="button"
 					onclick={() => uiPrefs.toggleHints()}
-					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-					class:app-header-toggle--on={uiPrefs.hintsEnabled}
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					class="app-header-icon"
+					class:app-header-icon--on={uiPrefs.hintsEnabled}
 					aria-label={hintsButtonLabel}
 					aria-pressed={uiPrefs.hintsEnabled}
 					title={hintsButtonLabel}
 				>
 					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary);"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -265,15 +261,13 @@
 					</svg>
 				</button>
 				<button
+					type="button"
 					onclick={openCompare}
-					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					class="app-header-icon"
 					aria-label="Compare layouts"
 					title="Compare layouts (⌘⇧K / Ctrl+Shift+K)"
 				>
 					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary);"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -286,58 +280,33 @@
 						<rect x="14" y="3" width="7" height="18" rx="1" />
 					</svg>
 				</button>
-				<button
-					onclick={openQuickFind}
-					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
-					aria-label="Quick find layouts"
-					title="Quick find (⌘K / Ctrl+K)"
-				>
-					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary);"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-					</svg>
-				</button>
 				<a
 					href="https://github.com/emulayout/emulayout.github.io"
 					target="_blank"
 					rel="noopener noreferrer"
-					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					class="app-header-icon"
 					aria-label="Emulayout on GitHub"
 					title="Emulayout on GitHub"
 				>
-					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary);"
-						viewBox="0 0 24 24"
-						fill="currentColor"
-						aria-hidden="true"
-					>
+					<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 						<path
 							d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"
 						/>
 					</svg>
 				</a>
 				<button
+					type="button"
 					onclick={toggleTheme}
-					class="group relative size-10 rounded-full transition-all duration-300 hover:scale-110"
-					style="background-color: var(--bg-secondary); border: 1px solid var(--border);"
+					class="app-header-icon app-header-icon--theme"
 					aria-label={themeButtonLabel}
 					title={themeButtonLabel}
 				>
-					<!-- System / auto icon -->
 					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary); opacity: {themeMode === 'system'
+						class="app-header-theme-icon"
+						style="opacity: {themeMode === 'system' ? 1 : 0}; transform: scale({themeMode ===
+						'system'
 							? 1
-							: 0}; transform: scale({themeMode === 'system' ? 1 : 0.5});"
+							: 0.5});"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -347,15 +316,12 @@
 						<rect x="2" y="3" width="20" height="14" rx="2" />
 						<path d="M8 21h8M12 17v4" />
 					</svg>
-					<!-- Sun icon -->
 					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary); opacity: {themeMode === 'light'
-							? 1
-							: 0}; transform: rotate({themeMode === 'light' ? 0 : -90}deg) scale({themeMode ===
+						class="app-header-theme-icon"
+						style="opacity: {themeMode === 'light' ? 1 : 0}; transform: rotate({themeMode ===
 						'light'
-							? 1
-							: 0.5});"
+							? 0
+							: -90}deg) scale({themeMode === 'light' ? 1 : 0.5});"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -367,15 +333,11 @@
 							d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
 						/>
 					</svg>
-					<!-- Moon icon -->
 					<svg
-						class="absolute inset-0 m-auto size-5 transition-all duration-300"
-						style="color: var(--text-primary); opacity: {themeMode === 'dark'
-							? 1
-							: 0}; transform: rotate({themeMode === 'dark' ? 0 : 90}deg) scale({themeMode ===
-						'dark'
-							? 1
-							: 0.5});"
+						class="app-header-theme-icon"
+						style="opacity: {themeMode === 'dark' ? 1 : 0}; transform: rotate({themeMode === 'dark'
+							? 0
+							: 90}deg) scale({themeMode === 'dark' ? 1 : 0.5});"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -419,17 +381,213 @@
 	.app-header {
 		position: relative;
 		z-index: 20;
-		background-color: var(--bg-primary);
-		box-shadow: var(--app-bar-shadow-color) 0px -4px 20px 7px;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		width: 100%;
+		height: var(--app-chrome-height);
+		background-color: var(--app-bar-bg);
+		border-bottom: 1px solid var(--border);
 		margin-bottom: 0.5rem;
 	}
 
-	.app-header-toggle--on {
-		border-color: var(--accent) !important;
-		background-color: color-mix(in srgb, var(--accent) 16%, var(--bg-secondary)) !important;
+	.app-header-title {
+		margin: 0;
+		color: var(--text-primary);
 	}
 
-	/* Keep the index split view within the viewport; detail routes use document scrolling. */
+	@media (max-width: 767px) {
+		.app-header-title {
+			display: none;
+		}
+	}
+
+	.app-header-actions {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+		gap: 0.125rem;
+	}
+
+	.app-header-search {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		box-sizing: border-box;
+		width: 14.5rem;
+		height: 2.25rem;
+		padding: 0 0.35rem 0 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 9999px;
+		background-color: color-mix(in srgb, var(--text-primary) 6%, var(--app-bar-bg));
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.app-header-search:hover {
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 10%, var(--app-bar-bg));
+	}
+
+	.app-header-search:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.app-header-search-icon {
+		flex-shrink: 0;
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.app-header-search-label {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.25;
+		text-align: left;
+		white-space: nowrap;
+	}
+
+	.app-header-search-shortcut {
+		flex-shrink: 0;
+		padding: 0.125rem 0.4rem;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		background-color: color-mix(in srgb, var(--app-bar-bg) 70%, transparent);
+		color: inherit;
+		font-family: inherit;
+		font-size: 0.6875rem;
+		font-weight: 500;
+		line-height: 1.2;
+	}
+
+	.app-header-actions-divider {
+		width: 1px;
+		height: 1.25rem;
+		margin-inline: 0.75rem 0.375rem;
+		background-color: var(--border);
+	}
+
+	.app-header-icon {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		padding: 0;
+		border: 0;
+		border-radius: 9999px;
+		background-color: transparent;
+		color: var(--text-secondary);
+		cursor: pointer;
+		text-decoration: none;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease;
+	}
+
+	.app-header-icon svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+
+	.app-header-icon:hover {
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 12%, var(--app-bar-bg));
+	}
+
+	.app-header-icon:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.app-header-icon--on {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 16%, var(--app-bar-bg));
+	}
+
+	.app-header-icon--on:hover {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 22%, var(--app-bar-bg));
+	}
+
+	.app-header-icon--theme .app-header-theme-icon {
+		position: absolute;
+		inset: 0;
+		margin: auto;
+		transition:
+			opacity 0.3s ease,
+			transform 0.3s ease;
+	}
+
+	@media (max-width: 767px) {
+		.app-header-search {
+			width: 2.25rem;
+			padding: 0;
+			justify-content: center;
+		}
+
+		.app-header-search-label,
+		.app-header-search-shortcut {
+			display: none;
+		}
+	}
+
+	.app-header-nav {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.app-header-nav-link {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		background-color: transparent;
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.25;
+		text-decoration: none;
+		white-space: nowrap;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease;
+	}
+
+	.app-header-nav-link:hover {
+		color: var(--text-primary);
+		background-color: color-mix(in srgb, var(--text-primary) 12%, var(--app-bar-bg));
+	}
+
+	.app-header-nav-link:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.app-header-nav-link[aria-current='page'] {
+		color: var(--accent);
+		font-weight: 600;
+		background-color: color-mix(in srgb, var(--accent) 16%, var(--app-bar-bg));
+	}
+
+	.app-header-nav-link[aria-current='page']:hover {
+		color: var(--accent);
+		background-color: color-mix(in srgb, var(--accent) 22%, var(--app-bar-bg));
+	}
+
+	/* Keep the index split view within the viewport; detail and creator routes use document scrolling. */
 	@media (min-width: 768px) {
 		.app-shell:not(.app-shell--document-scroll) {
 			height: 100dvh;

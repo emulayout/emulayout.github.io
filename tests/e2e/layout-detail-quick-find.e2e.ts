@@ -158,14 +158,6 @@ test('returns to the preserved index view after Quick Find detail-to-detail navi
 	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
 	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 
-	await page.getByRole('link', { name: 'All layouts' }).click();
-
-	await expect(page).toHaveURL(indexUrl);
-	await expect(colemakSelection).toBeChecked();
-
-	// All layouts pushed a history entry, so Back revisits each detail page.
-	await page.goBack();
-	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 	await page.goBack();
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
 	await page.goBack();
@@ -173,7 +165,7 @@ test('returns to the preserved index view after Quick Find detail-to-detail navi
 	await expect(colemakSelection).toBeChecked();
 });
 
-test('links to the plain index after Quick Find navigation from a direct detail visit', async ({
+test('browser Back returns to the previous detail page after Quick Find from a direct visit', async ({
 	page
 }) => {
 	await page.goto('/layouts/QWERTY');
@@ -186,9 +178,8 @@ test('links to the plain index after Quick Find navigation from a direct detail 
 	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
 	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 
-	await page.getByRole('link', { name: 'All layouts' }).click();
-
-	await expect(page).toHaveURL('/');
+	await page.goBack();
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
 });
 
 test('dismisses Quick Find when opening layout details from the preview', async ({ page }) => {

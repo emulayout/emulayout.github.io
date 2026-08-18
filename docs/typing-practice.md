@@ -7,7 +7,12 @@ and calculation logic outside the renderer.
 
 ## Product model
 
-- `Typing practice` is the first and default layout-detail tab.
+- `Typing practice` is the first and default layout-detail tab. The layout creator reuses the same
+  practice workspace, including Practice lesson settings for custom `text` and the `special`
+  Magic/Adaptive word balance. Creator Edit and Preview share the show-page tabs for Typing
+  practice, Layout test area, and Layout feel; free typing lives on Layout test area. In Edit the
+  key editor stays on every tab so the live draft can be tested in any mode. Do not send
+  typed test-area text to analytics. Catalog layout detail pages remain practice-only on this tab.
 - Without custom text, each new lesson samples ten distinct words from the vendored English 1k
   list. The first remaining word is the active target.
   Random lessons also skip words that need a practiced-layout character with no physical mapping
@@ -31,8 +36,12 @@ and calculation logic outside the renderer.
   successful advance removes that word from the prompt, clears the field and contextual-input
   history, and increments progress. A premature space remains in the input and counts as an
   incorrect attempt without changing the rendered prompt text.
-- The prompt and input use the same monospace typography. The prompt stays on one clipped line;
-  words beyond the available width are hidden rather than wrapped.
+- The prompt and input use the same monospace typography and span the full panel width, matching
+  Layout feel and Layout test area. The prompt stays on one clipped line; words beyond that width
+  are hidden rather than wrapped. Creator Edit matches the section tabs, prompt, and input to
+  the key-editor workspace width. Creator Edit also passes `compact` so Practice and Feel shrink the prompt,
+  field, and score stats; Preview and catalog show pages keep the default large scale. Edit also
+  shrinks Layout test area free typing to 130px.
 - The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
   lesson with ten newly sampled words that exclude every word from the previous lesson. For a
   custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
@@ -41,8 +50,10 @@ and calculation logic outside the renderer.
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
 - The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
   switches below the keyboard can highlight the next valid key, color the eight resting home keys,
-  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. Next-key
-  guidance respects shifted and contextual input output and is withheld while the current input
+  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. The
+  layout creator Edit keyboard receives the same option presentation as the preview keyboard.
+  Next-key guidance respects shifted and contextual input output and is withheld while the current
+  input
   contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
   and active contextual-key styles. Home-key coloring is enabled by default.
 - Layouts with curated Magic mappings add a default-on Underline magic group option. It underlines
@@ -50,7 +61,8 @@ and calculation logic outside the renderer.
   and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
   letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
   precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
-  `--magic-key-fg` for contrast against that fill.
+  `--magic-key-fg` for contrast against that fill. Adaptive underlines, armed Adaptive keycaps, and
+  swap-path strokes use `--adaptive-key`.
 - Layouts with curated Adaptive mappings similarly add a default-off Underline adaptive group
   option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
   can produce after the full contextual-input pipeline resolves.
@@ -82,7 +94,10 @@ and calculation logic outside the renderer.
   stays centered. At intermediate widths the mappings column narrows and presents one mapping per
   line. The keyboard derives its intrinsic width from the current board's actual row geometry and
   retains full-size keys until that board no longer fits beside the mappings or within the stacked
-  region; only then does it scale down. Regions without room for both columns place that compact
+  region; only then does it scale down. Sparse boards still include the 10 keys on each letter row
+  and empty keycaps for gaps between assigned letters, so a one-key creator preview keeps that
+  width.
+  Regions without room for both columns place that compact
   mappings panel beneath the keyboard and expand it to the full width of the shared keyboard area.
   At phone widths the keys and gaps continue scaling with the practice region, keeping the full
   keyboard inside the detail column instead of widening the page.
@@ -95,15 +110,22 @@ and calculation logic outside the renderer.
   elapsed time.
 - The completed prompt reads `Press esc to restart` and Escape immediately starts the next lesson.
 - A trailing pencil button on random prompts opens the shared modal shell with the displayed lesson
-  ready to edit. Saving normalized nonempty text writes it to the URL and starts that custom lesson.
+  ready to edit. On Layout feel it sits on the remapped prompt row, not the quieter source-word
+  line. Saving normalized nonempty text writes it to the URL and starts that custom lesson.
   Custom prompts replace the pencil with a trailing clear button; clearing removes `text` from the
   URL and returns to a random ten-word lesson.
 - Keyboard display options persist across layouts and reloads in the versioned
   `typingPracticeDisplayOptions` local-storage document. Lesson state remains page-session-only;
-  navigating away or reloading starts a new random lesson. Layout feel reuses this same document
-  (including Feel-only `ignoreWrongKeyPresses`) and the same shareable `text` / `special` lesson
-  query. See [`layout-detail-page.md`](./layout-detail-page.md) for Feel’s remapped matching model;
-  do not treat Feel as a second live-resolve practice field.
+  navigating away or reloading starts a new random lesson. Typing practice and Layout feel share
+  that page-session lesson. Switching away from an in-progress Practice or Feel test clears the
+  timer, input, and progress, keeps every word that has not been entered correctly, and — for a
+  random lesson — appends newly sampled words so the lesson is ten words again (`0/10`). An
+  untouched lesson is left as-is so unused random text does not reshuffle. Custom `text` lessons
+  keep their leftover words (or restore the full custom text when none remain) and do not add
+  random words. Layout feel also reuses this same display-options document (including Feel-only
+  `ignoreWrongKeyPresses`) and the same shareable `text` / `special` lesson query. See
+  [`layout-detail-page.md`](./layout-detail-page.md) for Feel’s remapped matching model; do not
+  treat Feel as a second live-resolve practice field.
 
 ## State and input boundaries
 
@@ -114,9 +136,11 @@ per-character feedback. Random selection accepts an injectable source for determ
 session and prompt derivation do not read the clock, touch browser state, or depend on Svelte.
 
 `src/lib/typingPracticeMetrics.ts` owns pure attempt counting, elapsed-time formatting, and result
-calculation. `LayoutTypingPractice.svelte` owns the page-session timestamps and interval, starts the
-clock on the first recorded attempt, and freezes it at completion. Keeping wall-clock state out of
-the session model lets timing and result formulas remain deterministic in unit tests.
+calculation. `SharedTypingPracticeLesson` in `src/lib/typingPracticeLesson.svelte.ts` owns the
+page-session timestamps, attempt counts, source words, and progress for both Typing practice and
+Layout feel. Each mounted tab runs the interval, starts the clock on the first recorded attempt,
+and freezes it at completion. Keeping wall-clock state out of the session model lets timing and
+result formulas remain deterministic in unit tests.
 
 `src/lib/typingPracticeKeyboard.ts` resolves every valid next physical key from the remaining
 target, available layout keys, contextual input profile, and current input history. It tests both
@@ -134,15 +158,17 @@ The source vocabulary is vendored as `static/languages/english1k.json` from Monk
 Monkeytype identifies its repository license as GPL-3.0.
 
 `src/lib/typingPracticeWords.ts` fetches and validates that static payload. The request starts only
-when `LayoutTypingPractice.svelte` or `LayoutFeel.svelte` mounts, so direct Stats and Layout test
-area visits do not download the word pool. Each of those UIs exposes loading and failure states
-before creating a session.
+when Typing practice or Layout feel first needs a random lesson, so direct Stats and Layout test
+area visits do not download the word pool. `LayoutExpandedView.svelte` owns one
+`SharedTypingPracticeLesson` for the page session; both tabs read that pool and lesson instead of
+loading or sampling again on remount. Each UI still exposes loading and failure states before
+showing a random session.
 
 The layout-detail route owns canonical `tab`, `text`, and `special` query state and passes the
 normalized lesson down through `LayoutExpandedView.svelte` to both Typing practice and Layout feel.
-`LayoutTypingPractice.svelte` owns one live-resolve session and renders it. `LayoutFeel.svelte`
-owns a separate remapped session over the same lesson source. `LayoutTestArea.svelte` continues to
-own physical-key handling and contextual-input resolution.
+`LayoutTypingPractice.svelte` renders a live-resolve session over the shared source words.
+`LayoutFeel.svelte` renders a remapped session over those same source words and progress.
+`LayoutTestArea.svelte` continues to own physical-key handling and contextual-input resolution.
 Its optional controlled-value callbacks let the practice and Feel consumers observe value changes
 and replace the field after a resolved logical keypress. The resolved-input hook receives the full
 resolver result so the completion-space path can record the logical attempt without duplicating the
@@ -190,16 +216,24 @@ The successful-space path is intentionally ordered:
   `src/lib/components/KeyboardInputEditor.svelte`
 - Shared persisted preference state: `src/lib/uiPrefs.svelte.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
+- Shared page-session lesson, progress, and word-pool ownership:
+  `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
+- Creator tabs and Edit practice workspace: `src/lib/components/LayoutCreator.svelte`,
+  `src/lib/components/LayoutExpandedView.svelte`
 - Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,
   `src/lib/components/LayoutFeel.svelte`
 - Input-layout reachability, unreachable key titles, and random-word filtering:
   `src/lib/layoutKeyReachability.ts`
 - Shared responsive keyboard, options, and mappings workspace:
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
+- Shared swap-path measurement for preview and edit keyboards:
+  `src/lib/layoutKeyboardSwapPathLayer.ts`
+- Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
+  (`compact` on the practice variant)
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutFeel.test.ts`,
   `tests/layoutKeyReachability.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
@@ -216,7 +250,10 @@ The successful-space path is intentionally ordered:
 - Remaining words retain stable identities as the head of the queue is removed.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
-- Layout test area, Typing practice, and Layout feel keep independent text and contextual
-  histories. Practice and Feel share lesson URL state and display prefs, not live session input.
+- Layout test area keeps independent free-typing text and contextual history. Typing practice and
+  Layout feel share the page-session source word pool and leftover lesson words. Leaving either
+  tab during a test clears the timer, input, and progress and refills a random lesson to ten
+  words. Each tab still keeps its own input encoding (live-resolve source text vs remapped feel
+  labels) and Feel-only flash/ignore-wrong-key UI.
 - Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
   displayed target layout or its contextual profile.

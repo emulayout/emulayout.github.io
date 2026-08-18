@@ -13,10 +13,7 @@
 	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
 	import {
-		normalizeTypingPracticeLessonSettings,
-		parseTypingPracticeSpecialWordsPercent,
-		TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
-		TYPING_PRACTICE_TEXT_PARAM,
+		typingPracticeLessonFromSearchParams,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
 	import { untrack } from 'svelte';
@@ -28,16 +25,7 @@
 		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
 	);
 
-	function practiceLessonFromUrl(searchParams: URLSearchParams): TypingPracticeLessonSettings {
-		return normalizeTypingPracticeLessonSettings({
-			customText: searchParams.get(TYPING_PRACTICE_TEXT_PARAM),
-			specialWordsPercent: parseTypingPracticeSpecialWordsPercent(
-				searchParams.get(TYPING_PRACTICE_SPECIAL_WORDS_PARAM)
-			)
-		});
-	}
-
-	const practiceLesson = $derived(practiceLessonFromUrl(page.url.searchParams));
+	const practiceLesson = $derived(typingPracticeLessonFromSearchParams(page.url.searchParams));
 	let disabledMappingIds = $state<string[]>([]);
 
 	filterStore.enterLayoutDetailRoute();
@@ -48,7 +36,7 @@
 			? layoutDetailPageHref(
 					pathname,
 					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
-					practiceLessonFromUrl(page.url.searchParams)
+					typingPracticeLessonFromSearchParams(page.url.searchParams)
 				)
 			: pathname;
 		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;
@@ -70,8 +58,7 @@
 			{
 				replaceState: true,
 				noScroll: true,
-				keepFocus: true,
-				state: page.state
+				keepFocus: true
 			}
 		);
 		/* eslint-enable svelte/no-navigation-without-resolve */
@@ -88,22 +75,10 @@
 			),
 			{
 				replaceState: true,
-				noScroll: true,
-				state: page.state
+				noScroll: true
 			}
 		);
 		/* eslint-enable svelte/no-navigation-without-resolve */
-	}
-
-	async function backToLayouts(event: MouseEvent) {
-		const indexUrl = page.state.layoutIndexUrl;
-		if (!indexUrl) return;
-		event.preventDefault();
-		// layoutIndexUrl was captured from the already-resolved index location.
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		await goto(indexUrl);
-		// A forward navigation fires no popstate, so re-read the restored index URL.
-		filterStore.restoreIndexUrlState();
 	}
 
 	$effect(() => {
@@ -122,7 +97,6 @@
 		layout={detail.layout}
 		authorName={detail.authorName}
 		likeCount={detail.likeCount}
-		onBackToLayouts={backToLayouts}
 		detailStats={detail.stats}
 		inputProfile={detail.inputProfile}
 		{disabledMappingIds}
@@ -136,7 +110,7 @@
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">
 		<h2 id="layout-not-found-title">Layout not found</h2>
 		<p>No layout named “{data.layoutName}” is in the current catalog.</p>
-		<a href={resolve('/')} onclick={backToLayouts}>Back to layouts</a>
+		<a href={resolve('/')}>Back to layouts</a>
 	</section>
 {/if}
 

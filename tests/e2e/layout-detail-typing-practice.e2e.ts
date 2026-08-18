@@ -11,6 +11,8 @@ test('focuses typing practice and Escape starts a different lesson', async ({ pa
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
 	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practicePanel.getByRole('radiogroup', { name: 'Typing mode' })).toHaveCount(0);
+	await expect(practicePanel.getByRole('textbox', { name: 'Type freely' })).toHaveCount(0);
 	await expect(practiceWords).toHaveCount(10);
 	await expect(practiceInput).toBeFocused();
 	await expect(practiceInput).toHaveAttribute('type', 'text');

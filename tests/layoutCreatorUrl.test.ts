@@ -1,0 +1,320 @@
+import { describe, expect, test } from 'bun:test';
+import {
+	buildKeyboardInputConfig,
+	clearKeyboardInputConfig,
+	createDefaultKeyboardInputConfig,
+	updateKeyboardInputKey
+} from '../src/lib/keyboardInputConfig';
+import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, addMagicKeyToConfig } from '../src/lib/layoutCreator';
+import {
+	createCreatorAdaptiveRule,
+	createCreatorAdaptiveSection,
+	createCreatorMagicRule,
+	createCreatorMagicSection,
+	createEmptyCreatorAdaptiveDraft,
+	createEmptyCreatorMagicDraft
+} from '../src/lib/layoutCreatorMappings';
+import {
+	createDefaultCreatorUrlSnapshot,
+	creatorSearchFromSnapshot,
+	readCreatorUrlSnapshot,
+	writeCreatorUrlParams,
+	type CreatorUrlSnapshot
+} from '../src/lib/layoutCreatorUrl';
+
+function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
+	return readCreatorUrlSnapshot(writeCreatorUrlParams(snapshot));
+}
+
+describe('creator URL state', () => {
+	test('writes edit=1 for the default Edit canvas and omits Preview', () => {
+		const defaults = createDefaultCreatorUrlSnapshot();
+		expect(defaults.keyConfig.baseLayoutName).toBeNull();
+		expect(defaults.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+		expect(writeCreatorUrlParams(defaults).toString()).toBe('edit=1');
+		expect(creatorSearchFromSnapshot(defaults)).toBe('?edit=1');
+		expect(
+			writeCreatorUrlParams({ ...createDefaultCreatorUrlSnapshot(), preview: true }).toString()
+		).toBe('');
+	});
+
+	test('round-trips custom practice text and a special-word balance', () => {
+		const custom: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40 }
+		};
+		const customParams = writeCreatorUrlParams(custom);
+		expect(customParams.get('text')).toBe('hello creator world');
+		expect(customParams.has('special')).toBe(false);
+		expect(roundTrip(custom).practiceLesson).toEqual({
+			customText: 'hello creator world',
+			specialWordsPercent: 0
+		});
+
+		const balanced: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			practiceLesson: { customText: null, specialWordsPercent: 40 }
+		};
+		expect(writeCreatorUrlParams(balanced).get('special')).toBe('40');
+		expect(roundTrip(balanced).practiceLesson).toEqual({
+			customText: null,
+			specialWordsPercent: 40
+		});
+	});
+
+	test('round-trips a custom author and omits the empty default', () => {
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('author')).toBe(false);
+
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			author: '  derek  '
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.get('author')).toBe('derek');
+		expect(roundTrip(snapshot).author).toBe('derek');
+	});
+
+	test('round-trips a renamed preview draft with an edited key', () => {
+		const defaults = createDefaultCreatorUrlSnapshot();
+		const snapshot: CreatorUrlSnapshot = {
+			...defaults,
+			name: 'Shared draft',
+			preview: true,
+			keyConfig: updateKeyboardInputKey(defaults.keyConfig, '0,0', 'w')
+		};
+
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.get('name')).toBe('Shared draft');
+		expect(params.has('edit')).toBe(false);
+		expect(params.has('preview')).toBe(false);
+		expect(params.has('locked')).toBe(false);
+		expect(params.get('keys')?.startsWith('v1:-;')).toBe(true);
+		expect(params.has('base')).toBe(false);
+
+		const restored = roundTrip(snapshot);
+		expect(restored.name).toBe('Shared draft');
+		expect(restored.preview).toBe(true);
+		expect(restored.keyConfig.baseLayoutName).toBeNull();
+		expect(restored.keyConfig.baseLayoutModified).toBe(false);
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')?.value).toBe('');
+	});
+
+	test('defaults to Preview and reads edit=1 as Edit', () => {
+		expect(readCreatorUrlSnapshot(new URLSearchParams()).preview).toBe(true);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('preview=1')).preview).toBe(true);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('locked=1')).preview).toBe(true);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1')).preview).toBe(false);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1&preview=1')).preview).toBe(false);
+	});
+
+	test('writes and restores the Practice, Test, and Feel tab', () => {
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('tab')).toBe(false);
+		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1')).section).toBe('practice');
+		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=stats')).section).toBe('practice');
+		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=nope')).section).toBe('practice');
+
+		const feel: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			section: 'feel'
+		};
+		expect(writeCreatorUrlParams(feel).get('tab')).toBe('feel');
+		expect(roundTrip(feel).section).toBe('feel');
+		expect(creatorSearchFromSnapshot({ ...feel, preview: true })).toBe('?tab=feel');
+	});
+
+	test('round-trips keyboard type, a catalog base, and a cleared board', () => {
+		const qwertyBase: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			keyConfig: createDefaultKeyboardInputConfig()
+		};
+		const qwertyParams = writeCreatorUrlParams(qwertyBase);
+		expect(qwertyParams.get('base')).toBe('QWERTY');
+		expect(roundTrip(qwertyBase).keyConfig.baseLayoutName).toBe('QWERTY');
+
+		const fromBase: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			keyConfig: buildKeyboardInputConfig({
+				baseLayoutName: 'vylet',
+				baseLayoutModified: false,
+				keyboardType: 'ortho',
+				keys: [
+					{ slot: '0,0', value: 'w' },
+					{ slot: '0,1', value: 'l' },
+					{ slot: '0,12', value: '', inert: true }
+				]
+			})
+		};
+		const restoredBase = roundTrip(fromBase);
+		expect(restoredBase.keyConfig.baseLayoutName).toBe('vylet');
+		expect(restoredBase.keyConfig.keyboardType).toBe('ortho');
+		expect(restoredBase.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
+		expect(restoredBase.keyConfig.keys.find((key) => key.slot === '0,12')?.inert).toBe(true);
+
+		const cleared: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			name: 'Magic lela',
+			keyConfig: clearKeyboardInputConfig(createDefaultKeyboardInputConfig())
+		};
+		const clearedParams = writeCreatorUrlParams(cleared);
+		expect(clearedParams.get('name')).toBe('Magic lela');
+		expect(clearedParams.has('keys')).toBe(false);
+		expect(clearedParams.toString()).toBe('name=Magic+lela&edit=1');
+
+		const restoredCleared = roundTrip(cleared);
+		expect(restoredCleared.keyConfig.baseLayoutName).toBeNull();
+		expect(restoredCleared.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+	});
+
+	test('restores a verbose empty-key query from before empty slots were omitted', () => {
+		const params = new URLSearchParams('name=Magic+lela&keys=v1:-;0,0::;0,1::;3,0:l:;3,1:r:');
+		const restored = readCreatorUrlSnapshot(params);
+		expect(restored.name).toBe('Magic lela');
+		expect(restored.keyConfig.baseLayoutName).toBeNull();
+		expect(restored.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+		expect(restored.keyConfig.keys.find((key) => key.slot === '3,0')?.thumbHand).toBe('l');
+	});
+
+	test('round-trips magic and adaptive drafts including incomplete rows', () => {
+		const magicSection = createCreatorMagicSection('*');
+		magicSection.fallbackKind = 'emit';
+		magicSection.fallbackEmit = 'the';
+		magicSection.rules = [
+			{ ...createCreatorMagicRule(), after: 'c', emit: 'k' },
+			{ ...createCreatorMagicRule(), after: '', emit: '' }
+		];
+		const extraSection = createCreatorMagicSection('#');
+		extraSection.rules = [{ ...createCreatorMagicRule(), after: 't', emit: 'ion' }];
+
+		const adaptiveRule = { ...createCreatorAdaptiveRule(), trigger: 'l', left: 'y', right: 'j' };
+		const group = createCreatorAdaptiveSection('SFB');
+		group.id = 'sfb';
+		group.rules = [{ ...createCreatorAdaptiveRule(), trigger: 's', left: 'c', right: 'd' }];
+
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			includeAdaptiveKey: true,
+			magicDraft: { sections: [magicSection, extraSection] },
+			adaptiveDraft: { rules: [adaptiveRule, createCreatorAdaptiveRule()], groups: [group] }
+		};
+
+		const restored = roundTrip(snapshot);
+		expect(restored.includeMagicKey).toBe(true);
+		expect(restored.includeAdaptiveKey).toBe(true);
+		expect(restored.magicDraft.sections).toHaveLength(2);
+		expect(restored.magicDraft.sections[0]?.fallbackKind).toBe('emit');
+		expect(restored.magicDraft.sections[0]?.fallbackEmit).toBe('the');
+		expect(restored.magicDraft.sections[0]?.rules[0]).toMatchObject({ after: 'c', emit: 'k' });
+		expect(restored.magicDraft.sections[0]?.rules[1]).toMatchObject({ after: '', emit: '' });
+		expect(restored.magicDraft.sections[1]?.trigger).toBe('#');
+		expect(restored.adaptiveDraft.rules[0]).toMatchObject({ trigger: 'l', left: 'y', right: 'j' });
+		expect(restored.adaptiveDraft.rules[1]).toMatchObject({ trigger: '', left: '', right: '' });
+		expect(restored.adaptiveDraft.groups[0]).toMatchObject({ id: 'sfb', label: 'SFB' });
+		expect(restored.adaptiveDraft.groups[0]?.rules[0]).toMatchObject({
+			trigger: 's',
+			left: 'c',
+			right: 'd'
+		});
+	});
+
+	test('round-trips disabled special mappings and treats them as a draft change', () => {
+		const disabledMappingIds = ['["magic-fallback","*"]', '["adaptive-rule","","l","y","j"]'];
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			disabledMappingIds
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.has('off')).toBe(true);
+		expect(roundTrip(snapshot).disabledMappingIds).toEqual([...disabledMappingIds].sort());
+		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('off')).toBe(false);
+	});
+
+	test('stores feature flags without mapping payloads for empty drafts', () => {
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			includeAdaptiveKey: true,
+			magicDraft: createEmptyCreatorMagicDraft(),
+			adaptiveDraft: createEmptyCreatorAdaptiveDraft()
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		expect(params.get('magic')).toBe('1');
+		expect(params.get('adaptive')).toBe('1');
+		expect(params.has('keys')).toBe(false);
+		expect(roundTrip(snapshot).includeMagicKey).toBe(true);
+		expect(roundTrip(snapshot).includeAdaptiveKey).toBe(true);
+	});
+
+	test('preserves a Magic key that was explicitly cleared from the editable board', () => {
+		const keyConfig = updateKeyboardInputKey(
+			addMagicKeyToConfig(createDefaultKeyboardInputConfig()),
+			'1,11',
+			''
+		);
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			includeMagicKey: true,
+			keyConfig
+		};
+		const params = writeCreatorUrlParams(snapshot);
+		const restored = readCreatorUrlSnapshot(params);
+
+		expect(params.get('keys')).toContain('1,11::');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '1,11')?.value).toBe('');
+	});
+
+	test('rejects duplicate keyboard slots from an untrusted URL', () => {
+		const restored = readCreatorUrlSnapshot(new URLSearchParams('keys=v1:m;0,0::a;0,0::b'));
+
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('');
+		expect(new Set(restored.keyConfig.keys.map((key) => key.slot)).size).toBe(
+			restored.keyConfig.keys.length
+		);
+	});
+
+	test('rejects duplicate adaptive group ids from an untrusted URL', () => {
+		const first = createCreatorAdaptiveSection('One');
+		const second = createCreatorAdaptiveSection('Two');
+		second.id = first.id;
+		const params = writeCreatorUrlParams({
+			...createDefaultCreatorUrlSnapshot(),
+			includeAdaptiveKey: true,
+			adaptiveDraft: { rules: [], groups: [first, second] }
+		});
+		const restored = readCreatorUrlSnapshot(params);
+
+		expect(restored.includeAdaptiveKey).toBe(false);
+		expect(restored.adaptiveDraft.groups).toEqual([]);
+	});
+
+	test('ignores malformed mapping and key params', () => {
+		const params = new URLSearchParams({
+			name: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+			keys: 'nope',
+			magic: 'v1:%%%',
+			adaptive: 'v1:not-json',
+			type: 'split'
+		});
+		const restored = readCreatorUrlSnapshot(params);
+		expect(restored).toMatchObject({
+			name: LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+			includeMagicKey: false,
+			includeAdaptiveKey: false
+		});
+		expect(restored.keyConfig.keyboardType).toBe('staggered');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('');
+	});
+
+	test('preserves a semicolon key value through the query string', () => {
+		const snapshot: CreatorUrlSnapshot = {
+			...createDefaultCreatorUrlSnapshot(),
+			keyConfig: updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '1,9', ';')
+		};
+		const restored = readCreatorUrlSnapshot(
+			new URLSearchParams(creatorSearchFromSnapshot(snapshot).slice(1))
+		);
+		expect(restored.keyConfig.keys.find((key) => key.slot === '1,9')?.value).toBe(';');
+	});
+});

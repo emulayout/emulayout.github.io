@@ -1,7 +1,5 @@
 import {
-	normalizeTypingPracticeLessonSettings,
-	TYPING_PRACTICE_SPECIAL_WORDS_PARAM,
-	TYPING_PRACTICE_TEXT_PARAM,
+	writeTypingPracticeLessonParams,
 	type TypingPracticeLessonSettings
 } from '$lib/typingPracticeText';
 
@@ -16,25 +14,12 @@ export function parseLayoutDetailSection(value: string | null | undefined): Layo
 		: DEFAULT_LAYOUT_DETAIL_SECTION;
 }
 
-/**
- * Page state for a navigation that pushes a layout detail history entry.
- *
- * Navigating from the index captures its untouched URL as `layoutIndexUrl`, and
- * detail-to-detail navigations such as Quick Find carry it forward. The detail
- * page's `All layouts` link navigates to that URL as a new history entry, so
- * browser Back still steps through every visited detail page. When the chain
- * did not start on the index, the URL stays unset and `All layouts` falls back
- * to its plain `/` link.
- */
-export function layoutDetailNavigationState(
-	currentState: App.PageState,
-	currentRouteId: string | null,
-	currentUrl: { pathname: string; search: string }
-): App.PageState {
-	if (currentRouteId === '/') {
-		return { ...currentState, layoutIndexUrl: `${currentUrl.pathname}${currentUrl.search}` };
-	}
-	return { ...currentState };
+/** Creator has no Stats tab; invalid or `stats` values fall back to Typing practice. */
+export function parseCreatorDetailSection(
+	value: string | null | undefined
+): Exclude<LayoutDetailSection, 'stats'> {
+	const section = parseLayoutDetailSection(value);
+	return section === 'stats' ? DEFAULT_LAYOUT_DETAIL_SECTION : section;
 }
 
 /** Build the canonical page URL from the layout-detail state that is safe to share. */
@@ -44,11 +29,6 @@ export function layoutDetailPageHref(
 	practiceLesson?: Partial<TypingPracticeLessonSettings> | null
 ): string {
 	const params = new URLSearchParams([[LAYOUT_DETAIL_TAB_PARAM, section]]);
-	const lesson = normalizeTypingPracticeLessonSettings(practiceLesson);
-	if (lesson.customText) {
-		params.set(TYPING_PRACTICE_TEXT_PARAM, lesson.customText);
-	} else if (lesson.specialWordsPercent > 0) {
-		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
-	}
+	writeTypingPracticeLessonParams(params, practiceLesson);
 	return `${pathname}?${params}`;
 }

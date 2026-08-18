@@ -145,6 +145,18 @@ export function createDefaultKeyboardInputConfig(): KeyboardInputConfig {
 	};
 }
 
+/** Rebuild a config and fill any missing main-row or thumb placeholders. */
+export function buildKeyboardInputConfig(
+	config: Omit<KeyboardInputConfig, 'keys'> & { keys: readonly KeyboardInputKey[] }
+): KeyboardInputConfig {
+	return {
+		baseLayoutName: config.baseLayoutName,
+		baseLayoutModified: config.baseLayoutModified,
+		keyboardType: config.keyboardType,
+		keys: withKeyboardInputTopology(config.keys.map((key) => ({ ...key })))
+	};
+}
+
 export function createKeyboardInputConfigFromLayout(layout: LayoutData): KeyboardInputConfig {
 	const keys = Array.from(layout.positionBySlot, ([slot, value]): KeyboardInputKey => {
 		const info = layout.keys[value];
@@ -227,6 +239,50 @@ export function isKeyboardInputHomeKeySlot(row: number, column: number): boolean
 	return isHomeKeySlot(row, column);
 }
 
+export type KeyboardWidthTerms = { keyUnits: number; gapCount: number };
+
+const KEYBOARD_WIDTH_KEY_REM = 3.35;
+const KEYBOARD_WIDTH_GAP_REM = 0.45;
+
+/**
+ * Intrinsic key/gap counts for the editable board, including empty QWERTY
+ * topology slots. The presentation preview keeps the three letter rows and gap keys.
+ */
+export function keyboardInputEditorWidthTerms(config: KeyboardInputConfig): KeyboardWidthTerms {
+	if (config.keyboardType === 'ortho') {
+		let maxColumn = 9;
+		for (const key of config.keys) {
+			const position = parseKeyboardInputSlot(key.slot);
+			if (position && position.row < 3) maxColumn = Math.max(maxColumn, position.column);
+		}
+		const rightSlotCount = Math.max(5, maxColumn - 4);
+		return {
+			keyUnits: 5 + rightSlotCount + 0.48,
+			gapCount: rightSlotCount + 3
+		};
+	}
+
+	const rowTerms = keyboardInputRows(config).flatMap((row) => {
+		if (row.row >= 3 || row.keys.length === 0) return [];
+		const rowOffset = row.row === 1 ? 0.28 : row.row === 2 ? 0.68 : 0;
+		return [
+			{
+				keyUnits: row.keys.length + rowOffset,
+				gapCount: Math.max(row.keys.length - 1, 0)
+			}
+		];
+	});
+
+	return (
+		rowTerms.sort(
+			(a, b) =>
+				b.keyUnits * KEYBOARD_WIDTH_KEY_REM +
+				b.gapCount * KEYBOARD_WIDTH_GAP_REM -
+				(a.keyUnits * KEYBOARD_WIDTH_KEY_REM + a.gapCount * KEYBOARD_WIDTH_GAP_REM)
+		)[0] ?? { keyUnits: 13, gapCount: 12 }
+	);
+}
+
 export function keyboardInputRows(config: KeyboardInputConfig): KeyboardInputRow[] {
 	const rows = new Map<number, KeyboardInputKey[]>();
 	for (const key of config.keys) {
@@ -268,6 +324,65 @@ export function updateKeyboardInputKey(
 				: key
 		)
 	};
+}
+
+function unwrapKeyboardInputImportRow(line: string): string {
+	const trimmed = line.trim();
+	if (!trimmed.startsWith('[')) return trimmed;
+
+	const markdownLinkEnd = trimmed.lastIndexOf('](');
+	if (markdownLinkEnd > 0 && trimmed.endsWith(')')) {
+		return trimmed.slice(1, markdownLinkEnd);
+	}
+	if (trimmed.endsWith(']')) {
+		return trimmed.slice(1, -1);
+	}
+	return trimmed;
+}
+
+/** Parse whitespace-separated keyboard rows, including Markdown-linked `[row](url)` text. */
+export function parseKeyboardInputImportRows(text: string): string[][] | null {
+	const trimmed = text.trim();
+	if (!trimmed) return null;
+
+	let hasInvalidValue = false;
+	const importedRows = trimmed.split(/\r?\n/u).map((line) => {
+		const content = unwrapKeyboardInputImportRow(line);
+		if (!content) return [];
+		const rawValues = content.split(/\s+/u);
+		hasInvalidValue ||= rawValues.some((value) => Array.from(value).length !== 1);
+		return rawValues.map((value) => normalizeKeyboardInputValue(value));
+	});
+	if (importedRows.flat().length === 0 || hasInvalidValue) return null;
+	return importedRows;
+}
+
+/**
+ * Import rows from the top-left key. Every supplied row clears its remaining slots instead of
+ * retaining keys from the previous mapping.
+ */
+export function applyKeyboardInputImport(
+	config: KeyboardInputConfig,
+	text: string
+): KeyboardInputConfig | null {
+	const importedRows = parseKeyboardInputImportRows(text);
+	if (!importedRows) return null;
+
+	const configRows = keyboardInputRows(config);
+	let next = config;
+	for (let importedRowIndex = 0; importedRowIndex < importedRows.length; importedRowIndex++) {
+		const targetRow = configRows[importedRowIndex];
+		if (!targetRow) break;
+		const importedValues = importedRows[importedRowIndex];
+		for (let keyIndex = 0; keyIndex < targetRow.keys.length; keyIndex++) {
+			next = updateKeyboardInputKey(
+				next,
+				targetRow.keys[keyIndex].slot,
+				importedValues[keyIndex] ?? ''
+			);
+		}
+	}
+	return next;
 }
 
 export function navigateKeyboardInputSlot(

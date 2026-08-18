@@ -8,6 +8,7 @@ import {
 	goatcounterPracticeSettingEvent,
 	goatcounterSafeReferrer,
 	goatcounterSortEvent,
+	LAYOUT_CREATOR_TITLE,
 	LAYOUT_SHOW_TITLE,
 	LAYOUTS_INDEX_TITLE
 } from '../src/lib/goatcounter';
@@ -30,6 +31,16 @@ describe('goatcounterPageviewPath', () => {
 		);
 	});
 
+	test('keeps the layout creator path', () => {
+		expect(goatcounterPageviewPath('/create')).toBe('/create');
+		expect(goatcounterPageviewPath('/create', '?draft=ignored')).toBe('/create');
+		expect(goatcounterPageviewPath('/create', '?name=Shared+draft&keys=v1:m;0,0::w')).toBe(
+			'/create'
+		);
+		expect(goatcounterPageviewPath('/create', '?text=hello+world&special=40')).toBe('/create');
+		expect(goatcounterPageviewPath('/create', '?id=layout-uuid&name=Shared+draft')).toBe('/create');
+	});
+
 	test('keeps non-default detail tabs without layout names or practice text', () => {
 		expect(goatcounterPageviewPath('/layouts/lela', '?tab=stats')).toBe('/layouts?tab=stats');
 		expect(goatcounterPageviewPath('/layouts/other', '?tab=test&text=custom')).toBe(
@@ -44,6 +55,7 @@ describe('goatcounterPageviewForNavigation', () => {
 	test('counts the initial load and client route changes', () => {
 		expect(goatcounterPageviewForNavigation(null, url('/'))).toBe('/');
 		expect(goatcounterPageviewForNavigation({ url: null }, url('/layouts/lela'))).toBe('/layouts');
+		expect(goatcounterPageviewForNavigation({ url: null }, url('/create'))).toBe('/create');
 		expect(goatcounterPageviewForNavigation(null, { url: null })).toBeNull();
 		expect(goatcounterPageviewForNavigation(url('/'), url('/layouts/lela', '?tab=practice'))).toBe(
 			'/layouts'
@@ -73,12 +85,13 @@ describe('goatcounterPageviewForNavigation', () => {
 });
 
 describe('goatcounterPageTitle', () => {
-	test('uses Layouts index and Layout show without layout names', () => {
+	test('uses Layouts index, Layout show, and Layout creator without layout names', () => {
 		expect(goatcounterPageTitle('/', '?analyzer=cmini')).toBe(LAYOUTS_INDEX_TITLE);
 		expect(goatcounterPageTitle('/layouts/lela', '?tab=practice&text=hello')).toBe(
 			LAYOUT_SHOW_TITLE
 		);
 		expect(goatcounterPageTitle('/layouts/lela', '?tab=stats')).toBe(LAYOUT_SHOW_TITLE);
+		expect(goatcounterPageTitle('/create')).toBe(LAYOUT_CREATOR_TITLE);
 	});
 });
 

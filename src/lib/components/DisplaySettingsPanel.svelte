@@ -176,7 +176,7 @@
 
 	.display-settings-mode-option--active {
 		background: var(--accent);
-		color: white;
+		color: var(--accent-fg);
 	}
 
 	.display-settings-mode-option:focus-visible {

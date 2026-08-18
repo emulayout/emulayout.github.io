@@ -18,6 +18,8 @@ import {
 	feelHighlightKeys,
 	feelNextTargetKeys,
 	feelSourceCorrectCharacterCount,
+	feelInputFromSourceCorrectCount,
+	sourceInputFromFeelInput,
 	FEEL_SIMULATED_THUMB_MARKER,
 	feelKeystrokeAccepts,
 	hasFeelInputError,
@@ -432,5 +434,19 @@ describe('layout feel source reveal progress', () => {
 		expect(plan.keystrokes.map((step) => step.targetKey)).toEqual(['t', '*']);
 		expect(feelSourceCorrectCharacterCount(plan, 't*')).toBe(3);
 		expect(feelSourceCorrectCharacterCount(plan, 't')).toBe(1);
+	});
+
+	test('converts a source prefix into the matching feel input and back', () => {
+		const plan = planFeelWord('hello', ['h', 'e', 'l', 'o', ';'], undefined, [], {
+			h: 'm',
+			e: 'k',
+			l: 'u',
+			o: 'y',
+			';': ';'
+		});
+		expect(feelInputFromSourceCorrectCount(plan, 3)).toBe('mku');
+		expect(feelInputFromSourceCorrectCount(plan, 0)).toBe('');
+		expect(sourceInputFromFeelInput(plan, 'mku')).toBe('hel');
+		expect(sourceInputFromFeelInput(plan, 'mkx')).toBe('he');
 	});
 });

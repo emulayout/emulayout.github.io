@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
-	import { untrack } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
 	import {
@@ -40,24 +39,26 @@
 		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
+	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import {
 		buildAdaptiveKeyboardSwapPaths,
-		buildLayoutKeyboardFeedback
+		buildLayoutKeyboardFeedback,
+		type LayoutKeyboardPresentation
 	} from '$lib/layoutKeyboardFeedback';
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { createCminibrowserLayoutURL } from '$lib/cminibrowser';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import type { TypingPracticeLessonSettings } from '$lib/typingPracticeText';
+	import { SharedTypingPracticeLesson } from '$lib/typingPracticeLesson.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		layout: LayoutData;
 		authorName: string;
 		likeCount: number;
-		onBackToLayouts?: (event: MouseEvent) => void;
 		detailStats?: LayoutDetailStats;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
@@ -66,13 +67,39 @@
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
+		/** Creator preview: show-page chrome without catalog stats or cminibrowser. */
+		localPreview?: boolean;
+		statsUnavailableDetail?: string;
+		/** Creator Edit: hide the summary card and external links. */
+		hideSummary?: boolean;
+		/** Creator Edit: name and author fields above the input-layout control. */
+		keyboardHeaderStart?: Snippet;
+		/** Creator Edit: replaces the presentation keyboard on every section. */
+		keyboard?: Snippet<[LayoutKeyboardPresentation]>;
+		keyboardLead?: Snippet;
+		keyboardWidthTerms?: KeyboardWidthTerms;
+		keyboardAside?: Snippet;
+		keyboardBelow?: Snippet;
+		keyboardMappings?: Snippet;
+		showKeyboardMappings?: boolean;
+		/** Smaller Practice, Feel, and test-area chrome for the layout-creator Edit workspace. */
+		compactPractice?: boolean;
+	}
+
+	function contextualPreviewLabel(magic: boolean, repeat: boolean, adaptive: boolean): string {
+		if (magic && repeat && adaptive) return 'Preview Magic, Repeat, and Adaptive output';
+		if (magic && adaptive) return 'Preview Magic and Adaptive output';
+		if (magic && repeat) return 'Preview Magic and Repeat output';
+		if (repeat && adaptive) return 'Preview Repeat and Adaptive output';
+		if (adaptive) return 'Preview Adaptive swaps';
+		if (repeat) return 'Preview Repeat key output';
+		return 'Preview Magic key output';
 	}
 
 	const {
 		layout,
 		authorName,
 		likeCount,
-		onBackToLayouts,
 		detailStats = {},
 		inputProfile,
 		disabledMappingIds = [],
@@ -80,7 +107,19 @@
 		activeSection,
 		onActiveSectionChange,
 		practiceLesson,
-		onPracticeLessonChange
+		onPracticeLessonChange,
+		localPreview = false,
+		statsUnavailableDetail,
+		hideSummary = false,
+		keyboardHeaderStart,
+		keyboard,
+		keyboardLead,
+		keyboardWidthTerms,
+		keyboardAside,
+		keyboardBelow,
+		keyboardMappings,
+		showKeyboardMappings = false,
+		compactPractice = false
 	}: Props = $props();
 
 	const cminiLabel =
@@ -99,6 +138,7 @@
 	let summaryStatsAnalyzer = $state<StatsAnalyzer>(CMINI_ANALYZER);
 	let anglemodTransformActive = $state(false);
 	let layoutInputHistory = $state('');
+	const sharedLesson = new SharedTypingPracticeLesson();
 	const testDisplayOptions = $derived(uiPrefs.layoutTestAreaDisplayOptions);
 	const titleId = $derived(`layout-expand-title-${layout.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
 	const practiceTabId = $derived(`${titleId}-tab-practice`);
@@ -118,8 +158,13 @@
 		},
 		{ value: 'test', label: 'Layout test area', id: testTabId, controls: testPanelId },
 		{ value: 'feel', label: 'Layout feel', id: feelTabId, controls: feelPanelId },
-		{ value: 'stats', label: 'Stats', id: statsTabId, controls: statsPanelId }
+		...(localPreview
+			? []
+			: [{ value: 'stats' as const, label: 'Stats', id: statsTabId, controls: statsPanelId }])
 	]);
+	const resolvedSection = $derived(
+		localPreview && activeSection === 'stats' ? 'practice' : activeSection
+	);
 	const isAngleBoard = $derived(layout.board === 'angle');
 	const baseDisplayRows = $derived(computeDisplayRows(layout));
 	const displayRows = $derived.by((): DisplayCell[][] => {
@@ -141,7 +186,8 @@
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
-			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+			layout.hasRepeatKey ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.repeatKey)
 	);
 	const conventionalMagicTriggers = $derived(
 		layout.hasMagicKey && Object.prototype.hasOwnProperty.call(layout.keys, '*') ? ['*'] : []
@@ -149,14 +195,13 @@
 	const hasMagicKeyPreview = $derived(
 		conventionalMagicTriggers.length > 0 || Boolean(inputProfile?.magicKeys)
 	);
+	const hasRepeatKeyPreview = $derived(Boolean(inputProfile?.repeatKey));
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
-	const hasContextualKeyPreview = $derived(hasMagicKeyPreview || hasAdaptiveSwapPreview);
+	const hasContextualKeyPreview = $derived(
+		hasMagicKeyPreview || hasRepeatKeyPreview || hasAdaptiveSwapPreview
+	);
 	const contextualKeyPreviewLabel = $derived(
-		hasMagicKeyPreview && hasAdaptiveSwapPreview
-			? 'Preview Magic and Adaptive output'
-			: hasAdaptiveSwapPreview
-				? 'Preview Adaptive swaps'
-				: 'Preview Magic key output'
+		contextualPreviewLabel(hasMagicKeyPreview, hasRepeatKeyPreview, hasAdaptiveSwapPreview)
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
@@ -167,6 +212,10 @@
 			adaptiveSwaps:
 				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
 					? inputProfile?.adaptiveSwaps
+					: undefined,
+			repeatKey:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.repeatKey
 					: undefined,
 			inputHistory: layoutInputHistory,
 			disabledMappingIds,
@@ -205,11 +254,17 @@
 	const embeddedStats = $derived(
 		resolveLayoutDetailStats(detailStats, layoutStatsStore.activeCorpus)
 	);
-	const cminiCompact = $derived(layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini);
-	const cyanophageCompact = $derived(
-		layoutStatsStore.maps.cyanophage?.[layout.name] ?? embeddedStats.cyanophage
+	const cminiCompact = $derived(
+		localPreview ? undefined : (layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini)
 	);
-	const mana2Compact = $derived(layoutStatsStore.maps.mana2?.[layout.name] ?? embeddedStats.mana2);
+	const cyanophageCompact = $derived(
+		localPreview
+			? undefined
+			: (layoutStatsStore.maps.cyanophage?.[layout.name] ?? embeddedStats.cyanophage)
+	);
+	const mana2Compact = $derived(
+		localPreview ? undefined : (layoutStatsStore.maps.mana2?.[layout.name] ?? embeddedStats.mana2)
+	);
 
 	const cminiLoading = $derived(showCmini && layoutStatsStore.isLoading(CMINI_ANALYZER));
 	const cyanophageLoading = $derived(
@@ -270,7 +325,7 @@
 	}
 
 	$effect(() => {
-		if (!uiPrefs.hydrated || analyzerPrefsInitialized) return;
+		if (localPreview || !uiPrefs.hydrated || analyzerPrefsInitialized) return;
 		untrack(() => {
 			const persisted = uiPrefs.layoutDetailStatsAnalyzers;
 			if (persisted === null) {
@@ -289,7 +344,7 @@
 	});
 
 	$effect(() => {
-		if (!analyzerPrefsInitialized) return;
+		if (localPreview || !analyzerPrefsInitialized) return;
 		const missing = STAT_ANALYZERS.flatMap(({ value }) => {
 			if (value === CMINI_ANALYZER && showCmini && !hasAnalyzerData(value)) return [value];
 			if (value === CYANOPHAGE_ANALYZER && showCyanophage && !hasAnalyzerData(value))
@@ -301,6 +356,12 @@
 			for (const analyzer of missing) void layoutStatsStore.ensureLoaded(analyzer);
 		});
 	});
+
+	let editWorkspaceWidthPx = $state<number | null>(null);
+
+	function handleWorkspaceWidthChange(width: number | null) {
+		editWorkspaceWidthPx = hideSummary ? width : null;
+	}
 </script>
 
 {#snippet analyzerToggle(analyzer: StatsAnalyzer, label: string, checked: boolean, accent: string)}
@@ -367,7 +428,12 @@
 {/snippet}
 
 {#snippet testKeyboardHeader()}
-	<KeyboardInputConfigControl />
+	<div class="layout-detail-keyboard-header-lead">
+		{#if keyboardHeaderStart}
+			{@render keyboardHeaderStart()}
+		{/if}
+		<KeyboardInputConfigControl />
+	</div>
 {/snippet}
 
 {#snippet sharedHeaders()}
@@ -403,7 +469,9 @@
 		compactCyanophageStats={cyanophageCompact}
 		compactMana2Stats={mana2Compact}
 		statsAnalyzer={summaryStatsAnalyzer}
-		onStatsAnalyzerChange={(analyzer) => (summaryStatsAnalyzer = analyzer)}
+		onStatsAnalyzerChange={localPreview
+			? undefined
+			: (analyzer) => (summaryStatsAnalyzer = analyzer)}
 		{inputProfile}
 		{disabledMappingIds}
 		{onDisabledMappingIdsChange}
@@ -411,6 +479,7 @@
 		showAnglemodAction
 		onAnglemodTransformChange={(active) => (anglemodTransformActive = active)}
 		variant="summary"
+		statsUnavailableDetail={localPreview ? statsUnavailableDetail : undefined}
 	/>
 	<nav class="layout-detail-links" aria-label={`${layout.name} external links`}>
 		{#if cyanophageUrl}
@@ -421,12 +490,14 @@
 				<span aria-hidden="true">↗</span>
 			</a>
 		{/if}
-		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-		<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
-			See more stats on cminibrowser
-			<span aria-hidden="true">↗</span>
-		</a>
+		{#if !localPreview}
+			<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
+				See more stats on cminibrowser
+				<span aria-hidden="true">↗</span>
+			</a>
+		{/if}
 		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
@@ -436,40 +507,29 @@
 	</nav>
 {/snippet}
 
-<article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
-	<header class="layout-detail-header">
-		<a
-			class="layout-detail-back"
-			href={resolve('/')}
-			onclick={onBackToLayouts}
-			aria-label="All layouts"
-		>
-			<svg
-				class="size-4"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="m15 18-6-6 6-6" />
-			</svg>
-			<span>All layouts</span>
-		</a>
-	</header>
-
+<article
+	class="layout-detail-page"
+	class:layout-detail-page--workspace-only={hideSummary}
+	data-layout-detail
+	aria-label={`${layout.name} details`}
+>
 	<div class="layout-detail-scroll">
-		<div class="detail-columns">
-			<div class="detail-side">
-				{@render layoutSummary()}
-			</div>
+		<div class="detail-columns" class:detail-columns--workspace-only={hideSummary}>
+			{#if !hideSummary}
+				<div class="detail-side">
+					{@render layoutSummary()}
+				</div>
+			{/if}
 
-			<div class="detail-main">
+			<div
+				class="detail-main"
+				style={hideSummary && editWorkspaceWidthPx
+					? `--edit-workspace-width: ${editWorkspaceWidthPx}px`
+					: undefined}
+			>
 				<div class="layout-detail-tabs-wrap">
 					<Tabs
-						value={activeSection}
+						value={resolvedSection}
 						onChange={onActiveSectionChange}
 						options={sections}
 						ariaLabel="Layout detail sections"
@@ -494,7 +554,7 @@
 					</Tabs>
 				</div>
 
-				{#if activeSection === 'practice'}
+				{#if resolvedSection === 'practice'}
 					<div
 						id={practicePanelId}
 						class="detail-practice-panel detail-panel-content"
@@ -511,9 +571,20 @@
 							knownMagicTriggers={conventionalMagicTriggers}
 							{practiceLesson}
 							{onPracticeLessonChange}
+							{sharedLesson}
+							{keyboardHeaderStart}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							{keyboardAside}
+							{keyboardBelow}
+							{keyboardMappings}
+							{showKeyboardMappings}
+							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
+							compact={compactPractice}
 						/>
 					</div>
-				{:else if activeSection === 'test'}
+				{:else if resolvedSection === 'test'}
 					<div
 						id={testPanelId}
 						class="detail-test-panel detail-panel-content"
@@ -526,6 +597,7 @@
 								{inputProfile}
 								{disabledMappingIds}
 								variant="page"
+								compact={compactPractice}
 								onInputHistoryChange={(history) => (layoutInputHistory = history)}
 							/>
 						</div>
@@ -539,12 +611,20 @@
 							{inputProfile}
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}
-							showMappings={testDisplayOptions.showSpecialKeys && hasSpecialMappings}
+							showMappings={showKeyboardMappings ||
+								(testDisplayOptions.showSpecialKeys && hasSpecialMappings)}
 							header={testKeyboardHeader}
 							options={testKeyboardOptions}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							aside={keyboardAside}
+							belowKeyboard={keyboardBelow}
+							mappings={keyboardMappings}
+							onWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
 						/>
 					</div>
-				{:else if activeSection === 'feel'}
+				{:else if resolvedSection === 'feel'}
 					<div
 						id={feelPanelId}
 						class="detail-feel-panel detail-panel-content"
@@ -561,9 +641,20 @@
 							knownMagicTriggers={conventionalMagicTriggers}
 							{practiceLesson}
 							{onPracticeLessonChange}
+							{sharedLesson}
+							{keyboardHeaderStart}
+							{keyboard}
+							{keyboardLead}
+							{keyboardWidthTerms}
+							{keyboardAside}
+							{keyboardBelow}
+							{keyboardMappings}
+							{showKeyboardMappings}
+							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
+							compact={compactPractice}
 						/>
 					</div>
-				{:else}
+				{:else if !localPreview}
 					<div
 						id={statsPanelId}
 						class="detail-stats-panel detail-panel-content"
@@ -760,36 +851,6 @@
 		width: 100%;
 	}
 
-	.layout-detail-header {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		flex-shrink: 0;
-		padding: 0.75rem 0.25rem 0.25rem;
-	}
-
-	.layout-detail-back {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		width: fit-content;
-		color: var(--text-secondary);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		line-height: 1.25rem;
-		text-decoration: none;
-	}
-
-	.layout-detail-back:hover,
-	.layout-detail-back:focus-visible {
-		color: var(--accent);
-	}
-
-	.layout-detail-back:focus-visible {
-		outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
-		outline-offset: 0.2rem;
-		border-radius: 0.25rem;
-	}
-
 	.layout-detail-tabs-wrap {
 		flex-shrink: 0;
 		border-bottom: 1px solid var(--border);
@@ -854,7 +915,7 @@
 
 	.layout-detail-scroll {
 		min-height: 0;
-		padding: 0.5rem 0.25rem 2rem;
+		padding: 0.75rem 0.25rem 2rem;
 	}
 
 	.detail-practice-panel,
@@ -921,9 +982,12 @@
 		min-width: 0;
 	}
 
-	.detail-practice-panel,
-	.detail-feel-panel {
+	.detail-practice-panel {
 		padding-block: clamp(1.5rem, 5vh, 3.5rem) 0.5rem;
+	}
+
+	.detail-feel-panel {
+		padding-block: 0 0.5rem;
 	}
 
 	.detail-test-area-wrap {
@@ -989,6 +1053,37 @@
 			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
 			gap: 1.5rem;
 		}
+
+		.detail-columns--workspace-only {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	.layout-detail-page--workspace-only .detail-practice-panel,
+	.layout-detail-page--workspace-only .detail-feel-panel {
+		padding-block: 0;
+	}
+
+	.layout-detail-page--workspace-only .layout-detail-tabs-wrap,
+	.layout-detail-page--workspace-only .detail-test-area-wrap,
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-surface),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.layout-feel-prompt-stack),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-input),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-state),
+	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-status) {
+		box-sizing: border-box;
+		width: var(--edit-workspace-width, 100%);
+		max-width: 100%;
+		margin-inline: auto;
+	}
+
+	.layout-detail-keyboard-header-lead {
+		display: flex;
+		min-width: 0;
+		flex: 1;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
 	}
 
 	.shared-stats {

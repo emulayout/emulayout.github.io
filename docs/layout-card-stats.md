@@ -100,7 +100,10 @@ there are no metric-cell filter or sort targets.
   available.
 - Missing or loading analyzer data uses the existing status presentation instead of partially
   constructing metric cells. In Highlights, the status presentation reserves the full stats-panel
-  height so action rows remain aligned between available and unavailable cards.
+  height so action rows remain aligned between available and unavailable cards. A consumer may
+  replace the analyzer-specific unavailable subtitle (`statsUnavailableDetail` /
+  `unavailableDetail`) when the missing data has a different product reason, such as a locally
+  created layout.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
 - Stats corpus (Monkeyracer / Reddit) is available in the results toolbar beside Analyzer and in the
@@ -147,7 +150,8 @@ there are no metric-cell filter or sort targets.
   `≤` when setting their value.
 - Quick Find click and Shift-click both toggle the value and never focus the covered sidebar.
 - Quick Find never exposes stat sorting.
-- The detail-page summary analyzer selector changes only that card's analyzer.
+- The detail-page summary analyzer selector changes only that card's analyzer. Local-layout
+  preview omits the selector because those drafts have no analyzer stats.
 - The index and detail corpus selectors share one persisted corpus preference.
 - Filter values set from cells use inclusive `≤` or `≥` semantics according to the metric's
   preferred direction.

@@ -23,6 +23,8 @@
 	} from '$lib/layoutSimilarity';
 	import { compileLayoutInputRegistry } from '$lib/layoutInputBehaviors';
 
+	filterStore.hydrateFromCurrentUrl();
+
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
 	const authorsData = $derived(data.authorsData);
@@ -46,7 +48,13 @@
 	);
 
 	$effect(() => {
-		layoutsCatalog.hydrate(layouts, authorsData, resolvedLikesData, inputProfiles);
+		layoutsCatalog.hydrate(
+			layouts,
+			authorsData,
+			resolvedLikesData,
+			inputProfiles,
+			data.supplemental
+		);
 	});
 
 	const analyzersToLoad = $derived(

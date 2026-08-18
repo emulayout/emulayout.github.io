@@ -4,9 +4,11 @@ import {
 	buildTypingPracticePrompt,
 	createRandomTypingPracticeSession,
 	createTypingPracticeSession,
+	createTypingPracticeSessionFromProgress,
 	hasTypingPracticeInputError,
 	isTypingPracticeWordComplete,
 	selectRandomTypingPracticeWords,
+	sourceCorrectPrefixLength,
 	updateTypingPracticeInput
 } from '$lib/typingPractice';
 
@@ -100,5 +102,32 @@ describe('typing practice sessions', () => {
 			completedWordCount: 1,
 			totalWordCount: 1
 		});
+	});
+
+	test('restores remaining words and current input from shared progress', () => {
+		const session = createTypingPracticeSessionFromProgress(['hello', 'world', 'again'], 1, 'wo');
+		expect(session).toEqual({
+			remainingWords: [
+				{ id: '1:world', text: 'world' },
+				{ id: '2:again', text: 'again' }
+			],
+			input: 'wo',
+			completedWordCount: 1,
+			totalWordCount: 3
+		});
+	});
+
+	test('clears input when restored progress has already finished the lesson', () => {
+		const session = createTypingPracticeSessionFromProgress(['hello', 'world'], 2, 'leftover');
+		expect(session.remainingWords).toEqual([]);
+		expect(session.input).toBe('');
+		expect(session.completedWordCount).toBe(2);
+		expect(session.totalWordCount).toBe(2);
+	});
+
+	test('measures the matching source-word prefix', () => {
+		expect(sourceCorrectPrefixLength('hello', 'hel')).toBe(3);
+		expect(sourceCorrectPrefixLength('hello', 'hex')).toBe(2);
+		expect(sourceCorrectPrefixLength('hello', '')).toBe(0);
 	});
 });

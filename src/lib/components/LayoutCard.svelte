@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import type {
 		CompactCyanophageStats,
 		CompactLayoutStats,
@@ -57,7 +56,7 @@
 		inputProfileMappingsLabel,
 		type LayoutInputProfile
 	} from '$lib/layoutInputBehaviors';
-	import { layoutDetailNavigationState, layoutDetailPageHref } from '$lib/layoutDetailTabs';
+	import { layoutDetailPageHref } from '$lib/layoutDetailTabs';
 	import {
 		adaptiveProfileMappingIds,
 		magicProfileMappingIds,
@@ -110,6 +109,8 @@
 		/** Render the catalog-style anglemod action as the summary card's only action. */
 		showAnglemodAction?: boolean;
 		onAnglemodTransformChange?: (active: boolean) => void;
+		/** Replaces the analyzer-specific unavailable subtitle when stats are missing. */
+		statsUnavailableDetail?: string;
 	}
 
 	const {
@@ -139,7 +140,8 @@
 		variant = 'catalog',
 		anglemodTransformActive,
 		showAnglemodAction = false,
-		onAnglemodTransformChange
+		onAnglemodTransformChange,
+		statsUnavailableDetail
 	}: Props = $props();
 
 	let localAnglemod = $state(false);
@@ -444,10 +446,7 @@
 		event.preventDefault();
 		// detailHref starts with route-aware resolve(); the helper appends only the canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		void goto(detailHref, {
-			// window.location includes shallow-routed filter state that page.url may lack.
-			state: layoutDetailNavigationState(page.state, page.route.id, window.location)
-		});
+		void goto(detailHref);
 	}
 
 	function handleSelectAuthor() {
@@ -594,6 +593,7 @@
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
 					mode={statsMode}
 					wideFocusedLayout={variant === 'summary'}
+					unavailableDetail={statsUnavailableDetail}
 				/>
 				{#if variant === 'summary' && onStatsAnalyzerChange}
 					<div class="layout-card-analyzer-switch">

@@ -59,6 +59,19 @@ export function resolveAuthorName(authorsData: Record<string, number>, userId: n
 	return 'Unknown';
 }
 
+/** Case-insensitive exact match against the published authors map. */
+export function resolveAuthorByName(
+	authorsData: Record<string, number>,
+	name: string
+): { id: number; name: string } | null {
+	const term = name.trim().toLowerCase();
+	if (!term) return null;
+	for (const [authorName, id] of Object.entries(authorsData)) {
+		if (authorName.toLowerCase() === term) return { id, name: authorName };
+	}
+	return null;
+}
+
 /**
  * Build a Quick Find / card preview from the already-loaded aggregate catalog.
  * Prefer this over fetching `/layout-details/*.json` when the index (or Compare)

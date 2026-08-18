@@ -6,6 +6,7 @@ import {
 	decodeLayoutDetail,
 	layoutDetailFileId as clientLayoutDetailFileId,
 	layoutDetailUrl,
+	resolveAuthorByName,
 	resolveLayoutDetailStats,
 	type CompactLayoutDetail
 } from '$lib/layoutDetails';
@@ -179,5 +180,21 @@ describe('per-layout detail data', () => {
 				inputProfiles: new Map()
 			})
 		).toBeNull();
+	});
+});
+
+describe('resolveAuthorByName', () => {
+	const authorsData = { cmini: 108, Derek: 42 };
+
+	test('matches catalog authors case-insensitively and returns the canonical name', () => {
+		expect(resolveAuthorByName(authorsData, 'cmini')).toEqual({ id: 108, name: 'cmini' });
+		expect(resolveAuthorByName(authorsData, '  CMINI  ')).toEqual({ id: 108, name: 'cmini' });
+		expect(resolveAuthorByName(authorsData, 'derek')).toEqual({ id: 42, name: 'Derek' });
+	});
+
+	test('returns null for empty or unknown names', () => {
+		expect(resolveAuthorByName(authorsData, '')).toBeNull();
+		expect(resolveAuthorByName(authorsData, '   ')).toBeNull();
+		expect(resolveAuthorByName(authorsData, 'unknown')).toBeNull();
 	});
 });

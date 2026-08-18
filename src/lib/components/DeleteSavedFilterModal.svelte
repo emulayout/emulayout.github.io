@@ -20,7 +20,7 @@
 </script>
 
 <ModalShell {open} {onClose} labelledBy="delete-saved-filter-title" panelClass="max-w-md">
-	<ModalHeader titleId="delete-saved-filter-title" title="Delete view" {onClose} />
+	<ModalHeader titleId="delete-saved-filter-title" title="Delete view" {onClose} divider={false} />
 
 	<div class="px-5 py-4">
 		<p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
@@ -29,10 +29,7 @@
 		</p>
 	</div>
 
-	<div
-		class="flex items-center justify-end gap-2 border-t px-5 py-4"
-		style="border-color: var(--border);"
-	>
+	<div class="flex items-center justify-end gap-2 px-5 pb-4">
 		<button type="button" class="filter-reset-button delete-saved-filter-button" onclick={onClose}>
 			Cancel
 		</button>

@@ -275,7 +275,7 @@ export class FilterStore {
 		if (typeof window !== 'undefined') {
 			this.consumeSharedViewFromUrl();
 			window.addEventListener('popstate', () => {
-				this.#hydrateFromUrl();
+				this.hydrateFromCurrentUrl();
 			});
 		}
 	}
@@ -305,6 +305,12 @@ export class FilterStore {
 		this.#loadFromUrl();
 		this.#applyFiltersNow();
 		this.consumeSharedViewFromUrl();
+	}
+
+	/** Reapply index filters when SPA navigation enters Discover with a new query. */
+	hydrateFromCurrentUrl() {
+		if (typeof window === 'undefined') return;
+		this.#hydrateFromUrl();
 	}
 
 	#persistSavedFilters() {
@@ -490,14 +496,6 @@ export class FilterStore {
 
 		this.#writeGlobalUrlState(url.searchParams);
 		this.#writeHistory(url, historyMode);
-	}
-
-	/**
-	 * Re-read index URL state after a forward navigation to the index, such as a
-	 * detail page's `All layouts` link. Only `popstate` hydrates automatically.
-	 */
-	restoreIndexUrlState() {
-		this.#hydrateFromUrl();
 	}
 
 	/** Clear index-only URL state without touching the index's browser-history entry. */

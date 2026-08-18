@@ -71,6 +71,70 @@ describe('layout keyboard feedback', () => {
 		});
 	});
 
+	test('uses Repeat presentation for @ with only repeat-last fallback', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: { mappings: { '@': { rules: {}, fallback: 'repeat-last' } } }
+		});
+
+		expect(buildMagicKeyboardFeedback(profile.magicKeys, '').get('@')).toEqual({
+			kind: 'repeat'
+		});
+		expect(buildMagicKeyboardFeedback(profile.magicKeys, 'c').get('@')).toEqual({
+			kind: 'repeat',
+			value: 'c',
+			active: true
+		});
+	});
+
+	test('keeps mapped @ as Magic even when fallback is repeat-last', () => {
+		const profile = compileLayoutInputProfile({
+			magicKeys: { mappings: { '@': { rules: { c: 'k' }, fallback: 'repeat-last' } } }
+		});
+
+		expect(buildMagicKeyboardFeedback(profile.magicKeys, '').get('@')).toEqual({
+			kind: 'magic'
+		});
+		expect(buildMagicKeyboardFeedback(profile.magicKeys, 'c').get('@')).toEqual({
+			kind: 'magic',
+			value: 'k',
+			active: true
+		});
+	});
+
+	test('shows the default Repeat key with the Repeat glyph until it can emit', () => {
+		const profile = compileLayoutInputProfile({}, { '@': true });
+
+		expect(
+			buildLayoutKeyboardFeedback({
+				repeatKey: profile.repeatKey,
+				inputHistory: ''
+			}).get('@')
+		).toEqual({ kind: 'repeat' });
+		expect(
+			buildLayoutKeyboardFeedback({
+				repeatKey: profile.repeatKey,
+				inputHistory: 'e'
+			}).get('@')
+		).toEqual({ kind: 'repeat', value: 'e', active: true });
+	});
+
+	test('lets an armed Adaptive swap replace Repeat presentation for the physical key', () => {
+		const profile = compileLayoutInputProfile(
+			{
+				adaptiveSwaps: { mappings: { a: { '@': 'y' } } }
+			},
+			{ '@': true }
+		);
+		const feedback = buildLayoutKeyboardFeedback({
+			repeatKey: profile.repeatKey,
+			adaptiveSwaps: profile.adaptiveSwaps,
+			inputHistory: 'a'
+		});
+
+		expect(feedback.get('@')).toEqual({ kind: 'adaptive', value: 'y', active: true });
+		expect(feedback.get('y')).toEqual({ kind: 'adaptive', value: '@', active: true });
+	});
+
 	test('lets an armed Adaptive swap replace Magic presentation for the physical key', () => {
 		const profile = compileLayoutInputProfile({
 			magicKeys: { mappings: { '*': { a: 'o' } } },

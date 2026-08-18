@@ -43,6 +43,37 @@ export function createTypingPracticeSession(words: readonly string[]): TypingPra
 	};
 }
 
+/** Restore a session over the original word list, keeping stable remaining-word identities. */
+export function createTypingPracticeSessionFromProgress(
+	words: readonly string[],
+	completedWordCount: number,
+	input: string
+): TypingPracticeSession {
+	const allWords = normalizedWords(words);
+	const completed = Math.min(Math.max(Math.floor(completedWordCount), 0), allWords.length);
+	return {
+		remainingWords: allWords.slice(completed),
+		input: completed === allWords.length ? '' : input,
+		completedWordCount: completed,
+		totalWordCount: allWords.length
+	};
+}
+
+/** Length of the leading source input that still matches the source word. */
+export function sourceCorrectPrefixLength(sourceWord: string, sourceInput: string): number {
+	const wordCharacters = Array.from(sourceWord);
+	const inputCharacters = Array.from(sourceInput);
+	let length = 0;
+	while (
+		length < inputCharacters.length &&
+		length < wordCharacters.length &&
+		inputCharacters[length] === wordCharacters[length]
+	) {
+		length += 1;
+	}
+	return length;
+}
+
 export function selectRandomTypingPracticeWords(
 	words: readonly string[],
 	count: number,

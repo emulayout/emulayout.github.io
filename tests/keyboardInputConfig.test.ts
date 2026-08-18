@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	applyKeyboardInputImport,
 	clearKeyboardInputConfig,
 	cloneKeyboardInputConfig,
 	createDefaultKeyboardInputConfig,
 	createKeyboardInputConfigFromLayout,
+	keyboardInputEditorWidthTerms,
 	keyboardInputConfigLabel,
 	keyboardInputConfigError,
 	keyboardInputEffectiveValue,
@@ -12,6 +14,7 @@ import {
 	keyboardInputRows,
 	isKeyboardInputHomeKeySlot,
 	navigateKeyboardInputSlot,
+	parseKeyboardInputImportRows,
 	parseKeyboardInputConfig,
 	serializeKeyboardInputConfig,
 	updateKeyboardInputKey,
@@ -173,6 +176,80 @@ describe('keyboard input configuration', () => {
 		expect(navigateKeyboardInputSlot(rows, '0,1', 'down')).toBe('1,1');
 		expect(navigateKeyboardInputSlot(rows, '1,2', 'up')).toBe('0,1');
 		expect(navigateKeyboardInputSlot(rows, '0,0', 'left')).toBeNull();
+	});
+
+	test('imports Markdown-linked keyboard rows and clears each row remainder', () => {
+		const importedText = `[z l * w q  j f o u ,](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)
+[n r t s g  b h a e i](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)
+[p x m c v  k d ' y .](http://localhost:5173/layouts/gallyoid-pbz?tab=practice)`;
+
+		expect(parseKeyboardInputImportRows(importedText)).toEqual([
+			['z', 'l', '*', 'w', 'q', 'j', 'f', 'o', 'u', ','],
+			['n', 'r', 't', 's', 'g', 'b', 'h', 'a', 'e', 'i'],
+			['p', 'x', 'm', 'c', 'v', 'k', 'd', "'", 'y', '.']
+		]);
+
+		const imported = applyKeyboardInputImport(createDefaultKeyboardInputConfig(), importedText)!;
+		const rows = keyboardInputRows(imported);
+		expect(rows[0].keys.map((key) => key.value)).toEqual([
+			'z',
+			'l',
+			'*',
+			'w',
+			'q',
+			'j',
+			'f',
+			'o',
+			'u',
+			',',
+			'',
+			'',
+			''
+		]);
+		expect(rows[1].keys.map((key) => key.value)).toEqual([
+			'n',
+			'r',
+			't',
+			's',
+			'g',
+			'b',
+			'h',
+			'a',
+			'e',
+			'i',
+			''
+		]);
+		expect(rows[2].keys.map((key) => key.value)).toEqual([
+			'p',
+			'x',
+			'm',
+			'c',
+			'v',
+			'k',
+			'd',
+			"'",
+			'y',
+			'.'
+		]);
+		expect(imported.baseLayoutModified).toBe(true);
+	});
+
+	test('rejects ordinary words and accepts a single imported key', () => {
+		expect(parseKeyboardInputImportRows('ordinary pasted words')).toBeNull();
+		expect(parseKeyboardInputImportRows('z')).toEqual([['z']]);
+		expect(parseKeyboardInputImportRows('[z]')).toEqual([['z']]);
+	});
+
+	test('sizes the editor to the full QWERTY slot grid, not just assigned keys', () => {
+		const staggered = createDefaultKeyboardInputConfig();
+		expect(keyboardInputEditorWidthTerms(staggered)).toEqual({ keyUnits: 13, gapCount: 12 });
+		expect(keyboardInputEditorWidthTerms(clearKeyboardInputConfig(staggered))).toEqual({
+			keyUnits: 13,
+			gapCount: 12
+		});
+
+		const ortho = { ...staggered, keyboardType: 'ortho' as const };
+		expect(keyboardInputEditorWidthTerms(ortho)).toEqual({ keyUnits: 13.48, gapCount: 11 });
 	});
 
 	test('recognizes the eight resting home-key slots', () => {

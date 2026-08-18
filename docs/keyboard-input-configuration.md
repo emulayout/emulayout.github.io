@@ -50,7 +50,11 @@ the reset does not replace the persisted input profile until Save is selected.
 
 Keyboard type is currently `Ortho` or `Staggered`. Angle and stagger catalog layouts initialize as
 Staggered; ortho and mini layouts initialize as Ortho. This choice controls editor presentation and
-is retained independently after customization.
+is retained independently after customization. Ortho uses aligned split geometry: each row is a
+five-key left half, a straight center seam, and a right half that grows only to the right, so extra
+keys never shift the columns or the gap. Staggered keeps ANSI row offsets. Thumb keys follow the
+presentation keyboard: ortho thumbs sit under each hand's index column with empty slots between
+them; stagger thumbs sit between their hand's bottom-row index keys, leaving a spacebar-sized gap.
 
 ## Key editor interaction
 
@@ -147,7 +151,9 @@ route- or feature-specific preference imports.
 - Runtime target-map compiler: `src/lib/layoutTestEmulator.ts`
 - Reusable modal trigger: `src/lib/components/KeyboardInputConfigControl.svelte`
 - Catalog-backed modal: `src/lib/components/KeyboardInputConfigModal.svelte`
-- Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`
+- Per-key editor and focus navigation: `src/lib/components/KeyboardInputEditor.svelte`.
+  Optional presentation props (`feedback`, `swapPaths`, `highlightedKeys`, `unreachableKeys`,
+  `highlightHomeKeys`) apply the same workspace option visuals as the practice preview.
 - Consumers: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutFeel.svelte`, `src/lib/components/LayoutExpandedView.svelte`,
   `src/lib/components/LayoutCard.svelte`

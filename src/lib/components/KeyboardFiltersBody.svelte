@@ -211,7 +211,7 @@
 				{#if filterStore.showUnfinished}
 					<svg
 						class="absolute top-[calc(50%-2px)] left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 pointer-events-none"
-						style="color: white;"
+						style="color: var(--accent-fg);"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"

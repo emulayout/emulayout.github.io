@@ -2,13 +2,26 @@
 	import { tick } from 'svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
-	import { thumbTargetColumns, type DisplayCell } from '$lib/layoutDisplay';
-	import type {
-		LayoutKeyboardFeedback,
-		LayoutKeyboardKeyFeedback,
-		LayoutKeyboardSwapPath
+	import {
+		ansiThumbDisplayColumn,
+		ansiThumbOffsetCss,
+		layoutMainRowMaxColumn,
+		splitThumbDisplayKeys,
+		thumbTargetColumns,
+		type DisplayCell
+	} from '$lib/layoutDisplay';
+	import {
+		isSpecialTriggerFeedback,
+		type LayoutKeyboardFeedback,
+		type LayoutKeyboardKeyFeedback,
+		type LayoutKeyboardSwapPath
 	} from '$lib/layoutKeyboardFeedback';
 	import { isLayoutThumbKey, unreachableLayoutKeyTitle } from '$lib/layoutKeyReachability';
+	import {
+		EMPTY_KEYBOARD_SWAP_PATH_LAYER,
+		measureKeyboardSwapPaths,
+		type KeyboardSwapPathLayer
+	} from '$lib/layoutKeyboardSwapPathLayer';
 	import { isTypingPracticeHomeKeySlot } from '$lib/typingPracticeKeyboard';
 
 	const EMPTY_FEEDBACK: LayoutKeyboardFeedback = new Map();
@@ -44,19 +57,6 @@
 		ansiThumbKeys: PreviewThumbKey[];
 		thumbs: boolean;
 	};
-	type RenderedSwapPath = LayoutKeyboardSwapPath & {
-		id: string;
-		x1: number;
-		y1: number;
-		x2: number;
-		y2: number;
-	};
-	type SwapPathLayer = {
-		width: number;
-		height: number;
-		paths: RenderedSwapPath[];
-	};
-
 	const {
 		layout,
 		rows,
@@ -68,30 +68,24 @@
 		horizontalAlignment = 'center'
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
-	let swapPathLayer = $state<SwapPathLayer>({ width: 0, height: 0, paths: [] });
+	let swapPathLayer = $state<KeyboardSwapPathLayer>(EMPTY_KEYBOARD_SWAP_PATH_LAYER);
 	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
-	const rightThumbKeys = $derived(
-		new Set(layout.thumbKeysByHand.r.map((entry) => entry.key.toLowerCase()))
-	);
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
-		const mainRowMaxColumn = Math.max(
-			9,
-			...Object.values(layout.keys)
-				.filter(({ row }) => row < 3)
-				.map(({ col }) => col)
-		);
+		const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
 		const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 
 		return rows.flatMap((row) => {
-			const keys = row.filter((cell): cell is PreviewKey => cell.slot !== null);
-			if (keys.length === 0) return [];
+			const slottedCells = row.filter((cell): cell is PreviewKey => cell.slot !== null);
+			if (slottedCells.length === 0) return [];
 
-			const rowNumber = Number(keys[0].slot.split(',')[0]);
+			const rowNumber = Number(slottedCells[0].slot.split(',')[0]);
+			const keys = orthoGeometry ? slottedCells.filter((cell) => Boolean(cell.char)) : slottedCells;
 			const thumbs = rowNumber >= 3;
-			const leftKeys = keys.filter((key) => !rightThumbKeys.has(key.char.toLowerCase()));
-			const rightKeys = keys.filter((key) => rightThumbKeys.has(key.char.toLowerCase()));
+			const { left: leftKeys, right: rightKeys } = thumbs
+				? splitThumbDisplayKeys(keys, layout.thumbKeysByHand)
+				: { left: keys, right: [] };
 			const keyByColumn = thumbs
 				? new Map([
 						...thumbTargetColumns('left', leftKeys.length).map(
@@ -101,13 +95,7 @@
 							(column, index) => [column, rightKeys[index]] as const
 						)
 					])
-				: new Map(
-						Object.values(layout.keys)
-							.filter(({ row }) => row === rowNumber)
-							.map(({ col }) => col)
-							.sort((a, b) => a - b)
-							.map((column, index) => [column, keys[index]] as const)
-					);
+				: new Map(keys.map((key) => [Number(key.slot.split(',')[1]), key] as const));
 			const leftSlots = Array.from({ length: 5 }, (_, column) => ({
 				column,
 				key: keyByColumn.get(column)
@@ -118,11 +106,11 @@
 			});
 			const ansiThumbKeys = [
 				...thumbTargetColumns('left', leftKeys.length).map((column, index) => ({
-					column: column - 0.5,
+					column: ansiThumbDisplayColumn(column),
 					key: leftKeys[index]
 				})),
 				...thumbTargetColumns('right', rightKeys.length).map((column, index) => ({
-					column: column - 0.5,
+					column: ansiThumbDisplayColumn(column),
 					key: rightKeys[index]
 				}))
 			];
@@ -140,7 +128,7 @@
 	}
 
 	function ansiThumbOffset(column: number): string {
-		return `calc(var(--preview-key-size) * ${column + 0.68} + var(--preview-key-gap) * ${column})`;
+		return ansiThumbOffsetCss(column, 'var(--preview-key-size)', 'var(--preview-key-gap)');
 	}
 
 	function isHighlightedKey(key: string): boolean {
@@ -167,93 +155,45 @@
 		return undefined;
 	}
 
-	function edgeDistance(rect: DOMRect, unitX: number, unitY: number): number {
-		const horizontal = unitX === 0 ? Number.POSITIVE_INFINITY : rect.width / 2 / Math.abs(unitX);
-		const vertical = unitY === 0 ? Number.POSITIVE_INFINITY : rect.height / 2 / Math.abs(unitY);
-		return Math.min(horizontal, vertical);
-	}
-
-	function measureSwapPaths(
-		container: HTMLDivElement,
-		paths: readonly LayoutKeyboardSwapPath[]
-	): SwapPathLayer {
-		const containerRect = container.getBoundingClientRect();
-		const keyByChar = new Map(
-			Array.from(container.querySelectorAll<HTMLElement>('[data-key-char]')).map((key) => [
-				key.dataset.keyChar ?? '',
-				key
-			])
-		);
-		const renderedPaths = paths.flatMap((path): RenderedSwapPath[] => {
-			const fromKey = keyByChar.get(path.from);
-			const toKey = keyByChar.get(path.to);
-			if (!fromKey || !toKey) return [];
-
-			const fromRect = fromKey.getBoundingClientRect();
-			const toRect = toKey.getBoundingClientRect();
-			const fromCenterX = fromRect.left + fromRect.width / 2;
-			const fromCenterY = fromRect.top + fromRect.height / 2;
-			const toCenterX = toRect.left + toRect.width / 2;
-			const toCenterY = toRect.top + toRect.height / 2;
-			const deltaX = toCenterX - fromCenterX;
-			const deltaY = toCenterY - fromCenterY;
-			const distance = Math.hypot(deltaX, deltaY);
-			if (distance === 0) return [];
-
-			const unitX = deltaX / distance;
-			const unitY = deltaY / distance;
-			const fromEdge = edgeDistance(fromRect, unitX, unitY);
-			const toEdge = edgeDistance(toRect, unitX, unitY);
-
-			return [
-				{
-					...path,
-					id: `${path.from}:${path.to}`,
-					x1: fromCenterX - containerRect.left + unitX * fromEdge,
-					y1: fromCenterY - containerRect.top + unitY * fromEdge,
-					x2: toCenterX - containerRect.left - unitX * toEdge,
-					y2: toCenterY - containerRect.top - unitY * toEdge
-				}
-			];
-		});
-
-		return {
-			width: containerRect.width,
-			height: containerRect.height,
-			paths: renderedPaths
-		};
-	}
-
 	$effect(() => {
 		const container = keysElement;
 		const paths = swapPaths;
 		void rows;
 		if (!container || paths.length === 0) {
-			swapPathLayer = { width: 0, height: 0, paths: [] };
+			swapPathLayer = EMPTY_KEYBOARD_SWAP_PATH_LAYER;
 			return;
 		}
 
 		let disposed = false;
+		let updateFrame: number | null = null;
 		const update = () => {
-			if (!disposed) swapPathLayer = measureSwapPaths(container, paths);
+			if (!disposed) swapPathLayer = measureKeyboardSwapPaths(container, paths);
 		};
-		void tick().then(update);
-		const resizeObserver = new ResizeObserver(update);
+		const scheduleUpdate = () => {
+			if (disposed || updateFrame !== null) return;
+			updateFrame = window.requestAnimationFrame(() => {
+				updateFrame = null;
+				update();
+			});
+		};
+		void tick().then(scheduleUpdate);
+		const resizeObserver = new ResizeObserver(scheduleUpdate);
 		resizeObserver.observe(container);
-		window.addEventListener('resize', update);
+		window.addEventListener('resize', scheduleUpdate);
 
 		return () => {
 			disposed = true;
+			if (updateFrame !== null) window.cancelAnimationFrame(updateFrame);
 			resizeObserver.disconnect();
-			window.removeEventListener('resize', update);
+			window.removeEventListener('resize', scheduleUpdate);
 		};
 	});
 </script>
 
 {#snippet keyContent(key: PreviewKey, keyFeedback: LayoutKeyboardKeyFeedback | undefined)}
-	{#if keyFeedback?.kind === 'magic' && !keyFeedback.value}
+	{#if isSpecialTriggerFeedback(keyFeedback?.kind) && !keyFeedback.value}
 		<span class="keyboard-preview__magic-icon">
-			<LayoutInputFeatureIcon feature="magic" />
+			<LayoutInputFeatureIcon feature={keyFeedback.kind} />
 		</span>
 	{:else}
 		{keyFeedback?.value ?? key.char}
@@ -268,25 +208,27 @@
 		style?: string;
 	} = {}
 )}
-	{@const keyFeedback = feedback.get(key.char)}
-	{@const unreachable = isUnreachableKey(key.char)}
+	{@const assigned = Boolean(key.char)}
+	{@const keyFeedback = assigned ? feedback.get(key.char) : undefined}
+	{@const unreachable = assigned && isUnreachableKey(key.char)}
 	<span
 		class="keyboard-preview__key"
 		class:keyboard-preview__key--ansi-thumb={Boolean(attrs.ansiThumb)}
 		class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
+		class:keyboard-preview__key--repeat={keyFeedback?.kind === 'repeat'}
 		class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
 		class:keyboard-preview__key--home={highlightHomeKeys && isHomeKey(key)}
-		class:keyboard-preview__key--next={isHighlightedKey(key.char)}
+		class:keyboard-preview__key--next={assigned && isHighlightedKey(key.char)}
 		class:keyboard-preview__key--unreachable={unreachable}
-		data-key-char={key.char}
+		data-key-char={assigned ? key.char : undefined}
 		data-key-column={attrs.column}
 		data-thumb-column={attrs.ansiThumb ? attrs.column : undefined}
 		data-key-feedback={keyFeedback?.kind}
 		data-key-feedback-active={keyFeedback?.active ? 'true' : undefined}
 		data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
-		data-key-next={isHighlightedKey(key.char) ? 'true' : undefined}
+		data-key-next={assigned && isHighlightedKey(key.char) ? 'true' : undefined}
 		data-key-unreachable={unreachable ? 'true' : undefined}
-		title={keyTitle(key, keyFeedback)}
+		title={assigned ? keyTitle(key, keyFeedback) : undefined}
 		style={attrs.style}
 	>
 		{@render keyContent(key, keyFeedback)}
@@ -421,10 +363,10 @@
 	}
 
 	.keyboard-preview__swap-path {
-		stroke: var(--accent);
+		stroke: var(--adaptive-key);
 		stroke-width: 3;
 		stroke-linecap: round;
-		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--accent) 52%, transparent));
+		filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--adaptive-key) 52%, transparent));
 		opacity: 0.82;
 		vector-effect: non-scaling-stroke;
 	}
@@ -546,22 +488,23 @@
 	}
 
 	.keyboard-preview__key--active {
-		border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+		border-color: color-mix(in srgb, var(--adaptive-key) 70%, var(--border));
 		background: linear-gradient(
 			180deg,
-			color-mix(in srgb, var(--accent) 35%, var(--bg-primary)) 0%,
-			color-mix(in srgb, var(--accent) 20%, var(--bg-primary)) 100%
+			color-mix(in srgb, var(--adaptive-key) 35%, var(--bg-primary)) 0%,
+			color-mix(in srgb, var(--adaptive-key) 20%, var(--bg-primary)) 100%
 		);
 		box-shadow:
 			inset 0 1px 0 color-mix(in srgb, white 20%, transparent),
-			0 2px 0 color-mix(in srgb, var(--accent) 42%, black),
-			0 0 0.5rem color-mix(in srgb, var(--accent) 22%, transparent);
+			0 2px 0 color-mix(in srgb, var(--adaptive-key) 42%, black),
+			0 0 0.5rem color-mix(in srgb, var(--adaptive-key) 22%, transparent);
 		font-size: clamp(0.65rem, 1.45vw, 1rem);
 		letter-spacing: -0.02em;
 		white-space: nowrap;
 	}
 
-	.keyboard-preview__key--magic {
+	.keyboard-preview__key--magic,
+	.keyboard-preview__key--repeat {
 		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
 		background: linear-gradient(
 			180deg,

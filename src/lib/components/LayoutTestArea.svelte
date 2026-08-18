@@ -16,6 +16,8 @@
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		variant?: 'card' | 'page' | 'practice';
+		/** Smaller practice or page field for the layout-creator Edit workspace. */
+		compact?: boolean;
 		placeholder?: string;
 		ariaLabel?: string;
 		focusOnMount?: boolean;
@@ -33,6 +35,7 @@
 		inputProfile,
 		disabledMappingIds = [],
 		variant = 'card',
+		compact = false,
 		placeholder = 'Layout test area',
 		ariaLabel = placeholder,
 		focusOnMount = false,
@@ -120,7 +123,11 @@
 	$effect(() => {
 		if (!focusOnMount || !inputElement) return;
 		const element = inputElement;
-		const frame = window.requestAnimationFrame(() => element.focus({ preventScroll: true }));
+		const activeElement = document.activeElement;
+		const frame = window.requestAnimationFrame(() => {
+			if (document.activeElement !== activeElement) return;
+			element.focus({ preventScroll: true });
+		});
 		return () => window.cancelAnimationFrame(frame);
 	});
 
@@ -202,13 +209,19 @@
 <div
 	class="layout-test-area"
 	class:layout-test-area--page={variant === 'page'}
+	class:layout-test-area--page-compact={variant === 'page' && compact}
 	class:layout-test-area--practice={variant === 'practice'}
+	class:layout-test-area--practice-compact={variant === 'practice' && compact}
 	class:layout-test-area--invalid={variant === 'practice' && invalid}
 	style="
 		height: {variant === 'page'
-		? 'clamp(12rem, 32vh, 22rem)'
+		? compact
+			? '130px'
+			: 'clamp(12rem, 23vh, 22rem)'
 		: variant === 'practice'
-			? '4.5rem'
+			? compact
+				? '2.5rem'
+				: '4.5rem'
 			: `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
 		background-color: var(--input-bg);
 		border: 1px solid var(--border);
@@ -284,6 +297,10 @@
 		line-height: 1.5;
 	}
 
+	.layout-test-area--page-compact .layout-test-area-input {
+		padding: 0.5rem 0.75rem;
+	}
+
 	.layout-test-area--practice .layout-test-area-input {
 		padding: 0.75rem 1.25rem;
 		font-family:
@@ -292,6 +309,11 @@
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: 0.015em;
+	}
+
+	.layout-test-area--practice-compact .layout-test-area-input {
+		padding: 0.3rem 0.75rem;
+		font-size: 1.375rem;
 	}
 
 	.layout-test-area--practice.layout-test-area--invalid .layout-test-area-input {

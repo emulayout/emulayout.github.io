@@ -3,7 +3,9 @@ import {
 	normalizeTypingPracticeLessonSettings,
 	normalizeTypingPracticeText,
 	parseTypingPracticeSpecialWordsPercent,
-	typingPracticeWordsFromText
+	typingPracticeLessonFromSearchParams,
+	typingPracticeWordsFromText,
+	writeTypingPracticeLessonParams
 } from '$lib/typingPracticeText';
 
 describe('typing practice custom text', () => {
@@ -46,5 +48,22 @@ describe('typing practice lesson settings', () => {
 			customText: null,
 			specialWordsPercent: 70
 		});
+	});
+
+	test('reads and writes shareable lesson query params', () => {
+		const fromText = typingPracticeLessonFromSearchParams(
+			new URLSearchParams('text=hello+world&special=40')
+		);
+		expect(fromText).toEqual({ customText: 'hello world', specialWordsPercent: 0 });
+
+		const fromSpecial = typingPracticeLessonFromSearchParams(new URLSearchParams('special=40'));
+		expect(fromSpecial).toEqual({ customText: null, specialWordsPercent: 40 });
+
+		const params = new URLSearchParams();
+		writeTypingPracticeLessonParams(params, { customText: null, specialWordsPercent: 0 });
+		expect(params.toString()).toBe('');
+		writeTypingPracticeLessonParams(params, { customText: 'hello world', specialWordsPercent: 40 });
+		expect(params.get('text')).toBe('hello world');
+		expect(params.has('special')).toBe(false);
 	});
 });

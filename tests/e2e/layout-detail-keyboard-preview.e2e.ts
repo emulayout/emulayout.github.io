@@ -327,9 +327,7 @@ test.describe('full-catalog keyboard previews', () => {
 		await page.goto('/layouts/magic_sturdy');
 
 		const preview = page.getByRole('img', { name: 'magic_sturdy keyboard preview' });
-		const thumbKey = preview
-			.locator('[data-keyboard-row="3"] .keyboard-preview__key')
-			.filter({ hasText: '@' });
+		const thumbKey = preview.locator('[data-keyboard-row="3"] [data-key-char="@"]');
 		const rightIndexKey = preview.locator('[data-keyboard-row="2"] [data-key-column="6"]');
 		await expect(rightIndexKey).toHaveText('h');
 		const [thumbBox, rightIndexBox] = await Promise.all([
