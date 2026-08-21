@@ -1,9 +1,11 @@
 import {
 	buildKeyboardInputConfig,
+	createKeyboardInputConfigFromLayout,
 	type InputKeyboardType,
 	type KeyboardInputConfig,
 	type KeyboardInputKey
 } from '$lib/keyboardInputConfig';
+import type { LayoutData } from '$lib/layout';
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, createDefaultCreatorKeyConfig } from '$lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
@@ -140,6 +142,30 @@ function keysEqual(left: readonly KeyboardInputKey[], right: readonly KeyboardIn
 		.map(keySignature)
 		.sort()
 		.every((signature, index) => signature === signatures[index]);
+}
+
+/** True when `base` is set but the key grid is still the default QWERTY canvas. */
+export function creatorKeyConfigNeedsCatalogBaseSeed(config: KeyboardInputConfig): boolean {
+	const defaults = createDefaultCreatorKeyConfig();
+	const baseName = config.baseLayoutName?.trim() ?? '';
+	if (!baseName || baseName === defaults.baseLayoutName) return false;
+	if (config.baseLayoutModified) return false;
+	return keysEqual(config.keys, defaults.keys);
+}
+
+/** New Edit canvas named New layout, with this catalog layout as the selected base. */
+export function createCreatorEditSnapshotFromLayout(layout: LayoutData): CreatorUrlSnapshot {
+	return {
+		...createDefaultCreatorUrlSnapshot(),
+		preview: false,
+		includeMagicKey: layout.hasMagicKey,
+		includeAdaptiveKey: layout.hasAdaptiveSwap,
+		keyConfig: createKeyboardInputConfigFromLayout(layout)
+	};
+}
+
+export function creatorEditSearchFromLayout(layout: LayoutData): string {
+	return `?${writeCreatorUrlParams(createCreatorEditSnapshotFromLayout(layout)).toString()}`;
 }
 
 function magicRulePayload(rule: CreatorMagicRule): [string, string] {

@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import AuthorAutocomplete from '$lib/components/AuthorAutocomplete.svelte';
 	import { copyTextToClipboard } from '$lib/clipboard';
@@ -37,6 +37,7 @@
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
 		LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL,
+		createDefaultCreatorKeyConfig,
 		createLayoutFromKeyConfig,
 		nextDuplicatedLayoutName,
 		keyboardConfigGainedMagicTriggers,
@@ -78,6 +79,7 @@
 	import {
 		cloneCreatorUrlSnapshot,
 		createDefaultCreatorUrlSnapshot,
+		creatorKeyConfigNeedsCatalogBaseSeed,
 		creatorSearchFromSnapshot,
 		creatorSnapshotFromContent,
 		creatorUrlContentEqual,
@@ -231,6 +233,31 @@
 	$effect(() => {
 		void layoutsCatalog.ensureLoaded();
 		void layoutsCatalog.ensureSupplementalLoaded();
+	});
+
+	$effect(() => {
+		if (activeSavedId) return;
+		const config = keyConfig;
+		const name = config.baseLayoutName?.trim() ?? '';
+		if (!name) return;
+		void layoutsCatalog.layouts;
+		if (creatorKeyConfigNeedsCatalogBaseSeed(config)) {
+			void selectBaseLayout(name);
+			return;
+		}
+		if (name === createDefaultCreatorKeyConfig().baseLayoutName || config.baseLayoutModified) {
+			return;
+		}
+		if (!layoutsCatalog.supplementalLoaded) return;
+		untrack(() => {
+			if (
+				creatorMagicDraftHasMappings(magicDraft) ||
+				creatorAdaptiveDraftHasMappings(adaptiveDraft)
+			) {
+				return;
+			}
+			applySupplementalDrafts(name);
+		});
 	});
 
 	onDestroy(() => {
@@ -1059,6 +1086,183 @@
 			{/if}
 		{/snippet}
 
+		{#snippet creatorActions()}
+			<div class="layout-creator-actions">
+				{#if saveError}
+					<p class="layout-creator-save-error" role="alert">{saveError}</p>
+				{/if}
+				<div class="layout-creator-actions-inner">
+					<button
+						type="button"
+						class="filter-reset-button layout-creator-action-button"
+						class:layout-creator-action-button--copied={shareCopied}
+						onclick={shareCreatorLayout}
+					>
+						{#if shareCopied}
+							<svg
+								class="layout-creator-action-icon"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<path d="M20 6L9 17l-5-5" />
+							</svg>
+							Link copied
+						{:else}
+							<svg
+								class="layout-creator-action-icon"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+							>
+								<circle cx="18" cy="5" r="3" />
+								<circle cx="6" cy="12" r="3" />
+								<circle cx="18" cy="19" r="3" />
+								<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+							</svg>
+							Share
+						{/if}
+					</button>
+					{#if layoutPreview || activeSavedId}
+						<button
+							type="button"
+							class="filter-reset-button layout-creator-action-button"
+							onclick={toggleLayoutPreview}
+						>
+							{#if layoutPreview}
+								<svg
+									class="layout-creator-action-icon"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<path d="M12 20h9" />
+									<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+								</svg>
+								Edit
+							{:else}
+								<svg
+									class="layout-creator-action-icon"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+								</svg>
+								Lock
+							{/if}
+						</button>
+					{/if}
+					<div class="layout-creator-save">
+						{#if hasUnsavedCreatorChanges}
+							{#if showUpdateSplit}
+								<DropdownMenu
+									bind:open={saveMenuOpen}
+									placement="bottom-center"
+									rootClass="layout-creator-split-button"
+									menuLabel="More save options"
+								>
+									{#snippet trigger({ toggle, triggerProps })}
+										<button
+											type="button"
+											class="filter-reset-button layout-creator-split-button-main"
+											onclick={() => {
+												saveMenuOpen = false;
+												saveCurrentLayout();
+											}}
+										>
+											Save changes
+										</button>
+										<button
+											type="button"
+											class="filter-reset-button layout-creator-split-button-toggle"
+											aria-label="More save options"
+											{...triggerProps}
+											onclick={toggle}
+										>
+											<svg
+												class="layout-creator-split-button-caret"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+												stroke-width="2.5"
+												aria-hidden="true"
+											>
+												<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+									{/snippet}
+									{#snippet children({ close })}
+										<button
+											type="button"
+											role="menuitem"
+											class="layout-creator-split-menu-item"
+											onclick={() => {
+												close();
+												saveAsNewLayout();
+											}}
+										>
+											Save as new layout
+										</button>
+									{/snippet}
+								</DropdownMenu>
+								<button
+									type="button"
+									class="filter-reset-button layout-creator-action-button"
+									onclick={undoSavedLayoutChanges}
+								>
+									Undo changes
+								</button>
+							{:else}
+								<button
+									type="button"
+									class="filter-reset-button layout-creator-action-button"
+									onclick={saveCurrentLayout}
+								>
+									Save
+								</button>
+							{/if}
+						{/if}
+						{#if showDuplicateButton}
+							<button
+								type="button"
+								class="filter-reset-button layout-creator-action-button"
+								onclick={duplicateSavedLayout}
+							>
+								Duplicate layout
+							</button>
+						{:else if !activeSavedId}
+							<button
+								type="button"
+								class="filter-reset-button layout-creator-action-button"
+								disabled={!canClearNewLayout}
+								onclick={clearAllKeys}
+							>
+								Clear all keys
+							</button>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/snippet}
+
 		{#key activeTab}
 			<LayoutExpandedView
 				{layout}
@@ -1073,7 +1277,7 @@
 				onPracticeLessonChange={setPracticeLesson}
 				localPreview
 				statsUnavailableDetail={LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL}
-				hideSummary={!layoutPreview}
+				summaryFooter={creatorActions}
 				keyboardHeaderStart={layoutPreview ? undefined : creatorHeaderStart}
 				keyboard={layoutPreview ? undefined : creatorKeyboard}
 				keyboardLead={layoutPreview ? undefined : creatorKeyboardLead}
@@ -1082,179 +1286,8 @@
 				keyboardBelow={layoutPreview ? undefined : creatorKeyboardBelow}
 				keyboardMappings={layoutPreview ? undefined : creatorMappings}
 				showKeyboardMappings={layoutPreview ? false : showEditorMappings}
-				compactPractice={!layoutPreview}
 			/>
 		{/key}
-
-		<div class="layout-creator-actions">
-			{#if saveError}
-				<p class="layout-creator-save-error" role="alert">{saveError}</p>
-			{/if}
-			<div class="layout-creator-actions-inner">
-				<button
-					type="button"
-					class="filter-reset-button layout-creator-action-button"
-					class:layout-creator-action-button--copied={shareCopied}
-					onclick={shareCreatorLayout}
-				>
-					{#if shareCopied}
-						<svg
-							class="layout-creator-action-icon"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M20 6L9 17l-5-5" />
-						</svg>
-						Link copied
-					{:else}
-						<svg
-							class="layout-creator-action-icon"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<circle cx="18" cy="5" r="3" />
-							<circle cx="6" cy="12" r="3" />
-							<circle cx="18" cy="19" r="3" />
-							<path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-						</svg>
-						Share
-					{/if}
-				</button>
-				<button
-					type="button"
-					class="filter-reset-button layout-creator-action-button"
-					class:layout-creator-action-button--preview={layoutPreview}
-					onclick={toggleLayoutPreview}
-				>
-					{#if layoutPreview}
-						<svg
-							class="layout-creator-action-icon"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M12 20h9" />
-							<path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-						</svg>
-						Edit
-					{:else}
-						<svg
-							class="layout-creator-action-icon"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-							<circle cx="12" cy="12" r="3" />
-						</svg>
-						Preview
-					{/if}
-				</button>
-				<div class="layout-creator-save">
-					{#if showUpdateSplit}
-						<DropdownMenu
-							bind:open={saveMenuOpen}
-							placement="top-stretch"
-							rootClass="layout-creator-split-button"
-							menuLabel="More save options"
-						>
-							{#snippet trigger({ toggle, triggerProps })}
-								<button
-									type="button"
-									class="filter-reset-button layout-creator-split-button-main"
-									onclick={() => {
-										saveMenuOpen = false;
-										saveCurrentLayout();
-									}}
-								>
-									Update layout
-								</button>
-								<button
-									type="button"
-									class="filter-reset-button layout-creator-split-button-toggle"
-									aria-label="More save options"
-									{...triggerProps}
-									onclick={toggle}
-								>
-									<svg
-										class="layout-creator-split-button-caret"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										stroke-width="2.5"
-										aria-hidden="true"
-									>
-										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-									</svg>
-								</button>
-							{/snippet}
-							{#snippet children({ close })}
-								<button
-									type="button"
-									role="menuitem"
-									class="layout-creator-split-menu-item"
-									onclick={() => {
-										close();
-										saveAsNewLayout();
-									}}
-								>
-									Save as new layout
-								</button>
-							{/snippet}
-						</DropdownMenu>
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-action-button"
-							onclick={undoSavedLayoutChanges}
-						>
-							Undo changes
-						</button>
-					{:else if showDuplicateButton}
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-action-button"
-							onclick={duplicateSavedLayout}
-						>
-							Duplicate layout
-						</button>
-					{:else}
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-action-button"
-							onclick={saveCurrentLayout}
-						>
-							Save layout
-						</button>
-						<button
-							type="button"
-							class="filter-reset-button layout-creator-action-button"
-							disabled={!canClearNewLayout}
-							onclick={clearAllKeys}
-						>
-							Clear all keys
-						</button>
-					{/if}
-				</div>
-			</div>
-		</div>
 	</div>
 </div>
 
@@ -1298,10 +1331,9 @@
 	}
 
 	.layout-creator-save-error {
-		margin: 0 0 0.5rem;
+		margin: 0;
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
-		text-align: center;
 	}
 
 	.layout-creator-view-bar {
@@ -1469,48 +1501,22 @@
 
 	.layout-creator-panel {
 		min-width: 0;
-		padding: 0.5rem 0.25rem
-			calc(var(--app-chrome-height) + 0.5rem + env(safe-area-inset-bottom, 0px));
+		padding: 0.5rem 0.25rem 2rem;
 	}
 
-	.layout-creator-actions {
-		position: fixed;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		z-index: 10;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-sizing: border-box;
-		height: calc(var(--app-chrome-height) + env(safe-area-inset-bottom, 0px));
-		margin: 0;
-		padding: 0 0.75rem env(safe-area-inset-bottom, 0px);
-		border-top: 1px solid var(--border);
-		background-color: var(--bg-primary);
-	}
-
-	.layout-creator-actions-inner {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		max-width: 100%;
-	}
-
-	@media (min-width: 768px) {
-		.layout-creator-actions {
-			padding-right: 1.5rem;
-			padding-left: 1.5rem;
-		}
-	}
-
+	.layout-creator-actions,
+	.layout-creator-actions-inner,
 	.layout-creator-save {
 		display: flex;
-		align-items: center;
-		gap: 0.75rem;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+		min-width: 0;
+		width: 100%;
 	}
 
 	.layout-creator-action-button {
+		width: 100%;
 		gap: 0.375rem;
 		min-height: 2.5rem;
 		padding: 0.5rem 0.75rem;
@@ -1524,11 +1530,6 @@
 		flex: none;
 	}
 
-	.layout-creator-action-button--preview {
-		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-		color: var(--accent);
-	}
-
 	.layout-creator-action-button--copied {
 		border-color: color-mix(in srgb, var(--success, #15803d) 55%, var(--border));
 		color: var(--success, #15803d);
@@ -1538,6 +1539,7 @@
 		position: relative;
 		display: flex;
 		align-items: stretch;
+		width: 100%;
 	}
 
 	.layout-creator-split-button-main,
@@ -1548,6 +1550,7 @@
 	}
 
 	.layout-creator-split-button-main {
+		flex: 1 1 auto;
 		justify-content: center;
 		border-radius: 0.75rem 0 0 0.75rem;
 		border-right-width: 0;

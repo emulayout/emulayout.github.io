@@ -80,9 +80,10 @@ small without weakening app-bar functionality.
   the globally selected corpus, including after a direct visit or reload. When the summary card has
   enough inline space, its Highlights metric grid and finger-usage chart share one row; narrower
   summaries stack them, and catalog cards retain their existing presentation.
-- Ordinary external links below the card open the canonical layout by name in cminibrowser, open it
-  in Cyanophage when compatible, and open a custom typing lesson on Colemak Camp. These are semantic
-  links rather than button-driven menus.
+- Ordinary links below the card open the canonical layout by name in cminibrowser, open it in
+  Cyanophage when compatible, and open a custom typing lesson on Colemak Camp. These are semantic
+  links rather than button-driven menus. An **Edit layout** link sits above those links and opens
+  a new creator canvas in Edit with this catalog layout selected as the base.
 - Repeat behavior stays enabled on the detail page and has no detail-page toggle. The summary card
   keeps the catalog-style anglemod action as its only card action. Anglemod changes update the card,
   typing emulator, and generated Cyanophage and Colemak Camp links; the canonical-name cminibrowser
@@ -94,8 +95,8 @@ small without weakening app-bar functionality.
   feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
   practice, without adding a second focusable control inside the tablist.
 - `Typing practice` is the first and default tab. It presents ten random English 1k words or a
-  URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time, completion
-  Accuracy/WPM, and the board-aware keyboard workspace. Typed characters color the current target
+  URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time,
+  Accuracy/WPM in the completed prompt, and the board-aware keyboard workspace. Typed characters color the current target
   green or red. Exact non-final words advance on Space; the final word completes immediately without
   Space. The field uses the same input resolver, anglemod state, disabled mappings, and
   uninterrupted-history rules as the Layout test area. See
@@ -202,8 +203,8 @@ small without weakening app-bar functionality.
 - Quick Find name search, catalog reuse, and debounced detail loading:
   `src/lib/components/QuickFindModal.svelte`, `src/lib/layoutsCatalog.svelte.ts`
 - Expanded layout content, external links, corpus selector, and analyzer controls:
-  `src/lib/components/LayoutExpandedView.svelte` (`localPreview`, `hideSummary`, `compactPractice`,
-  and Edit keyboard snippets for the creator),
+  `src/lib/components/LayoutExpandedView.svelte` (`localPreview` and optional Edit keyboard snippets
+  for the creator),
   `src/lib/cminibrowser.ts`,
   `src/lib/components/CorpusTabs.svelte`
 - Typing-practice session, rendering, and layout-aware input: `src/lib/typingPractice.ts`,

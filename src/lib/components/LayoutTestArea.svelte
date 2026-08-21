@@ -305,15 +305,19 @@
 		padding: 0.75rem 1.25rem;
 		font-family:
 			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-		font-size: 2.5rem;
+		font-size: var(--typing-practice-font-size, 2.5rem);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: 0.015em;
 	}
 
+	.layout-test-area--practice .layout-test-area-input::placeholder {
+		color: color-mix(in srgb, var(--text-primary) 45%, transparent);
+	}
+
 	.layout-test-area--practice-compact .layout-test-area-input {
 		padding: 0.3rem 0.75rem;
-		font-size: 1.375rem;
+		font-size: var(--typing-practice-font-size, 1.375rem);
 	}
 
 	.layout-test-area--practice.layout-test-area--invalid .layout-test-area-input {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
 	import { resolveLayoutDetailStats, type LayoutDetailStats } from '$lib/layoutDetails';
@@ -50,6 +51,7 @@
 	import { createColemakCampURLFromKeyMap } from '$lib/colemakCamp';
 	import { createCminibrowserLayoutURL } from '$lib/cminibrowser';
 	import { buildCyanophagePlaygroundUrl } from '$lib/cyanophage';
+	import { creatorEditSearchFromLayout } from '$lib/layoutCreatorUrl';
 	import type { LayoutDetailSection } from '$lib/layoutDetailTabs';
 	import type { TypingPracticeLessonSettings } from '$lib/typingPracticeText';
 	import { SharedTypingPracticeLesson } from '$lib/typingPracticeLesson.svelte';
@@ -70,8 +72,8 @@
 		/** Creator preview: show-page chrome without catalog stats or cminibrowser. */
 		localPreview?: boolean;
 		statsUnavailableDetail?: string;
-		/** Creator Edit: hide the summary card and external links. */
-		hideSummary?: boolean;
+		/** Creator: Share, Edit/Lock, and save actions under the summary card. */
+		summaryFooter?: Snippet;
 		/** Creator Edit: name and author fields above the input-layout control. */
 		keyboardHeaderStart?: Snippet;
 		/** Creator Edit: replaces the presentation keyboard on every section. */
@@ -82,8 +84,6 @@
 		keyboardBelow?: Snippet;
 		keyboardMappings?: Snippet;
 		showKeyboardMappings?: boolean;
-		/** Smaller Practice, Feel, and test-area chrome for the layout-creator Edit workspace. */
-		compactPractice?: boolean;
 	}
 
 	function contextualPreviewLabel(magic: boolean, repeat: boolean, adaptive: boolean): string {
@@ -110,7 +110,7 @@
 		onPracticeLessonChange,
 		localPreview = false,
 		statsUnavailableDetail,
-		hideSummary = false,
+		summaryFooter,
 		keyboardHeaderStart,
 		keyboard,
 		keyboardLead,
@@ -118,8 +118,7 @@
 		keyboardAside,
 		keyboardBelow,
 		keyboardMappings,
-		showKeyboardMappings = false,
-		compactPractice = false
+		showKeyboardMappings = false
 	}: Props = $props();
 
 	const cminiLabel =
@@ -174,6 +173,7 @@
 			: applyAnglemodToDisplayRows(baseDisplayRows);
 	});
 	const displayValue = $derived(displayRowsToString(displayRows));
+
 	const testKeyMaps = $derived(
 		createLayoutTestKeyMaps(displayValue, { layout, rows: displayRows })
 	);
@@ -356,12 +356,6 @@
 			for (const analyzer of missing) void layoutStatsStore.ensureLoaded(analyzer);
 		});
 	});
-
-	let editWorkspaceWidthPx = $state<number | null>(null);
-
-	function handleWorkspaceWidthChange(width: number | null) {
-		editWorkspaceWidthPx = hideSummary ? width : null;
-	}
 </script>
 
 {#snippet analyzerToggle(analyzer: StatsAnalyzer, label: string, checked: boolean, accent: string)}
@@ -481,52 +475,48 @@
 		variant="summary"
 		statsUnavailableDetail={localPreview ? statsUnavailableDetail : undefined}
 	/>
-	<nav class="layout-detail-links" aria-label={`${layout.name} external links`}>
-		{#if cyanophageUrl}
-			<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-			<a href={cyanophageUrl} target="_blank" rel="noopener noreferrer">
-				View in Cyanophage
-				<span aria-hidden="true">↗</span>
-			</a>
-		{/if}
-		{#if !localPreview}
-			<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-			<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
-				See more stats on cminibrowser
-				<span aria-hidden="true">↗</span>
-			</a>
-		{/if}
-		<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
-		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-		<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
-			More practice on Colemak Camp
-			<span aria-hidden="true">↗</span>
-		</a>
-	</nav>
+	{#if cyanophageUrl || !localPreview}
+		<nav class="layout-detail-links" aria-label={`${layout.name} links`}>
+			{#if !localPreview}
+				<a href="{resolve('/create')}{creatorEditSearchFromLayout(layout)}">Edit layout</a>
+			{/if}
+			{#if cyanophageUrl}
+				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={cyanophageUrl} target="_blank" rel="noopener noreferrer">
+					View in Cyanophage
+					<span aria-hidden="true">↗</span>
+				</a>
+			{/if}
+			{#if !localPreview}
+				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
+					See more stats on cminibrowser
+					<span aria-hidden="true">↗</span>
+				</a>
+				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+				<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
+					More practice on Colemak Camp
+					<span aria-hidden="true">↗</span>
+				</a>
+			{/if}
+		</nav>
+	{/if}
 {/snippet}
 
-<article
-	class="layout-detail-page"
-	class:layout-detail-page--workspace-only={hideSummary}
-	data-layout-detail
-	aria-label={`${layout.name} details`}
->
+<article class="layout-detail-page" data-layout-detail aria-label={`${layout.name} details`}>
 	<div class="layout-detail-scroll">
-		<div class="detail-columns" class:detail-columns--workspace-only={hideSummary}>
-			{#if !hideSummary}
-				<div class="detail-side">
-					{@render layoutSummary()}
-				</div>
-			{/if}
+		<div class="detail-columns">
+			<div class="detail-side">
+				{@render layoutSummary()}
+				{#if summaryFooter}
+					{@render summaryFooter()}
+				{/if}
+			</div>
 
-			<div
-				class="detail-main"
-				style={hideSummary && editWorkspaceWidthPx
-					? `--edit-workspace-width: ${editWorkspaceWidthPx}px`
-					: undefined}
-			>
+			<div class="detail-main">
 				<div class="layout-detail-tabs-wrap">
 					<Tabs
 						value={resolvedSection}
@@ -580,8 +570,6 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
-							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
-							compact={compactPractice}
 						/>
 					</div>
 				{:else if resolvedSection === 'test'}
@@ -597,7 +585,6 @@
 								{inputProfile}
 								{disabledMappingIds}
 								variant="page"
-								compact={compactPractice}
 								onInputHistoryChange={(history) => (layoutInputHistory = history)}
 							/>
 						</div>
@@ -621,7 +608,6 @@
 							aside={keyboardAside}
 							belowKeyboard={keyboardBelow}
 							mappings={keyboardMappings}
-							onWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
 						/>
 					</div>
 				{:else if resolvedSection === 'feel'}
@@ -650,8 +636,6 @@
 							{keyboardBelow}
 							{keyboardMappings}
 							{showKeyboardMappings}
-							onWorkspaceWidthChange={hideSummary ? handleWorkspaceWidthChange : undefined}
-							compact={compactPractice}
 						/>
 					</div>
 				{:else if !localPreview}
@@ -1053,28 +1037,6 @@
 			grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
 			gap: 1.5rem;
 		}
-
-		.detail-columns--workspace-only {
-			grid-template-columns: minmax(0, 1fr);
-		}
-	}
-
-	.layout-detail-page--workspace-only .detail-practice-panel,
-	.layout-detail-page--workspace-only .detail-feel-panel {
-		padding-block: 0;
-	}
-
-	.layout-detail-page--workspace-only .layout-detail-tabs-wrap,
-	.layout-detail-page--workspace-only .detail-test-area-wrap,
-	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-surface),
-	.layout-detail-page--workspace-only .detail-panel-content :global(.layout-feel-prompt-stack),
-	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-input),
-	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-state),
-	.layout-detail-page--workspace-only .detail-panel-content :global(.typing-practice-load-status) {
-		box-sizing: border-box;
-		width: var(--edit-workspace-width, 100%);
-		max-width: 100%;
-		margin-inline: auto;
 	}
 
 	.layout-detail-keyboard-header-lead {

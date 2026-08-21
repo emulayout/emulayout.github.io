@@ -61,6 +61,7 @@
 	} from '$lib/typingPracticeText';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
+	import { attachFittedTypingPracticeFont } from '$lib/fitTextToWidth';
 	import { trackGoatCounterEvent } from '$lib/goatcounter';
 	import { onDestroy, untrack, type Snippet } from 'svelte';
 
@@ -218,6 +219,13 @@
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
 	const practiceComplete = $derived(
 		session.totalWordCount > 0 && session.completedWordCount === session.totalWordCount
+	);
+	const fontFitKey = $derived(
+		!showPracticeWorkspace
+			? 'loading'
+			: practiceComplete
+				? 'results'
+				: prompt.map((word) => word.word).join('\0')
 	);
 	const elapsedMilliseconds = $derived(
 		startedAtMilliseconds === null
@@ -429,7 +437,11 @@
 	}
 </script>
 
-<div class="typing-practice" class:typing-practice--compact={compact}>
+<div
+	class="typing-practice"
+	class:typing-practice--compact={compact}
+	{@attach attachFittedTypingPracticeFont(compact, fontFitKey)}
+>
 	{#if !showPracticeWorkspace}
 		<div class="typing-practice-load-state">
 			{#if wordPoolStatus === 'error'}
@@ -448,7 +460,11 @@
 	{:else}
 		<div class="typing-practice-surface">
 			<div class="typing-practice-prompt-row">
-				<div class="typing-practice-copy" aria-label="Practice words">
+				<div
+					class="typing-practice-copy"
+					class:typing-practice-copy--results={practiceComplete}
+					aria-label={practiceComplete ? 'Typing practice results' : 'Practice words'}
+				>
 					{#if prompt.length > 0}
 						{#each prompt as word (word.id)}
 							<span
@@ -477,7 +493,8 @@
 							</span>
 						{/each}
 					{:else}
-						<span>Press esc to restart</span>
+						<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
+						<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
 					{/if}
 				</div>
 				{#if onPracticeLessonChange}
@@ -513,7 +530,7 @@
 					{disabledMappingIds}
 					variant="practice"
 					{compact}
-					placeholder=""
+					placeholder={practiceComplete ? 'Press ESC for more practice' : ''}
 					ariaLabel="Typing practice input"
 					focusOnMount={!keyboard}
 					invalid={inputHasError}
@@ -542,15 +559,6 @@
 					<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
 						>{elapsedTime}</span
 					>
-				</div>
-				<div
-					class="typing-practice-results"
-					class:typing-practice-results--hidden={!practiceComplete}
-					aria-label={practiceComplete ? 'Typing practice results' : undefined}
-					aria-hidden={!practiceComplete}
-				>
-					<span>Accuracy: {results.accuracyPercent.toFixed(2)}%</span>
-					<span>WPM: {results.wordsPerMinute.toFixed(2)}</span>
 				</div>
 			</div>
 		</div>
@@ -678,6 +686,15 @@
 {/if}
 
 <style>
+	.typing-practice {
+		--typing-practice-font-size: 2.5rem;
+		min-width: 0;
+	}
+
+	.typing-practice--compact {
+		--typing-practice-font-size: 1.375rem;
+	}
+
 	.typing-practice-surface {
 		min-width: 0;
 		width: 100%;
@@ -732,7 +749,7 @@
 		color: var(--text-secondary);
 		font-family:
 			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-		font-size: 2.5rem;
+		font-size: var(--typing-practice-font-size);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: 0.015em;
@@ -756,7 +773,7 @@
 		color: var(--text-primary);
 		font-family:
 			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-		font-size: 2.5rem;
+		font-size: var(--typing-practice-font-size);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: 0.015em;
@@ -766,6 +783,11 @@
 
 	.typing-practice-copy > [data-practice-word] {
 		flex: none;
+	}
+
+	.typing-practice-copy--results {
+		justify-content: space-between;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.typing-practice-lesson-action {
@@ -827,6 +849,7 @@
 		flex-direction: column;
 		gap: 0.75rem;
 		margin-top: clamp(0.75rem, 2vh, 1.5rem);
+		margin-bottom: clamp(1.5rem, 3vh, 2.5rem);
 		min-width: 0;
 	}
 
@@ -883,30 +906,6 @@
 		justify-self: end;
 	}
 
-	.typing-practice-results {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		padding-inline: clamp(1rem, 8%, 4rem);
-		color: var(--text-primary);
-		font-family:
-			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-		font-size: clamp(1.25rem, 3vw, 2rem);
-		font-variant-numeric: tabular-nums;
-		font-weight: 600;
-		line-height: 1.2;
-	}
-
-	.typing-practice-results--hidden {
-		visibility: hidden;
-	}
-
-	.typing-practice--compact .typing-practice-load-status,
-	.typing-practice--compact .typing-practice-copy {
-		font-size: 1.375rem;
-	}
-
 	.typing-practice--compact .typing-practice-lesson-action {
 		width: 1.75rem;
 		height: 1.75rem;
@@ -923,8 +922,7 @@
 		margin-bottom: 1.25rem;
 	}
 
-	.typing-practice--compact .typing-practice-status,
-	.typing-practice--compact .typing-practice-results {
+	.typing-practice--compact .typing-practice-status {
 		gap: 0.5rem;
 		padding-inline: 0.5rem;
 		font-size: 0.875rem;

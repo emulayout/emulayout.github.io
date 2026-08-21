@@ -5,7 +5,11 @@ import {
 	createDefaultKeyboardInputConfig,
 	updateKeyboardInputKey
 } from '../src/lib/keyboardInputConfig';
-import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, addMagicKeyToConfig } from '../src/lib/layoutCreator';
+import {
+	LAYOUT_CREATOR_NEW_LAYOUT_NAME,
+	addMagicKeyToConfig,
+	createLayoutFromKeyConfig
+} from '../src/lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
 	createCreatorAdaptiveSection,
@@ -16,6 +20,8 @@ import {
 } from '../src/lib/layoutCreatorMappings';
 import {
 	createDefaultCreatorUrlSnapshot,
+	creatorEditSearchFromLayout,
+	creatorKeyConfigNeedsCatalogBaseSeed,
 	creatorSearchFromSnapshot,
 	readCreatorUrlSnapshot,
 	writeCreatorUrlParams,
@@ -27,6 +33,39 @@ function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
 }
 
 describe('creator URL state', () => {
+	test('builds an Edit canvas query from a catalog layout', () => {
+		const qwerty = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
+			name: 'QWERTY'
+		});
+		expect(creatorEditSearchFromLayout(qwerty)).toBe('?edit=1');
+		expect(creatorKeyConfigNeedsCatalogBaseSeed(createDefaultKeyboardInputConfig())).toBe(false);
+
+		const unseededBase = buildKeyboardInputConfig({
+			baseLayoutName: 'Colemak-DH',
+			baseLayoutModified: false,
+			keyboardType: 'staggered',
+			keys: createDefaultKeyboardInputConfig().keys
+		});
+		expect(creatorKeyConfigNeedsCatalogBaseSeed(unseededBase)).toBe(true);
+
+		const colemakLike = createLayoutFromKeyConfig(
+			updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,2', 'f'),
+			{ name: 'Colemak-DH' }
+		);
+		const search = creatorEditSearchFromLayout(colemakLike);
+		const params = new URLSearchParams(search);
+		expect(params.get('edit')).toBe('1');
+		expect(params.get('base')).toBe('Colemak-DH');
+		expect(params.has('keys')).toBe(true);
+		expect(params.has('name')).toBe(false);
+		const restored = readCreatorUrlSnapshot(params);
+		expect(restored.name).toBe(LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+		expect(restored.preview).toBe(false);
+		expect(restored.keyConfig.baseLayoutName).toBe('Colemak-DH');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,2')?.value).toBe('f');
+		expect(creatorKeyConfigNeedsCatalogBaseSeed(restored.keyConfig)).toBe(false);
+	});
+
 	test('writes edit=1 for the default Edit canvas and omits Preview', () => {
 		const defaults = createDefaultCreatorUrlSnapshot();
 		expect(defaults.keyConfig.baseLayoutName).toBe('QWERTY');

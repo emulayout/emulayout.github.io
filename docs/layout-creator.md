@@ -43,7 +43,7 @@ drafts in the browser.
   practice, Layout test area, and Layout feel on the right. The card shows the live name and
   author. Local drafts have no analyzer stats, so the card uses the unavailable presentation with
   the subtitle `Local layouts have no analyzer stats.` There is no card analyzer selector, no Stats
-  tab, and no cminibrowser link. Cyanophage and Colemak Camp links stay when they can be built from
+  tab, and no cminibrowser or Colemak Camp link. A Cyanophage link stays when it can be built from
   the live keymap.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
   Name, author, base layout, keyboard type, key grid, preview, practice lesson, the Practice /
@@ -60,15 +60,21 @@ drafts in the browser.
   practice. Dirty edits stay in the query
   alongside `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the
   index filter URL persist, and flush on page hide so a refresh keeps the latest keystrokes. The
-  Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A bare
+  Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A catalog
+  show-page **Edit layout** link opens that same unsaved Edit canvas with the shown layout as `base`
+  and its keys when they differ from QWERTY; the draft stays named `New layout`. If the query has
+  `base` without keys, the creator seeds the grid and mappings once the catalog loads, matching Base
+  layout selection. A bare
   `/create` opens Preview of the default canvas. Reloading or opening the URL restores the draft,
   and a known `id` restores that saved layout from local storage. Empty standard slots are omitted
   from `keys`; because the default canvas is QWERTY, a cleared board writes `keys=v1:-` (or the
   equivalent empty encoding) and the default board omits `keys` and `base`. The legacy `keys=v1:-`
   form still restores an empty board. Do not put draft names, saved ids, or key maps into GoatCounter
   paths or events.
-- The sticky action bar places **Share** immediately before **Preview** in Edit and immediately
-  before **Edit** in Preview. Share copies an absolute `/create` URL containing the normalized
+- Share, Edit/Lock, Duplicate, and save stack under the summary card in the left column.
+  **Share** is immediately before **Edit** in Preview and immediately before **Lock** in Edit.
+  **Lock** is hidden on an unsaved canvas. **Save** appears on that canvas while it differs from the
+  default snapshot; **Save changes** appears only while a saved layout has unsaved changes. Share copies an absolute `/create` URL containing the normalized
   content snapshot: layout name, author, keyboard type and keys, Magic and Adaptive drafts,
   disabled mappings, and practice settings. It never includes a browser-local saved-layout `id`
   or transient Edit/Preview/detail-tab state. The link uses `share=1` to distinguish a portable
@@ -107,15 +113,19 @@ drafts in the browser.
   field is focused, the typed value stays visible instead of the contextual overlay.
 - Preview keeps `LayoutExpandedView` in local-preview mode and shows the summary card. The card
   and right-hand tabs match the catalog show page, except stats stay unavailable, the card analyzer
-  selector and Stats tab are omitted, and the cminibrowser link is hidden. Edit hides that summary
-  column so the tabs and workspace fill the panel. The preview keyboard still
+  selector and Stats tab are omitted, and the cminibrowser and Colemak Camp links are hidden. Edit keeps that same
+  two-column show-page layout and summary card. It replaces the presentation keyboard with the
+  key editor and shows editable Magic/Adaptive panels instead of the read-only mapping panel. The
+  preview keyboard still
   draws the 10 keys on each letter row and empty keycaps for unassigned slots between letters so
   remaining keys keep their physical columns. The key editor, name and author fields, base-layout
   and keyboard-type fields, special-key add buttons, missing-letter warning,
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
   in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
-  editors were closed in Edit. The sticky bar shows **Share**, then **Preview**, while editing;
-  Preview opens this show-page preview. It shows **Share**, then **Edit**, while previewing.
+  editors were closed in Edit. Those summary-column actions show **Share**, then **Lock**, while
+  editing a saved layout, and **Save** or **Save changes** only when the canvas differs from its
+  saved or default snapshot. **Lock** is omitted until the layout has been saved and returns the
+  page to view-only. They show **Share**, then **Edit**, while previewing.
   **Edit** focuses the first editable key, not Layout name or a practice field.
 - While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
   own column, top-aligned with the first keyboard row. Either or both can be on. Magic opens the
@@ -156,13 +166,9 @@ drafts in the browser.
   page-session leftover lesson words; leaving either tab during a test refills a random lesson to
   ten words and clears the timer. Layout test area keeps its own free-typing surface.
   Each tab still uses its own keyboard options. Preview swaps that editor for the presentation keyboard.
-  Edit-only Practice and Feel use a compact scale for the prompt, input, and score
-  stats so they sit more tightly above the key editor. Their typing fields do not autofocus in Edit,
-  so loading the editor cannot steal focus from a layout field. Edit Layout test area free
-  typing uses a 130px field instead of the tall show-page surface. Preview and
-  catalog show pages keep the large practice typography and tall test area. In
-  Edit the section tabs, prompt, and input match the key-editor workspace width.
-  Preview keeps the show-page column. The same
+  Edit Practice and Feel keep the show-page prompt, input, and score scale. Their typing fields do
+  not autofocus in Edit, so loading the editor cannot steal focus from a layout field. Layout test
+  area keeps the tall free-typing surface in both views. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
   `special`. Those params join the creator query and are omitted at their defaults. Magic and
@@ -172,11 +178,11 @@ drafts in the browser.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
 - Saved layouts persist only layout and lesson content in a versioned local-storage document, each
-  with its own id; Preview/Edit mode and the selected detail tab remain URL view state. A sticky
-  bottom bar keeps **Preview** / **Edit** beside save while the page document-scrolls.
-  Save follows the live canvas: **Save layout** on an unsaved draft, with **Clear all keys** beside
-  it; a split **Update layout** with
-  **Save as new layout** when a saved layout has changed, plus **Undo changes** to the right of
+  with its own id; Preview/Edit mode and the selected detail tab remain URL view state. Share,
+  **Edit** / **Lock**, Duplicate, and save stack under the summary card while the page document-scrolls.
+  Save follows the live canvas: **Save** only when an unsaved draft has changed, with **Clear all
+  keys** below it and no **Lock** control; a split **Save changes** with
+  **Save as new layout** when a saved layout has changed, plus **Undo changes** below
   that split; **Duplicate layout** only when a saved layout matches its stored snapshot. Duplicate
   saves a new copy, opens it in Edit, and advances a trailing copy number until its name is unused:
   `My layout` becomes `My layout 2`, `Vylet v5` becomes `Vylet v5 2`, and `Test 3` becomes `Test 4`.
@@ -184,7 +190,7 @@ drafts in the browser.
   unsaved content; Preview/Edit and detail-tab changes do not count. Deleting the active dirty
   layout includes the same discard warning in its delete confirmation. Undo restores the
   stored snapshot and keeps the current Preview/Edit mode. It is hidden on an unsaved canvas and
-  while a saved layout is clean. Save, update, and save-as-new use the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
+  while a saved layout is clean. Save and save-as-new use the current layout name. A save is only acknowledged after local storage confirms the write. If storage is
   unavailable, the creator keeps the full draft URL and shows a recoverable error instead of
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
@@ -236,7 +242,8 @@ drafts in the browser.
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,
   `src/lib/components/LayoutKeyboardWorkspace.svelte`
 - Show-page preview and shared creator tabs: `src/lib/components/LayoutExpandedView.svelte`
-  (`localPreview`, `hideSummary`, `compactPractice`, optional Edit keyboard snippets)
+  (`localPreview`, optional `summaryFooter` and Edit keyboard snippets; Edit keeps the show-page
+  summary column)
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
 - Shared keyboard option presentation and swap-path measurement:
   `src/lib/layoutKeyboardFeedback.ts` (`LayoutKeyboardPresentation`),
@@ -258,5 +265,6 @@ drafts in the browser.
 - GoatCounter counts `/create` as a coarse page class titled `Layout creator`. Do not send draft
   names, author names, key maps, lesson text, or WPM.
 - A copied `/create` query restores the draft. Create and `+ New layout` open Edit
-  (`/create?edit=1`). A bare `/create` link opens Preview of the default canvas. Saved-layout tabs
+  (`/create?edit=1`). A show-page **Edit layout** link opens that Edit canvas with the shown layout
+  as the selected base. A bare `/create` link opens Preview of the default canvas. Saved-layout tabs
   come from local storage; `id` in the query selects one when it exists.

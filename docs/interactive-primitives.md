@@ -101,8 +101,10 @@ base-layout autocomplete and keyboard-type control, in the keyboard slot. It hid
 placeholders and does not require unique assigned values, so a draft may keep any number of
 letters, including repeats. Empty slots are dropped from the live draft. The editor still
 receives the workspace option presentation (next-key, home-key coloring, special-key feedback,
-swap paths, and unreachable slashes). **Preview** in the creator sticky bar swaps this editor
-for the presentation-only keyboard; **Edit** restores it and focuses the first editable key.
+swap paths, and unreachable slashes). **Edit** under the creator summary card unlocks the key editor
+and focuses the first editable key. **Lock** returns the form to view-only and stays hidden until
+the layout has been saved. **Save** appears on an unsaved canvas, and **Save changes** on a saved
+layout, only while the draft has unsaved changes.
 
 The creator's **Import** button beside Base layout opens a `ModalShell` with a multiline key-grid
 field. The field receives initial focus. Import applies the parsed grid to the creator draft,

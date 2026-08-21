@@ -37,11 +37,12 @@ and calculation logic outside the renderer.
   history, and increments progress. A premature space remains in the input and counts as an
   incorrect attempt without changing the rendered prompt text.
 - The prompt and input use the same monospace typography and span the full panel width, matching
-  Layout feel and Layout test area. The prompt stays on one clipped line; words beyond that width
-  are hidden rather than wrapped. Creator Edit matches the section tabs, prompt, and input to
-  the key-editor workspace width. Creator Edit also passes `compact` so Practice and Feel shrink the prompt,
-  field, and score stats; Preview and catalog show pages keep the default large scale. Edit also
-  shrinks Layout test area free typing to 130px.
+  Layout feel and Layout test area. Their shared size starts at the show-page scale and shrinks
+  until the prompt fits the available width. The prompt stays on one line; leftover words are
+  clipped rather than wrapped if they still overflow at the minimum size. Creator Edit and Preview
+  keep the show-page prompt, input, and score scale, matching catalog layout detail pages. Edit
+  replaces the presentation keyboard with the key editor and editable Magic/Adaptive panels; it
+  does not shrink practice chrome.
 - The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
   lesson with ten newly sampled words that exclude every word from the previous lesson. For a
   custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
@@ -103,12 +104,11 @@ and calculation logic outside the renderer.
   keyboard inside the detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
-- Completion reveals Accuracy and WPM in a row whose height is reserved throughout the lesson, so
-  revealing results does not shift the keyboard. Accuracy is correct character attempts divided by
+- Completion replaces the prompt with Accuracy and WPM. Accuracy is correct character attempts divided by
   all character attempts; deletions do not count as attempts. WPM uses the conventional
   five-character word and the lesson's completed characters, including inter-word spaces, over
   elapsed time.
-- The completed prompt reads `Press esc to restart` and Escape immediately starts the next lesson.
+- The completed input placeholder reads `Press ESC for more practice` and Escape immediately starts the next lesson.
 - A trailing pencil button on random prompts opens the shared modal shell with the displayed lesson
   ready to edit. On Layout feel it sits on the remapped prompt row, not the quieter source-word
   line. Saving normalized nonempty text writes it to the URL and starts that custom lesson.
@@ -220,6 +220,7 @@ The successful-space path is intentionally ordered:
   `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
+- Prompt/input shrink-to-fit sizing: `src/lib/fitTextToWidth.ts`
 - Creator tabs and Edit practice workspace: `src/lib/components/LayoutCreator.svelte`,
   `src/lib/components/LayoutExpandedView.svelte`
 - Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,
@@ -236,6 +237,7 @@ The successful-space path is intentionally ordered:
   (`compact` on the practice variant)
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
 - Unit coverage: `tests/typingPractice*.test.ts`, `tests/layoutFeel.test.ts`,
+  `tests/fitTextToWidth.test.ts`,
   `tests/layoutKeyReachability.test.ts`, `tests/layoutTestAreaPrefs.test.ts`
 - Browser coverage: `tests/e2e/layout-detail-typing-practice.e2e.ts`,
   `tests/e2e/layout-detail-keyboard-preview.e2e.ts`, `tests/e2e/layout-detail-feel.e2e.ts`
@@ -248,6 +250,7 @@ The successful-space path is intentionally ordered:
 - Custom lesson resets reproduce the normalized URL text exactly; random lesson resets exclude the
   prior ten words.
 - Remaining words retain stable identities as the head of the queue is removed.
+- Prompt and input share one fitted monospace size. The prompt stays on a single clipped line.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
 - Layout test area keeps independent free-typing text and contextual history. Typing practice and

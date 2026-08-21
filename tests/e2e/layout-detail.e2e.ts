@@ -351,10 +351,16 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await cardAnalyzer.getByRole('radio', { name: 'Cyanophage' }).click();
 	await expect(summaryCard.getByLabel('Cyanophage core statistics')).toBeVisible();
 	await expect(summaryCard.getByLabel('cmini core statistics')).toHaveCount(0);
-	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toHaveAttribute(
-		'href',
-		/^https:\/\/cyanophage\.github\.io\//
-	);
+	await expect(detailPage.getByRole('link', { name: 'Edit layout' })).toBeVisible();
+	const cyanophageLink = detailPage.getByRole('link', { name: 'View in Cyanophage' });
+	const [editLayoutBox, cyanophageLinkBox] = await Promise.all([
+		detailPage.getByRole('link', { name: 'Edit layout' }).boundingBox(),
+		cyanophageLink.boundingBox()
+	]);
+	expect(editLayoutBox).not.toBeNull();
+	expect(cyanophageLinkBox).not.toBeNull();
+	expect(cyanophageLinkBox!.y).toBeGreaterThanOrEqual(editLayoutBox!.y + editLayoutBox!.height);
+	await expect(cyanophageLink).toHaveAttribute('href', /^https:\/\/cyanophage\.github\.io\//);
 	await expect(
 		detailPage.getByRole('link', { name: 'See more stats on cminibrowser' })
 	).toHaveAttribute('href', 'https://cminibrowser.com/#%7B%22open%22%3A%22Colemak-DH%22%7D');
@@ -402,6 +408,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(page.getByText('Analyzers', { exact: true })).toBeVisible();
 	await expect(statsPanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
 	await expect(summaryCard).toBeVisible();
+	await expect(detailPage.getByRole('link', { name: 'Edit layout' })).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toBeVisible();
 	await expect(
 		detailPage.getByRole('link', { name: 'See more stats on cminibrowser' })
@@ -547,6 +554,24 @@ test('places summary highlights and finger usage side by side only when the deta
 	await page.goto('/');
 	await expect(page.locator('.core-stats').first()).toBeVisible();
 	await expect(page.locator('.core-stats--wide-focused')).toHaveCount(0);
+});
+
+test('Edit layout opens a new creator canvas seeded from the shown layout', async ({ page }) => {
+	await page.goto('/layouts/Colemak-DH');
+
+	const detailPage = page.getByRole('article', { name: 'Colemak-DH details' });
+	const editLayout = detailPage.getByRole('link', { name: 'Edit layout' });
+	await expect(editLayout).toHaveAttribute('href', /\/create\?(?:.*&)?edit=1(?:&|$)/);
+	await expect(editLayout).toHaveAttribute('href', /\/create\?(?:.*&)?base=Colemak-DH(?:&|$)/);
+	await editLayout.click();
+
+	await expect(page).toHaveURL(/\/create\?/);
+	await expect(page).toHaveTitle('New layout · Emulayout');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveValue(
+		'Colemak-DH'
+	);
+	await expect(panel.getByRole('textbox', { name: 'Row 1, key 3', exact: true })).toHaveValue('f');
 });
 
 test('shows a recoverable not-found page for an unknown layout URL', async ({ page }) => {

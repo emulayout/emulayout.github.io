@@ -236,7 +236,7 @@ test.describe('typing-practice input layout', () => {
 		).not.toBeNull();
 
 		await practiceInput.press('f');
-		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
+		await expect(practicePanel.getByLabel('Typing practice results')).toBeVisible();
 		await page.reload();
 		await expect(
 			page
@@ -247,7 +247,9 @@ test.describe('typing-practice input layout', () => {
 			.getByRole('tabpanel', { name: 'Typing practice' })
 			.getByRole('textbox', { name: 'Typing practice input' })
 			.press('f');
-		await expect(page.getByText('Press esc to restart')).toBeVisible();
+		await expect(
+			page.getByRole('tabpanel', { name: 'Typing practice' }).getByLabel('Typing practice results')
+		).toBeVisible();
 
 		await page.getByRole('tab', { name: 'Layout test area' }).click();
 		const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
@@ -284,7 +286,7 @@ test.describe('typing-practice input layout', () => {
 		await dialog.getByRole('button', { name: 'Save' }).click();
 
 		await practiceInput.press('1');
-		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
+		await expect(practicePanel.getByLabel('Typing practice results')).toBeVisible();
 		await practiceInput.press('Escape');
 
 		const simulateOption = practicePanel.locator('[data-simulate-thumb-keys-option]');
@@ -305,6 +307,6 @@ test.describe('typing-practice input layout', () => {
 		await expect(practiceInput).toHaveValue('1');
 		await practiceInput.press('Backspace');
 		await practiceInput.press('Space');
-		await expect(practicePanel.getByText('Press esc to restart')).toBeVisible();
+		await expect(practicePanel.getByLabel('Typing practice results')).toBeVisible();
 	});
 });

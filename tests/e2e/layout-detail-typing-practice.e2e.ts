@@ -681,14 +681,15 @@ test('colors typing-practice feedback and advances only a completed word', async
 	await practiceInput.fill(finalWord);
 	await expect(practiceInput).toHaveValue('');
 	await expect(practicePanel.getByLabel('10 of 10 words complete')).toHaveText('10/10');
-	await expect(practiceWords).toHaveText('Press esc to restart');
-	await expect(practiceWords.locator('[data-current-word="true"]')).toHaveCount(0);
+	await expect(practicePanel.getByLabel('Practice words')).toHaveCount(0);
+	await expect(practicePanel.locator('[data-current-word="true"]')).toHaveCount(0);
 	const correctAttemptCount = testCharacterCount + (secondTargetCharacter === undefined ? 0 : 1);
 	const expectedAccuracy = ((correctAttemptCount / (correctAttemptCount + 2)) * 100).toFixed(2);
 	const results = practicePanel.getByLabel('Typing practice results');
 	await expect(results).toBeVisible();
 	await expect(results.getByText(`Accuracy: ${expectedAccuracy}%`)).toBeVisible();
 	await expect(results.getByText(/^WPM: [1-9]\d*\.\d{2}$/)).toBeVisible();
+	await expect(practiceInput).toHaveAttribute('placeholder', 'Press ESC for more practice');
 	const completedResults = await results.textContent();
 	await practiceInput.fill('x');
 	await expect(practiceInput).toHaveValue('');
