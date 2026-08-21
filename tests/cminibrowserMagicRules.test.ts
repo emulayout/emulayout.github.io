@@ -42,15 +42,32 @@ describe('cminibrowser Magic and Adaptive mappings', () => {
 	});
 
 	test('keeps a rule-free conventional @ in the dedicated Repeat model', () => {
+		for (const defaultOutput of ['repeat_previous', 'none']) {
+			const result = normalizeCminibrowserMagicRules({
+				repeat: {
+					magic_keys: [{ key: '@', default: defaultOutput, rules: [] }],
+					adaptive_swaps: []
+				}
+			});
+
+			expect(result.layoutIds).toEqual(new Set(['repeat']));
+			expect(result.supplementalByLayoutId.has('repeat')).toBe(false);
+		}
+	});
+
+	test('omits a rule-free no-op @ while keeping other Magic triggers', () => {
 		const result = normalizeCminibrowserMagicRules({
-			repeat: {
-				magic_keys: [{ key: '@', default: 'repeat_previous', rules: [] }],
-				adaptive_swaps: []
+			mixed: {
+				magic_keys: [
+					{ key: '@', default: 'none', rules: [] },
+					{ key: '*', default: 'none', rules: [{ after: 'c', output: 'ck' }] }
+				]
 			}
 		});
 
-		expect(result.layoutIds).toEqual(new Set(['repeat']));
-		expect(result.supplementalByLayoutId.has('repeat')).toBe(false);
+		expect(result.supplementalByLayoutId.get('mixed')?.variants[0]?.magicKeys?.mappings).toEqual({
+			'*': { rules: { c: 'k' }, fallback: 'no-op' }
+		});
 	});
 
 	test('keeps mapped @ as Magic and imports an explicit no-op default', () => {

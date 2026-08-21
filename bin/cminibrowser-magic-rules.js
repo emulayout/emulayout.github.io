@@ -102,8 +102,11 @@ function normalizeMagicKeys(layoutId, value) {
 					: { emit: defaultOutput };
 
 		// cminibrowser represents a conventional, rule-free @ Repeat key in the
-		// Magic-key schema. Keep it in Emulayout's dedicated Repeat model.
-		if (key === '@' && rules.length === 0 && fallback === 'repeat-last') continue;
+		// Magic-key schema, with either repeat-previous or no-op as the default.
+		// Keep it in Emulayout's dedicated Repeat model.
+		if (key === '@' && rules.length === 0 && (fallback === 'repeat-last' || fallback === 'no-op')) {
+			continue;
+		}
 
 		mappings[key] = { rules: normalizedRules, fallback };
 	}

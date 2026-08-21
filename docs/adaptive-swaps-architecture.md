@@ -79,9 +79,9 @@ becomes `"c": "k"`. `default: "repeat_previous"` becomes `"repeat-last"`, `defau
 becomes `"no-op"`, and any other default becomes a fixed emit fallback. Multiple Magic triggers and
 multi-character contexts remain supported.
 
-A rule-free `@` whose only default is `repeat_previous` is deliberately omitted from the Magic
-payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic and
-override that profile.
+A rule-free `@` whose only default is `repeat_previous` or `none` is deliberately omitted from the
+Magic payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic
+and override that profile.
 
 cminiBrowser Adaptive entries already store one side of a two-way swap:
 

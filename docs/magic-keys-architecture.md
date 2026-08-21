@@ -26,7 +26,7 @@ The conventions are deliberately overridable:
 
 - any symbol becomes a Magic key when cminiBrowser exports it as a trigger;
 - `@` is a Repeat key when it is present on the layout and cminiBrowser provides no mapped `@`
-  rules;
+  rules, including a rule-free `@` whose export default is `repeat_previous` or `none`;
 - mapped `@` rules completely override default Repeat-key behavior;
 - mapped `@` rules may still use cminiBrowser's `repeat_previous` default.
 
