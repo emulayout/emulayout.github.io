@@ -4,15 +4,20 @@
  */
 
 import { isCyanophageCompatible } from '../src/lib/cyanophage.ts';
+import { computeCharacterSet } from '../src/lib/layoutCharacterSet.ts';
 import { THUMB_ROW } from '../src/lib/layoutDisplay.ts';
 import { hasRepeatKey } from './layout-features.js';
 
 const SPLIT_COL = 5;
 
 /**
+ * @typedef {{ row: number, col: number, finger?: string, thumbHand?: 'l' | 'r' }} LayoutKeyInfo
+ * @typedef {{ name?: string, user?: unknown, board?: unknown, keys?: Record<string, LayoutKeyInfo> }} RawLayout
+ */
+
+/**
  * Transforms a layout object by adding computed properties.
- * @param {Object} layout - The raw layout object from the repo
- * @returns {Object} - The transformed layout with computed properties
+ * @param {RawLayout} layout - The raw layout object from the repo
  */
 export function transformLayout(layout) {
 	/** @type {Record<string, { row: number, col: number, thumbHand?: 'l' | 'r' }>} */
@@ -39,11 +44,11 @@ export function transformLayout(layout) {
 	return {
 		...stripped,
 		hasThumbKeys: computeHasThumbKeys(stripped),
-		characterSet: computeCharacterSet(stripped),
+		characterSet: computeCharacterSet(Object.keys(keys)),
 		hasAllLetters: computeHasAllLetters(stripped),
 		// Catalog sync replaces this after joining cminibrowser's canonical mappings.
 		hasMagicKey: false,
-		hasRepeatKey: hasRepeatKey(stripped.keys),
+		hasRepeatKey: hasRepeatKey(stripped.keys, undefined),
 		cyanophageCompatible: isCyanophageCompatible(keys),
 		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
 	};
@@ -52,6 +57,7 @@ export function transformLayout(layout) {
 /**
  * Computes whether a layout has thumb keys (row 3 or higher).
  * A layout has thumb keys if it has keys in more than 3 rows (rows 0, 1, 2, 3+).
+ * @param {RawLayout} layout
  */
 function computeHasThumbKeys(layout) {
 	if (!layout.keys || typeof layout.keys !== 'object') {
@@ -71,7 +77,7 @@ function computeHasThumbKeys(layout) {
 
 /**
  * Cyanophage supports one thumb key; playground uses thumb=l|r from cmini finger.
- * @param {Object} layout - raw layout with finger on keys
+ * @param {RawLayout} layout - raw layout with finger on keys
  * @returns {'l' | 'r' | undefined}
  */
 function computeCyanophageThumb(layout) {
@@ -124,39 +130,9 @@ function thumbHand(finger) {
 }
 
 /**
- * Computes the character set of a layout.
- * Returns "english" if all keys are basic ASCII/Latin characters,
- * "international" if any keys contain foreign characters (Extended Latin, Cyrillic, Japanese, Chinese, etc.)
- */
-function computeCharacterSet(layout) {
-	if (!layout.keys || typeof layout.keys !== 'object') {
-		return 'english';
-	}
-
-	// Check all key characters
-	for (const key of Object.keys(layout.keys)) {
-		// Skip if key is empty or just whitespace
-		if (!key || key.trim() === '') continue;
-
-		// Check each character in the key
-		for (let i = 0; i < key.length; i++) {
-			const charCode = key.charCodeAt(i);
-
-			// Basic ASCII printable range is 32-126 (space through tilde)
-			// This includes: letters (a-z, A-Z), numbers (0-9), and basic punctuation
-			// Anything outside this range is considered "international"
-			if (charCode < 32 || charCode > 126) {
-				return 'international';
-			}
-		}
-	}
-
-	return 'english';
-}
-
-/**
  * Computes whether a layout has all letters a-z (case insensitive).
  * Returns true if all 26 letters are present in the layout keys, false otherwise.
+ * @param {RawLayout} layout
  */
 function computeHasAllLetters(layout) {
 	if (!layout.keys || typeof layout.keys !== 'object') {

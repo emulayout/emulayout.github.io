@@ -1,4 +1,5 @@
 import type { BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
+import { computeCharacterSet } from '$lib/layoutCharacterSet';
 import { THUMB_ROW } from '$lib/layoutDisplay';
 
 /** Keep in sync with BOARD_TYPES in bin/layout-codec.js */
@@ -134,7 +135,7 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 			(flags & LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED) !== 0,
 		hasAdaptiveSwap: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP) !== 0,
 		hasAdaptiveSwapMappings: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS) !== 0,
-		characterSet: (flags & LAYOUT_FLAG_INTERNATIONAL) !== 0 ? 'international' : 'english',
+		characterSet: computeCharacterSet(keyChars),
 		cyanophageCompatible: (flags & LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE) !== 0,
 		cyanophageThumb:
 			(flags & LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE) !== 0 &&

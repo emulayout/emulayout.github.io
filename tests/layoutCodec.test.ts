@@ -5,6 +5,7 @@ import {
 	LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS,
 	LAYOUT_FLAG_ALL_LETTERS,
 	LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED,
+	LAYOUT_FLAG_INTERNATIONAL,
 	LAYOUT_FLAG_MAGIC_KEY,
 	LAYOUT_FLAG_MAGIC_KEY_MAPPINGS,
 	LAYOUT_FLAG_REPEAT_KEY
@@ -75,5 +76,31 @@ describe('layout codec flags', () => {
 		expect(knownAdaptive.hasAdaptiveSwapMappings).toBe(false);
 		expect(mappedAdaptive.hasAdaptiveSwap).toBe(true);
 		expect(mappedAdaptive.hasAdaptiveSwapMappings).toBe(true);
+	});
+
+	test('classifies character set from key labels, not a stale international flag', () => {
+		const englishWithDiamond = decodeLayout([
+			'opal',
+			1,
+			1,
+			'2026-01-01',
+			LAYOUT_FLAG_ALL_LETTERS | LAYOUT_FLAG_INTERNATIONAL,
+			['a', '◇'],
+			[0, 0],
+			[0, 1]
+		]);
+		const internationalLetter = decodeLayout([
+			'accented',
+			1,
+			1,
+			'2026-01-01',
+			LAYOUT_FLAG_ALL_LETTERS,
+			['a', 'é'],
+			[0, 0],
+			[0, 1]
+		]);
+
+		expect(englishWithDiamond.characterSet).toBe('english');
+		expect(internationalLetter.characterSet).toBe('international');
 	});
 });
