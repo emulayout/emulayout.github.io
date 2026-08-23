@@ -269,11 +269,7 @@
 	const nextSourceWord = $derived(sourceLessonWords[session.completedWordCount + 1] ?? '');
 	const showSourceWordsRow = $derived(sourceLessonWords.length > 0);
 	const fontFitKey = $derived(
-		!showFeelLesson
-			? 'loading'
-			: practiceComplete
-				? 'results'
-				: `${activeSourceWord}\0${nextSourceWord}\0${prompt.map((word) => word.word).join('\0')}`
+		!showFeelLesson ? 'loading' : practiceComplete ? 'results' : 'lesson'
 	);
 
 	function selectSourceLessonWords(excludedWords: readonly string[] = []) {
@@ -559,7 +555,7 @@
 <div
 	class="layout-feel"
 	class:layout-feel--compact={compact}
-	{@attach attachFittedTypingPracticeFont(compact, fontFitKey)}
+	{@attach attachFittedTypingPracticeFont(compact, fontFitKey, practiceComplete)}
 >
 	{#if !showFeelLesson}
 		<div class="typing-practice-load-state">

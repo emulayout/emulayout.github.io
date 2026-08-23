@@ -37,12 +37,12 @@ and calculation logic outside the renderer.
   history, and increments progress. A premature space remains in the input and counts as an
   incorrect attempt without changing the rendered prompt text.
 - The prompt and input use the same monospace typography and span the full panel width, matching
-  Layout feel and Layout test area. Their shared size starts at the show-page scale and shrinks
-  until the prompt fits the available width. The prompt stays on one line; leftover words are
-  clipped rather than wrapped if they still overflow at the minimum size. Creator Edit and Preview
-  keep the show-page prompt, input, and score scale, matching catalog layout detail pages. Edit
-  replaces the presentation keyboard with the key editor and editable Magic/Adaptive panels; it
-  does not shrink practice chrome.
+  Layout feel and Layout test area. Their shared size stays at the show-page scale during the
+  lesson. The prompt stays on one line; leftover words are clipped rather than wrapped. Completion
+  replaces the prompt with Accuracy and WPM, which shrink until they fit the available width.
+  Creator Edit and Preview keep the show-page prompt, input, and score scale, matching catalog
+  layout detail pages. Edit replaces the presentation keyboard with the key editor and editable
+  Magic/Adaptive panels; it does not shrink practice chrome.
 - The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
   lesson with ten newly sampled words that exclude every word from the previous lesson. For a
   custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
@@ -104,7 +104,8 @@ and calculation logic outside the renderer.
   keyboard inside the detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
-- Completion replaces the prompt with Accuracy and WPM. Accuracy is correct character attempts divided by
+- Completion replaces the prompt with Accuracy and WPM, which shrink to fit the available width.
+  Accuracy is correct character attempts divided by
   all character attempts; deletions do not count as attempts. WPM uses the conventional
   five-character word and the lesson's completed characters, including inter-word spaces, over
   elapsed time.
@@ -220,7 +221,7 @@ The successful-space path is intentionally ordered:
   `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`
 - Vendored source vocabulary: `static/languages/english1k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
-- Prompt/input shrink-to-fit sizing: `src/lib/fitTextToWidth.ts`
+- Results shrink-to-fit sizing: `src/lib/fitTextToWidth.ts`
 - Creator tabs and Edit practice workspace: `src/lib/components/LayoutCreator.svelte`,
   `src/lib/components/LayoutExpandedView.svelte`
 - Layout-feel remapping and session UI: `src/lib/layoutFeel.ts`,

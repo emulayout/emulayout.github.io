@@ -106,6 +106,30 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 	await expect(dialog).toHaveCount(0);
 });
 
+test('keeps lesson words at full size and only shrinks Accuracy and WPM', async ({ page }) => {
+	await page.setViewportSize({ width: 400, height: 900 });
+	const longLesson = Array.from({ length: 16 }, (_, index) => `word${index}`).join('+');
+	await page.goto(`/layouts/QWERTY?text=${longLesson}`);
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const lessonPrompt = practicePanel.getByLabel('Practice words');
+	await expect(lessonPrompt).toBeVisible();
+	await expect(lessonPrompt).toHaveCSS('font-size', '40px');
+
+	await page.goto('/layouts/QWERTY?text=a');
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	await expect(practicePanel.locator('[data-practice-word]')).toHaveText(['a']);
+	await practiceInput.fill('a');
+
+	const results = practicePanel.getByLabel('Typing practice results');
+	await expect(results).toBeVisible();
+	const resultsSize = Number.parseFloat(
+		await results.evaluate((el) => getComputedStyle(el).fontSize)
+	);
+	expect(resultsSize).toBeGreaterThanOrEqual(16);
+	expect(resultsSize).toBeLessThan(40);
+});
+
 test('balances random lessons toward words matching the active special keys', async ({ page }) => {
 	await page.route('**/layout-details/*.json', async (route) => {
 		await route.fulfill({

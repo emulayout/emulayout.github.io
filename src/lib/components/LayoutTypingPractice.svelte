@@ -221,11 +221,7 @@
 		session.totalWordCount > 0 && session.completedWordCount === session.totalWordCount
 	);
 	const fontFitKey = $derived(
-		!showPracticeWorkspace
-			? 'loading'
-			: practiceComplete
-				? 'results'
-				: prompt.map((word) => word.word).join('\0')
+		!showPracticeWorkspace ? 'loading' : practiceComplete ? 'results' : 'lesson'
 	);
 	const elapsedMilliseconds = $derived(
 		startedAtMilliseconds === null
@@ -440,7 +436,7 @@
 <div
 	class="typing-practice"
 	class:typing-practice--compact={compact}
-	{@attach attachFittedTypingPracticeFont(compact, fontFitKey)}
+	{@attach attachFittedTypingPracticeFont(compact, fontFitKey, practiceComplete)}
 >
 	{#if !showPracticeWorkspace}
 		<div class="typing-practice-load-state">

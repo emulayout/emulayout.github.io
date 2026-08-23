@@ -11,7 +11,7 @@ export const TYPING_PRACTICE_COMPACT_FONT_MIN_PX = 14;
 export const TYPING_PRACTICE_FONT_SIZE_VAR = '--typing-practice-font-size';
 
 const TYPING_PRACTICE_FONT_MEASURE_SELECTOR =
-	'.typing-practice-copy, .layout-feel-source-words, .typing-practice-load-status';
+	'.typing-practice-copy--results, .typing-practice-load-status';
 
 /** Largest size in `[minPx, maxPx]` whose `overflowsAt` callback is false. */
 export function fitSizeToWidth(
@@ -48,8 +48,12 @@ export function applyFittedFontSize(
 	return fitted;
 }
 
-/** Shrinks practice prompt/input text to the host width. `contentKey` retriggers on lesson changes. */
-export function attachFittedTypingPracticeFont(compact: boolean, contentKey: string): Attachment {
+/** Shrinks Accuracy/WPM results to the host width. Lesson prompts stay at the maximum size. */
+export function attachFittedTypingPracticeFont(
+	compact: boolean,
+	contentKey: string,
+	enabled = true
+): Attachment {
 	return (element) => {
 		void contentKey;
 		if (!(element instanceof HTMLElement)) return;
@@ -65,6 +69,10 @@ export function attachFittedTypingPracticeFont(compact: boolean, contentKey: str
 			if (fitting) return;
 			fitting = true;
 			try {
+				if (!enabled) {
+					element.style.setProperty(TYPING_PRACTICE_FONT_SIZE_VAR, `${maxPx}px`);
+					return;
+				}
 				applyFittedFontSize(element, measureEls(), minPx, maxPx);
 			} finally {
 				fitting = false;
