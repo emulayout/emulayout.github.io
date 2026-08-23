@@ -571,7 +571,8 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	expect(compactMappingsBox!.x).toBeGreaterThanOrEqual(
 		compactClusterBox!.x + compactClusterBox!.width
 	);
-	expect(compactMappingsBox!.width).toBeLessThanOrEqual(224);
+	expect(compactMappingsBox!.width).toBeGreaterThan(256);
+	expect(compactMappingsBox!.width).toBeLessThanOrEqual(315);
 	const compactKeyBox = await yKey.boundingBox();
 	expect(compactKeyBox).not.toBeNull();
 	expect(compactKeyBox!.width).toBeCloseTo(wideKeyBox!.width, 0);
@@ -580,7 +581,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 		.evaluateAll((elements) =>
 			elements.slice(0, 2).map((element) => Math.round(element.getBoundingClientRect().top))
 		);
-	expect(new Set(compactMappingRows).size).toBe(2);
+	expect(new Set(compactMappingRows).size).toBe(1);
 	const documentWidth = await page.evaluate(() => ({
 		clientWidth: document.documentElement.clientWidth,
 		scrollWidth: document.documentElement.scrollWidth

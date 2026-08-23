@@ -91,9 +91,10 @@ and calculation logic outside the renderer.
   enabled again. A default-off Only show relevant swaps option limits the preview and any paths to
   the armed pair containing a physical key that can produce the next required lesson character.
   When special keys are shown, a wider view keeps their mappings in a right-hand column capped at
-  315px. The keyboard and mappings share one intrinsic-width wrapper so their combined footprint
-  stays centered. At intermediate widths the mappings column narrows and presents one mapping per
-  line. The keyboard derives its intrinsic width from the current board's actual row geometry and
+  315px. The keyboard and mappings share one centered wrapper. At intermediate widths the mappings
+  column grows fluidly from 224px to that cap as room becomes available, switching to two mapping
+  columns once it is wider than 256px. The keyboard derives its intrinsic width from the current
+  board's actual row geometry and
   retains full-size keys until that board no longer fits beside the mappings or within the stacked
   region; only then does it scale down. Sparse boards still include the 10 keys on each letter row
   and empty keycaps for gaps between assigned letters, so a one-key creator preview keeps that

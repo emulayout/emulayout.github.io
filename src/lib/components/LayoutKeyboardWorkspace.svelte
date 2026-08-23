@@ -444,12 +444,14 @@
 				var(--keyboard-preview-key-size-with-compact-mappings)
 			);
 			--keyboard-preview-key-gap: 0.45rem;
-			grid-template-columns: max-content 14rem;
+			grid-template-columns: max-content minmax(14rem, 19.6875rem);
+			width: 100%;
+			justify-content: center;
 			align-items: start;
 		}
 
 		.layout-keyboard-workspace--with-mappings .layout-keyboard-workspace-mappings {
-			max-width: 14rem;
+			max-width: 19.6875rem;
 			margin-top: 0;
 		}
 
