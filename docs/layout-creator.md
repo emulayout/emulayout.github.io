@@ -164,14 +164,17 @@ drafts in the browser.
   missing-letter warning, and editable mapping panels, so the user can test the live draft in
   Typing practice, Layout test area, or Layout feel. Typing practice and Layout feel share the
   page-session leftover lesson words; leaving either tab during a test refills a random lesson to
-  ten words and clears the timer. Layout test area keeps its own free-typing surface.
+  the configured word count and clears the timer. Layout test area keeps its own free-typing surface.
   Each tab still uses its own keyboard options. Preview swaps that editor for the presentation keyboard.
   Edit Practice and Feel keep the show-page prompt, input, and score scale. Their typing fields do
   not autofocus in Edit, so loading the editor cannot steal focus from a layout field. Layout test
   area keeps the tall free-typing surface in both views. The same
   Practice lesson settings control as the detail page
-  can replace that lesson with custom `text` or raise the Magic/Adaptive word share with
-  `special`. Those params join the creator query and are omitted at their defaults. Magic and
+  can replace that lesson with custom `text`, raise the Magic/Adaptive word share with
+  `special`, or set random-lesson `words` to 10, 25, or 50. Menu Save persists those choices and
+  writes them to the creator query; loading a URL that already has those params applies them only
+  for that visit. Untouched defaults are omitted; defaults explicitly saved from the menu remain
+  query overlays so they can override different stored prefs. Magic and
   Adaptive mapping controls appear when the draft has those features, using the same workspace as
   the detail page.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.

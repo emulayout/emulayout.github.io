@@ -1,6 +1,7 @@
 import { expect, test } from './fixtures/test';
 import { LAYOUT_DETAIL_VERSION } from '../../src/lib/layoutDetails';
 import { TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY } from '../../src/lib/typingPracticePrefs';
+import { TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY } from '../../src/lib/typingPracticeText';
 import { adaptivePreview, repeatKey, vylet } from './fixtures/catalog-data';
 
 test.use({ catalogVariant: 'core' });
@@ -79,7 +80,7 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
 	await dialog.getByRole('button', { name: 'Reset' }).click();
 	await expect(dialog).toHaveCount(0);
-	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&special=0&words=10');
 	await expect(practiceWords).toHaveCount(10);
 
 	const randomWords = await practiceWords.allTextContents();
@@ -104,6 +105,69 @@ test('uses URL-backed custom practice text until it is cleared', async ({ page }
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&text=custom+text+source');
 	await expect(practiceWords).toHaveText(['custom', 'text', 'source']);
 	await expect(dialog).toHaveCount(0);
+});
+
+test('persists menu-chosen lesson settings and treats URL params as temporary', async ({
+	page
+}) => {
+	await page.goto('/layouts/QWERTY');
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	await expect(practiceWords).toHaveCount(10);
+
+	const settingsButton = practicePanel.getByRole('button', { name: 'Practice lesson settings' });
+	await settingsButton.click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await expect(dialog.getByRole('radio', { name: 'Random words' })).toBeChecked();
+	await dialog.getByRole('radio', { name: '25' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(dialog).toHaveCount(0);
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&special=0&words=25');
+	await expect(practiceWords).toHaveCount(25);
+	await expect(practicePanel.getByLabel('0 of 25 words complete')).toHaveText('0/25');
+
+	const stored = await page.evaluate(
+		(key) => localStorage.getItem(key),
+		TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY
+	);
+	expect(stored).toContain('"wordCount":25');
+
+	await page.goto('/layouts/Colemak-DH');
+	const otherPanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await expect(otherPanel.locator('[data-practice-word]')).toHaveCount(25);
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');
+	await page.getByRole('tab', { name: 'Layout feel' }).click();
+	const feelPanel = page.getByRole('tabpanel', { name: 'Layout feel' });
+	await expect(feelPanel.locator('[data-practice-word]')).toHaveCount(25);
+	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=feel');
+
+	await page.goto('/layouts/QWERTY?words=50');
+	await expect(practiceWords).toHaveCount(50);
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&words=50');
+	const storedAfterUrl = await page.evaluate(
+		(key) => localStorage.getItem(key),
+		TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY
+	);
+	expect(storedAfterUrl).toContain('"wordCount":25');
+
+	await page.goto('/layouts/QWERTY?words=10');
+	await expect(practiceWords).toHaveCount(10);
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice&words=10');
+	const storedAfterDefaultUrl = await page.evaluate(
+		(key) => localStorage.getItem(key),
+		TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY
+	);
+	expect(storedAfterDefaultUrl).toContain('"wordCount":25');
+
+	await page.goto('/layouts/QWERTY');
+	await expect(practiceWords).toHaveCount(25);
+	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
+
+	await page.goto('/layouts/QWERTY?text=hello+world');
+	await expect(practiceWords).toHaveText(['hello', 'world']);
+	await page.goto('/layouts/QWERTY');
+	await expect(practiceWords).toHaveCount(25);
+	await expect(practiceWords).not.toHaveText(['hello', 'world']);
 });
 
 test('keeps lesson words at full size and only shrinks Accuracy and WPM', async ({ page }) => {
@@ -190,14 +254,14 @@ test('balances random lessons toward words matching the active special keys', as
 
 	await balanceSlider.fill('0');
 	await dialog.getByRole('button', { name: 'Save' }).click();
-	await expect(page).toHaveURL('/layouts/vylet?tab=practice');
+	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=0&words=10');
 	await expect(dialog).toHaveCount(0);
 
 	await settingsButton.click();
 	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
 	await balanceSlider.fill('100');
 	await dialog.getByRole('button', { name: 'Save' }).click();
-	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100');
+	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100&words=10');
 	expect((await practiceWords.allTextContents()).every((word) => word.includes('ck'))).toBe(true);
 
 	// Disabling the only Magic mapping empties the candidate set, so the

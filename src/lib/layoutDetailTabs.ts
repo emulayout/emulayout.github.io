@@ -1,6 +1,8 @@
 import {
+	writeTypingPracticeLessonOverrideParams,
 	writeTypingPracticeLessonParams,
-	type TypingPracticeLessonSettings
+	type TypingPracticeLessonSettings,
+	type TypingPracticeLessonUrlOverrides
 } from '$lib/typingPracticeText';
 
 export const LAYOUT_DETAIL_TAB_PARAM = 'tab';
@@ -30,5 +32,16 @@ export function layoutDetailPageHref(
 ): string {
 	const params = new URLSearchParams([[LAYOUT_DETAIL_TAB_PARAM, section]]);
 	writeTypingPracticeLessonParams(params, practiceLesson);
+	return `${pathname}?${params}`;
+}
+
+/** Build a detail URL while retaining which lesson fields were explicitly supplied. */
+export function layoutDetailPageHrefWithLessonOverrides(
+	pathname: string,
+	section: LayoutDetailSection,
+	overrides: TypingPracticeLessonUrlOverrides
+): string {
+	const params = new URLSearchParams([[LAYOUT_DETAIL_TAB_PARAM, section]]);
+	writeTypingPracticeLessonOverrideParams(params, overrides);
 	return `${pathname}?${params}`;
 }

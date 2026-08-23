@@ -23,7 +23,7 @@ export type TypingPracticeWordPoolStatus = 'loading' | 'ready' | 'error';
 
 /**
  * Page-session lesson shared by Typing practice and Layout feel so tab switches
- * keep leftover source words, refill a random lesson to ten words, and clear
+ * keep leftover source words, refill a random lesson to its word count, and clear
  * progress, input, and the timer.
  */
 export class SharedTypingPracticeLesson {
@@ -58,12 +58,13 @@ export class SharedTypingPracticeLesson {
 		);
 	}
 
-	matchesLesson(customText: string | null, specialWordsPercent: number) {
+	matchesLesson(customText: string | null, specialWordsPercent: number, wordCount: number) {
 		return sharedTypingPracticeLessonMatches(
 			this.source,
 			this.hasLesson,
 			customText,
-			specialWordsPercent
+			specialWordsPercent,
+			wordCount
 		);
 	}
 
@@ -102,6 +103,7 @@ export class SharedTypingPracticeLesson {
 	prepareForTabChange(options: {
 		customText: string | null;
 		customWords?: readonly string[];
+		wordCount?: number;
 		source: SharedTypingPracticeLessonSource;
 		selectAdditionalWords: (count: number, excludedWords: readonly string[]) => string[];
 	}) {
@@ -111,6 +113,7 @@ export class SharedTypingPracticeLesson {
 			completedWordCount: this.completedWordCount,
 			customText: options.customText,
 			customWords: options.customWords,
+			wordCount: options.wordCount,
 			selectAdditionalWords: options.selectAdditionalWords
 		});
 		if (!nextWords) return;

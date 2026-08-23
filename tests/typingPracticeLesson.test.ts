@@ -9,25 +9,27 @@ describe('shared typing-practice lesson matching', () => {
 	const randomSource = {
 		customText: null,
 		specialWordsPercent: 25,
+		wordCount: 10,
 		specialCandidateSignature: 'alpha',
 		unreachableKeysSignature: 'keys'
 	};
 
-	test('keeps an existing random lesson with the same special-word balance', () => {
-		expect(sharedTypingPracticeLessonMatches(randomSource, true, null, 25)).toBe(true);
-		expect(sharedTypingPracticeLessonMatches(randomSource, true, null, 50)).toBe(false);
+	test('keeps an existing random lesson with the same special-word balance and word count', () => {
+		expect(sharedTypingPracticeLessonMatches(randomSource, true, null, 25, 10)).toBe(true);
+		expect(sharedTypingPracticeLessonMatches(randomSource, true, null, 50, 10)).toBe(false);
+		expect(sharedTypingPracticeLessonMatches(randomSource, true, null, 25, 25)).toBe(false);
 	});
 
 	test('keeps an existing custom lesson only when the text matches', () => {
 		const customSource = { ...randomSource, customText: 'hello world' };
-		expect(sharedTypingPracticeLessonMatches(customSource, true, 'hello world', 0)).toBe(true);
-		expect(sharedTypingPracticeLessonMatches(customSource, true, 'other text', 0)).toBe(false);
-		expect(sharedTypingPracticeLessonMatches(customSource, true, null, 0)).toBe(false);
+		expect(sharedTypingPracticeLessonMatches(customSource, true, 'hello world', 0, 10)).toBe(true);
+		expect(sharedTypingPracticeLessonMatches(customSource, true, 'other text', 0, 10)).toBe(false);
+		expect(sharedTypingPracticeLessonMatches(customSource, true, null, 0, 10)).toBe(false);
 	});
 
 	test('does not match before a lesson exists', () => {
-		expect(sharedTypingPracticeLessonMatches(null, false, null, 0)).toBe(false);
-		expect(sharedTypingPracticeLessonMatches(randomSource, false, null, 25)).toBe(false);
+		expect(sharedTypingPracticeLessonMatches(null, false, null, 0, 10)).toBe(false);
+		expect(sharedTypingPracticeLessonMatches(randomSource, false, null, 25, 10)).toBe(false);
 	});
 });
 
@@ -52,6 +54,22 @@ describe('shared typing-practice lesson tab change', () => {
 				selectAdditionalWords: () => ['new']
 			})
 		).toBeNull();
+	});
+
+	test('refills a random lesson to a configured word count', () => {
+		expect(
+			sharedLessonWordsAfterTabChange({
+				hasInProgressWork: true,
+				sourceWords: ['one', 'two', 'three'],
+				completedWordCount: 1,
+				customText: null,
+				wordCount: 25,
+				selectAdditionalWords: (count) => {
+					expect(count).toBe(23);
+					return Array.from({ length: 23 }, (_, index) => `w${index}`);
+				}
+			})
+		).toHaveLength(25);
 	});
 
 	test('does not sample extras when ten leftover words already remain', () => {

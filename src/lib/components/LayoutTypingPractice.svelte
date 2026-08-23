@@ -122,6 +122,7 @@
 
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
+	const lessonWordCount = $derived(practiceLesson?.wordCount ?? TYPING_PRACTICE_LESSON_WORD_COUNT);
 	const wordPool = $derived(sharedLesson.wordPool);
 	const wordPoolStatus = $derived(sharedLesson.wordPoolStatus);
 	const displayOptions = $derived(uiPrefs.typingPracticeDisplayOptions);
@@ -144,7 +145,7 @@
 		return createTypingPracticeSession(
 			selectTypingPracticeLessonWords({
 				words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
-				count: TYPING_PRACTICE_LESSON_WORD_COUNT,
+				count: lessonWordCount,
 				specialWordsPercent,
 				profile: inputProfile,
 				disabledMappingIds,
@@ -282,6 +283,7 @@
 		return {
 			customText,
 			specialWordsPercent,
+			wordCount: lessonWordCount,
 			specialCandidateSignature: specialCandidateWords.join('\0'),
 			unreachableKeysSignature
 		};
@@ -310,6 +312,7 @@
 		sharedLesson.prepareForTabChange({
 			customText: customPracticeText,
 			customWords: customPracticeText ? typingPracticeWordsFromText(customPracticeText) : [],
+			wordCount: lessonWordCount,
 			source: untrack(() => currentLessonSource(customPracticeText)),
 			selectAdditionalWords: selectAdditionalLessonWords
 		});
@@ -319,9 +322,14 @@
 		// Lesson-source settings always rebuild the lesson; mapping toggles are
 		// handled separately so they cannot reset a lesson mid-typing.
 		void specialWordsPercent;
+		void lessonWordCount;
 
 		if (customPracticeText) {
-			if (!untrack(() => sharedLesson.matchesLesson(customPracticeText, specialWordsPercent))) {
+			if (
+				!untrack(() =>
+					sharedLesson.matchesLesson(customPracticeText, specialWordsPercent, lessonWordCount)
+				)
+			) {
 				replacePracticeLesson();
 			}
 			return;
@@ -329,7 +337,7 @@
 
 		sharedLesson.ensureWordPool(fetch);
 		if (wordPool.length > 0) {
-			if (!untrack(() => sharedLesson.matchesLesson(null, specialWordsPercent))) {
+			if (!untrack(() => sharedLesson.matchesLesson(null, specialWordsPercent, lessonWordCount))) {
 				replacePracticeLesson();
 			}
 		}
@@ -671,7 +679,11 @@
 {#if onPracticeLessonChange}
 	<TypingPracticeLessonModal
 		open={lessonModalOpen}
-		lesson={{ customText: customPracticeText, specialWordsPercent }}
+		lesson={{
+			customText: customPracticeText,
+			specialWordsPercent,
+			wordCount: lessonWordCount
+		}}
 		initialText={lessonWords.join(' ')}
 		specialWordsAvailable={hasSpecialMappings}
 		specialWordCount={specialCandidateWords.length}

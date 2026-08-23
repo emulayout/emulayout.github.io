@@ -94,8 +94,8 @@ small without weakening app-bar functionality.
   browser Back still returns to the previous page rather than earlier tabs. When help hints are on, the Layout
   feel tab shows a decorative `?` mark and a short title tip explaining remapped familiar-keyboard
   practice, without adding a second focusable control inside the tablist.
-- `Typing practice` is the first and default tab. It presents ten random English 1k words or a
-  URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time,
+- `Typing practice` is the first and default tab. It presents a random English 1k lesson of 10, 25,
+  or 50 words (default 10) or a URL-authored custom lesson, a single-line layout-aware field, progress and elapsed time,
   Accuracy/WPM in the completed prompt, and the board-aware keyboard workspace. Typed characters color the current target
   green or red. Exact non-final words advance on Space; the final word completes immediately without
   Space. The field uses the same input resolver, anglemod state, disabled mappings, and
@@ -103,11 +103,12 @@ small without weakening app-bar functionality.
   [`typing-practice.md`](./typing-practice.md) for its state model, vocabulary provenance, metrics,
   prompt guidance, and extension boundaries.
 - `Layout feel` sits between Layout test area and Stats. It reuses Typing practice’s lesson flow,
-  prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text` and
-  `special` query state is shared with Typing practice and preserved across detail tabs. The live
-  source word list is also shared. Switching away from an in-progress Practice or Feel test keeps
-  the words that have not been entered correctly, appends new random words to restore a ten-word
-  lesson, and clears the timer, input, and `0/10` progress. Each source
+  prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text`,
+  `special`, and `words` query state is shared with Typing practice and preserved across detail
+  tabs when those params are already in the URL. Stored lesson prefs apply when the URL omits
+  them. The live source word list is also shared. Switching away from an in-progress Practice or
+  Feel test keeps the words that have not been entered correctly, appends new random words to
+  restore the configured word count, and clears the timer, input, and `0/N` progress. Each source
   word is planned on the page layout first — including
   enabled Magic and Adaptive shortcuts — then each planned keystroke is remapped to the user’s
   configured input-layout label on that physical slot. Example: with input layout QWERTY on

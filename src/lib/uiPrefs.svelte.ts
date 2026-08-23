@@ -21,6 +21,13 @@ import {
 	type TypingPracticeDisplayOptions
 } from '$lib/typingPracticePrefs';
 import {
+	createDefaultTypingPracticeLessonSettings,
+	parseTypingPracticeLessonSettings,
+	serializeTypingPracticeLessonSettings,
+	TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY,
+	type TypingPracticeLessonSettings
+} from '$lib/typingPracticeText';
+import {
 	createDefaultLayoutTestAreaDisplayOptions,
 	LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
 	parseLayoutTestAreaDisplayOptions,
@@ -46,6 +53,10 @@ class UiPrefs {
 	typingPracticeDisplayOptions = $state<TypingPracticeDisplayOptions>(
 		createDefaultTypingPracticeDisplayOptions()
 	);
+	/** Persisted lesson source prefs. URL params overlay these until the user saves. */
+	typingPracticeLessonSettings = $state<TypingPracticeLessonSettings>(
+		createDefaultTypingPracticeLessonSettings()
+	);
 	/** Persisted visual guidance and contextual-preview options for Layout test area. */
 	layoutTestAreaDisplayOptions = $state<LayoutTestAreaDisplayOptions>(
 		createDefaultLayoutTestAreaDisplayOptions()
@@ -64,6 +75,9 @@ class UiPrefs {
 		);
 		this.typingPracticeDisplayOptions = parseTypingPracticeDisplayOptions(
 			localStorage.getItem(TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY)
+		);
+		this.typingPracticeLessonSettings = parseTypingPracticeLessonSettings(
+			localStorage.getItem(TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY)
 		);
 		this.layoutTestAreaDisplayOptions = parseLayoutTestAreaDisplayOptions(
 			localStorage.getItem(LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY)
@@ -106,6 +120,14 @@ class UiPrefs {
 		localStorage.setItem(
 			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
 			serializeTypingPracticeDisplayOptions(next)
+		);
+	}
+
+	setTypingPracticeLessonSettings(settings: TypingPracticeLessonSettings) {
+		this.typingPracticeLessonSettings = settings;
+		localStorage.setItem(
+			TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY,
+			serializeTypingPracticeLessonSettings(settings)
 		);
 	}
 

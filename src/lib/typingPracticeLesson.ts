@@ -1,8 +1,11 @@
-export const TYPING_PRACTICE_LESSON_WORD_COUNT = 10;
+import { DEFAULT_TYPING_PRACTICE_WORD_COUNT } from '$lib/typingPracticeText';
+
+export const TYPING_PRACTICE_LESSON_WORD_COUNT = DEFAULT_TYPING_PRACTICE_WORD_COUNT;
 
 export type SharedTypingPracticeLessonSource = {
 	customText: string | null;
 	specialWordsPercent: number;
+	wordCount: number;
 	specialCandidateSignature: string;
 	unreachableKeysSignature: string;
 };
@@ -11,11 +14,16 @@ export function sharedTypingPracticeLessonMatches(
 	stored: SharedTypingPracticeLessonSource | null,
 	hasLesson: boolean,
 	customText: string | null,
-	specialWordsPercent: number
+	specialWordsPercent: number,
+	wordCount: number
 ): boolean {
 	if (!stored || !hasLesson) return false;
 	if (customText !== null) return stored.customText === customText;
-	return stored.customText === null && stored.specialWordsPercent === specialWordsPercent;
+	return (
+		stored.customText === null &&
+		stored.specialWordsPercent === specialWordsPercent &&
+		stored.wordCount === wordCount
+	);
 }
 
 export function remainingSharedTypingPracticeWords(
@@ -30,7 +38,7 @@ export function remainingSharedTypingPracticeWords(
 export function topUpTypingPracticeLessonWords(
 	remainingWords: readonly string[],
 	additionalWords: readonly string[],
-	count = TYPING_PRACTICE_LESSON_WORD_COUNT
+	count: number = TYPING_PRACTICE_LESSON_WORD_COUNT
 ): string[] {
 	const remaining = remainingWords.filter((word) => word.trim().length > 0);
 	if (remaining.length >= count) return remaining.slice(0, count);
@@ -44,6 +52,7 @@ export function sharedLessonWordsAfterTabChange(options: {
 	completedWordCount: number;
 	customText: string | null;
 	customWords?: readonly string[];
+	wordCount?: number;
 	selectAdditionalWords: (count: number, excludedWords: readonly string[]) => string[];
 }): string[] | null {
 	if (!options.hasInProgressWork) return null;
@@ -54,7 +63,8 @@ export function sharedLessonWordsAfterTabChange(options: {
 	if (options.customText !== null) {
 		return remaining.length > 0 ? remaining : [...(options.customWords ?? [])];
 	}
-	const needed = Math.max(TYPING_PRACTICE_LESSON_WORD_COUNT - remaining.length, 0);
+	const lessonWordCount = options.wordCount ?? TYPING_PRACTICE_LESSON_WORD_COUNT;
+	const needed = Math.max(lessonWordCount - remaining.length, 0);
 	const additional = needed === 0 ? [] : options.selectAdditionalWords(needed, options.sourceWords);
-	return topUpTypingPracticeLessonWords(remaining, additional);
+	return topUpTypingPracticeLessonWords(remaining, additional, lessonWordCount);
 }

@@ -34,7 +34,7 @@ function sharedSnapshot(): CreatorUrlSnapshot {
 			groups: []
 		},
 		keyConfig: updateKeyboardInputKey(defaults.keyConfig, '0,0', 'z'),
-		practiceLesson: { customText: null, specialWordsPercent: 40 },
+		practiceLesson: { customText: null, specialWordsPercent: 40, wordCount: 10 },
 		disabledMappingIds: ['["magic-rule","*","c"]']
 	};
 }

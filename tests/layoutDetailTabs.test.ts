@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { layoutDetailPageHref, parseCreatorDetailSection } from '../src/lib/layoutDetailTabs';
+import {
+	layoutDetailPageHref,
+	layoutDetailPageHrefWithLessonOverrides,
+	parseCreatorDetailSection
+} from '../src/lib/layoutDetailTabs';
 
 describe('layoutDetailPageHref', () => {
 	test('carries custom practice text and drops an unused special-word balance', () => {
@@ -10,6 +14,13 @@ describe('layoutDetailPageHref', () => {
 				specialWordsPercent: 40
 			})
 		).toBe('/layouts/lela?tab=practice&text=hello+world');
+		expect(
+			layoutDetailPageHref('/layouts/lela', 'practice', {
+				customText: null,
+				specialWordsPercent: 0,
+				wordCount: 25
+			})
+		).toBe('/layouts/lela?tab=practice&words=25');
 	});
 
 	test('carries the special-word balance only when it is active', () => {
@@ -31,6 +42,15 @@ describe('layoutDetailPageHref', () => {
 				specialWordsPercent: 40
 			})
 		).toBe('/layouts/lela?tab=feel&text=hello+world');
+	});
+
+	test('retains explicitly supplied default lesson overrides', () => {
+		expect(
+			layoutDetailPageHrefWithLessonOverrides('/layouts/lela', 'practice', {
+				specialWordsPercent: 0,
+				wordCount: 10
+			})
+		).toBe('/layouts/lela?tab=practice&special=0&words=10');
 	});
 });
 

@@ -80,24 +80,27 @@ describe('creator URL state', () => {
 	test('round-trips custom practice text and a special-word balance', () => {
 		const custom: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
-			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40 }
+			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40, wordCount: 10 }
 		};
 		const customParams = writeCreatorUrlParams(custom);
 		expect(customParams.get('text')).toBe('hello creator world');
 		expect(customParams.has('special')).toBe(false);
 		expect(roundTrip(custom).practiceLesson).toEqual({
 			customText: 'hello creator world',
-			specialWordsPercent: 0
+			specialWordsPercent: 0,
+			wordCount: 10
 		});
 
 		const balanced: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
-			practiceLesson: { customText: null, specialWordsPercent: 40 }
+			practiceLesson: { customText: null, specialWordsPercent: 40, wordCount: 25 }
 		};
 		expect(writeCreatorUrlParams(balanced).get('special')).toBe('40');
+		expect(writeCreatorUrlParams(balanced).get('words')).toBe('25');
 		expect(roundTrip(balanced).practiceLesson).toEqual({
 			customText: null,
-			specialWordsPercent: 40
+			specialWordsPercent: 40,
+			wordCount: 25
 		});
 	});
 

@@ -83,11 +83,11 @@ a `ModalShell` confirmation. Cancel restores focus to the still-selected tab. Co
 discards the draft and focuses that tab. Confirming a new canvas focuses Layout name. Preview/Edit
 and detail-tab changes are view state and do not trigger this confirmation.
 
-Typing practice uses `ModalShell` and `ModalHeader` for its custom-text editor. Layout feel reuses
+Typing practice uses `ModalShell` and `ModalHeader` for Practice lesson settings. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
-`special`. The trailing pencil opens the modal with the displayed lesson selected as the editable
-source; Cancel, the header close button, Escape, and backdrop dismissal restore focus to that
-pencil. Saving replaces the prompt via the route's shareable `text` query parameter.
+`special` / `words` and persisting those choices. The settings control opens the modal with the
+current lesson; Cancel, the header close button, Escape, and backdrop dismissal restore focus to
+that control. Saving replaces the prompt via the route's shareable lesson query.
 
 The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
 uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor

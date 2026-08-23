@@ -572,6 +572,25 @@ test('lets the creator set a custom practice lesson', async ({ page }) => {
 	await expect(restored.locator('[data-practice-word]')).toHaveText(['hello', 'creator', 'world']);
 });
 
+test('keeps an explicit default word-count URL temporary in the creator', async ({ page }) => {
+	await page.addInitScript(() => {
+		localStorage.setItem(
+			'typingPracticeLessonSettings',
+			JSON.stringify({
+				version: 1,
+				settings: { customText: null, specialWordsPercent: 0, wordCount: 25 }
+			})
+		);
+	});
+	await page.goto('/create?edit=1&words=10');
+	const panel = page.getByRole('tabpanel', { name: 'New layout' });
+	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
+	await expect(page).toHaveURL(/words=10/);
+
+	const stored = await page.evaluate(() => localStorage.getItem('typingPracticeLessonSettings'));
+	expect(stored).toContain('"wordCount":25');
+});
+
 test('saves layouts locally and switches among them with tabs', async ({ page }) => {
 	await page.goto('/create?edit=1');
 	const creations = page.getByRole('tablist', { name: 'Layout creations' });

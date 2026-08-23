@@ -6,14 +6,19 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { decodeLayoutDetail } from '$lib/layoutDetails';
 	import {
-		layoutDetailPageHref,
+		layoutDetailPageHrefWithLessonOverrides,
 		LAYOUT_DETAIL_TAB_PARAM,
 		parseLayoutDetailSection,
 		type LayoutDetailSection
 	} from '$lib/layoutDetailTabs';
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
-		typingPracticeLessonFromSearchParams,
+		normalizeTypingPracticeLessonSettings,
+		readStoredTypingPracticeLessonSettings,
+		resolveTypingPracticeLessonSettings,
+		typingPracticeLessonOverridesForSettings,
+		typingPracticeLessonOverridesFromSearchParams,
 		type TypingPracticeLessonSettings
 	} from '$lib/typingPracticeText';
 	import { untrack } from 'svelte';
@@ -25,18 +30,29 @@
 		parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
 	);
 
-	const practiceLesson = $derived(typingPracticeLessonFromSearchParams(page.url.searchParams));
+	const storedPracticeLesson = $derived(
+		uiPrefs.hydrated
+			? uiPrefs.typingPracticeLessonSettings
+			: readStoredTypingPracticeLessonSettings()
+	);
+	const practiceLesson = $derived(
+		resolveTypingPracticeLessonSettings(
+			storedPracticeLesson,
+			typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
+		)
+	);
 	let disabledMappingIds = $state<string[]>([]);
 
 	filterStore.enterLayoutDetailRoute();
 
 	afterNavigate(() => {
 		const pathname = resolve('/layouts/[name]', { name: data.layoutName });
+		const lessonOverrides = typingPracticeLessonOverridesFromSearchParams(page.url.searchParams);
 		const canonicalHref = data.detail
-			? layoutDetailPageHref(
+			? layoutDetailPageHrefWithLessonOverrides(
 					pathname,
 					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
-					typingPracticeLessonFromSearchParams(page.url.searchParams)
+					lessonOverrides
 				)
 			: pathname;
 		if (`${page.url.pathname}${page.url.search}` === canonicalHref) return;
@@ -50,10 +66,10 @@
 		// The route is resolved before layoutDetailPageHref appends its canonical tab query.
 		/* eslint-disable svelte/no-navigation-without-resolve */
 		void goto(
-			layoutDetailPageHref(
+			layoutDetailPageHrefWithLessonOverrides(
 				resolve('/layouts/[name]', { name: data.layoutName }),
 				section,
-				practiceLesson
+				typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
 			),
 			{
 				replaceState: true,
@@ -65,13 +81,15 @@
 	}
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
+		const next = normalizeTypingPracticeLessonSettings(lesson);
+		uiPrefs.setTypingPracticeLessonSettings(next);
 		// The route is resolved before layoutDetailPageHref appends its canonical query.
 		/* eslint-disable svelte/no-navigation-without-resolve */
 		void goto(
-			layoutDetailPageHref(
+			layoutDetailPageHrefWithLessonOverrides(
 				resolve('/layouts/[name]', { name: data.layoutName }),
 				activeSection,
-				lesson
+				typingPracticeLessonOverridesForSettings(next)
 			),
 			{
 				replaceState: true,

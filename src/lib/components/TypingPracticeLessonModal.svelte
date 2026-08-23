@@ -1,10 +1,23 @@
 <script lang="ts">
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import type { SegmentedOption } from '$lib/segmentedControl';
 	import {
+		DEFAULT_TYPING_PRACTICE_WORD_COUNT,
+		isDefaultTypingPracticeLessonSettings,
+		normalizeTypingPracticeLessonSettings,
 		normalizeTypingPracticeText,
-		type TypingPracticeLessonSettings
+		TYPING_PRACTICE_WORD_COUNTS,
+		type TypingPracticeLessonSettings,
+		type TypingPracticeWordCount
 	} from '$lib/typingPracticeText';
+
+	const wordCountOptions: readonly SegmentedOption<`${TypingPracticeWordCount}`>[] =
+		TYPING_PRACTICE_WORD_COUNTS.map((count) => ({
+			value: String(count) as `${TypingPracticeWordCount}`,
+			label: String(count)
+		}));
 
 	type LessonSource = 'random-words' | 'custom-text';
 
@@ -37,6 +50,7 @@
 	let source = $state<LessonSource>('random-words');
 	let text = $state('');
 	let specialWordsPercent = $state(0);
+	let lessonWordCount = $state<TypingPracticeWordCount>(DEFAULT_TYPING_PRACTICE_WORD_COUNT);
 	let textField = $state<HTMLTextAreaElement | undefined>(undefined);
 	const normalizedText = $derived(normalizeTypingPracticeText(text));
 	const balanceLabel = $derived(
@@ -54,13 +68,15 @@
 				: `${specialWordsPercent}% matching words`
 	);
 	const saveDisabled = $derived(source === 'custom-text' && !normalizedText);
-	const lessonIsDefault = $derived(!lesson.customText && lesson.specialWordsPercent === 0);
+	const lessonIsDefault = $derived(isDefaultTypingPracticeLessonSettings(lesson));
+	const selectedWordCount = $derived(String(lessonWordCount) as `${TypingPracticeWordCount}`);
 
 	$effect(() => {
 		if (!open) return;
 		source = lesson.customText ? 'custom-text' : 'random-words';
 		text = initialText;
 		specialWordsPercent = lesson.specialWordsPercent;
+		lessonWordCount = lesson.wordCount;
 	});
 
 	function focusTextField() {
@@ -79,17 +95,31 @@
 		event.preventDefault();
 		if (source === 'custom-text') {
 			if (!normalizedText) return;
-			onSave({ customText: normalizedText, specialWordsPercent: 0 });
+			onSave(
+				normalizeTypingPracticeLessonSettings({
+					customText: normalizedText,
+					wordCount: lessonWordCount
+				})
+			);
 			return;
 		}
-		onSave({
-			customText: null,
-			specialWordsPercent: specialWordsAvailable ? specialWordsPercent : 0
-		});
+		onSave(
+			normalizeTypingPracticeLessonSettings({
+				customText: null,
+				specialWordsPercent: specialWordsAvailable
+					? specialWordsPercent
+					: lesson.specialWordsPercent,
+				wordCount: lessonWordCount
+			})
+		);
 	}
 
 	function reset() {
-		onSave({ customText: null, specialWordsPercent: 0 });
+		onSave(normalizeTypingPracticeLessonSettings(null));
+	}
+
+	function setLessonWordCount(value: `${TypingPracticeWordCount}`) {
+		lessonWordCount = Number(value) as TypingPracticeWordCount;
 	}
 </script>
 
@@ -127,6 +157,18 @@
 			</fieldset>
 
 			{#if source === 'random-words'}
+				<div class="typing-practice-lesson-word-count">
+					<span class="typing-practice-lesson-label">Word count</span>
+					<SegmentedControl
+						value={selectedWordCount}
+						onChange={setLessonWordCount}
+						options={wordCountOptions}
+						ariaLabel="Word count"
+						class="typing-practice-lesson-word-count-control"
+						buttonClass="typing-practice-lesson-word-count-option"
+						selectedClass="typing-practice-lesson-word-count-option--selected"
+					/>
+				</div>
 				{#if specialWordsAvailable}
 					<div class="typing-practice-lesson-balance">
 						<label class="typing-practice-lesson-balance-control">
@@ -249,6 +291,55 @@
 	.typing-practice-lesson-label {
 		color: var(--text-secondary);
 		font-size: 0.875rem;
+	}
+
+	.typing-practice-lesson-word-count {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.typing-practice-lesson-word-count :global(.typing-practice-lesson-word-count-control) {
+		display: inline-grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.125rem;
+		padding: 0.125rem;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		background-color: var(--bg-primary);
+	}
+
+	.typing-practice-lesson-word-count :global(.typing-practice-lesson-word-count-option) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 3.5rem;
+		padding: 0.375rem 0.75rem;
+		border: 1px solid transparent;
+		border-radius: 0.25rem;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.2;
+		cursor: pointer;
+	}
+
+	.typing-practice-lesson-word-count :global(.typing-practice-lesson-word-count-option:hover) {
+		color: var(--text-primary);
+	}
+
+	.typing-practice-lesson-word-count
+		:global(.typing-practice-lesson-word-count-option:focus-visible) {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.typing-practice-lesson-word-count :global(.typing-practice-lesson-word-count-option--selected) {
+		border-color: var(--border);
+		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
+		color: var(--text-primary);
+		font-weight: 600;
 	}
 
 	.typing-practice-lesson-balance {

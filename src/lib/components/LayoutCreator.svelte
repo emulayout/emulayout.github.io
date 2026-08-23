@@ -88,9 +88,18 @@
 		type CreatorUrlSnapshot
 	} from '$lib/layoutCreatorUrl';
 	import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
+		hasTypingPracticeLessonUrlOverrides,
+		isDefaultTypingPracticeLessonSettings,
 		normalizeTypingPracticeLessonSettings,
-		type TypingPracticeLessonSettings
+		readStoredTypingPracticeLessonSettings,
+		resolveTypingPracticeLessonSettings,
+		typingPracticeLessonOverridesForSettings,
+		typingPracticeLessonOverridesFromSearchParams,
+		writeTypingPracticeLessonOverrideParams,
+		type TypingPracticeLessonSettings,
+		type TypingPracticeLessonUrlOverrides
 	} from '$lib/typingPracticeText';
 	import {
 		DEFAULT_LAYOUT_DETAIL_SECTION,
@@ -137,6 +146,9 @@
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
+	let practiceLessonUrlOverrides = $state.raw<TypingPracticeLessonUrlOverrides>(
+		typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
+	);
 	let activeSection = $state<LayoutDetailSection>(initialSession.snapshot.section);
 	let saveMenuOpen = $state(false);
 	let keyImportOpen = $state(false);
@@ -343,7 +355,10 @@
 		requestAnimationFrame(focus);
 	};
 
-	function applyCreatorSnapshot(snapshot: CreatorUrlSnapshot) {
+	function applyCreatorSnapshot(
+		snapshot: CreatorUrlSnapshot,
+		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
+	) {
 		const next = cloneCreatorUrlSnapshot(snapshot);
 		layoutNameDraft = next.name;
 		layoutAuthorDraft = next.author;
@@ -357,6 +372,7 @@
 		adaptiveDraft = next.adaptiveDraft;
 		keyConfig = next.keyConfig;
 		practiceLesson = next.practiceLesson;
+		practiceLessonUrlOverrides = lessonOverrides;
 		disabledMappingIds = [...next.disabledMappingIds];
 		saveError = null;
 		autofocusFirstKey = false;
@@ -447,7 +463,14 @@
 	) {
 		if (typeof window === 'undefined') return;
 		if (page.url.pathname !== CREATOR_PATH) return;
-		const search = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
+		const baseSearch = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
+		let search = baseSearch;
+		if (hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)) {
+			const params = new URLSearchParams(baseSearch);
+			writeTypingPracticeLessonOverrideParams(params, practiceLessonUrlOverrides);
+			const query = params.toString();
+			search = query ? `?${query}` : '';
+		}
 		lastWrittenSearch = search;
 		const next = createHistoryTarget({
 			pathname: CREATOR_PATH,
@@ -490,7 +513,10 @@
 		}
 		const session = resolveCreatorSession(page.url.searchParams, savedLayouts);
 		activeSavedId = session.savedId;
-		applyCreatorSnapshot(session.snapshot);
+		applyCreatorSnapshot(
+			session.snapshot,
+			typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
+		);
 		lastWrittenSearch = search;
 	});
 
@@ -631,8 +657,24 @@
 		activeSection = parseCreatorDetailSection(section);
 	}
 
+	const storedPracticeLesson = $derived(
+		uiPrefs.hydrated
+			? uiPrefs.typingPracticeLessonSettings
+			: readStoredTypingPracticeLessonSettings()
+	);
+	const effectivePracticeLesson = $derived(
+		hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)
+			? resolveTypingPracticeLessonSettings(storedPracticeLesson, practiceLessonUrlOverrides)
+			: isDefaultTypingPracticeLessonSettings(practiceLesson)
+				? storedPracticeLesson
+				: practiceLesson
+	);
+
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
-		practiceLesson = normalizeTypingPracticeLessonSettings(lesson);
+		const next = normalizeTypingPracticeLessonSettings(lesson);
+		practiceLesson = next;
+		practiceLessonUrlOverrides = typingPracticeLessonOverridesForSettings(next);
+		uiPrefs.setTypingPracticeLessonSettings(next);
 	}
 
 	function openSavedLayout(saved: SavedCreatorLayout) {
@@ -1273,7 +1315,7 @@
 				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 				{activeSection}
 				onActiveSectionChange={setActiveSection}
-				{practiceLesson}
+				practiceLesson={effectivePracticeLesson}
 				onPracticeLessonChange={setPracticeLesson}
 				localPreview
 				statsUnavailableDetail={LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL}
