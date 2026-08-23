@@ -58,6 +58,10 @@ html {
 	--stats-diff-worse: #c44b3a;
 	--typing-practice-correct: #7aa825;
 	--typing-practice-incorrect: #c44b3a;
+	--typing-practice-monkeytype-pending: #b6b3ae;
+	--typing-practice-monkeytype-correct: #14120f;
+	--typing-practice-monkeytype-incorrect: #c44b3a;
+	--typing-practice-monkeytype-caret: #7a4fb0;
 	--typing-practice-next-key-decoration: #292622;
 	--typing-practice-home-key: #c8bca9;
 	--magic-key: #7a4fb0;
@@ -104,6 +108,10 @@ html {
 	--stats-diff-worse: #e07060;
 	--typing-practice-correct: #92c92c;
 	--typing-practice-incorrect: #e07060;
+	--typing-practice-monkeytype-pending: #949088;
+	--typing-practice-monkeytype-correct: #faf8f5;
+	--typing-practice-monkeytype-incorrect: #e07060;
+	--typing-practice-monkeytype-caret: #c9a6ef;
 	--typing-practice-next-key-decoration: #f3efe8;
 	--typing-practice-home-key: #625c54;
 	--magic-key: #c9a6ef;

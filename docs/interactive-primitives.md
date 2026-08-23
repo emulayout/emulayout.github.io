@@ -87,7 +87,9 @@ Typing practice uses `ModalShell` and `ModalHeader` for Practice lesson settings
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
 `special` / `words` and persisting those choices. The settings control opens the modal with the
 current lesson; Cancel, the header close button, Escape, and backdrop dismissal restore focus to
-that control. Saving replaces the prompt via the route's shareable lesson query.
+that control. Typing practice adds a staged Test style segmented control with Colemak Club and
+Monkeytype choices to the modal; Layout feel omits it. Saving persists that choice and replaces
+the prompt via the route's shareable lesson query, while dismissal discards its draft value.
 
 The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
 uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor

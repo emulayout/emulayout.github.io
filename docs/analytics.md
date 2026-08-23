@@ -122,10 +122,10 @@ threshold or selected author.
 
 ### Typing practice
 
-| Event                       | When                                                                            |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `practice-complete`         | A lesson actually finishes                                                      |
-| `practice-setting-<option>` | A practice display toggle is flipped (`practice-setting-highlight-next-key`, …) |
+| Event                       | When                                                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `practice-complete`         | A lesson actually finishes                                                                                      |
+| `practice-setting-<option>` | A practice display control is changed (`practice-setting-highlight-next-key`, `practice-setting-test-style`, …) |
 
 Visiting the Typing practice tab is already a pageview (`/layouts`). `practice-complete` is the
 signal that someone used the feature rather than glanced at the tab.

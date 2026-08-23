@@ -17,7 +17,8 @@ test('focuses typing practice and Escape starts a different lesson', async ({ pa
 	await expect(practiceWords).toHaveCount(10);
 	await expect(practiceInput).toBeFocused();
 	await expect(practiceInput).toHaveAttribute('type', 'text');
-	await expect(practicePanel.locator('.layout-test-area')).toHaveCSS('height', '72px');
+	await expect(practicePanel.getByLabel('Practice words')).toHaveCSS('font-size', '24px');
+	await expect(practicePanel.locator('.layout-test-area')).toHaveCSS('height', '56px');
 	const initialWords = await practiceWords.allTextContents();
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 	await page.evaluate(() => navigator.clipboard.writeText('blocked paste'));
@@ -176,6 +177,10 @@ test('keeps lesson words at full size and only shrinks Accuracy and WPM', async 
 	await page.goto(`/layouts/QWERTY?text=${longLesson}`);
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Colemak Club' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
 	const lessonPrompt = practicePanel.getByLabel('Practice words');
 	await expect(lessonPrompt).toBeVisible();
 	await expect(lessonPrompt).toHaveCSS('font-size', '40px');
@@ -192,6 +197,162 @@ test('keeps lesson words at full size and only shrinks Accuracy and WPM', async 
 	);
 	expect(resultsSize).toBeGreaterThanOrEqual(16);
 	expect(resultsSize).toBeLessThan(40);
+});
+
+test('keeps Monkeytype Accuracy and WPM at its smaller typing size', async ({ page }) => {
+	await page.setViewportSize({ width: 400, height: 900 });
+	await page.goto('/layouts/QWERTY?text=a');
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Monkeytype' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
+
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	await expect(practicePanel.getByLabel('Practice words')).toHaveCSS('font-size', '24px');
+	await expect(practiceInput).toHaveCSS('font-size', '24px');
+	await practiceInput.fill('a');
+
+	await expect(practicePanel.getByLabel('Typing practice results')).toHaveCSS('font-size', '24px');
+});
+
+test('uses Monkeytype sizing, feedback, completed words, and a moving cursor', async ({ page }) => {
+	await page.setViewportSize({ width: 480, height: 900 });
+	await page.goto(
+		'/layouts/QWERTY?text=alpha+bravo+charlie+delta+echo+foxtrot+golf+hotel+india+juliet'
+	);
+
+	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const practiceWords = practicePanel.locator('[data-practice-word]');
+	const prompt = practicePanel.getByLabel('Practice words');
+	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
+	const practiceInputBox = practicePanel.locator('.layout-test-area');
+	const settingsButton = practicePanel.getByRole('button', { name: 'Practice lesson settings' });
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	const testStyle = dialog.getByRole('radiogroup', { name: 'Test style' });
+	const colemakClub = testStyle.getByRole('radio', { name: 'Colemak Club' });
+	const monkeytype = testStyle.getByRole('radio', { name: 'Monkeytype' });
+
+	await expect(practicePanel.getByRole('radiogroup', { name: 'Test style' })).toHaveCount(0);
+	await settingsButton.click();
+	expect(
+		(await testStyle.getByRole('radio').allTextContents()).map((label) => label.trim())
+	).toEqual(['Monkeytype', 'Colemak Club']);
+	await expect(monkeytype).toBeChecked();
+	await colemakClub.click();
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(prompt).toHaveCSS('flex-wrap', 'wrap');
+	await expect(prompt).toHaveCSS('font-size', '24px');
+	await expect(practiceInput).toHaveCSS('font-size', '24px');
+	await expect(practiceInputBox).toHaveCSS('height', '56px');
+
+	await settingsButton.click();
+	await expect(monkeytype).toBeChecked();
+	await colemakClub.click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(prompt).toHaveCSS('flex-wrap', 'nowrap');
+	await expect(prompt).toHaveCSS('font-size', '40px');
+	await expect(practiceInput).toHaveCSS('font-size', '40px');
+	await expect(practiceInputBox).toHaveCSS('height', '72px');
+
+	await practiceInput.fill('alpha');
+	await practiceInput.press('Space');
+	await expect(practiceInput).toHaveValue('');
+	await expect(practiceWords).toHaveCount(9);
+	expect(await practiceWords.allTextContents()).not.toContain('alpha');
+
+	await settingsButton.click();
+	await expect(colemakClub).toBeChecked();
+	await monkeytype.click();
+	await expect(practiceWords).toHaveCount(9);
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(dialog).toHaveCount(0);
+	await expect(practiceWords).toHaveCount(10);
+	const completedWord = practiceWords.filter({ hasText: 'alpha' });
+	await expect(completedWord).toHaveAttribute('data-completed-word', 'true');
+	await expect(prompt).toHaveCSS('flex-wrap', 'wrap');
+	await expect(prompt).toHaveCSS('font-size', '24px');
+	await expect(practiceInput).toHaveCSS('font-size', '24px');
+	await expect(practiceInputBox).toHaveCSS('height', '56px');
+	const monkeytypeColors = await prompt.evaluate((element) => {
+		const resolveColor = (property: string) => {
+			const probe = document.createElement('span');
+			probe.style.color = `var(${property})`;
+			element.append(probe);
+			const color = getComputedStyle(probe).color;
+			probe.remove();
+			return color;
+		};
+		return {
+			pending: resolveColor('--typing-practice-monkeytype-pending'),
+			correct: resolveColor('--typing-practice-monkeytype-correct'),
+			incorrect: resolveColor('--typing-practice-monkeytype-incorrect')
+		};
+	});
+	await expect(completedWord).toHaveCSS('color', monkeytypeColors.correct);
+	const firstLineGap = await practiceWords.evaluateAll((words) => {
+		const first = words[0]!.getBoundingClientRect();
+		const second = words[1]!.getBoundingClientRect();
+		return second.left - first.right;
+	});
+	expect(firstLineGap).toBeGreaterThan(8);
+	expect(firstLineGap).toBeLessThan(20);
+	let cursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(cursor).toHaveText('b');
+	await expect(cursor).toHaveAttribute('data-cursor-position', 'before-character');
+	await expect(cursor).toHaveCSS('color', monkeytypeColors.pending);
+	expect(
+		await cursor.evaluate((element) => {
+			const style = getComputedStyle(element, '::before');
+			return {
+				content: style.content,
+				visible: Number.parseFloat(style.width) > 0 && style.backgroundColor !== 'rgba(0, 0, 0, 0)'
+			};
+		})
+	).toEqual({ content: '""', visible: true });
+	await practiceInput.fill('b');
+	cursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(cursor).toHaveText('r');
+	await expect(
+		practiceWords.filter({ hasText: 'bravo' }).locator('[data-character-status="correct"]')
+	).toHaveCSS('color', monkeytypeColors.correct);
+	await practiceInput.fill('brx');
+	await expect(
+		practiceWords.filter({ hasText: 'bravo' }).locator('[data-character-status="incorrect"]')
+	).toHaveCSS('color', monkeytypeColors.incorrect);
+	cursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(cursor).toHaveText('v');
+	await practiceInput.fill('bravo');
+	cursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(cursor).toHaveText('bravo');
+	await expect(cursor).toHaveAttribute('data-cursor-position', 'after-word');
+	await practiceInput.press('Space');
+	cursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(cursor).toHaveText('c');
+	await practiceInput.fill('');
+	const promptWordTops = await practiceWords.evaluateAll((elements) =>
+		elements.map((element) => Math.round(element.getBoundingClientRect().top))
+	);
+	expect(new Set(promptWordTops).size).toBeGreaterThan(1);
+	await expect(practiceInput).toHaveValue('');
+
+	const stored = await page.evaluate(
+		(key) => localStorage.getItem(key),
+		TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY
+	);
+	expect(stored).toContain('"testStyle":"monkeytype"');
+
+	await page.reload();
+	await settingsButton.click();
+	await expect(monkeytype).toBeChecked();
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(prompt).toHaveCSS('flex-wrap', 'wrap');
+	await page.getByRole('tab', { name: 'Layout feel' }).click();
+	const feelPanel = page.getByRole('tabpanel', { name: 'Layout feel' });
+	await expect(feelPanel.getByRole('radiogroup', { name: 'Test style' })).toHaveCount(0);
+	await feelPanel.getByRole('button', { name: 'Layout feel lesson settings' }).click();
+	await expect(dialog.getByRole('radiogroup', { name: 'Test style' })).toHaveCount(0);
 });
 
 test('balances random lessons toward words matching the active special keys', async ({ page }) => {
@@ -497,6 +658,14 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	await expect(
 		practicePanel.locator('[data-practice-word]').first().locator('[data-adaptive-group="true"]')
 	).toHaveText(['l', 'j']);
+	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const practiceDialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await practiceDialog.getByRole('radio', { name: 'Monkeytype' }).click();
+	await practiceDialog.getByRole('button', { name: 'Save' }).click();
+	const adaptiveCursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(adaptiveCursor).toHaveText('l');
+	await expect(adaptiveCursor).toHaveAttribute('data-adaptive-group', 'true');
+	await expect(adaptiveCursor).toHaveCSS('text-decoration-line', 'underline');
 
 	await practiceInput.press('l');
 	await expect(yKey).toHaveText('j');
@@ -686,6 +855,14 @@ test('underlines enabled Magic groups in typing-practice words', async ({ page }
 	await expect(underlineMagicGroup).toBeChecked();
 	await expect(words.nth(0).locator('[data-magic-group="true"]')).toHaveText(['e', 'x']);
 	await expect(words.nth(1).locator('[data-magic-group="true"]')).toHaveText(['l', 'l']);
+	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Monkeytype' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	const magicCursor = practicePanel.locator('[data-practice-cursor="true"]');
+	await expect(magicCursor).toHaveText('e');
+	await expect(magicCursor).toHaveAttribute('data-magic-group', 'true');
+	await expect(magicCursor).toHaveCSS('text-decoration-line', 'underline');
 
 	await page.reload();
 	await expect(underlineMagicGroup).toBeChecked();
@@ -697,6 +874,10 @@ test('colors typing-practice feedback and advances only a completed word', async
 	await page.goto('/layouts/QWERTY');
 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('radio', { name: 'Colemak Club' }).click();
+	await dialog.getByRole('button', { name: 'Save' }).click();
 	const practiceWords = practicePanel.getByLabel('Practice words');
 	const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
 	await expect(practicePanel.locator('[data-practice-word]')).toHaveCount(10);

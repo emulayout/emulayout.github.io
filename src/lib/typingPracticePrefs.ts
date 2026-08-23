@@ -1,8 +1,14 @@
 export const TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY = 'typingPracticeDisplayOptions';
 
-const TYPING_PRACTICE_DISPLAY_OPTIONS_VERSION = 1;
+const TYPING_PRACTICE_DISPLAY_OPTIONS_VERSION = 2;
+
+export type TypingPracticeTestStyle = 'colemak-club' | 'monkeytype';
+
+export const DEFAULT_TYPING_PRACTICE_TEST_STYLE: TypingPracticeTestStyle = 'monkeytype';
 
 export interface TypingPracticeDisplayOptions {
+	/** Typing practice only: Colemak Club's queue or Monkeytype's full-lesson presentation. */
+	testStyle: TypingPracticeTestStyle;
 	highlightNextKey: boolean;
 	colorHomeKeys: boolean;
 	simulateThumbKeys: boolean;
@@ -18,6 +24,7 @@ export interface TypingPracticeDisplayOptions {
 
 export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDisplayOptions {
 	return {
+		testStyle: DEFAULT_TYPING_PRACTICE_TEST_STYLE,
 		highlightNextKey: false,
 		colorHomeKeys: true,
 		simulateThumbKeys: false,
@@ -35,11 +42,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function normalizeTypingPracticeTestStyle(
+	value: Record<string, unknown>,
+	fallback: TypingPracticeTestStyle
+): TypingPracticeTestStyle {
+	if (value.testStyle === 'colemak-club' || value.testStyle === 'monkeytype') {
+		return value.testStyle;
+	}
+	return fallback;
+}
+
 function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDisplayOptions {
 	const defaults = createDefaultTypingPracticeDisplayOptions();
 	if (!isRecord(value)) return defaults;
 
-	const options = {
+	const options: TypingPracticeDisplayOptions = {
+		testStyle: normalizeTypingPracticeTestStyle(value, defaults.testStyle),
 		highlightNextKey:
 			typeof value.highlightNextKey === 'boolean'
 				? value.highlightNextKey
@@ -85,7 +103,10 @@ export function parseTypingPracticeDisplayOptions(
 	if (storedValue === null) return createDefaultTypingPracticeDisplayOptions();
 	try {
 		const document: unknown = JSON.parse(storedValue);
-		if (!isRecord(document) || document.version !== TYPING_PRACTICE_DISPLAY_OPTIONS_VERSION) {
+		if (
+			!isRecord(document) ||
+			(document.version !== 1 && document.version !== TYPING_PRACTICE_DISPLAY_OPTIONS_VERSION)
+		) {
 			return createDefaultTypingPracticeDisplayOptions();
 		}
 		return normalizeTypingPracticeDisplayOptions(document.options);

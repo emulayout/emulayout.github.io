@@ -308,9 +308,9 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(keyboardBoard).toHaveCSS('border-top-style', 'none');
 	await expect(keyboardBoard).toHaveCSS('box-shadow', 'none');
 	await expect(practicePanel.locator('[data-layout-name="Colemak-DH"]')).toHaveCount(0);
-	await expect(practiceWords).toHaveCSS('flex-wrap', 'nowrap');
-	await expect(practiceWords).toHaveCSS('overflow', 'hidden');
-	await expect(practiceWords).toHaveCSS('white-space', 'nowrap');
+	await expect(practiceWords).toHaveCSS('flex-wrap', 'wrap');
+	await expect(practiceWords).toHaveCSS('overflow', 'visible');
+	await expect(practiceWords).toHaveCSS('white-space', 'normal');
 	const [promptTypography, inputTypography] = await Promise.all(
 		[practiceWords, practiceInput].map((locator) =>
 			locator.evaluate((element) => {
@@ -319,8 +319,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 					fontFamily: styles.fontFamily,
 					fontSize: styles.fontSize,
 					fontWeight: styles.fontWeight,
-					letterSpacing: styles.letterSpacing,
-					lineHeight: styles.lineHeight
+					letterSpacing: styles.letterSpacing
 				};
 			})
 		)

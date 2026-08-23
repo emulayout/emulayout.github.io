@@ -529,6 +529,7 @@ export function buildFeelPrompt(
 			id: word.id,
 			word: word.text,
 			current: index === 0,
+			completed: false,
 			characters:
 				index === 0 && plan
 					? buildFeelCurrentWordFeedback(plan, session.input)

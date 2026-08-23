@@ -33,20 +33,33 @@ and calculation logic outside the renderer.
   rather than the physical key pressed.
 - Space advances when the input exactly equals a non-final active word. The final word advances and
   ends the test as soon as its last correct character is entered, without requiring Space. A
-  successful advance removes that word from the prompt, clears the field and contextual-input
-  history, and increments progress. A premature space remains in the input and counts as an
-  incorrect attempt without changing the rendered prompt text.
+  successful advance clears the field and contextual-input history and increments progress.
+  Monkeytype, the default Test style, keeps completed words in their original positions. Colemak
+  Club instead removes each completed word from the prompt. A premature space
+  remains in the input and counts as an incorrect attempt without changing the rendered prompt
+  text.
 - The prompt and input use the same monospace typography and span the full panel width, matching
   Layout feel and Layout test area. Their shared size stays at the show-page scale during the
-  lesson. The prompt stays on one line; leftover words are clipped rather than wrapped. Completion
-  replaces the prompt with Accuracy and WPM, which shrink until they fit the available width.
+  lesson. The Colemak Club prompt stays on one line and leftover words are clipped rather than
+  wrapped. The default Monkeytype test style gives the prompt and input a smaller matching type size, uses
+  a correspondingly shorter input field, and wraps the full lesson across as many lines as needed.
+  Depending on the available width and lesson, the prompt can still fit on one line. Pending text
+  uses a muted, theme-aware gray; correct text uses the theme's high-contrast practice color; and
+  incorrect text uses the theme's practice-error red. A separate purple practice caret sits
+  immediately before the current target character and advances after every entered character,
+  whether correct or incorrect. It sits after a complete non-final word while it awaits Space. It
+  does not replace the Magic or Adaptive text-decoration underline when both apply to a character.
+  Completion replaces the prompt with Accuracy and WPM. Colemak Club results shrink until they fit
+  the available width; Monkeytype results retain the same smaller size as the prompt and input.
   Creator Edit and Preview keep the show-page prompt, input, and score scale, matching catalog
   layout detail pages. Edit replaces the presentation keyboard with the key editor and editable
   Magic/Adaptive panels; it does not shrink practice chrome.
-- The input receives focus when Typing practice mounts. For a random lesson, Escape replaces the
-  lesson with a newly sampled set of the configured length that excludes every word from the
-  previous lesson. For a custom lesson, Escape restores its original URL-backed words. Both paths
-  reset input, progress, timing, results, and contextual-input history while retaining focus.
+- The input receives focus when Typing practice mounts. Quick Find explicitly hands focus to the
+  input after navigating to a layout, including detail-to-detail navigation where the practice
+  component is reused instead of remounted. For a random lesson, Escape replaces the lesson with a
+  newly sampled set of the configured length that excludes every word from the previous lesson. For
+  a custom lesson, Escape restores its original URL-backed words. Both paths reset input, progress,
+  timing, results, and contextual-input history while retaining focus.
 - The practice field is a single-line text input sized to one line. Enter and paste input are
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
 - The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
@@ -105,20 +118,24 @@ and calculation logic outside the renderer.
   keyboard inside the detail column instead of widening the page.
 - The elapsed timer starts with the first character attempt, updates during the lesson, and stops
   when the final word completes.
-- Completion replaces the prompt with Accuracy and WPM, which shrink to fit the available width.
+- Completion replaces the prompt with Accuracy and WPM. Colemak Club results shrink to fit the
+  available width, while Monkeytype results retain their smaller practice size.
   Accuracy is correct character attempts divided by
   all character attempts; deletions do not count as attempts. WPM uses the conventional
   five-character word and the lesson's completed characters, including inter-word spaces, over
   elapsed time.
 - The completed input placeholder reads `Press ESC for more practice` and Escape immediately starts the next lesson.
 - A settings button on the prompt opens the shared modal shell with the displayed lesson ready to
-  edit. On Layout feel it sits on the remapped prompt row, not the quieter source-word line.
+  edit. Typing practice also places a Test style segmented control in this modal, with Monkeytype
+  as the default and Colemak Club as the alternative. It is staged until Save, while Cancel and the other dismissal paths discard
+  the change. Layout feel omits that display setting and places its settings button on the remapped
+  prompt row, not the quieter source-word line.
   Saving writes the chosen lesson to local storage and to the shareable `text` / `special` /
   `words` query, then starts that lesson. Reset restores random 10-word defaults and persists
   that choice. Explicit defaults such as `words=10` and `special=0` remain in the URL so they can
   temporarily override different stored prefs. Loading a page that already has lesson query params
   applies them only for that visit; they do not overwrite stored prefs until the user saves from the menu.
-- Keyboard display options persist across layouts and reloads in the versioned
+- Practice display options persist across layouts and reloads in the versioned
   `typingPracticeDisplayOptions` local-storage document. Lesson source prefs (custom text, special
   balance, and word count) persist in the separate versioned `typingPracticeLessonSettings`
   document. The current in-progress session remains page-session-only; navigating away or
@@ -129,7 +146,8 @@ and calculation logic outside the renderer.
   lesson is the configured length again (`0/10`, `0/25`, or `0/50`). An untouched lesson is left
   as-is so unused random text does not reshuffle. Custom `text` lessons keep their leftover words
   (or restore the full custom text when none remain) and do not add random words. Layout feel also
-  reuses this same display-options document (including Feel-only `ignoreWrongKeyPresses`) and the
+  reuses this same display-options document (including Feel-only `ignoreWrongKeyPresses`), but does
+  not expose or apply the Typing-practice-only Test style option. Feel uses the
   same shareable `text` / `special` / `words` lesson query. See
   [`layout-detail-page.md`](./layout-detail-page.md) for Feel’s remapped matching model; do not
   treat Feel as a second live-resolve practice field.
@@ -139,7 +157,9 @@ and calculation logic outside the renderer.
 `src/lib/typingPractice.ts` is the pure domain layer. A `TypingPracticeSession` owns the stable
 remaining-word queue, current input, completed count, and original total. Pure helpers sample
 without replacement, update input, check exact completion, advance the queue, and derive
-per-character feedback. Random selection accepts an injectable source for deterministic tests. The
+per-character feedback. Prompt derivation can additionally receive the original source words to
+prepend completed-word feedback for the Monkeytype Typing practice display. Random selection accepts
+an injectable source for deterministic tests. The
 session and prompt derivation do not read the clock, touch browser state, or depend on Svelte.
 
 `src/lib/typingPracticeMetrics.ts` owns pure attempt counting, elapsed-time formatting, and result
@@ -260,7 +280,11 @@ The successful-space path is intentionally ordered:
 - Custom lesson resets reproduce the normalized URL text exactly; random lesson resets exclude the
   prior lesson words.
 - Remaining words retain stable identities as the head of the queue is removed.
-- Prompt and input share one fitted monospace size. The prompt stays on a single clipped line.
+- The Colemak Club prompt and input share one fitted monospace size, and the prompt stays on a single
+  clipped line. The default Monkeytype style changes the Typing practice prompt, input, and results
+  to the same smaller type size, lets the full prompt wrap when needed, and adds theme-aware
+  pending/correct/error colors plus an independent insertion caret before the current character or
+  after a completed non-final word that is waiting for Space.
 - Prompt correctness is derived from session state; DOM classes are not a second source of truth.
 - The timer starts once, stops once, and result values remain frozen after completion.
 - Layout test area keeps independent free-typing text and contextual history. Typing practice and

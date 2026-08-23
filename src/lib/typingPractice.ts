@@ -10,6 +10,7 @@ export interface TypingPracticeWordFeedback {
 	word: string;
 	characters: readonly TypingPracticeCharacterFeedback[];
 	current: boolean;
+	completed: boolean;
 }
 
 export interface TypingPracticeWord {
@@ -72,6 +73,11 @@ export function sourceCorrectPrefixLength(sourceWord: string, sourceInput: strin
 		length += 1;
 	}
 	return length;
+}
+
+/** Target-character position after the entered source input, whether correct or incorrect. */
+export function typingPracticeCursorIndex(sourceWord: string, sourceInput: string): number {
+	return Math.min(Array.from(sourceInput).length, Array.from(sourceWord).length);
 }
 
 export function selectRandomTypingPracticeWords(
@@ -151,15 +157,34 @@ function buildCurrentWordFeedback(word: string, input: string): TypingPracticeCh
 }
 
 export function buildTypingPracticePrompt(
-	session: TypingPracticeSession
+	session: TypingPracticeSession,
+	sourceWords?: readonly string[]
 ): TypingPracticeWordFeedback[] {
-	return session.remainingWords.map((word, index) => ({
-		id: word.id,
-		word: word.text,
-		current: index === 0,
-		characters:
-			index === 0
-				? buildCurrentWordFeedback(word.text, session.input)
-				: Array.from(word.text, (character) => ({ character, status: 'pending' as const }))
-	}));
+	const completedWords =
+		sourceWords === undefined
+			? []
+			: normalizedWords(sourceWords).slice(0, session.completedWordCount);
+
+	return [
+		...completedWords.map((word) => ({
+			id: word.id,
+			word: word.text,
+			current: false,
+			completed: true,
+			characters: Array.from(word.text, (character) => ({
+				character,
+				status: 'pending' as const
+			}))
+		})),
+		...session.remainingWords.map((word, index) => ({
+			id: word.id,
+			word: word.text,
+			current: index === 0,
+			completed: false,
+			characters:
+				index === 0
+					? buildCurrentWordFeedback(word.text, session.input)
+					: Array.from(word.text, (character) => ({ character, status: 'pending' as const }))
+		}))
+	];
 }

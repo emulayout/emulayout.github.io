@@ -140,5 +140,6 @@ describe('goatcounter feature event names', () => {
 		expect(goatcounterPracticeSettingEvent('showAdaptiveSwaps')).toBe(
 			'practice-setting-show-adaptive-swaps'
 		);
+		expect(goatcounterPracticeSettingEvent('testStyle')).toBe('practice-setting-test-style');
 	});
 });

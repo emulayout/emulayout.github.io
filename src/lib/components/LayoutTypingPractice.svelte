@@ -39,6 +39,7 @@
 		createTypingPracticeSession,
 		hasTypingPracticeInputError,
 		isTypingPracticeWordComplete,
+		typingPracticeCursorIndex,
 		updateTypingPracticeInput
 	} from '$lib/typingPractice';
 	import {
@@ -192,12 +193,24 @@
 		...layout.thumbKeysByHand.l.map(({ key }) => key),
 		...layout.thumbKeysByHand.r.map(({ key }) => key)
 	]);
-	const prompt = $derived(buildTypingPracticePrompt(session));
+	const practiceComplete = $derived(
+		session.totalWordCount > 0 && session.completedWordCount === session.totalWordCount
+	);
+	const monkeytypeStyle = $derived(displayOptions.testStyle === 'monkeytype');
+	const showMonkeytypePrompt = $derived(monkeytypeStyle && !practiceComplete);
+	const prompt = $derived(
+		buildTypingPracticePrompt(session, showMonkeytypePrompt ? lessonWords : undefined)
+	);
+	const promptCursorIndex = $derived.by(() => {
+		if (!showMonkeytypePrompt) return -1;
+		const activeWord = session.remainingWords[0];
+		return activeWord ? typingPracticeCursorIndex(activeWord.text, session.input) : -1;
+	});
 	const magicGroupIndexes = $derived(
 		new Map(
 			prompt.map((word) => [
 				word.id,
-				displayOptions.underlineMagicGroups
+				displayOptions.underlineMagicGroups && !word.completed
 					? buildTypingPracticeMagicGroupIndexes(
 							word.word,
 							inputProfile?.magicKeys,
@@ -211,16 +224,13 @@
 		new Map(
 			prompt.map((word) => [
 				word.id,
-				displayOptions.underlineAdaptiveGroups
+				displayOptions.underlineAdaptiveGroups && !word.completed
 					? buildTypingPracticeAdaptiveGroupIndexes(word.word, inputProfile, disabledMappingIds)
 					: new Set<number>()
 			])
 		)
 	);
 	const inputHasError = $derived(hasTypingPracticeInputError(session));
-	const practiceComplete = $derived(
-		session.totalWordCount > 0 && session.completedWordCount === session.totalWordCount
-	);
 	const fontFitKey = $derived(
 		!showPracticeWorkspace ? 'loading' : practiceComplete ? 'results' : 'lesson'
 	);
@@ -444,7 +454,11 @@
 <div
 	class="typing-practice"
 	class:typing-practice--compact={compact}
-	{@attach attachFittedTypingPracticeFont(compact, fontFitKey, practiceComplete)}
+	{@attach attachFittedTypingPracticeFont(
+		compact,
+		fontFitKey,
+		practiceComplete && !monkeytypeStyle
+	)}
 >
 	{#if !showPracticeWorkspace}
 		<div class="typing-practice-load-state">
@@ -463,17 +477,31 @@
 		</div>
 	{:else}
 		<div class="typing-practice-surface">
-			<div class="typing-practice-prompt-row">
+			<div
+				class="typing-practice-prompt-row"
+				class:typing-practice-prompt-row--monkeytype={showMonkeytypePrompt}
+			>
 				<div
 					class="typing-practice-copy"
 					class:typing-practice-copy--results={practiceComplete}
+					class:typing-practice-copy--monkeytype={showMonkeytypePrompt}
+					class:typing-practice-copy--monkeytype-results={practiceComplete && monkeytypeStyle}
 					aria-label={practiceComplete ? 'Typing practice results' : 'Practice words'}
 				>
 					{#if prompt.length > 0}
 						{#each prompt as word (word.id)}
 							<span
+								class:typing-practice-word--cursor-after={word.current &&
+									promptCursorIndex === word.characters.length}
 								data-practice-word={word.word}
 								data-current-word={word.current ? 'true' : undefined}
+								data-completed-word={word.completed ? 'true' : undefined}
+								data-practice-cursor={word.current && promptCursorIndex === word.characters.length
+									? 'true'
+									: undefined}
+								data-cursor-position={word.current && promptCursorIndex === word.characters.length
+									? 'after-word'
+									: undefined}
 							>
 								{#each word.characters as character, characterIndex (characterIndex)}
 									<span
@@ -485,11 +513,19 @@
 										class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
 											.get(word.id)
 											?.has(characterIndex)}
+										class:typing-practice-character--cursor={word.current &&
+											characterIndex === promptCursorIndex}
 										data-magic-group={magicGroupIndexes.get(word.id)?.has(characterIndex)
 											? 'true'
 											: undefined}
 										data-adaptive-group={adaptiveGroupIndexes.get(word.id)?.has(characterIndex)
 											? 'true'
+											: undefined}
+										data-practice-cursor={word.current && characterIndex === promptCursorIndex
+											? 'true'
+											: undefined}
+										data-cursor-position={word.current && characterIndex === promptCursorIndex
+											? 'before-character'
 											: undefined}
 										data-character-status={character.status}>{character.character}</span
 									>
@@ -527,7 +563,7 @@
 				{/if}
 			</div>
 
-			<div class="typing-practice-input">
+			<div class="typing-practice-input" class:typing-practice-input--monkeytype={monkeytypeStyle}>
 				<LayoutTestArea
 					keyMaps={practiceKeyMaps}
 					{inputProfile}
@@ -688,6 +724,8 @@
 		specialWordsAvailable={hasSpecialMappings}
 		specialWordCount={specialCandidateWords.length}
 		wordCount={wordPool.length}
+		testStyle={displayOptions.testStyle}
+		onTestStyleChange={(value) => uiPrefs.setTypingPracticeDisplayOption('testStyle', value)}
 		onClose={() => (lessonModalOpen = false)}
 		onSave={savePracticeLesson}
 	/>
@@ -696,11 +734,13 @@
 <style>
 	.typing-practice {
 		--typing-practice-font-size: 2.5rem;
+		--typing-practice-monkeytype-font-size: 1.5rem;
 		min-width: 0;
 	}
 
 	.typing-practice--compact {
 		--typing-practice-font-size: 1.375rem;
+		--typing-practice-monkeytype-font-size: 1.125rem;
 	}
 
 	.typing-practice-surface {
@@ -793,9 +833,54 @@
 		flex: none;
 	}
 
+	.typing-practice-prompt-row--monkeytype {
+		align-items: flex-start;
+	}
+
+	.typing-practice-copy--monkeytype {
+		flex-wrap: wrap;
+		gap: 0.35em 0.55em;
+		color: var(--typing-practice-monkeytype-pending);
+		font-size: var(--typing-practice-monkeytype-font-size);
+		line-height: 1.35;
+		overflow: visible;
+		white-space: normal;
+	}
+
+	.typing-practice-copy--monkeytype [data-completed-word='true'] {
+		color: var(--typing-practice-monkeytype-correct);
+	}
+
+	.typing-practice-character--cursor,
+	.typing-practice-word--cursor-after {
+		position: relative;
+	}
+
+	.typing-practice-character--cursor::before,
+	.typing-practice-word--cursor-after::after {
+		position: absolute;
+		top: 0.08em;
+		bottom: 0.08em;
+		left: -0.08em;
+		width: 0.08em;
+		border-radius: 999px;
+		background: var(--typing-practice-monkeytype-caret);
+		content: '';
+		pointer-events: none;
+	}
+
+	.typing-practice-word--cursor-after::after {
+		right: -0.08em;
+		left: auto;
+	}
+
 	.typing-practice-copy--results {
 		justify-content: space-between;
 		font-variant-numeric: tabular-nums;
+	}
+
+	.typing-practice-copy--monkeytype-results {
+		font-size: var(--typing-practice-monkeytype-font-size);
 	}
 
 	.typing-practice-lesson-action {
@@ -837,6 +922,14 @@
 		color: var(--typing-practice-incorrect);
 	}
 
+	.typing-practice-copy--monkeytype .typing-practice-character--correct {
+		color: var(--typing-practice-monkeytype-correct);
+	}
+
+	.typing-practice-copy--monkeytype .typing-practice-character--incorrect {
+		color: var(--typing-practice-monkeytype-incorrect);
+	}
+
 	.typing-practice-character--magic-group,
 	.typing-practice-character--adaptive-group {
 		text-decoration-line: underline;
@@ -859,6 +952,12 @@
 		margin-top: clamp(0.75rem, 2vh, 1.5rem);
 		margin-bottom: clamp(1.5rem, 3vh, 2.5rem);
 		min-width: 0;
+	}
+
+	.typing-practice-input--monkeytype {
+		--typing-practice-font-size: var(--typing-practice-monkeytype-font-size);
+		--typing-practice-input-height: 3.5rem;
+		--typing-practice-input-padding: 0.5rem 1rem;
 	}
 
 	.typing-practice-status {
@@ -928,6 +1027,11 @@
 		gap: 0.4rem;
 		margin-top: 0.5rem;
 		margin-bottom: 1.25rem;
+	}
+
+	.typing-practice--compact .typing-practice-input--monkeytype {
+		--typing-practice-input-height: 2.25rem;
+		--typing-practice-input-padding: 0.25rem 0.75rem;
 	}
 
 	.typing-practice--compact .typing-practice-status {

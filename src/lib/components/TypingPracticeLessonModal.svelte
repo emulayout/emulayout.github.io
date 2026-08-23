@@ -4,6 +4,10 @@
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { SegmentedOption } from '$lib/segmentedControl';
 	import {
+		DEFAULT_TYPING_PRACTICE_TEST_STYLE,
+		type TypingPracticeTestStyle
+	} from '$lib/typingPracticePrefs';
+	import {
 		DEFAULT_TYPING_PRACTICE_WORD_COUNT,
 		isDefaultTypingPracticeLessonSettings,
 		normalizeTypingPracticeLessonSettings,
@@ -18,6 +22,10 @@
 			value: String(count) as `${TypingPracticeWordCount}`,
 			label: String(count)
 		}));
+	const testStyleOptions: readonly SegmentedOption<TypingPracticeTestStyle>[] = [
+		{ value: 'monkeytype', label: 'Monkeytype' },
+		{ value: 'colemak-club', label: 'Colemak Club' }
+	];
 
 	type LessonSource = 'random-words' | 'custom-text';
 
@@ -32,6 +40,9 @@
 		specialWordCount: number;
 		/** Total words in the random word pool. */
 		wordCount: number;
+		/** Typing-practice-only display option. Omit for Layout feel. */
+		testStyle?: TypingPracticeTestStyle;
+		onTestStyleChange?: (value: TypingPracticeTestStyle) => void;
 		onClose: () => void;
 		onSave: (lesson: TypingPracticeLessonSettings) => void;
 	}
@@ -43,6 +54,8 @@
 		specialWordsAvailable,
 		specialWordCount,
 		wordCount,
+		testStyle = DEFAULT_TYPING_PRACTICE_TEST_STYLE,
+		onTestStyleChange,
 		onClose,
 		onSave
 	}: Props = $props();
@@ -51,6 +64,7 @@
 	let text = $state('');
 	let specialWordsPercent = $state(0);
 	let lessonWordCount = $state<TypingPracticeWordCount>(DEFAULT_TYPING_PRACTICE_WORD_COUNT);
+	let draftTestStyle = $state<TypingPracticeTestStyle>(DEFAULT_TYPING_PRACTICE_TEST_STYLE);
 	let textField = $state<HTMLTextAreaElement | undefined>(undefined);
 	const normalizedText = $derived(normalizeTypingPracticeText(text));
 	const balanceLabel = $derived(
@@ -68,7 +82,10 @@
 				: `${specialWordsPercent}% matching words`
 	);
 	const saveDisabled = $derived(source === 'custom-text' && !normalizedText);
-	const lessonIsDefault = $derived(isDefaultTypingPracticeLessonSettings(lesson));
+	const settingsAreDefault = $derived(
+		isDefaultTypingPracticeLessonSettings(lesson) &&
+			(!onTestStyleChange || draftTestStyle === DEFAULT_TYPING_PRACTICE_TEST_STYLE)
+	);
 	const selectedWordCount = $derived(String(lessonWordCount) as `${TypingPracticeWordCount}`);
 
 	$effect(() => {
@@ -77,6 +94,7 @@
 		text = initialText;
 		specialWordsPercent = lesson.specialWordsPercent;
 		lessonWordCount = lesson.wordCount;
+		draftTestStyle = testStyle;
 	});
 
 	function focusTextField() {
@@ -95,6 +113,7 @@
 		event.preventDefault();
 		if (source === 'custom-text') {
 			if (!normalizedText) return;
+			commitTestStyle(draftTestStyle);
 			onSave(
 				normalizeTypingPracticeLessonSettings({
 					customText: normalizedText,
@@ -103,6 +122,7 @@
 			);
 			return;
 		}
+		commitTestStyle(draftTestStyle);
 		onSave(
 			normalizeTypingPracticeLessonSettings({
 				customText: null,
@@ -115,7 +135,12 @@
 	}
 
 	function reset() {
+		commitTestStyle(DEFAULT_TYPING_PRACTICE_TEST_STYLE);
 		onSave(normalizeTypingPracticeLessonSettings(null));
+	}
+
+	function commitTestStyle(value: TypingPracticeTestStyle) {
+		if (value !== testStyle) onTestStyleChange?.(value);
 	}
 
 	function setLessonWordCount(value: `${TypingPracticeWordCount}`) {
@@ -135,7 +160,7 @@
 	<form onsubmit={submit}>
 		<div class="flex flex-col gap-4 px-5 py-4">
 			<fieldset class="typing-practice-lesson-source">
-				<legend>Lesson source</legend>
+				<legend>Test source</legend>
 				<label>
 					<input
 						type="radio"
@@ -206,8 +231,6 @@
 							{/if}
 						{/if}
 					</div>
-				{:else}
-					<p class="typing-practice-lesson-hint">Lessons use random words from the word bank.</p>
 				{/if}
 			{:else}
 				<label class="flex flex-col gap-1.5">
@@ -225,6 +248,25 @@
 						"></textarea>
 				</label>
 			{/if}
+
+			{#if onTestStyleChange}
+				<div class="typing-practice-lesson-test-style">
+					<span class="typing-practice-lesson-label">Test style</span>
+					<SegmentedControl
+						value={draftTestStyle}
+						onChange={(value) => (draftTestStyle = value)}
+						options={testStyleOptions}
+						ariaLabel="Test style"
+						class="typing-practice-lesson-test-style-control"
+						buttonClass="typing-practice-lesson-test-style-option"
+						selectedClass="typing-practice-lesson-test-style-option--selected"
+					/>
+					<p class="typing-practice-lesson-hint typing-practice-lesson-description">
+						Monkeytype shows the full test, wraps when needed, and keeps completed words visible.
+						Colemak Club uses a large, single-line queue that advances as words are completed.
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<div
@@ -234,7 +276,7 @@
 			<button
 				type="button"
 				class="filter-reset-button typing-practice-lesson-button"
-				disabled={lessonIsDefault}
+				disabled={settingsAreDefault}
 				onclick={reset}
 			>
 				Reset
@@ -267,6 +309,55 @@
 		margin: 0;
 		padding: 0;
 		border: 0;
+	}
+
+	.typing-practice-lesson-test-style {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+	}
+
+	.typing-practice-lesson-test-style :global(.typing-practice-lesson-test-style-control) {
+		display: inline-grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.375rem;
+		padding: 0.125rem;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+		background-color: var(--bg-primary);
+	}
+
+	.typing-practice-lesson-test-style :global(.typing-practice-lesson-test-style-option) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 3.5rem;
+		padding: 0.375rem 0.75rem;
+		border: 1px solid transparent;
+		border-radius: 0.25rem;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.2;
+		cursor: pointer;
+	}
+
+	.typing-practice-lesson-test-style :global(.typing-practice-lesson-test-style-option:hover) {
+		color: var(--text-primary);
+	}
+
+	.typing-practice-lesson-test-style
+		:global(.typing-practice-lesson-test-style-option:focus-visible) {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.typing-practice-lesson-test-style :global(.typing-practice-lesson-test-style-option--selected) {
+		border-color: var(--border);
+		background-color: color-mix(in srgb, var(--text-primary) 8%, var(--bg-primary));
+		color: var(--text-primary);
+		font-weight: 600;
 	}
 
 	.typing-practice-lesson-source legend {
@@ -302,7 +393,7 @@
 	.typing-practice-lesson-word-count :global(.typing-practice-lesson-word-count-control) {
 		display: inline-grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 0.125rem;
+		gap: 0.375rem;
 		padding: 0.125rem;
 		border: 1px solid var(--border);
 		border-radius: 0.375rem;

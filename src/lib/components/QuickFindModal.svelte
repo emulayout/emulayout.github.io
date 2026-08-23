@@ -15,6 +15,7 @@
 	import { layoutDetailsStore } from '$lib/layoutDetailsStore.svelte';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
+	import { afterPaint } from '$lib/focusFilterControl';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
@@ -145,7 +146,7 @@
 		searchInput?.focus();
 	}
 
-	function showLayout(name: string, event?: MouseEvent | KeyboardEvent) {
+	async function showLayout(name: string, event?: MouseEvent | KeyboardEvent) {
 		const href = layoutDetailPageHref(resolve('/layouts/[name]', { name }));
 
 		// Cmd/Ctrl activation mirrors modified link clicks: open a new tab and
@@ -158,7 +159,12 @@
 		onClose();
 		// href starts with route-aware resolve(); the helper appends only the canonical query.
 		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		void goto(href);
+		await goto(href);
+		afterPaint(() => {
+			document
+				.querySelector<HTMLInputElement>('[aria-label="Typing practice input"]')
+				?.focus({ preventScroll: true });
+		});
 	}
 
 	function showAppliedFilterSnackbar(

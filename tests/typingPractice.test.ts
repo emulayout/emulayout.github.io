@@ -9,6 +9,7 @@ import {
 	isTypingPracticeWordComplete,
 	selectRandomTypingPracticeWords,
 	sourceCorrectPrefixLength,
+	typingPracticeCursorIndex,
 	updateTypingPracticeInput
 } from '$lib/typingPractice';
 
@@ -40,12 +41,56 @@ describe('typing practice sessions', () => {
 			id: '0:oh',
 			word: 'oh',
 			current: true,
+			completed: false,
 			characters: [
 				{ character: 'o', status: 'correct' },
 				{ character: 'h', status: 'incorrect' }
 			]
 		});
 		expect(next.characters.every(({ status }) => status === 'pending')).toBe(true);
+	});
+
+	test('can retain completed words before the active prompt', () => {
+		const sourceWords = ['one', 'two', 'three'];
+		const session = createTypingPracticeSessionFromProgress(sourceWords, 1, 't');
+
+		expect(buildTypingPracticePrompt(session, sourceWords)).toEqual([
+			{
+				id: '0:one',
+				word: 'one',
+				current: false,
+				completed: true,
+				characters: [
+					{ character: 'o', status: 'pending' },
+					{ character: 'n', status: 'pending' },
+					{ character: 'e', status: 'pending' }
+				]
+			},
+			{
+				id: '1:two',
+				word: 'two',
+				current: true,
+				completed: false,
+				characters: [
+					{ character: 't', status: 'correct' },
+					{ character: 'w', status: 'pending' },
+					{ character: 'o', status: 'pending' }
+				]
+			},
+			{
+				id: '2:three',
+				word: 'three',
+				current: false,
+				completed: false,
+				characters: [
+					{ character: 't', status: 'pending' },
+					{ character: 'h', status: 'pending' },
+					{ character: 'r', status: 'pending' },
+					{ character: 'e', status: 'pending' },
+					{ character: 'e', status: 'pending' }
+				]
+			}
+		]);
 	});
 
 	test('detects mismatches and input beyond the active word', () => {
@@ -129,5 +174,12 @@ describe('typing practice sessions', () => {
 		expect(sourceCorrectPrefixLength('hello', 'hel')).toBe(3);
 		expect(sourceCorrectPrefixLength('hello', 'hex')).toBe(2);
 		expect(sourceCorrectPrefixLength('hello', '')).toBe(0);
+	});
+
+	test('places the cursor after entered characters regardless of correctness', () => {
+		expect(typingPracticeCursorIndex('hello', 'hel')).toBe(3);
+		expect(typingPracticeCursorIndex('hello', 'hex')).toBe(3);
+		expect(typingPracticeCursorIndex('hello', '')).toBe(0);
+		expect(typingPracticeCursorIndex('hello', 'hellooo')).toBe(5);
 	});
 });

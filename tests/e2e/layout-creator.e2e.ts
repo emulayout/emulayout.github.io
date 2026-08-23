@@ -60,7 +60,7 @@ test('opens the layout creator from the app bar with practice and keyboard chrom
 	);
 	expect(practiceFontSize).toBeGreaterThanOrEqual(16);
 	expect(practiceFontSize).toBeLessThanOrEqual(40);
-	await expect(panel.locator('.layout-test-area')).toHaveCSS('height', '72px');
+	await expect(panel.locator('.layout-test-area')).toHaveCSS('height', '56px');
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toBeFocused();
 	await expect(panel.getByRole('combobox', { name: 'Author name' })).toHaveValue('');
@@ -389,7 +389,7 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 	);
 	expect(previewPracticeFontSize).toBeGreaterThanOrEqual(16);
 	expect(previewPracticeFontSize).toBeLessThanOrEqual(40);
-	await expect(namedPanel.locator('.layout-test-area')).toHaveCSS('height', '72px');
+	await expect(namedPanel.locator('.layout-test-area')).toHaveCSS('height', '56px');
 	await expect(namedPanel.getByRole('textbox', { name: 'Layout name' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('combobox', { name: 'Author name' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('group', { name: 'Layout keys' })).toHaveCount(0);

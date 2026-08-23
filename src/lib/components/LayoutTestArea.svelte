@@ -220,8 +220,8 @@
 			: 'clamp(12rem, 23vh, 22rem)'
 		: variant === 'practice'
 			? compact
-				? '2.5rem'
-				: '4.5rem'
+				? 'var(--typing-practice-input-height, 2.5rem)'
+				: 'var(--typing-practice-input-height, 4.5rem)'
 			: `${LAYOUT_CARD_TEST_AREA_HEIGHT}px`};
 		background-color: var(--input-bg);
 		border: 1px solid var(--border);
@@ -302,7 +302,7 @@
 	}
 
 	.layout-test-area--practice .layout-test-area-input {
-		padding: 0.75rem 1.25rem;
+		padding: var(--typing-practice-input-padding, 0.75rem 1.25rem);
 		font-family:
 			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
 		font-size: var(--typing-practice-font-size, 2.5rem);
@@ -316,7 +316,7 @@
 	}
 
 	.layout-test-area--practice-compact .layout-test-area-input {
-		padding: 0.3rem 0.75rem;
+		padding: var(--typing-practice-input-padding, 0.3rem 0.75rem);
 		font-size: var(--typing-practice-font-size, 1.375rem);
 	}
 

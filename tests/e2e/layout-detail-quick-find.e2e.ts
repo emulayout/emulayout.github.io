@@ -102,6 +102,11 @@ test('opens the layout show page from Quick Find with Enter', async ({ page }) =
 
 	await expect(page).toHaveURL('/layouts/lela?tab=practice');
 	await expect(quickFind).toHaveCount(0);
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'Typing practice' })
+			.getByRole('textbox', { name: 'Typing practice input' })
+	).toBeFocused();
 });
 
 test('opens the show page in a new tab with Cmd/Ctrl activation and keeps Quick Find open', async ({
@@ -157,6 +162,11 @@ test('returns to the preserved index view after Quick Find detail-to-detail navi
 	await expect(quickFind.getByRole('option', { name: 'lela' })).toBeVisible();
 	await quickFind.getByRole('combobox', { name: 'Search layout names' }).press('Enter');
 	await expect(page).toHaveURL('/layouts/lela?tab=practice');
+	await expect(
+		page
+			.getByRole('tabpanel', { name: 'Typing practice' })
+			.getByRole('textbox', { name: 'Typing practice input' })
+	).toBeFocused();
 
 	await page.goBack();
 	await expect(page).toHaveURL('/layouts/Colemak-DH?tab=practice');

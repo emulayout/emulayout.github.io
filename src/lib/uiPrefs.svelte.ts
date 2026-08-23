@@ -113,7 +113,10 @@ class UiPrefs {
 		);
 	}
 
-	setTypingPracticeDisplayOption(option: keyof TypingPracticeDisplayOptions, value: boolean) {
+	setTypingPracticeDisplayOption<Option extends keyof TypingPracticeDisplayOptions>(
+		option: Option,
+		value: TypingPracticeDisplayOptions[Option]
+	) {
 		trackGoatCounterEvent(goatcounterPracticeSettingEvent(option));
 		const next = { ...this.typingPracticeDisplayOptions, [option]: value };
 		this.typingPracticeDisplayOptions = next;
