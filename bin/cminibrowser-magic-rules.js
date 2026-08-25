@@ -190,6 +190,22 @@ export function normalizeCminibrowserMagicRules(value) {
 }
 
 /**
+ * Index Magic / Adaptive mappings by lowercase layout id so catalog names can
+ * match dump keys that differ only in casing.
+ *
+ * @param {ReadonlyMap<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>} supplementalByLayoutId
+ * @returns {ReadonlyMap<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>}
+ */
+export function supplementalByLowerLayoutId(supplementalByLayoutId) {
+	/** @type {Map<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>} */
+	const indexed = new Map();
+	for (const [layoutId, supplemental] of supplementalByLayoutId) {
+		indexed.set(layoutId.toLowerCase(), supplemental);
+	}
+	return indexed;
+}
+
+/**
  * @param {{ offline?: boolean, force?: boolean }} [options]
  */
 export async function loadCminibrowserMagicRules(options = {}) {

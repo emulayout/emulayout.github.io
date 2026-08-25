@@ -5,8 +5,9 @@ on:
     branches:
       - master
   schedule:
-    # After cmini (~5pm PT) and cminibrowser (~7pm PT). 04:15 UTC is 9:15pm PST / 8:15pm PDT.
-    - cron: '15 4 * * *'
+    # Check Clemenpine metadata and cminibrowser dumps every hour. The minute is
+    # intentionally offset from the top of the hour to reduce Actions congestion.
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -21,6 +22,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.data_changes.outputs.should_deploy }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -43,37 +46,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint
-        run: bun run lint
-
-      - name: Check
-        run: bun run check
-
-      - name: Test
-        run: bun test
-
-      - name: Install Playwright browser
-        run: bunx playwright install --with-deps chromium
-
-      - name: Playwright tests
-        run: bun run test:e2e
-
-      - name: Upload Playwright report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-
-      - name: Cache cmini repo + cminibrowser dumps + catalog artifacts
-        uses: actions/cache@v6
+      - name: Restore source data cache
+        uses: actions/cache/restore@v6
         with:
           path: |
-            .cache/cmini-repo
+            .cache/clemenpine
             .cache/cminibrowser
-            .cache/layout-timestamps.json
-            .cache/cmini-synced-head
+            .cache/clemenpine-synced-hash
             static/all-layouts.json
             static/layout-supplemental.json
             static/authors.json
@@ -81,17 +60,26 @@ jobs:
             static/layout-stats-cyanophage.json
             static/layout-stats-cmini-*.json
             static/layout-stats-mana2-*.json
-          key: ${{ runner.os }}-cmini-v13-${{ hashFiles('bin/catalog-sync.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/layout-timestamps.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}
+          # A unique primary key forces a restore-key lookup for the latest snapshot.
+          # The post-sync save key is content-addressed, avoiding duplicate hourly caches.
+          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ github.run_id }}
           restore-keys: |
+            ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-
+            ${{ runner.os }}-source-data-v2-
+            ${{ runner.os }}-clemenpine-
             ${{ runner.os }}-cmini-
+
+      - name: Fingerprint current published data
+        id: data_before
+        run: echo "hash=$(bun run ./bin/data-state-hash.js --artifacts)" >> "$GITHUB_OUTPUT"
 
       - name: Sync catalog
         id: catalog
         run: bun run ./bin/catalog-sync.js
         env:
           CI: true
-          # Scheduled runs skip the catalog rebuild when cmini HEAD and the meme
-          # filter and input-mapping dumps are unchanged. Pushes always rebuild.
+          # Scheduled runs skip the catalog rebuild when Clemenpine payloads and
+          # the meme filter and input-mapping dumps are unchanged. Pushes always rebuild.
           CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
       - name: Sync cmini stats
@@ -104,7 +92,7 @@ jobs:
         env:
           CI: true
           # Scheduled runs skip Cyanophage when catalog-sync itself skipped. Rebuild whenever
-          # cmini or either cminibrowser catalog input changed.
+          # Clemenpine or either cminibrowser catalog input changed.
           CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
           CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 
@@ -113,13 +101,77 @@ jobs:
         env:
           CI: true
 
+      - name: Detect published data changes
+        id: data_changes
+        env:
+          BEFORE_HASH: ${{ steps.data_before.outputs.hash }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          after_hash="$(bun run ./bin/data-state-hash.js --artifacts)"
+          cache_hash="$(bun run ./bin/data-state-hash.js --cache)"
+          if [[ "$EVENT_NAME" != "schedule" || "$after_hash" != "$BEFORE_HASH" ]]; then
+            should_deploy=true
+          else
+            should_deploy=false
+          fi
+          echo "after_hash=$after_hash" >> "$GITHUB_OUTPUT"
+          echo "cache_hash=$cache_hash" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=$should_deploy" >> "$GITHUB_OUTPUT"
+
+      - name: Lint
+        if: steps.data_changes.outputs.should_deploy == 'true'
+        run: bun run lint
+
+      - name: Check
+        if: steps.data_changes.outputs.should_deploy == 'true'
+        run: bun run check
+
+      - name: Test
+        if: steps.data_changes.outputs.should_deploy == 'true'
+        run: bun test
+
+      - name: Install Playwright browser
+        if: steps.data_changes.outputs.should_deploy == 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Playwright tests
+        if: steps.data_changes.outputs.should_deploy == 'true'
+        run: bun run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() && steps.data_changes.outputs.should_deploy == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Save newest source data cache
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .cache/clemenpine
+            .cache/cminibrowser
+            .cache/clemenpine-synced-hash
+            static/all-layouts.json
+            static/layout-supplemental.json
+            static/authors.json
+            static/layout-likes.json
+            static/layout-stats-cyanophage.json
+            static/layout-stats-cmini-*.json
+            static/layout-stats-mana2-*.json
+          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ steps.data_changes.outputs.cache_hash }}
+
       - name: Build
+        if: steps.data_changes.outputs.should_deploy == 'true'
         run: bun run build
 
       - name: Setup Pages
+        if: steps.data_changes.outputs.should_deploy == 'true'
         uses: actions/configure-pages@v6
 
       - name: Upload artifact
+        if: steps.data_changes.outputs.should_deploy == 'true'
         uses: actions/upload-pages-artifact@v5
         with:
           path: './build'
@@ -130,6 +182,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    if: needs.build.outputs.should_deploy == 'true'
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

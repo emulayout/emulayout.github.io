@@ -17,7 +17,7 @@ const SPLIT_COL = 5;
 
 /**
  * Transforms a layout object by adding computed properties.
- * @param {RawLayout} layout - The raw layout object from the repo
+ * @param {RawLayout} layout - The raw layout object from the catalog API
  */
 export function transformLayout(layout) {
 	/** @type {Record<string, { row: number, col: number, thumbHand?: 'l' | 'r' }>} */

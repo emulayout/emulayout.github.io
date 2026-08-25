@@ -1,20 +1,22 @@
 #!/usr/bin/env bun
 
 /**
- * Sync the cmini catalog clone and publish layout catalog artifacts:
+ * Sync the Clemenpine catalog API and publish layout catalog artifacts:
  * all-layouts, supplemental, likes, authors.
  *
  * Does not import analyzer stats or compute Cyanophage metrics.
- * Use --offline to skip git fetch and reuse `.cache/cmini-repo`.
+ * Use --offline to skip the API and reuse `.cache/clemenpine`.
+ *
+ * A failed or incomplete API response never replaces the last good cache or
+ * published catalog. When a previous catalog exists, the script keeps it and
+ * exits successfully so CI can still deploy.
  */
 
-import { access, appendFile, readFile, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { access, appendFile, mkdir, readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { $ } from 'bun';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
-import { buildLayoutTimestamps } from './layout-timestamps.js';
 import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
 import {
 	defaultMagicMappings,
@@ -22,106 +24,28 @@ import {
 	hasMagicKeyMappings,
 	hasRepeatKey
 } from './layout-features.js';
-import { CMINI_CACHE_DIR, LAYOUTS_FILE, parseOfflineForceArgs } from './sync-shared.js';
+import {
+	LAYOUTS_FILE,
+	parseOfflineForceArgs,
+	writeFileAtomically,
+	writeTextFileIfChanged
+} from './sync-shared.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
-import { loadCminibrowserMagicRules } from './cminibrowser-magic-rules.js';
+import {
+	loadCminibrowserMagicRules,
+	supplementalByLowerLayoutId
+} from './cminibrowser-magic-rules.js';
+import {
+	CLEMENPINE_SYNCED_HASH_FILE,
+	ClemenpineCatalogUnavailableError,
+	deriveLayoutLikes,
+	ensureClemenpineCatalog,
+	hashCachedClemenpineSources
+} from './clemenpine-cache.js';
 
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const LIKES_FILE = 'static/layout-likes.json';
-const SYNCED_HEAD_FILE = join(process.cwd(), '.cache', 'cmini-synced-head');
-const SPARSE_CHECKOUT = ['layouts', '/authors.json', '/likes.json'];
-/** Worktree paths for `git checkout` (no leading-slash sparse patterns). */
-const SPARSE_CHECKOUT_WORKTREE = SPARSE_CHECKOUT.map((path) => path.replace(/^\//, ''));
-const REPO = process.env.CI ? 'https://github.com/Apsu/cmini.git' : 'git@github.com:Apsu/cmini.git';
-const SYNC_CONCURRENCY = Number(process.env.CMINI_SYNC_CONCURRENCY ?? 16);
-
-async function resolveDefaultBranch() {
-	try {
-		const branch = await $`git -C ${CMINI_CACHE_DIR} rev-parse --abbrev-ref origin/HEAD`.text();
-		return branch.trim().replace('origin/', '');
-	} catch {
-		const main = await $`git -C ${CMINI_CACHE_DIR} rev-parse origin/main`.quiet().nothrow();
-		if (main.exitCode === 0) return 'main';
-		return 'master';
-	}
-}
-
-/**
- * @param {Set<string>} validLayoutNames
- * @returns {Promise<Record<string, number>>}
- */
-async function loadLayoutLikes(validLayoutNames) {
-	try {
-		const content = await readFile(join(CMINI_CACHE_DIR, 'likes.json'), 'utf-8');
-		const parsed = JSON.parse(content);
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-
-		const likeCounts = {};
-		for (const [layoutName, likes] of Object.entries(parsed)) {
-			if (!validLayoutNames.has(layoutName)) continue;
-			if (!Array.isArray(likes)) continue;
-			likeCounts[layoutName] = likes.length;
-		}
-
-		return Object.fromEntries(
-			Object.keys(likeCounts)
-				.sort((a, b) => a.localeCompare(b))
-				.map((name) => [name, likeCounts[name]])
-		);
-	} catch (err) {
-		console.warn(`  ⚠ Could not load likes.json (${err.message}); likes will be skipped`);
-		return {};
-	}
-}
-
-async function applySparseCheckout() {
-	await $`cd ${CMINI_CACHE_DIR} && git sparse-checkout set --no-cone ${SPARSE_CHECKOUT}`;
-	await $`git -C ${CMINI_CACHE_DIR} checkout HEAD -- ${SPARSE_CHECKOUT_WORKTREE}`;
-}
-
-/**
- * @param {boolean} offline
- */
-async function ensureCache(offline) {
-	const cacheExists = await access(CMINI_CACHE_DIR)
-		.then(() => true)
-		.catch(() => false);
-
-	if (!cacheExists) {
-		if (offline) {
-			throw new Error(
-				`cmini cache missing at ${CMINI_CACHE_DIR}. Run: bun run ./bin/catalog-sync.js`
-			);
-		}
-		console.log('→ Initial clone (this may take a while)...');
-		await mkdir(CMINI_CACHE_DIR, { recursive: true });
-		await $`git clone --filter=blob:none --sparse ${REPO} ${CMINI_CACHE_DIR}`;
-		await applySparseCheckout();
-	} else if (offline) {
-		console.log('→ Using existing cmini cache (offline)...');
-	} else {
-		console.log('→ Updating cache...');
-		const isShallow = (
-			await $`git -C ${CMINI_CACHE_DIR} rev-parse --is-shallow-repository`.text()
-		).trim();
-		if (isShallow === 'true') {
-			console.log('→ Unshallowing cache for layout timestamps...');
-			await $`git -C ${CMINI_CACHE_DIR} fetch --unshallow`.nothrow();
-		}
-		const branchName = await resolveDefaultBranch();
-		const localHead = (await $`git -C ${CMINI_CACHE_DIR} rev-parse HEAD`.text()).trim();
-		await $`cd ${CMINI_CACHE_DIR} && git fetch origin ${branchName}`;
-		const remoteHead = (
-			await $`git -C ${CMINI_CACHE_DIR} rev-parse origin/${branchName}`.text()
-		).trim();
-		if (localHead !== remoteHead) {
-			await $`cd ${CMINI_CACHE_DIR} && git reset --hard origin/${branchName}`;
-		} else {
-			console.log('→ Cache already up to date');
-		}
-		await applySparseCheckout();
-	}
-}
+const AUTHORS_FILE = 'static/authors.json';
 
 async function pathExists(path) {
 	return access(path)
@@ -149,6 +73,104 @@ async function writeCatalogRebuiltOutput(rebuilt) {
 	}
 }
 
+async function hasPublishedCatalog() {
+	return (
+		(await pathExists(LAYOUTS_FILE)) &&
+		(await pathExists(SUPPLEMENTAL_FILE)) &&
+		(await pathExists(AUTHORS_FILE)) &&
+		(await pathExists(LIKES_FILE))
+	);
+}
+
+/**
+ * Publish the four coupled catalog artifacts with rollback on a write failure.
+ * All bodies are prepared before this starts, so processing failures cannot
+ * leave a partially refreshed artifact set.
+ *
+ * @param {ReadonlyMap<string, string>} bodies
+ */
+async function publishCatalogArtifacts(bodies) {
+	/** @type {Map<string, Buffer | null>} */
+	const previous = new Map();
+	for (const path of bodies.keys()) {
+		try {
+			previous.set(path, await readFile(path));
+		} catch (error) {
+			if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
+			previous.set(path, null);
+		}
+	}
+
+	try {
+		for (const [path, body] of bodies) await writeTextFileIfChanged(path, body);
+	} catch (error) {
+		const rollbackErrors = [];
+		for (const [path, body] of previous) {
+			try {
+				if (body === null) {
+					await unlink(path).catch((unlinkError) => {
+						if (/** @type {NodeJS.ErrnoException} */ (unlinkError).code !== 'ENOENT') {
+							throw unlinkError;
+						}
+					});
+				} else {
+					await writeFileAtomically(path, body);
+				}
+			} catch (rollbackError) {
+				rollbackErrors.push(rollbackError);
+			}
+		}
+		if (rollbackErrors.length > 0) {
+			throw new AggregateError(
+				[error, ...rollbackErrors],
+				'Catalog publication failed and rollback was incomplete',
+				{ cause: error }
+			);
+		}
+		throw error;
+	}
+}
+
+/**
+ * @param {unknown} error
+ */
+function errorMessage(error) {
+	return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * @param {import('./clemenpine-cache.js').ClemenpineLayout} layout
+ * @param {Set<string>} excludedLayouts
+ * @param {ReadonlyMap<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>} supplementalByLowerId
+ */
+function encodeCatalogLayout(layout, excludedLayouts, supplementalByLowerId) {
+	if (isExcludedLayout(layout.name, excludedLayouts)) return null;
+
+	const rawLayout = {
+		name: layout.name,
+		user: layout.user,
+		board: layout.board,
+		keys: layout.keys
+	};
+	const transformedLayout = transformLayout(rawLayout);
+	const supplemental = supplementalByLowerId.get(layout.name.toLowerCase());
+	const variants = supplemental?.variants ?? [];
+	transformedLayout.updatedAt = layout.modifiedAt;
+	transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
+	transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
+	transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
+	transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
+		defaultMagicMappings(variants),
+		rawLayout.keys
+	);
+	transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
+	transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
+	return {
+		encoded: encodeLayout(transformedLayout),
+		supplemental: supplemental ? { name: layout.name, supplemental } : null
+	};
+}
+
 async function run() {
 	const argv = process.argv.slice(2);
 	const { offline, force } = parseOfflineForceArgs(argv, {
@@ -157,16 +179,36 @@ async function run() {
 	const skipIfUnchanged =
 		argv.includes('--skip-if-unchanged') || process.env.CATALOG_SYNC_SKIP_IF_UNCHANGED === '1';
 
-	await ensureCache(offline);
-
-	const head = (await $`git -C ${CMINI_CACHE_DIR} rev-parse HEAD`.text()).trim();
-	let previousHead = null;
+	console.log('→ Loading Clemenpine catalog...');
+	let catalogResult;
 	try {
-		previousHead = (await readFile(SYNCED_HEAD_FILE, 'utf-8')).trim();
+		catalogResult = await ensureClemenpineCatalog({ offline, force });
+	} catch (error) {
+		if (error instanceof ClemenpineCatalogUnavailableError && (await hasPublishedCatalog())) {
+			console.error(`  ⚠ ${errorMessage(error)}`);
+			console.error('  Keeping the complete last published catalog.');
+			await writeCminiChangedOutput(false);
+			await writeCatalogRebuiltOutput(false);
+			console.log('Done');
+			return;
+		}
+		throw error;
+	}
+	const { layouts } = catalogResult.json.layouts;
+	const authors = catalogResult.json.authors;
+	if (catalogResult.fromCache && !offline) {
+		console.warn('  ⚠ Catalog served from the complete last-good snapshot');
+	}
+	console.log(`  ✔ ${layouts.length} layouts, ${Object.keys(authors).length} authors`);
+
+	const sourceHash = await hashCachedClemenpineSources();
+	let previousHash = null;
+	try {
+		previousHash = (await readFile(CLEMENPINE_SYNCED_HASH_FILE, 'utf-8')).trim();
 	} catch {
 		// first successful sync after this marker existed
 	}
-	const cminiChanged = previousHead !== head;
+	const cminiChanged = previousHash !== sourceHash;
 	await writeCminiChangedOutput(cminiChanged);
 
 	console.log('→ Loading cminibrowser meme filter...');
@@ -181,6 +223,7 @@ async function run() {
 
 	console.log('→ Loading cminibrowser Magic and Adaptive mappings...');
 	const magicRules = await loadCminibrowserMagicRules({ offline, force });
+	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
 	console.log(
 		`  ✔ Input mappings for ${magicRules.supplementalByLayoutId.size} layouts` +
 			(magicRules.updated ? ' (dump updated)' : '')
@@ -191,13 +234,10 @@ async function run() {
 		!memeFilter.updated &&
 		!magicRules.updated &&
 		skipIfUnchanged &&
-		(await pathExists(LAYOUTS_FILE)) &&
-		(await pathExists(SUPPLEMENTAL_FILE)) &&
-		(await pathExists(LIKES_FILE)) &&
-		(await pathExists('static/authors.json'))
+		(await hasPublishedCatalog())
 	) {
 		console.log(
-			`✔ cmini HEAD and cminibrowser inputs unchanged (${head.slice(0, 12)}); skipping catalog rebuild`
+			`✔ Clemenpine catalog and cminibrowser inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
 		);
 		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
@@ -211,87 +251,50 @@ async function run() {
 		// first run
 	}
 
-	console.log('→ Syncing and transforming layouts...');
-	await $`mkdir -p static`;
+	console.log('→ Transforming layouts...');
+	await mkdir('static', { recursive: true });
 
-	const cacheLayoutsDir = join(CMINI_CACHE_DIR, 'layouts');
-	const cacheFiles = await readdir(cacheLayoutsDir);
-	const layoutFiles = cacheFiles.filter((f) => f.endsWith('.json'));
-	const layoutFileSet = new Set(layoutFiles);
+	const layoutNamesLower = new Set(layouts.map((layout) => layout.name.toLowerCase()));
 	for (const layoutId of magicRules.layoutIds) {
-		if (layoutFileSet.has(`${layoutId}.json`)) continue;
+		if (layoutNamesLower.has(layoutId.toLowerCase())) continue;
 		console.warn(
-			`  ⚠ cminibrowser input mappings ${layoutId} have no matching Cmini layout file; skipping them`
+			`  ⚠ cminibrowser input mappings ${layoutId} have no matching catalog layout; skipping them`
 		);
 	}
-
-	console.log('→ Resolving layout timestamps from git history...');
-	const layoutTimestamps = await buildLayoutTimestamps(CMINI_CACHE_DIR, layoutFiles);
 
 	const transformedLayouts = [];
 	const publishedSupplementalByName = new Map();
 
-	/**
-	 * @param {string} filename
-	 */
-	async function processLayoutFile(filename) {
-		const layoutId = filename.replace('.json', '');
-		if (isExcludedLayout(layoutId, excludedLayouts)) return null;
-
-		const originalContent = await readFile(join(cacheLayoutsDir, filename), 'utf-8');
-		const rawLayout = JSON.parse(originalContent);
-		const transformedLayout = transformLayout(rawLayout);
-		const supplemental = magicRules.supplementalByLayoutId.get(layoutId);
-		const variants = supplemental?.variants ?? [];
-		transformedLayout.updatedAt = layoutTimestamps[filename];
-		transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
-		transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
-		transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
-		transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
-			defaultMagicMappings(variants),
-			rawLayout.keys
-		);
-		transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
-		transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
-
-		const encoded = encodeLayout(transformedLayout);
-		if (supplemental) publishedSupplementalByName.set(rawLayout.name, supplemental);
-		return encoded;
-	}
-
-	for (let i = 0; i < layoutFiles.length; i += SYNC_CONCURRENCY) {
-		const batch = layoutFiles.slice(i, i + SYNC_CONCURRENCY);
-		const results = await Promise.all(
-			batch.map((filename) =>
-				processLayoutFile(filename).catch((err) => {
-					console.error(`  ⚠ Error processing ${filename}:`, err.message);
-					return null;
-				})
-			)
-		);
-		for (const encoded of results) {
-			if (encoded) transformedLayouts.push(encoded);
+	for (const layout of layouts) {
+		const result = encodeCatalogLayout(layout, excludedLayouts, supplementalByLowerId);
+		if (!result) continue;
+		transformedLayouts.push(result.encoded);
+		if (result.supplemental) {
+			publishedSupplementalByName.set(result.supplemental.name, result.supplemental.supplemental);
 		}
 	}
 
 	transformedLayouts.sort((a, b) => a[0].localeCompare(b[0]));
-	await writeFile(LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n', 'utf-8');
-
-	const validLayoutNames = new Set(transformedLayouts.map((layout) => layout[0]));
 	const publishedSupplemental = Object.fromEntries(
 		[...publishedSupplementalByName.entries()].sort(([left], [right]) => left.localeCompare(right))
 	);
-	await writeFile(SUPPLEMENTAL_FILE, JSON.stringify(publishedSupplemental) + '\n', 'utf-8');
+	const layoutLikes = deriveLayoutLikes(
+		layouts.filter((layout) => !isExcludedLayout(layout.name, excludedLayouts))
+	);
+
+	console.log('→ Publishing catalog artifacts...');
+	await publishCatalogArtifacts(
+		new Map([
+			[LAYOUTS_FILE, JSON.stringify(transformedLayouts) + '\n'],
+			[SUPPLEMENTAL_FILE, JSON.stringify(publishedSupplemental) + '\n'],
+			[LIKES_FILE, JSON.stringify(layoutLikes) + '\n'],
+			[AUTHORS_FILE, JSON.stringify(authors) + '\n']
+		])
+	);
 	console.log(`  ✔ Catalog: ${transformedLayouts.length} layouts`);
 	console.log(`  ✔ Supplemental data for ${Object.keys(publishedSupplemental).length} layouts`);
-
-	console.log('→ Building layout likes...');
-	const layoutLikes = await loadLayoutLikes(validLayoutNames);
-	await writeFile(LIKES_FILE, JSON.stringify(layoutLikes) + '\n', 'utf-8');
 	console.log(`  ✔ Likes for ${Object.keys(layoutLikes).length} layouts`);
-
-	console.log('→ Syncing authors...');
-	await $`cp ${CMINI_CACHE_DIR}/authors.json static/authors.json`;
+	console.log(`  ✔ Authors: ${Object.keys(authors).length}`);
 
 	const beforeNames = new Set(beforeLayouts.map(layoutEntryName));
 	const afterNames = new Set(transformedLayouts.map((l) => l[0]));
@@ -330,14 +333,14 @@ async function run() {
 			removed.sort().forEach((name) => {
 				const reason = isExcludedLayout(name, excludedLayouts)
 					? ' (meme-filtered)'
-					: ' (removed from repo)';
+					: ' (removed from catalog)';
 				console.log(`    - ${name}${reason}`);
 			});
 		}
 	}
 
 	await mkdir(join(process.cwd(), '.cache'), { recursive: true });
-	await writeFile(SYNCED_HEAD_FILE, `${head}\n`, 'utf-8');
+	await writeFileAtomically(CLEMENPINE_SYNCED_HASH_FILE, `${sourceHash}\n`);
 	await writeCatalogRebuiltOutput(true);
 	console.log('Done');
 }
