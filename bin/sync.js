@@ -34,7 +34,7 @@ const TARGET_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'catalog',
 		label: 'Catalog',
-		hint: 'cmini repo → all-layouts, supplemental, likes, authors'
+		hint: 'Clemenpine API → all-layouts, supplemental, likes, authors'
 	},
 	{
 		value: 'cmini-stats',
@@ -72,7 +72,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'offline',
 		label: 'Offline',
-		hint: 'reuse cmini-repo + dump caches; no network'
+		hint: 'reuse Clemenpine + dump caches; no network'
 	}
 ]);
 
@@ -80,7 +80,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 const DUMP_TARGETS = new Set(
 	/** @type {SyncTarget[]} */ (['catalog', 'cmini-stats', 'mana2-stats', 'cyanophage'])
 );
-/** Targets that accept --offline for the cmini git cache. */
+/** Targets that accept --offline for the Clemenpine catalog cache. */
 const CATALOG_TARGETS = new Set(/** @type {SyncTarget[]} */ (['catalog']));
 const SYNC_OPTIONS = new Set([
 	'--catalog',

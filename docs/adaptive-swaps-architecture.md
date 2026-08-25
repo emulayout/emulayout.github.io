@@ -10,7 +10,7 @@ For Magic-specific runtime and analyzer details, see
 
 ## Data ownership
 
-The canonical source for Magic-key and Adaptive-swap behavior is cminiBrowser's daily export:
+The canonical source for Magic-key and Adaptive-swap behavior is cminiBrowser's export:
 
 ```text
 https://cminibrowser.com/data/magic_rules_export.json
@@ -40,10 +40,11 @@ adapts its schema, and publishes the existing client-facing payload during catal
 }
 ```
 
-The export is keyed by Cmini filename ID. Catalog sync resolves that ID to the layout's display name
-when writing `static/layout-supplemental.json`; source entries without a matching Cmini file are
-warned about and skipped. `bin/layout-details.js` copies the matching normalized record into each
-generated per-layout detail payload as a delivery optimization.
+The export is keyed by the historical Cmini filename ID. Catalog sync resolves that ID
+case-insensitively to the Clemenpine catalog layout's display name when writing
+`static/layout-supplemental.json`; source entries without a matching catalog layout are warned about
+and skipped. `bin/layout-details.js` copies the matching normalized record into each generated
+per-layout detail payload as a delivery optimization.
 
 Emulayout has no local mapping files, mapping contribution workflow, variant selection, staleness
 metadata, or manually maintained Adaptive presence list. Updating the data means updating

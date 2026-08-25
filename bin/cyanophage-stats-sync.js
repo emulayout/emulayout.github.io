@@ -1,15 +1,17 @@
 #!/usr/bin/env bun
 
 /**
- * Compute Cyanophage effort stats for layouts in the local cmini catalog cache.
+ * Compute Cyanophage effort stats for layouts in the Clemenpine catalog cache.
  *
- * Requires a prior catalog-sync so `.cache/cmini-repo/layouts` exists.
+ * Requires a prior catalog-sync so `.cache/clemenpine/layouts-full.json` exists.
  * Reads canonical Magic mappings from cminibrowser when present.
  */
 
-import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { loadCminibrowserMagicRules } from './cminibrowser-magic-rules.js';
+import { access, mkdir } from 'node:fs/promises';
+import {
+	loadCminibrowserMagicRules,
+	supplementalByLowerLayoutId
+} from './cminibrowser-magic-rules.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -17,10 +19,10 @@ import {
 } from './cyanophage-stats.js';
 import { defaultMagicMappings } from './layout-features.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
-import { CMINI_CACHE_DIR, parseOfflineForceArgs } from './sync-shared.js';
+import { parseOfflineForceArgs, writeTextFileIfChanged } from './sync-shared.js';
+import { readCachedClemenpineLayouts } from './clemenpine-cache.js';
 
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
-const SYNC_CONCURRENCY = Number(process.env.CYANOPHAGE_SYNC_CONCURRENCY ?? 16);
 
 async function pathExists(path) {
 	return access(path)
@@ -40,12 +42,8 @@ async function run() {
 		return;
 	}
 
-	const cacheLayoutsDir = join(CMINI_CACHE_DIR, 'layouts');
-	if (!(await pathExists(cacheLayoutsDir))) {
-		throw new Error(
-			`cmini layouts missing at ${cacheLayoutsDir}. Run: bun run ./bin/catalog-sync.js`
-		);
-	}
+	console.log('→ Loading Clemenpine layouts cache...');
+	const { layouts } = await readCachedClemenpineLayouts();
 
 	console.log(`→ Loading ${CYANOPHAGE_ANALYZER} analyzer data...`);
 	const cyanophageData = await loadCyanophageData();
@@ -60,11 +58,11 @@ async function run() {
 		loadCminibrowserMagicRules({ offline, force })
 	]);
 	const excludedLayouts = memeFilter.excluded;
+	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
 	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
 	console.log(
 		`  ✔ Magic and Adaptive mappings for ${magicRules.supplementalByLayoutId.size} layouts`
 	);
-	const layoutFiles = (await readdir(cacheLayoutsDir)).filter((f) => f.endsWith('.json'));
 
 	/** @type {Record<string, number[]>} */
 	const cyanophageStats = {};
@@ -73,17 +71,21 @@ async function run() {
 	let filtered = 0;
 
 	/**
-	 * @param {string} filename
+	 * @param {import('./clemenpine-cache.js').ClemenpineLayout} layout
 	 */
-	async function processLayoutFile(filename) {
-		const layoutName = filename.replace(/\.json$/i, '');
-		if (isExcludedLayout(layoutName, excludedLayouts)) {
+	function processLayout(layout) {
+		if (isExcludedLayout(layout.name, excludedLayouts)) {
 			filtered++;
 			return null;
 		}
 
-		const rawLayout = JSON.parse(await readFile(join(cacheLayoutsDir, filename), 'utf-8'));
-		const variants = magicRules.supplementalByLayoutId.get(layoutName)?.variants ?? [];
+		const rawLayout = {
+			name: layout.name,
+			user: layout.user,
+			board: layout.board,
+			keys: layout.keys
+		};
+		const variants = supplementalByLowerId.get(layout.name.toLowerCase())?.variants ?? [];
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
 			magicMappings: defaultMagicMappings(variants)
 		});
@@ -91,18 +93,10 @@ async function run() {
 		return { name: rawLayout.name, stats: cyanStats };
 	}
 
-	console.log(`→ Computing Cyanophage stats for ${layoutFiles.length} layouts...`);
-	for (let i = 0; i < layoutFiles.length; i += SYNC_CONCURRENCY) {
-		const batch = layoutFiles.slice(i, i + SYNC_CONCURRENCY);
-		const results = await Promise.all(
-			batch.map((filename) =>
-				processLayoutFile(filename).catch((err) => {
-					console.error(`  ⚠ Error processing ${filename}:`, err.message);
-					return null;
-				})
-			)
-		);
-		for (const result of results) {
+	console.log(`→ Computing Cyanophage stats for ${layouts.length} layouts...`);
+	for (const layout of layouts) {
+		try {
+			const result = processLayout(layout);
 			if (!result) continue;
 			if (result.stats) {
 				cyanophageStats[result.name] = result.stats;
@@ -110,6 +104,8 @@ async function run() {
 			} else {
 				skipped++;
 			}
+		} catch (err) {
+			console.error(`  ⚠ Error processing ${layout.name}:`, err.message);
 		}
 	}
 
@@ -119,7 +115,7 @@ async function run() {
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, cyanophageStats[name]])
 	);
-	await writeFile(CYANOPHAGE_STATS_FILE, JSON.stringify(sorted) + '\n', 'utf-8');
+	await writeTextFileIfChanged(CYANOPHAGE_STATS_FILE, JSON.stringify(sorted) + '\n');
 	console.log(
 		`  ✔ Cyanophage stats for ${loaded} layouts (${skipped} skipped, ${filtered} meme-filtered) → ${CYANOPHAGE_STATS_FILE}`
 	);

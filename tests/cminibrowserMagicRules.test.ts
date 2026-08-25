@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { normalizeCminibrowserMagicRules } from '../bin/cminibrowser-magic-rules.js';
+import {
+	normalizeCminibrowserMagicRules,
+	supplementalByLowerLayoutId
+} from '../bin/cminibrowser-magic-rules.js';
 
 describe('cminibrowser Magic and Adaptive mappings', () => {
 	test('adapts full Magic outputs, defaults, and uppercase Adaptive swaps', () => {
@@ -109,5 +112,15 @@ describe('cminibrowser Magic and Adaptive mappings', () => {
 				}
 			})
 		).toThrow('assigns a key to multiple swaps');
+	});
+
+	test('indexes mappings by lowercase layout id', () => {
+		const result = normalizeCminibrowserMagicRules({
+			AdNW: {
+				magic_keys: [{ key: '*', default: 'y', rules: [] }]
+			}
+		});
+		const indexed = supplementalByLowerLayoutId(result.supplementalByLayoutId);
+		expect(indexed.get('adnw')).toEqual(result.supplementalByLayoutId.get('AdNW'));
 	});
 });

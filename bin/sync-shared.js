@@ -4,10 +4,8 @@
 
 import { randomUUID } from 'node:crypto';
 import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 export const LAYOUTS_FILE = 'static/all-layouts.json';
-export const CMINI_CACHE_DIR = join(process.cwd(), '.cache', 'cmini-repo');
 export const MIN_STATS_CATALOG_COVERAGE = 0.9;
 
 /**

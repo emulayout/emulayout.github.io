@@ -52,7 +52,7 @@ Names are never used to infer either behavior.
 
 ## Generated Magic format
 
-Magic and Adaptive mappings come exclusively from cminiBrowser's daily export:
+Magic and Adaptive mappings come exclusively from cminiBrowser's export:
 
 ```text
 https://cminibrowser.com/data/magic_rules_export.json
@@ -152,7 +152,9 @@ Magic profiles remain mapping-driven. Repeat profiles contain only the conventio
 If the behavior sidecar cannot be loaded, Repeat behavior still works from compact metadata while
 cminiBrowser behavior is reported as unavailable.
 
-If an exported layout ID has no current Cmini layout file, sync warns and omits that profile.
+If an exported layout ID has no current Clemenpine catalog layout, sync warns and omits that
+profile. Matching is case-insensitive because cminiBrowser export IDs can differ in casing from the
+catalog display name.
 
 ## Resolution and history
 

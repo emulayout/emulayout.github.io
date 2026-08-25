@@ -11,6 +11,7 @@ import {
 import { cminibrowserCachePath } from './cminibrowser-cache.js';
 import { CMINIBROWSER_MAGIC_RULES_PATH } from './cminibrowser-magic-rules.js';
 import { CMINIBROWSER_MEME_FILTER_PATH } from './cminibrowser-meme-filter.js';
+import { clemenpineCacheExists } from './clemenpine-cache.js';
 
 const CATALOG_FILES = [
 	'static/all-layouts.json',
@@ -49,7 +50,7 @@ export function analyzerTasksForMissingStaticData(missingFiles) {
 }
 
 /**
- * Prefer offline catalog sync when both cminibrowser inputs are already cached.
+ * Prefer offline catalog sync when Clemenpine and cminibrowser inputs are already cached.
  * Otherwise an online sync is required to fetch the missing input.
  *
  * @param {boolean} catalogInputsCached
@@ -80,12 +81,14 @@ async function run() {
 		console.log(`  - ${file}`);
 	}
 
-	const catalogInputsCached = (
-		await Promise.all([
-			exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH)),
-			exists(cminibrowserCachePath(CMINIBROWSER_MAGIC_RULES_PATH))
-		])
-	).every(Boolean);
+	const catalogInputsCached =
+		(await clemenpineCacheExists()) &&
+		(
+			await Promise.all([
+				exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH)),
+				exists(cminibrowserCachePath(CMINIBROWSER_MAGIC_RULES_PATH))
+			])
+		).every(Boolean);
 	const catalogArgs = catalogSyncArgsForBootstrap(catalogInputsCached);
 	if (catalogArgs.includes('--offline')) {
 		console.log('→ Generating from cached sources...');
