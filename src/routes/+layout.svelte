@@ -181,10 +181,6 @@
 	const hintsButtonLabel = $derived(uiPrefs.hintsEnabled ? 'Hide help hints' : 'Show help hints');
 </script>
 
-<svelte:head>
-	<title>Emulayout</title>
-</svelte:head>
-
 <div class="app-shell" class:app-shell--document-scroll={usesDocumentScroll}>
 	<header class="app-header px-3 md:px-6">
 		<div class="flex h-full w-full items-center justify-between gap-3">

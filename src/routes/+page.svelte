@@ -207,6 +207,10 @@
 	);
 </script>
 
+<svelte:head>
+	<title>Emulayout</title>
+</svelte:head>
+
 <div class="page-root">
 	<div class="layout-view-bar">
 		<LayoutViewTabs />

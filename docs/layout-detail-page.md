@@ -175,6 +175,7 @@ small without weakening app-bar functionality.
   tables in the right column.
 - The card is the page's visible layout-name heading; the redundant detail-page heading is omitted.
   The document title and the detail article's accessible name use the exact canonical layout name.
+  Browser Back restores the index title `Emulayout`, including in Safari.
 - The compact summary card omits selection, the recursive detail link, and the layout test area. It
   retains its local analyzer-switchable stats plus layout-local and external-link actions.
 - On first use, analyzer checkboxes select every analyzer included in the detail file. Later changes,
@@ -195,6 +196,7 @@ small without weakening app-bar functionality.
 - Index catalog and initial analyzer loading: `src/lib/layoutIndexLoader.ts`, `src/routes/+page.ts`
 - Shared app bar and on-demand Compare catalog loading: `src/routes/+layout.svelte`,
   `src/lib/layoutsCatalog.svelte.ts`
+- Index document title, remounted when Back returns from a detail route: `src/routes/+page.svelte`
 - Dynamic route and layout-name resolution: `src/routes/layouts/[name]/+page.ts`,
   `src/routes/layouts/[name]/+page.svelte`
 - Detail tab URL parsing and canonical URLs: `src/lib/layoutDetailTabs.ts`
