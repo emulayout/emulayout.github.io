@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Import cmini analyzer stats from cminibrowser corpus dumps.
+ * Import cmini analyzer stats from AKL corpus dumps.
  *
  * Requires a prior catalog-sync (`static/all-layouts.json`).
  * Use --offline to reuse a cached dump under `.cache/cminibrowser/`.
@@ -10,7 +10,7 @@
  * sync every dump-backed cmini corpus from the frontend catalog.
  *
  * Writes compact catalog artifacts only. Full dump fields stay in the local
- * cminibrowser cache for diagnostics — they are not published under static/.
+ * AKL cache for diagnostics — they are not published under static/.
  */
 
 import { mkdir, readFile } from 'node:fs/promises';
@@ -38,7 +38,7 @@ import {
 async function syncCorpus(layouts, corpus, mode) {
 	const dumpPath = `stats/${corpus}.json`;
 	const statsFile = cminiCompactStatsRelPath(corpus);
-	console.log(`→ Loading cminibrowser cmini dump (${dumpPath})...`);
+	console.log(`→ Loading AKL cmini dump (${dumpPath})...`);
 	const validateJson = (dump) => {
 		const candidateIndex = indexCminibrowserCminiDump(dump);
 		let eligible = 0;
@@ -49,7 +49,7 @@ async function syncCorpus(layouts, corpus, mode) {
 			eligible++;
 			if (lookupCminibrowserCminiStats(candidateIndex, name)) loaded++;
 		}
-		assertStatsCatalogCoverage(`cminibrowser cmini ${corpus} dump`, loaded, eligible);
+		assertStatsCatalogCoverage(`AKL cmini ${corpus} dump`, loaded, eligible);
 	};
 	const { json: dump } = await ensureCminibrowserDump(dumpPath, { ...mode, validateJson });
 	const index = indexCminibrowserCminiDump(dump);
@@ -73,7 +73,7 @@ async function syncCorpus(layouts, corpus, mode) {
 		statsLoaded++;
 	}
 	assertStatsCatalogCoverage(
-		`cminibrowser cmini ${corpus} artifact`,
+		`AKL cmini ${corpus} artifact`,
 		statsLoaded,
 		statsLoaded + statsMissing
 	);

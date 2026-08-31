@@ -7,7 +7,7 @@ import {
 	resolveMemeFilterCorpus
 } from '../bin/cminibrowser-meme-filter.js';
 
-describe('cminibrowser meme filter', () => {
+describe('AKL meme filter', () => {
 	const dump = {
 		board: 'rowstag',
 		corpora: {

@@ -1,5 +1,5 @@
 /**
- * cminibrowser meme filter dump (`/data/meme_filter.json`).
+ * AKL meme filter dump (`/data/meme_filter.json`).
  *
  * A layout is meme-tier for a corpus when it is incomplete or its row-staggered
  * Fspeed exceeds that corpus's cutoff. Emulayout uses the dump as the catalog
@@ -82,9 +82,7 @@ export function memeFilterExclusionSet(dump, corpus) {
 	const entry = corpora.get(corpus);
 	if (!entry) {
 		const known = [...corpora.keys()].sort().join(', ') || '(none)';
-		throw new Error(
-			`cminibrowser meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`
-		);
+		throw new Error(`AKL meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`);
 	}
 	return exclusionSetFromIds(entry.memeIds);
 }
@@ -133,9 +131,7 @@ export async function loadMemeFilterExclusions(options = {}) {
 	const entry = corpora.get(corpus);
 	if (!entry) {
 		const known = [...corpora.keys()].sort().join(', ') || '(none)';
-		throw new Error(
-			`cminibrowser meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`
-		);
+		throw new Error(`AKL meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`);
 	}
 	const excluded = exclusionSetFromIds(entry.memeIds);
 	return {

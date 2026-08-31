@@ -8,7 +8,7 @@
  * Non-interactive flags (skip the TUI):
  *   --catalog --cmini-stats --mana2-stats --cyanophage --details
  *   --all                     all of the above
- *   --force                   re-download cminibrowser dumps
+ *   --force                   re-download akl.gg dumps
  *   --offline                 reuse caches; no network
  *   --yes / -y                accept defaults without prompting
  *
@@ -39,12 +39,12 @@ const TARGET_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'cmini-stats',
 		label: 'cmini stats',
-		hint: 'cminibrowser dumps → layout-stats-cmini-{corpus}'
+		hint: 'akl.gg dumps → layout-stats-cmini-{corpus}'
 	},
 	{
 		value: 'mana2-stats',
 		label: 'Mana2 stats',
-		hint: 'cminibrowser dumps → layout-stats-mana2-{corpus}-*'
+		hint: 'akl.gg dumps → layout-stats-mana2-{corpus}-*'
 	},
 	{
 		value: 'cyanophage',
@@ -67,7 +67,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'force',
 		label: 'Force',
-		hint: 're-download cminibrowser dumps'
+		hint: 're-download akl.gg dumps'
 	},
 	{
 		value: 'offline',
@@ -76,7 +76,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	}
 ]);
 
-/** Targets that accept --force / --offline cminibrowser dump flags. */
+/** Targets that accept --force / --offline akl.gg dump flags. */
 const DUMP_TARGETS = new Set(
 	/** @type {SyncTarget[]} */ (['catalog', 'cmini-stats', 'mana2-stats', 'cyanophage'])
 );

@@ -360,9 +360,10 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	expect(cyanophageLinkBox).not.toBeNull();
 	expect(cyanophageLinkBox!.y).toBeGreaterThanOrEqual(editLayoutBox!.y + editLayoutBox!.height);
 	await expect(cyanophageLink).toHaveAttribute('href', /^https:\/\/cyanophage\.github\.io\//);
-	await expect(
-		detailPage.getByRole('link', { name: 'See more stats on cminibrowser' })
-	).toHaveAttribute('href', 'https://cminibrowser.com/#%7B%22open%22%3A%22Colemak-DH%22%7D');
+	await expect(detailPage.getByRole('link', { name: 'See more stats on akl.gg' })).toHaveAttribute(
+		'href',
+		'https://akl.gg/#%7B%22open%22%3A%22Colemak-DH%22%7D'
+	);
 	await expect(
 		detailPage.getByRole('link', { name: 'More practice on Colemak Camp' })
 	).toHaveAttribute('href', /^https:\/\/emulayout\.github\.io\/colemakcamp\//);
@@ -409,9 +410,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	await expect(summaryCard).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'Edit layout' })).toBeVisible();
 	await expect(detailPage.getByRole('link', { name: 'View in Cyanophage' })).toBeVisible();
-	await expect(
-		detailPage.getByRole('link', { name: 'See more stats on cminibrowser' })
-	).toBeVisible();
+	await expect(detailPage.getByRole('link', { name: 'See more stats on akl.gg' })).toBeVisible();
 	await expect(
 		detailPage.getByRole('link', { name: 'More practice on Colemak Camp' })
 	).toBeVisible();

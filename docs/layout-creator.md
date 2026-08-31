@@ -43,7 +43,7 @@ drafts in the browser.
   practice, Layout test area, and Layout feel on the right. The card shows the live name and
   author. Local drafts have no analyzer stats, so the card uses the unavailable presentation with
   the subtitle `Local layouts have no analyzer stats.` There is no card analyzer selector, no Stats
-  tab, and no cminibrowser or Colemak Camp link. A Cyanophage link stays when it can be built from
+  tab, and no akl.gg or Colemak Camp link. A Cyanophage link stays when it can be built from
   the live keymap.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
   Name, author, base layout, keyboard type, key grid, preview, practice lesson, the Practice /
@@ -113,7 +113,7 @@ drafts in the browser.
   field is focused, the typed value stays visible instead of the contextual overlay.
 - Preview keeps `LayoutExpandedView` in local-preview mode and shows the summary card. The card
   and right-hand tabs match the catalog show page, except stats stay unavailable, the card analyzer
-  selector and Stats tab are omitted, and the cminibrowser and Colemak Camp links are hidden. Edit keeps that same
+  selector and Stats tab are omitted, and the akl.gg and Colemak Camp links are hidden. Edit keeps that same
   two-column show-page layout and summary card. It replaces the presentation keyboard with the
   key editor and shows editable Magic/Adaptive panels instead of the read-only mapping panel. The
   preview keyboard still

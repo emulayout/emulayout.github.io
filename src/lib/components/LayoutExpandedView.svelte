@@ -69,7 +69,7 @@
 		onActiveSectionChange: (section: LayoutDetailSection) => void;
 		practiceLesson?: TypingPracticeLessonSettings;
 		onPracticeLessonChange?: (lesson: TypingPracticeLessonSettings) => void;
-		/** Creator preview: show-page chrome without catalog stats or cminibrowser. */
+		/** Creator preview: show-page chrome without catalog stats or akl.gg. */
 		localPreview?: boolean;
 		statsUnavailableDetail?: string;
 		/** Creator: Share, Edit/Lock, and save actions under the summary card. */
@@ -235,7 +235,7 @@
 			: []
 	);
 	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
-	const cminibrowserUrl = $derived(createCminibrowserLayoutURL(layout.name));
+	const aklUrl = $derived(createCminibrowserLayoutURL(layout.name));
 	const cyanophageUrl = $derived(
 		buildCyanophagePlaygroundUrl(
 			layout.keys,
@@ -491,8 +491,8 @@
 			{#if !localPreview}
 				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-				<a href={cminibrowserUrl} target="_blank" rel="noopener noreferrer">
-					See more stats on cminibrowser
+				<a href={aklUrl} target="_blank" rel="noopener noreferrer">
+					See more stats on akl.gg
 					<span aria-hidden="true">↗</span>
 				</a>
 				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->

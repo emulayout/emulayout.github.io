@@ -8,7 +8,7 @@ import {
 	lookupCminibrowserCminiStats
 } from '../bin/cminibrowser-cmini-stats.js';
 
-/** Sample from cminibrowser `/data/stats/monkeyracer.json` → `gallium`. */
+/** Sample from AKL `/data/stats/monkeyracer.json` → `gallium`. */
 const GALLIUM_DUMP = {
 	roll_in: 0.195797,
 	roll_out: 0.251111,
@@ -39,7 +39,7 @@ const GALLIUM_DUMP = {
 	fspeed_weighted: 9.206277
 };
 
-describe('cminibrowser cmini dump encoding', () => {
+describe('AKL cmini dump encoding', () => {
 	test('maps gallium dump scalars and finger uses into BOT_STAT_KEYS order', () => {
 		const compact = encodeCminibrowserCminiStats(GALLIUM_DUMP);
 		expect(compact).toBeArrayOfSize(CMINIBROWSER_CMINI_STAT_KEYS.length);

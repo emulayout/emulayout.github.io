@@ -1,5 +1,5 @@
 /**
- * Map cminibrowser cmini engine dumps (`/data/stats/{corpus}.json`) into Emulayout's
+ * Map AKL cmini engine dumps (`/data/stats/{corpus}.json`) into Emulayout's
  * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`).
  *
  * Key order and scale must stay aligned with `src/lib/statsDerivation.ts`.
@@ -12,7 +12,7 @@ export const CMINIBROWSER_CMINI_DEFAULT_CORPUS = 'monkeyracer';
 export const CMINIBROWSER_CMINI_STAT_VALUE_SCALE = 10_000;
 
 /**
- * Finger-use field order in the cminibrowser cmini dump.
+ * Finger-use field order in the AKL cmini dump.
  * @type {readonly ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']}
  */
 export const CMINIBROWSER_CMINI_FINGER_KEYS = [

@@ -1,5 +1,5 @@
 /**
- * Map cminibrowser mana2 named dumps into Emulayout compact Mana2 arrays
+ * Map AKL Mana2 named dumps into Emulayout compact Mana2 arrays
  * (`MANA2_STAT_KEYS` / `MANA2_STAT_VALUE_SCALE`).
  *
  * Dump URL: `/data/mana2/named/{corpus}.{board}.{space}.json`
@@ -65,7 +65,7 @@ export const CMINIBROWSER_MANA2_STAT_KEYS = [
 
 const FINGER_USAGE_ORDER = ['LP', 'LR', 'LM', 'LI', 'LT', 'RT', 'RI', 'RM', 'RR', 'RP'];
 
-/** Dump big.* → Mana2 bigram ids (cminibrowser reuses sfs/sfsw names for both big and skip). */
+/** Dump big.* → Mana2 bigram ids (AKL reuses sfs/sfsw names for both big and skip). */
 const BIG_FIELD_MAP = [
 	['sfs', 'sfb'],
 	['sfsw', 'sfbw'],

@@ -1,5 +1,5 @@
 /**
- * Adapt cminibrowser's canonical Magic-key and Adaptive-swap export to the
+ * Adapt AKL's canonical Magic-key and Adaptive-swap export to the
  * normalized supplemental payload consumed by Emulayout.
  */
 
@@ -28,9 +28,7 @@ function isSingleCharacter(value) {
 
 /** @param {string} layoutId @param {string} message */
 function sourceError(layoutId, message) {
-	return new Error(
-		`Invalid cminibrowser input mappings for ${JSON.stringify(layoutId)}: ${message}`
-	);
+	return new Error(`Invalid AKL input mappings for ${JSON.stringify(layoutId)}: ${message}`);
 }
 
 /** @param {string} layoutId @param {unknown} value */
@@ -101,7 +99,7 @@ function normalizeMagicKeys(layoutId, value) {
 					? 'no-op'
 					: { emit: defaultOutput };
 
-		// cminibrowser represents a conventional, rule-free @ Repeat key in the
+		// AKL represents a conventional, rule-free @ Repeat key in the
 		// Magic-key schema, with either repeat-previous or no-op as the default.
 		// Keep it in Emulayout's dedicated Repeat model.
 		if (key === '@' && rules.length === 0 && (fallback === 'repeat-last' || fallback === 'no-op')) {
@@ -164,13 +162,13 @@ function normalizeAdaptiveSwaps(layoutId, value) {
  */
 export function normalizeCminibrowserMagicRules(value) {
 	if (!isRecord(value)) {
-		throw new Error('cminibrowser magic_rules_export.json must be an object');
+		throw new Error('AKL magic_rules_export.json must be an object');
 	}
 
 	const layoutIds = new Set();
 	const supplementalByLayoutId = new Map();
 	for (const [layoutId, rawLayout] of Object.entries(value)) {
-		if (!layoutId) throw new Error('cminibrowser input mapping layout ids cannot be empty');
+		if (!layoutId) throw new Error('AKL input mapping layout ids cannot be empty');
 		if (!isRecord(rawLayout)) throw sourceError(layoutId, 'layout entry must be an object');
 		layoutIds.add(layoutId);
 

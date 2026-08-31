@@ -19,7 +19,7 @@ function hasOwn(value, key) {
 }
 
 /**
- * cminibrowser mappings are authoritative for Magic-key presence, including
+ * AKL mappings are authoritative for Magic-key presence, including
  * `*`, `@`, or another trigger symbol.
  *
  * @param {unknown} rawKeys
@@ -30,7 +30,7 @@ export function hasMagicKey(rawKeys, magicMappings) {
 }
 
 /**
- * `@` is a repeat key unless cminibrowser Magic mappings claim that trigger.
+ * `@` is a repeat key unless AKL Magic mappings claim that trigger.
  *
  * @param {unknown} rawKeys
  * @param {unknown} magicMappings

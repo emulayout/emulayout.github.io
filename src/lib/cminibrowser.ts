@@ -1,6 +1,6 @@
-export const CMINIBROWSER_BASE_URL = 'https://cminibrowser.com/';
+export const CMINIBROWSER_BASE_URL = 'https://akl.gg/';
 
-/** Opens the canonical cmini layout by name in cminibrowser. */
+/** Opens the canonical cmini layout by name on akl.gg. */
 export function createCminibrowserLayoutURL(
 	layoutName: string,
 	baseURL = CMINIBROWSER_BASE_URL

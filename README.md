@@ -30,12 +30,12 @@ directly in the browser.
 
 | Analyzer                                                   | Emulayout integration                                           |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
-| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from selectable cminibrowser corpora  |
+| [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from selectable akl.gg corpora        |
 | [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground |
-| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from cminibrowser corpus dumps           |
+| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from akl.gg corpus dumps                 |
 
 Each analyzer retains its own metric definitions and units. cmini and Mana2 stats are imported from
-[cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer by default). Cyanophage is computed
+[akl.gg](https://akl.gg/api/) dumps (Monkeyracer by default). Cyanophage is computed
 locally. Adaptive swaps are not currently included in analyzer results.
 
 ## Try layouts in place
@@ -91,8 +91,8 @@ individual `*-stats-sync` scripts) after the catalog exists.
 ```sh
 bun run sync                              # interactive: choose targets + refresh mode
 bun run ./bin/catalog-sync.js             # Clemenpine API → catalog artifacts
-bun run ./bin/cmini-stats-sync.js         # cminibrowser → cmini stats
-bun run ./bin/mana2-stats-sync.js         # cminibrowser → Mana2 stats
+bun run ./bin/cmini-stats-sync.js         # akl.gg → cmini stats
+bun run ./bin/mana2-stats-sync.js         # akl.gg → Mana2 stats
 bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
 ```
 
@@ -108,10 +108,10 @@ bun run sync -- --all --offline
 
 Catalog sync fetches the live [Clemenpine](https://clemenpine.com) layout API and writes layout
 metadata under `static/`, excluding layouts that
-cminibrowser's [meme filter](https://cminibrowser.com/api/) marks for the Monkeyracer corpus
+akl.gg's [meme filter](https://akl.gg/api/) marks for the Monkeyracer corpus
 (incomplete, or row-staggered Fspeed above the corpus cutoff). Override with
 `--meme-corpus=NAME` or `CMINIBROWSER_MEME_FILTER_CORPUS`. cmini and Mana2 stats are imported from
-[cminibrowser](https://cminibrowser.com/api/) dumps (Monkeyracer and Reddit by default). The
+[akl.gg](https://akl.gg/api/) dumps (Monkeyracer and Reddit by default). The
 top-level sync always processes every configured corpus. To import only one corpus, invoke
 `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set that
 script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage stats
@@ -141,8 +141,8 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 
 `bin/catalog-sync.js` fetches layouts and authors from the
 [Clemenpine catalog API](https://clemenpine.com/v1/layouts?full=1), caches them under
-`.cache/clemenpine`, downloads cminiBrowser's `meme_filter.json` and
-[`magic_rules_export.json`](https://cminibrowser.com/data/magic_rules_export.json), and writes the
+`.cache/clemenpine`, downloads akl.gg's `meme_filter.json` and
+[`magic_rules_export.json`](https://akl.gg/data/magic_rules_export.json), and writes the
 layout catalog, likes, and generated behavior payload under `static/` with meme-tier layouts omitted.
 A normal online sync checks [Clemenpine metadata](https://clemenpine.com/v1/meta) first and downloads
 only the layout or author resource whose modification timestamp changed. If metadata is unavailable,
@@ -154,22 +154,22 @@ atomic snapshot; the four published catalog artifacts are prepared together and 
 write fails. Likes currently come from the `likes` arrays on layout records (there is no dedicated
 likes endpoint yet). Emulayout publishes only each array's length; the user IDs in the array are not
 retained in generated site data.
-cminiBrowser is the sole source for Magic-key mappings and Adaptive swaps. A rule-free `@` whose
+akl.gg is the sole source for Magic-key mappings and Adaptive swaps. A rule-free `@` whose
 exported default is `repeat_previous` remains Emulayout's dedicated Repeat behavior; mapped `@`
 rules override it.
 
 Analyzer artifacts are produced by separate scripts:
 
-- `bin/cmini-stats-sync.js` — cminibrowser cmini dumps → `static/layout-stats-cmini-{corpus}.json`
+- `bin/cmini-stats-sync.js` — akl.gg cmini dumps → `static/layout-stats-cmini-{corpus}.json`
   (syncs Monkeyracer + Reddit unless `--corpus=` is set)
-- `bin/mana2-stats-sync.js` — cminibrowser Mana2 named dumps →
+- `bin/mana2-stats-sync.js` — akl.gg Mana2 named dumps →
   `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
   `rowstag.none`)
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
 
 The dump-backed sync scripts accept `--force` (unconditional re-download), `--offline` (reuse
 `.cache/cminibrowser/` and `.cache/clemenpine/`), and `--corpus=NAME` (single corpus). Online
-cminibrowser syncs use conditional requests (ETag / Last-Modified) so unchanged dumps are not
+akl.gg syncs use conditional requests (ETag / Last-Modified) so unchanged dumps are not
 re-downloaded. The top-level `bun run sync` wrapper accepts task selections plus `--force` or
 `--offline`, but deliberately runs all configured corpora so the generated site and per-layout
 detail payloads remain complete. Analyzer dumps must contain usable stats for at least 90% of the

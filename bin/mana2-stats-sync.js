@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Import Mana2 stats from cminibrowser named dumps into corpus/board/space-labeled
+ * Import Mana2 stats from AKL named dumps into corpus/board/space-labeled
  * static artifacts.
  *
  * Requires a prior catalog-sync (`static/all-layouts.json`).
@@ -11,7 +11,7 @@
  * sync every dump-backed Mana2 corpus from the frontend catalog.
  *
  * Writes compact catalog artifacts only. Full dump fields stay in the local
- * cminibrowser cache for diagnostics — they are not published under static/.
+ * AKL cache for diagnostics — they are not published under static/.
  */
 
 import { mkdir, readFile } from 'node:fs/promises';
@@ -45,7 +45,7 @@ const MANA2_STATS_SPACE = process.env.MANA2_STATS_SPACE ?? CMINIBROWSER_MANA2_DE
 async function syncCorpus(layouts, corpus, mode) {
 	const dumpPath = cminibrowserMana2NamedDumpPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
 	const statsFile = mana2StatsRelPath(corpus, MANA2_STATS_BOARD, MANA2_STATS_SPACE);
-	console.log(`→ Loading cminibrowser mana2 dump (${dumpPath})...`);
+	console.log(`→ Loading AKL Mana2 dump (${dumpPath})...`);
 	const validateJson = (dump) => {
 		const candidateIndex = indexCminibrowserMana2Dump(dump);
 		let eligible = 0;
@@ -56,7 +56,7 @@ async function syncCorpus(layouts, corpus, mode) {
 			eligible++;
 			if (lookupCminibrowserMana2Stats(candidateIndex, name)) loaded++;
 		}
-		assertStatsCatalogCoverage(`cminibrowser Mana2 ${corpus} dump`, loaded, eligible);
+		assertStatsCatalogCoverage(`AKL Mana2 ${corpus} dump`, loaded, eligible);
 	};
 	const { json: dump } = await ensureCminibrowserDump(dumpPath, { ...mode, validateJson });
 	const index = indexCminibrowserMana2Dump(dump);
@@ -80,7 +80,7 @@ async function syncCorpus(layouts, corpus, mode) {
 		statsLoaded++;
 	}
 	assertStatsCatalogCoverage(
-		`cminibrowser Mana2 ${corpus} artifact`,
+		`AKL Mana2 ${corpus} artifact`,
 		statsLoaded,
 		statsLoaded + statsMissing
 	);

@@ -46,7 +46,7 @@ export function transformLayout(layout) {
 		hasThumbKeys: computeHasThumbKeys(stripped),
 		characterSet: computeCharacterSet(Object.keys(keys)),
 		hasAllLetters: computeHasAllLetters(stripped),
-		// Catalog sync replaces this after joining cminibrowser's canonical mappings.
+		// Catalog sync replaces this after joining AKL's canonical mappings.
 		hasMagicKey: false,
 		hasRepeatKey: hasRepeatKey(stripped.keys, undefined),
 		cyanophageCompatible: isCyanophageCompatible(keys),

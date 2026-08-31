@@ -4,7 +4,7 @@
  * Compute Cyanophage effort stats for layouts in the Clemenpine catalog cache.
  *
  * Requires a prior catalog-sync so `.cache/clemenpine/layouts-full.json` exists.
- * Reads canonical Magic mappings from cminibrowser when present.
+ * Reads canonical Magic mappings from AKL when present.
  */
 
 import { access, mkdir } from 'node:fs/promises';
@@ -52,7 +52,7 @@ async function run() {
 		offlineEnv: 'CYANOPHAGE_SYNC_OFFLINE',
 		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
 	});
-	console.log('→ Loading cminibrowser inputs...');
+	console.log('→ Loading AKL inputs...');
 	const [memeFilter, magicRules] = await Promise.all([
 		loadMemeFilterExclusions({ offline, force }),
 		loadCminibrowserMagicRules({ offline, force })

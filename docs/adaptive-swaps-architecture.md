@@ -10,10 +10,10 @@ For Magic-specific runtime and analyzer details, see
 
 ## Data ownership
 
-The canonical source for Magic-key and Adaptive-swap behavior is cminiBrowser's export:
+The canonical source for Magic-key and Adaptive-swap behavior is akl.gg's export:
 
 ```text
-https://cminibrowser.com/data/magic_rules_export.json
+https://akl.gg/data/magic_rules_export.json
 ```
 
 `bin/cminibrowser-magic-rules.js` downloads the export through the shared conditional-request cache,
@@ -48,18 +48,18 @@ per-layout detail payload as a delivery optimization.
 
 Emulayout has no local mapping files, mapping contribution workflow, variant selection, staleness
 metadata, or manually maintained Adaptive presence list. Updating the data means updating
-cminiBrowser's source. The importer still rejects a malformed export before it replaces the last
+akl.gg's source. The importer still rejects a malformed export before it replaces the last
 good cached copy.
 
 ## Compact layout metadata
 
 The compact layout tuple retains its existing wire fields for compatibility:
 
-- `hasMagicKey`: cminiBrowser provides a Magic profile.
-- `hasRepeatKey`: the base layout contains `@` and cminiBrowser does not provide mapped `@` rules.
+- `hasMagicKey`: akl.gg provides a Magic profile.
+- `hasRepeatKey`: the base layout contains `@` and akl.gg does not provide mapped `@` rules.
 - `hasMagicKeyMappings`: same source boundary as `hasMagicKey`.
 - `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage.
-- `hasAdaptiveSwap`: cminiBrowser provides one or more Adaptive swaps.
+- `hasAdaptiveSwap`: akl.gg provides one or more Adaptive swaps.
 - `hasAdaptiveSwapMappings`: same source boundary as `hasAdaptiveSwap`.
 
 The presence and mapping-availability flags are now equal because the canonical export supplies both
@@ -69,7 +69,7 @@ generated behavior payload cannot be loaded.
 
 ## Source adaptation
 
-cminiBrowser Magic rules store the complete contextual result. Emulayout stores only what pressing
+akl.gg Magic rules store the complete contextual result. Emulayout stores only what pressing
 the Magic key emits, so the importer removes the `after` prefix:
 
 ```json
@@ -84,7 +84,7 @@ A rule-free `@` whose only default is `repeat_previous` or `none` is deliberatel
 Magic payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic
 and override that profile.
 
-cminiBrowser Adaptive entries already store one side of a two-way swap:
+akl.gg Adaptive entries already store one side of a two-way swap:
 
 ```json
 { "trigger": "l", "swap": ["y", "j"] }
@@ -217,8 +217,8 @@ carry the physical key code into the resolver and compile adaptive rules against
 
 Cmini stats currently describe the base layout. Adaptive swaps are not included.
 
-Cyanophage stats incorporate cminiBrowser Magic / Repeat corpus rewrites when present; Adaptive
+Cyanophage stats incorporate akl.gg Magic / Repeat corpus rewrites when present; Adaptive
 swaps are not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md).
 
-Mana2 stats are imported from cminibrowser dumps and describe the base layout only. Adaptive swaps,
+Mana2 stats are imported from akl.gg dumps and describe the base layout only. Adaptive swaps,
 Magic keys, and Repeat keys are not folded into those metrics.

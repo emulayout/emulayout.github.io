@@ -50,7 +50,7 @@ export function analyzerTasksForMissingStaticData(missingFiles) {
 }
 
 /**
- * Prefer offline catalog sync when Clemenpine and cminibrowser inputs are already cached.
+ * Prefer offline catalog sync when Clemenpine and AKL inputs are already cached.
  * Otherwise an online sync is required to fetch the missing input.
  *
  * @param {boolean} catalogInputsCached

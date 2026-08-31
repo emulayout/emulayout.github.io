@@ -211,7 +211,7 @@ async function run() {
 	const cminiChanged = previousHash !== sourceHash;
 	await writeCminiChangedOutput(cminiChanged);
 
-	console.log('→ Loading cminibrowser meme filter...');
+	console.log('→ Loading AKL meme filter...');
 	const memeFilter = await loadMemeFilterExclusions({ offline, force, argv });
 	const excludedLayouts = memeFilter.excluded;
 	console.log(
@@ -221,7 +221,7 @@ async function run() {
 			')'
 	);
 
-	console.log('→ Loading cminibrowser Magic and Adaptive mappings...');
+	console.log('→ Loading AKL Magic and Adaptive mappings...');
 	const magicRules = await loadCminibrowserMagicRules({ offline, force });
 	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
 	console.log(
@@ -237,7 +237,7 @@ async function run() {
 		(await hasPublishedCatalog())
 	) {
 		console.log(
-			`✔ Clemenpine catalog and cminibrowser inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
+			`✔ Clemenpine catalog and AKL inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
 		);
 		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
@@ -258,7 +258,7 @@ async function run() {
 	for (const layoutId of magicRules.layoutIds) {
 		if (layoutNamesLower.has(layoutId.toLowerCase())) continue;
 		console.warn(
-			`  ⚠ cminibrowser input mappings ${layoutId} have no matching catalog layout; skipping them`
+			`  ⚠ AKL input mappings ${layoutId} have no matching catalog layout; skipping them`
 		);
 	}
 

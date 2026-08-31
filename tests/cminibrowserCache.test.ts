@@ -54,7 +54,7 @@ describe('ensureCminibrowserDump', () => {
 		globalThis.fetch = mockFetch(new Response('{"layouts":', { status: 200 }));
 
 		await expect(ensureCminibrowserDump(dataPath, { force: true })).rejects.toThrow(
-			'Invalid JSON in cminibrowser dump'
+			'Invalid JSON in AKL dump'
 		);
 		expect(await readFile(cachePath, 'utf-8')).toBe('{"layouts":{"existing":true}}\n');
 	});

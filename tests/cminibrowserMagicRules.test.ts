@@ -4,7 +4,7 @@ import {
 	supplementalByLowerLayoutId
 } from '../bin/cminibrowser-magic-rules.js';
 
-describe('cminibrowser Magic and Adaptive mappings', () => {
+describe('AKL Magic and Adaptive mappings', () => {
 	test('adapts full Magic outputs, defaults, and uppercase Adaptive swaps', () => {
 		const result = normalizeCminibrowserMagicRules({
 			sample: {

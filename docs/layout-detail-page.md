@@ -29,7 +29,7 @@ AI implementation context for the dedicated page that replaces the former expand
 - The show page has four accessible sections: `Typing practice`, `Layout test area`, `Layout feel`,
   and `Stats`. The `tab` query parameter is their source of truth, including for direct links and
   reloads; missing or invalid values default to Typing practice. The layout creator reuses the same
-  expanded view and `tab` query for Edit and Preview without Stats or the cminibrowser link; see
+  expanded view and `tab` query for Edit and Preview without Stats or the akl.gg link; see
   [`layout-creator.md`](./layout-creator.md).
 
 ## Data loading
@@ -80,13 +80,13 @@ small without weakening app-bar functionality.
   the globally selected corpus, including after a direct visit or reload. When the summary card has
   enough inline space, its Highlights metric grid and finger-usage chart share one row; narrower
   summaries stack them, and catalog cards retain their existing presentation.
-- Ordinary links below the card open the canonical layout by name in cminibrowser, open it in
+- Ordinary links below the card open the canonical layout by name on akl.gg, open it in
   Cyanophage when compatible, and open a custom typing lesson on Colemak Camp. These are semantic
   links rather than button-driven menus. An **Edit layout** link sits above those links and opens
   a new creator canvas in Edit with this catalog layout selected as the base.
 - Repeat behavior stays enabled on the detail page and has no detail-page toggle. The summary card
   keeps the catalog-style anglemod action as its only card action. Anglemod changes update the card,
-  typing emulator, and generated Cyanophage and Colemak Camp links; the canonical-name cminibrowser
+  typing emulator, and generated Cyanophage and Colemak Camp links; the canonical-name akl.gg
   link remains unchanged.
 - The `Typing practice`, `Layout test area`, `Layout feel`, and `Stats` tabs sit at the top of the
   right column and control only that main content. The persistent layout card is not part of any tab

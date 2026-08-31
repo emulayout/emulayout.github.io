@@ -375,9 +375,7 @@ test('previewing a draft restores the practice keyboard and mapping preview', as
 		namedPanel.getByRole('radiogroup', { name: 'Stats analyzer for Custom draft' })
 	).toHaveCount(0);
 	await expect(namedPanel.getByRole('link', { name: 'Edit layout' })).toHaveCount(0);
-	await expect(
-		namedPanel.getByRole('link', { name: 'See more stats on cminibrowser' })
-	).toHaveCount(0);
+	await expect(namedPanel.getByRole('link', { name: 'See more stats on akl.gg' })).toHaveCount(0);
 	await expect(namedPanel.getByRole('link', { name: 'More practice on Colemak Camp' })).toHaveCount(
 		0
 	);

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Compare cminibrowser cmini stats dumps to the published corpus artifact.
+ * Compare AKL cmini stats dumps to the published corpus artifact.
  * Optional diagnostic only — not required in CI.
  *
  * Usage:
@@ -83,7 +83,7 @@ async function run() {
 	/** @type {Record<string, number[]>} */
 	const localStats = JSON.parse(await readFile(localStatsFile, 'utf-8'));
 
-	console.log(`→ Loading cminibrowser ${dumpPath}`);
+	console.log(`→ Loading AKL ${dumpPath}`);
 	const dump = await readCminibrowserJson(dumpPath, { offline, force });
 	const dumpEncoded = encodeCminibrowserCminiDump(dump);
 

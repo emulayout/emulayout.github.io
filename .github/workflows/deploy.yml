@@ -5,7 +5,7 @@ on:
     branches:
       - master
   schedule:
-    # Check Clemenpine metadata and cminibrowser dumps every hour. The minute is
+    # Check Clemenpine metadata and akl.gg dumps every hour. The minute is
     # intentionally offset from the top of the hour to reduce Actions congestion.
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -92,7 +92,7 @@ jobs:
         env:
           CI: true
           # Scheduled runs skip Cyanophage when catalog-sync itself skipped. Rebuild whenever
-          # Clemenpine or either cminibrowser catalog input changed.
+          # Clemenpine or either akl.gg catalog input changed.
           CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
           CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 

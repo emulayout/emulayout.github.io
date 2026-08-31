@@ -13,7 +13,7 @@ const GALLIUM_DUMP = JSON.parse(
 	readFileSync(join(import.meta.dirname, 'fixtures/cminibrowser-mana2-gallium.json'), 'utf-8')
 );
 
-describe('cminibrowser mana2 dump encoding', () => {
+describe('AKL Mana2 dump encoding', () => {
 	test('maps gallium dump buckets into MANA2_STAT_KEYS order', () => {
 		const compact = encodeCminibrowserMana2Stats(GALLIUM_DUMP);
 		expect(compact).toBeArrayOfSize(CMINIBROWSER_MANA2_STAT_KEYS.length);

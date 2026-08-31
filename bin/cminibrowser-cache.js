@@ -1,5 +1,5 @@
 /**
- * Download and cache cminibrowser static dumps under `.cache/cminibrowser/`.
+ * Download and cache akl.gg static dumps under `.cache/cminibrowser/`.
  * Same bytes as the site's Quick download / `/data/...` URLs.
  *
  * Normal mode uses conditional requests (ETag / Last-Modified) so unchanged
@@ -10,11 +10,10 @@ import { access, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { writeFileAtomically } from './sync-shared.js';
 
-export const CMINIBROWSER_ORIGIN = 'https://cminibrowser.com';
+export const CMINIBROWSER_ORIGIN = 'https://akl.gg';
 export const CMINIBROWSER_CACHE_DIR = join(process.cwd(), '.cache', 'cminibrowser');
 
-const USER_AGENT =
-	'emulayout-cminibrowser-sync/0.1 (+https://github.com/emulayout/emulayout.github.io)';
+const USER_AGENT = 'emulayout-akl-sync/0.1 (+https://github.com/emulayout/emulayout.github.io)';
 
 /**
  * @param {string} dataPath path under /data, e.g. `stats/monkeyracer.json`
@@ -98,7 +97,7 @@ function parseDumpJson(body, source) {
 		return JSON.parse(typeof body === 'string' ? body : Buffer.from(body).toString('utf-8'));
 	} catch (error) {
 		throw new Error(
-			`Invalid JSON in cminibrowser dump from ${source}: ${error instanceof Error ? error.message : String(error)}`,
+			`Invalid JSON in AKL dump from ${source}: ${error instanceof Error ? error.message : String(error)}`,
 			{ cause: error }
 		);
 	}
@@ -131,9 +130,7 @@ export async function ensureCminibrowserDump(dataPath, options = {}) {
 
 	if (offline) {
 		if (!cached) {
-			throw new Error(
-				`cminibrowser dump missing at ${cachePath}. Run without --offline to download.`
-			);
+			throw new Error(`AKL dump missing at ${cachePath}. Run without --offline to download.`);
 		}
 		const json = await readAndValidateCachedDump(cachePath, validateJson);
 		return { path: cachePath, updated: false, json };

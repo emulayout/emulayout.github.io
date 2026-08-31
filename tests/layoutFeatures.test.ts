@@ -8,7 +8,7 @@ import {
 } from '../bin/layout-features.js';
 
 describe('layout contextual feature classification', () => {
-	test('uses cminibrowser mappings for Magic and unclaimed @ for Repeat', () => {
+	test('uses AKL mappings for Magic and unclaimed @ for Repeat', () => {
 		expect(hasMagicKey({ '*': {}, '@': {} }, undefined)).toBe(false);
 		expect(hasRepeatKey({ '*': {}, '@': {} }, undefined)).toBe(true);
 
