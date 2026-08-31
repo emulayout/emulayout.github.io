@@ -61,6 +61,8 @@
 
 <style>
 	.input-feature-control {
+		-webkit-appearance: none;
+		appearance: none;
 		display: inline-flex;
 		width: 2rem;
 		height: 2rem;
@@ -73,26 +75,28 @@
 		border-radius: 0.5rem;
 		background: transparent;
 		color: var(--text-primary);
+		line-height: 0;
 		opacity: 0.72;
 		box-shadow: none;
 		transition:
 			color 0.12s ease,
-			opacity 0.12s ease,
-			transform 0.08s ease;
+			opacity 0.12s ease;
 	}
 
 	button.input-feature-control {
 		cursor: pointer;
 	}
 
-	button.input-feature-control:hover,
 	.input-feature-control--active {
 		color: var(--accent);
 		opacity: 1;
 	}
 
-	button.input-feature-control:active {
-		transform: translateY(1px);
+	@media (hover: hover) and (pointer: fine) {
+		button.input-feature-control:hover {
+			color: var(--accent);
+			opacity: 1;
+		}
 	}
 
 	button.input-feature-control:focus-visible {
@@ -116,6 +120,7 @@
 	}
 
 	.input-feature-control__glyph :global(svg) {
+		display: block;
 		width: 1.25rem;
 		height: 1.25rem;
 	}

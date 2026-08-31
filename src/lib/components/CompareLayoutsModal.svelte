@@ -236,7 +236,7 @@
 	{open}
 	{onClose}
 	labelledBy="compare-layouts-title"
-	panelClass="max-h-[min(92vh,960px)] max-w-[1000px]"
+	panelClass="max-h-[min(92dvh,960px)] max-w-[1000px]"
 >
 	<ModalHeader titleId="compare-layouts-title" title="Compare" titleClass="shrink-0" {onClose}>
 		{#snippet actions()}

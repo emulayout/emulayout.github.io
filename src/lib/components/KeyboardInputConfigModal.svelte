@@ -65,7 +65,7 @@
 	{open}
 	{onClose}
 	labelledBy="keyboard-input-config-title"
-	panelClass="max-w-5xl max-h-[calc(100vh-2rem)]"
+	panelClass="max-w-5xl max-h-[calc(100dvh-2rem)]"
 	initialFocusSelector="#keyboard-input-base"
 >
 	<ModalHeader titleId="keyboard-input-config-title" title="Configure input layout" {onClose}>

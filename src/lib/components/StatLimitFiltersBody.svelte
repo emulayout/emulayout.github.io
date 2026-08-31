@@ -20,6 +20,7 @@
 		type StatLimitKey
 	} from '$lib/statsFiltering';
 	import type { StatFilterSection } from '$lib/statsFiltering';
+	import { getVisibleViewportBounds, listenForVisibleViewportChanges } from '$lib/visibleViewport';
 	import {
 		FINGER_WORKLOAD_FINGERS,
 		FINGER_WORKLOAD_HANDS,
@@ -194,21 +195,22 @@
 		if (!workloadPresetTrigger) return;
 
 		const triggerRect = workloadPresetTrigger.getBoundingClientRect();
+		const viewport = getVisibleViewportBounds();
 		const viewportPadding = 12;
 		const menuGap = 6;
-		const menuWidth = Math.min(416, window.innerWidth - viewportPadding * 2);
+		const menuWidth = Math.min(416, Math.max(0, viewport.width - viewportPadding * 2));
 		const menuLeft = Math.min(
-			Math.max(triggerRect.left, viewportPadding),
-			window.innerWidth - menuWidth - viewportPadding
+			Math.max(triggerRect.left, viewport.left + viewportPadding),
+			viewport.right - menuWidth - viewportPadding
 		);
-		const spaceBelow = window.innerHeight - triggerRect.bottom - viewportPadding - menuGap;
-		const spaceAbove = triggerRect.top - viewportPadding - menuGap;
+		const spaceBelow = viewport.bottom - triggerRect.bottom - viewportPadding - menuGap;
+		const spaceAbove = triggerRect.top - viewport.top - viewportPadding - menuGap;
 		const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
-		const maxHeight = Math.max(160, openAbove ? spaceAbove : spaceBelow);
+		const maxHeight = Math.max(0, openAbove ? spaceAbove : spaceBelow);
 
 		workloadPresetMenuStyle = openAbove
-			? `left: ${menuLeft}px; top: auto; bottom: ${window.innerHeight - triggerRect.top + menuGap}px; width: ${menuWidth}px; max-height: ${maxHeight}px;`
-			: `left: ${menuLeft}px; top: ${triggerRect.bottom + menuGap}px; bottom: auto; width: ${menuWidth}px; max-height: ${maxHeight}px;`;
+			? `left: ${menuLeft}px; top: ${triggerRect.top - menuGap}px; bottom: auto; width: ${menuWidth}px; max-height: ${maxHeight}px; transform: translateY(-100%);`
+			: `left: ${menuLeft}px; top: ${triggerRect.bottom + menuGap}px; bottom: auto; width: ${menuWidth}px; max-height: ${maxHeight}px; transform: none;`;
 	}
 
 	async function toggleWorkloadPresetMenu() {
@@ -247,10 +249,10 @@
 	$effect(() => {
 		if (!workloadPresetOpen) return;
 		positionWorkloadPresetMenu();
-		window.addEventListener('resize', positionWorkloadPresetMenu);
+		const stopListening = listenForVisibleViewportChanges(positionWorkloadPresetMenu);
 		window.addEventListener('scroll', positionWorkloadPresetMenu, true);
 		return () => {
-			window.removeEventListener('resize', positionWorkloadPresetMenu);
+			stopListening();
 			window.removeEventListener('scroll', positionWorkloadPresetMenu, true);
 		};
 	});

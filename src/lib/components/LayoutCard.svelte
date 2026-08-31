@@ -615,17 +615,9 @@
 </div>
 
 <style>
-	/*
-	 * iOS Safari + virtua: parent transform + overflow:hidden/border-radius often
-	 * fails to paint the card background while children still paint. Force a
-	 * compositor layer and avoid overflow:hidden on the transformed ancestor.
-	 */
 	.layout-card {
 		position: relative;
 		isolation: isolate;
-		transform: translateZ(0);
-		-webkit-backface-visibility: hidden;
-		backface-visibility: hidden;
 	}
 
 	.layout-keyboard-row {

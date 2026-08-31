@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { portalToBody } from '$lib/portalToBody';
+	import { getVisibleViewportBounds, listenForVisibleViewportChanges } from '$lib/visibleViewport';
 
 	interface Props {
 		/** Whether the popup is visible. */
@@ -37,14 +38,18 @@
 		const tipHeight = popupEl?.offsetHeight ?? 0;
 		const gap = 8;
 		const pad = 8;
+		const viewport = getVisibleViewportBounds();
 
 		let left = rect.left + rect.width / 2;
-		left = Math.min(window.innerWidth - pad - tipWidth / 2, Math.max(pad + tipWidth / 2, left));
+		left = Math.min(
+			viewport.right - pad - tipWidth / 2,
+			Math.max(viewport.left + pad + tipWidth / 2, left)
+		);
 
 		const belowTop = rect.bottom + gap;
 		const aboveTop = rect.top - gap - tipHeight;
-		const fitsBelow = belowTop + tipHeight <= window.innerHeight - pad;
-		const fitsAbove = aboveTop >= pad;
+		const fitsBelow = belowTop + tipHeight <= viewport.bottom - pad;
+		const fitsAbove = aboveTop >= viewport.top + pad;
 
 		let top: number;
 		if (placement === 'above') {
@@ -61,13 +66,13 @@
 
 		updatePosition();
 		const frame = requestAnimationFrame(updatePosition);
+		const stopListening = listenForVisibleViewportChanges(updatePosition);
 
 		window.addEventListener('scroll', updatePosition, true);
-		window.addEventListener('resize', updatePosition);
 		return () => {
 			cancelAnimationFrame(frame);
+			stopListening();
 			window.removeEventListener('scroll', updatePosition, true);
-			window.removeEventListener('resize', updatePosition);
 		};
 	});
 </script>
@@ -94,6 +99,7 @@
 		z-index: 100;
 		transform: translateX(-50%);
 		max-width: min(16rem, calc(100vw - 1rem));
+		max-width: min(16rem, calc(100dvw - 1rem));
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
 		background-color: var(--bg-primary);

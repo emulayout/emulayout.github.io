@@ -299,10 +299,7 @@
 				>
 					<svg
 						class="app-header-theme-icon"
-						style="opacity: {themeMode === 'system' ? 1 : 0}; transform: scale({themeMode ===
-						'system'
-							? 1
-							: 0.5});"
+						style:opacity={themeMode === 'system' ? 1 : 0}
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -314,10 +311,7 @@
 					</svg>
 					<svg
 						class="app-header-theme-icon"
-						style="opacity: {themeMode === 'light' ? 1 : 0}; transform: rotate({themeMode ===
-						'light'
-							? 0
-							: -90}deg) scale({themeMode === 'light' ? 1 : 0.5});"
+						style:opacity={themeMode === 'light' ? 1 : 0}
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -331,9 +325,7 @@
 					</svg>
 					<svg
 						class="app-header-theme-icon"
-						style="opacity: {themeMode === 'dark' ? 1 : 0}; transform: rotate({themeMode === 'dark'
-							? 0
-							: 90}deg) scale({themeMode === 'dark' ? 1 : 0.5});"
+						style:opacity={themeMode === 'dark' ? 1 : 0}
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -520,9 +512,7 @@
 		position: absolute;
 		inset: 0;
 		margin: auto;
-		transition:
-			opacity 0.3s ease,
-			transform 0.3s ease;
+		transition: opacity 0.3s ease;
 	}
 
 	@media (max-width: 767px) {

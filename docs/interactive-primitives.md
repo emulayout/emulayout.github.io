@@ -31,6 +31,11 @@ retain domain-specific markup and styling.
 `portalToBody.ts`, `listboxNavigation.ts`, and `segmentedControl.ts` contain small reusable behavior
 helpers used by these components.
 
+Fixed popups and floating windows use the visible viewport rather than assuming the layout viewport
+is fully unobscured. `visibleViewport.ts` centralizes `VisualViewport` bounds and change listeners,
+with `window` dimensions as a fallback. Fixed surfaces should also use dynamic viewport units for
+their CSS size limits so Safari browser chrome and software keyboards do not cover their content.
+
 ## Listbox focus models
 
 Editable comboboxes keep DOM focus in their text input and point `aria-activedescendant` at the
@@ -153,5 +158,7 @@ catalog author.
   technology needs extra context.
 - Consumer-specific styles remain scoped under a local wrapper when a class is applied inside a
   child primitive.
+- Portal-positioned surfaces stay within the visible viewport and reposition when that viewport
+  resizes or scrolls independently of the document.
 - Add focused unit coverage for extracted behavior helpers and Playwright coverage for rendered
   keyboard/focus behavior.

@@ -278,7 +278,7 @@
 {/if}
 
 <style>
-	/* Help Safari paint row contents while virtua translates the row. */
+	/* Give Safari one stable paint layer for each row as the virtualizer repositions it. */
 	.layout-card-row {
 		margin-bottom: 0.75rem;
 		transform: translateZ(0);

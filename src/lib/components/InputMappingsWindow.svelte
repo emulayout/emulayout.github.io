@@ -3,6 +3,7 @@
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import { portalToBody } from '$lib/portalToBody';
+	import { getVisibleViewportBounds, listenForVisibleViewportChanges } from '$lib/visibleViewport';
 
 	interface Props {
 		layoutName: string;
@@ -39,19 +40,23 @@
 	function clampPosition(nextLeft: number, nextTop: number) {
 		if (!panelElement) return { left: nextLeft, top: nextTop };
 		const margin = 8;
-		const maxLeft = Math.max(margin, window.innerWidth - panelElement.offsetWidth - margin);
-		const maxTop = Math.max(margin, window.innerHeight - panelElement.offsetHeight - margin);
+		const viewport = getVisibleViewportBounds();
+		const minLeft = viewport.left + margin;
+		const minTop = viewport.top + margin;
+		const maxLeft = Math.max(minLeft, viewport.right - panelElement.offsetWidth - margin);
+		const maxTop = Math.max(minTop, viewport.bottom - panelElement.offsetHeight - margin);
 		return {
-			left: Math.min(Math.max(nextLeft, margin), maxLeft),
-			top: Math.min(Math.max(nextTop, margin), maxTop)
+			left: Math.min(Math.max(nextLeft, minLeft), maxLeft),
+			top: Math.min(Math.max(nextTop, minTop), maxTop)
 		};
 	}
 
 	function centerWindow() {
 		if (!panelElement) return;
+		const viewport = getVisibleViewportBounds();
 		const position = clampPosition(
-			(window.innerWidth - panelElement.offsetWidth) / 2,
-			(window.innerHeight - panelElement.offsetHeight) / 2
+			viewport.left + (viewport.width - panelElement.offsetWidth) / 2,
+			viewport.top + (viewport.height - panelElement.offsetHeight) / 2
 		);
 		left = position.left;
 		top = position.top;
@@ -121,11 +126,15 @@
 
 	onMount(() => {
 		const frame = requestAnimationFrame(centerWindow);
-		return () => cancelAnimationFrame(frame);
+		const stopListening = listenForVisibleViewportChanges(keepWindowInViewport);
+		return () => {
+			cancelAnimationFrame(frame);
+			stopListening();
+		};
 	});
 </script>
 
-<svelte:window onkeydown={handleWindowKeyDown} onresize={keepWindowInViewport} />
+<svelte:window onkeydown={handleWindowKeyDown} />
 
 <div
 	use:portalToBody
@@ -177,7 +186,9 @@
 		z-index: 45;
 		display: flex;
 		width: min(34rem, calc(100vw - 1rem));
+		width: min(34rem, calc(100dvw - 1rem));
 		max-height: calc(100vh - 1rem);
+		max-height: calc(100dvh - 1rem);
 		flex-direction: column;
 		overflow: hidden;
 		border: 1px solid var(--border);

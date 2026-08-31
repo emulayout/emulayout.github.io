@@ -147,7 +147,9 @@ in the swapped output.
   treatment, and three visual states: `on`, `off`, and `unavailable`. `off` is interactive and
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
   directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
-  or Adaptive mapping updates that feature's control.
+  or Adaptive mapping updates that feature's control. The control normalizes native button and SVG
+  geometry across engines, and its hover-only treatment is limited to fine pointers so touch WebKit
+  does not retain a false hover state.
 - On the layout detail page, the free-form Layout test area emulator remains full width above the
   shared keyboard workspace. Mappings sit to the right of the keyboard-and-options cluster at wider
   workspace widths and expand beneath it on narrow screens, matching Typing practice.

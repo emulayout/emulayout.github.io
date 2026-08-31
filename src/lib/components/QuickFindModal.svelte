@@ -210,7 +210,7 @@
 	{open}
 	{onClose}
 	labelledBy="quick-find-title"
-	panelClass="max-h-[min(90vh,720px)] max-w-4xl"
+	panelClass="max-h-[min(90dvh,720px)] max-w-4xl"
 >
 	<ModalHeader titleId="quick-find-title" title="Quick find" {onClose} />
 
