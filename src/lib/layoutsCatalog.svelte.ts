@@ -1,4 +1,11 @@
-import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
+import {
+	normalizeAuthorsMap,
+	type AuthorId,
+	type AuthorsMap,
+	type LayoutData,
+	type LayoutLikesMap,
+	type StatsMaps
+} from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
@@ -14,7 +21,7 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
  */
 class LayoutsCatalog {
 	layouts: LayoutData[] = $state([]);
-	authorsData: Record<string, number> = $state({});
+	authorsData: AuthorsMap = $state({});
 	likesData: LayoutLikesMap = $state({});
 	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
 	supplemental: LayoutSupplementalByLayout = $state({});
@@ -32,7 +39,7 @@ class LayoutsCatalog {
 
 	hydrate(
 		layouts: LayoutData[],
-		authorsData: Record<string, number>,
+		authorsData: AuthorsMap,
 		likesData: LayoutLikesMap,
 		inputProfiles: ReadonlyMap<string, LayoutInputProfile> = new Map(),
 		supplemental?: LayoutSupplementalByLayout
@@ -51,7 +58,7 @@ class LayoutsCatalog {
 		}
 	}
 
-	getAuthorName(userId: number): string {
+	getAuthorName(userId: AuthorId): string {
 		return resolveAuthorName(this.authorsData, userId);
 	}
 
@@ -113,7 +120,7 @@ class LayoutsCatalog {
 					throw new Error('Could not load the layout catalog.');
 				}
 				const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
-				const authorsData: Record<string, number> = await authorsResponse.json();
+				const authorsData = normalizeAuthorsMap(await authorsResponse.json());
 				const likesData: LayoutLikesMap = likesResponse.ok ? await likesResponse.json() : {};
 				this.hydrate(decodeLayouts(compactLayouts), authorsData, likesData);
 			})

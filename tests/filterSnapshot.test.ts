@@ -30,7 +30,7 @@ describe('view filter snapshot construction', () => {
 		const original = createDefaultViewSnapshot();
 		original.includeGrid[0][0] = 'a';
 		original.includeLeftThumbKeys[0] = 'e';
-		original.selectedAuthors.push(12);
+		original.selectedAuthors.push('12');
 		original.sortBeforeSimilar = {
 			sortBy: 'name',
 			sortOrder: 'asc',
@@ -44,7 +44,7 @@ describe('view filter snapshot construction', () => {
 		const clone = cloneViewFilterSnapshot(original);
 		clone.includeGrid[0][0] = 'b';
 		clone.includeLeftThumbKeys[0] = 't';
-		clone.selectedAuthors.push(34);
+		clone.selectedAuthors.push('34');
 		clone.sortBeforeSimilar!.sortOrder = 'desc';
 		clone.statLimits.likes.value = '30';
 		clone.appliedStatLimits.likes.value = '40';
@@ -53,7 +53,7 @@ describe('view filter snapshot construction', () => {
 
 		expect(original.includeGrid[0][0]).toBe('a');
 		expect(original.includeLeftThumbKeys[0]).toBe('e');
-		expect(original.selectedAuthors).toEqual([12]);
+		expect(original.selectedAuthors).toEqual(['12']);
 		expect(original.sortBeforeSimilar.sortOrder).toBe('asc');
 		expect(original.statLimits.likes.value).toBe('10');
 		expect(original.appliedStatLimits.likes.value).toBe('20');
@@ -91,7 +91,7 @@ describe('normalizeViewFilterSnapshot', () => {
 		expect(snapshot.includeLeftThumbKeys).toEqual(['e', '', '', '']);
 		expect(snapshot.appliedIncludeLeftThumbKeys).toEqual(snapshot.includeLeftThumbKeys);
 		expect(snapshot.nameFilter).toBe('Canary');
-		expect(snapshot.selectedAuthors).toEqual([12]);
+		expect(snapshot.selectedAuthors).toEqual(['12']);
 		expect(snapshot.appliedSimilarityFilterValue).toBe('72');
 		expect(snapshot.sortBy).toBe('cyano-sfb');
 		expect(snapshot.sortOrder).toBe('asc');

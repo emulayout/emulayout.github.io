@@ -25,7 +25,7 @@
 		forceIncludedNames?: ReadonlySet<string>;
 		/** Leave the final row clear of floating actions rendered over the results. */
 		reserveBottomActionSpace?: boolean;
-		getAuthorName: (userId: number) => string;
+		getAuthorName: (userId: string) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
 		inputProfiles: ReadonlyMap<string, LayoutInputProfile>;

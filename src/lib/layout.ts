@@ -6,6 +6,23 @@ export interface KeyInfo {
 }
 
 export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini';
+export type AuthorId = string;
+export type AuthorsMap = Record<string, AuthorId>;
+
+/** Normalize published v3 author ids while remaining compatible with pre-v3 numeric artifacts. */
+export function normalizeAuthorsMap(value: unknown): AuthorsMap {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([name, id]) => {
+			if (!name) return [];
+			if (typeof id === 'string' && /^\d+$/.test(id)) return [[name, id]];
+			if (typeof id === 'number' && Number.isFinite(id) && Number.isInteger(id) && id >= 0) {
+				return [[name, String(id)]];
+			}
+			return [];
+		})
+	);
+}
 
 /** Thumb key on one hand, sorted left-to-right by column. */
 export interface ThumbKeyEntry {
@@ -15,7 +32,7 @@ export interface ThumbKeyEntry {
 
 export interface LayoutData {
 	name: string;
-	user: number;
+	user: AuthorId;
 	board: BoardType;
 	keys: Record<string, KeyInfo>;
 	/** `"row,col"` → key character for O(1) position lookups, including duplicate letters. */

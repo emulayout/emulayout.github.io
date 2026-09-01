@@ -7,6 +7,7 @@ import {
 	normalizeFingerWorkloadConfig,
 	type FingerWorkloadConfig
 } from '$lib/fingerWorkload';
+import type { AuthorId } from '$lib/layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type RepeatKeyFilter = 'optional' | 'excluded' | 'required';
@@ -47,7 +48,7 @@ export type ViewFilterSnapshot = {
 	boardTypeFilter: BoardTypeFilter;
 	nameFilterInput: string;
 	nameFilter: string;
-	selectedAuthors: number[];
+	selectedAuthors: AuthorId[];
 	includeSelectedInResults: boolean;
 	similarReferenceName: string | null;
 	similarReferenceAnglemod: boolean;
@@ -430,10 +431,11 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		nameFilterInput,
 		nameFilter,
 		selectedAuthors: Array.isArray(value.selectedAuthors)
-			? value.selectedAuthors.filter(
-					(authorId): authorId is number =>
-						typeof authorId === 'number' && Number.isFinite(authorId)
-				)
+			? value.selectedAuthors.flatMap((authorId) => {
+					if (typeof authorId === 'string' && /^\d+$/.test(authorId)) return [authorId];
+					if (typeof authorId === 'number' && Number.isFinite(authorId)) return [String(authorId)];
+					return [];
+				})
 			: defaults.selectedAuthors,
 		includeSelectedInResults:
 			typeof value.includeSelectedInResults === 'boolean'

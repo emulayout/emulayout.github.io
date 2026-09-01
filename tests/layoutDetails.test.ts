@@ -10,6 +10,7 @@ import {
 	resolveLayoutDetailStats,
 	type CompactLayoutDetail
 } from '$lib/layoutDetails';
+import { normalizeAuthorsMap } from '$lib/layout';
 import type { CompactLayout } from '$lib/layoutCodec';
 import { layoutDetailPageHref, parseLayoutDetailSection } from '$lib/layoutDetailTabs';
 import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
@@ -125,7 +126,7 @@ describe('per-layout detail data', () => {
 			authorName: 'derek',
 			likeCount: 7,
 			stats: { cmini: { monkeyracer: [1], reddit: [2] } },
-			layout: { name: compactLayout[0], user: 42 }
+			layout: { name: compactLayout[0], user: '42' }
 		});
 		expect(resolveLayoutDetailStats(payload.stats, 'reddit')).toEqual({
 			cmini: [2],
@@ -152,7 +153,7 @@ describe('per-layout detail data', () => {
 				name,
 				{
 					layouts: [layout],
-					authorsData: { derek: 42 },
+					authorsData: { derek: '42' },
 					likesData: { [name]: 11 },
 					inputProfiles: new Map()
 				},
@@ -175,7 +176,7 @@ describe('per-layout detail data', () => {
 		expect(
 			buildCatalogLayoutDetail('missing', {
 				layouts: [layout],
-				authorsData: { derek: 42 },
+				authorsData: { derek: '42' },
 				likesData: {},
 				inputProfiles: new Map()
 			})
@@ -184,17 +185,25 @@ describe('per-layout detail data', () => {
 });
 
 describe('resolveAuthorByName', () => {
-	const authorsData = { cmini: 108, Derek: 42 };
+	const authorsData = { cmini: '108', Derek: '42' };
 
 	test('matches catalog authors case-insensitively and returns the canonical name', () => {
-		expect(resolveAuthorByName(authorsData, 'cmini')).toEqual({ id: 108, name: 'cmini' });
-		expect(resolveAuthorByName(authorsData, '  CMINI  ')).toEqual({ id: 108, name: 'cmini' });
-		expect(resolveAuthorByName(authorsData, 'derek')).toEqual({ id: 42, name: 'Derek' });
+		expect(resolveAuthorByName(authorsData, 'cmini')).toEqual({ id: '108', name: 'cmini' });
+		expect(resolveAuthorByName(authorsData, '  CMINI  ')).toEqual({ id: '108', name: 'cmini' });
+		expect(resolveAuthorByName(authorsData, 'derek')).toEqual({ id: '42', name: 'Derek' });
 	});
 
 	test('returns null for empty or unknown names', () => {
 		expect(resolveAuthorByName(authorsData, '')).toBeNull();
 		expect(resolveAuthorByName(authorsData, '   ')).toBeNull();
 		expect(resolveAuthorByName(authorsData, 'unknown')).toBeNull();
+	});
+});
+
+describe('normalizeAuthorsMap', () => {
+	test('preserves v3 string ids and normalizes legacy numeric artifacts', () => {
+		expect(
+			normalizeAuthorsMap({ exact: '9007199254740993', legacy: 42, invalid: 'not-an-id' })
+		).toEqual({ exact: '9007199254740993', legacy: '42' });
 	});
 });

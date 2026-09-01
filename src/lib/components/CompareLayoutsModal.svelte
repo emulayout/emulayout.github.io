@@ -27,7 +27,7 @@
 		/** Bumped on each open request so reopening reseeds. */
 		session?: number;
 		layouts: LayoutData[];
-		getAuthorName: (userId: number) => string;
+		getAuthorName: (userId: string) => string;
 		likesData: LayoutLikesMap;
 		statsMaps: StatsMaps;
 	}

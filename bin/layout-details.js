@@ -67,7 +67,7 @@ async function writeIfChanged(path, body) {
 
 /**
  * @param {unknown[]} layouts
- * @param {Record<string, number>} authors
+ * @param {Record<string, string | number>} authors
  * @param {Record<string, unknown>} supplemental
  * @param {Record<string, number>} likes
  * @param {{
@@ -77,13 +77,13 @@ async function writeIfChanged(path, body) {
  * }} stats
  */
 export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
-	const authorById = new Map(Object.entries(authors).map(([name, id]) => [id, name]));
+	const authorById = new Map(Object.entries(authors).map(([name, id]) => [String(id), name]));
 	return layouts.map((layout) => {
 		if (!Array.isArray(layout) || typeof layout[0] !== 'string') {
 			throw new Error('all-layouts.json contains an invalid compact layout');
 		}
 		const name = layout[0];
-		const userId = layout[1];
+		const userId = String(layout[1]);
 		const cmini = Object.fromEntries(
 			Object.entries(stats.cmini).flatMap(([corpus, map]) =>
 				map[name] === undefined ? [] : [[corpus, map[name]]]

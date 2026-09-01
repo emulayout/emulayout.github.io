@@ -8,7 +8,7 @@ import { BOT_STAT_KEYS, COMPACT_STAT_FIELD_COUNT } from '$lib/statsDerivation';
 function makeLayout(
 	name: string,
 	{
-		user = 1,
+		user = '1',
 		board = 'angle',
 		positions = [
 			['0,0', 'a'],
@@ -28,7 +28,7 @@ function makeLayout(
 		hasAdaptiveSwapMappings = false,
 		updatedAt = '2026-01-01'
 	}: Partial<{
-		user: number;
+		user: string;
 		board: LayoutData['board'];
 		positions: Array<[string, string]>;
 		leftThumbKeys: LayoutData['thumbKeysByHand']['l'];
@@ -142,13 +142,13 @@ describe('filterLayouts', () => {
 
 	test('applies metadata, name, and author filters', () => {
 		const layouts = [
-			makeLayout('Canary', { user: 12, board: 'ortho' }),
-			makeLayout('Canary Wide', { user: 34, board: 'ortho' }),
-			makeLayout('Graphite', { user: 12, board: 'angle' })
+			makeLayout('Canary', { user: '12', board: 'ortho' }),
+			makeLayout('Canary Wide', { user: '34', board: 'ortho' }),
+			makeLayout('Graphite', { user: '12', board: 'angle' })
 		];
 		const criteria = makeCriteria({
 			nameFilter: 'canary',
-			selectedAuthors: new Set([12]),
+			selectedAuthors: new Set(['12']),
 			boardTypeFilter: 'ortho',
 			thumbKeyFilter: 'required',
 			magicKeyFilter: 'excluded'

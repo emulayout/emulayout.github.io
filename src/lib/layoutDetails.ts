@@ -1,4 +1,6 @@
 import type {
+	AuthorId,
+	AuthorsMap,
 	CompactCyanophageStats,
 	CompactLayoutStats,
 	CompactMana2Stats,
@@ -46,13 +48,13 @@ export interface LayoutDetail {
 
 export interface CatalogLayoutDetailSource {
 	layouts: readonly LayoutData[];
-	authorsData: Record<string, number>;
+	authorsData: AuthorsMap;
 	likesData: LayoutLikesMap;
 	inputProfiles?: ReadonlyMap<string, LayoutInputProfile>;
 }
 
 /** Resolve an author display name from the published name→id authors map. */
-export function resolveAuthorName(authorsData: Record<string, number>, userId: number): string {
+export function resolveAuthorName(authorsData: AuthorsMap, userId: AuthorId): string {
 	for (const [name, id] of Object.entries(authorsData)) {
 		if (id === userId) return name;
 	}
@@ -61,9 +63,9 @@ export function resolveAuthorName(authorsData: Record<string, number>, userId: n
 
 /** Case-insensitive exact match against the published authors map. */
 export function resolveAuthorByName(
-	authorsData: Record<string, number>,
+	authorsData: AuthorsMap,
 	name: string
-): { id: number; name: string } | null {
+): { id: AuthorId; name: string } | null {
 	const term = name.trim().toLowerCase();
 	if (!term) return null;
 	for (const [authorName, id] of Object.entries(authorsData)) {

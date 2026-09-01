@@ -134,7 +134,7 @@
 	});
 
 	const authorById = $derived(
-		new Map<number, string>(Object.entries(authorsData).map(([name, id]) => [id as number, name]))
+		new Map<string, string>(Object.entries(authorsData).map(([name, id]) => [id, name]))
 	);
 
 	const authorList = $derived(
@@ -143,7 +143,7 @@
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
 
-	function getAuthorName(userId: number): string {
+	function getAuthorName(userId: string): string {
 		return authorById.get(userId) ?? 'Unknown';
 	}
 

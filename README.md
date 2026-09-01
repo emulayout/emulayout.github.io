@@ -140,18 +140,20 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 ## Generated data
 
 `bin/catalog-sync.js` fetches layouts and authors from the
-[Clemenpine catalog API](https://clemenpine.com/v1/layouts?full=1), caches them under
+[Clemenpine catalog API](https://clemenpine.com/layoutapi/v3/layouts?full=1), caches them under
 `.cache/clemenpine`, downloads akl.gg's `meme_filter.json` and
 [`magic_rules_export.json`](https://akl.gg/data/magic_rules_export.json), and writes the
 layout catalog, likes, and generated behavior payload under `static/` with meme-tier layouts omitted.
-A normal online sync checks [Clemenpine metadata](https://clemenpine.com/v1/meta) first and downloads
+A normal online sync checks
+[Clemenpine metadata](https://clemenpine.com/layoutapi/v3/meta) first and downloads
 only the layout or author resource whose modification timestamp changed. If metadata is unavailable,
 it checks both full resources instead. A failed, timed-out, malformed, schema-incompatible, or
 internally inconsistent API response keeps the last good cache and published catalog in place. Any
 structurally valid, internally consistent response is authoritative regardless of layout or author
 additions, changes, and deletions. Layouts and authors are validated and replaced together as one
 atomic snapshot; the four published catalog artifacts are prepared together and rolled back if a
-write fails. Likes currently come from the `likes` arrays on layout records (there is no dedicated
+write fails. Layout author IDs, author-map values, and like user IDs remain decimal strings so their
+full precision is preserved. Likes currently come from the `likes` arrays on layout records (there is no dedicated
 likes endpoint yet). Emulayout publishes only each array's length; the user IDs in the array are not
 retained in generated site data.
 akl.gg is the sole source for Magic-key mappings and Adaptive swaps. A rule-free `@` whose

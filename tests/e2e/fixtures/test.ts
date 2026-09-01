@@ -39,8 +39,8 @@ export const test = base.extend<CatalogFixtures>({
 	catalogRoutes: [
 		async ({ catalogVariant, page }, use) => {
 			const layouts = catalogVariant === 'core' ? coreCatalog : catalog;
-			const authorById = new Map<number, string>(
-				Object.entries(authors).map(([name, id]) => [id, name])
+			const authorById = new Map<string, string>(
+				Object.entries(authors).map(([name, id]) => [String(id), name])
 			);
 
 			await page.route('**/all-layouts.json', async (route) => {
@@ -69,7 +69,7 @@ export const test = base.extend<CatalogFixtures>({
 					json: {
 						version: LAYOUT_DETAIL_VERSION,
 						layout,
-						authorName: authorById.get(layout[1]) ?? 'Unknown',
+						authorName: authorById.get(String(layout[1])) ?? 'Unknown',
 						likeCount: 0,
 						...(name in supplemental
 							? { supplemental: supplemental[name as keyof typeof supplemental] }

@@ -1,4 +1,4 @@
-import type { BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
+import type { AuthorId, BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
 import { computeCharacterSet } from '$lib/layoutCharacterSet';
 import { THUMB_ROW } from '$lib/layoutDisplay';
 
@@ -41,7 +41,7 @@ const THUMB_SPLIT_COL = 5;
  */
 export type CompactLayout = [
 	name: string,
-	user: number,
+	user: AuthorId | number,
 	board: number,
 	updatedAt: string,
 	flags: number,
@@ -121,7 +121,7 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 
 	return {
 		name,
-		user,
+		user: String(user),
 		board: BOARD_TYPES[boardCode] ?? 'ortho',
 		keys,
 		positionBySlot,

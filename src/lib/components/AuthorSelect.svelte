@@ -1,16 +1,17 @@
 <script lang="ts">
 	import Listbox from '$lib/components/Listbox.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
+	import type { AuthorId } from '$lib/layout';
 
 	interface Author {
 		name: string;
-		id: number;
+		id: AuthorId;
 	}
 
 	interface Props {
 		authors: Author[];
-		selectedIds: Set<number>;
-		onToggle: (id: number) => void;
+		selectedIds: Set<AuthorId>;
+		onToggle: (id: AuthorId) => void;
 		onClear: () => void;
 		/** Bump to open the author dropdown (e.g. from an active-filter chip). */
 		openSeq?: number;
@@ -56,7 +57,7 @@
 			.join(', ')
 	);
 
-	function handleToggle(id: number) {
+	function handleToggle(id: AuthorId) {
 		onToggle(id);
 	}
 

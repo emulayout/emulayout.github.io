@@ -1,9 +1,9 @@
 /**
  * Download and cache one coordinated Clemenpine catalog snapshot.
  *
- * Layouts: GET /v1/layouts?full=1
- * Authors: GET /v1/authors
- * Metadata: GET /v1/meta
+ * Layouts: GET /layoutapi/v3/layouts?full=1
+ * Authors: GET /layoutapi/v3/authors
+ * Metadata: GET /layoutapi/v3/meta
  *
  * Metadata is checked first so unchanged resources do not need to be downloaded.
  * Changed resources are fetched and validated before a single atomic snapshot
@@ -17,9 +17,9 @@ import { dirname, join } from 'node:path';
 import { writeFileAtomically } from './sync-shared.js';
 
 export const CLEMENPINE_ORIGIN = 'https://clemenpine.com';
-export const CLEMENPINE_LAYOUTS_URL = `${CLEMENPINE_ORIGIN}/v1/layouts?full=1`;
-export const CLEMENPINE_AUTHORS_URL = `${CLEMENPINE_ORIGIN}/v1/authors`;
-export const CLEMENPINE_META_URL = `${CLEMENPINE_ORIGIN}/v1/meta`;
+export const CLEMENPINE_LAYOUTS_URL = `${CLEMENPINE_ORIGIN}/layoutapi/v3/layouts?full=1`;
+export const CLEMENPINE_AUTHORS_URL = `${CLEMENPINE_ORIGIN}/layoutapi/v3/authors`;
+export const CLEMENPINE_META_URL = `${CLEMENPINE_ORIGIN}/layoutapi/v3/meta`;
 export const CLEMENPINE_CACHE_DIR = join(process.cwd(), '.cache', 'clemenpine');
 export const CLEMENPINE_SNAPSHOT_CACHE_FILE = 'catalog-v1.json';
 export const CLEMENPINE_LAYOUTS_CACHE_FILE = 'layouts-full.json';
@@ -29,7 +29,7 @@ export const CLEMENPINE_SYNCED_HASH_FILE = join(process.cwd(), '.cache', 'clemen
 export const CLEMENPINE_REQUEST_TIMEOUT_MS = 30_000;
 
 const USER_AGENT =
-	'emulayout-clemenpine-sync/0.2 (+https://github.com/emulayout/emulayout.github.io)';
+	'emulayout-clemenpine-sync/0.3 (+https://github.com/emulayout/emulayout.github.io)';
 const SNAPSHOT_VERSION = 1;
 const BOARD_TYPES = new Set(['angle', 'stagger', 'ortho', 'mini']);
 
@@ -37,14 +37,14 @@ const BOARD_TYPES = new Set(['angle', 'stagger', 'ortho', 'mini']);
  * @typedef {{ row: number, col: number, finger?: string }} ClemenpineKeyInfo
  * @typedef {{
  *   name: string,
- *   user: number,
+ *   user: string,
  *   board: 'angle' | 'stagger' | 'ortho' | 'mini',
  *   modifiedAt: string,
  *   keys: Record<string, ClemenpineKeyInfo>,
- *   likes?: number[]
+ *   likes?: string[]
  * }} ClemenpineLayout
  * @typedef {{ layouts: ClemenpineLayout[], skipped: 0 }} ParsedClemenpineLayouts
- * @typedef {{ layouts: ParsedClemenpineLayouts, authors: Record<string, number> }} ParsedClemenpineCatalog
+ * @typedef {{ layouts: ParsedClemenpineLayouts, authors: Record<string, string> }} ParsedClemenpineCatalog
  * @typedef {{
  *   author_count: number,
  *   authors_modified_at: string,
@@ -98,6 +98,25 @@ function errorMessage(error) {
 }
 
 /**
+ * v3 emits Discord-style ids as decimal strings so they retain full precision.
+ * Numeric values remain accepted only for last-good v1 cache compatibility.
+ * @param {unknown} value
+ * @param {string} label
+ */
+function parseId(value, label) {
+	if (typeof value === 'string' && /^\d+$/.test(value)) return value;
+	if (
+		typeof value === 'number' &&
+		Number.isFinite(value) &&
+		Number.isInteger(value) &&
+		value >= 0
+	) {
+		return String(value);
+	}
+	throw new Error(`${label} must be a non-negative integer id encoded as a string`);
+}
+
+/**
  * @param {unknown} value
  * @param {string} label
  * @returns {ClemenpineKeyInfo}
@@ -128,9 +147,7 @@ function parseLayoutRecord(value, index) {
 	if (typeof value.name !== 'string' || value.name.length === 0) {
 		throw new Error(`${label}.name must be a non-empty string`);
 	}
-	if (!Number.isFinite(value.user) || !Number.isInteger(value.user)) {
-		throw new Error(`${label} (${value.name}).user must be a finite integer`);
-	}
+	const user = parseId(value.user, `${label} (${value.name}).user`);
 	if (typeof value.board !== 'string' || !BOARD_TYPES.has(value.board)) {
 		throw new Error(`${label} (${value.name}).board is not a recognized board type`);
 	}
@@ -157,15 +174,14 @@ function parseLayoutRecord(value, index) {
 		if (!Array.isArray(value.likes)) {
 			throw new Error(`${label} (${value.name}).likes must be an array when present`);
 		}
-		if (value.likes.some((id) => !Number.isFinite(id) || !Number.isInteger(id))) {
-			throw new Error(`${label} (${value.name}).likes must contain only finite integer ids`);
-		}
-		likes = /** @type {number[]} */ (value.likes);
+		likes = value.likes.map((id, likeIndex) =>
+			parseId(id, `${label} (${value.name}).likes[${likeIndex}]`)
+		);
 	}
 
 	return {
 		name: value.name,
-		user: /** @type {number} */ (value.user),
+		user,
 		board: /** @type {ClemenpineLayout['board']} */ (value.board),
 		modifiedAt: value.modified_at,
 		keys,
@@ -203,21 +219,17 @@ export function parseClemenpineLayouts(json) {
 	return { layouts, skipped: 0 };
 }
 
-/** @param {unknown} json @returns {Record<string, number>} */
+/** @param {unknown} json @returns {Record<string, string>} */
 export function parseClemenpineAuthors(json) {
 	if (!isRecord(json)) {
 		throw new Error('Clemenpine authors payload must be an object of name → user id');
 	}
 
-	/** @type {[string, number][]} */
+	/** @type {[string, string][]} */
 	const entries = [];
 	for (const [name, id] of Object.entries(json)) {
-		if (!name || !Number.isFinite(id) || !Number.isInteger(id)) {
-			throw new Error(
-				`Clemenpine author ${JSON.stringify(name)} must have a finite integer user id`
-			);
-		}
-		entries.push([name, /** @type {number} */ (id)]);
+		if (!name) throw new Error('Clemenpine author names must be non-empty strings');
+		entries.push([name, parseId(id, `Clemenpine author ${JSON.stringify(name)}`)]);
 	}
 	return Object.fromEntries(entries.sort(([left], [right]) => left.localeCompare(right)));
 }
@@ -305,6 +317,15 @@ function readSnapshotMeta(snapshot) {
 	} catch {
 		return null;
 	}
+}
+
+/** @param {ClemenpineSnapshot} snapshot */
+function snapshotUsesCurrentEndpoints(snapshot) {
+	return (
+		snapshot.layoutsUrl === CLEMENPINE_LAYOUTS_URL &&
+		snapshot.authorsUrl === CLEMENPINE_AUTHORS_URL &&
+		snapshot.metaUrl === CLEMENPINE_META_URL
+	);
 }
 
 /** @param {ClemenpineMeta} left @param {ClemenpineMeta} right */
@@ -451,14 +472,22 @@ export async function ensureClemenpineCatalog(options = {}) {
 			);
 		}
 
-		if (!options.force && previous && previousMeta && meta && metaIsEqual(previousMeta, meta)) {
+		const endpointsChanged = previous ? !snapshotUsesCurrentEndpoints(previous.snapshot) : false;
+		if (
+			!options.force &&
+			previous &&
+			!endpointsChanged &&
+			previousMeta &&
+			meta &&
+			metaIsEqual(previousMeta, meta)
+		) {
 			console.log(`  ✔ Clemenpine revision unchanged: ${meta.revision}`);
 			return { json: previous.parsed, updated: false, fromCache: false };
 		}
 
 		let layoutsChanged = true;
 		let authorsChanged = true;
-		if (!options.force && previous && previousMeta && meta) {
+		if (!options.force && previous && !endpointsChanged && previousMeta && meta) {
 			layoutsChanged =
 				previousMeta.layouts_modified_at !== meta.layouts_modified_at ||
 				previousMeta.layout_count !== meta.layout_count;
@@ -506,7 +535,9 @@ export async function ensureClemenpineCatalog(options = {}) {
 			JSON.stringify(previous.snapshot.authors) === JSON.stringify(authorsJson);
 		const storedMeta = metaJson ?? (dataUnchanged ? previous?.snapshot.meta : undefined);
 		const snapshotUnchanged =
-			dataUnchanged && JSON.stringify(previous?.snapshot.meta) === JSON.stringify(storedMeta);
+			!endpointsChanged &&
+			dataUnchanged &&
+			JSON.stringify(previous?.snapshot.meta) === JSON.stringify(storedMeta);
 		if (snapshotUnchanged) {
 			console.log(`  ✔ Unchanged: ${snapshotPath}`);
 			return { json: parsed, updated: false, fromCache: false };

@@ -9,7 +9,7 @@ import {
 function makeLayout(name: string): LayoutData {
 	return {
 		name,
-		user: 1,
+		user: '1',
 		board: 'angle',
 		keys: {},
 		positionBySlot: new Map(),

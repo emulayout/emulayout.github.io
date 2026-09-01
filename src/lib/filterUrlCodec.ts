@@ -23,6 +23,7 @@ import {
 	type StatLimit,
 	type ViewFilterSnapshot
 } from './filterSnapshot';
+import type { AuthorId } from './layout';
 
 /** Canonical view-owned filter parameters. */
 export const VIEW_FILTER_URL_PARAMS = [
@@ -231,7 +232,7 @@ export function writeViewFilterUrlState(
 }
 
 /** Index query that shows only layouts by one catalog author. */
-export function authorFilterIndexSearch(authorId: number): string {
+export function authorFilterIndexSearch(authorId: AuthorId): string {
 	const snapshot = createDefaultViewSnapshot();
 	snapshot.selectedAuthors = [authorId];
 	return encodeViewFilterSnapshot(snapshot);
@@ -331,10 +332,7 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 
 	const authors = params.get('authors');
 	if (authors) {
-		snapshot.selectedAuthors = authors
-			.split(',')
-			.map(Number)
-			.filter((id) => Number.isFinite(id));
+		snapshot.selectedAuthors = authors.split(',').filter((id) => /^\d+$/.test(id));
 	}
 
 	const includeLeftThumbs = params.get('includeLeftThumbs');

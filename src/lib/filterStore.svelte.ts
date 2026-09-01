@@ -32,7 +32,7 @@ import {
 	type FingerWorkloadHandPreference,
 	type FingerWorkloadLevel
 } from './fingerWorkload';
-import type { LayoutData, LayoutLikesMap, StatsMaps } from './layout';
+import type { AuthorId, LayoutData, LayoutLikesMap, StatsMaps } from './layout';
 import type { SimilarityMirrorMode } from './layoutSimilarity';
 import type { FilterFocusRequest } from './filterFocus';
 import {
@@ -148,7 +148,7 @@ export class FilterStore {
 	boardTypeFilter: BoardTypeFilter = $state('all');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
-	selectedAuthors: SvelteSet<number> = new SvelteSet(); // Set of author user IDs
+	selectedAuthors: SvelteSet<AuthorId> = new SvelteSet(); // Set of author user IDs
 	/** Layouts checked for selected-source filtering, comparison, and view creation. */
 	selectedLayoutNames: SvelteSet<string> = new SvelteSet();
 	/** When `selected`, other filters run only over selected layouts. */
@@ -1148,7 +1148,7 @@ export class FilterStore {
 		this.#debouncedSave();
 	}
 
-	toggleAuthor(authorId: number) {
+	toggleAuthor(authorId: AuthorId) {
 		this.#trackFilter('author');
 		if (this.selectedAuthors.has(authorId)) {
 			this.selectedAuthors.delete(authorId);

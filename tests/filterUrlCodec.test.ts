@@ -54,7 +54,7 @@ describe('view filter URL codec', () => {
 		snapshot.characterSetFilter = 'international';
 		snapshot.boardTypeFilter = 'ortho';
 		snapshot.nameFilter = 'Canary & Friends';
-		snapshot.selectedAuthors = [12, 34];
+		snapshot.selectedAuthors = ['12', '34'];
 		snapshot.sortBy = 'name';
 		snapshot.sortOrder = 'asc';
 		snapshot.similarReferenceName = 'Graphite';
@@ -93,7 +93,7 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.boardTypeFilter).toBe('ortho');
 		expect(decoded.snapshot.nameFilterInput).toBe('Canary & Friends');
 		expect(decoded.snapshot.nameFilter).toBe('Canary & Friends');
-		expect(decoded.snapshot.selectedAuthors).toEqual([12, 34]);
+		expect(decoded.snapshot.selectedAuthors).toEqual(['12', '34']);
 		expect(decoded.snapshot.sortBy).toBe('name');
 		expect(decoded.snapshot.sortOrder).toBe('asc');
 		expect(decoded.snapshot.sortOrderManual).toBe(false);
@@ -240,7 +240,7 @@ describe('view filter URL codec', () => {
 	});
 
 	test('encodes a Discover query for one catalog author', () => {
-		expect(authorFilterIndexSearch(42)).toBe('authors=42');
+		expect(authorFilterIndexSearch('9007199254740993')).toBe('authors=9007199254740993');
 	});
 });
 

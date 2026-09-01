@@ -12,14 +12,14 @@
 	} from '$lib/activeFiltersAdjust';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import type { KeyFilterKind } from '$lib/filterFocus';
-	import type { LayoutData } from '$lib/layout';
+	import type { AuthorId, LayoutData } from '$lib/layout';
 	import { analyzerShortLabel, STAT_ANALYZERS, type StatsAnalyzer } from '$lib/statsAnalyzers';
 	import type { StatLimitKey } from '$lib/statsFiltering';
 
 	interface Props {
 		snapshot: ActiveFiltersSnapshot;
 		layouts: LayoutData[];
-		authorList: Array<{ id: number; name: string }>;
+		authorList: Array<{ id: AuthorId; name: string }>;
 		authorOpenSeq?: number;
 	}
 

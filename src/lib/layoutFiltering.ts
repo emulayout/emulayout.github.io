@@ -1,4 +1,5 @@
 import type {
+	AuthorId,
 	CyanophageStats,
 	LayoutData,
 	LayoutLikesMap,
@@ -60,7 +61,7 @@ export interface LayoutFilterCriteria {
 	characterSetFilter: CharacterSetFilter;
 	boardTypeFilter: BoardTypeFilter;
 	nameFilter: string;
-	selectedAuthors: ReadonlySet<number>;
+	selectedAuthors: ReadonlySet<AuthorId>;
 	includeGrid: string[][];
 	excludeGrid: string[][];
 	includeOrGrid: string[][];

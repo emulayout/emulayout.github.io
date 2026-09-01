@@ -10,10 +10,10 @@
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { afterPaint, focusFilterControl, peekFilterFocusRequest } from '$lib/focusFilterControl';
-	import type { LayoutData } from '$lib/layout';
+	import type { AuthorId, LayoutData } from '$lib/layout';
 
 	interface Props {
-		authorList: Array<{ id: number; name: string }>;
+		authorList: Array<{ id: AuthorId; name: string }>;
 		layouts: LayoutData[];
 	}
 

@@ -27,7 +27,7 @@ export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
 
 /** @typedef {[
  *   string,
- *   number,
+ *   string,
  *   number,
  *   string,
  *   number,

@@ -1,4 +1,9 @@
-import type { LayoutData, LayoutLikesMap, StatsMaps } from '$lib/layout';
+import {
+	normalizeAuthorsMap,
+	type LayoutData,
+	type LayoutLikesMap,
+	type StatsMaps
+} from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { deserializeFingerWorkload, parseStatLimitsParam } from '$lib/filterUrlCodec';
 import {
@@ -57,7 +62,7 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
-	const authorsData: Record<string, number> = await authorsResponse.json();
+	const authorsData = normalizeAuthorsMap(await authorsResponse.json());
 	const supplemental: LayoutSupplementalByLayout = supplementalResponse.ok
 		? await supplementalResponse.json()
 		: {};
