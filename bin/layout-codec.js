@@ -2,15 +2,16 @@
 
 import { encodeThumbHands } from './layout-transformer.js';
 
-/** @type {readonly ['angle', 'stagger', 'ortho', 'mini']} */
-export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini'];
+/** @type {readonly ['angle', 'stagger', 'ortho', 'mini', 'unknown']} */
+export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini', 'unknown'];
 
 /** @type {Record<(typeof BOARD_TYPES)[number], number>} */
 export const BOARD_CODE = {
 	angle: 0,
 	stagger: 1,
 	ortho: 2,
-	mini: 3
+	mini: 3,
+	unknown: 4
 };
 
 export const LAYOUT_FLAG_THUMB_KEYS = 1;
@@ -42,7 +43,16 @@ export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
  * @returns {CompactLayout}
  */
 export function encodeLayout(layout) {
-	const entries = Object.entries(layout.keys ?? {});
+	const entries = Array.isArray(layout.positions)
+		? layout.positions.map((position) => [position.char, position])
+		: Object.entries(layout.keys ?? {});
+	const thumbHands = Array.isArray(layout.positions)
+		? entries
+				.filter(([, info]) => info.row >= 3)
+				.sort((left, right) => left[1].col - right[1].col)
+				.map(([, info]) => info.thumbHand ?? (info.col < 5 ? 'l' : 'r'))
+				.join('')
+		: encodeThumbHands(layout.keys);
 	let flags = 0;
 
 	if (layout.hasThumbKeys) flags |= LAYOUT_FLAG_THUMB_KEYS;
@@ -68,7 +78,7 @@ export function encodeLayout(layout) {
 		entries.map(([key]) => key),
 		entries.map(([, info]) => info.row),
 		entries.map(([, info]) => info.col),
-		encodeThumbHands(layout.keys) || undefined
+		thumbHands || undefined
 	];
 }
 

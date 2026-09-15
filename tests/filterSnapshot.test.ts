@@ -72,6 +72,7 @@ describe('normalizeViewFilterSnapshot', () => {
 			includeGrid: [['a']],
 			includeLeftThumbKeys: ['e'],
 			nameFilterInput: 'Canary',
+			boardTypeFilter: 'unknown',
 			selectedAuthors: [12, 'invalid', Number.NaN],
 			similarityFilterValue: '72',
 			sortBy: 'cyano-sfb',
@@ -91,6 +92,7 @@ describe('normalizeViewFilterSnapshot', () => {
 		expect(snapshot.includeLeftThumbKeys).toEqual(['e', '', '', '']);
 		expect(snapshot.appliedIncludeLeftThumbKeys).toEqual(snapshot.includeLeftThumbKeys);
 		expect(snapshot.nameFilter).toBe('Canary');
+		expect(snapshot.boardTypeFilter).toBe('unknown');
 		expect(snapshot.selectedAuthors).toEqual(['12']);
 		expect(snapshot.appliedSimilarityFilterValue).toBe('72');
 		expect(snapshot.sortBy).toBe('cyano-sfb');

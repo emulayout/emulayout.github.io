@@ -162,6 +162,7 @@
 				<option value="angle-stagger">Angle + stagger</option>
 				<option value="ortho">Ortho</option>
 				<option value="mini">Mini</option>
+				<option value="unknown">Unspecified</option>
 			</select>
 		</label>
 	{/if}

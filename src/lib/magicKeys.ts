@@ -142,20 +142,12 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 		}
 
 		const rules: Record<string, string> = Object.create(null);
-		const normalizedAfter = new Set<string>();
 		for (const [after, emit] of Object.entries(rawRules)) {
 			if (!after) throw new Error(`Magic key "${trigger}" has an empty preceding sequence`);
 			if (typeof emit !== 'string' || !emit) {
 				throw new Error(`Magic key "${trigger}" rule "${after}" must emit nonempty text`);
 			}
 
-			const normalized = after.toLowerCase();
-			if (normalizedAfter.has(normalized)) {
-				throw new Error(
-					`Magic key "${trigger}" repeats preceding sequence "${after}" when normalized`
-				);
-			}
-			normalizedAfter.add(normalized);
 			rules[after] = emit;
 		}
 
@@ -183,7 +175,7 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 		const rules: CompiledMagicKeyRule[] = [];
 
 		for (const [after, emit] of Object.entries(rawRules)) {
-			rules.push({ after: after.toLowerCase(), emit });
+			rules.push({ after, emit });
 			maxHistoryLength = Math.max(maxHistoryLength, Array.from(after).length);
 		}
 
@@ -206,11 +198,11 @@ export function resolveMagicKeyOutput(
 
 	const trigger = profile.triggers[inputText];
 	if (trigger) {
-		const normalizedHistory = trimContext(inputHistory.toLowerCase(), profile.maxHistoryLength);
+		const recentHistory = trimContext(inputHistory, profile.maxHistoryLength);
 		const rule = trigger.rules.find(
 			({ after }) =>
 				!disabledMappingIds?.has(magicRuleMappingId(inputText, after)) &&
-				normalizedHistory.endsWith(after)
+				recentHistory.endsWith(after)
 		);
 		if (rule) return { text: rule.emit, matched: true };
 

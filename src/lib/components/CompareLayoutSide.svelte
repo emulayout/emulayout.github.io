@@ -112,7 +112,7 @@
 			{/if}
 		</div>
 		<p class="compare-side-sub layout-meta" style="color: var(--text-secondary);">
-			{layout.board} · by {authorName} · {updatedLabel}
+			{layout.board === 'unknown' ? 'Board unspecified' : layout.board} · by {authorName} · {updatedLabel}
 		</p>
 	</div>
 

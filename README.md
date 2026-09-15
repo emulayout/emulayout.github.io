@@ -2,7 +2,7 @@
 
 **A workbench for exploring alternative keyboard layouts.**
 
-Search the community-maintained [cmini](https://github.com/Apsu/cmini) catalog, narrow it down with
+Search the community-maintained [AKLDB](https://akldb.org/docs) catalog, narrow it down with
 position-aware filters and analyzer statistics, compare promising layouts, and type on them
 directly in the browser.
 
@@ -90,7 +90,7 @@ individual `*-stats-sync` scripts) after the catalog exists.
 
 ```sh
 bun run sync                              # interactive: choose targets + refresh mode
-bun run ./bin/catalog-sync.js             # Clemenpine API → catalog artifacts
+bun run ./bin/catalog-sync.js             # AKLDB API → catalog artifacts
 bun run ./bin/cmini-stats-sync.js         # akl.gg → cmini stats
 bun run ./bin/mana2-stats-sync.js         # akl.gg → Mana2 stats
 bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
@@ -106,8 +106,8 @@ bun run sync -- --catalog --cmini-stats --mana2-stats --cyanophage --details
 bun run sync -- --all --offline
 ```
 
-Catalog sync fetches the live [Clemenpine](https://clemenpine.com) layout API and writes layout
-metadata under `static/`, excluding layouts that
+Catalog sync fetches the live [AKLDB](https://akldb.org/docs) API in its canonical `spark/1` format
+and writes layout metadata under `static/`, excluding layouts that
 akl.gg's [meme filter](https://akl.gg/api/) marks for the Monkeyracer corpus
 (incomplete, or row-staggered Fspeed above the corpus cutoff). Override with
 `--meme-corpus=NAME` or `CMINIBROWSER_MEME_FILTER_CORPUS`. cmini and Mana2 stats are imported from
@@ -139,26 +139,28 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 
 ## Generated data
 
-`bin/catalog-sync.js` fetches layouts and authors from the
-[Clemenpine catalog API](https://clemenpine.com/layoutapi/v3/layouts?full=1), caches them under
-`.cache/clemenpine`, downloads akl.gg's `meme_filter.json` and
-[`magic_rules_export.json`](https://akl.gg/data/magic_rules_export.json), and writes the
-layout catalog, likes, and generated behavior payload under `static/` with meme-tier layouts omitted.
-A normal online sync checks
-[Clemenpine metadata](https://clemenpine.com/layoutapi/v3/meta) first and downloads
-only the layout or author resource whose modification timestamp changed. If metadata is unavailable,
-it checks both full resources instead. A failed, timed-out, malformed, schema-incompatible, or
-internally inconsistent API response keeps the last good cache and published catalog in place. Any
-structurally valid, internally consistent response is authoritative regardless of layout or author
-additions, changes, and deletions. Layouts and authors are validated and replaced together as one
-atomic snapshot; the four published catalog artifacts are prepared together and rolled back if a
-write fails. Layout author IDs, author-map values, and like user IDs remain decimal strings so their
-full precision is preserved. Likes currently come from the `likes` arrays on layout records (there is no dedicated
-likes endpoint yet). Emulayout publishes only each array's length; the user IDs in the array are not
-retained in generated site data.
-akl.gg is the sole source for Magic-key mappings and Adaptive swaps. A rule-free `@` whose
-exported default is `repeat_previous` remains Emulayout's dedicated Repeat behavior; mapped `@`
-rules override it.
+`bin/catalog-sync.js` fetches layouts, authors, and metadata from the
+[AKLDB API](https://akldb.org/docs), caching one coordinated snapshot under `.cache/akldb`. Spark
+keys remain ordered positions, including free positions and repeated character labels. Emulayout
+also requests AKLDB's derived `mana2/1` view solely to lower contextual Magic and chiral rules into
+the current typing engine; Adaptive swaps and trigger identity come from the stored Spark payload.
+The sync downloads akl.gg's `meme_filter.json` separately and writes the layout catalog, likes, and
+behavior payload under `static/` with meme-tier layouts omitted.
+
+A normal online sync compares AKLDB metadata before and after downloading the full projections and
+authors. A failed, timed-out, malformed, schema-incompatible, drifting, or internally inconsistent
+response keeps the last good cache and published catalog in place. Any structurally valid,
+internally consistent response is authoritative regardless of additions, changes, and deletions.
+The snapshot and four published catalog artifacts are each replaced atomically. Layout owner IDs,
+author-map values, and like user IDs remain decimal strings so their full precision is preserved.
+Likes come from each layout's `likes` array; only the count is published.
+
+AKLDB's current `spark/1` schema does not identify a board. Imported layouts therefore use an
+explicit `unknown` board instead of inferring one from key positions. The UI uses neutral ortholinear
+geometry for previews, labels the board as unspecified, and withholds board-dependent Cyanophage
+statistics until AKLDB defines that field or Emulayout adopts a separate authoritative source. A
+rule-free conventional `@` remains Emulayout's dedicated Repeat behavior; mapped `@` rules override
+it.
 
 Analyzer artifacts are produced by separate scripts:
 
@@ -170,7 +172,7 @@ Analyzer artifacts are produced by separate scripts:
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
 
 The dump-backed sync scripts accept `--force` (unconditional re-download), `--offline` (reuse
-`.cache/cminibrowser/` and `.cache/clemenpine/`), and `--corpus=NAME` (single corpus). Online
+`.cache/cminibrowser/` and `.cache/akldb/`), and `--corpus=NAME` (single corpus). Online
 akl.gg syncs use conditional requests (ETag / Last-Modified) so unchanged dumps are not
 re-downloaded. The top-level `bun run sync` wrapper accepts task selections plus `--force` or
 `--offline`, but deliberately runs all configured corpora so the generated site and per-layout

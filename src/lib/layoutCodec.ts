@@ -7,14 +7,16 @@ export const BOARD_TYPES = [
 	'angle',
 	'stagger',
 	'ortho',
-	'mini'
+	'mini',
+	'unknown'
 ] as const satisfies readonly BoardType[];
 
 export const BOARD_CODE: Record<BoardType, number> = {
 	angle: 0,
 	stagger: 1,
 	ortho: 2,
-	mini: 3
+	mini: 3,
+	unknown: 4
 };
 
 export const LAYOUT_FLAG_THUMB_KEYS = 1;
@@ -92,15 +94,17 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		if (rows[i] >= THUMB_ROW) {
 			thumbIndices.push(i);
 		}
-		keys[keyChars[i]] = keyInfo;
-		positionBySlot.set(positionSlotKey(rows[i], cols[i]), keyChars[i]);
+		const key = keyChars[i];
+		if (key) keys[key] = keyInfo;
+		positionBySlot.set(positionSlotKey(rows[i], cols[i]), key ?? '');
 	}
 
 	if (thumbHands && thumbIndices.length > 0) {
 		thumbIndices.sort((a, b) => cols[a] - cols[b]);
 		for (let j = 0; j < thumbIndices.length; j++) {
 			const hand = thumbHands[j] === 'r' ? 'r' : 'l';
-			keys[keyChars[thumbIndices[j]]].thumbHand = hand;
+			const key = keyChars[thumbIndices[j]];
+			if (key && keys[key]) keys[key].thumbHand = hand;
 		}
 	}
 
@@ -116,7 +120,8 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 				: cols[index] < THUMB_SPLIT_COL
 					? 'l'
 					: 'r';
-		thumbKeysByHand[hand].push({ key: keyChars[index].toLowerCase(), col: cols[index] });
+		const key = keyChars[index];
+		if (key) thumbKeysByHand[hand].push({ key: key.toLowerCase(), col: cols[index] });
 	}
 
 	return {

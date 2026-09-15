@@ -10,6 +10,9 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 /** Shown when a layout cannot be linked or measured faithfully in Cyanophage. */
 export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
 
+/** Shown while AKLDB deliberately leaves physical board choice to its readers. */
+export const CYANOPHAGE_BOARD_UNSPECIFIED_LABEL = 'Board unspecified for Cyanophage';
+
 /**
  * Shown when a layout has a Magic key but Cyanophage cannot model its exported mappings
  * before Emulayout will measure it.
@@ -21,9 +24,13 @@ export const CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL = 'Cyanophage stats need M
  * label when both apply (layouts with `*` are also playground-incompatible).
  */
 export function getCyanophageStatsUnavailableReason(layout: {
+	board?: string;
 	cyanophageCompatible: boolean;
 	cyanophageStatsNeedMagicMappings: boolean;
 }): string | undefined {
+	if (layout.board === 'unknown') {
+		return CYANOPHAGE_BOARD_UNSPECIFIED_LABEL;
+	}
 	if (layout.cyanophageStatsNeedMagicMappings) {
 		return CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL;
 	}

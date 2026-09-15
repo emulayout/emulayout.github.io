@@ -233,12 +233,12 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(profile.repeatKey).toBeUndefined();
 	});
 
-	test('consumes an unmatched trigger and matches preceding letters case-insensitively', () => {
+	test('consumes an unmatched trigger and matches preceding text exactly', () => {
 		const profile = compileLayoutInputProfile({
-			magicKeys: { mappings: { '*': { a: 'o' } } }
+			magicKeys: { mappings: { '*': { a: 'o', A: 'O' } } }
 		});
 
-		expect(typeLogicalKeys(profile, ['A', '*']).text).toBe('Ao');
+		expect(typeLogicalKeys(profile, ['A', '*']).text).toBe('AO');
 		// The unmatched press types nothing and leaves history alone, so the
 		// following trigger still matches the letter typed after it.
 		expect(typeLogicalKeys(profile, ['x', '*', 'a', '*']).text).toBe('xao');
@@ -332,12 +332,10 @@ describe('magic-key resolution through the unified engine', () => {
 		);
 	});
 
-	test('rejects malformed and case-ambiguous profiles', () => {
+	test('rejects malformed profiles while allowing case-distinct contexts', () => {
 		expect(() => validateMagicKeyMappings({ '*': null })).toThrow('rules must be an object');
 		expect(() => validateMagicKeyMappings({ '*': {} })).toThrow('must have at least one rule');
-		expect(() => validateMagicKeyMappings({ '*': { A: 'x', a: 'y' } })).toThrow(
-			'repeats preceding sequence'
-		);
+		expect(() => validateMagicKeyMappings({ '*': { A: 'x', a: 'y' } })).not.toThrow();
 		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: 'unknown' } })).toThrow(
 			'fallback must be "repeat-last", "no-op", or { "emit": "text" }'
 		);

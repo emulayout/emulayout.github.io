@@ -1,17 +1,13 @@
 #!/usr/bin/env bun
 
 /**
- * Compute Cyanophage effort stats for layouts in the Clemenpine catalog cache.
+ * Compute Cyanophage effort stats for layouts in the AKLDB catalog cache.
  *
- * Requires a prior catalog-sync so `.cache/clemenpine/layouts-full.json` exists.
- * Reads canonical Magic mappings from AKL when present.
+ * AKLDB's current Spark format does not identify a presentation board, so
+ * layouts remain unmeasurable here until that open product question is resolved.
  */
 
 import { access, mkdir } from 'node:fs/promises';
-import {
-	loadCminibrowserMagicRules,
-	supplementalByLowerLayoutId
-} from './cminibrowser-magic-rules.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -20,7 +16,8 @@ import {
 import { defaultMagicMappings } from './layout-features.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
 import { parseOfflineForceArgs, writeTextFileIfChanged } from './sync-shared.js';
-import { readCachedClemenpineLayouts } from './clemenpine-cache.js';
+import { readCachedAkldbLayouts } from './akldb-cache.js';
+import { supplementalFromAkldbLayout } from './akldb-spark.js';
 
 const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
 
@@ -42,8 +39,8 @@ async function run() {
 		return;
 	}
 
-	console.log('→ Loading Clemenpine layouts cache...');
-	const { layouts } = await readCachedClemenpineLayouts();
+	console.log('→ Loading AKLDB layouts cache...');
+	const { layouts } = await readCachedAkldbLayouts();
 
 	console.log(`→ Loading ${CYANOPHAGE_ANALYZER} analyzer data...`);
 	const cyanophageData = await loadCyanophageData();
@@ -53,16 +50,9 @@ async function run() {
 		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
 	});
 	console.log('→ Loading AKL inputs...');
-	const [memeFilter, magicRules] = await Promise.all([
-		loadMemeFilterExclusions({ offline, force }),
-		loadCminibrowserMagicRules({ offline, force })
-	]);
+	const memeFilter = await loadMemeFilterExclusions({ offline, force });
 	const excludedLayouts = memeFilter.excluded;
-	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
 	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
-	console.log(
-		`  ✔ Magic and Adaptive mappings for ${magicRules.supplementalByLayoutId.size} layouts`
-	);
 
 	/** @type {Record<string, number[]>} */
 	const cyanophageStats = {};
@@ -71,7 +61,7 @@ async function run() {
 	let filtered = 0;
 
 	/**
-	 * @param {import('./clemenpine-cache.js').ClemenpineLayout} layout
+	 * @param {import('./akldb-cache.js').AkldbLayout} layout
 	 */
 	function processLayout(layout) {
 		if (isExcludedLayout(layout.name, excludedLayouts)) {
@@ -79,13 +69,12 @@ async function run() {
 			return null;
 		}
 
-		const rawLayout = {
-			name: layout.name,
-			user: layout.user,
-			board: layout.board,
-			keys: layout.keys
-		};
-		const variants = supplementalByLowerId.get(layout.name.toLowerCase())?.variants ?? [];
+		const rawLayout = { name: layout.name, user: layout.owner, board: 'unknown', keys: {} };
+		for (const key of layout.keys) {
+			if (key.char) rawLayout.keys[key.char] = { row: key.row, col: key.col };
+		}
+		const variants = supplementalFromAkldbLayout(layout).supplemental?.variants ?? [];
+		if (rawLayout.board === 'unknown') return { name: rawLayout.name, stats: null };
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
 			magicMappings: defaultMagicMappings(variants)
 		});

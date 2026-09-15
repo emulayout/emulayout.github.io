@@ -5,7 +5,8 @@ export interface KeyInfo {
 	thumbHand?: 'l' | 'r';
 }
 
-export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini';
+/** Catalog board identity. AKLDB's current Spark format intentionally omits it. */
+export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini' | 'unknown';
 export type AuthorId = string;
 export type AuthorsMap = Record<string, AuthorId>;
 
@@ -51,7 +52,7 @@ export interface LayoutData {
 	cyanophageStatsNeedMagicMappings: boolean;
 	/** The layout is known to use adaptive swaps, whether or not mappings are available. */
 	hasAdaptiveSwap: boolean;
-	/** Curated adaptive-swap mappings are available in the input-behavior payload. */
+	/** AKLDB adaptive-swap mappings are available in the input-behavior payload. */
 	hasAdaptiveSwapMappings: boolean;
 	cyanophageCompatible: boolean;
 	/** Set when the layout has exactly one thumb key (cyanophage playground). */

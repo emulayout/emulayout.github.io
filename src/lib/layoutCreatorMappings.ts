@@ -362,7 +362,7 @@ function magicEmittedLetters(
 		const trigger = section.trigger.trim();
 		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 		for (const rule of section.rules) {
-			const after = rule.after.trim().toLowerCase();
+			const after = rule.after.trim();
 			if (!after || !rule.emit.trim() || disabledIds.has(magicRuleMappingId(trigger, after))) {
 				continue;
 			}
@@ -443,14 +443,13 @@ export function magicSourceFromDraft(
 		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 
 		const current = byTrigger.get(trigger) ?? { rules: {} };
-		const seen = new Set(Object.keys(current.rules).map((after) => after.toLowerCase()));
+		const seen = new Set(Object.keys(current.rules));
 		for (const rule of section.rules) {
 			const after = rule.after.trim();
 			const emit = rule.emit;
 			if (!after || !emit.trim()) continue;
-			const normalized = after.toLowerCase();
-			if (seen.has(normalized) || current.rules[after] !== undefined) continue;
-			seen.add(normalized);
+			if (seen.has(after) || current.rules[after] !== undefined) continue;
+			seen.add(after);
 			current.rules[after] = emit;
 		}
 

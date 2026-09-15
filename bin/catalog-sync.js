@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
 /**
- * Sync the Clemenpine catalog API and publish layout catalog artifacts:
+ * Sync the AKLDB catalog API and publish layout catalog artifacts:
  * all-layouts, supplemental, likes, authors.
  *
  * Does not import analyzer stats or compute Cyanophage metrics.
- * Use --offline to skip the API and reuse `.cache/clemenpine`.
+ * Use --offline to skip the API and reuse `.cache/akldb`.
  *
  * A failed or incomplete API response never replaces the last good cache or
  * published catalog. When a previous catalog exists, the script keeps it and
@@ -21,8 +21,7 @@ import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
 import {
 	defaultMagicMappings,
 	hasAdaptiveSwapMappings,
-	hasMagicKeyMappings,
-	hasRepeatKey
+	hasMagicKeyMappings
 } from './layout-features.js';
 import {
 	LAYOUTS_FILE,
@@ -32,16 +31,13 @@ import {
 } from './sync-shared.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
 import {
-	loadCminibrowserMagicRules,
-	supplementalByLowerLayoutId
-} from './cminibrowser-magic-rules.js';
-import {
-	CLEMENPINE_SYNCED_HASH_FILE,
-	ClemenpineCatalogUnavailableError,
+	AKLDB_SYNCED_HASH_FILE,
+	AkldbCatalogUnavailableError,
 	deriveLayoutLikes,
-	ensureClemenpineCatalog,
-	hashCachedClemenpineSources
-} from './clemenpine-cache.js';
+	ensureAkldbCatalog,
+	hashCachedAkldbSources
+} from './akldb-cache.js';
+import { supplementalFromAkldbLayout } from './akldb-spark.js';
 
 const SUPPLEMENTAL_FILE = 'static/layout-supplemental.json';
 const LIKES_FILE = 'static/layout-likes.json';
@@ -139,29 +135,29 @@ function errorMessage(error) {
 }
 
 /**
- * @param {import('./clemenpine-cache.js').ClemenpineLayout} layout
+ * @param {import('./akldb-cache.js').AkldbLayout} layout
  * @param {Set<string>} excludedLayouts
- * @param {ReadonlyMap<string, import('../src/lib/layoutSupplemental.ts').LayoutSupplemental>} supplementalByLowerId
  */
-function encodeCatalogLayout(layout, excludedLayouts, supplementalByLowerId) {
+function encodeCatalogLayout(layout, excludedLayouts) {
 	if (isExcludedLayout(layout.name, excludedLayouts)) return null;
 
 	const rawLayout = {
 		name: layout.name,
-		user: layout.user,
-		board: layout.board,
-		keys: layout.keys
+		user: layout.owner,
+		board: 'unknown',
+		positions: layout.keys
 	};
 	const transformedLayout = transformLayout(rawLayout);
-	const supplemental = supplementalByLowerId.get(layout.name.toLowerCase());
+	const { supplemental, repeatTrigger } = supplementalFromAkldbLayout(layout);
 	const variants = supplemental?.variants ?? [];
-	transformedLayout.updatedAt = layout.modifiedAt;
+	transformedLayout.updatedAt =
+		layout.formatModifiedAt > layout.modifiedAt ? layout.formatModifiedAt : layout.modifiedAt;
 	transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
 	transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
-	transformedLayout.hasRepeatKey = hasRepeatKey(rawLayout.keys, defaultMagicMappings(variants));
+	transformedLayout.hasRepeatKey = repeatTrigger;
 	transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
 		defaultMagicMappings(variants),
-		rawLayout.keys
+		transformedLayout.keys
 	);
 	transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
 	transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
@@ -179,12 +175,12 @@ async function run() {
 	const skipIfUnchanged =
 		argv.includes('--skip-if-unchanged') || process.env.CATALOG_SYNC_SKIP_IF_UNCHANGED === '1';
 
-	console.log('→ Loading Clemenpine catalog...');
+	console.log('→ Loading AKLDB catalog...');
 	let catalogResult;
 	try {
-		catalogResult = await ensureClemenpineCatalog({ offline, force });
+		catalogResult = await ensureAkldbCatalog({ offline, force });
 	} catch (error) {
-		if (error instanceof ClemenpineCatalogUnavailableError && (await hasPublishedCatalog())) {
+		if (error instanceof AkldbCatalogUnavailableError && (await hasPublishedCatalog())) {
 			console.error(`  ⚠ ${errorMessage(error)}`);
 			console.error('  Keeping the complete last published catalog.');
 			await writeCminiChangedOutput(false);
@@ -201,15 +197,15 @@ async function run() {
 	}
 	console.log(`  ✔ ${layouts.length} layouts, ${Object.keys(authors).length} authors`);
 
-	const sourceHash = await hashCachedClemenpineSources();
+	const sourceHash = await hashCachedAkldbSources();
 	let previousHash = null;
 	try {
-		previousHash = (await readFile(CLEMENPINE_SYNCED_HASH_FILE, 'utf-8')).trim();
+		previousHash = (await readFile(AKLDB_SYNCED_HASH_FILE, 'utf-8')).trim();
 	} catch {
 		// first successful sync after this marker existed
 	}
-	const cminiChanged = previousHash !== sourceHash;
-	await writeCminiChangedOutput(cminiChanged);
+	const catalogChanged = previousHash !== sourceHash;
+	await writeCminiChangedOutput(catalogChanged);
 
 	console.log('→ Loading AKL meme filter...');
 	const memeFilter = await loadMemeFilterExclusions({ offline, force, argv });
@@ -221,23 +217,9 @@ async function run() {
 			')'
 	);
 
-	console.log('→ Loading AKL Magic and Adaptive mappings...');
-	const magicRules = await loadCminibrowserMagicRules({ offline, force });
-	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
-	console.log(
-		`  ✔ Input mappings for ${magicRules.supplementalByLayoutId.size} layouts` +
-			(magicRules.updated ? ' (dump updated)' : '')
-	);
-
-	if (
-		!cminiChanged &&
-		!memeFilter.updated &&
-		!magicRules.updated &&
-		skipIfUnchanged &&
-		(await hasPublishedCatalog())
-	) {
+	if (!catalogChanged && !memeFilter.updated && skipIfUnchanged && (await hasPublishedCatalog())) {
 		console.log(
-			`✔ Clemenpine catalog and AKL inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
+			`✔ AKLDB catalog and AKL inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
 		);
 		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
@@ -254,19 +236,11 @@ async function run() {
 	console.log('→ Transforming layouts...');
 	await mkdir('static', { recursive: true });
 
-	const layoutNamesLower = new Set(layouts.map((layout) => layout.name.toLowerCase()));
-	for (const layoutId of magicRules.layoutIds) {
-		if (layoutNamesLower.has(layoutId.toLowerCase())) continue;
-		console.warn(
-			`  ⚠ AKL input mappings ${layoutId} have no matching catalog layout; skipping them`
-		);
-	}
-
 	const transformedLayouts = [];
 	const publishedSupplementalByName = new Map();
 
 	for (const layout of layouts) {
-		const result = encodeCatalogLayout(layout, excludedLayouts, supplementalByLowerId);
+		const result = encodeCatalogLayout(layout, excludedLayouts);
 		if (!result) continue;
 		transformedLayouts.push(result.encoded);
 		if (result.supplemental) {
@@ -340,7 +314,7 @@ async function run() {
 	}
 
 	await mkdir(join(process.cwd(), '.cache'), { recursive: true });
-	await writeFileAtomically(CLEMENPINE_SYNCED_HASH_FILE, `${sourceHash}\n`);
+	await writeFileAtomically(AKLDB_SYNCED_HASH_FILE, `${sourceHash}\n`);
 	await writeCatalogRebuiltOutput(true);
 	console.log('Done');
 }

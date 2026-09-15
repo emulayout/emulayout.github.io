@@ -175,7 +175,8 @@ const BOARD_TYPE_LABELS: Record<string, string> = {
 	stagger: 'Stagger',
 	'angle-stagger': 'Angle+stagger',
 	ortho: 'Ortho',
-	mini: 'Mini'
+	mini: 'Mini',
+	unknown: 'Unspecified'
 };
 
 const CHARSET_LABELS: Record<string, string> = {

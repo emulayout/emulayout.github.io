@@ -14,7 +14,14 @@ export type RepeatKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
-export type BoardTypeFilter = 'all' | 'angle' | 'stagger' | 'angle-stagger' | 'ortho' | 'mini';
+export type BoardTypeFilter =
+	| 'all'
+	| 'angle'
+	| 'stagger'
+	| 'angle-stagger'
+	| 'ortho'
+	| 'mini'
+	| 'unknown';
 export type StatLimitOperator = 'lt' | 'gt';
 
 export interface StatLimit {
@@ -425,7 +432,7 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 		),
 		boardTypeFilter: normalizeEnum<BoardTypeFilter>(
 			value.boardTypeFilter,
-			['all', 'angle', 'stagger', 'angle-stagger', 'ortho', 'mini'],
+			['all', 'angle', 'stagger', 'angle-stagger', 'ortho', 'mini', 'unknown'],
 			defaults.boardTypeFilter
 		),
 		nameFilterInput,

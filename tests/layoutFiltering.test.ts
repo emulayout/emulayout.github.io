@@ -155,6 +155,12 @@ describe('filterLayouts', () => {
 		});
 
 		expect(filterLayouts(layouts, criteria).map((layout) => layout.name)).toEqual(['Canary']);
+		expect(
+			filterLayouts(
+				[...layouts, makeLayout('Spark', { board: 'unknown' })],
+				makeCriteria({ boardTypeFilter: 'unknown' })
+			).map((layout) => layout.name)
+		).toEqual(['Spark']);
 	});
 
 	test('distinguishes all magic layouts from those with known mappings', () => {

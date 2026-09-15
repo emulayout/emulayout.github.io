@@ -16,7 +16,6 @@
 	import { getLayoutCardHeight } from '$lib/constants';
 	import {
 		CYANOPHAGE_ANALYZER,
-		CYANOPHAGE_UNSUPPORTED_LABEL,
 		CMINI_ANALYZER,
 		MANA2_ANALYZER,
 		getCyanophageStatsUnavailableReason,
@@ -241,7 +240,9 @@
 	const showCyanophageStats = $derived(showsCyanophageStats(displayedStatsAnalyzer));
 	const showMana2Stats = $derived(showsMana2Stats(displayedStatsAnalyzer));
 	const cyanophageLinkTitle = $derived(
-		layout.cyanophageCompatible ? 'View on Cyanophage' : CYANOPHAGE_UNSUPPORTED_LABEL
+		layout.cyanophageCompatible
+			? 'View on Cyanophage'
+			: (getCyanophageStatsUnavailableReason(layout) ?? 'Unavailable on Cyanophage')
 	);
 
 	const cminiLoading = $derived(showCminiStats && layoutStatsStore.isLoading(CMINI_ANALYZER));

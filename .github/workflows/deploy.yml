@@ -5,7 +5,7 @@ on:
     branches:
       - master
   schedule:
-    # Check Clemenpine metadata and akl.gg dumps every hour. The minute is
+    # Check AKLDB metadata and akl.gg analyzer dumps every hour. The minute is
     # intentionally offset from the top of the hour to reduce Actions congestion.
     - cron: '17 * * * *'
   workflow_dispatch:
@@ -50,9 +50,9 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: |
-            .cache/clemenpine
+            .cache/akldb
             .cache/cminibrowser
-            .cache/clemenpine-synced-hash
+            .cache/akldb-synced-hash
             static/all-layouts.json
             static/layout-supplemental.json
             static/authors.json
@@ -62,11 +62,11 @@ jobs:
             static/layout-stats-mana2-*.json
           # A unique primary key forces a restore-key lookup for the latest snapshot.
           # The post-sync save key is content-addressed, avoiding duplicate hourly caches.
-          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ github.run_id }}
+          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/akldb-cache.js', 'bin/akldb-spark.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-
+            ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/akldb-cache.js', 'bin/akldb-spark.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-
             ${{ runner.os }}-source-data-v2-
-            ${{ runner.os }}-clemenpine-
+            ${{ runner.os }}-akldb-
             ${{ runner.os }}-cmini-
 
       - name: Fingerprint current published data
@@ -78,8 +78,8 @@ jobs:
         run: bun run ./bin/catalog-sync.js
         env:
           CI: true
-          # Scheduled runs skip the catalog rebuild when Clemenpine payloads and
-          # the meme filter and input-mapping dumps are unchanged. Pushes always rebuild.
+          # Scheduled runs skip the catalog rebuild when AKLDB and the meme filter are
+          # unchanged. Pushes always rebuild.
           CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
       - name: Sync cmini stats
@@ -92,7 +92,7 @@ jobs:
         env:
           CI: true
           # Scheduled runs skip Cyanophage when catalog-sync itself skipped. Rebuild whenever
-          # Clemenpine or either akl.gg catalog input changed.
+          # AKLDB or the akl.gg meme-filter input changed.
           CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
           CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 
@@ -150,9 +150,9 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: |
-            .cache/clemenpine
+            .cache/akldb
             .cache/cminibrowser
-            .cache/clemenpine-synced-hash
+            .cache/akldb-synced-hash
             static/all-layouts.json
             static/layout-supplemental.json
             static/authors.json
@@ -160,7 +160,7 @@ jobs:
             static/layout-stats-cyanophage.json
             static/layout-stats-cmini-*.json
             static/layout-stats-mana2-*.json
-          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/clemenpine-cache.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/cminibrowser-magic-rules.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ steps.data_changes.outputs.cache_hash }}
+          key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/akldb-cache.js', 'bin/akldb-spark.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ steps.data_changes.outputs.cache_hash }}
 
       - name: Build
         if: steps.data_changes.outputs.should_deploy == 'true'

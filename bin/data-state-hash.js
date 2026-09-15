@@ -62,9 +62,9 @@ export async function hashDataState(scope) {
 		scope === 'cache'
 			? [
 					...artifacts,
-					resolve(ROOT, '.cache', 'clemenpine'),
+					resolve(ROOT, '.cache', 'akldb'),
 					resolve(ROOT, '.cache', 'cminibrowser'),
-					resolve(ROOT, '.cache', 'clemenpine-synced-hash')
+					resolve(ROOT, '.cache', 'akldb-synced-hash')
 				]
 			: artifacts;
 	const discovered = await Promise.all(roots.map(walkFiles));

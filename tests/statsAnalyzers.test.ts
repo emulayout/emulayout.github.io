@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	CMINI_ANALYZER,
 	CYANOPHAGE_ANALYZER,
+	CYANOPHAGE_BOARD_UNSPECIFIED_LABEL,
 	CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL,
 	CYANOPHAGE_UNSUPPORTED_LABEL,
 	DEFAULT_STATS_ANALYZER,
@@ -126,21 +127,31 @@ describe('stats analyzer catalog', () => {
 	test('prefers Magic-mappings explanation over unsupported characters', () => {
 		expect(
 			getCyanophageStatsUnavailableReason({
+				board: 'ortho',
 				cyanophageCompatible: false,
 				cyanophageStatsNeedMagicMappings: true
 			})
 		).toBe(CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL);
 		expect(
 			getCyanophageStatsUnavailableReason({
+				board: 'ortho',
 				cyanophageCompatible: false,
 				cyanophageStatsNeedMagicMappings: false
 			})
 		).toBe(CYANOPHAGE_UNSUPPORTED_LABEL);
 		expect(
 			getCyanophageStatsUnavailableReason({
+				board: 'ortho',
 				cyanophageCompatible: true,
 				cyanophageStatsNeedMagicMappings: false
 			})
 		).toBeUndefined();
+		expect(
+			getCyanophageStatsUnavailableReason({
+				board: 'unknown',
+				cyanophageCompatible: false,
+				cyanophageStatsNeedMagicMappings: true
+			})
+		).toBe(CYANOPHAGE_BOARD_UNSPECIFIED_LABEL);
 	});
 });

@@ -69,7 +69,9 @@
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<KeyboardSwapPathLayer>(EMPTY_KEYBOARD_SWAP_PATH_LAYER);
-	const orthoGeometry = $derived(layout.board === 'ortho' || layout.board === 'mini');
+	const orthoGeometry = $derived(
+		layout.board === 'ortho' || layout.board === 'mini' || layout.board === 'unknown'
+	);
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {

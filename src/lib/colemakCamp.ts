@@ -53,6 +53,8 @@ export function boardToColemakCampKeyboard(board: BoardType): string {
 			return 'ortho';
 		case 'mini':
 			return 'ortho';
+		case 'unknown':
+			return 'ortho';
 		default:
 			return 'ansi';
 	}

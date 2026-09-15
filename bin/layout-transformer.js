@@ -12,7 +12,8 @@ const SPLIT_COL = 5;
 
 /**
  * @typedef {{ row: number, col: number, finger?: string, thumbHand?: 'l' | 'r' }} LayoutKeyInfo
- * @typedef {{ name?: string, user?: unknown, board?: unknown, keys?: Record<string, LayoutKeyInfo> }} RawLayout
+ * @typedef {{ char?: string, row: number, col: number, finger?: string }} LayoutPosition
+ * @typedef {{ name?: string, user?: unknown, board?: unknown, keys?: Record<string, LayoutKeyInfo>, positions?: LayoutPosition[] }} RawLayout
  */
 
 /**
@@ -22,14 +23,23 @@ const SPLIT_COL = 5;
 export function transformLayout(layout) {
 	/** @type {Record<string, { row: number, col: number, thumbHand?: 'l' | 'r' }>} */
 	const keys = {};
+	/** @type {{ char: string, row: number, col: number, thumbHand?: 'l' | 'r' }[]} */
+	const positions = [];
+	const sourcePositions = Array.isArray(layout.positions)
+		? layout.positions.map((info) => [info.char ?? '', info])
+		: Object.entries(layout.keys ?? {});
 
-	if (layout.keys && typeof layout.keys === 'object') {
-		for (const [key, info] of Object.entries(layout.keys)) {
-			if (info && typeof info.row === 'number' && typeof info.col === 'number') {
-				keys[key] = { row: info.row, col: info.col };
-				if (info.row >= THUMB_ROW) {
-					keys[key].thumbHand = computeKeyThumbHand(info);
-				}
+	for (const [key, info] of sourcePositions) {
+		if (info && typeof info.row === 'number' && typeof info.col === 'number') {
+			const position = { char: key, row: info.row, col: info.col };
+			if (info.row >= THUMB_ROW) position.thumbHand = computeKeyThumbHand(info);
+			positions.push(position);
+			if (key) {
+				keys[key] = {
+					row: position.row,
+					col: position.col,
+					...(position.thumbHand ? { thumbHand: position.thumbHand } : {})
+				};
 			}
 		}
 	}
@@ -38,41 +48,24 @@ export function transformLayout(layout) {
 		name: layout.name,
 		user: layout.user,
 		board: layout.board,
-		keys
+		keys,
+		positions
 	};
 
 	return {
 		...stripped,
-		hasThumbKeys: computeHasThumbKeys(stripped),
-		characterSet: computeCharacterSet(Object.keys(keys)),
-		hasAllLetters: computeHasAllLetters(stripped),
+		hasThumbKeys: positions.some((position) => position.row >= THUMB_ROW),
+		characterSet: computeCharacterSet(positions.map((position) => position.char)),
+		hasAllLetters: computeHasAllLetters(positions),
 		// Catalog sync replaces this after joining AKL's canonical mappings.
 		hasMagicKey: false,
 		hasRepeatKey: hasRepeatKey(stripped.keys, undefined),
-		cyanophageCompatible: isCyanophageCompatible(keys),
-		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
+		cyanophageCompatible: layout.board !== 'unknown' && isCyanophageCompatible(keys),
+		cyanophageThumb:
+			layout.board !== 'unknown' && isCyanophageCompatible(keys)
+				? computeCyanophageThumb(layout)
+				: undefined
 	};
-}
-
-/**
- * Computes whether a layout has thumb keys (row 3 or higher).
- * A layout has thumb keys if it has keys in more than 3 rows (rows 0, 1, 2, 3+).
- * @param {RawLayout} layout
- */
-function computeHasThumbKeys(layout) {
-	if (!layout.keys || typeof layout.keys !== 'object') {
-		return false;
-	}
-
-	const rows = new Set();
-	for (const info of Object.values(layout.keys)) {
-		if (info && typeof info.row === 'number') {
-			rows.add(info.row);
-		}
-	}
-
-	// Has thumb keys if there are more than 3 unique rows (0, 1, 2, 3+)
-	return rows.size > 3;
 }
 
 /**
@@ -81,9 +74,10 @@ function computeHasThumbKeys(layout) {
  * @returns {'l' | 'r' | undefined}
  */
 function computeCyanophageThumb(layout) {
-	if (!layout.keys || typeof layout.keys !== 'object') return undefined;
-
-	const thumbs = Object.entries(layout.keys).filter(([, info]) => info && info.row >= 3);
+	const entries = Array.isArray(layout.positions)
+		? layout.positions.map((info) => [info.char ?? '', info])
+		: Object.entries(layout.keys ?? {});
+	const thumbs = entries.filter(([, info]) => info && info.row >= 3);
 	if (thumbs.length !== 1) return undefined;
 
 	const [, info] = thumbs[0];
@@ -132,16 +126,12 @@ function thumbHand(finger) {
 /**
  * Computes whether a layout has all letters a-z (case insensitive).
  * Returns true if all 26 letters are present in the layout keys, false otherwise.
- * @param {RawLayout} layout
+ * @param {{ char: string }[]} positions
  */
-function computeHasAllLetters(layout) {
-	if (!layout.keys || typeof layout.keys !== 'object') {
-		return false;
-	}
-
+function computeHasAllLetters(positions) {
 	// Set to track which letters we've found
 	const found = new Set();
-	for (const key of Object.keys(layout.keys)) {
+	for (const { char: key } of positions) {
 		if (!key) continue;
 		for (let i = 0; i < key.length; i++) {
 			const ch = key[i].toLowerCase();

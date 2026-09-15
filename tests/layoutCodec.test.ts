@@ -103,4 +103,27 @@ describe('layout codec flags', () => {
 		expect(englishWithDiamond.characterSet).toBe('english');
 		expect(internationalLetter.characterSet).toBe('international');
 	});
+
+	test('preserves AKLDB free positions, duplicate labels, and an unspecified board', () => {
+		const layout = decodeLayout([
+			'spark',
+			'9007199254740993',
+			4,
+			'2026-09-15T00:00:00Z',
+			0,
+			['a', '', 'a'],
+			[0, 0, 1],
+			[0, 1, 0]
+		]);
+
+		expect(layout.board).toBe('unknown');
+		expect(layout.positionBySlot).toEqual(
+			new Map([
+				['0,0', 'a'],
+				['0,1', ''],
+				['1,0', 'a']
+			])
+		);
+		expect(Object.keys(layout.keys)).toEqual(['a']);
+	});
 });

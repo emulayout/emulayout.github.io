@@ -10,14 +10,13 @@ For Magic-specific runtime and analyzer details, see
 
 ## Data ownership
 
-The canonical source for Magic-key and Adaptive-swap behavior is akl.gg's export:
+The canonical source for layouts, Magic-key intent, chiral-key intent, and Adaptive swaps is
+AKLDB's stored `spark/1` payload. Catalog sync also requests AKLDB's derived `mana2/1` projection so
+it can lower contextual Magic and chiral rules into Emulayout's current runtime representation. The
+derived projection is not treated as a second source of layout truth.
 
-```text
-https://akl.gg/data/magic_rules_export.json
-```
-
-`bin/cminibrowser-magic-rules.js` downloads the export through the shared conditional-request cache,
-adapts its schema, and publishes the existing client-facing payload during catalog sync:
+`bin/akldb-spark.js` adapts those two views and publishes the existing client-facing payload during
+catalog sync:
 
 ```json
 {
@@ -40,51 +39,48 @@ adapts its schema, and publishes the existing client-facing payload during catal
 }
 ```
 
-The export is keyed by the historical Cmini filename ID. Catalog sync resolves that ID
-case-insensitively to the Clemenpine catalog layout's display name when writing
-`static/layout-supplemental.json`; source entries without a matching catalog layout are warned about
-and skipped. `bin/layout-details.js` copies the matching normalized record into each generated
+The behavior is attached directly to each AKLDB layout record, so no name or historical filename
+join is required. `bin/layout-details.js` copies the matching normalized record into each generated
 per-layout detail payload as a delivery optimization.
 
 Emulayout has no local mapping files, mapping contribution workflow, variant selection, staleness
 metadata, or manually maintained Adaptive presence list. Updating the data means updating
-akl.gg's source. The importer still rejects a malformed export before it replaces the last
-good cached copy.
+AKLDB. The importer rejects malformed or mutually inconsistent Spark and Mana2 projections before
+it replaces the last good cached snapshot.
 
 ## Compact layout metadata
 
 The compact layout tuple retains its existing wire fields for compatibility:
 
-- `hasMagicKey`: akl.gg provides a Magic profile.
-- `hasRepeatKey`: the base layout contains `@` and akl.gg does not provide mapped `@` rules.
+- `hasMagicKey`: AKLDB provides a Magic or chiral profile.
+- `hasRepeatKey`: the base layout contains `@` and AKLDB does not provide mapped `@` rules.
 - `hasMagicKeyMappings`: same source boundary as `hasMagicKey`.
 - `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage.
-- `hasAdaptiveSwap`: akl.gg provides one or more Adaptive swaps.
+- `hasAdaptiveSwap`: AKLDB provides one or more Adaptive swaps.
 - `hasAdaptiveSwapMappings`: same source boundary as `hasAdaptiveSwap`.
 
-The presence and mapping-availability flags are now equal because the canonical export supplies both
+The presence and mapping-availability flags are now equal because the canonical snapshot supplies both
 facts together. The duplicate fields and `Require with known mappings` filter values remain to avoid
 a wire-format and saved-filter migration. The compact Repeat flag stays authoritative if the
 generated behavior payload cannot be loaded.
 
 ## Source adaptation
 
-akl.gg Magic rules store the complete contextual result. Emulayout stores only what pressing
+AKLDB's Mana2 projection stores the complete contextual result. Emulayout stores only what pressing
 the Magic key emits, so the importer removes the `after` prefix:
 
 ```json
 { "after": "c", "output": "ck" }
 ```
 
-becomes `"c": "k"`. `default: "repeat_previous"` becomes `"repeat-last"`, `default: "none"`
-becomes `"no-op"`, and any other default becomes a fixed emit fallback. Multiple Magic triggers and
-multi-character contexts remain supported.
+becomes `"c": "k"`. Spark identifies Magic and chiral triggers while Mana2 supplies their flattened
+contextual rules. Multiple triggers and multi-character contexts remain supported.
 
-A rule-free `@` whose only default is `repeat_previous` or `none` is deliberately omitted from the
-Magic payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic
-and override that profile.
+A conventional rule-free `@` whose Spark default has repeat semantics is omitted from the Magic
+payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic and
+override that profile.
 
-akl.gg Adaptive entries already store one side of a two-way swap:
+Spark Adaptive entries already store one side of a two-way swap:
 
 ```json
 { "trigger": "l", "swap": ["y", "j"] }
@@ -126,8 +122,9 @@ repositioning, blur, paste, undo, deletion, or another native edit clears it. Ma
 Repeat-key output is stored as history, so contextual behavior can chain. Multi-character output
 contributes its final bounded suffix.
 
-Rule identities are normalized to lowercase. A shifted adaptive input preserves uppercase intent
-in the swapped output.
+Adaptive rule identities are normalized to lowercase. Magic and chiral contexts remain
+case-sensitive so the runtime preserves AKLDB's lowered semantics. A shifted adaptive input
+preserves uppercase intent in the swapped output.
 
 ## UI boundaries
 
@@ -217,8 +214,10 @@ carry the physical key code into the resolver and compile adaptive rules against
 
 Cmini stats currently describe the base layout. Adaptive swaps are not included.
 
-Cyanophage stats incorporate akl.gg Magic / Repeat corpus rewrites when present; Adaptive
-swaps are not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md).
+Cyanophage stats incorporate AKLDB Magic / Repeat corpus rewrites when present; Adaptive swaps are
+not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md). While AKLDB leaves
+board unspecified, imported layouts receive no Cyanophage stats because its geometry is
+board-dependent.
 
 Mana2 stats are imported from akl.gg dumps and describe the base layout only. Adaptive swaps,
 Magic keys, and Repeat keys are not folded into those metrics.

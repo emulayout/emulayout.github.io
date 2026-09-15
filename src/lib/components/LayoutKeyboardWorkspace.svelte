@@ -118,7 +118,7 @@
 	const previewDisplayRows = $derived(fillPreviewKeyboardRows(rows));
 
 	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
-		if (layout.board === 'ortho' || layout.board === 'mini') {
+		if (layout.board === 'ortho' || layout.board === 'mini' || layout.board === 'unknown') {
 			const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
 			const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 			return {
