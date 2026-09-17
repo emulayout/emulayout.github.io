@@ -5,7 +5,6 @@ export interface KeyInfo {
 	thumbHand?: 'l' | 'r';
 }
 
-export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini';
 export type AuthorId = string;
 export type AuthorsMap = Record<string, AuthorId>;
 
@@ -33,7 +32,6 @@ export interface ThumbKeyEntry {
 export interface LayoutData {
 	name: string;
 	user: AuthorId;
-	board: BoardType;
 	keys: Record<string, KeyInfo>;
 	/** `"row,col"` → key character for O(1) position lookups, including duplicate letters. */
 	positionBySlot: Map<string, string>;
@@ -51,7 +49,7 @@ export interface LayoutData {
 	cyanophageStatsNeedMagicMappings: boolean;
 	/** The layout is known to use adaptive swaps, whether or not mappings are available. */
 	hasAdaptiveSwap: boolean;
-	/** Curated adaptive-swap mappings are available in the input-behavior payload. */
+	/** AKLDB adaptive-swap mappings are available in the input-behavior payload. */
 	hasAdaptiveSwapMappings: boolean;
 	cyanophageCompatible: boolean;
 	/** Set when the layout has exactly one thumb key (cyanophage playground). */
@@ -146,7 +144,7 @@ export interface CyanophageStats {
  */
 export type CompactCyanophageStats = number[];
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats-cyanophage.json. */
+/** Layout stats keyed by layout name. Loaded from the active geometry's Cyanophage artifact. */
 export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
 
 /**

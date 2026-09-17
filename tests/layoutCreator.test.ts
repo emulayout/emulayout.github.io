@@ -35,7 +35,7 @@ describe('nextDuplicatedLayoutName', () => {
 });
 
 describe('createDefaultCreatorLayout', () => {
-	test('starts from staggered QWERTY named New layout', () => {
+	test('starts from Row stagger QWERTY named New layout', () => {
 		const layout = createDefaultCreatorLayout();
 		const qwerty = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
 			name: LAYOUT_CREATOR_NEW_LAYOUT_NAME
@@ -43,7 +43,6 @@ describe('createDefaultCreatorLayout', () => {
 
 		expect(layout).toEqual(qwerty);
 		expect(layout.name).toBe(LAYOUT_CREATOR_NEW_LAYOUT_NAME);
-		expect(layout.board).toBe('stagger');
 		expect(layout.hasAllLetters).toBe(true);
 		expect(layout.hasMagicKey).toBe(false);
 		expect(layout.hasAdaptiveSwap).toBe(false);

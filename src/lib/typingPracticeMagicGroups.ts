@@ -19,7 +19,6 @@ export function buildTypingPracticeMagicGroupIndexes(
 	const disabledMappings = new Set(disabledMappingIds);
 	for (let boundary = 0; boundary < characters.length; boundary += 1) {
 		const history = characters.slice(0, boundary).join('');
-		const normalizedHistory = history.toLowerCase();
 		const remaining = characters.slice(boundary).join('');
 
 		for (const [trigger, definition] of Object.entries(profile.triggers)) {
@@ -29,7 +28,7 @@ export function buildTypingPracticeMagicGroupIndexes(
 			const rule = definition.rules.find(
 				(candidate) =>
 					!disabledMappings.has(magicRuleMappingId(trigger, candidate.after)) &&
-					normalizedHistory.endsWith(candidate.after)
+					history.endsWith(candidate.after)
 			);
 			let start = boundary;
 			if (rule) {

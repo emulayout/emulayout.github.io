@@ -114,6 +114,34 @@ async function readAndValidateCachedDump(cachePath, validateJson) {
 }
 
 /**
+ * Keep deployments usable while akl.gg's optional static dumps are unavailable.
+ * The cache is validated again before reuse so an upstream failure can never
+ * turn a corrupt local file into a successful sync.
+ *
+ * @param {string} cachePath
+ * @param {boolean} cached
+ * @param {((value: unknown) => void) | undefined} validateJson
+ * @param {unknown} error
+ */
+async function reuseCachedDumpAfterFailure(cachePath, cached, validateJson, error) {
+	if (!cached) throw error;
+
+	try {
+		const json = await readAndValidateCachedDump(cachePath, validateJson);
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(`  ⚠ ${message}`);
+		console.warn(`  Keeping last-good AKL dump: ${cachePath}`);
+		return { path: cachePath, updated: false, json };
+	} catch (cacheError) {
+		throw new AggregateError(
+			[error, cacheError],
+			`AKL dump refresh failed and cached dump is unusable: ${cachePath}`,
+			{ cause: cacheError }
+		);
+	}
+}
+
+/**
  * Ensure a dump is on disk.
  * - `offline`: require an existing cache file (no network).
  * - online + cached + !force: conditional GET (ETag / Last-Modified); 304 reuses cache.
@@ -150,24 +178,34 @@ export async function ensureCminibrowserDump(dataPath, options = {}) {
 	}
 
 	console.log(`→ ${cached && !force ? 'Checking' : 'Downloading'} ${url}`);
-	const response = await fetch(url, { headers });
+	/** @type {Response} */
+	let response;
+	/** @type {Buffer} */
+	let body;
+	let json;
+	try {
+		response = await fetch(url, { headers });
 
-	if (response.status === 304) {
-		if (!cached) {
-			throw new Error(`Received HTTP 304 for ${url} but cache file is missing at ${cachePath}`);
+		if (response.status === 304) {
+			if (!cached) {
+				throw new Error(`Received HTTP 304 for ${url} but cache file is missing at ${cachePath}`);
+			}
+			console.log(`  ✔ Not modified (cache hit): ${cachePath}`);
+			const json = await readAndValidateCachedDump(cachePath, validateJson);
+			return { path: cachePath, updated: false, json };
 		}
-		console.log(`  ✔ Not modified (cache hit): ${cachePath}`);
-		const json = await readAndValidateCachedDump(cachePath, validateJson);
-		return { path: cachePath, updated: false, json };
+
+		if (!response.ok) {
+			throw new Error(`Failed to download ${url}: HTTP ${response.status} ${response.statusText}`);
+		}
+
+		body = Buffer.from(await response.arrayBuffer());
+		json = parseDumpJson(body, url);
+		validateJson?.(json);
+	} catch (error) {
+		return reuseCachedDumpAfterFailure(cachePath, cached, validateJson, error);
 	}
 
-	if (!response.ok) {
-		throw new Error(`Failed to download ${url}: HTTP ${response.status} ${response.statusText}`);
-	}
-
-	const body = Buffer.from(await response.arrayBuffer());
-	const json = parseDumpJson(body, url);
-	validateJson?.(json);
 	await mkdir(dirname(cachePath), { recursive: true });
 	await writeFileAtomically(cachePath, body);
 	await writeDumpMeta(cachePath, response);

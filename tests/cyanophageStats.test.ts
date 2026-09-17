@@ -26,8 +26,8 @@ describe('Cyanophage finger distance', () => {
 		]);
 		const words = { aqa: 1 };
 
-		const ortho = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'ortho');
-		const stagger = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'stagger');
+		const ortho = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'column-stagger');
+		const stagger = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'row-stagger');
 
 		expect(ortho).not.toBeNull();
 		expect(stagger).not.toBeNull();
@@ -207,8 +207,15 @@ describe('Cyanophage Magic / Repeat rewrite', () => {
 		const rewrite = (word: string) =>
 			rewriteCyanophageWord(word, { magicKey: '*', magicTable: { s: 'c' } });
 
-		const base = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'ortho');
-		const magic = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'ortho', rewrite);
+		const base = measureLayoutStats(charMap, words, {}, ZERO_EFFORT_GRID, 'column-stagger');
+		const magic = measureLayoutStats(
+			charMap,
+			words,
+			{},
+			ZERO_EFFORT_GRID,
+			'column-stagger',
+			rewrite
+		);
 
 		expect(base).not.toBeNull();
 		expect(magic).not.toBeNull();

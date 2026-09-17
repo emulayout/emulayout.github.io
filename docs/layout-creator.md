@@ -29,7 +29,7 @@ drafts in the browser.
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
   control.
-- The New layout canvas starts as staggered QWERTY named `New layout`. Opening that unsaved canvas
+- The New layout canvas starts as Row stagger QWERTY named `New layout`. Opening that unsaved canvas
   in Edit focuses Layout name and selects the default name so it can be replaced immediately. Create,
   `+ New layout`, discarding dirty edits to start a new canvas, and deleting the active saved layout
   all take this path. Layout name and
@@ -46,7 +46,7 @@ drafts in the browser.
   tab, and no akl.gg or Colemak Camp link. A Cyanophage link stays when it can be built from
   the live keymap.
 - The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, author, base layout, keyboard type, key grid, preview, practice lesson, the Practice /
+  Name, author, base layout, keyboard geometry, key grid, preview, practice lesson, the Practice /
   Test / Feel `tab`, Magic/Adaptive
   mappings (including incomplete rows), and which complete special mappings are disabled are
   written when they differ from the default QWERTY canvas. An active saved
@@ -75,7 +75,7 @@ drafts in the browser.
   **Share** is immediately before **Edit** in Preview and immediately before **Lock** in Edit.
   **Lock** is hidden on an unsaved canvas. **Save** appears on that canvas while it differs from the
   default snapshot; **Save changes** appears only while a saved layout has unsaved changes. Share copies an absolute `/create` URL containing the normalized
-  content snapshot: layout name, author, keyboard type and keys, Magic and Adaptive drafts,
+  content snapshot: layout name, author, keyboard geometry and keys, Magic and Adaptive drafts,
   disabled mappings, and practice settings. It never includes a browser-local saved-layout `id`
   or transient Edit/Preview/detail-tab state. The link uses `share=1` to distinguish a portable
   layout offer from an ordinary creator draft URL.
@@ -88,9 +88,9 @@ drafts in the browser.
   incomplete mapping rows remain in the portable payload and local snapshot even though only
   complete mappings appear in the read-only preview.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
-  presentation preview. Base layout (optional) and keyboard type sit above that editor. Choosing a
-  catalog layout seeds the key grid, keyboard type, and that layout's default Magic and Adaptive
-  mappings; empty slots stay optional, so a draft may use fewer or more assigned characters than
+  presentation preview. Base layout (optional) and keyboard geometry sit above that editor. Choosing a
+  catalog layout seeds the key grid and that layout's default Magic and Adaptive mappings while
+  preserving the creator's current keyboard geometry; catalog layouts are geometry-neutral. Empty slots stay optional, so a draft may use fewer or more assigned characters than
   the base. The editor keeps the full QWERTY slot grid and sizes that grid to the page, so unused
   punctuation columns do not overflow. Printable keys replace the focused slot and advance,
   Backspace/Delete clear, and arrows move among slots. The **Import** button beside Base layout
@@ -102,7 +102,7 @@ drafts in the browser.
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
   is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
   Clearing `@` or `*` from a slot does not remove its mapping.
-  Keyboard type is Ortho or Staggered. Thumb keys use the same left/right
+  Keyboard geometry is Column stagger or Row stagger, matching Settings. Thumb keys use the same left/right
   separation as the presentation keyboard, with an empty spacebar-sized gap
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
@@ -119,7 +119,7 @@ drafts in the browser.
   preview keyboard still
   draws the 10 keys on each letter row and empty keycaps for unassigned slots between letters so
   remaining keys keep their physical columns. The key editor, name and author fields, base-layout
-  and keyboard-type fields, special-key add buttons, missing-letter warning,
+  and keyboard-geometry fields, special-key add buttons, missing-letter warning,
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
   in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
   editors were closed in Edit. Those summary-column actions show **Share**, then **Lock**, while
@@ -160,7 +160,7 @@ drafts in the browser.
   parameter, matching catalog show pages, so a refresh or shared `/create` link keeps it.
   Toggling Preview/Edit keeps the selected tab. Opening a saved layout, a new
   canvas, or a duplicate resets to Typing practice. In Edit, every section keeps the key editor,
-  name and author fields, base-layout and keyboard-type fields, special-key add buttons,
+  name and author fields, base-layout and keyboard-geometry fields, special-key add buttons,
   missing-letter warning, and editable mapping panels, so the user can test the live draft in
   Typing practice, Layout test area, or Layout feel. Typing practice and Layout feel share the
   page-session leftover lesson words; leaving either tab during a test refills a random lesson to
@@ -199,7 +199,7 @@ drafts in the browser.
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
   **Clear all keys** is available only on the unsaved canvas. It blanks the key grid, clears the
   selected base layout, and removes all Magic and Adaptive rules while preserving the name, author,
-  keyboard type, and practice lesson. It is disabled when those key and mapping fields are already
+  keyboard geometry, and practice lesson. It is disabled when those key and mapping fields are already
   empty. Saved-layout storage version 2 uses the QWERTY default. Version 1 entries without explicit
   keys restore the same QWERTY board.
 - **Layout backup settings** mirrors the custom-view backup UI. It opens on **Export layouts**,

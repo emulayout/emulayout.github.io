@@ -34,7 +34,6 @@ import {
 	FILTER_THUMB_KEYS_PER_HAND,
 	createEmptyThumbKeyFilters,
 	type AdaptiveSwapFilter,
-	type BoardTypeFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
 	type RepeatKeyFilter,
@@ -59,7 +58,6 @@ export interface LayoutFilterCriteria {
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
-	boardTypeFilter: BoardTypeFilter;
 	nameFilter: string;
 	selectedAuthors: ReadonlySet<AuthorId>;
 	includeGrid: string[][];
@@ -282,14 +280,6 @@ function matchesCharacterSet(layout: LayoutData, filter: CharacterSetFilter): bo
 	return filter === 'all' || layout.characterSet === filter;
 }
 
-function matchesBoardType(layout: LayoutData, filter: BoardTypeFilter): boolean {
-	if (filter === 'all') return true;
-	if (filter === 'angle-stagger') {
-		return layout.board === 'angle' || layout.board === 'stagger';
-	}
-	return layout.board === filter;
-}
-
 function buildActiveAnalyzerStatFilters(
 	limits: Record<StatLimitKey, StatLimit>,
 	fingerWorkloadConfig: FingerWorkloadConfig
@@ -411,7 +401,6 @@ export function filterLayouts(
 		if (!matchesMagicKeyFilter(layout, criteria.magicKeyFilter)) return false;
 		if (!matchesAdaptiveSwapFilter(layout, criteria.adaptiveSwapFilter)) return false;
 		if (!matchesCharacterSet(layout, criteria.characterSetFilter)) return false;
-		if (!matchesBoardType(layout, criteria.boardTypeFilter)) return false;
 		if (!matchesName(layout, nameTerms)) return false;
 		if (criteria.selectedAuthors.size > 0 && !criteria.selectedAuthors.has(layout.user)) {
 			return false;

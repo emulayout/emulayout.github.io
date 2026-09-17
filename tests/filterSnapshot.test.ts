@@ -108,7 +108,6 @@ describe('normalizeViewFilterSnapshot', () => {
 	test('replaces invalid enum and nested values with safe defaults', () => {
 		const snapshot = normalizeViewFilterSnapshot({
 			thumbKeyFilter: 'sometimes',
-			boardTypeFilter: 'curved',
 			sortBy: 'unknown-stat',
 			sortOrder: 'sideways',
 			similarityMirrorMode: 'maybe',
@@ -122,7 +121,6 @@ describe('normalizeViewFilterSnapshot', () => {
 		});
 
 		expect(snapshot.thumbKeyFilter).toBe('optional');
-		expect(snapshot.boardTypeFilter).toBe('all');
 		expect(snapshot.sortBy).toBe('date');
 		expect(snapshot.sortOrder).toBe('desc');
 		expect(snapshot.similarityMirrorMode).toBe('excluded');

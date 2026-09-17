@@ -222,12 +222,12 @@ export async function loadCyanophageData() {
 
 /**
  * @param {Record<string, { row: number, col: number }>} keys
- * @param {import('../src/lib/layout.js').BoardType} board
+ * @param {'column-stagger' | 'row-stagger'} geometry
  * @param {'l' | 'r'} [thumb]
  * @returns {CharPositionMap}
  */
-export function buildCharPositionMap(keys, board = 'ortho', thumb = 'l') {
-	return buildCyanophageCharPositionMap(keys, board, thumb);
+export function buildCharPositionMap(keys, geometry = 'column-stagger', thumb = 'l') {
+	return buildCyanophageCharPositionMap(keys, geometry, thumb);
 }
 
 /**
@@ -254,14 +254,14 @@ function getFinger(row, col) {
 
 /**
  * Cyanophage key-center coordinates in key-width units.
- * `ortho`/`mini` use the playground's split ergo geometry; `stagger`/`angle`
- * use its ANSI/ISO row stagger.
+ * Column stagger uses the playground's split ergo geometry; row stagger uses
+ * its ANSI physical offsets.
  * @param {number} row
  * @param {number} col
- * @param {string} board
+ * @param {'column-stagger' | 'row-stagger'} geometry
  */
-function getPhysicalPosition(row, col, board) {
-	if (board === 'stagger' || board === 'angle') {
+function getPhysicalPosition(row, col, geometry) {
+	if (geometry === 'row-stagger') {
 		const rowOffset = row === 0 ? 0.5 : row === 1 ? 0.75 : 1.25;
 		return { x: col + rowOffset, y: row };
 	}
@@ -454,7 +454,7 @@ function classifyTrigram(ppFinger, prevFinger, finger, ppChar, char) {
  * @param {WordFrequencyMap} words
  * @param {Record<string, number>} wordEffort
  * @param {number[][]} effortGrid
- * @param {import('../src/lib/layout.js').BoardType} [board]
+ * @param {'column-stagger' | 'row-stagger'} [geometry]
  * @param {(word: string) => string} [rewriteWord] Cyanophage `modWord` rewrite
  * @returns {CyanophageStats | null}
  */
@@ -463,7 +463,7 @@ export function measureLayoutStats(
 	words,
 	wordEffort,
 	effortGrid,
-	board = 'ortho',
+	geometry = 'column-stagger',
 	rewriteWord
 ) {
 	let inputLength = 0;
@@ -548,8 +548,8 @@ export function measureLayoutStats(
 				if (previousPosition) {
 					const distance =
 						physicalDistance(
-							getPhysicalPosition(row, col, board),
-							getPhysicalPosition(previousPosition.row, previousPosition.col, board)
+							getPhysicalPosition(row, col, geometry),
+							getPhysicalPosition(previousPosition.row, previousPosition.col, geometry)
 						) * count;
 					distanceSum += distance;
 					fingerDistance[`distance-${fingerKey}`] += distance;
@@ -692,7 +692,7 @@ export function encodeCyanophageStats(stats) {
 /**
  * @param {{
  *   keys?: Record<string, { row: number, col: number, finger?: string }>,
- *   board?: import('../src/lib/layout.js').BoardType,
+ *   geometry?: 'column-stagger' | 'row-stagger',
  *   cyanophageThumb?: 'l' | 'r'
  * }} rawLayout
  * @param {CyanophageData | null} data
@@ -708,9 +708,9 @@ export function buildCyanophageStats(rawLayout, data, options = {}) {
 	// default profile Cyanophage cannot model faithfully.
 	if (hasMagicKey(rawLayout.keys, options.magicMappings) && !contextual?.magicKey) return null;
 
-	const board = rawLayout.board ?? 'ortho';
+	const geometry = rawLayout.geometry ?? 'column-stagger';
 	const thumb = rawLayout.cyanophageThumb ?? resolveCyanophageThumb(rawLayout.keys) ?? 'l';
-	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, board, thumb);
+	const charMap = buildCyanophageCharPositionMap(rawLayout.keys, geometry, thumb);
 	if (charMap.size === 0) return null;
 
 	const wordEffort = measureDictionaryWordEffort(charMap, data.effortWords, data.bigramEffort);
@@ -719,7 +719,7 @@ export function buildCyanophageStats(rawLayout, data, options = {}) {
 		data.words,
 		wordEffort,
 		data.effortGrid,
-		board,
+		geometry,
 		contextual?.rewrite
 	);
 	if (!stats) return null;

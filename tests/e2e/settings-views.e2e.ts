@@ -10,6 +10,26 @@ function backupView(id: string, name: string) {
 	};
 }
 
+test('persists keyboard geometry as a display preference', async ({ page }) => {
+	await page.goto('/?stats=0&testArea=0&likes=0&newIndicator=0');
+	await page.getByRole('button', { name: 'Settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Settings' });
+	const rowStagger = dialog.getByRole('radio', { name: 'Row stagger' });
+	await rowStagger.click();
+	await expect(rowStagger).toHaveAttribute('aria-checked', 'true');
+	await dialog.getByRole('button', { name: 'Close' }).click();
+
+	await page.reload();
+	await page.getByRole('button', { name: 'Settings' }).click();
+	await expect(dialog.getByRole('radio', { name: 'Row stagger' })).toHaveAttribute(
+		'aria-checked',
+		'true'
+	);
+	await expect
+		.poll(() => page.evaluate(() => localStorage.getItem('keyboardGeometry')))
+		.toBe('row-stagger');
+});
+
 test('selectively exports and replaces custom views from pasted backup text', async ({ page }) => {
 	const localBackup = {
 		version: 1,

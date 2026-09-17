@@ -76,6 +76,7 @@
 	$effect(() => {
 		if (!uiPrefs.hydrated) return;
 		layoutStatsStore.applyCorpus(uiPrefs.statsCorpus);
+		layoutStatsStore.applyGeometry(uiPrefs.keyboardGeometry);
 	});
 
 	// Apply theme class to document

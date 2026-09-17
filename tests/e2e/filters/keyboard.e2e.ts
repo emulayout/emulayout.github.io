@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/test';
 
 const lightweightView = '/?stats=0&testArea=0&likes=0&newIndicator=0';
 
-test('combines thumb, magic key, and board type filters', async ({ page }) => {
+test('combines thumb and magic key filters', async ({ page }) => {
 	await page.goto(lightweightView);
 
 	await page.getByRole('button', { name: 'Keyboard filters', exact: true }).click();
@@ -10,7 +10,6 @@ test('combines thumb, magic key, and board type filters', async ({ page }) => {
 	const keyboardFilters = page.getByRole('region', { name: 'Keyboard filters' });
 	const thumbKeys = keyboardFilters.getByLabel('Thumb keys');
 	const magicKey = keyboardFilters.getByLabel('Magic key');
-	const boardType = keyboardFilters.getByLabel('Board type');
 
 	await thumbKeys.selectOption('required');
 	await magicKey.selectOption('required');
@@ -30,16 +29,8 @@ test('combines thumb, magic key, and board type filters', async ({ page }) => {
 	await expect(page.locator('[data-layout-name]')).toHaveCount(1);
 	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toBeVisible();
 
-	await boardType.selectOption('angle');
-
-	await expect(page.locator('#results-status')).toContainText('Showing 0 layouts');
-	await expect(page.locator('[data-layout-name]')).toHaveCount(0);
-
 	await magicKey.selectOption('excluded');
-
-	await expect(page.locator('#results-status')).toContainText('Showing 1 layout');
-	await expect(page.locator('[data-layout-name]')).toHaveCount(1);
-	await expect(page.getByRole('heading', { name: 'turnip', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toHaveCount(0);
 });
 
 test('filters magic-key layouts to those with known mappings', async ({ page }) => {

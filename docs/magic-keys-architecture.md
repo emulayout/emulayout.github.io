@@ -24,11 +24,11 @@ separate features even though both use the same contextual-input engine.
 
 The conventions are deliberately overridable:
 
-- any symbol becomes a Magic key when akl.gg exports it as a trigger;
-- `@` is a Repeat key when it is present on the layout and akl.gg provides no mapped `@`
-  rules, including a rule-free `@` whose export default is `repeat_previous` or `none`;
+- any symbol becomes a Magic key when AKLDB stores it as a Magic or chiral trigger;
+- `@` is a Repeat key when it is present on the layout and AKLDB provides no mapped `@` rules,
+  including the conventional rule-free repeat declaration;
 - mapped `@` rules completely override default Repeat-key behavior;
-- mapped `@` rules may still use akl.gg's `repeat_previous` default.
+- mapped `@` rules remain Magic behavior.
 
 This makes unconfigured `@` deterministic without preventing authors from using it as an ordinary
 Magic trigger.
@@ -37,8 +37,8 @@ Magic trigger.
 
 Compact layout metadata carries these facts:
 
-- `hasMagicKey`: akl.gg provides a Magic profile;
-- `hasRepeatKey`: the layout contains `@` and akl.gg does not provide mapped `@` rules;
+- `hasMagicKey`: AKLDB provides a Magic or chiral profile;
+- `hasRepeatKey`: the layout contains `@` and AKLDB does not provide mapped `@` rules;
 - `hasMagicKeyMappings`: same source boundary as `hasMagicKey`;
 - `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage;
 - Adaptive-swap presence and mapping availability use their own flags.
@@ -52,14 +52,10 @@ Names are never used to infer either behavior.
 
 ## Generated Magic format
 
-Magic and Adaptive mappings come exclusively from akl.gg's export:
-
-```text
-https://akl.gg/data/magic_rules_export.json
-```
-
-See [`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md#source-adaptation) for the
-source-to-runtime conversion. The normalized client payload stores each Magic trigger under
+Magic and Adaptive intent comes from AKLDB's stored `spark/1` payload. The sync uses AKLDB's derived
+`mana2/1` projection to lower Magic and chiral rules for Emulayout's current runtime. See
+[`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md#source-adaptation) for the
+source-to-runtime conversion. The normalized client payload stores each trigger under
 `magicKeys.mappings`.
 
 Inside `mappings`, each key is a Magic trigger and each rule maps preceding emitted text to the text
@@ -80,8 +76,8 @@ emitted by the trigger:
 ```
 
 Triggers need not be `*`. Multiple triggers, multi-character preceding sequences, and
-multi-character output are supported. Preceding sequences match case-insensitively. Output is
-emitted exactly as stored rather than inheriting case.
+multi-character output are supported. Preceding sequences are case-sensitive, as required by
+Spark/Mana2 lowering. Output is emitted exactly as stored.
 
 ## Fallback behavior
 
@@ -120,9 +116,9 @@ fallback may use an empty `rules` object.
 The inner key is `rules` rather than `mappings` so it does not collide with the feature-level
 `mappings` wrapper. The same extended form is available for `*` or any other Magic trigger.
 
-The importer rejects a malformed export before replacing the last good cached copy. Runtime
-validation also rejects malformed or empty triggers, unusable rule sets or fallbacks, empty contexts
-or outputs, and contexts that collide after lowercase normalization.
+The importer rejects a malformed or inconsistent AKLDB snapshot before replacing the last good
+cached copy. Runtime validation also rejects malformed or empty triggers, unusable rule sets or
+fallbacks, and empty contexts or outputs.
 
 Mana2's historical extended CLI adapter expanded `repeat-last` and single-character `{ "emit": … }`
 fallbacks into bigram rules. Emulayout no longer runs that adapter; published Mana2 stats come from
@@ -130,7 +126,7 @@ akl.gg dumps of the base layout.
 
 ## Runtime data and compilation
 
-Sync publishes akl.gg Magic and Adaptive mappings in:
+Sync publishes AKLDB Magic, chiral, and Adaptive mappings in:
 
 ```text
 static/layout-supplemental.json
@@ -150,11 +146,7 @@ magicKeys? + repeatKey? + adaptiveSwaps?
 
 Magic profiles remain mapping-driven. Repeat profiles contain only the conventional `@` trigger.
 If the behavior sidecar cannot be loaded, Repeat behavior still works from compact metadata while
-akl.gg behavior is reported as unavailable.
-
-If an exported layout ID has no current Clemenpine catalog layout, sync warns and omits that
-profile. Matching is case-insensitive because akl.gg export IDs can differ in casing from the
-catalog display name.
+AKLDB behavior is reported as unavailable.
 
 ## Resolution and history
 
@@ -206,7 +198,7 @@ component and `on`, `off`, and `unavailable` visual language; Repeat uses only `
 Filters are also independent:
 
 - the Magic filter retains its presence and known-mappings choices for saved-filter and wire
-  compatibility, though both resolve to the same akl.gg-backed set;
+  compatibility, though both resolve to the same AKLDB-backed set;
 - the Repeat filter can require or exclude default `@` Repeat behavior;
 - an explicitly mapped `@` appears under Magic and not Repeat.
 
@@ -250,7 +242,7 @@ multi-character Magic emits stay preferred-only. Do not add Adaptive literal alt
 
 Cmini stats describe the base layout and do not incorporate contextual behavior.
 
-Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when akl.gg provides a
+Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when AKLDB provides a
 supported Magic profile (and optionally a default Repeat key):
 
 - corpus words are rewritten before scoring (`letter + expansion` → `letter + magic key`,
@@ -258,7 +250,7 @@ supported Magic profile (and optionally a default Repeat key):
 - only single-character preceding Magic contexts are applied; multi-character contexts and
   Emulayout fallbacks are ignored so results stay comparable to Cyanophage's Magic page;
 - profiles with multiple Magic triggers are not measured, because Cyanophage models only one;
-- Magic layouts are measured when the exported profile fits Cyanophage's supported subset;
+- Magic layouts are measured when the AKLDB profile fits Cyanophage's supported subset;
 - layouts measured this way may still be playground-incompatible for deep-links;
 - Adaptive swaps are not included.
 
@@ -269,14 +261,14 @@ Magic and Repeat profiles are not folded into published Mana2 metrics.
 
 - Magic and Repeat are separate domain concepts, metadata flags, controls, filters, and analysis
   results.
-- akl.gg's export is authoritative for Magic presence and behavior.
-- `@` implies Repeat only when akl.gg does not provide mapped `@` rules.
-- Any exported trigger symbol establishes Magic behavior.
+- AKLDB's Spark payload is authoritative for Magic presence and behavior.
+- `@` implies Repeat only when AKLDB does not provide mapped `@` rules.
+- Any stored Magic or chiral trigger symbol establishes Magic behavior.
 - Explicit `@` Magic mappings override default Repeat behavior completely.
 - Repeat fallback inside a Magic profile is always explicit.
 - A Magic trigger never types its own symbol; an unmatched press emits nothing.
 - Compact metadata is authoritative for feature classification.
-- Magic and Adaptive presence always include mappings because both come from the same export.
+- Magic and Adaptive presence always include mappings because both come from the same AKLDB snapshot.
 - Matching uses uninterrupted emitted history, never text near the caret.
 - The longest matching Magic preceding sequence wins.
 - Adaptive swaps run before Magic, which runs before Repeat.

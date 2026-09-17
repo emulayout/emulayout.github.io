@@ -36,7 +36,6 @@ export const VIEW_FILTER_URL_PARAMS = [
 	'magicKey',
 	'adaptiveSwap',
 	'characterSet',
-	'boardType',
 	'name',
 	'authors',
 	'includeLeftThumbs',
@@ -170,7 +169,6 @@ export function writeViewFilterUrlState(
 	if (snapshot.characterSetFilter !== 'english') {
 		params.set('characterSet', snapshot.characterSetFilter);
 	}
-	if (snapshot.boardTypeFilter !== 'all') params.set('boardType', snapshot.boardTypeFilter);
 	if (snapshot.nameFilter) params.set('name', snapshot.nameFilter);
 	if (snapshot.selectedAuthors.length > 0) {
 		params.set('authors', snapshot.selectedAuthors.join(','));
@@ -310,18 +308,6 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 	const characterSet = params.get('characterSet');
 	if (characterSet === 'all' || characterSet === 'english' || characterSet === 'international') {
 		snapshot.characterSetFilter = characterSet;
-	}
-
-	const boardType = params.get('boardType');
-	if (
-		boardType === 'all' ||
-		boardType === 'angle' ||
-		boardType === 'stagger' ||
-		boardType === 'angle-stagger' ||
-		boardType === 'ortho' ||
-		boardType === 'mini'
-	) {
-		snapshot.boardTypeFilter = boardType;
 	}
 
 	const name = params.get('name');

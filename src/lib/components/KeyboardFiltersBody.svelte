@@ -3,7 +3,6 @@
 	import {
 		filterStore,
 		type AdaptiveSwapFilter,
-		type BoardTypeFilter,
 		type CharacterSetFilter,
 		type MagicKeyFilter,
 		type RepeatKeyFilter,
@@ -22,7 +21,6 @@
 	const showRepeat = $derived(!only || only.repeat);
 	const showMagic = $derived(!only || only.magic);
 	const showAdaptive = $derived(!only || only.adaptive);
-	const showBoard = $derived(!only || only.board);
 	const showCharset = $derived(!only || only.charset);
 	const showUnfinished = $derived(!only || only.unfinished);
 </script>
@@ -137,31 +135,6 @@
 				<option value="excluded">Excluded</option>
 				<option value="required">Required</option>
 				<option value="required-mapped">Require with known mappings</option>
-			</select>
-		</label>
-	{/if}
-
-	{#if showBoard}
-		<label class="keyboard-filters-field">
-			<span class="keyboard-filters-label" style="color: var(--text-secondary);">Board type</span>
-			<select
-				value={filterStore.boardTypeFilter}
-				onchange={(e) => filterStore.setBoardTypeFilter(e.currentTarget.value as BoardTypeFilter)}
-				class="keyboard-filters-select"
-				data-keyboard-field="board"
-				style="
-					background-color: var(--input-bg);
-					color: var(--text-primary);
-					border: 1px solid var(--border);
-					--tw-ring-color: var(--accent);
-				"
-			>
-				<option value="all">All</option>
-				<option value="angle">Angle</option>
-				<option value="stagger">Stagger</option>
-				<option value="angle-stagger">Angle + stagger</option>
-				<option value="ortho">Ortho</option>
-				<option value="mini">Mini</option>
 			</select>
 		</label>
 	{/if}

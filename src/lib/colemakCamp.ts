@@ -1,4 +1,4 @@
-import type { BoardType } from '$lib/layout';
+import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 
 export const COLEMAK_CAMP_BASE_URL = 'https://emulayout.github.io/colemakcamp/';
 
@@ -43,19 +43,12 @@ export const CUSTOM_LAYOUT_URL_KEYS = [
 	'KeyR3'
 ] as const;
 
-export function boardToColemakCampKeyboard(board: BoardType): string {
-	switch (board) {
-		case 'stagger':
-			return 'ansi';
-		case 'angle':
-			return 'iso';
-		case 'ortho':
-			return 'ortho';
-		case 'mini':
-			return 'ortho';
-		default:
-			return 'ansi';
-	}
+export function geometryToColemakCampKeyboard(
+	geometry: KeyboardGeometry,
+	anglemod = false
+): string {
+	if (geometry === 'column-stagger') return 'ortho';
+	return anglemod ? 'iso' : 'ansi';
 }
 
 /** Matches Colemak Camp `app.js` — safe for non-ASCII layout characters. */
@@ -99,12 +92,13 @@ export function createColemakCampURL({
 
 export function createColemakCampURLFromKeyMap(
 	keyMap: Record<string, string>,
-	board: BoardType,
+	geometry: KeyboardGeometry,
+	anglemod = false,
 	baseURL = COLEMAK_CAMP_BASE_URL
 ): string {
 	return createColemakCampURL({
 		baseURL,
-		keyboard: boardToColemakCampKeyboard(board),
+		keyboard: geometryToColemakCampKeyboard(geometry, anglemod),
 		keys: keyMap
 	});
 }

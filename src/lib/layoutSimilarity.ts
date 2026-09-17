@@ -128,11 +128,9 @@ export function withSimilarReferenceAnglemod(
 	anglemodActive: boolean
 ): LayoutData {
 	if (!anglemodActive) return layout;
-	// Angle boards are stored anglemod'd — toggle removes. Others apply on toggle.
-	const direction = layout.board === 'angle' ? 'right' : 'left';
 	return {
 		...layout,
-		positionBySlot: rotateBottomRowLeftHandPositions(layout.positionBySlot, direction)
+		positionBySlot: rotateBottomRowLeftHandPositions(layout.positionBySlot, 'left')
 	};
 }
 

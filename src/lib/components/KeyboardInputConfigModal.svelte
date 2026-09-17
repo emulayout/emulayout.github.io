@@ -15,6 +15,8 @@
 		type InputKeyboardType,
 		type KeyboardInputConfig
 	} from '$lib/keyboardInputConfig';
+	import { geometryLabel } from '$lib/keyboardGeometry';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 
 	interface Props {
@@ -43,7 +45,12 @@
 
 	function selectBaseLayout(name: string) {
 		const layout = layoutsCatalog.layouts.find((candidate) => candidate.name === name);
-		if (layout) draft = createKeyboardInputConfigFromLayout(layout);
+		if (layout) {
+			draft = createKeyboardInputConfigFromLayout(
+				layout,
+				uiPrefs.keyboardGeometry === 'column-stagger' ? 'ortho' : 'staggered'
+			);
+		}
 	}
 
 	function setKeyboardType(keyboardType: InputKeyboardType) {
@@ -100,13 +107,13 @@
 				</div>
 
 				<label class="keyboard-input-config-field">
-					<span>Keyboard type</span>
+					<span>Keyboard geometry</span>
 					<select
 						value={draft.keyboardType}
 						onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
 					>
-						<option value="ortho">Ortho</option>
-						<option value="staggered">Staggered</option>
+						<option value="ortho">{geometryLabel('column-stagger')}</option>
+						<option value="staggered">{geometryLabel('row-stagger')}</option>
 					</select>
 				</label>
 			</div>

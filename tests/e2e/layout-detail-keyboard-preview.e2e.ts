@@ -5,10 +5,10 @@ import { adaptivePreview, angleLeftThumb, missingOrthoColumn } from './fixtures/
 
 test.use({ catalogVariant: 'core' });
 
-test('removes and reapplies angle mod from the summary card action', async ({ page }) => {
+test('applies and removes angle mod from the summary card action', async ({ page }) => {
 	await page.goto('/layouts/lela?tab=test');
 	const summaryCard = page.locator('[data-layout-name="lela"]');
-	const angleOption = summaryCard.getByRole('button', { name: 'Remove anglemod' });
+	const angleOption = summaryCard.getByRole('button', { name: 'Anglemod', exact: true });
 	await expect(angleOption).toHaveAttribute('aria-pressed', 'false');
 	const previewBottomLeftKey = page
 		.getByRole('img', { name: 'lela keyboard preview' })
@@ -22,10 +22,10 @@ test('removes and reapplies angle mod from the summary card action', async ({ pa
 	await page.keyboard.press('Escape');
 	await angleOption.click();
 	await expect(angleOption).toHaveAttribute('aria-pressed', 'true');
-	await expect(previewBottomLeftKey).toHaveText('z');
+	await expect(previewBottomLeftKey).toHaveText('w');
 	await angleTestArea.focus();
 	await page.keyboard.press('z');
-	await expect(angleTestArea).toHaveValue('z');
+	await expect(angleTestArea).toHaveValue('w');
 	await angleOption.click();
 	await expect(angleOption).toHaveAttribute('aria-pressed', 'false');
 });
@@ -241,6 +241,7 @@ test.describe('full-catalog keyboard previews', () => {
 	});
 
 	test('places Turnip’s right thumb between k and p', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'row-stagger'));
 		await page.goto('/layouts/turnip');
 
 		const preview = page.getByRole('img', { name: 'turnip keyboard preview' });
@@ -268,6 +269,7 @@ test.describe('full-catalog keyboard previews', () => {
 	});
 
 	test('places an angled left thumb between its adjacent bottom-row keys', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'row-stagger'));
 		await page.route('**/layout-details/*.json', async (route) => {
 			await route.fulfill({
 				json: {

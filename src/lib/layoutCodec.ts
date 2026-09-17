@@ -1,21 +1,6 @@
-import type { AuthorId, BoardType, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
+import type { AuthorId, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
 import { computeCharacterSet } from '$lib/layoutCharacterSet';
 import { THUMB_ROW } from '$lib/layoutDisplay';
-
-/** Keep in sync with BOARD_TYPES in bin/layout-codec.js */
-export const BOARD_TYPES = [
-	'angle',
-	'stagger',
-	'ortho',
-	'mini'
-] as const satisfies readonly BoardType[];
-
-export const BOARD_CODE: Record<BoardType, number> = {
-	angle: 0,
-	stagger: 1,
-	ortho: 2,
-	mini: 3
-};
 
 export const LAYOUT_FLAG_THUMB_KEYS = 1;
 export const LAYOUT_FLAG_ALL_LETTERS = 2;
@@ -30,19 +15,17 @@ export const LAYOUT_FLAG_REPEAT_KEY = 512;
 export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
 
 /** Current wire format field count (no displayValue). */
-export const COMPACT_LAYOUT_FIELD_COUNT = 9;
+export const COMPACT_LAYOUT_FIELD_COUNT = 8;
 
 /** Default hand split for thumb keys without an explicit thumbHand. */
 const THUMB_SPLIT_COL = 5;
 
 /**
- * Wire format for one layout in all-layouts.json.
- * Legacy entries may still include a displayValue string before thumbHands.
+ * Geometry-neutral wire format for one layout in all-layouts.json.
  */
-export type CompactLayout = [
+export type CurrentCompactLayout = [
 	name: string,
 	user: AuthorId | number,
-	board: number,
 	updatedAt: string,
 	flags: number,
 	keyChars: string[],
@@ -52,6 +35,23 @@ export type CompactLayout = [
 	thumbHands?: string
 ];
 
+/**
+ * Published catalog wire format. The numeric compatibility slot is the historical board field;
+ * new clients discard it, but retaining it keeps a refreshed catalog readable by an older bundle.
+ */
+export type LegacyCompactLayout = [
+	name: string,
+	user: AuthorId | number,
+	compatibilitySlot: number,
+	updatedAt: string,
+	flags: number,
+	keyChars: string[],
+	rows: number[],
+	cols: number[],
+	thumbHands?: string
+];
+
+export type CompactLayout = CurrentCompactLayout | LegacyCompactLayout;
 export type CompactLayoutFile = CompactLayout[];
 
 export function positionSlotKey(row: number, col: number): string {
@@ -63,14 +63,14 @@ export function positionSlotKey(row: number, col: number): string {
  * Legacy format: [..., displayValue, thumbHands?].
  */
 function resolveTrailingFields(entry: unknown[]): { thumbHands: string | undefined } {
-	const a = entry[8];
-	const b = entry[9];
+	const a = entry[7];
+	const b = entry[8];
 
-	// Current: field 8 is thumbHands ('l'/'r' only) or absent
+	// Current: field 7 is thumbHands ('l'/'r' only) or absent
 	if (typeof a === 'string' && /^[lr]*$/.test(a) && b === undefined) {
 		return { thumbHands: a || undefined };
 	}
-	// Legacy: field 8 is displayValue, field 9 is thumbHands
+	// Legacy pre-board-removal format after normalization: field 7 is displayValue, field 8 is thumbHands
 	if (typeof b === 'string') {
 		return { thumbHands: b || undefined };
 	}
@@ -81,8 +81,13 @@ function resolveTrailingFields(entry: unknown[]): { thumbHands: string | undefin
 }
 
 export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
-	const [name, user, boardCode, updatedAt, flags, keyChars, rows, cols] = entry as CompactLayout;
-	const { thumbHands } = resolveTrailingFields(entry as unknown[]);
+	const raw = entry as unknown[];
+	const normalized =
+		typeof raw[2] === 'number'
+			? [raw[0], raw[1], raw[3], raw[4], raw[5], raw[6], raw[7], raw[8], raw[9]]
+			: raw;
+	const [name, user, updatedAt, flags, keyChars, rows, cols] = normalized as CurrentCompactLayout;
+	const { thumbHands } = resolveTrailingFields(normalized);
 
 	const keys: Record<string, KeyInfo> = {};
 	const positionBySlot = new Map<string, string>();
@@ -92,15 +97,17 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		if (rows[i] >= THUMB_ROW) {
 			thumbIndices.push(i);
 		}
-		keys[keyChars[i]] = keyInfo;
-		positionBySlot.set(positionSlotKey(rows[i], cols[i]), keyChars[i]);
+		const key = keyChars[i];
+		if (key) keys[key] = keyInfo;
+		positionBySlot.set(positionSlotKey(rows[i], cols[i]), key ?? '');
 	}
 
 	if (thumbHands && thumbIndices.length > 0) {
 		thumbIndices.sort((a, b) => cols[a] - cols[b]);
 		for (let j = 0; j < thumbIndices.length; j++) {
 			const hand = thumbHands[j] === 'r' ? 'r' : 'l';
-			keys[keyChars[thumbIndices[j]]].thumbHand = hand;
+			const key = keyChars[thumbIndices[j]];
+			if (key && keys[key]) keys[key].thumbHand = hand;
 		}
 	}
 
@@ -116,13 +123,13 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 				: cols[index] < THUMB_SPLIT_COL
 					? 'l'
 					: 'r';
-		thumbKeysByHand[hand].push({ key: keyChars[index].toLowerCase(), col: cols[index] });
+		const key = keyChars[index];
+		if (key) thumbKeysByHand[hand].push({ key: key.toLowerCase(), col: cols[index] });
 	}
 
 	return {
 		name,
 		user: String(user),
-		board: BOARD_TYPES[boardCode] ?? 'ortho',
 		keys,
 		positionBySlot,
 		thumbKeysByHand,

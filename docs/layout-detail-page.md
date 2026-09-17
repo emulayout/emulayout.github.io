@@ -138,7 +138,8 @@ small without weakening app-bar functionality.
   thumb in Input layout. Input-layout, anglemod, and Simulate thumb keys changes re-plan an
   untouched lesson only; an in-progress lesson keeps its current remapping until restart.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
-  editable physical key map from any known layout, choose staggered or ortho presentation, and
+  editable physical key map from any known layout, choose Row stagger or Column stagger
+  presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
   control are reusable. The detail Layout test area and index-card emulators use the same persisted
@@ -165,12 +166,12 @@ small without weakening app-bar functionality.
   background until the uninterrupted context changes or resets. A separate, default-off
   `Show swap paths` switch draws accent connectors between each currently active pair. Paths can be shown
   independently of the label preview and disappear with the same history and mapping resets.
-  Ortho and mini boards use aligned split geometry, retaining empty physical key slots so the center
-  seam stays straight when a row is missing keys; stagger and angle boards use ANSI row offsets.
-  Thumb keys remain on their assigned left or right half in either geometry, even when both
-  hands emit the same character. Ortho thumbs align
-  below their hand's index-finger column; angle and stagger thumbs align between their hand's
-  adjacent bottom-row index positions. Both follow the card's anglemod state.
+  Column stagger uses aligned split geometry, retaining empty physical key slots so the center seam
+  stays straight when a row is missing keys; Row stagger uses ANSI row offsets. Thumb keys remain
+  on their assigned left or right half in either geometry, even when both hands emit the same
+  character. Column-stagger thumbs align below their hand's index-finger column; row-stagger thumbs
+  align between their hand's adjacent bottom-row index positions. Both follow the card's anglemod
+  state.
 - `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison
   tables in the right column.
 - The card is the page's visible layout-name heading; the redundant detail-page heading is omitted.

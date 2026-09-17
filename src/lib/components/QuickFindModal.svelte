@@ -46,7 +46,8 @@
 			? layoutsCatalog.getLayoutDetail(
 					previewName,
 					layoutStatsStore.maps,
-					layoutStatsStore.activeCorpus
+					layoutStatsStore.activeCorpus,
+					layoutStatsStore.activeGeometry
 				)
 			: null
 	);

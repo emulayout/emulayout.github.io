@@ -15,7 +15,7 @@ configuration deliberately sits below those features so every test surface uses 
 - A configured input key maps its emitted character to a physical main-grid slot or to a thumb hand
   and ordinal. The target character at the corresponding position becomes the base output sent to
   the existing Adaptive, Magic, and Repeat resolver.
-- QWERTY on a staggered board is the initial input profile. It preserves the emulator's former
+- QWERTY with Row stagger geometry is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice, the detail
   Layout test area, and index-card test areas all apply it as source-to-target translation. Layout
@@ -30,10 +30,11 @@ An always-visible header hint explains that the input profile tells Emulayout wh
 physical keyboard sends so typing practice and layout test areas can translate them to the target
 layout.
 
-1. Choose any known catalog layout in the Base layout autocomplete. This replaces the draft values,
-   keyboard type, and thumb metadata with that layout while retaining the complete QWERTY-sized
+1. Choose any known catalog layout in the Base layout autocomplete. This replaces the draft values
+   and thumb metadata with that layout while retaining the complete QWERTY-sized
    main-grid topology. Standard slots the imported layout does not define remain visible but inert;
-   the source layout has no opinion about those keys.
+   the source layout has no opinion about those keys or physical geometry. The draft keyboard
+   geometry follows the current global keyboard-geometry display preference.
 2. Edit any key after choosing a base. Every effective value must be unique.
 
 An untouched selected base names the shared trigger. Editing any key marks the configuration as
@@ -45,16 +46,18 @@ listbox. Typing opens ranked matches, the chevron explicitly toggles an alphabet
 later refocus opens that default list. Selecting an option keeps focus in the field while closing
 the list. The clear control removes the base provenance and empties every explicit value without
 changing the keyboard shape; the QWERTY placeholders then remain the effective defaults.
-Reset restores the modal draft to the complete staggered QWERTY default. Like other draft edits,
+Reset restores the modal draft to the complete Row stagger QWERTY default. Like other draft edits,
 the reset does not replace the persisted input profile until Save is selected.
 
-Keyboard type is currently `Ortho` or `Staggered`. Angle and stagger catalog layouts initialize as
-Staggered; ortho and mini layouts initialize as Ortho. This choice controls editor presentation and
-is retained independently after customization. Ortho uses aligned split geometry: each row is a
+Keyboard geometry is currently `Column stagger` or `Row stagger`, matching the global Settings
+language. Catalog layouts do not prescribe this choice; the viewer's keyboard-geometry preference
+initializes the input configuration. This choice controls editor presentation and is retained
+independently after customization. Column stagger uses aligned split geometry: each row is a
 five-key left half, a straight center seam, and a right half that grows only to the right, so extra
-keys never shift the columns or the gap. Staggered keeps ANSI row offsets. Thumb keys follow the
-presentation keyboard: ortho thumbs sit under each hand's index column with empty slots between
-them; stagger thumbs sit between their hand's bottom-row index keys, leaving a spacebar-sized gap.
+keys never shift the columns or the gap. Row stagger keeps ANSI row offsets. Thumb keys follow the
+presentation keyboard: column-stagger thumbs sit under each hand's index column with empty slots
+between them; row-stagger thumbs sit between their hand's bottom-row index keys, leaving a
+spacebar-sized gap.
 
 ## Key editor interaction
 
@@ -96,7 +99,7 @@ The stored model contains:
 
 - the base layout name as provenance for the autocomplete and, while untouched, the trigger label;
 - whether a key has been edited since that base was selected;
-- the two-value keyboard presentation type;
+- the two-value keyboard geometry choice (stored under the existing `keyboardType` field);
 - key values keyed by stable `row,column` slots;
 - an optional inert marker for standard slots omitted by an imported base;
 - optional left/right thumb-hand identity.

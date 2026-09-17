@@ -17,7 +17,8 @@ const REQUIRED_ARTIFACTS = [
 	'layout-supplemental.json',
 	'authors.json',
 	'layout-likes.json',
-	'layout-stats-cyanophage.json'
+	'layout-stats-cyanophage-column-stagger.json',
+	'layout-stats-cyanophage-row-stagger.json'
 ];
 const STATS_ARTIFACT_PATTERN = /^layout-stats-(?:cmini|mana2)-.+\.json$/;
 
@@ -62,9 +63,9 @@ export async function hashDataState(scope) {
 		scope === 'cache'
 			? [
 					...artifacts,
-					resolve(ROOT, '.cache', 'clemenpine'),
+					resolve(ROOT, '.cache', 'akldb'),
 					resolve(ROOT, '.cache', 'cminibrowser'),
-					resolve(ROOT, '.cache', 'clemenpine-synced-hash')
+					resolve(ROOT, '.cache', 'akldb-synced-hash')
 				]
 			: artifacts;
 	const discovered = await Promise.all(roots.map(walkFiles));

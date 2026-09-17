@@ -3,6 +3,8 @@
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
 		fillPreviewKeyboardRows,
 		layoutMainRowMaxColumn,
@@ -27,6 +29,7 @@
 
 	interface Props {
 		layout: LayoutData;
+		geometry?: KeyboardGeometry;
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
@@ -61,6 +64,7 @@
 
 	const {
 		layout,
+		geometry = uiPrefs.keyboardGeometry,
 		rows,
 		feedback,
 		swapPaths = [],
@@ -118,7 +122,7 @@
 	const previewDisplayRows = $derived(fillPreviewKeyboardRows(rows));
 
 	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
-		if (layout.board === 'ortho' || layout.board === 'mini') {
+		if (geometry === 'column-stagger') {
 			const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
 			const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 			return {
@@ -214,6 +218,7 @@
 							{:else}
 								<LayoutKeyboardPreview
 									{layout}
+									{geometry}
 									rows={previewDisplayRows}
 									{feedback}
 									{swapPaths}

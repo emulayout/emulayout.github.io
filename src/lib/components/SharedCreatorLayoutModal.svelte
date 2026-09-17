@@ -6,6 +6,7 @@
 	import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, createLayoutFromKeyConfig } from '$lib/layoutCreator';
 	import { compileCreatorInputProfile } from '$lib/layoutCreatorMappings';
 	import { createDefaultCreatorUrlSnapshot, type CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 
 	interface Props {
 		open: boolean;
@@ -30,7 +31,10 @@
 			adaptiveKey: shared.includeAdaptiveKey
 		})
 	);
-	const rows = $derived(computeDisplayRows(layout));
+	const geometry = $derived<KeyboardGeometry>(
+		shared.keyConfig.keyboardType === 'ortho' ? 'column-stagger' : 'row-stagger'
+	);
+	const rows = $derived(computeDisplayRows(layout, geometry));
 	const inputProfile = $derived(
 		compileCreatorInputProfile(
 			shared.includeMagicKey,
@@ -93,6 +97,7 @@
 			<h3 id="shared-layout-keys-heading">Layout keys</h3>
 			<LayoutKeyboardWorkspace
 				{layout}
+				{geometry}
 				{rows}
 				{inputProfile}
 				disabledMappingIds={shared.disabledMappingIds}

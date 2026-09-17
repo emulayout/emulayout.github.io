@@ -35,7 +35,7 @@ const thumbLayout: CompactLayout = [
 ];
 
 describe('keyboard input configuration', () => {
-	test('provides a complete staggered QWERTY default and round-trips persistence', () => {
+	test('provides a complete Row stagger QWERTY default and round-trips persistence', () => {
 		const config = createDefaultKeyboardInputConfig();
 		expect(config.baseLayoutName).toBe('QWERTY');
 		expect(config.baseLayoutModified).toBe(false);
@@ -56,7 +56,7 @@ describe('keyboard input configuration', () => {
 	});
 
 	test('preserves thumb hands when a catalog layout becomes the editable base', () => {
-		const config = createKeyboardInputConfigFromLayout(decodeLayout(thumbLayout));
+		const config = createKeyboardInputConfigFromLayout(decodeLayout(thumbLayout), 'ortho');
 		expect(config.baseLayoutName).toBe('thumb-base');
 		expect(config.baseLayoutModified).toBe(false);
 		expect(keyboardInputConfigLabel(config)).toBe('thumb-base');

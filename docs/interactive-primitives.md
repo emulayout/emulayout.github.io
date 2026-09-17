@@ -104,7 +104,7 @@ field. The modal validates a unique effective source-key map before Save and res
 trigger on every dismissal path.
 
 The layout creator replaces the practice keyboard preview with that same key editor, plus the
-base-layout autocomplete and keyboard-type control, in the keyboard slot. It hides QWERTY
+base-layout autocomplete and keyboard-geometry control, in the keyboard slot. It hides QWERTY
 placeholders and does not require unique assigned values, so a draft may keep any number of
 letters, including repeats. Empty slots are dropped from the live draft. The editor still
 receives the workspace option presentation (next-key, home-key coloring, special-key feedback,
@@ -156,6 +156,8 @@ catalog author.
   them.
 - Visible labels and accessible names use the same sentence-case wording unless assistive
   technology needs extra context.
+- The Display settings keyboard-geometry choice uses `SegmentedControl`; its arrow-key and roving
+  focus behavior follow the same contract as other segmented controls.
 - Consumer-specific styles remain scoped under a local wrapper when a class is applied inside a
   child primitive.
 - Portal-positioned surfaces stay within the visible viewport and reposition when that viewport

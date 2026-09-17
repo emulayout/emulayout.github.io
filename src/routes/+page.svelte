@@ -84,6 +84,7 @@
 
 	$effect(() => {
 		void layoutStatsStore.activeCorpus;
+		void layoutStatsStore.activeGeometry;
 		const analyzers = analyzersToLoad;
 
 		untrack(() => {

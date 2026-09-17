@@ -35,6 +35,12 @@ import {
 	type LayoutTestAreaDisplayOptions
 } from '$lib/layoutTestAreaPrefs';
 import { goatcounterPracticeSettingEvent, trackGoatCounterEvent } from '$lib/goatcounter';
+import {
+	DEFAULT_KEYBOARD_GEOMETRY,
+	KEYBOARD_GEOMETRY_STORAGE_KEY,
+	parseKeyboardGeometry,
+	type KeyboardGeometry
+} from '$lib/keyboardGeometry';
 
 export type LayoutCardStatsMode = 'focused' | 'detailed';
 
@@ -47,6 +53,8 @@ class UiPrefs {
 	layoutCardStatsMode = $state<LayoutCardStatsMode>('focused');
 	/** Dump-backed corpus for cmini / Mana2 stats. Cyanophage ignores this. */
 	statsCorpus = $state<StatsCorpus>(DEFAULT_STATS_CORPUS);
+	/** Viewer-owned physical geometry for catalog rendering and geometry-sensitive integrations. */
+	keyboardGeometry = $state<KeyboardGeometry>(DEFAULT_KEYBOARD_GEOMETRY);
 	/** Persisted analyzer columns for layout-detail stats; null means use the data-driven default. */
 	layoutDetailStatsAnalyzers = $state<StatsAnalyzer[] | null>(null);
 	/** Persisted visual guidance and contextual-preview options for Typing practice. */
@@ -70,6 +78,9 @@ class UiPrefs {
 		this.layoutCardStatsMode =
 			localStorage.getItem('layoutCardStatsDisplay') === 'detailed' ? 'detailed' : 'focused';
 		this.statsCorpus = parseStatsCorpus(localStorage.getItem(STATS_CORPUS_STORAGE_KEY));
+		this.keyboardGeometry = parseKeyboardGeometry(
+			localStorage.getItem(KEYBOARD_GEOMETRY_STORAGE_KEY)
+		);
 		this.layoutDetailStatsAnalyzers = parseLayoutDetailStatsAnalyzers(
 			localStorage.getItem(LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
 		);
@@ -103,6 +114,11 @@ class UiPrefs {
 	setStatsCorpus(value: StatsCorpus) {
 		this.statsCorpus = value;
 		localStorage.setItem(STATS_CORPUS_STORAGE_KEY, value);
+	}
+
+	setKeyboardGeometry(value: KeyboardGeometry) {
+		this.keyboardGeometry = value;
+		localStorage.setItem(KEYBOARD_GEOMETRY_STORAGE_KEY, value);
 	}
 
 	setLayoutDetailStatsAnalyzers(values: Iterable<StatsAnalyzer>) {

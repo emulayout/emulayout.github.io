@@ -1,17 +1,13 @@
 #!/usr/bin/env bun
 
 /**
- * Compute Cyanophage effort stats for layouts in the Clemenpine catalog cache.
+ * Compute Cyanophage effort stats for layouts in the AKLDB catalog cache.
  *
- * Requires a prior catalog-sync so `.cache/clemenpine/layouts-full.json` exists.
- * Reads canonical Magic mappings from AKL when present.
+ * AKLDB layouts are geometry-neutral. Publish one artifact for each supported
+ * viewer geometry so the frontend can switch without conflating presentation with layout identity.
  */
 
 import { access, mkdir } from 'node:fs/promises';
-import {
-	loadCminibrowserMagicRules,
-	supplementalByLowerLayoutId
-} from './cminibrowser-magic-rules.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -20,9 +16,11 @@ import {
 import { defaultMagicMappings } from './layout-features.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
 import { parseOfflineForceArgs, writeTextFileIfChanged } from './sync-shared.js';
-import { readCachedClemenpineLayouts } from './clemenpine-cache.js';
+import { readCachedAkldbLayouts } from './akldb-cache.js';
+import { supplementalFromAkldbLayout } from './akldb-spark.js';
 
-const CYANOPHAGE_STATS_FILE = 'static/layout-stats-cyanophage.json';
+const GEOMETRIES = ['column-stagger', 'row-stagger'];
+const cyanophageStatsFile = (geometry) => `static/layout-stats-cyanophage-${geometry}.json`;
 
 async function pathExists(path) {
 	return access(path)
@@ -34,16 +32,19 @@ async function run() {
 	const skipIfCatalogUnchanged =
 		process.env.CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED === '1' &&
 		process.env.CATALOG_REBUILT === 'false';
-	if (skipIfCatalogUnchanged && (await pathExists(CYANOPHAGE_STATS_FILE))) {
-		console.log(
-			`✔ Catalog unchanged; keeping existing Cyanophage stats → ${CYANOPHAGE_STATS_FILE}`
-		);
+	if (
+		skipIfCatalogUnchanged &&
+		(
+			await Promise.all(GEOMETRIES.map((geometry) => pathExists(cyanophageStatsFile(geometry))))
+		).every(Boolean)
+	) {
+		console.log('✔ Catalog unchanged; keeping existing Cyanophage geometry stats');
 		console.log('Done');
 		return;
 	}
 
-	console.log('→ Loading Clemenpine layouts cache...');
-	const { layouts } = await readCachedClemenpineLayouts();
+	console.log('→ Loading AKLDB layouts cache...');
+	const { layouts } = await readCachedAkldbLayouts();
 
 	console.log(`→ Loading ${CYANOPHAGE_ANALYZER} analyzer data...`);
 	const cyanophageData = await loadCyanophageData();
@@ -53,39 +54,29 @@ async function run() {
 		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
 	});
 	console.log('→ Loading AKL inputs...');
-	const [memeFilter, magicRules] = await Promise.all([
-		loadMemeFilterExclusions({ offline, force }),
-		loadCminibrowserMagicRules({ offline, force })
-	]);
+	const memeFilter = await loadMemeFilterExclusions({ offline, force });
 	const excludedLayouts = memeFilter.excluded;
-	const supplementalByLowerId = supplementalByLowerLayoutId(magicRules.supplementalByLayoutId);
 	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
-	console.log(
-		`  ✔ Magic and Adaptive mappings for ${magicRules.supplementalByLayoutId.size} layouts`
-	);
 
-	/** @type {Record<string, number[]>} */
-	const cyanophageStats = {};
-	let loaded = 0;
-	let skipped = 0;
-	let filtered = 0;
+	const filtered = layouts.filter((layout) =>
+		isExcludedLayout(layout.name, excludedLayouts)
+	).length;
 
 	/**
-	 * @param {import('./clemenpine-cache.js').ClemenpineLayout} layout
+	 * @param {import('./akldb-cache.js').AkldbLayout} layout
 	 */
-	function processLayout(layout) {
+	function processLayout(layout, geometry) {
 		if (isExcludedLayout(layout.name, excludedLayouts)) {
-			filtered++;
 			return null;
 		}
 
-		const rawLayout = {
-			name: layout.name,
-			user: layout.user,
-			board: layout.board,
-			keys: layout.keys
-		};
-		const variants = supplementalByLowerId.get(layout.name.toLowerCase())?.variants ?? [];
+		const rawLayout = { name: layout.name, user: layout.owner, geometry, keys: {} };
+		for (const key of layout.keys) {
+			if (key.char) {
+				rawLayout.keys[key.char] = { row: key.row, col: key.col, finger: key.finger };
+			}
+		}
+		const variants = supplementalFromAkldbLayout(layout).supplemental?.variants ?? [];
 		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
 			magicMappings: defaultMagicMappings(variants)
 		});
@@ -93,32 +84,38 @@ async function run() {
 		return { name: rawLayout.name, stats: cyanStats };
 	}
 
-	console.log(`→ Computing Cyanophage stats for ${layouts.length} layouts...`);
-	for (const layout of layouts) {
-		try {
-			const result = processLayout(layout);
-			if (!result) continue;
-			if (result.stats) {
-				cyanophageStats[result.name] = result.stats;
-				loaded++;
-			} else {
-				skipped++;
+	for (const geometry of GEOMETRIES) {
+		/** @type {Record<string, number[]>} */
+		const cyanophageStats = {};
+		let loaded = 0;
+		let skipped = 0;
+		console.log(`→ Computing Cyanophage ${geometry} stats for ${layouts.length} layouts...`);
+		for (const layout of layouts) {
+			try {
+				const result = processLayout(layout, geometry);
+				if (!result) continue;
+				if (result.stats) {
+					cyanophageStats[result.name] = result.stats;
+					loaded++;
+				} else {
+					skipped++;
+				}
+			} catch (err) {
+				console.error(`  ⚠ Error processing ${layout.name}:`, err.message);
 			}
-		} catch (err) {
-			console.error(`  ⚠ Error processing ${layout.name}:`, err.message);
 		}
-	}
 
-	await mkdir('static', { recursive: true });
-	const sorted = Object.fromEntries(
-		Object.keys(cyanophageStats)
-			.sort((a, b) => a.localeCompare(b))
-			.map((name) => [name, cyanophageStats[name]])
-	);
-	await writeTextFileIfChanged(CYANOPHAGE_STATS_FILE, JSON.stringify(sorted) + '\n');
-	console.log(
-		`  ✔ Cyanophage stats for ${loaded} layouts (${skipped} skipped, ${filtered} meme-filtered) → ${CYANOPHAGE_STATS_FILE}`
-	);
+		await mkdir('static', { recursive: true });
+		const sorted = Object.fromEntries(
+			Object.keys(cyanophageStats)
+				.sort((a, b) => a.localeCompare(b))
+				.map((name) => [name, cyanophageStats[name]])
+		);
+		const outputFile = cyanophageStatsFile(geometry);
+		await writeTextFileIfChanged(outputFile, JSON.stringify(sorted) + '\n');
+		console.log(`  ✔ ${loaded} layouts (${skipped} skipped) → ${outputFile}`);
+	}
+	console.log(`  ✔ ${filtered} meme-filtered layouts`);
 	console.log('Done');
 }
 

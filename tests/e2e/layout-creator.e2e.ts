@@ -131,7 +131,7 @@ test('clears every key and special mapping from a new layout', async ({ page }) 
 	const clearAllKeys = panel.getByRole('button', { name: 'Clear all keys' });
 
 	await panel.getByRole('textbox', { name: 'Layout name' }).fill('Scratch layout');
-	await panel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
+	await panel.getByRole('combobox', { name: 'Keyboard geometry' }).selectOption('ortho');
 	await panel.getByRole('button', { name: 'Add magic' }).click();
 	await panel.getByRole('textbox', { name: 'Magic trigger' }).fill('#');
 	await panel.getByRole('button', { name: 'Add adaptive' }).click();
@@ -140,7 +140,7 @@ test('clears every key and special mapping from a new layout', async ({ page }) 
 	await clearAllKeys.click();
 
 	await expect(panel.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Scratch layout');
-	await expect(panel.getByRole('combobox', { name: 'Keyboard type' })).toHaveValue('ortho');
+	await expect(panel.getByRole('combobox', { name: 'Keyboard geometry' })).toHaveValue('ortho');
 	await expect(panel.getByRole('combobox', { name: 'Base layout (optional)' })).toHaveValue('');
 	expect(
 		await panel
@@ -429,7 +429,7 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 		'true'
 	);
 	await namedPanel.getByRole('textbox', { name: 'Row 1, key 1', exact: true }).fill('w');
-	await namedPanel.getByRole('combobox', { name: 'Keyboard type' }).selectOption('ortho');
+	await namedPanel.getByRole('combobox', { name: 'Keyboard geometry' }).selectOption('ortho');
 	await namedPanel.getByRole('button', { name: 'Add magic' }).click();
 	await namedPanel.getByRole('textbox', { name: 'Preceding' }).first().fill('c');
 	await namedPanel.getByRole('textbox', { name: 'Emit' }).first().fill('k');
@@ -455,7 +455,7 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	await expect(restored.getByRole('textbox', { name: 'Row 1, key 1', exact: true })).toHaveValue(
 		'w'
 	);
-	await expect(restored.getByRole('combobox', { name: 'Keyboard type' })).toHaveValue('ortho');
+	await expect(restored.getByRole('combobox', { name: 'Keyboard geometry' })).toHaveValue('ortho');
 	await expect(restored.getByRole('button', { name: 'Hide magic mappings' })).toHaveAttribute(
 		'aria-expanded',
 		'true'

@@ -12,7 +12,6 @@ describe('active filter chips', () => {
 		const snapshot = createDefaultViewSnapshot();
 		snapshot.nameFilter = 'Canary';
 		snapshot.selectedAuthors = ['12', '34'];
-		snapshot.boardTypeFilter = 'ortho';
 		snapshot.magicKeyFilter = 'required-mapped';
 		snapshot.repeatKeyFilter = 'required';
 		snapshot.adaptiveSwapFilter = 'required-mapped';
@@ -39,7 +38,6 @@ describe('active filter chips', () => {
 			'repeat',
 			'magic',
 			'adaptive',
-			'board',
 			'keys-and',
 			'stat-cyano-sfb',
 			'hand-cyano-lh',
@@ -140,7 +138,6 @@ describe('active filter chips', () => {
 			setMagicKeyFilter: (value) => calls.push(`magic:${value}`),
 			setRepeatKeyFilter: (value) => calls.push(`repeat:${value}`),
 			setAdaptiveSwapFilter: (value) => calls.push(`adaptive:${value}`),
-			setBoardTypeFilter: (value) => calls.push(`board:${value}`),
 			setCharacterSetFilter: (value) => calls.push(`charset:${value}`),
 			setShowUnfinished: (value) => calls.push(`unfinished:${value}`),
 			clearInclude: () => calls.push('keys:and'),
@@ -158,7 +155,6 @@ describe('active filter chips', () => {
 		clearActiveFilterChip(target, { kind: 'magicKey' });
 		clearActiveFilterChip(target, { kind: 'repeatKey' });
 		clearActiveFilterChip(target, { kind: 'adaptiveSwap' });
-		clearActiveFilterChip(target, { kind: 'boardType' });
 		clearActiveFilterChip(target, { kind: 'characterSet' });
 		clearActiveFilterChip(target, { kind: 'showUnfinished' });
 		clearActiveFilterChip(target, { kind: 'keyFilter', filter: 'and' });
@@ -176,7 +172,6 @@ describe('active filter chips', () => {
 			'magic:optional',
 			'repeat:optional',
 			'adaptive:optional',
-			'board:all',
 			'charset:english',
 			'unfinished:false',
 			'keys:and',

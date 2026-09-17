@@ -12,14 +12,15 @@ import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
 import { compileLayoutInputRegistry, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { LayoutSupplemental } from '$lib/layoutSupplemental';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
+import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
-export const LAYOUT_DETAIL_VERSION = 3;
+export const LAYOUT_DETAIL_VERSION = 4;
 
 export type CorpusCompactStats<T> = Partial<Record<StatsCorpus, T>>;
 
 export interface LayoutDetailStats {
 	cmini?: CorpusCompactStats<CompactLayoutStats>;
-	cyanophage?: CompactCyanophageStats;
+	cyanophage?: Partial<Record<KeyboardGeometry, CompactCyanophageStats>>;
 	mana2?: CorpusCompactStats<CompactMana2Stats>;
 }
 
@@ -83,7 +84,8 @@ export function buildCatalogLayoutDetail(
 	name: string,
 	catalog: CatalogLayoutDetailSource,
 	statsMaps: StatsMaps = {},
-	statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS
+	statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS,
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): LayoutDetail | null {
 	const layout = catalog.layouts.find((entry) => entry.name === name);
 	if (!layout) return null;
@@ -95,7 +97,9 @@ export function buildCatalogLayoutDetail(
 		...(inputProfile ? { inputProfile } : {}),
 		stats: {
 			...(statsMaps.cmini?.[name] ? { cmini: { [statsCorpus]: statsMaps.cmini[name] } } : {}),
-			cyanophage: statsMaps.cyanophage?.[name],
+			...(statsMaps.cyanophage?.[name]
+				? { cyanophage: { [geometry]: statsMaps.cyanophage[name] } }
+				: {}),
 			...(statsMaps.mana2?.[name] ? { mana2: { [statsCorpus]: statsMaps.mana2[name] } } : {})
 		}
 	};
@@ -103,11 +107,12 @@ export function buildCatalogLayoutDetail(
 
 export function resolveLayoutDetailStats(
 	stats: LayoutDetailStats,
-	corpus: StatsCorpus
+	corpus: StatsCorpus,
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): ResolvedLayoutDetailStats {
 	return {
 		cmini: stats.cmini?.[corpus],
-		cyanophage: stats.cyanophage,
+		cyanophage: stats.cyanophage?.[geometry],
 		mana2: stats.mana2?.[corpus]
 	};
 }

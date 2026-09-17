@@ -106,6 +106,10 @@ there are no metric-cell filter or sort targets.
   created layout.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
+- Keyboard geometry is a persisted display preference, not layout metadata. Column stagger and row
+  stagger select separate Cyanophage artifacts, so cards, detail views, Quick Find, Compare, and
+  playground links use the same geometry. Changing geometry invalidates and reloads only
+  Cyanophage stats; cmini and Mana2 are unchanged.
 - Stats corpus (Monkeyracer / Reddit) is available in the results toolbar beside Analyzer and in the
   layout-detail Stats options. Both controls edit one persisted preference. It applies only to
   cmini and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus
@@ -116,8 +120,9 @@ there are no metric-cell filter or sort targets.
 ## Code map
 
 - Display preference and persistence: `src/lib/uiPrefs.svelte.ts`
+- Keyboard geometry values and labels: `src/lib/keyboardGeometry.ts`
 - Corpus catalog and artifact URLs: `src/lib/statsAnalyzers.ts`
-- Dump-backed stats loading and corpus invalidation: `src/lib/layoutStatsLoader.ts`,
+- Stats loading plus corpus/geometry invalidation: `src/lib/layoutStatsLoader.ts`,
   `src/lib/layoutStatsStore.svelte.ts`
 - Global corpus application and per-layout resolution: `src/routes/+layout.svelte`,
   `src/lib/layoutDetails.ts`, `bin/layout-details.js`

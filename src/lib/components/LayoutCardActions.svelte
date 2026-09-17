@@ -9,7 +9,6 @@
 		similarActive: boolean;
 		hasSimilarReference: boolean;
 		anglemodActive: boolean;
-		angleBoard: boolean;
 		cyanophageCompatible: boolean;
 		cyanophageTitle: string;
 		expandLayoutName?: string;
@@ -26,7 +25,6 @@
 		similarActive,
 		hasSimilarReference,
 		anglemodActive,
-		angleBoard,
 		cyanophageCompatible,
 		cyanophageTitle,
 		expandLayoutName,
@@ -45,7 +43,7 @@
 				? 'Show layouts similar to this one'
 				: 'Find similar layouts'
 	);
-	const anglemodTitle = $derived(angleBoard ? 'Remove anglemod' : 'Anglemod');
+	const anglemodTitle = 'Anglemod';
 	const expandTarget = '/layouts/[name]';
 	const expandHref = $derived(
 		expandLayoutName

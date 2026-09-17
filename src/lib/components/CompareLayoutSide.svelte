@@ -4,6 +4,7 @@
 	import { computeDisplayRows, displayRowsToString } from '$lib/layoutDisplay';
 	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
 		buildLayoutStatsBlockModel,
 		type CompactAnalyzerStats
@@ -37,7 +38,9 @@
 		showCycleControls = false
 	}: Props = $props();
 
-	const displayValue = $derived(displayRowsToString(computeDisplayRows(layout)));
+	const displayValue = $derived(
+		displayRowsToString(computeDisplayRows(layout, uiPrefs.keyboardGeometry))
+	);
 	const updatedLabel = $derived(
 		new Date(layout.updatedAt).toLocaleDateString(undefined, {
 			month: 'short',
@@ -112,7 +115,7 @@
 			{/if}
 		</div>
 		<p class="compare-side-sub layout-meta" style="color: var(--text-secondary);">
-			{layout.board} · by {authorName} · {updatedLabel}
+			by {authorName} · {updatedLabel}
 		</p>
 	</div>
 

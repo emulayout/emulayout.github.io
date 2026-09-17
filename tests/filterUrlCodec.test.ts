@@ -52,7 +52,6 @@ describe('view filter URL codec', () => {
 		snapshot.repeatKeyFilter = 'required';
 		snapshot.adaptiveSwapFilter = 'required';
 		snapshot.characterSetFilter = 'international';
-		snapshot.boardTypeFilter = 'ortho';
 		snapshot.nameFilter = 'Canary & Friends';
 		snapshot.selectedAuthors = ['12', '34'];
 		snapshot.sortBy = 'name';
@@ -90,7 +89,6 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.repeatKeyFilter).toBe('required');
 		expect(decoded.snapshot.adaptiveSwapFilter).toBe('required');
 		expect(decoded.snapshot.characterSetFilter).toBe('international');
-		expect(decoded.snapshot.boardTypeFilter).toBe('ortho');
 		expect(decoded.snapshot.nameFilterInput).toBe('Canary & Friends');
 		expect(decoded.snapshot.nameFilter).toBe('Canary & Friends');
 		expect(decoded.snapshot.selectedAuthors).toEqual(['12', '34']);
@@ -191,7 +189,6 @@ describe('view filter URL codec', () => {
 		expect(snapshot.repeatKeyFilter).toBe('optional');
 		expect(snapshot.adaptiveSwapFilter).toBe('optional');
 		expect(snapshot.characterSetFilter).toBe('english');
-		expect(snapshot.boardTypeFilter).toBe('all');
 		expect(snapshot.sortBy).toBe('similarity');
 		expect(snapshot.sortOrder).toBe('desc');
 		expect(snapshot.similarityFilterOperator).toBe('gt');

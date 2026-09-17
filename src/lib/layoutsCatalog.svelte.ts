@@ -12,6 +12,7 @@ import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
+import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -66,7 +67,8 @@ class LayoutsCatalog {
 	getLayoutDetail(
 		name: string,
 		statsMaps: StatsMaps = {},
-		statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS
+		statsCorpus: StatsCorpus = DEFAULT_STATS_CORPUS,
+		geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 	): LayoutDetail | null {
 		if (!this.fullCatalogLoaded) return null;
 		return buildCatalogLayoutDetail(
@@ -78,7 +80,8 @@ class LayoutsCatalog {
 				inputProfiles: this.inputProfiles
 			},
 			statsMaps,
-			statsCorpus
+			statsCorpus,
+			geometry
 		);
 	}
 

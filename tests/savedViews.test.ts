@@ -77,12 +77,12 @@ describe('saved-view collection updates', () => {
 	test('updates, renames, and removes by id without mutating the input collection', () => {
 		const filters = [makeSavedView('one', 'One'), makeSavedView('two', 'Two')];
 		const snapshot = createDefaultViewSnapshot();
-		snapshot.boardTypeFilter = 'ortho';
+		snapshot.characterSetFilter = 'international';
 
 		const updated = updateSavedView(filters, 'one', snapshot, ['Zulu', 'Alpha']);
-		expect(updated?.[0].snapshot.boardTypeFilter).toBe('ortho');
+		expect(updated?.[0].snapshot.characterSetFilter).toBe('international');
 		expect(updated?.[0].sourceLayoutNames).toEqual(['Alpha', 'Zulu']);
-		expect(filters[0].snapshot.boardTypeFilter).toBe('all');
+		expect(filters[0].snapshot.characterSetFilter).toBe('english');
 		expect(updateSavedView(filters, 'missing', snapshot, null)).toBeNull();
 
 		const conflict = renameSavedView(filters, 'one', ' two ');

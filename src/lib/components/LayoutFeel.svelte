@@ -6,6 +6,7 @@
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import TypingPracticeLessonModal from '$lib/components/TypingPracticeLessonModal.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 	import type { DisplayCell } from '$lib/layoutDisplay';
 	import { type LayoutInputProfile, type LayoutInputResult } from '$lib/layoutInputBehaviors';
 	import {
@@ -88,6 +89,7 @@
 		onWorkspaceWidthChange?: (width: number | null) => void;
 		/** Smaller prompt, field, and stats for the layout-creator Edit workspace. */
 		compact?: boolean;
+		geometry?: KeyboardGeometry;
 	}
 
 	const {
@@ -110,7 +112,8 @@
 		keyboardMappings,
 		showKeyboardMappings = false,
 		onWorkspaceWidthChange,
-		compact = false
+		compact = false,
+		geometry
 	}: Props = $props();
 
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
@@ -710,6 +713,7 @@
 	{#if showFeelLesson || keyboard}
 		<LayoutKeyboardWorkspace
 			{layout}
+			{geometry}
 			{rows}
 			feedback={keyboardFeedback}
 			swapPaths={keyboardSwapPaths}
