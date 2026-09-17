@@ -5,8 +5,6 @@ export interface KeyInfo {
 	thumbHand?: 'l' | 'r';
 }
 
-/** Catalog board identity. AKLDB's current Spark format intentionally omits it. */
-export type BoardType = 'angle' | 'stagger' | 'ortho' | 'mini' | 'unknown';
 export type AuthorId = string;
 export type AuthorsMap = Record<string, AuthorId>;
 
@@ -34,7 +32,6 @@ export interface ThumbKeyEntry {
 export interface LayoutData {
 	name: string;
 	user: AuthorId;
-	board: BoardType;
 	keys: Record<string, KeyInfo>;
 	/** `"row,col"` → key character for O(1) position lookups, including duplicate letters. */
 	positionBySlot: Map<string, string>;
@@ -147,7 +144,7 @@ export interface CyanophageStats {
  */
 export type CompactCyanophageStats = number[];
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats-cyanophage.json. */
+/** Layout stats keyed by layout name. Loaded from the active geometry's Cyanophage artifact. */
 export type CyanophageStatsMap = Record<string, CompactCyanophageStats>;
 
 /**

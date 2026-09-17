@@ -124,7 +124,7 @@ test.describe('typing-practice input layout', () => {
 		await inputLayoutButton.click();
 		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
 		const baseLayout = dialog.getByRole('combobox', { name: 'Base layout' });
-		const keyboardType = dialog.getByRole('combobox', { name: 'Keyboard type' });
+		const keyboardGeometry = dialog.getByRole('combobox', { name: 'Keyboard geometry' });
 		await expect(baseLayout).toHaveValue('QWERTY');
 		await expect(baseLayout).toBeFocused();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'false');
@@ -137,7 +137,9 @@ test.describe('typing-practice input layout', () => {
 		await purposeHint.press('Escape');
 		await expect(page.getByRole('tooltip')).toHaveCount(0);
 		await expect(dialog).toBeVisible();
-		await expect(keyboardType).toHaveValue('staggered');
+		await expect(keyboardGeometry).toHaveValue('staggered');
+		await expect(keyboardGeometry.getByRole('option', { name: 'Column stagger' })).toHaveCount(1);
+		await expect(keyboardGeometry.getByRole('option', { name: 'Row stagger' })).toHaveCount(1);
 		await expect(dialog.locator('[data-keyboard-input-slot]')).toHaveCount(36);
 		await expect(
 			dialog.locator('[data-keyboard-input-row="3"] [data-keyboard-input-slot]')
@@ -164,7 +166,7 @@ test.describe('typing-practice input layout', () => {
 		await expect(dialog.getByRole('button', { name: 'Save' })).toBeEnabled();
 		await dialog.getByRole('button', { name: 'Reset' }).click();
 		await expect(baseLayout).toHaveValue('QWERTY');
-		await expect(keyboardType).toHaveValue('staggered');
+		await expect(keyboardGeometry).toHaveValue('staggered');
 		await expect(dialog.locator('[data-keyboard-input-slot="0,0"]')).toHaveValue('q');
 		await expect(dialog.locator('[data-keyboard-input-missing-ansi]')).toHaveCount(0);
 
@@ -173,11 +175,11 @@ test.describe('typing-practice input layout', () => {
 		await dialog.getByRole('option', { name: 'night', exact: true }).click();
 		await expect(baseLayout).toBeFocused();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'false');
-		await expect(keyboardType).toHaveValue('ortho');
+		await expect(keyboardGeometry).toHaveValue('ortho');
 		await expect(
 			dialog.locator('[data-keyboard-input-row="3"] [data-keyboard-input-slot]')
 		).toHaveCount(2);
-		await keyboardType.focus();
+		await keyboardGeometry.focus();
 		await baseLayout.focus();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'true');
 		await baseLayout.press('Escape');

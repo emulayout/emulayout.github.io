@@ -2,17 +2,12 @@
 
 import { encodeThumbHands } from './layout-transformer.js';
 
-/** @type {readonly ['angle', 'stagger', 'ortho', 'mini', 'unknown']} */
-export const BOARD_TYPES = ['angle', 'stagger', 'ortho', 'mini', 'unknown'];
-
-/** @type {Record<(typeof BOARD_TYPES)[number], number>} */
-export const BOARD_CODE = {
-	angle: 0,
-	stagger: 1,
-	ortho: 2,
-	mini: 3,
-	unknown: 4
-};
+/**
+ * Historical `unknown` board code retained as a wire-format compatibility slot.
+ * Board is no longer domain data, but keeping this numeric field lets an older
+ * app bundle read a freshly generated catalog during local and rolling updates.
+ */
+const LAYOUT_WIRE_COMPATIBILITY_SLOT = 4;
 
 export const LAYOUT_FLAG_THUMB_KEYS = 1;
 export const LAYOUT_FLAG_ALL_LETTERS = 2;
@@ -72,7 +67,7 @@ export function encodeLayout(layout) {
 	return [
 		layout.name,
 		layout.user,
-		BOARD_CODE[layout.board] ?? BOARD_CODE.ortho,
+		LAYOUT_WIRE_COMPATIBILITY_SLOT,
 		layout.updatedAt,
 		flags,
 		entries.map(([key]) => key),

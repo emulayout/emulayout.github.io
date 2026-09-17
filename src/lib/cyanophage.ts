@@ -1,4 +1,5 @@
-import type { BoardType, KeyInfo } from '$lib/layout';
+import type { KeyInfo } from '$lib/layout';
+import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 
 /**
  * Cyanophage layout param: 34 chars in fixed QWERTY physical key order, then importLayout()
@@ -120,16 +121,8 @@ function getStaggeredSlots(): CyanSlot[] {
 	return slots;
 }
 
-function getSlotsForBoard(board: BoardType): CyanSlot[] {
-	switch (board) {
-		case 'stagger':
-		case 'angle':
-			return getStaggeredSlots();
-		case 'ortho':
-		case 'mini':
-		default:
-			return getErgoSlots();
-	}
+function getSlotsForGeometry(geometry: KeyboardGeometry): CyanSlot[] {
+	return geometry === 'row-stagger' ? getStaggeredSlots() : getErgoSlots();
 }
 
 /** Punctuation placeholders for empty cmini cols 10/11 mapped to cyanophage slots 10 and 21. */
@@ -174,16 +167,14 @@ const CYANOPHAGE_LETTER_SLOT_GEOMETRY: readonly { row: number; col: number }[] =
 ];
 
 function getImportSlotGeometry(
-	board: BoardType,
+	keyboardGeometry: KeyboardGeometry,
 	importString: string
 ): readonly { row: number; col: number }[] {
 	const geometry = CYANOPHAGE_LETTER_SLOT_GEOMETRY.map((slot) => ({ ...slot }));
 	const defaultThumb = importString.charAt(33) === '^';
 
-	if (board === 'stagger' && defaultThumb) {
+	if (keyboardGeometry === 'row-stagger' && defaultThumb) {
 		geometry.push({ row: 0, col: 12 }, { row: 2, col: -1 });
-	} else if (board === 'angle' && defaultThumb) {
-		geometry.push({ row: 2, col: 0 }, { row: 2, col: -1 });
 	} else {
 		geometry.push({ row: 2, col: 0 }, { row: 3, col: 4 });
 	}
@@ -197,17 +188,17 @@ function getImportSlotGeometry(
  */
 export function buildCyanophageCharPositionMap(
 	keys: Record<string, KeyInfo>,
-	board: BoardType,
+	geometry: KeyboardGeometry,
 	thumb: 'l' | 'r' = 'l'
 ): Map<string, { row: number; col: number }> {
-	const importString = formatLayoutImportString(keys, board);
+	const importString = formatLayoutImportString(keys, geometry);
 	if (importString.length !== CYANOPHAGE_IMPORT_SLOT_COUNT) {
 		return new Map();
 	}
 
-	const geometry = [...getImportSlotGeometry(board, importString)];
+	const slotGeometry = [...getImportSlotGeometry(geometry, importString)];
 	if (thumb === 'r') {
-		geometry[33] = { ...CYANOPHAGE_RIGHT_THUMB_POSITION };
+		slotGeometry[33] = { ...CYANOPHAGE_RIGHT_THUMB_POSITION };
 	}
 
 	const map = new Map<string, { row: number; col: number }>();
@@ -216,7 +207,7 @@ export function buildCyanophageCharPositionMap(
 		const char = importString.charAt(index);
 		if (char.length !== 1) continue;
 
-		const position = geometry[index];
+		const position = slotGeometry[index];
 		map.set(char, position);
 		map.set(char.toLowerCase(), position);
 	}
@@ -224,13 +215,16 @@ export function buildCyanophageCharPositionMap(
 	return map;
 }
 
-function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType): string {
+function buildLayoutImportString(
+	keys: Record<string, KeyInfo>,
+	geometry: KeyboardGeometry
+): string {
 	const thumbKeys = getCyanophageThumbKeys(keys);
 	const thumbChar = thumbKeys.length === 1 ? thumbKeys[0].char : null;
 	const reserved = new Set(thumbChar ? [thumbChar] : []);
 
 	const grid = buildKeyGrid(keys);
-	const slots = getSlotsForBoard(board);
+	const slots = getSlotsForGeometry(geometry);
 	const chars: Array<string | null> = Array.from(
 		{ length: CYANOPHAGE_IMPORT_SLOT_COUNT },
 		() => null
@@ -275,7 +269,7 @@ function buildLayoutImportString(keys: Record<string, KeyInfo>, board: BoardType
 /** 34-char cyanophage import string (without ANSI/ISO export suffix). */
 export function formatLayoutImportString(
 	keys: Record<string, KeyInfo>,
-	board: BoardType,
+	geometry: KeyboardGeometry,
 	displayValue?: string,
 	options?: { preferDisplay?: boolean }
 ): string {
@@ -287,7 +281,7 @@ export function formatLayoutImportString(
 		const fallback = displayValue ? formatLayoutFromDisplayValue(displayValue) : '';
 		return fallback.length === CYANOPHAGE_IMPORT_SLOT_COUNT ? fallback : '';
 	}
-	return buildLayoutImportString(keys, board);
+	return buildLayoutImportString(keys, geometry);
 }
 
 /**
@@ -338,15 +332,15 @@ function formatLayoutFromDisplayValue(displayValue: string): string {
 
 export function formatLayoutForCyanophage(
 	keys: Record<string, KeyInfo>,
-	board: BoardType,
+	geometry: KeyboardGeometry,
 	displayValue?: string,
 	options?: { preferDisplay?: boolean }
 ): string {
-	const layout = formatLayoutImportString(keys, board, displayValue, options);
+	const layout = formatLayoutImportString(keys, geometry, displayValue, options);
 	if (!layout) return '';
 
 	// ANSI/ISO exportLayout appends rcdata[35] when it is not "$" (always "back" on those modes).
-	if (board === 'stagger' || board === 'angle') {
+	if (geometry === 'row-stagger') {
 		return layout + 'back';
 	}
 
@@ -421,18 +415,18 @@ function encodeCyanophageLayoutParam(layout: string): string {
 
 export function buildCyanophagePlaygroundUrl(
 	keys: Record<string, KeyInfo>,
-	board: BoardType,
+	geometry: KeyboardGeometry,
 	displayValue?: string,
 	thumb: 'l' | 'r' = 'l',
-	options?: { preferDisplay?: boolean }
+	options?: { preferDisplay?: boolean; anglemod?: boolean }
 ): string | null {
 	if (!isCyanophageCompatible(keys)) return null;
 
-	const mode = board === 'stagger' ? 'ansi' : board === 'angle' ? 'iso' : 'ergo';
+	const mode = geometry === 'column-stagger' ? 'ergo' : options?.anglemod ? 'iso' : 'ansi';
 	// importLayout() reads the 34-char import string (^ empty slots, thumb letter at [33]).
 	// Use thumb=l|r for side; do not use exportLayout() output (= markers, "space" suffix) —
 	// reloading that format breaks swaps because charAt(33) is "s" from the "space" suffix.
-	const layoutParam = formatLayoutForCyanophage(keys, board, displayValue, options);
+	const layoutParam = formatLayoutForCyanophage(keys, geometry, displayValue, options);
 	if (layoutParam.length < CYANOPHAGE_IMPORT_SLOT_COUNT) return null;
 
 	const encodedLayout = encodeCyanophageLayoutParam(layoutParam);

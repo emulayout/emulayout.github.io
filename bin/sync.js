@@ -49,7 +49,7 @@ const TARGET_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'cyanophage',
 		label: 'Cyanophage stats',
-		hint: 'local compute → layout-stats-cyanophage.json'
+		hint: 'local compute → layout-stats-cyanophage-{column,row}-stagger.json'
 	},
 	{
 		value: 'details',

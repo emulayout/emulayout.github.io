@@ -10,6 +10,7 @@ import {
 	type StatsCorpus
 } from '$lib/statsAnalyzers';
 import { loadAnalyzerStats, type AnalyzerStatsLoadError } from '$lib/layoutStatsLoader';
+import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
 class LayoutStatsStore {
 	maps: StatsMaps = $state({});
@@ -17,6 +18,7 @@ class LayoutStatsStore {
 	loadErrors: Partial<Record<StatsAnalyzer, AnalyzerStatsLoadError>> = $state({});
 	/** Corpus used for dump-backed analyzer fetches (cmini / Mana2). */
 	activeCorpus: StatsCorpus = $state(DEFAULT_STATS_CORPUS);
+	activeGeometry: KeyboardGeometry = $state(DEFAULT_KEYBOARD_GEOMETRY);
 
 	#abortControllers = new Map<StatsAnalyzer, AbortController>();
 
@@ -68,6 +70,20 @@ class LayoutStatsStore {
 		}
 	}
 
+	/** Switch the presentation geometry and invalidate only geometry-sensitive Cyanophage stats. */
+	applyGeometry(geometry: KeyboardGeometry): void {
+		if (this.activeGeometry === geometry) return;
+		this.activeGeometry = geometry;
+		const analyzer = 'cyanophage';
+		this.#abortControllers.get(analyzer)?.abort();
+		this.#abortControllers.delete(analyzer);
+		const maps = { ...this.maps };
+		delete maps[analyzer];
+		this.maps = maps;
+		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
+		this.#clearLoadError(analyzer);
+	}
+
 	hydrate(analyzer: StatsAnalyzer, map: NonNullable<StatsMaps[StatsAnalyzer]>): void {
 		this.#abortControllers.get(analyzer)?.abort();
 		this.#abortControllers.delete(analyzer);
@@ -86,7 +102,10 @@ class LayoutStatsStore {
 		this.loadErrors = { ...this.loadErrors, [analyzer]: error };
 	}
 
-	reset(corpus: StatsCorpus = this.activeCorpus): void {
+	reset(
+		corpus: StatsCorpus = this.activeCorpus,
+		geometry: KeyboardGeometry = this.activeGeometry
+	): void {
 		for (const controller of this.#abortControllers.values()) {
 			controller.abort();
 		}
@@ -95,6 +114,7 @@ class LayoutStatsStore {
 		this.loadingAnalyzers = {};
 		this.loadErrors = {};
 		this.activeCorpus = corpus;
+		this.activeGeometry = geometry;
 	}
 
 	async ensureLoaded(analyzer: StatsAnalyzer): Promise<void> {
@@ -104,14 +124,17 @@ class LayoutStatsStore {
 		this.#abortControllers.set(analyzer, abortController);
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: true };
 		const corpus = this.activeCorpus;
+		const geometry = this.activeGeometry;
 
 		try {
 			const result = await loadAnalyzerStats(analyzer, {
 				signal: abortController.signal,
-				corpus
+				corpus,
+				geometry
 			});
 			if (this.#abortControllers.get(analyzer) !== abortController) return;
 			if (this.activeCorpus !== corpus && analyzerUsesSelectableCorpus(analyzer)) return;
+			if (analyzer === 'cyanophage' && this.activeGeometry !== geometry) return;
 			if (result.status === 'loaded') {
 				this.maps = { ...this.maps, [analyzer]: result.map };
 				this.#clearLoadError(analyzer);

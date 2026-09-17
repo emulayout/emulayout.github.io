@@ -5,6 +5,7 @@ import {
 	type StatsAnalyzer,
 	type StatsCorpus
 } from '$lib/statsAnalyzers';
+import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 
 export type AnalyzerStatsMap = NonNullable<StatsMaps[StatsAnalyzer]>;
 
@@ -37,12 +38,17 @@ function errorMessage(error: unknown): string {
  */
 export async function loadAnalyzerStats(
 	analyzer: StatsAnalyzer,
-	options: { fetch?: Fetcher; signal?: AbortSignal; corpus?: StatsCorpus } = {}
+	options: {
+		fetch?: Fetcher;
+		signal?: AbortSignal;
+		corpus?: StatsCorpus;
+		geometry?: KeyboardGeometry;
+	} = {}
 ): Promise<AnalyzerStatsLoadResult> {
 	const fetcher = options.fetch ?? fetch;
 	const statsUrl = analyzerUsesSelectableCorpus(analyzer)
 		? getAnalyzerStatsUrl(analyzer, options.corpus)
-		: getAnalyzerStatsUrl(analyzer);
+		: getAnalyzerStatsUrl(analyzer, undefined, options.geometry);
 
 	let response: Response;
 	try {

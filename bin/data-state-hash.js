@@ -17,7 +17,8 @@ const REQUIRED_ARTIFACTS = [
 	'layout-supplemental.json',
 	'authors.json',
 	'layout-likes.json',
-	'layout-stats-cyanophage.json'
+	'layout-stats-cyanophage-column-stagger.json',
+	'layout-stats-cyanophage-row-stagger.json'
 ];
 const STATS_ARTIFACT_PATTERN = /^layout-stats-(?:cmini|mana2)-.+\.json$/;
 

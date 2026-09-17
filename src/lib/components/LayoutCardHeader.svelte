@@ -160,13 +160,7 @@
 		class="text-xs layout-meta flex items-center gap-1 min-w-0"
 		style="color: var(--text-secondary);"
 	>
-		<span class="shrink-0"
-			>{authorName
-				? `${layout.board === 'unknown' ? 'board unspecified' : layout.board} · by`
-				: layout.board === 'unknown'
-					? 'board unspecified'
-					: layout.board}</span
-		>
+		{#if authorName}<span class="shrink-0">by</span>{/if}
 		{#if authorName}
 			{#if authorInteractive}
 				<button

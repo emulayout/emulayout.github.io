@@ -215,9 +215,9 @@ carry the physical key code into the resolver and compile adaptive rules against
 Cmini stats currently describe the base layout. Adaptive swaps are not included.
 
 Cyanophage stats incorporate AKLDB Magic / Repeat corpus rewrites when present; Adaptive swaps are
-not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md). While AKLDB leaves
-board unspecified, imported layouts receive no Cyanophage stats because its geometry is
-board-dependent.
+not included. See [`magic-keys-architecture.md`](./magic-keys-architecture.md). AKLDB layouts are
+geometry-neutral, so Emulayout computes separate column-stagger and row-stagger Cyanophage
+artifacts and selects between them using the viewer's display preference.
 
 Mana2 stats are imported from akl.gg dumps and describe the base layout only. Adaptive swaps,
 Magic keys, and Repeat keys are not folded into those metrics.

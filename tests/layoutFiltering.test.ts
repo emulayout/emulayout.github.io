@@ -9,7 +9,6 @@ function makeLayout(
 	name: string,
 	{
 		user = '1',
-		board = 'angle',
 		positions = [
 			['0,0', 'a'],
 			['0,1', 'b']
@@ -29,7 +28,6 @@ function makeLayout(
 		updatedAt = '2026-01-01'
 	}: Partial<{
 		user: string;
-		board: LayoutData['board'];
 		positions: Array<[string, string]>;
 		leftThumbKeys: LayoutData['thumbKeysByHand']['l'];
 		rightThumbKeys: LayoutData['thumbKeysByHand']['r'];
@@ -46,7 +44,6 @@ function makeLayout(
 	return {
 		name,
 		user,
-		board,
 		keys: {},
 		positionBySlot: new Map(positions),
 		thumbKeysByHand: { l: leftThumbKeys, r: rightThumbKeys },
@@ -76,7 +73,6 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
 		characterSetFilter: snapshot.characterSetFilter,
-		boardTypeFilter: snapshot.boardTypeFilter,
 		nameFilter: snapshot.nameFilter,
 		selectedAuthors: new Set(),
 		includeGrid: snapshot.appliedIncludeGrid,
@@ -142,25 +138,18 @@ describe('filterLayouts', () => {
 
 	test('applies metadata, name, and author filters', () => {
 		const layouts = [
-			makeLayout('Canary', { user: '12', board: 'ortho' }),
-			makeLayout('Canary Wide', { user: '34', board: 'ortho' }),
-			makeLayout('Graphite', { user: '12', board: 'angle' })
+			makeLayout('Canary', { user: '12' }),
+			makeLayout('Canary Wide', { user: '34' }),
+			makeLayout('Graphite', { user: '12' })
 		];
 		const criteria = makeCriteria({
 			nameFilter: 'canary',
 			selectedAuthors: new Set(['12']),
-			boardTypeFilter: 'ortho',
 			thumbKeyFilter: 'required',
 			magicKeyFilter: 'excluded'
 		});
 
 		expect(filterLayouts(layouts, criteria).map((layout) => layout.name)).toEqual(['Canary']);
-		expect(
-			filterLayouts(
-				[...layouts, makeLayout('Spark', { board: 'unknown' })],
-				makeCriteria({ boardTypeFilter: 'unknown' })
-			).map((layout) => layout.name)
-		).toEqual(['Spark']);
 	});
 
 	test('distinguishes all magic layouts from those with known mappings', () => {

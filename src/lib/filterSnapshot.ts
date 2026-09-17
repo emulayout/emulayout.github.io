@@ -14,14 +14,6 @@ export type RepeatKeyFilter = 'optional' | 'excluded' | 'required';
 export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
-export type BoardTypeFilter =
-	| 'all'
-	| 'angle'
-	| 'stagger'
-	| 'angle-stagger'
-	| 'ortho'
-	| 'mini'
-	| 'unknown';
 export type StatLimitOperator = 'lt' | 'gt';
 
 export interface StatLimit {
@@ -52,7 +44,6 @@ export type ViewFilterSnapshot = {
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
 	characterSetFilter: CharacterSetFilter;
-	boardTypeFilter: BoardTypeFilter;
 	nameFilterInput: string;
 	nameFilter: string;
 	selectedAuthors: AuthorId[];
@@ -186,7 +177,6 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		magicKeyFilter: 'optional',
 		adaptiveSwapFilter: 'optional',
 		characterSetFilter: 'english',
-		boardTypeFilter: 'all',
 		nameFilterInput: '',
 		nameFilter: '',
 		selectedAuthors: [],
@@ -429,11 +419,6 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			value.characterSetFilter,
 			['all', 'english', 'international'],
 			defaults.characterSetFilter
-		),
-		boardTypeFilter: normalizeEnum<BoardTypeFilter>(
-			value.boardTypeFilter,
-			['all', 'angle', 'stagger', 'angle-stagger', 'ortho', 'mini', 'unknown'],
-			defaults.boardTypeFilter
 		),
 		nameFilterInput,
 		nameFilter,

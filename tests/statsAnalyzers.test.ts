@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 import {
 	CMINI_ANALYZER,
 	CYANOPHAGE_ANALYZER,
-	CYANOPHAGE_BOARD_UNSPECIFIED_LABEL,
 	CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL,
 	CYANOPHAGE_UNSUPPORTED_LABEL,
 	DEFAULT_STATS_ANALYZER,
@@ -37,7 +36,12 @@ describe('stats analyzer catalog', () => {
 		]);
 		expect(DEFAULT_STATS_ANALYZER).toBe(CMINI_ANALYZER);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe('/layout-stats-cmini-monkeyracer.json');
-		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe('/layout-stats-cyanophage.json');
+		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe(
+			'/layout-stats-cyanophage-column-stagger.json'
+		);
+		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER, undefined, 'row-stagger')).toBe(
+			'/layout-stats-cyanophage-row-stagger.json'
+		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe(
 			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
 		);
@@ -88,7 +92,9 @@ describe('stats analyzer catalog', () => {
 		expect(dumpSyncedCorpora(CMINI_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
 		expect(dumpSyncedCorpora(MANA2_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
 		expect(dumpSyncedCorpora(CYANOPHAGE_ANALYZER)).toEqual([]);
-		expect(() => getStatsDataset(CYANOPHAGE_ANALYZER, MONKEYRACER_CORPUS)).toThrow();
+		expect(getStatsDataset(CYANOPHAGE_ANALYZER, undefined, 'row-stagger')).toMatchObject({
+			geometry: 'row-stagger'
+		});
 	});
 
 	test('parses analyzer modes without treating a corpus as an analyzer', () => {
@@ -127,31 +133,21 @@ describe('stats analyzer catalog', () => {
 	test('prefers Magic-mappings explanation over unsupported characters', () => {
 		expect(
 			getCyanophageStatsUnavailableReason({
-				board: 'ortho',
 				cyanophageCompatible: false,
 				cyanophageStatsNeedMagicMappings: true
 			})
 		).toBe(CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL);
 		expect(
 			getCyanophageStatsUnavailableReason({
-				board: 'ortho',
 				cyanophageCompatible: false,
 				cyanophageStatsNeedMagicMappings: false
 			})
 		).toBe(CYANOPHAGE_UNSUPPORTED_LABEL);
 		expect(
 			getCyanophageStatsUnavailableReason({
-				board: 'ortho',
 				cyanophageCompatible: true,
 				cyanophageStatsNeedMagicMappings: false
 			})
 		).toBeUndefined();
-		expect(
-			getCyanophageStatsUnavailableReason({
-				board: 'unknown',
-				cyanophageCompatible: false,
-				cyanophageStatsNeedMagicMappings: true
-			})
-		).toBe(CYANOPHAGE_BOARD_UNSPECIFIED_LABEL);
 	});
 });

@@ -13,7 +13,7 @@ const SPLIT_COL = 5;
 /**
  * @typedef {{ row: number, col: number, finger?: string, thumbHand?: 'l' | 'r' }} LayoutKeyInfo
  * @typedef {{ char?: string, row: number, col: number, finger?: string }} LayoutPosition
- * @typedef {{ name?: string, user?: unknown, board?: unknown, keys?: Record<string, LayoutKeyInfo>, positions?: LayoutPosition[] }} RawLayout
+ * @typedef {{ name?: string, user?: unknown, keys?: Record<string, LayoutKeyInfo>, positions?: LayoutPosition[] }} RawLayout
  */
 
 /**
@@ -47,7 +47,6 @@ export function transformLayout(layout) {
 	const stripped = {
 		name: layout.name,
 		user: layout.user,
-		board: layout.board,
 		keys,
 		positions
 	};
@@ -60,11 +59,8 @@ export function transformLayout(layout) {
 		// Catalog sync replaces this after joining AKL's canonical mappings.
 		hasMagicKey: false,
 		hasRepeatKey: hasRepeatKey(stripped.keys, undefined),
-		cyanophageCompatible: layout.board !== 'unknown' && isCyanophageCompatible(keys),
-		cyanophageThumb:
-			layout.board !== 'unknown' && isCyanophageCompatible(keys)
-				? computeCyanophageThumb(layout)
-				: undefined
+		cyanophageCompatible: isCyanophageCompatible(keys),
+		cyanophageThumb: isCyanophageCompatible(keys) ? computeCyanophageThumb(layout) : undefined
 	};
 }
 

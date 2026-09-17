@@ -144,7 +144,6 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 	const rawLayout = {
 		name: layout.name,
 		user: layout.owner,
-		board: 'unknown',
 		positions: layout.keys
 	};
 	const transformedLayout = transformLayout(rawLayout);

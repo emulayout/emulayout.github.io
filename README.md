@@ -11,8 +11,7 @@ directly in the browser.
 ## Explore
 
 - Search by layout name or author, or jump directly to a layout with Quick find.
-- Filter by keyboard shape, character set, thumb keys, Repeat keys, Magic keys, Adaptive swaps, and layout
-  completeness.
+- Filter by character set, thumb keys, Repeat keys, Magic keys, Adaptive swaps, and layout completeness.
 - Describe the keys you want at exact positions using AND, OR, and exclude rules.
 - Set metric limits from cmini, Cyanophage, or Mana2, then sort the results by any available stat,
   name, date, likes, or similarity.
@@ -41,7 +40,8 @@ locally. Adaptive swaps are not currently included in analyzer results.
 ## Try layouts in place
 
 Every layout card can include a typing area, so layouts can be sampled without installing them.
-Anglemod can be toggled per card, and links open the layout in Cyanophage or
+Choose column-stagger or row-stagger presentation globally; layouts themselves remain geometry-neutral.
+Anglemod can be toggled per card, and links open the selected presentation in Cyanophage or
 [a specialized fork of Colemak Camp](https://colemakcamp.github.io) that supports links to typing
 practice with a custom layout already configured.
 
@@ -155,12 +155,13 @@ The snapshot and four published catalog artifacts are each replaced atomically. 
 author-map values, and like user IDs remain decimal strings so their full precision is preserved.
 Likes come from each layout's `likes` array; only the count is published.
 
-AKLDB's current `spark/1` schema does not identify a board. Imported layouts therefore use an
-explicit `unknown` board instead of inferring one from key positions. The UI uses neutral ortholinear
-geometry for previews, labels the board as unspecified, and withholds board-dependent Cyanophage
-statistics until AKLDB defines that field or Emulayout adopts a separate authoritative source. A
-rule-free conventional `@` remains Emulayout's dedicated Repeat behavior; mapped `@` rules override
-it.
+AKLDB's `spark/1` schema intentionally stores layout positions without prescribing a physical
+board. Emulayout follows that model: board type is not catalog metadata or a filter. A persisted
+display preference renders every layout as column stagger (the default) or row stagger. The same
+choice selects the matching locally computed Cyanophage stats and the geometry used for Cyanophage
+and Colemak Camp links. Anglemod remains an explicit per-layout presentation transform; row-stagger
+links use ANSI without it and ISO with it. A rule-free conventional `@` remains Emulayout's
+dedicated Repeat behavior; mapped `@` rules override it.
 
 Analyzer artifacts are produced by separate scripts:
 
@@ -169,12 +170,14 @@ Analyzer artifacts are produced by separate scripts:
 - `bin/mana2-stats-sync.js` — akl.gg Mana2 named dumps →
   `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
   `rowstag.none`)
-- `bin/cyanophage-stats-sync.js` — local Cyanophage compute → `static/layout-stats-cyanophage.json`
+- `bin/cyanophage-stats-sync.js` — local Cyanophage compute → geometry-specific `static/layout-stats-cyanophage-*.json` artifacts
 
 The dump-backed sync scripts accept `--force` (unconditional re-download), `--offline` (reuse
 `.cache/cminibrowser/` and `.cache/akldb/`), and `--corpus=NAME` (single corpus). Online
 akl.gg syncs use conditional requests (ETag / Last-Modified) so unchanged dumps are not
-re-downloaded. The top-level `bun run sync` wrapper accepts task selections plus `--force` or
+re-downloaded. If a refresh fails, a validated last-good cached dump is reused so builds and
+deployments can continue with the previously published analyzer data. The top-level `bun run sync`
+wrapper accepts task selections plus `--force` or
 `--offline`, but deliberately runs all configured corpora so the generated site and per-layout
 detail payloads remain complete. Analyzer dumps must contain usable stats for at least 90% of the
 published (non-meme-filtered) catalog before they can replace existing cache or published artifacts.

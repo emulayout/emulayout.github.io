@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { filterStore } from '$lib/filterStore.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
+	import type { SegmentedOption } from '$lib/segmentedControl';
+	import { geometryLabel, type KeyboardGeometry } from '$lib/keyboardGeometry';
+
+	const geometryOptions: readonly SegmentedOption<KeyboardGeometry>[] = [
+		{ value: 'column-stagger', label: geometryLabel('column-stagger') },
+		{ value: 'row-stagger', label: geometryLabel('row-stagger') }
+	];
 </script>
 
 {#snippet displaySetting(
@@ -35,6 +43,29 @@
 {/snippet}
 
 <div class="display-settings-body">
+	<section class="display-settings-section" aria-labelledby="keyboard-geometry-settings-title">
+		<h3 id="keyboard-geometry-settings-title" class="display-settings-section-title">Keyboard</h3>
+		<div class="display-settings-mode-row">
+			<span class="display-settings-copy">
+				<span class="display-settings-label">Keyboard geometry</span>
+				<span class="display-settings-desc">
+					Controls layout presentation, Cyanophage analysis, and external keyboard links.
+				</span>
+			</span>
+			<div class="display-settings-geometry-control">
+				<SegmentedControl
+					value={uiPrefs.keyboardGeometry}
+					onChange={(value) => uiPrefs.setKeyboardGeometry(value)}
+					options={geometryOptions}
+					ariaLabel="Keyboard geometry"
+					class="display-settings-geometry"
+					buttonClass="display-settings-geometry-option"
+					selectedClass="display-settings-geometry-option--active"
+				/>
+			</div>
+		</div>
+	</section>
+
 	<section class="display-settings-section" aria-labelledby="layout-card-settings-title">
 		<h3 id="layout-card-settings-title" class="display-settings-section-title">Layout cards</h3>
 		<div class="display-settings-section-options">
@@ -157,6 +188,44 @@
 		background: var(--bg-primary);
 	}
 
+	.display-settings-geometry-control {
+		flex-shrink: 0;
+	}
+
+	.display-settings-geometry-control :global(.display-settings-geometry) {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		padding: 2px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		background: var(--bg-primary);
+	}
+
+	.display-settings-geometry-control :global(.display-settings-geometry-option) {
+		min-width: 7.5rem;
+		padding: 0.35rem 0.6rem;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.2;
+		cursor: pointer;
+		outline: none;
+	}
+
+	.display-settings-geometry-control :global(.display-settings-geometry-option--active) {
+		background: var(--accent);
+		color: var(--accent-fg);
+	}
+
+	.display-settings-geometry-control :global(.display-settings-geometry-option:focus-visible) {
+		box-shadow:
+			0 0 0 2px var(--bg-secondary),
+			0 0 0 4px var(--accent);
+	}
+
 	.display-settings-mode-option {
 		min-width: 3.75rem;
 		padding: 0.35rem 0.6rem;
@@ -201,5 +270,16 @@
 		color: var(--text-secondary);
 		font-size: 0.8125rem;
 		line-height: 1.4;
+	}
+
+	@media (max-width: 42rem) {
+		.display-settings-mode-row {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.display-settings-geometry-control :global(.display-settings-geometry) {
+			width: 100%;
+		}
 	}
 </style>

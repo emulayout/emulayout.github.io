@@ -9,6 +9,7 @@
 	} from '$lib/layout';
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
 	import { uiPrefs, type LayoutCardStatsMode } from '$lib/uiPrefs.svelte';
+	import { geometryLabel, type KeyboardGeometry } from '$lib/keyboardGeometry';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
@@ -39,7 +40,6 @@
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
 		displayRowsToString,
-		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import { createLayoutTestKeyMaps, withKeyboardInputConfig } from '$lib/layoutTestEmulator';
@@ -110,6 +110,7 @@
 		onAnglemodTransformChange?: (active: boolean) => void;
 		/** Replaces the analyzer-specific unavailable subtitle when stats are missing. */
 		statsUnavailableDetail?: string;
+		geometry?: KeyboardGeometry;
 	}
 
 	const {
@@ -140,8 +141,10 @@
 		anglemodTransformActive,
 		showAnglemodAction = false,
 		onAnglemodTransformChange,
-		statsUnavailableDetail
+		statsUnavailableDetail,
+		geometry
 	}: Props = $props();
+	const resolvedGeometry = $derived(geometry ?? uiPrefs.keyboardGeometry);
 
 	let localAnglemod = $state(false);
 	let keyboardLinkPointer:
@@ -186,8 +189,6 @@
 	const isSimilarActive = $derived(filterStore.similarReferenceName === layout.name);
 	const isSelected = $derived(filterStore.selectedLayoutNames.has(layout.name));
 
-	const isAngleBoard = $derived(layout.board === 'angle');
-
 	// Similarity reference card shares anglemod with scoring; other cards keep local toggle state.
 	const anglemod = $derived(
 		anglemodTransformActive ??
@@ -206,14 +207,11 @@
 		localAnglemod = !localAnglemod;
 	}
 
-	const baseDisplayRows = $derived(computeDisplayRows(layout));
+	const baseDisplayRows = $derived(computeDisplayRows(layout, resolvedGeometry));
 
-	// Angle boards are stored in anglemod order; toggling unswaps. Others swap on toggle.
 	const transformedDisplayRows = $derived.by((): DisplayCell[][] => {
 		if (!anglemod) return baseDisplayRows;
-		return isAngleBoard
-			? removeAnglemodFromDisplayRows(baseDisplayRows)
-			: applyAnglemodToDisplayRows(baseDisplayRows);
+		return applyAnglemodToDisplayRows(baseDisplayRows);
 	});
 
 	const transformedDisplayValue = $derived(displayRowsToString(transformedDisplayRows));
@@ -241,7 +239,7 @@
 	const showMana2Stats = $derived(showsMana2Stats(displayedStatsAnalyzer));
 	const cyanophageLinkTitle = $derived(
 		layout.cyanophageCompatible
-			? 'View on Cyanophage'
+			? `View on Cyanophage as ${geometryLabel(resolvedGeometry).toLowerCase()}${anglemod ? ' with Anglemod' : ''}`
 			: (getCyanophageStatsUnavailableReason(layout) ?? 'Unavailable on Cyanophage')
 	);
 
@@ -371,7 +369,11 @@
 
 	async function handleColemakCampClick() {
 		const { createColemakCampURLFromKeyMap } = await import('$lib/colemakCamp');
-		const url = createColemakCampURLFromKeyMap(layoutTestKeyMaps.keyMap, layout.board);
+		const url = createColemakCampURLFromKeyMap(
+			layoutTestKeyMaps.keyMap,
+			resolvedGeometry,
+			anglemod
+		);
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}
 
@@ -380,10 +382,10 @@
 		const { buildCyanophagePlaygroundUrl } = await import('$lib/cyanophage');
 		const url = buildCyanophagePlaygroundUrl(
 			layout.keys,
-			layout.board,
+			resolvedGeometry,
 			transformedDisplayValue,
 			layout.cyanophageThumb ?? 'l',
-			{ preferDisplay: anglemod }
+			{ preferDisplay: anglemod, anglemod }
 		);
 		if (!url) return;
 		window.open(url, '_blank', 'noopener,noreferrer');
@@ -539,7 +541,6 @@
 			similarActive={isSimilarActive}
 			hasSimilarReference={filterStore.hasSimilarReference}
 			anglemodActive={anglemod}
-			angleBoard={isAngleBoard}
 			cyanophageCompatible={layout.cyanophageCompatible}
 			cyanophageTitle={cyanophageLinkTitle}
 			expandLayoutName={catalogCard ? layout.name : undefined}

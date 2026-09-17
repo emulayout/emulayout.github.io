@@ -154,18 +154,24 @@ export function creatorKeyConfigNeedsCatalogBaseSeed(config: KeyboardInputConfig
 }
 
 /** New Edit canvas named New layout, with this catalog layout as the selected base. */
-export function createCreatorEditSnapshotFromLayout(layout: LayoutData): CreatorUrlSnapshot {
+export function createCreatorEditSnapshotFromLayout(
+	layout: LayoutData,
+	keyboardType: InputKeyboardType = 'staggered'
+): CreatorUrlSnapshot {
 	return {
 		...createDefaultCreatorUrlSnapshot(),
 		preview: false,
 		includeMagicKey: layout.hasMagicKey,
 		includeAdaptiveKey: layout.hasAdaptiveSwap,
-		keyConfig: createKeyboardInputConfigFromLayout(layout)
+		keyConfig: createKeyboardInputConfigFromLayout(layout, keyboardType)
 	};
 }
 
-export function creatorEditSearchFromLayout(layout: LayoutData): string {
-	return `?${writeCreatorUrlParams(createCreatorEditSnapshotFromLayout(layout)).toString()}`;
+export function creatorEditSearchFromLayout(
+	layout: LayoutData,
+	keyboardType: InputKeyboardType = 'staggered'
+): string {
+	return `?${writeCreatorUrlParams(createCreatorEditSnapshotFromLayout(layout, keyboardType)).toString()}`;
 }
 
 function magicRulePayload(rule: CreatorMagicRule): [string, string] {

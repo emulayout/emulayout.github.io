@@ -73,13 +73,14 @@ test('loads a direct detail file before fetching the full catalog for Compare', 
 }) => {
 	const requestedPaths: string[] = [];
 	page.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
+	await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'row-stagger'));
 	await page.goto('/layouts/QWERTY?selected=lela&likes=0');
 
 	await expect(page).toHaveURL('/layouts/QWERTY?tab=practice');
 	await expect(page.locator('[data-layout-detail]')).toBeVisible();
 	await expect(page.getByRole('article', { name: 'QWERTY details' })).toBeVisible();
 	const ansiPreview = page.getByRole('img', { name: 'QWERTY keyboard preview' });
-	await expect(ansiPreview).toHaveAttribute('data-geometry', 'ansi');
+	await expect(ansiPreview).toHaveAttribute('data-geometry', 'row-stagger');
 	const [ansiTopKey, ansiHomeKey, ansiBottomKey] = await Promise.all([
 		ansiPreview.locator('[data-keyboard-row="0"] .keyboard-preview__key').first().boundingBox(),
 		ansiPreview.locator('[data-keyboard-row="1"] .keyboard-preview__key').first().boundingBox(),
@@ -200,7 +201,10 @@ test('persists detail analyzer visibility across layouts and reloads', async ({ 
 				likeCount: 0,
 				stats: {
 					cmini: { monkeyracer: cmini, reddit: cmini },
-					cyanophage,
+					cyanophage: {
+						'column-stagger': cyanophage,
+						'row-stagger': cyanophage
+					},
 					mana2: { monkeyracer: mana2, reddit: mana2 }
 				}
 			}
@@ -292,7 +296,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	expect(previewBox).not.toBeNull();
 	expect(practiceInputContainerBox).not.toBeNull();
 	expect(keyboardOptionsBox).not.toBeNull();
-	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'ortho');
+	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'column-stagger');
 	expect(tabsBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.y + practiceInputContainerBox!.height).toBeLessThanOrEqual(

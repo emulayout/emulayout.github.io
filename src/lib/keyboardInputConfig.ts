@@ -1,4 +1,4 @@
-import type { BoardType, LayoutData } from '$lib/layout';
+import type { LayoutData } from '$lib/layout';
 import { isHomeKeySlot, shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export const KEYBOARD_INPUT_CONFIG_STORAGE_KEY = 'keyboardInputConfig';
@@ -81,10 +81,6 @@ export function normalizeKeyboardInputValue(value: string): string {
 	return /^[A-Z]$/u.test(character) ? character.toLowerCase() : character;
 }
 
-export function inputKeyboardTypeFromBoard(board: BoardType | string): InputKeyboardType {
-	return board === 'stagger' || board === 'angle' ? 'staggered' : 'ortho';
-}
-
 function withKeyboardInputThumbPlaceholders(keys: KeyboardInputKey[]): KeyboardInputKey[] {
 	const result = keys.map((key) => ({ ...key }));
 	const slots = new Set(result.map((key) => key.slot));
@@ -157,7 +153,10 @@ export function buildKeyboardInputConfig(
 	};
 }
 
-export function createKeyboardInputConfigFromLayout(layout: LayoutData): KeyboardInputConfig {
+export function createKeyboardInputConfigFromLayout(
+	layout: LayoutData,
+	keyboardType: InputKeyboardType = 'staggered'
+): KeyboardInputConfig {
 	const keys = Array.from(layout.positionBySlot, ([slot, value]): KeyboardInputKey => {
 		const info = layout.keys[value];
 		const thumbHand = info?.row >= 3 ? (info.thumbHand ?? (info.col < 5 ? 'l' : 'r')) : undefined;
@@ -171,7 +170,7 @@ export function createKeyboardInputConfigFromLayout(layout: LayoutData): Keyboar
 	return {
 		baseLayoutName: layout.name,
 		baseLayoutModified: false,
-		keyboardType: inputKeyboardTypeFromBoard(layout.board),
+		keyboardType,
 		keys: withKeyboardInputTopology(keys, true)
 	};
 }

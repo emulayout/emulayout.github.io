@@ -1,6 +1,7 @@
 import { expect, test as base } from '@playwright/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../../src/lib/layoutDetails';
 import { validateLayoutSupplemental } from '../../../src/lib/layoutSupplemental';
+import { CYANOPHAGE_COMPACT_STAT_FIELD_COUNT } from '../../../src/lib/statsDerivation';
 import { authors, catalog, coreCatalog } from './catalog-data';
 
 const vyletSupplemental = validateLayoutSupplemental({
@@ -54,6 +55,16 @@ export const test = base.extend<CatalogFixtures>({
 			});
 			await page.route('**/layout-names.json', async (route) => {
 				await route.fulfill({ json: layouts.map((layout) => layout[0]) });
+			});
+			await page.route('**/layout-stats-cyanophage-*.json', async (route) => {
+				await route.fulfill({
+					json: Object.fromEntries(
+						layouts.map((layout) => [
+							layout[0],
+							Array(CYANOPHAGE_COMPACT_STAT_FIELD_COUNT).fill(10_000)
+						])
+					)
+				});
 			});
 			await page.route('**/layout-details/*.json', async (route) => {
 				const filename = new URL(route.request().url()).pathname.split('/').pop();

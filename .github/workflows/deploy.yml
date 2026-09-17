@@ -57,7 +57,7 @@ jobs:
             static/layout-supplemental.json
             static/authors.json
             static/layout-likes.json
-            static/layout-stats-cyanophage.json
+            static/layout-stats-cyanophage-*.json
             static/layout-stats-cmini-*.json
             static/layout-stats-mana2-*.json
           # A unique primary key forces a restore-key lookup for the latest snapshot.
@@ -83,6 +83,9 @@ jobs:
           CATALOG_SYNC_SKIP_IF_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
 
       - name: Sync cmini stats
+        # akl.gg analyzer dumps are optional refreshes. Keep deploying code/catalog
+        # updates with the restored last-good artifact if the upstream is unavailable.
+        continue-on-error: true
         run: bun run ./bin/cmini-stats-sync.js
         env:
           CI: true
@@ -97,6 +100,8 @@ jobs:
           CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 
       - name: Sync Mana2 stats
+        # The build still verifies that a restored/generated artifact exists.
+        continue-on-error: true
         run: bun run ./bin/mana2-stats-sync.js
         env:
           CI: true
@@ -157,7 +162,7 @@ jobs:
             static/layout-supplemental.json
             static/authors.json
             static/layout-likes.json
-            static/layout-stats-cyanophage.json
+            static/layout-stats-cyanophage-*.json
             static/layout-stats-cmini-*.json
             static/layout-stats-mana2-*.json
           key: ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/akldb-cache.js', 'bin/akldb-spark.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-${{ steps.data_changes.outputs.cache_hash }}

@@ -16,7 +16,6 @@ export type ActiveKeyboardSnapshot = {
 	repeat: boolean;
 	magic: boolean;
 	adaptive: boolean;
-	board: boolean;
 	charset: boolean;
 	unfinished: boolean;
 };
@@ -101,7 +100,6 @@ export function buildActiveFiltersSnapshot(store: FilterStore): ActiveFiltersSna
 			repeat: store.repeatKeyFilter !== 'optional',
 			magic: store.magicKeyFilter !== 'optional',
 			adaptive: store.adaptiveSwapFilter !== 'optional',
-			board: store.boardTypeFilter !== 'all',
 			charset: store.characterSetFilter !== 'english',
 			unfinished: store.showUnfinished
 		},
@@ -134,7 +132,6 @@ export function snapshotHasKeyboard(keyboard: ActiveKeyboardSnapshot): boolean {
 		keyboard.repeat ||
 		keyboard.magic ||
 		keyboard.adaptive ||
-		keyboard.board ||
 		keyboard.charset ||
 		keyboard.unfinished
 	);

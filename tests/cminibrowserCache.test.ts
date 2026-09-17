@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 describe('ensureCminibrowserDump', () => {
-	test('does not replace a good cache when a downloaded dump fails validation', async () => {
+	test('reuses a good cache when a downloaded dump fails validation', async () => {
 		const dataPath = `tests/${crypto.randomUUID()}.json`;
 		const cachePath = cminibrowserCachePath(dataPath);
 		const metaPath = `${cachePath}.meta.json`;
@@ -31,19 +31,21 @@ describe('ensureCminibrowserDump', () => {
 			})
 		);
 
-		await expect(
-			ensureCminibrowserDump(dataPath, {
-				force: true,
-				validateJson: () => {
+		const result = await ensureCminibrowserDump(dataPath, {
+			force: true,
+			validateJson: (value) => {
+				if (!(value as { layouts?: { existing?: boolean } }).layouts?.existing) {
 					throw new Error('coverage check failed');
 				}
-			})
-		).rejects.toThrow('coverage check failed');
+			}
+		});
 
+		expect(result.updated).toBe(false);
+		expect(result.json).toEqual({ layouts: { existing: true } });
 		expect(await readFile(cachePath, 'utf-8')).toBe('{"layouts":{"existing":true}}\n');
 	});
 
-	test('does not replace a good cache with malformed JSON', async () => {
+	test('reuses a good cache when the downloaded response is not JSON', async () => {
 		const dataPath = `tests/${crypto.randomUUID()}.json`;
 		const cachePath = cminibrowserCachePath(dataPath);
 		const metaPath = `${cachePath}.meta.json`;
@@ -53,9 +55,23 @@ describe('ensureCminibrowserDump', () => {
 
 		globalThis.fetch = mockFetch(new Response('{"layouts":', { status: 200 }));
 
+		const result = await ensureCminibrowserDump(dataPath, { force: true });
+
+		expect(result.updated).toBe(false);
+		expect(result.json).toEqual({ layouts: { existing: true } });
+		expect(await readFile(cachePath, 'utf-8')).toBe('{"layouts":{"existing":true}}\n');
+	});
+
+	test('still fails when the endpoint is unavailable and there is no cache', async () => {
+		const dataPath = `tests/${crypto.randomUUID()}.json`;
+		const cachePath = cminibrowserCachePath(dataPath);
+		const metaPath = `${cachePath}.meta.json`;
+		testPaths.push(cachePath, metaPath);
+
+		globalThis.fetch = mockFetch(new Response('<!doctype html>', { status: 200 }));
+
 		await expect(ensureCminibrowserDump(dataPath, { force: true })).rejects.toThrow(
 			'Invalid JSON in AKL dump'
 		);
-		expect(await readFile(cachePath, 'utf-8')).toBe('{"layouts":{"existing":true}}\n');
 	});
 });

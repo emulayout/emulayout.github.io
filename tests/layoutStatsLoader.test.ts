@@ -22,10 +22,11 @@ describe('loadAnalyzerStats', () => {
 		});
 	});
 
-	test('ignores corpus for Cyanophage fetches', async () => {
+	test('ignores corpus and selects geometry for Cyanophage fetches', async () => {
 		const requested: string[] = [];
 		await loadAnalyzerStats('cyanophage', {
 			corpus: 'reddit',
+			geometry: 'row-stagger',
 			fetch: async (input) => {
 				requested.push(String(input));
 				return new Response(JSON.stringify({ Canary: [1] }), {
@@ -34,7 +35,7 @@ describe('loadAnalyzerStats', () => {
 				});
 			}
 		});
-		expect(requested).toEqual(['/layout-stats-cyanophage.json']);
+		expect(requested).toEqual(['/layout-stats-cyanophage-row-stagger.json']);
 	});
 
 	test('represents an HTTP failure without rejecting', async () => {

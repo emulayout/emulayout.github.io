@@ -15,6 +15,10 @@ describe('local static-data bootstrap', () => {
 			'static/layout-stats-mana2-monkeyracer-rowstag-none.json',
 			'static/layout-stats-mana2-reddit-rowstag-none.json'
 		]);
+		expect(REQUIRED_STATIC_FILES_BY_TASK.cyanophage).toEqual([
+			'static/layout-stats-cyanophage-column-stagger.json',
+			'static/layout-stats-cyanophage-row-stagger.json'
+		]);
 	});
 
 	test('runs only the analyzer whose artifact is missing', () => {

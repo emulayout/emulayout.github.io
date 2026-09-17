@@ -37,7 +37,6 @@
 		applyAnglemodToDisplayRows,
 		computeDisplayRows,
 		displayRowsToString,
-		removeAnglemodFromDisplayRows,
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
@@ -56,6 +55,7 @@
 	import type { TypingPracticeLessonSettings } from '$lib/typingPracticeText';
 	import { SharedTypingPracticeLesson } from '$lib/typingPracticeLesson.svelte';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
+	import { geometryLabel, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
 	interface Props {
 		layout: LayoutData;
@@ -84,6 +84,8 @@
 		keyboardBelow?: Snippet;
 		keyboardMappings?: Snippet;
 		showKeyboardMappings?: boolean;
+		/** Override the viewer preference for creator-owned keyboard geometry. */
+		geometry?: KeyboardGeometry;
 	}
 
 	function contextualPreviewLabel(magic: boolean, repeat: boolean, adaptive: boolean): string {
@@ -118,8 +120,10 @@
 		keyboardAside,
 		keyboardBelow,
 		keyboardMappings,
-		showKeyboardMappings = false
+		showKeyboardMappings = false,
+		geometry
 	}: Props = $props();
+	const resolvedGeometry = $derived(geometry ?? uiPrefs.keyboardGeometry);
 
 	const cminiLabel =
 		STAT_ANALYZERS.find((analyzer) => analyzer.value === CMINI_ANALYZER)?.label ?? 'cmini';
@@ -164,13 +168,10 @@
 	const resolvedSection = $derived(
 		localPreview && activeSection === 'stats' ? 'practice' : activeSection
 	);
-	const isAngleBoard = $derived(layout.board === 'angle');
-	const baseDisplayRows = $derived(computeDisplayRows(layout));
+	const baseDisplayRows = $derived(computeDisplayRows(layout, resolvedGeometry));
 	const displayRows = $derived.by((): DisplayCell[][] => {
 		if (!anglemodTransformActive) return baseDisplayRows;
-		return isAngleBoard
-			? removeAnglemodFromDisplayRows(baseDisplayRows)
-			: applyAnglemodToDisplayRows(baseDisplayRows);
+		return applyAnglemodToDisplayRows(baseDisplayRows);
 	});
 	const displayValue = $derived(displayRowsToString(displayRows));
 
@@ -234,15 +235,17 @@
 				)
 			: []
 	);
-	const colemakCampUrl = $derived(createColemakCampURLFromKeyMap(testKeyMaps.keyMap, layout.board));
+	const colemakCampUrl = $derived(
+		createColemakCampURLFromKeyMap(testKeyMaps.keyMap, resolvedGeometry, anglemodTransformActive)
+	);
 	const aklUrl = $derived(createCminibrowserLayoutURL(layout.name));
 	const cyanophageUrl = $derived(
 		buildCyanophagePlaygroundUrl(
 			layout.keys,
-			layout.board,
+			resolvedGeometry,
 			displayValue,
 			layout.cyanophageThumb ?? 'l',
-			{ preferDisplay: anglemodTransformActive }
+			{ preferDisplay: anglemodTransformActive, anglemod: anglemodTransformActive }
 		)
 	);
 	const statsOptionsTitleId = $derived(`${titleId}-stats-options`);
@@ -252,7 +255,7 @@
 	);
 
 	const embeddedStats = $derived(
-		resolveLayoutDetailStats(detailStats, layoutStatsStore.activeCorpus)
+		resolveLayoutDetailStats(detailStats, layoutStatsStore.activeCorpus, resolvedGeometry)
 	);
 	const cminiCompact = $derived(
 		localPreview ? undefined : (layoutStatsStore.maps.cmini?.[layout.name] ?? embeddedStats.cmini)
@@ -457,6 +460,7 @@
 {#snippet layoutSummary()}
 	<LayoutCard
 		{layout}
+		geometry={resolvedGeometry}
 		{authorName}
 		{likeCount}
 		compactCminiStats={cminiCompact}
@@ -478,13 +482,20 @@
 	{#if cyanophageUrl || !localPreview}
 		<nav class="layout-detail-links" aria-label={`${layout.name} links`}>
 			{#if !localPreview}
-				<a href="{resolve('/create')}{creatorEditSearchFromLayout(layout)}">Edit layout</a>
+				<a
+					href="{resolve('/create')}{creatorEditSearchFromLayout(
+						layout,
+						resolvedGeometry === 'column-stagger' ? 'ortho' : 'staggered'
+					)}">Edit layout</a
+				>
 			{/if}
 			{#if cyanophageUrl}
 				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={cyanophageUrl} target="_blank" rel="noopener noreferrer">
-					View in Cyanophage
+					View in Cyanophage ({geometryLabel(resolvedGeometry)}{anglemodTransformActive
+						? ', Anglemod'
+						: ''})
 					<span aria-hidden="true">↗</span>
 				</a>
 			{/if}
@@ -498,7 +509,9 @@
 				<!-- Dynamic absolute URL; SvelteKit resolve() is only typed for app routes. -->
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a href={colemakCampUrl} target="_blank" rel="noopener noreferrer">
-					More practice on Colemak Camp
+					More practice on Colemak Camp ({geometryLabel(resolvedGeometry)}{anglemodTransformActive
+						? ', Anglemod'
+						: ''})
 					<span aria-hidden="true">↗</span>
 				</a>
 			{/if}
@@ -553,6 +566,7 @@
 					>
 						<LayoutTypingPractice
 							{layout}
+							geometry={resolvedGeometry}
 							rows={displayRows}
 							keyMaps={testKeyMaps}
 							{inputProfile}
@@ -591,6 +605,7 @@
 
 						<LayoutKeyboardWorkspace
 							{layout}
+							geometry={resolvedGeometry}
 							rows={displayRows}
 							feedback={keyboardFeedback}
 							swapPaths={keyboardSwapPaths}
@@ -619,6 +634,7 @@
 					>
 						<LayoutFeel
 							{layout}
+							geometry={resolvedGeometry}
 							rows={displayRows}
 							keyMaps={testKeyMaps}
 							{inputProfile}

@@ -1,13 +1,12 @@
 import type { LayoutData } from '$lib/layout';
 import {
-	BOARD_CODE,
 	LAYOUT_FLAG_ADAPTIVE_SWAP,
 	LAYOUT_FLAG_ALL_LETTERS,
 	LAYOUT_FLAG_MAGIC_KEY,
 	LAYOUT_FLAG_REPEAT_KEY,
 	LAYOUT_FLAG_THUMB_KEYS,
 	decodeLayout,
-	type CompactLayout
+	type CurrentCompactLayout
 } from '$lib/layoutCodec';
 import {
 	createDefaultKeyboardInputConfig,
@@ -64,7 +63,7 @@ export type CreateLayoutFromKeyConfigOptions = CreatorSpecialKeys & {
 	name?: string;
 };
 
-/** Staggered QWERTY grid used for every new creator canvas. */
+/** Row-stagger QWERTY grid used for every new creator canvas. */
 export function createDefaultCreatorKeyConfig(): KeyboardInputConfig {
 	return createDefaultKeyboardInputConfig();
 }
@@ -173,10 +172,9 @@ export function createLayoutFromKeyConfig(
 	if (keyChars.includes(DEFAULT_REPEAT_KEY)) flags |= LAYOUT_FLAG_REPEAT_KEY;
 	if (options.adaptiveKey) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP;
 
-	const compact: CompactLayout = [
+	const compact: CurrentCompactLayout = [
 		name,
 		0,
-		config.keyboardType === 'ortho' ? BOARD_CODE.ortho : BOARD_CODE.stagger,
 		'',
 		flags,
 		keyChars,

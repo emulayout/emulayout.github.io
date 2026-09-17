@@ -33,6 +33,7 @@
 		type InputKeyboardType,
 		type KeyboardInputConfig
 	} from '$lib/keyboardInputConfig';
+	import { geometryLabel } from '$lib/keyboardGeometry';
 	import {
 		LAYOUT_CREATOR_NEW_LAYOUT_NAME,
 		LAYOUT_CREATOR_NEW_TAB,
@@ -543,7 +544,7 @@
 		const nextLayout = layoutsCatalog.layouts.find((candidate) => candidate.name === name);
 		if (!nextLayout) return;
 		const seed = ++baseLayoutSeed;
-		keyConfig = createKeyboardInputConfigFromLayout(nextLayout);
+		keyConfig = createKeyboardInputConfigFromLayout(nextLayout, keyConfig.keyboardType);
 		includeMagicKey = nextLayout.hasMagicKey;
 		includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
 		magicPanelOpen = nextLayout.hasMagicKey;
@@ -1014,13 +1015,13 @@
 				</div>
 
 				<label class="layout-creator-keyboard-field">
-					<span>Keyboard type</span>
+					<span>Keyboard geometry</span>
 					<select
 						value={keyConfig.keyboardType}
 						onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
 					>
-						<option value="ortho">Ortho</option>
-						<option value="staggered">Staggered</option>
+						<option value="ortho">{geometryLabel('column-stagger')}</option>
+						<option value="staggered">{geometryLabel('row-stagger')}</option>
 					</select>
 				</label>
 			</div>
@@ -1308,6 +1309,7 @@
 		{#key activeTab}
 			<LayoutExpandedView
 				{layout}
+				geometry={keyConfig.keyboardType === 'ortho' ? 'column-stagger' : 'row-stagger'}
 				authorName={layoutAuthor}
 				likeCount={0}
 				{inputProfile}

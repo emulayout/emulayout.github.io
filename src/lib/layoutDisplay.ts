@@ -1,4 +1,5 @@
-import type { BoardType, KeyInfo } from '$lib/layout';
+import type { KeyInfo } from '$lib/layout';
+import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 
 export const THUMB_ROW = 3;
@@ -349,10 +350,10 @@ function indentCells(count: number): DisplayCell[] {
 export function computeDisplayRows(
 	layout: {
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
-		board?: BoardType | string;
 		positionBySlot?: Map<string, string>;
 		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
 	},
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY,
 	splitCol = SPLIT_COL
 ): DisplayCell[][] {
 	const rows = displayEntriesByRow(layout);
@@ -360,7 +361,7 @@ export function computeDisplayRows(
 		return [];
 	}
 
-	const isAnsiDisplay = layout.board === 'stagger' || layout.board === 'angle';
+	const isAnsiDisplay = geometry === 'row-stagger';
 
 	let mainRowMaxCol = 0;
 	for (const [row, entries] of Object.entries(rows)) {
@@ -429,13 +430,13 @@ export function computeDisplayRows(
 export function computeDisplayValue(
 	layout: {
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
-		board?: BoardType | string;
 		positionBySlot?: Map<string, string>;
 		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
 	},
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY,
 	splitCol = SPLIT_COL
 ): string {
-	return computeDisplayRows(layout, splitCol)
+	return computeDisplayRows(layout, geometry, splitCol)
 		.map((row) => row.map((c) => c.char).join(''))
 		.join('\n');
 }

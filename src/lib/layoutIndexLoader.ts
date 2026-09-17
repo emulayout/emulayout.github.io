@@ -17,6 +17,11 @@ import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
+import {
+	KEYBOARD_GEOMETRY_STORAGE_KEY,
+	parseKeyboardGeometry,
+	type KeyboardGeometry
+} from '$lib/keyboardGeometry';
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -30,11 +35,21 @@ function readPreferredStatsCorpus(): StatsCorpus {
 	}
 }
 
+function readPreferredKeyboardGeometry(): KeyboardGeometry {
+	try {
+		if (typeof localStorage === 'undefined') return parseKeyboardGeometry(undefined);
+		return parseKeyboardGeometry(localStorage.getItem(KEYBOARD_GEOMETRY_STORAGE_KEY));
+	} catch {
+		return parseKeyboardGeometry(undefined);
+	}
+}
+
 export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const loadLikes = url.searchParams.get('likes') !== '0';
 	const sortParam = url.searchParams.get('sort');
 	const statsAnalyzerMode = parseStatsAnalyzerMode(url.searchParams.get('analyzer'));
 	const statsCorpus = readPreferredStatsCorpus();
+	const keyboardGeometry = readPreferredKeyboardGeometry();
 	const parsedSortBy: SortBy = (sortParam ? normalizeSortBy(sortParam) : undefined) ?? 'date';
 	const sortBy: SortBy = !loadLikes && parsedSortBy === 'likes' ? 'date' : parsedSortBy;
 	const needsStatsForSort = isStatSortBy(sortBy);
@@ -55,7 +70,11 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 			loadLikes ? fetcher('/layout-likes.json') : Promise.resolve(null),
 			Promise.all(
 				analyzersToPreload.map((analyzer) =>
-					loadAnalyzerStats(analyzer, { fetch: fetcher, corpus: statsCorpus })
+					loadAnalyzerStats(analyzer, {
+						fetch: fetcher,
+						corpus: statsCorpus,
+						geometry: keyboardGeometry
+					})
 				)
 			)
 		]);
@@ -69,7 +88,7 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
 
-	layoutStatsStore.reset(statsCorpus);
+	layoutStatsStore.reset(statsCorpus, keyboardGeometry);
 
 	const statsMaps: StatsMaps = {};
 	for (let i = 0; i < analyzersToPreload.length; i++) {

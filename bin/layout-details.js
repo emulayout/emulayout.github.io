@@ -10,7 +10,7 @@ import {
 } from '../src/lib/statsAnalyzers.ts';
 import { cminiCompactStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
 
-export const LAYOUT_DETAIL_VERSION = 3;
+export const LAYOUT_DETAIL_VERSION = 4;
 
 const DETAIL_MANA2_BOARD = process.env.MANA2_STATS_BOARD ?? 'rowstag';
 const DETAIL_MANA2_SPACE = process.env.MANA2_STATS_SPACE ?? 'none';
@@ -27,7 +27,8 @@ const REQUIRED_FILES = {
 	supplemental: join(STATIC_DIR, 'layout-supplemental.json'),
 	likes: join(STATIC_DIR, 'layout-likes.json'),
 	cmini: join(process.cwd(), cminiCompactStatsRelPath(DEFAULT_STATS_CORPUS)),
-	cyanophage: join(STATIC_DIR, 'layout-stats-cyanophage.json')
+	cyanophageColumn: join(STATIC_DIR, 'layout-stats-cyanophage-column-stagger.json'),
+	cyanophageRow: join(STATIC_DIR, 'layout-stats-cyanophage-row-stagger.json')
 };
 
 /** @param {string} name */
@@ -72,7 +73,7 @@ async function writeIfChanged(path, body) {
  * @param {Record<string, number>} likes
  * @param {{
  *   cmini: Record<string, Record<string, unknown>>,
- *   cyanophage: Record<string, unknown>,
+ *   cyanophage: Record<'column-stagger' | 'row-stagger', Record<string, unknown>>,
  *   mana2: Record<string, Record<string, unknown>>
  * }} stats
  */
@@ -94,6 +95,11 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				map[name] === undefined ? [] : [[corpus, map[name]]]
 			)
 		);
+		const cyanophage = Object.fromEntries(
+			Object.entries(stats.cyanophage).flatMap(([geometry, map]) =>
+				map[name] === undefined ? [] : [[geometry, map[name]]]
+			)
+		);
 		return {
 			name,
 			payload: {
@@ -104,7 +110,7 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
 				stats: {
 					...(Object.keys(cmini).length > 0 ? { cmini } : {}),
-					...(stats.cyanophage[name] ? { cyanophage: stats.cyanophage[name] } : {}),
+					...(Object.keys(cyanophage).length > 0 ? { cyanophage } : {}),
 					...(Object.keys(mana2).length > 0 ? { mana2 } : {})
 				}
 			}
@@ -113,14 +119,16 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 }
 
 export async function generateLayoutDetails() {
-	const [layouts, authors, supplemental, likes, defaultCmini, cyanophage] = await Promise.all([
-		readJson(REQUIRED_FILES.layouts),
-		readJson(REQUIRED_FILES.authors),
-		readJson(REQUIRED_FILES.supplemental),
-		readJson(REQUIRED_FILES.likes),
-		readJson(REQUIRED_FILES.cmini),
-		readJson(REQUIRED_FILES.cyanophage)
-	]);
+	const [layouts, authors, supplemental, likes, defaultCmini, cyanophageColumn, cyanophageRow] =
+		await Promise.all([
+			readJson(REQUIRED_FILES.layouts),
+			readJson(REQUIRED_FILES.authors),
+			readJson(REQUIRED_FILES.supplemental),
+			readJson(REQUIRED_FILES.likes),
+			readJson(REQUIRED_FILES.cmini),
+			readJson(REQUIRED_FILES.cyanophageColumn),
+			readJson(REQUIRED_FILES.cyanophageRow)
+		]);
 	const cminiEntries = await Promise.all(
 		CMINI_CORPORA.map(async (corpus) => [
 			corpus,
@@ -140,7 +148,10 @@ export async function generateLayoutDetails() {
 
 	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {
 		cmini: Object.fromEntries(cminiEntries),
-		cyanophage,
+		cyanophage: {
+			'column-stagger': cyanophageColumn,
+			'row-stagger': cyanophageRow
+		},
 		mana2: Object.fromEntries(mana2Entries)
 	});
 	await mkdir(DETAILS_DIR, { recursive: true });

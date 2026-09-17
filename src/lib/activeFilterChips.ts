@@ -1,7 +1,6 @@
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 import type {
 	AdaptiveSwapFilter,
-	BoardTypeFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
 	RepeatKeyFilter,
@@ -42,7 +41,6 @@ export type FilterChipSource = {
 	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
-	boardTypeFilter: BoardTypeFilter;
 	characterSetFilter: CharacterSetFilter;
 	showUnfinished: boolean;
 	appliedIncludeGrid: string[][];
@@ -76,7 +74,6 @@ export function chipSourceFromViewSnapshot(
 		repeatKeyFilter: snapshot.repeatKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
-		boardTypeFilter: snapshot.boardTypeFilter,
 		characterSetFilter: snapshot.characterSetFilter,
 		showUnfinished: snapshot.showUnfinished,
 		appliedIncludeGrid: snapshot.appliedIncludeGrid,
@@ -170,15 +167,6 @@ function handSummaryLabel(hand: 'LH' | 'RH', field: StatFilterField): string {
 	return isHandTotal ? hand : `${hand} ${field.label}`;
 }
 
-const BOARD_TYPE_LABELS: Record<string, string> = {
-	angle: 'Angle',
-	stagger: 'Stagger',
-	'angle-stagger': 'Angle+stagger',
-	ortho: 'Ortho',
-	mini: 'Mini',
-	unknown: 'Unspecified'
-};
-
 const CHARSET_LABELS: Record<string, string> = {
 	all: 'All chars',
 	international: 'Intl'
@@ -194,7 +182,6 @@ export type ActiveFilterClearAction =
 	| { kind: 'repeatKey' }
 	| { kind: 'magicKey' }
 	| { kind: 'adaptiveSwap' }
-	| { kind: 'boardType' }
 	| { kind: 'characterSet' }
 	| { kind: 'showUnfinished' }
 	| { kind: 'keyFilter'; filter: KeyFilterKind }
@@ -306,15 +293,6 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 			label,
 			{ kind: 'adaptiveSwap' },
 			{ target: 'keyboard', field: 'adaptive' }
-		);
-	}
-	if (store.boardTypeFilter !== 'all') {
-		pushChip(
-			chips,
-			'board',
-			BOARD_TYPE_LABELS[store.boardTypeFilter] ?? store.boardTypeFilter,
-			{ kind: 'boardType' },
-			{ target: 'keyboard', field: 'board' }
 		);
 	}
 	if (store.characterSetFilter !== 'english') {
@@ -517,7 +495,6 @@ export interface ActiveFilterClearTarget {
 	setRepeatKeyFilter(value: RepeatKeyFilter): void;
 	setMagicKeyFilter(value: MagicKeyFilter): void;
 	setAdaptiveSwapFilter(value: AdaptiveSwapFilter): void;
-	setBoardTypeFilter(value: BoardTypeFilter): void;
 	setCharacterSetFilter(value: CharacterSetFilter): void;
 	setShowUnfinished(value: boolean): void;
 	clearInclude(): void;
@@ -554,9 +531,6 @@ export function clearActiveFilterChip(
 			break;
 		case 'adaptiveSwap':
 			store.setAdaptiveSwapFilter('optional');
-			break;
-		case 'boardType':
-			store.setBoardTypeFilter('all');
 			break;
 		case 'characterSet':
 			store.setCharacterSetFilter('english');

@@ -88,7 +88,10 @@ describe('per-layout detail data', () => {
 					monkeyracer: { [compactLayout[0]]: [1] },
 					reddit: { [compactLayout[0]]: [4] }
 				},
-				cyanophage: { [compactLayout[0]]: [2] },
+				cyanophage: {
+					'column-stagger': { [compactLayout[0]]: [2] },
+					'row-stagger': { [compactLayout[0]]: [6] }
+				},
 				mana2: {
 					monkeyracer: { [compactLayout[0]]: [3] },
 					reddit: { [compactLayout[0]]: [5] }
@@ -106,7 +109,7 @@ describe('per-layout detail data', () => {
 				supplemental,
 				stats: {
 					cmini: { monkeyracer: [1], reddit: [4] },
-					cyanophage: [2],
+					cyanophage: { 'column-stagger': [2], 'row-stagger': [6] },
 					mana2: { monkeyracer: [3], reddit: [5] }
 				}
 			}
@@ -133,6 +136,13 @@ describe('per-layout detail data', () => {
 			cyanophage: undefined,
 			mana2: undefined
 		});
+		const geometryStats = {
+			...payload.stats,
+			cyanophage: { 'column-stagger': [3], 'row-stagger': [4] }
+		};
+		expect(resolveLayoutDetailStats(geometryStats, 'reddit', 'row-stagger').cyanophage).toEqual([
+			4
+		]);
 		expect(decodeLayoutDetail(payload, 'another-layout')).toBeNull();
 	});
 
@@ -159,9 +169,11 @@ describe('per-layout detail data', () => {
 				},
 				{
 					cmini: { [name]: [9, 8, 7] },
+					cyanophage: { [name]: [6] },
 					mana2: { [name]: [1] }
 				},
-				'reddit'
+				'reddit',
+				'row-stagger'
 			)
 		).toMatchObject({
 			layout,
@@ -169,6 +181,7 @@ describe('per-layout detail data', () => {
 			likeCount: 11,
 			stats: {
 				cmini: { reddit: [9, 8, 7] },
+				cyanophage: { 'row-stagger': [6] },
 				mana2: { reddit: [1] }
 			}
 		});

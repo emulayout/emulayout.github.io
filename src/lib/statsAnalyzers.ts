@@ -1,3 +1,5 @@
+import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
+
 /** cmini stats analyzer. */
 export const CMINI_ANALYZER = 'cmini';
 
@@ -10,9 +12,6 @@ export const CYANOPHAGE_ANALYZER = 'cyanophage';
 /** Shown when a layout cannot be linked or measured faithfully in Cyanophage. */
 export const CYANOPHAGE_UNSUPPORTED_LABEL = 'Unsupported characters for Cyanophage';
 
-/** Shown while AKLDB deliberately leaves physical board choice to its readers. */
-export const CYANOPHAGE_BOARD_UNSPECIFIED_LABEL = 'Board unspecified for Cyanophage';
-
 /**
  * Shown when a layout has a Magic key but Cyanophage cannot model its exported mappings
  * before Emulayout will measure it.
@@ -24,13 +23,9 @@ export const CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL = 'Cyanophage stats need M
  * label when both apply (layouts with `*` are also playground-incompatible).
  */
 export function getCyanophageStatsUnavailableReason(layout: {
-	board?: string;
 	cyanophageCompatible: boolean;
 	cyanophageStatsNeedMagicMappings: boolean;
 }): string | undefined {
-	if (layout.board === 'unknown') {
-		return CYANOPHAGE_BOARD_UNSPECIFIED_LABEL;
-	}
 	if (layout.cyanophageStatsNeedMagicMappings) {
 		return CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED_LABEL;
 	}
@@ -120,6 +115,11 @@ export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): strin
 	return `/layout-stats-cmini-${corpus}.json`;
 }
 
+/** Published Cyanophage stats for a viewer-selected keyboard geometry. */
+export function cyanophageStatsUrl(geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY): string {
+	return `/layout-stats-cyanophage-${geometry}.json`;
+}
+
 /** Published Mana2 stats for a corpus / board / space context. */
 export function mana2StatsUrl(
 	corpus: StatsCorpus = DEFAULT_STATS_CORPUS,
@@ -130,8 +130,9 @@ export function mana2StatsUrl(
 }
 
 /**
- * A generated stats artifact is analyzer output for a particular corpus.
- * Cyanophage's current bundled word-frequency input has no selectable corpus id yet.
+ * A generated stats artifact is analyzer output for a particular corpus or geometry.
+ * Cyanophage's bundled word-frequency input has no selectable corpus id, but its physical
+ * measurements are published once per viewer geometry.
  */
 export const STATS_DATASETS = [
 	{
@@ -150,7 +151,15 @@ export const STATS_DATASETS = [
 		analyzer: CYANOPHAGE_ANALYZER,
 		corpus: null,
 		isDefault: true,
-		statsUrl: '/layout-stats-cyanophage.json'
+		geometry: 'column-stagger',
+		statsUrl: cyanophageStatsUrl('column-stagger')
+	},
+	{
+		analyzer: CYANOPHAGE_ANALYZER,
+		corpus: null,
+		isDefault: false,
+		geometry: 'row-stagger',
+		statsUrl: cyanophageStatsUrl('row-stagger')
 	},
 	{
 		analyzer: MANA2_ANALYZER,
@@ -169,6 +178,7 @@ export const STATS_DATASETS = [
 	corpus: StatsCorpus | null;
 	isDefault: boolean;
 	statsUrl: string;
+	geometry?: KeyboardGeometry;
 }[];
 
 export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
@@ -216,12 +226,17 @@ export function analyzerShortLabel(analyzer: StatsAnalyzer): string {
 
 export function getStatsDataset(
 	analyzer: StatsAnalyzer,
-	corpus?: StatsCorpus
+	corpus?: StatsCorpus,
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): StatsDatasetDefinition {
 	const dataset = STATS_DATASETS.find(
 		(entry) =>
 			entry.analyzer === analyzer &&
-			(corpus === undefined ? entry.isDefault : entry.corpus === corpus)
+			(analyzer === CYANOPHAGE_ANALYZER
+				? 'geometry' in entry && entry.geometry === geometry
+				: corpus === undefined
+					? entry.isDefault
+					: entry.corpus === corpus)
 	);
 	if (!dataset) {
 		throw new Error(
@@ -232,8 +247,12 @@ export function getStatsDataset(
 }
 
 /** Resolve the current generated artifact for an analyzer and optional corpus. */
-export function getAnalyzerStatsUrl(analyzer: StatsAnalyzer, corpus?: StatsCorpus): string {
-	return getStatsDataset(analyzer, corpus).statsUrl;
+export function getAnalyzerStatsUrl(
+	analyzer: StatsAnalyzer,
+	corpus?: StatsCorpus,
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
+): string {
+	return getStatsDataset(analyzer, corpus, geometry).statsUrl;
 }
 
 /** Concrete analyzers included in a display mode. */

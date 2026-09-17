@@ -165,7 +165,7 @@ describe('creator URL state', () => {
 		expect(creatorSearchFromSnapshot({ ...feel, preview: true })).toBe('?tab=feel');
 	});
 
-	test('round-trips keyboard type, a catalog base, and a cleared board', () => {
+	test('round-trips keyboard geometry, a catalog base, and a cleared board', () => {
 		const qwertyBase: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
 			keyConfig: createDefaultKeyboardInputConfig()

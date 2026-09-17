@@ -104,7 +104,7 @@ describe('layout codec flags', () => {
 		expect(internationalLetter.characterSet).toBe('international');
 	});
 
-	test('preserves AKLDB free positions, duplicate labels, and an unspecified board', () => {
+	test('preserves AKLDB free positions and duplicate labels from the legacy wire format', () => {
 		const layout = decodeLayout([
 			'spark',
 			'9007199254740993',
@@ -116,7 +116,6 @@ describe('layout codec flags', () => {
 			[0, 1, 0]
 		]);
 
-		expect(layout.board).toBe('unknown');
 		expect(layout.positionBySlot).toEqual(
 			new Map([
 				['0,0', 'a'],

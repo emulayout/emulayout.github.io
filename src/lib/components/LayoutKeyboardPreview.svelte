@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
+	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 	import {
 		ansiThumbDisplayColumn,
 		ansiThumbOffsetCss,
@@ -28,6 +29,7 @@
 
 	interface Props {
 		layout: LayoutData;
+		geometry: KeyboardGeometry;
 		rows: DisplayCell[][];
 		feedback?: LayoutKeyboardFeedback;
 		swapPaths?: readonly LayoutKeyboardSwapPath[];
@@ -59,6 +61,7 @@
 	};
 	const {
 		layout,
+		geometry,
 		rows,
 		feedback = EMPTY_FEEDBACK,
 		swapPaths = [],
@@ -69,9 +72,7 @@
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
 	let swapPathLayer = $state<KeyboardSwapPathLayer>(EMPTY_KEYBOARD_SWAP_PATH_LAYER);
-	const orthoGeometry = $derived(
-		layout.board === 'ortho' || layout.board === 'mini' || layout.board === 'unknown'
-	);
+	const orthoGeometry = $derived(geometry === 'column-stagger');
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
 	const previewRows = $derived.by((): PreviewRow[] => {
@@ -241,8 +242,7 @@
 	class="keyboard-preview"
 	role="img"
 	aria-label={`${layout.name} keyboard preview`}
-	data-board={layout.board}
-	data-geometry={orthoGeometry ? 'ortho' : 'ansi'}
+	data-geometry={geometry}
 >
 	<div class="keyboard-preview__board" aria-hidden="true">
 		<div
