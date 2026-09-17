@@ -47,6 +47,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Restore source data cache
+        id: source_cache
         uses: actions/cache/restore@v6
         with:
           path: |
@@ -67,6 +68,29 @@ jobs:
             ${{ runner.os }}-source-data-v2-${{ hashFiles('bin/catalog-sync.js', 'bin/akldb-cache.js', 'bin/akldb-spark.js', 'bin/data-state-hash.js', 'bin/cmini-stats-sync.js', 'bin/mana2-stats-sync.js', 'bin/cyanophage-stats-sync.js', 'bin/sync-shared.js', 'bin/cminibrowser-cache.js', 'bin/cminibrowser-cmini-stats.js', 'bin/cminibrowser-mana2-stats.js', 'bin/cminibrowser-meme-filter.js', 'bin/stats-artifact-paths.js', 'bin/layout-features.js', 'bin/layout-codec.js', 'bin/layout-transformer.js', 'bin/cyanophage-stats.js', 'bin/cyanophage-data/**', 'src/lib/magicKeys.ts', 'src/lib/adaptiveSwaps.ts', 'src/lib/layoutSupplemental.ts', 'src/lib/layoutDisplay.ts', 'src/lib/cyanophage.ts', 'src/lib/statsDerivation.ts', 'src/lib/statsAnalyzers.ts') }}-
             ${{ runner.os }}-source-data-v2-
             ${{ runner.os }}-akldb-
+            ${{ runner.os }}-cmini-
+
+      # Cache versions include the exact path list. Restore the pre-AKLDB cache
+      # separately on migration so unavailable akl.gg dumps still have a fallback.
+      - name: Restore pre-AKLDB source data cache
+        if: steps.source_cache.outputs.cache-matched-key == ''
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            .cache/clemenpine
+            .cache/cminibrowser
+            .cache/clemenpine-synced-hash
+            static/all-layouts.json
+            static/layout-supplemental.json
+            static/authors.json
+            static/layout-likes.json
+            static/layout-stats-cyanophage.json
+            static/layout-stats-cmini-*.json
+            static/layout-stats-mana2-*.json
+          key: ${{ runner.os }}-source-data-v2-legacy-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-source-data-v2-
+            ${{ runner.os }}-clemenpine-
             ${{ runner.os }}-cmini-
 
       - name: Fingerprint current published data

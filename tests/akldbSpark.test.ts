@@ -19,6 +19,32 @@ function layout(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AKLDB Spark behavior adapter', () => {
+	test('preserves bare @ Repeat behavior without an explicit Spark declaration', () => {
+		const result = supplementalFromAkldbLayout(
+			layout({ keys: [{ char: '@', row: 3, col: 4, finger: 'LT' }] })
+		);
+		expect(result.repeatTrigger).toBe(true);
+		expect(result.supplemental).toBeUndefined();
+		expect(supplementalFromAkldbLayout(layout()).repeatTrigger).toBe(false);
+	});
+
+	test.each(['magic_keys', 'chiral_keys'])(
+		'%s claiming @ overrides conventional Repeat',
+		(field) => {
+			const result = supplementalFromAkldbLayout(
+				layout({
+					keys: [{ char: '@', row: 3, col: 4, finger: 'LT' }],
+					magic: { [field]: [{ key: '@' }] },
+					manaMagic: { rules: [{ inputs: 'a@', output: 'ao' }] }
+				})
+			);
+			expect(result.repeatTrigger).toBe(false);
+			expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
+				'@': { rules: { a: 'o' } }
+			});
+		}
+	);
+
 	test('uses AKLDB lowering for Magic and chiral triggers', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({

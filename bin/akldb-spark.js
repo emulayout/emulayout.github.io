@@ -35,7 +35,9 @@ export function supplementalFromAkldbLayout(layout) {
 			.map((entry) => entry.key)
 			.filter((key) => typeof key === 'string' && key)
 	);
-	const repeatTrigger = conventionalRepeatTrigger(layout);
+	const repeatTrigger =
+		conventionalRepeatTrigger(layout) ||
+		(layout.keys.some((key) => key.char === '@') && !triggerKeys.has('@'));
 	if (repeatTrigger) triggerKeys.delete('@');
 
 	/** @type {Record<string, { rules: Record<string, string> }>} */
