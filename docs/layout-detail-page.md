@@ -39,14 +39,15 @@ GitHub Pages serves generated static files and has no runtime API. The index con
 them. A detail route instead loads exactly one generated file from `static/layout-details/`.
 
 Each versioned detail file contains one compact layout tuple, its resolved author and like count,
-its Magic/Adaptive input-behavior source, corpus-keyed compact cmini and Mana2 stats, and compact
-Cyanophage stats. Filenames are the canonical layout name encoded as UTF-8 hex, avoiding filesystem
+its Magic/Adaptive input-behavior source, geometry- and corpus-keyed compact cmini and Mana2 stats,
+and geometry-keyed compact Cyanophage stats. Filenames are the canonical layout name encoded as
+UTF-8 hex, avoiding filesystem
 and URL ambiguity for punctuation and international names. `bin/layout-details.js` generates the
 files from the existing aggregate artifacts, writes only byte-changed files, and removes stale
 generated JSON files. It also publishes `static/layout-names.json`.
 
-The persisted corpus preference is global shell state. Both the index toolbar and detail-page Stats
-options expose the same selector, and the shared layout applies its value on every route. Detail and
+The persisted corpus and keyboard-geometry preferences are global shell state. The index and detail
+views expose the same choices, and the shared layout applies their values on every route. Detail and
 Quick Find views resolve the matching cmini and Mana2 entry from their per-layout payload.
 Consequently, changing routes or reloading a detail URL preserves the chosen corpus without
 downloading an analyzer-wide stats map. Cyanophage continues to ignore the corpus preference.
@@ -77,7 +78,8 @@ small without weakening app-bar functionality.
 - The summary card includes its own analyzer selector directly below finger usage. It switches the
   card among cmini, Cyanophage, and Mana2 without changing the index analyzer preference or the
   analyzer visibility controls in the detail page's `Stats` section. Its cmini and Mana2 values use
-  the globally selected corpus, including after a direct visit or reload. When the summary card has
+  the globally selected corpus and keyboard geometry, including after a direct visit or reload.
+  When the summary card has
   enough inline space, its Highlights metric grid and finger-usage chart share one row; narrower
   summaries stack them, and catalog cards retain their existing presentation.
 - Ordinary links below the card open the canonical layout by name on akl.gg, open it in
@@ -242,7 +244,8 @@ small without weakening app-bar functionality.
 - A direct detail link loads one generated layout-detail file and does not fetch the aggregate
   catalog unless an aggregate-dependent feature such as Compare or the input-layout base picker is
   opened.
-- A direct detail link resolves cmini and Mana2 stats for the persisted corpus from that detail file;
+- A direct detail link resolves cmini and Mana2 stats for the persisted corpus and geometry from
+  that detail file;
   changing or reloading routes does not silently fall back to Monkeyracer.
 - The index and detail corpus selectors are two controls for one persisted preference. Changing
   either control updates the other route on navigation or reload.

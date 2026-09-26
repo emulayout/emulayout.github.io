@@ -1,4 +1,5 @@
 import { createDefaultViewSnapshot } from '$lib/filterSnapshot';
+import { COMPACT_STAT_FIELD_COUNT } from '$lib/statsDerivation';
 import { expect, test } from './fixtures/test';
 
 function backupView(id: string, name: string) {
@@ -28,6 +29,32 @@ test('persists keyboard geometry as a display preference', async ({ page }) => {
 	await expect
 		.poll(() => page.evaluate(() => localStorage.getItem('keyboardGeometry')))
 		.toBe('row-stagger');
+});
+
+test('reloads API-backed analyzer stats for the selected geometry', async ({ page }) => {
+	const ortho = Array<number>(COMPACT_STAT_FIELD_COUNT).fill(0);
+	ortho[0] = 3000;
+	ortho[9] = 100;
+	const rowstag = [...ortho];
+	rowstag[9] = 200;
+
+	await page.route('**/layout-stats-cmini-monkeyracer-ortho-none.json', async (route) => {
+		await route.fulfill({ json: { QWERTY: ortho } });
+	});
+	await page.route('**/layout-stats-cmini-monkeyracer-rowstag-none.json', async (route) => {
+		await route.fulfill({ json: { QWERTY: rowstag } });
+	});
+
+	await page.goto('/?name=QWERTY&stats=1&testArea=0&likes=0&newIndicator=0');
+	const stats = page.locator('[data-layout-name="QWERTY"]').getByLabel('cmini core statistics');
+	await expect(stats.getByText('1.00%', { exact: true })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Settings' });
+	await dialog.getByRole('radio', { name: 'Row stagger' }).click();
+	await dialog.getByRole('button', { name: 'Close' }).click();
+
+	await expect(stats.getByText('2.00%', { exact: true })).toBeVisible();
 });
 
 test('selectively exports and replaces custom views from pasted backup text', async ({ page }) => {

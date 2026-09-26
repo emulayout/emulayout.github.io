@@ -85,16 +85,28 @@ describe('per-layout detail data', () => {
 			{ [compactLayout[0]]: 7 },
 			{
 				cmini: {
-					monkeyracer: { [compactLayout[0]]: [1] },
-					reddit: { [compactLayout[0]]: [4] }
+					'column-stagger': {
+						monkeyracer: { [compactLayout[0]]: [1] },
+						reddit: { [compactLayout[0]]: [4] }
+					},
+					'row-stagger': {
+						monkeyracer: { [compactLayout[0]]: [7] },
+						reddit: { [compactLayout[0]]: [8] }
+					}
 				},
 				cyanophage: {
 					'column-stagger': { [compactLayout[0]]: [2] },
 					'row-stagger': { [compactLayout[0]]: [6] }
 				},
 				mana2: {
-					monkeyracer: { [compactLayout[0]]: [3] },
-					reddit: { [compactLayout[0]]: [5] }
+					'column-stagger': {
+						monkeyracer: { [compactLayout[0]]: [3] },
+						reddit: { [compactLayout[0]]: [5] }
+					},
+					'row-stagger': {
+						monkeyracer: { [compactLayout[0]]: [9] },
+						reddit: { [compactLayout[0]]: [10] }
+					}
 				}
 			}
 		);
@@ -108,9 +120,15 @@ describe('per-layout detail data', () => {
 				likeCount: 7,
 				supplemental,
 				stats: {
-					cmini: { monkeyracer: [1], reddit: [4] },
+					cmini: {
+						'column-stagger': { monkeyracer: [1], reddit: [4] },
+						'row-stagger': { monkeyracer: [7], reddit: [8] }
+					},
 					cyanophage: { 'column-stagger': [2], 'row-stagger': [6] },
-					mana2: { monkeyracer: [3], reddit: [5] }
+					mana2: {
+						'column-stagger': { monkeyracer: [3], reddit: [5] },
+						'row-stagger': { monkeyracer: [9], reddit: [10] }
+					}
 				}
 			}
 		});
@@ -122,13 +140,13 @@ describe('per-layout detail data', () => {
 			layout: compactLayout,
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: { monkeyracer: [1], reddit: [2] } }
+			stats: { cmini: { 'column-stagger': { monkeyracer: [1], reddit: [2] } } }
 		};
 
 		expect(decodeLayoutDetail(payload, compactLayout[0])).toMatchObject({
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: { monkeyracer: [1], reddit: [2] } },
+			stats: { cmini: { 'column-stagger': { monkeyracer: [1], reddit: [2] } } },
 			layout: { name: compactLayout[0], user: '42' }
 		});
 		expect(resolveLayoutDetailStats(payload.stats, 'reddit')).toEqual({
@@ -180,9 +198,9 @@ describe('per-layout detail data', () => {
 			authorName: 'derek',
 			likeCount: 11,
 			stats: {
-				cmini: { reddit: [9, 8, 7] },
+				cmini: { 'row-stagger': { reddit: [9, 8, 7] } },
 				cyanophage: { 'row-stagger': [6] },
-				mana2: { reddit: [1] }
+				mana2: { 'row-stagger': { reddit: [1] } }
 			}
 		});
 

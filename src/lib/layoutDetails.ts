@@ -14,14 +14,17 @@ import type { LayoutSupplemental } from '$lib/layoutSupplemental';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
-export const LAYOUT_DETAIL_VERSION = 4;
+export const LAYOUT_DETAIL_VERSION = 5;
 
 export type CorpusCompactStats<T> = Partial<Record<StatsCorpus, T>>;
+export type GeometryCorpusCompactStats<T> = Partial<
+	Record<KeyboardGeometry, CorpusCompactStats<T>>
+>;
 
 export interface LayoutDetailStats {
-	cmini?: CorpusCompactStats<CompactLayoutStats>;
+	cmini?: GeometryCorpusCompactStats<CompactLayoutStats>;
 	cyanophage?: Partial<Record<KeyboardGeometry, CompactCyanophageStats>>;
-	mana2?: CorpusCompactStats<CompactMana2Stats>;
+	mana2?: GeometryCorpusCompactStats<CompactMana2Stats>;
 }
 
 export interface ResolvedLayoutDetailStats {
@@ -96,11 +99,15 @@ export function buildCatalogLayoutDetail(
 		likeCount: catalog.likesData[name] ?? 0,
 		...(inputProfile ? { inputProfile } : {}),
 		stats: {
-			...(statsMaps.cmini?.[name] ? { cmini: { [statsCorpus]: statsMaps.cmini[name] } } : {}),
+			...(statsMaps.cmini?.[name]
+				? { cmini: { [geometry]: { [statsCorpus]: statsMaps.cmini[name] } } }
+				: {}),
 			...(statsMaps.cyanophage?.[name]
 				? { cyanophage: { [geometry]: statsMaps.cyanophage[name] } }
 				: {}),
-			...(statsMaps.mana2?.[name] ? { mana2: { [statsCorpus]: statsMaps.mana2[name] } } : {})
+			...(statsMaps.mana2?.[name]
+				? { mana2: { [geometry]: { [statsCorpus]: statsMaps.mana2[name] } } }
+				: {})
 		}
 	};
 }
@@ -111,9 +118,9 @@ export function resolveLayoutDetailStats(
 	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): ResolvedLayoutDetailStats {
 	return {
-		cmini: stats.cmini?.[corpus],
+		cmini: stats.cmini?.[geometry]?.[corpus],
 		cyanophage: stats.cyanophage?.[geometry],
-		mana2: stats.mana2?.[corpus]
+		mana2: stats.mana2?.[geometry]?.[corpus]
 	};
 }
 

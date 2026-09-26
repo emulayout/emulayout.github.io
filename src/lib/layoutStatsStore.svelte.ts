@@ -16,7 +16,7 @@ class LayoutStatsStore {
 	maps: StatsMaps = $state({});
 	loadingAnalyzers: Partial<Record<StatsAnalyzer, boolean>> = $state({});
 	loadErrors: Partial<Record<StatsAnalyzer, AnalyzerStatsLoadError>> = $state({});
-	/** Corpus used for dump-backed analyzer fetches (cmini / Mana2). */
+	/** Corpus used for API-derived analyzer fetches (cmini / Mana2). */
 	activeCorpus: StatsCorpus = $state(DEFAULT_STATS_CORPUS);
 	activeGeometry: KeyboardGeometry = $state(DEFAULT_KEYBOARD_GEOMETRY);
 
@@ -52,7 +52,7 @@ class LayoutStatsStore {
 	}
 
 	/**
-	 * Switch dump-backed corpus. Clears cmini / Mana2 so the next ensureLoaded
+	 * Switch API-backed corpus. Clears cmini / Mana2 so the next ensureLoaded
 	 * fetches the matching artifacts. Cyanophage is left alone.
 	 */
 	applyCorpus(corpus: StatsCorpus): void {
@@ -70,18 +70,19 @@ class LayoutStatsStore {
 		}
 	}
 
-	/** Switch the presentation geometry and invalidate only geometry-sensitive Cyanophage stats. */
+	/** Switch the keyboard geometry and invalidate every geometry-sensitive analyzer map. */
 	applyGeometry(geometry: KeyboardGeometry): void {
 		if (this.activeGeometry === geometry) return;
 		this.activeGeometry = geometry;
-		const analyzer = 'cyanophage';
-		this.#abortControllers.get(analyzer)?.abort();
-		this.#abortControllers.delete(analyzer);
-		const maps = { ...this.maps };
-		delete maps[analyzer];
-		this.maps = maps;
-		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
-		this.#clearLoadError(analyzer);
+		for (const { value: analyzer } of STAT_ANALYZERS) {
+			this.#abortControllers.get(analyzer)?.abort();
+			this.#abortControllers.delete(analyzer);
+			const maps = { ...this.maps };
+			delete maps[analyzer];
+			this.maps = maps;
+			this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
+			this.#clearLoadError(analyzer);
+		}
 	}
 
 	hydrate(analyzer: StatsAnalyzer, map: NonNullable<StatsMaps[StatsAnalyzer]>): void {
@@ -134,7 +135,7 @@ class LayoutStatsStore {
 			});
 			if (this.#abortControllers.get(analyzer) !== abortController) return;
 			if (this.activeCorpus !== corpus && analyzerUsesSelectableCorpus(analyzer)) return;
-			if (analyzer === 'cyanophage' && this.activeGeometry !== geometry) return;
+			if (this.activeGeometry !== geometry) return;
 			if (result.status === 'loaded') {
 				this.maps = { ...this.maps, [analyzer]: result.map };
 				this.#clearLoadError(analyzer);

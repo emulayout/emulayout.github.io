@@ -4,18 +4,18 @@ import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
 	CMINI_ANALYZER,
-	DEFAULT_STATS_CORPUS,
+	DEFAULT_STATS_SPACE,
 	MANA2_ANALYZER,
-	dumpSyncedCorpora
+	apiSyncedCorpora,
+	statsBoardForGeometry
 } from '../src/lib/statsAnalyzers.ts';
+import { KEYBOARD_GEOMETRIES } from '../src/lib/keyboardGeometry.ts';
 import { cminiCompactStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
 
-export const LAYOUT_DETAIL_VERSION = 4;
+export const LAYOUT_DETAIL_VERSION = 5;
 
-const DETAIL_MANA2_BOARD = process.env.MANA2_STATS_BOARD ?? 'rowstag';
-const DETAIL_MANA2_SPACE = process.env.MANA2_STATS_SPACE ?? 'none';
-const CMINI_CORPORA = dumpSyncedCorpora(CMINI_ANALYZER);
-const MANA2_CORPORA = dumpSyncedCorpora(MANA2_ANALYZER);
+const CMINI_CORPORA = apiSyncedCorpora(CMINI_ANALYZER);
+const MANA2_CORPORA = apiSyncedCorpora(MANA2_ANALYZER);
 
 const STATIC_DIR = join(process.cwd(), 'static');
 const DETAILS_DIR = join(STATIC_DIR, 'layout-details');
@@ -26,7 +26,6 @@ const REQUIRED_FILES = {
 	authors: join(STATIC_DIR, 'authors.json'),
 	supplemental: join(STATIC_DIR, 'layout-supplemental.json'),
 	likes: join(STATIC_DIR, 'layout-likes.json'),
-	cmini: join(process.cwd(), cminiCompactStatsRelPath(DEFAULT_STATS_CORPUS)),
 	cyanophageColumn: join(STATIC_DIR, 'layout-stats-cyanophage-column-stagger.json'),
 	cyanophageRow: join(STATIC_DIR, 'layout-stats-cyanophage-row-stagger.json')
 };
@@ -72,9 +71,9 @@ async function writeIfChanged(path, body) {
  * @param {Record<string, unknown>} supplemental
  * @param {Record<string, number>} likes
  * @param {{
- *   cmini: Record<string, Record<string, unknown>>,
+ *   cmini: Record<'column-stagger' | 'row-stagger', Record<string, Record<string, unknown>>>,
  *   cyanophage: Record<'column-stagger' | 'row-stagger', Record<string, unknown>>,
- *   mana2: Record<string, Record<string, unknown>>
+ *   mana2: Record<'column-stagger' | 'row-stagger', Record<string, Record<string, unknown>>>
  * }} stats
  */
 export function buildCompactLayoutDetails(layouts, authors, supplemental, likes, stats) {
@@ -85,16 +84,20 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 		}
 		const name = layout[0];
 		const userId = String(layout[1]);
-		const cmini = Object.fromEntries(
-			Object.entries(stats.cmini).flatMap(([corpus, map]) =>
-				map[name] === undefined ? [] : [[corpus, map[name]]]
-			)
-		);
-		const mana2 = Object.fromEntries(
-			Object.entries(stats.mana2).flatMap(([corpus, map]) =>
-				map[name] === undefined ? [] : [[corpus, map[name]]]
-			)
-		);
+		/** @param {Record<string, Record<string, Record<string, unknown>>>} geometryStats */
+		const selectGeometryStats = (geometryStats) =>
+			Object.fromEntries(
+				Object.entries(geometryStats).flatMap(([geometry, corpusStats]) => {
+					const selectedCorpora = Object.fromEntries(
+						Object.entries(corpusStats).flatMap(([corpus, map]) =>
+							map[name] === undefined ? [] : [[corpus, map[name]]]
+						)
+					);
+					return Object.keys(selectedCorpora).length === 0 ? [] : [[geometry, selectedCorpora]];
+				})
+			);
+		const cmini = selectGeometryStats(stats.cmini);
+		const mana2 = selectGeometryStats(stats.mana2);
 		const cyanophage = Object.fromEntries(
 			Object.entries(stats.cyanophage).flatMap(([geometry, map]) =>
 				map[name] === undefined ? [] : [[geometry, map[name]]]
@@ -119,31 +122,42 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 }
 
 export async function generateLayoutDetails() {
-	const [layouts, authors, supplemental, likes, defaultCmini, cyanophageColumn, cyanophageRow] =
+	const [layouts, authors, supplemental, likes, cyanophageColumn, cyanophageRow] =
 		await Promise.all([
 			readJson(REQUIRED_FILES.layouts),
 			readJson(REQUIRED_FILES.authors),
 			readJson(REQUIRED_FILES.supplemental),
 			readJson(REQUIRED_FILES.likes),
-			readJson(REQUIRED_FILES.cmini),
 			readJson(REQUIRED_FILES.cyanophageColumn),
 			readJson(REQUIRED_FILES.cyanophageRow)
 		]);
 	const cminiEntries = await Promise.all(
-		CMINI_CORPORA.map(async (corpus) => [
-			corpus,
-			corpus === DEFAULT_STATS_CORPUS
-				? defaultCmini
-				: await readOptionalJson(join(process.cwd(), cminiCompactStatsRelPath(corpus)))
-		])
+		KEYBOARD_GEOMETRIES.map(async (geometry) => {
+			const board = statsBoardForGeometry(geometry);
+			const corpora = await Promise.all(
+				CMINI_CORPORA.map(async (corpus) => [
+					corpus,
+					await readOptionalJson(
+						join(process.cwd(), cminiCompactStatsRelPath(corpus, board, DEFAULT_STATS_SPACE))
+					)
+				])
+			);
+			return [geometry, Object.fromEntries(corpora)];
+		})
 	);
 	const mana2Entries = await Promise.all(
-		MANA2_CORPORA.map(async (corpus) => [
-			corpus,
-			await readOptionalJson(
-				join(process.cwd(), mana2StatsRelPath(corpus, DETAIL_MANA2_BOARD, DETAIL_MANA2_SPACE))
-			)
-		])
+		KEYBOARD_GEOMETRIES.map(async (geometry) => {
+			const board = statsBoardForGeometry(geometry);
+			const corpora = await Promise.all(
+				MANA2_CORPORA.map(async (corpus) => [
+					corpus,
+					await readOptionalJson(
+						join(process.cwd(), mana2StatsRelPath(corpus, board, DEFAULT_STATS_SPACE))
+					)
+				])
+			);
+			return [geometry, Object.fromEntries(corpora)];
+		})
 	);
 
 	const details = buildCompactLayoutDetails(layouts, authors, supplemental, likes, {

@@ -15,11 +15,31 @@ describe('loadAnalyzerStats', () => {
 			}
 		});
 
-		expect(requested).toEqual(['/layout-stats-cmini-reddit.json']);
+		expect(requested).toEqual(['/layout-stats-cmini-reddit-ortho-none.json']);
 		expect(result).toEqual({
 			status: 'loaded',
 			map: { Canary: [1, 2, 3] }
 		});
+	});
+
+	test('selects the matching API board for cmini and Mana2 geometry', async () => {
+		const requested: string[] = [];
+		const fetcher = async (input: RequestInfo | URL) => {
+			requested.push(String(input));
+			return new Response('{}', { status: 200 });
+		};
+
+		await loadAnalyzerStats('cmini', { corpus: 'reddit', geometry: 'row-stagger', fetch: fetcher });
+		await loadAnalyzerStats('mana2', {
+			corpus: 'monkeyracer',
+			geometry: 'column-stagger',
+			fetch: fetcher
+		});
+
+		expect(requested).toEqual([
+			'/layout-stats-cmini-reddit-rowstag-none.json',
+			'/layout-stats-mana2-monkeyracer-ortho-none.json'
+		]);
 	});
 
 	test('ignores corpus and selects geometry for Cyanophage fetches', async () => {

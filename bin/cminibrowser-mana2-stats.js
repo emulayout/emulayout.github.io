@@ -1,8 +1,7 @@
 /**
- * Map AKL Mana2 named dumps into Emulayout compact Mana2 arrays
+ * Map one Mana2 cell from akl.gg stats/v1 into Emulayout compact Mana2 arrays
  * (`MANA2_STAT_KEYS` / `MANA2_STAT_VALUE_SCALE`).
  *
- * Dump URL: `/data/mana2/named/{corpus}.{board}.{space}.json`
  * Key order/scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
 
@@ -97,13 +96,6 @@ const TRI_FIELDS = [
 ];
 
 /**
- * @typedef {{
- *   dumpId: string,
- *   compact: number[]
- * }} CminibrowserMana2LayoutStats
- */
-
-/**
  * @param {unknown} value
  * @returns {value is number}
  */
@@ -119,16 +111,7 @@ export function encodeCminibrowserMana2StatValue(value) {
 }
 
 /**
- * @param {string} corpus
- * @param {string} board
- * @param {string} space
- */
-export function cminibrowserMana2NamedDumpPath(corpus, board, space) {
-	return `mana2/named/${corpus}.${board}.${space}.json`;
-}
-
-/**
- * Convert one layout's named dump object to a compact Mana2 array, or null if unusable.
+ * Convert one layout's stats/v1 Mana2 cell to a compact array, or null if unusable.
  *
  * @param {unknown} entry
  * @returns {number[] | null}
@@ -194,29 +177,4 @@ export function encodeCminibrowserMana2Stats(entry) {
 	return CMINIBROWSER_MANA2_STAT_KEYS.map((key) =>
 		encodeCminibrowserMana2StatValue(byKey[key] ?? 0)
 	);
-}
-
-/**
- * @param {unknown} dump
- * @returns {Map<string, CminibrowserMana2LayoutStats>} lowercase dump id → stats
- */
-export function indexCminibrowserMana2Dump(dump) {
-	/** @type {Map<string, CminibrowserMana2LayoutStats>} */
-	const index = new Map();
-	if (!dump || typeof dump !== 'object' || Array.isArray(dump)) return index;
-
-	for (const [dumpId, entry] of Object.entries(dump)) {
-		const compact = encodeCminibrowserMana2Stats(entry);
-		if (!compact) continue;
-		index.set(dumpId.toLowerCase(), { dumpId, compact });
-	}
-	return index;
-}
-
-/**
- * @param {Map<string, CminibrowserMana2LayoutStats>} index
- * @param {string} layoutName
- */
-export function lookupCminibrowserMana2Stats(index, layoutName) {
-	return index.get(layoutName.toLowerCase()) ?? null;
 }

@@ -25,7 +25,7 @@ import {
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-/** Read the dump-backed corpus preference before uiPrefs hydrates. */
+/** Read the API-backed corpus preference before uiPrefs hydrates. */
 function readPreferredStatsCorpus(): StatsCorpus {
 	try {
 		if (typeof localStorage === 'undefined') return parseStatsCorpus(undefined);

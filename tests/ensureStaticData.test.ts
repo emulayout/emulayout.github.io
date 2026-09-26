@@ -6,12 +6,16 @@ import {
 } from '../bin/ensure-static-data.js';
 
 describe('local static-data bootstrap', () => {
-	test('requires every configured dump-backed corpus artifact', () => {
+	test('requires every configured API-backed corpus artifact', () => {
 		expect(REQUIRED_STATIC_FILES_BY_TASK.cmini).toEqual([
-			'static/layout-stats-cmini-monkeyracer.json',
-			'static/layout-stats-cmini-reddit.json'
+			'static/layout-stats-cmini-monkeyracer-ortho-none.json',
+			'static/layout-stats-cmini-reddit-ortho-none.json',
+			'static/layout-stats-cmini-monkeyracer-rowstag-none.json',
+			'static/layout-stats-cmini-reddit-rowstag-none.json'
 		]);
 		expect(REQUIRED_STATIC_FILES_BY_TASK.mana2).toEqual([
+			'static/layout-stats-mana2-monkeyracer-ortho-none.json',
+			'static/layout-stats-mana2-reddit-ortho-none.json',
 			'static/layout-stats-mana2-monkeyracer-rowstag-none.json',
 			'static/layout-stats-mana2-reddit-rowstag-none.json'
 		]);
@@ -22,9 +26,9 @@ describe('local static-data bootstrap', () => {
 	});
 
 	test('runs only the analyzer whose artifact is missing', () => {
-		expect(analyzerTasksForMissingStaticData(['static/layout-stats-cmini-reddit.json'])).toEqual([
-			'cmini'
-		]);
+		expect(
+			analyzerTasksForMissingStaticData(['static/layout-stats-cmini-reddit-rowstag-none.json'])
+		).toEqual(['cmini']);
 		expect(
 			analyzerTasksForMissingStaticData(['static/layout-stats-mana2-monkeyracer-rowstag-none.json'])
 		).toEqual(['mana2']);

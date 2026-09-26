@@ -57,7 +57,11 @@
 	const highlightedDetail = $derived(catalogDetail ?? fetchedDetail);
 	const highlightedStats = $derived(
 		highlightedDetail
-			? resolveLayoutDetailStats(highlightedDetail.stats, layoutStatsStore.activeCorpus)
+			? resolveLayoutDetailStats(
+					highlightedDetail.stats,
+					layoutStatsStore.activeCorpus,
+					layoutStatsStore.activeGeometry
+				)
 			: {}
 	);
 	const openedFromDetailPage = $derived(page.route.id === '/layouts/[name]');

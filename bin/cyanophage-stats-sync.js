@@ -54,7 +54,7 @@ async function run() {
 		forceEnv: 'CYANOPHAGE_SYNC_FORCE'
 	});
 	console.log('→ Loading AKL inputs...');
-	const memeFilter = await loadMemeFilterExclusions({ offline, force });
+	const memeFilter = await loadMemeFilterExclusions({ layouts, offline, force });
 	const excludedLayouts = memeFilter.excluded;
 	console.log(`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus})`);
 

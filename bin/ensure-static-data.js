@@ -8,8 +8,7 @@ import {
 	MANA2_ANALYZER,
 	STATS_DATASETS
 } from '../src/lib/statsAnalyzers.ts';
-import { cminibrowserCachePath } from './cminibrowser-cache.js';
-import { CMINIBROWSER_MEME_FILTER_PATH } from './cminibrowser-meme-filter.js';
+import { aklStatsCacheExists } from './akl-stats-v1.js';
 import { akldbCacheExists } from './akldb-cache.js';
 
 const CATALOG_FILES = [
@@ -80,11 +79,7 @@ async function run() {
 		console.log(`  - ${file}`);
 	}
 
-	const catalogInputsCached =
-		(await akldbCacheExists()) &&
-		(await Promise.all([exists(cminibrowserCachePath(CMINIBROWSER_MEME_FILTER_PATH))])).every(
-			Boolean
-		);
+	const catalogInputsCached = (await akldbCacheExists()) && (await aklStatsCacheExists());
 	const catalogArgs = catalogSyncArgsForBootstrap(catalogInputsCached);
 	if (catalogArgs.includes('--offline')) {
 		console.log('→ Generating from cached sources...');

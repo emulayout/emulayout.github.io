@@ -1,6 +1,6 @@
 /**
- * Map AKL cmini engine dumps (`/data/stats/{corpus}.json`) into Emulayout's
- * compact monkeyracer arrays (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`).
+ * Map one cmini cell from akl.gg stats/v1 into Emulayout's compact arrays
+ * (`BOT_STAT_KEYS` / `STAT_VALUE_SCALE`).
  *
  * Key order and scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
@@ -12,7 +12,7 @@ export const CMINIBROWSER_CMINI_DEFAULT_CORPUS = 'monkeyracer';
 export const CMINIBROWSER_CMINI_STAT_VALUE_SCALE = 10_000;
 
 /**
- * Finger-use field order in the AKL cmini dump.
+ * Finger-use field order in an AKL cmini cell.
  * @type {readonly ['LI', 'LM', 'LR', 'LP', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT', 'TB']}
  */
 export const CMINIBROWSER_CMINI_FINGER_KEYS = [
@@ -56,7 +56,7 @@ export const CMINIBROWSER_CMINI_SCALAR_FIELDS = [
 	['roll_out', 'roll-out'],
 	['oneh_in', 'oneh-in'],
 	['oneh_out', 'oneh-out'],
-	['redirect', 'redirect'],
+	['red', 'redirect'],
 	['bad_redirect', 'bad-redirect'],
 	['sfs_red', 'dsfb-red'],
 	['sfs_alt', 'dsfb-alt'],
@@ -64,13 +64,6 @@ export const CMINIBROWSER_CMINI_SCALAR_FIELDS = [
 	['lh', 'lh'],
 	['rh', 'rh']
 ];
-
-/**
- * @typedef {{
- *   dumpId: string,
- *   compact: number[]
- * }} CminibrowserCminiLayoutStats
- */
 
 /**
  * @param {unknown} value
@@ -84,11 +77,13 @@ function isFiniteNumber(value) {
  * @param {number} value
  */
 export function encodeCminibrowserStatValue(value) {
-	return Math.round(value * CMINIBROWSER_CMINI_STAT_VALUE_SCALE);
+	// stats/v1 publishes cmini percentages as percentage points. Emulayout's
+	// cmini decoder expects normalized 0–1 fractions.
+	return Math.round((value / 100) * CMINIBROWSER_CMINI_STAT_VALUE_SCALE);
 }
 
 /**
- * Convert one layout's dump object to a compact stats array, or null if unusable.
+ * Convert one layout's stats/v1 cmini cell to a compact array, or null if unusable.
  *
  * @param {unknown} entry
  * @returns {number[] | null}
@@ -124,45 +119,4 @@ export function encodeCminibrowserCminiStats(entry) {
 	}
 
 	return CMINIBROWSER_CMINI_STAT_KEYS.map((key) => encodeCminibrowserStatValue(byKey[key] ?? 0));
-}
-
-/**
- * Index a dump for case-insensitive layout lookup.
- * @param {unknown} dump
- * @returns {Map<string, CminibrowserCminiLayoutStats>} lowercase dump id → stats
- */
-export function indexCminibrowserCminiDump(dump) {
-	/** @type {Map<string, CminibrowserCminiLayoutStats>} */
-	const index = new Map();
-	if (!dump || typeof dump !== 'object' || Array.isArray(dump)) return index;
-
-	for (const [dumpId, entry] of Object.entries(dump)) {
-		const compact = encodeCminibrowserCminiStats(entry);
-		if (!compact) continue;
-		index.set(dumpId.toLowerCase(), { dumpId, compact });
-	}
-	return index;
-}
-
-/**
- * @param {Map<string, CminibrowserCminiLayoutStats>} index
- * @param {string} layoutName cmini / Emulayout display name
- * @returns {CminibrowserCminiLayoutStats | null}
- */
-export function lookupCminibrowserCminiStats(index, layoutName) {
-	return index.get(layoutName.toLowerCase()) ?? null;
-}
-
-/**
- * @param {unknown} dump top-level `{ [layoutId]: entry }`
- * @returns {Map<string, number[]>}
- */
-export function encodeCminibrowserCminiDump(dump) {
-	/** @type {Map<string, number[]>} */
-	const encoded = new Map();
-	for (const [lowerId, stats] of indexCminibrowserCminiDump(dump)) {
-		// Prefer original dump id casing as the map key for verify scripts.
-		encoded.set(stats.dumpId || lowerId, stats.compact);
-	}
-	return encoded;
 }

@@ -1,25 +1,29 @@
 #!/usr/bin/env bun
 
 /**
- * Import cmini analyzer stats from AKL corpus dumps.
+ * Import cmini analyzer stats from the supported akl.gg stats/v1 API.
  *
  * Requires a prior catalog-sync (`static/all-layouts.json`).
- * Use --offline to reuse a cached dump under `.cache/cminibrowser/`.
- * Use --force to re-download the dump even when a cache file exists.
+ * Use --offline to reuse cached per-layout objects under `.cache/akl-stats-v1/`.
+ * Use --force to re-download the objects even when their revisions match.
  * Use --corpus=NAME (or CMINIBROWSER_CMINI_CORPUS) to sync one corpus; otherwise
- * sync every dump-backed cmini corpus from the frontend catalog.
+ * sync every API-backed cmini corpus from the frontend catalog.
  *
- * Writes compact catalog artifacts only. Full dump fields stay in the local
- * AKL cache for diagnostics — they are not published under static/.
+ * Writes compact catalog artifacts only. Full API objects stay in the local
+ * akl.gg stats cache for diagnostics — they are not published under static/.
  */
 
-import { mkdir, readFile } from 'node:fs/promises';
-import { CMINI_ANALYZER, dumpSyncedCorpora } from '../src/lib/statsAnalyzers.ts';
-import { ensureCminibrowserDump } from './cminibrowser-cache.js';
+import { mkdir, readFile, unlink } from 'node:fs/promises';
+import { KEYBOARD_GEOMETRIES } from '../src/lib/keyboardGeometry.ts';
 import {
-	indexCminibrowserCminiDump,
-	lookupCminibrowserCminiStats
-} from './cminibrowser-cmini-stats.js';
+	CMINI_ANALYZER,
+	DEFAULT_STATS_SPACE,
+	apiSyncedCorpora,
+	statsBoardForGeometry
+} from '../src/lib/statsAnalyzers.ts';
+import { ensureAklStatsLayouts, getAklStatsCell } from './akl-stats-v1.js';
+import { encodeCminibrowserCminiStats } from './cminibrowser-cmini-stats.js';
+import { readCachedAkldbLayouts } from './akldb-cache.js';
 import { layoutEntryName } from './layout-codec.js';
 import { cminiCompactStatsRelPath } from './stats-artifact-paths.js';
 import {
@@ -31,52 +35,35 @@ import {
 } from './sync-shared.js';
 
 /**
- * @param {unknown[]} layouts
+ * @param {import('./akldb-cache.js').AkldbLayout[]} eligibleLayouts
+ * @param {ReadonlyMap<string, Record<string, unknown>>} objects
  * @param {string} corpus
- * @param {{ offline: boolean, force: boolean }} mode
+ * @param {import('../src/lib/keyboardGeometry.ts').KeyboardGeometry} geometry
  */
-async function syncCorpus(layouts, corpus, mode) {
-	const dumpPath = `stats/${corpus}.json`;
-	const statsFile = cminiCompactStatsRelPath(corpus);
-	console.log(`→ Loading AKL cmini dump (${dumpPath})...`);
-	const validateJson = (dump) => {
-		const candidateIndex = indexCminibrowserCminiDump(dump);
-		let eligible = 0;
-		let loaded = 0;
-		for (const layout of layouts) {
-			const name = layoutEntryName(layout);
-			if (!name) continue;
-			eligible++;
-			if (lookupCminibrowserCminiStats(candidateIndex, name)) loaded++;
-		}
-		assertStatsCatalogCoverage(`AKL cmini ${corpus} dump`, loaded, eligible);
-	};
-	const { json: dump } = await ensureCminibrowserDump(dumpPath, { ...mode, validateJson });
-	const index = indexCminibrowserCminiDump(dump);
-	console.log(`  ✔ Indexed ${index.size} layouts from dump`);
+async function syncContext(eligibleLayouts, objects, corpus, geometry) {
+	const board = statsBoardForGeometry(geometry);
+	const statsFile = cminiCompactStatsRelPath(corpus, board, DEFAULT_STATS_SPACE);
+	console.log(
+		`→ Encoding AKL cmini stats/v1 cells (corpus=${corpus}, geometry=${geometry}, board=${board})...`
+	);
 
 	/** @type {Record<string, number[]>} */
 	const layoutStats = {};
 	let statsLoaded = 0;
 	let statsMissing = 0;
 
-	for (const layout of layouts) {
-		const name = layoutEntryName(layout);
-		if (!name) continue;
-
-		const hit = lookupCminibrowserCminiStats(index, name);
-		if (!hit) {
+	for (const layout of eligibleLayouts) {
+		const object = objects.get(layout.id);
+		const cell = getAklStatsCell(object, 'cmini', `${corpus}.${board}.${DEFAULT_STATS_SPACE}`);
+		const compact = encodeCminibrowserCminiStats(cell);
+		if (!compact) {
 			statsMissing++;
 			continue;
 		}
-		layoutStats[name] = hit.compact;
+		layoutStats[layout.name] = compact;
 		statsLoaded++;
 	}
-	assertStatsCatalogCoverage(
-		`AKL cmini ${corpus} artifact`,
-		statsLoaded,
-		statsLoaded + statsMissing
-	);
+	assertStatsCatalogCoverage(`AKL cmini ${corpus} artifact`, statsLoaded, eligibleLayouts.length);
 
 	await mkdir('static', { recursive: true });
 	const sortedStats = Object.fromEntries(
@@ -88,7 +75,7 @@ async function syncCorpus(layouts, corpus, mode) {
 	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
 
 	console.log(
-		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing from dump, corpus=${corpus})`
+		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing, corpus=${corpus}, geometry=${geometry})`
 	);
 	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
 }
@@ -101,15 +88,30 @@ async function run() {
 	});
 	const corpora = parseCorpusArgs(argv, {
 		env: 'CMINIBROWSER_CMINI_CORPUS',
-		defaultCorpora: dumpSyncedCorpora(CMINI_ANALYZER)
+		defaultCorpora: apiSyncedCorpora(CMINI_ANALYZER)
 	});
 
 	console.log(`→ Loading layouts from ${LAYOUTS_FILE}`);
 	/** @type {unknown[]} */
-	const layouts = JSON.parse(await readFile(LAYOUTS_FILE, 'utf-8'));
+	const publishedLayouts = JSON.parse(await readFile(LAYOUTS_FILE, 'utf-8'));
+	const { layouts: akldbLayouts } = await readCachedAkldbLayouts();
+	const publishedNames = new Set(publishedLayouts.map(layoutEntryName));
+	const eligibleLayouts = akldbLayouts.filter((layout) => publishedNames.has(layout.name));
+	console.log('→ Loading matching akl.gg stats/v1 layout objects...');
+	const { objects, downloaded } = await ensureAklStatsLayouts(eligibleLayouts, { offline, force });
+	console.log(`  ✔ ${objects.size} matching layout objects (${downloaded} downloaded)`);
 
 	for (const corpus of corpora) {
-		await syncCorpus(layouts, corpus, { offline, force });
+		for (const geometry of KEYBOARD_GEOMETRIES) {
+			await syncContext(eligibleLayouts, objects, corpus, geometry);
+		}
+		const legacyFile = `static/layout-stats-cmini-${corpus}.json`;
+		try {
+			await unlink(legacyFile);
+			console.log(`  ✔ Removed obsolete ${legacyFile}`);
+		} catch (error) {
+			if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
+		}
 	}
 
 	console.log('Done');

@@ -8,11 +8,11 @@
  * Non-interactive flags (skip the TUI):
  *   --catalog --cmini-stats --mana2-stats --cyanophage --details
  *   --all                     all of the above
- *   --force                   re-download akl.gg dumps
+ *   --force                   re-download akl.gg stats/v1 objects
  *   --offline                 reuse caches; no network
  *   --yes / -y                accept defaults without prompting
  *
- * Corpus selection belongs to the individual dump-import scripts. This wrapper
+ * Corpus selection belongs to the individual analyzer-import scripts. This wrapper
  * always syncs every configured corpus so generated detail payloads stay complete.
  */
 
@@ -39,12 +39,12 @@ const TARGET_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'cmini-stats',
 		label: 'cmini stats',
-		hint: 'akl.gg dumps → layout-stats-cmini-{corpus}'
+		hint: 'akl.gg stats/v1 → layout-stats-cmini-{corpus}-{board}-none'
 	},
 	{
 		value: 'mana2-stats',
 		label: 'Mana2 stats',
-		hint: 'akl.gg dumps → layout-stats-mana2-{corpus}-*'
+		hint: 'akl.gg stats/v1 → layout-stats-mana2-{corpus}-*'
 	},
 	{
 		value: 'cyanophage',
@@ -62,21 +62,21 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'normal',
 		label: 'Normal',
-		hint: 'fetch catalog updates; reuse cached dumps when present'
+		hint: 'fetch updates; reuse revision-matched objects'
 	},
 	{
 		value: 'force',
 		label: 'Force',
-		hint: 're-download akl.gg dumps'
+		hint: 're-download akl.gg stats/v1 objects'
 	},
 	{
 		value: 'offline',
 		label: 'Offline',
-		hint: 'reuse AKLDB + dump caches; no network'
+		hint: 'reuse AKLDB + stats/v1 caches; no network'
 	}
 ]);
 
-/** Targets that accept --force / --offline akl.gg dump flags. */
+/** Targets that accept --force / --offline source-cache flags. */
 const DUMP_TARGETS = new Set(
 	/** @type {SyncTarget[]} */ (['catalog', 'cmini-stats', 'mana2-stats', 'cyanophage'])
 );
@@ -217,14 +217,17 @@ async function runPlan(targets, mode) {
 	if (targets.includes('catalog')) {
 		await runScript('./bin/catalog-sync.js', flagsForTarget(mode, 'catalog'));
 	}
+	// Catalog sync already fills the shared stats/v1 cache for meme filtering.
+	// Reuse that exact snapshot for subsequent analyzer tasks in the same plan.
+	const analyzerMode = targets.includes('catalog') ? 'offline' : mode;
 	if (targets.includes('cmini-stats')) {
-		await runScript('./bin/cmini-stats-sync.js', flagsForTarget(mode, 'cmini-stats'));
+		await runScript('./bin/cmini-stats-sync.js', flagsForTarget(analyzerMode, 'cmini-stats'));
 	}
 	if (targets.includes('mana2-stats')) {
-		await runScript('./bin/mana2-stats-sync.js', flagsForTarget(mode, 'mana2-stats'));
+		await runScript('./bin/mana2-stats-sync.js', flagsForTarget(analyzerMode, 'mana2-stats'));
 	}
 	if (targets.includes('cyanophage')) {
-		await runScript('./bin/cyanophage-stats-sync.js', []);
+		await runScript('./bin/cyanophage-stats-sync.js', flagsForTarget(analyzerMode, 'cyanophage'));
 	}
 	if (targets.includes('details')) {
 		await runScript('./bin/layout-details.js', []);

@@ -46,9 +46,11 @@ export async function loadAnalyzerStats(
 	} = {}
 ): Promise<AnalyzerStatsLoadResult> {
 	const fetcher = options.fetch ?? fetch;
-	const statsUrl = analyzerUsesSelectableCorpus(analyzer)
-		? getAnalyzerStatsUrl(analyzer, options.corpus)
-		: getAnalyzerStatsUrl(analyzer, undefined, options.geometry);
+	const statsUrl = getAnalyzerStatsUrl(
+		analyzer,
+		analyzerUsesSelectableCorpus(analyzer) ? options.corpus : undefined,
+		options.geometry
+	);
 
 	let response: Response;
 	try {

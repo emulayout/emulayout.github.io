@@ -142,7 +142,7 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 				layout: qwerty,
 				authorName: 'cmini',
 				likeCount: 0,
-				stats: { cmini: { monkeyracer, reddit } }
+				stats: { cmini: { 'column-stagger': { monkeyracer, reddit } } }
 			}
 		});
 	});
@@ -157,7 +157,7 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 	const corpus = page.getByRole('combobox', { name: 'Corpus' });
 	await expect(corpus).toHaveValue('reddit');
 	await expect(summaryStats.getByText('2.00%', { exact: true })).toBeVisible();
-	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit.json');
+	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit-ortho-none.json');
 
 	await corpus.selectOption('monkeyracer');
 	await expect(summaryStats.getByText('1.00%', { exact: true })).toBeVisible();
@@ -200,12 +200,18 @@ test('persists detail analyzer visibility across layouts and reloads', async ({ 
 				authorName: 'cmini',
 				likeCount: 0,
 				stats: {
-					cmini: { monkeyracer: cmini, reddit: cmini },
+					cmini: {
+						'column-stagger': { monkeyracer: cmini, reddit: cmini },
+						'row-stagger': { monkeyracer: cmini, reddit: cmini }
+					},
 					cyanophage: {
 						'column-stagger': cyanophage,
 						'row-stagger': cyanophage
 					},
-					mana2: { monkeyracer: mana2, reddit: mana2 }
+					mana2: {
+						'column-stagger': { monkeyracer: mana2, reddit: mana2 },
+						'row-stagger': { monkeyracer: mana2, reddit: mana2 }
+					}
 				}
 			}
 		});
@@ -517,7 +523,12 @@ test('places summary highlights and finger usage side by side only when the deta
 				layout: qwerty,
 				authorName: 'cmini',
 				likeCount: 0,
-				stats: { cmini: { monkeyracer: cmini, reddit: cmini } }
+				stats: {
+					cmini: {
+						'column-stagger': { monkeyracer: cmini, reddit: cmini },
+						'row-stagger': { monkeyracer: cmini, reddit: cmini }
+					}
+				}
 			}
 		});
 	});

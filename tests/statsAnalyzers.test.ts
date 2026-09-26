@@ -13,7 +13,7 @@ import {
 	STATS_DATASETS,
 	analyzerShortLabel,
 	analyzerUsesSelectableCorpus,
-	dumpSyncedCorpora,
+	apiSyncedCorpora,
 	getAnalyzerStatsUrl,
 	getCyanophageStatsUnavailableReason,
 	getStatsDataset,
@@ -35,7 +35,12 @@ describe('stats analyzer catalog', () => {
 			MANA2_ANALYZER
 		]);
 		expect(DEFAULT_STATS_ANALYZER).toBe(CMINI_ANALYZER);
-		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe('/layout-stats-cmini-monkeyracer.json');
+		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe(
+			'/layout-stats-cmini-monkeyracer-ortho-none.json'
+		);
+		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, undefined, 'row-stagger')).toBe(
+			'/layout-stats-cmini-monkeyracer-rowstag-none.json'
+		);
 		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe(
 			'/layout-stats-cyanophage-column-stagger.json'
 		);
@@ -43,7 +48,7 @@ describe('stats analyzer catalog', () => {
 			'/layout-stats-cyanophage-row-stagger.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe(
-			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
+			'/layout-stats-mana2-monkeyracer-ortho-none.json'
 		);
 		expect(analyzerShortLabel(CMINI_ANALYZER)).toBe('cmini');
 	});
@@ -54,18 +59,21 @@ describe('stats analyzer catalog', () => {
 			analyzer: CMINI_ANALYZER,
 			corpus: MONKEYRACER_CORPUS,
 			isDefault: true,
-			statsUrl: '/layout-stats-cmini-monkeyracer.json'
+			geometry: 'column-stagger',
+			statsUrl: '/layout-stats-cmini-monkeyracer-ortho-none.json'
 		});
 		expect(STATS_DATASETS).toContainEqual({
 			analyzer: CMINI_ANALYZER,
 			corpus: REDDIT_CORPUS,
 			isDefault: false,
-			statsUrl: '/layout-stats-cmini-reddit.json'
+			geometry: 'row-stagger',
+			statsUrl: '/layout-stats-cmini-reddit-rowstag-none.json'
 		});
 		expect(STATS_DATASETS).toContainEqual({
 			analyzer: MANA2_ANALYZER,
 			corpus: REDDIT_CORPUS,
 			isDefault: false,
+			geometry: 'row-stagger',
 			statsUrl: '/layout-stats-mana2-reddit-rowstag-none.json'
 		});
 		expect(
@@ -78,20 +86,23 @@ describe('stats analyzer catalog', () => {
 		expect(getStatsDataset(MANA2_ANALYZER).corpus).toBe(MONKEYRACER_CORPUS);
 		expect(getStatsDataset(CYANOPHAGE_ANALYZER).corpus).toBeNull();
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, MONKEYRACER_CORPUS)).toBe(
-			'/layout-stats-cmini-monkeyracer.json'
+			'/layout-stats-cmini-monkeyracer-ortho-none.json'
 		);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, REDDIT_CORPUS)).toBe(
-			'/layout-stats-cmini-reddit.json'
+			'/layout-stats-cmini-reddit-ortho-none.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, MONKEYRACER_CORPUS)).toBe(
-			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
+			'/layout-stats-mana2-monkeyracer-ortho-none.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, REDDIT_CORPUS)).toBe(
+			'/layout-stats-mana2-reddit-ortho-none.json'
+		);
+		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, REDDIT_CORPUS, 'row-stagger')).toBe(
 			'/layout-stats-mana2-reddit-rowstag-none.json'
 		);
-		expect(dumpSyncedCorpora(CMINI_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
-		expect(dumpSyncedCorpora(MANA2_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
-		expect(dumpSyncedCorpora(CYANOPHAGE_ANALYZER)).toEqual([]);
+		expect(apiSyncedCorpora(CMINI_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
+		expect(apiSyncedCorpora(MANA2_ANALYZER)).toEqual([MONKEYRACER_CORPUS, REDDIT_CORPUS]);
+		expect(apiSyncedCorpora(CYANOPHAGE_ANALYZER)).toEqual([]);
 		expect(getStatsDataset(CYANOPHAGE_ANALYZER, undefined, 'row-stagger')).toMatchObject({
 			geometry: 'row-stagger'
 		});
@@ -110,7 +121,7 @@ describe('stats analyzer catalog', () => {
 		expect(parseStatsAnalyzerMode(null)).toBe(DEFAULT_STATS_ANALYZER);
 	});
 
-	test('parses selectable corpora and marks dump-backed analyzers', () => {
+	test('parses selectable corpora and marks API-backed analyzers', () => {
 		expect(isStatsCorpus(MONKEYRACER_CORPUS)).toBe(true);
 		expect(isStatsCorpus(REDDIT_CORPUS)).toBe(true);
 		expect(isStatsCorpus(CMINI_ANALYZER)).toBe(false);

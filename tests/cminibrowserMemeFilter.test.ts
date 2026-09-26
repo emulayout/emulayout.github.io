@@ -1,55 +1,70 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	MEME_FILTER_FSPEED_CUTOFFS,
+	deriveMemeFilterExclusions,
 	exclusionSetFromIds,
-	indexMemeFilterDump,
 	isExcludedLayout,
-	memeFilterExclusionSet,
 	resolveMemeFilterCorpus
 } from '../bin/cminibrowser-meme-filter.js';
 
-describe('AKL meme filter', () => {
-	const dump = {
-		board: 'rowstag',
-		corpora: {
-			monkeyracer: { cutoff: 250, meme_ids: ['bogos', 'BlankTest', 'osu.json'] },
-			reddit: { cutoff: 250, meme_ids: ['bogos'] }
-		}
-	};
+describe('AKL stats/v1 meme filter', () => {
+	test('excludes incomplete layouts and layouts above the corpus Fspeed cutoff', () => {
+		const layouts = [
+			{ id: 'a', name: 'Incomplete' },
+			{ id: 'b', name: 'TooFast' },
+			{ id: 'c', name: 'Normal' }
+		];
+		const objects = new Map([
+			[
+				'a',
+				{ deleted: false, layout: { complete: false }, cmini: { 'monkeyracer.rowstag.none': {} } }
+			],
+			[
+				'b',
+				{
+					deleted: false,
+					layout: { complete: true },
+					cmini: { 'monkeyracer.rowstag.none': { fspeed: 250.01 } }
+				}
+			],
+			[
+				'c',
+				{
+					deleted: false,
+					layout: { complete: true },
+					cmini: { 'monkeyracer.rowstag.none': { fspeed: 250 } }
+				}
+			]
+		]);
+		const excluded = deriveMemeFilterExclusions(
+			layouts,
+			objects,
+			'monkeyracer',
+			MEME_FILTER_FSPEED_CUTOFFS.monkeyracer
+		);
 
-	test('indexes corpora and meme ids', () => {
-		const indexed = indexMemeFilterDump(dump);
-		expect(indexed.board).toBe('rowstag');
-		expect(indexed.corpora.get('monkeyracer')).toEqual({
-			cutoff: 250,
-			memeIds: ['bogos', 'BlankTest', 'osu.json']
-		});
+		expect(isExcludedLayout('Incomplete', excluded)).toBe(true);
+		expect(isExcludedLayout('toofast', excluded)).toBe(true);
+		expect(isExcludedLayout('Normal', excluded)).toBe(false);
 	});
 
-	test('builds exclusion sets with filename aliases', () => {
-		const excluded = memeFilterExclusionSet(dump, 'monkeyracer');
-		expect(isExcludedLayout('bogos', excluded)).toBe(true);
-		expect(isExcludedLayout('blanktest', excluded)).toBe(true);
-		expect(isExcludedLayout('BlankTest', excluded)).toBe(true);
-		expect(isExcludedLayout('osu', excluded)).toBe(true);
-		expect(isExcludedLayout('qwerty', excluded)).toBe(false);
-		expect(exclusionSetFromIds(['Alpha']).has('alpha.json')).toBe(true);
-	});
-
-	test('rejects unknown corpora', () => {
-		expect(() => memeFilterExclusionSet(dump, 'missing')).toThrow(/no corpus "missing"/);
+	test('builds filename aliases', () => {
+		const excluded = exclusionSetFromIds(['Alpha', 'osu.json']);
+		expect(excluded.has('alpha.json')).toBe(true);
+		expect(excluded.has('osu')).toBe(true);
 	});
 
 	test('resolveMemeFilterCorpus prefers flag then env then default', () => {
-		const previous = process.env.CMINIBROWSER_MEME_FILTER_CORPUS;
+		const previous = process.env.AKL_STATS_MEME_FILTER_CORPUS;
 		try {
-			process.env.CMINIBROWSER_MEME_FILTER_CORPUS = 'reddit';
+			process.env.AKL_STATS_MEME_FILTER_CORPUS = 'reddit';
 			expect(resolveMemeFilterCorpus(['--meme-corpus=akl'])).toBe('akl');
 			expect(resolveMemeFilterCorpus([])).toBe('reddit');
-			delete process.env.CMINIBROWSER_MEME_FILTER_CORPUS;
+			delete process.env.AKL_STATS_MEME_FILTER_CORPUS;
 			expect(resolveMemeFilterCorpus([])).toBe('monkeyracer');
 		} finally {
-			if (previous === undefined) delete process.env.CMINIBROWSER_MEME_FILTER_CORPUS;
-			else process.env.CMINIBROWSER_MEME_FILTER_CORPUS = previous;
+			if (previous === undefined) delete process.env.AKL_STATS_MEME_FILTER_CORPUS;
+			else process.env.AKL_STATS_MEME_FILTER_CORPUS = previous;
 		}
 	});
 });

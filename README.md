@@ -31,16 +31,18 @@ directly in the browser.
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
 | [cmini](https://github.com/Apsu/cmini)                     | Catalog-native statistics from selectable akl.gg corpora        |
 | [Cyanophage](https://cyanophage.github.io/playground.html) | An independent metric set, plus a direct link to the playground |
-| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from akl.gg corpus dumps                 |
+| [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from akl.gg corpus data                  |
 
 Each analyzer retains its own metric definitions and units. cmini and Mana2 stats are imported from
-[akl.gg](https://akl.gg/api/) dumps (Monkeyracer by default). Cyanophage is computed
-locally. Adaptive swaps are not currently included in analyzer results.
+[akl.gg](https://akl.gg/api/) stats/v1 API (Monkeyracer by default). Cyanophage is computed
+locally. akl.gg applies stored Magic/Repeat behavior to its cmini and Mana2 cells; Adaptive swaps
+are not currently included in analyzer results.
 
 ## Try layouts in place
 
 Every layout card can include a typing area, so layouts can be sampled without installing them.
-Choose column-stagger or row-stagger presentation globally; layouts themselves remain geometry-neutral.
+Choose column-stagger or row-stagger presentation globally; layouts themselves remain
+geometry-neutral, while every analyzer uses the corresponding physical-board context.
 Anglemod can be toggled per card, and links open the selected presentation in Cyanophage or
 [a specialized fork of Colemak Camp](https://colemakcamp.github.io) that supports links to typing
 practice with a custom layout already configured.
@@ -97,7 +99,7 @@ bun run ./bin/cyanophage-stats-sync.js    # local Cyanophage compute
 ```
 
 `bun run sync` opens a TUI to pick independent tasks (catalog, cmini stats, Mana2 stats, Cyanophage,
-layout details) and whether to reuse caches (normal), re-download dumps (force), or stay offline.
+layout details) and whether to reuse caches (normal), re-download API objects (force), or stay offline.
 Non-interactive wrapper examples:
 
 ```sh
@@ -107,22 +109,16 @@ bun run sync -- --all --offline
 ```
 
 Catalog sync fetches the live [AKLDB](https://akldb.org/docs) API in its canonical `spark/1` format
-and writes layout metadata under `static/`, excluding layouts that
-akl.gg's [meme filter](https://akl.gg/api/) marks for the Monkeyracer corpus
-(incomplete, or row-staggered Fspeed above the corpus cutoff). Override with
-`--meme-corpus=NAME` or `CMINIBROWSER_MEME_FILTER_CORPUS`. cmini and Mana2 stats are imported from
-[akl.gg](https://akl.gg/api/) dumps (Monkeyracer and Reddit by default). The
+and writes layout metadata under `static/`. It derives the historical Monkeyracer meme filter from
+the supported [akl.gg stats/v1 API](https://akl.gg/api/): incomplete layouts and layouts whose
+row-staggered Fspeed exceeds the owned corpus cutoff are excluded. Override the corpus with
+`--meme-corpus=NAME` or `AKL_STATS_MEME_FILTER_CORPUS`. cmini and Mana2 stats are imported from the
+same revision-matched akl.gg layout objects (Monkeyracer and Reddit by default). The
 top-level sync always processes every configured corpus. To import only one corpus, invoke
 `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set that
 script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage stats
 are computed locally from the catalog cache. All generated `static/*.json` files are gitignored; CI
 checks both upstream sources hourly and regenerates/deploys only when published data changes.
-
-Optional diagnostic (not run in CI):
-
-```sh
-bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to the dump encoder
-```
 
 ### Common commands
 
@@ -144,8 +140,10 @@ bun run verify:cminibrowser-cmini-stats  # compare published cmini artifact to t
 keys remain ordered positions, including free positions and repeated character labels. Emulayout
 also requests AKLDB's derived `mana2/1` view solely to lower contextual Magic and chiral rules into
 the current typing engine; Adaptive swaps and trigger identity come from the stored Spark payload.
-The sync downloads akl.gg's `meme_filter.json` separately and writes the layout catalog, likes, and
-behavior payload under `static/` with meme-tier layouts omitted.
+The sync uses each AKLDB layout id and revision to select its matching akl.gg stats/v1 object. Those
+objects provide the completeness and Fspeed inputs used to omit meme-tier layouts; the historical
+per-corpus cutoffs are owned by the project because akl.gg no longer publishes a composed meme
+filter.
 
 A normal online sync compares AKLDB metadata before and after downloading the full projections and
 authors. A failed, timed-out, malformed, schema-incompatible, drifting, or internally inconsistent
@@ -158,28 +156,30 @@ Likes come from each layout's `likes` array; only the count is published.
 AKLDB's `spark/1` schema intentionally stores layout positions without prescribing a physical
 board. Emulayout follows that model: board type is not catalog metadata or a filter. A persisted
 display preference renders every layout as column stagger (the default) or row stagger. The same
-choice selects the matching locally computed Cyanophage stats and the geometry used for Cyanophage
-and Colemak Camp links. Anglemod remains an explicit per-layout presentation transform; row-stagger
-links use ANSI without it and ISO with it. A rule-free conventional `@` remains Emulayout's
+choice selects matching cmini, Cyanophage, and Mana2 stats and the geometry used for Cyanophage and
+Colemak Camp links. akl.gg's `ortho.none` context represents column stagger and `rowstag.none`
+represents row stagger. Anglemod remains an explicit per-layout presentation transform;
+row-stagger links use ANSI without it and ISO with it. A rule-free conventional `@` remains Emulayout's
 dedicated Repeat behavior; mapped `@` rules override it.
 
 Analyzer artifacts are produced by separate scripts:
 
-- `bin/cmini-stats-sync.js` — akl.gg cmini dumps → `static/layout-stats-cmini-{corpus}.json`
-  (syncs Monkeyracer + Reddit unless `--corpus=` is set)
-- `bin/mana2-stats-sync.js` — akl.gg Mana2 named dumps →
-  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (defaults: all dump corpora ×
-  `rowstag.none`)
+- `bin/cmini-stats-sync.js` — akl.gg stats/v1 cmini cells →
+  `static/layout-stats-cmini-{corpus}-{board}-{space}.json` (syncs Monkeyracer + Reddit across
+  `ortho.none` and `rowstag.none` unless `--corpus=` is set)
+- `bin/mana2-stats-sync.js` — akl.gg stats/v1 Mana2 cells →
+  `static/layout-stats-mana2-{corpus}-{board}-{space}.json` (all configured corpora across
+  `ortho.none` and `rowstag.none`)
 - `bin/cyanophage-stats-sync.js` — local Cyanophage compute → geometry-specific `static/layout-stats-cyanophage-*.json` artifacts
 
-The dump-backed sync scripts accept `--force` (unconditional re-download), `--offline` (reuse
-`.cache/cminibrowser/` and `.cache/akldb/`), and `--corpus=NAME` (single corpus). Online
-akl.gg syncs use conditional requests (ETag / Last-Modified) so unchanged dumps are not
-re-downloaded. If a refresh fails, a validated last-good cached dump is reused so builds and
-deployments can continue with the previously published analyzer data. The top-level `bun run sync`
+The API-backed sync scripts accept `--force` (unconditional re-download), `--offline` (reuse
+`.cache/akl-stats-v1/` and `.cache/akldb/`), and `--corpus=NAME` (single corpus). Online syncs
+conditionally revalidate `current.json`; revision-matched layout objects are reused without another
+request. A `stats_version` change invalidates every cached analyzer object. If a refresh fails, a
+validated revision-matched cached object is reused. The top-level `bun run sync`
 wrapper accepts task selections plus `--force` or
 `--offline`, but deliberately runs all configured corpora so the generated site and per-layout
-detail payloads remain complete. Analyzer dumps must contain usable stats for at least 90% of the
+detail payloads remain complete. API objects must contain usable stats for at least 90% of the
 published (non-meme-filtered) catalog before they can replace existing cache or published artifacts.
 Cache and artifact replacements are atomic, so an invalid, incomplete, or interrupted download
 leaves the last good files in place.

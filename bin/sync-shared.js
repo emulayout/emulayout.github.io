@@ -50,7 +50,7 @@ export async function writeTextFileIfChanged(path, body) {
 }
 
 /**
- * Reject suspiciously incomplete analyzer dumps before they can replace a good
+ * Reject suspiciously incomplete analyzer inputs before they can replace a good
  * cache or published artifact.
  *
  * @param {string} label

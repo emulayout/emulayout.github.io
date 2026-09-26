@@ -207,12 +207,12 @@ async function run() {
 	await writeCminiChangedOutput(catalogChanged);
 
 	console.log('→ Loading AKL meme filter...');
-	const memeFilter = await loadMemeFilterExclusions({ offline, force, argv });
+	const memeFilter = await loadMemeFilterExclusions({ layouts, offline, force, argv });
 	const excludedLayouts = memeFilter.excluded;
 	console.log(
 		`  ✔ Excluding ${memeFilter.size} meme-tier layouts (corpus=${memeFilter.corpus}` +
 			(memeFilter.cutoff == null ? '' : `, cutoff=${memeFilter.cutoff}`) +
-			(memeFilter.updated ? ', dump updated' : '') +
+			(memeFilter.updated ? ', stats updated' : '') +
 			')'
 	);
 

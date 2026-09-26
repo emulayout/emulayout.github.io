@@ -1,16 +1,36 @@
 /**
- * AKL meme filter dump (`/data/meme_filter.json`).
+ * Derive the former akl.gg meme filter from supported stats/v1 fields.
  *
- * A layout is meme-tier for a corpus when it is incomplete or its row-staggered
- * Fspeed exceeds that corpus's cutoff. Emulayout uses the dump as the catalog
- * exclusion list (same role as the former local layout blacklist).
+ * A layout is excluded when it is incomplete or its row-staggered cmini
+ * Fspeed exceeds the corpus cutoff. akl.gg no longer publishes a composed
+ * meme_filter.json object, so Emulayout owns the historical cutoffs.
  */
 
-import { ensureCminibrowserDump } from './cminibrowser-cache.js';
+import { ensureAklStatsLayouts, getAklStatsCell } from './akl-stats-v1.js';
 import { CMINIBROWSER_CMINI_DEFAULT_CORPUS } from './cminibrowser-cmini-stats.js';
+import { assertStatsCatalogCoverage } from './sync-shared.js';
 
-export const CMINIBROWSER_MEME_FILTER_PATH = 'meme_filter.json';
 export const CMINIBROWSER_MEME_FILTER_DEFAULT_CORPUS = CMINIBROWSER_CMINI_DEFAULT_CORPUS;
+
+export const MEME_FILTER_FSPEED_CUTOFFS = {
+	akl: 250,
+	e10k: 250,
+	e200: 250,
+	finnish: 250,
+	french: 250,
+	german: 340,
+	indonesian: 340,
+	monkeyracer: 250,
+	polish: 250,
+	reddit: 250,
+	russian: 700,
+	spanish: 330
+};
+
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+function isRecord(value) {
+	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 
 /**
  * @param {string} layoutName
@@ -21,12 +41,7 @@ export function isExcludedLayout(layoutName, excluded) {
 	return excluded.has(lower) || excluded.has(`${lower}.json`);
 }
 
-/**
- * Expand layout ids into lowercase name / `name.json` pairs for membership checks.
- *
- * @param {Iterable<string>} ids
- * @returns {Set<string>}
- */
+/** @param {Iterable<string>} ids */
 export function exclusionSetFromIds(ids) {
 	/** @type {Set<string>} */
 	const excluded = new Set();
@@ -41,58 +56,29 @@ export function exclusionSetFromIds(ids) {
 }
 
 /**
- * @param {unknown} dump
- * @returns {{ board: string | null, corpora: Map<string, { cutoff: number | null, memeIds: string[] }> }}
- */
-export function indexMemeFilterDump(dump) {
-	/** @type {Map<string, { cutoff: number | null, memeIds: string[] }>} */
-	const corpora = new Map();
-	if (!dump || typeof dump !== 'object' || Array.isArray(dump)) {
-		return { board: null, corpora };
-	}
-
-	const record = /** @type {{ board?: unknown, corpora?: unknown }} */ (dump);
-	const board = typeof record.board === 'string' ? record.board : null;
-	const corporaRaw = record.corpora;
-	if (!corporaRaw || typeof corporaRaw !== 'object' || Array.isArray(corporaRaw)) {
-		return { board, corpora };
-	}
-
-	for (const [corpus, info] of Object.entries(corporaRaw)) {
-		if (!info || typeof info !== 'object' || Array.isArray(info)) continue;
-		const cutoffRaw = /** @type {{ cutoff?: unknown }} */ (info).cutoff;
-		const cutoff = typeof cutoffRaw === 'number' && Number.isFinite(cutoffRaw) ? cutoffRaw : null;
-		const memeIdsRaw = /** @type {{ meme_ids?: unknown }} */ (info).meme_ids;
-		const memeIds = Array.isArray(memeIdsRaw)
-			? memeIdsRaw.filter((id) => typeof id === 'string' || typeof id === 'number').map(String)
-			: [];
-		corpora.set(corpus, { cutoff, memeIds });
-	}
-
-	return { board, corpora };
-}
-
-/**
- * @param {unknown} dump
+ * @param {Array<{ id: string, name: string }>} layouts
+ * @param {ReadonlyMap<string, Record<string, unknown>>} objects
  * @param {string} corpus
- * @returns {Set<string>}
+ * @param {number} cutoff
  */
-export function memeFilterExclusionSet(dump, corpus) {
-	const { corpora } = indexMemeFilterDump(dump);
-	const entry = corpora.get(corpus);
-	if (!entry) {
-		const known = [...corpora.keys()].sort().join(', ') || '(none)';
-		throw new Error(`AKL meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`);
+export function deriveMemeFilterExclusions(layouts, objects, corpus, cutoff) {
+	const names = [];
+	for (const layout of layouts) {
+		const object = objects.get(layout.id);
+		if (!object || object.deleted !== false) continue;
+		const apiLayout = isRecord(object.layout) ? object.layout : null;
+		const candidateCell = getAklStatsCell(object, 'cmini', `${corpus}.rowstag.none`);
+		const cell = isRecord(candidateCell) ? candidateCell : null;
+		const incomplete = apiLayout?.complete === false;
+		const fspeed = cell?.fspeed;
+		if (incomplete || (typeof fspeed === 'number' && Number.isFinite(fspeed) && fspeed > cutoff)) {
+			names.push(layout.name);
+		}
 	}
-	return exclusionSetFromIds(entry.memeIds);
+	return exclusionSetFromIds(names);
 }
 
-/**
- * Resolve which meme-filter corpus drives catalog exclusion.
- *
- * @param {string[]} [argv]
- * @returns {string}
- */
+/** @param {string[]} [argv] */
 export function resolveMemeFilterCorpus(argv = process.argv.slice(2)) {
 	const flag = argv.find((arg) => arg.startsWith('--meme-corpus='));
 	if (flag) {
@@ -100,45 +86,47 @@ export function resolveMemeFilterCorpus(argv = process.argv.slice(2)) {
 		if (!corpus) throw new Error('Empty --meme-corpus= value');
 		return corpus;
 	}
-	const fromEnv = process.env.CMINIBROWSER_MEME_FILTER_CORPUS?.trim();
+	const fromEnv =
+		process.env.AKL_STATS_MEME_FILTER_CORPUS?.trim() ??
+		process.env.CMINIBROWSER_MEME_FILTER_CORPUS?.trim();
 	if (fromEnv) return fromEnv;
 	return CMINIBROWSER_MEME_FILTER_DEFAULT_CORPUS;
 }
 
 /**
- * Download (or reuse) the meme filter dump and return an exclusion set.
- *
  * @param {{
+ *   layouts: Array<{ id: string, name: string, layoutRev: number }>,
  *   offline?: boolean,
  *   force?: boolean,
  *   corpus?: string,
  *   argv?: string[]
- * }} [options]
- * @returns {Promise<{ corpus: string, excluded: Set<string>, cutoff: number | null, size: number, updated: boolean }>}
+ * }} options
  */
-export async function loadMemeFilterExclusions(options = {}) {
+export async function loadMemeFilterExclusions(options) {
 	const {
+		layouts,
 		offline = false,
 		force = false,
 		corpus = resolveMemeFilterCorpus(options.argv ?? process.argv.slice(2))
 	} = options;
-
-	const { json: dump, updated } = await ensureCminibrowserDump(CMINIBROWSER_MEME_FILTER_PATH, {
-		offline,
-		force
-	});
-	const { corpora } = indexMemeFilterDump(dump);
-	const entry = corpora.get(corpus);
-	if (!entry) {
-		const known = [...corpora.keys()].sort().join(', ') || '(none)';
-		throw new Error(`AKL meme filter has no corpus ${JSON.stringify(corpus)}; known: ${known}`);
+	const cutoff = /** @type {Record<string, number>} */ (MEME_FILTER_FSPEED_CUTOFFS)[corpus];
+	if (cutoff === undefined) {
+		throw new Error(
+			`No owned meme-filter cutoff for ${JSON.stringify(corpus)}; known: ${Object.keys(MEME_FILTER_FSPEED_CUTOFFS).join(', ')}`
+		);
 	}
-	const excluded = exclusionSetFromIds(entry.memeIds);
+	const result = await ensureAklStatsLayouts(layouts, { offline, force });
+	assertStatsCatalogCoverage(
+		'akl.gg stats/v1 meme-filter inputs',
+		result.objects.size,
+		layouts.length
+	);
+	const excluded = deriveMemeFilterExclusions(layouts, result.objects, corpus, cutoff);
 	return {
 		corpus,
 		excluded,
-		cutoff: entry.cutoff,
-		size: entry.memeIds.length,
-		updated
+		cutoff,
+		size: layouts.filter((layout) => isExcludedLayout(layout.name, excluded)).length,
+		updated: result.updated
 	};
 }

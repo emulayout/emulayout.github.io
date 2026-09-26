@@ -107,15 +107,16 @@ there are no metric-cell filter or sort targets.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
 - Keyboard geometry is a persisted display preference, not layout metadata. Column stagger and row
-  stagger select separate Cyanophage artifacts, so cards, detail views, Quick Find, Compare, and
-  playground links use the same geometry. Changing geometry invalidates and reloads only
-  Cyanophage stats; cmini and Mana2 are unchanged.
+  stagger select separate artifacts for every analyzer, so cards, detail views, Quick Find,
+  Compare, and playground links use the same geometry. The API-backed analyzers map column stagger
+  to akl.gg's `ortho.none` context and row stagger to `rowstag.none`. Changing geometry invalidates
+  and reloads cmini, Cyanophage, and Mana2 stats.
 - Stats corpus (Monkeyracer / Reddit) is available in the results toolbar beside Analyzer and in the
   layout-detail Stats options. Both controls edit one persisted preference. It applies only to
-  cmini and Mana2 dump artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus
-  reloads those dump-backed stats maps without altering analyzer, filters, or sort. Per-layout
-  detail payloads carry corpus-keyed cmini and Mana2 values so direct detail visits, Quick Find, and
-  Compare remain consistent after navigation or reload.
+  cmini and Mana2 API-derived artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus
+  reloads those API-backed stats maps without altering analyzer, filters, or sort. Per-layout
+  detail payloads carry geometry- and corpus-keyed cmini and Mana2 values so direct detail visits,
+  Quick Find, and Compare remain consistent after navigation or reload.
 
 ## Code map
 

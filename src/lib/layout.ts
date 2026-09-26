@@ -90,7 +90,7 @@ export interface CminiStats {
  */
 export type CompactLayoutStats = number[];
 
-/** Layout stats keyed by layout name. Loaded from /layout-stats-cmini-{corpus}.json. */
+/** Layout stats keyed by layout name. Loaded from the active cmini corpus/geometry artifact. */
 export type LayoutStatsMap = Record<string, CompactLayoutStats>;
 export type LayoutLikesMap = Record<string, number>;
 

@@ -122,7 +122,7 @@ fallbacks, and empty contexts or outputs.
 
 Mana2's historical extended CLI adapter expanded `repeat-last` and single-character `{ "emit": … }`
 fallbacks into bigram rules. Emulayout no longer runs that adapter; published Mana2 stats come from
-akl.gg dumps of the base layout.
+akl.gg's revision-matched stats/v1 objects.
 
 ## Runtime data and compilation
 
@@ -240,7 +240,9 @@ multi-character Magic emits stay preferred-only. Do not add Adaptive literal alt
 
 ## Analyzer boundaries
 
-Cmini stats describe the base layout and do not incorporate contextual behavior.
+Cmini stats are imported from akl.gg stats/v1. For layouts with contextual rules, akl.gg computes
+the published cmini cells with the stored Magic/Repeat behavior applied. Adaptive swaps are not
+included.
 
 Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when AKLDB provides a
 supported Magic profile (and optionally a default Repeat key):
@@ -254,8 +256,9 @@ supported Magic profile (and optionally a default Repeat key):
 - layouts measured this way may still be playground-incompatible for deep-links;
 - Adaptive swaps are not included.
 
-Mana2 stats are imported from akl.gg corpus dumps and describe the base layout only.
-Magic and Repeat profiles are not folded into published Mana2 metrics.
+Mana2 stats are imported from the same akl.gg stats/v1 object. For layouts with contextual rules,
+akl.gg computes the published Mana2 cells with the stored Magic/Repeat behavior applied. Adaptive
+swaps are not included.
 
 ## Architectural invariants
 
@@ -275,4 +278,5 @@ Magic and Repeat profiles are not folded into published Mana2 metrics.
 - Final output is inserted and added to history exactly once.
 - Filtering uses compact metadata rather than mapping details.
 - Analyzer metadata states independently which contextual behavior affected the result.
-  Cyanophage may rewrite corpus words for Magic/Repeat; Mana2 dump stats describe the base layout.
+  Cyanophage may rewrite corpus words for Magic/Repeat; akl.gg applies stored Magic/Repeat behavior
+  to its cmini and Mana2 cells.

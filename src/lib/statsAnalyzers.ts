@@ -71,9 +71,20 @@ export const REDDIT_CORPUS = 'reddit';
 /** Default corpus when the UI / loader does not select one explicitly. */
 export const DEFAULT_STATS_CORPUS = MONKEYRACER_CORPUS;
 
-/** Default Mana2 board / spacegrams context for published dumps. */
-export const DEFAULT_MANA2_BOARD = 'rowstag';
-export const DEFAULT_MANA2_SPACE = 'none';
+/** akl.gg board contexts corresponding to Emulayout's presentation geometries. */
+export const STATS_BOARD_BY_GEOMETRY = {
+	'column-stagger': 'ortho',
+	'row-stagger': 'rowstag'
+} as const satisfies Record<KeyboardGeometry, string>;
+
+export type StatsBoard = (typeof STATS_BOARD_BY_GEOMETRY)[KeyboardGeometry];
+
+/** Spacegram context used by both API-backed analyzers. */
+export const DEFAULT_STATS_SPACE = 'none';
+
+export function statsBoardForGeometry(geometry: KeyboardGeometry): StatsBoard {
+	return STATS_BOARD_BY_GEOMETRY[geometry];
+}
 
 /** Corpora with an explicit frontend identity. */
 export const STAT_CORPORA = [
@@ -90,7 +101,7 @@ export const STAT_CORPORA = [
 export type StatsCorpusDefinition = (typeof STAT_CORPORA)[number];
 export type StatsCorpus = StatsCorpusDefinition['value'];
 
-/** localStorage key for the dump-backed corpus preference. */
+/** localStorage key for the API-backed corpus preference. */
 export const STATS_CORPUS_STORAGE_KEY = 'statsCorpus';
 
 const STATS_CORPUS_VALUES = new Set<string>(STAT_CORPORA.map((corpus) => corpus.value));
@@ -105,14 +116,17 @@ export function parseStatsCorpus(value: string | null | undefined): StatsCorpus 
 	return isStatsCorpus(value) ? value : DEFAULT_STATS_CORPUS;
 }
 
-/** Whether this analyzer publishes selectable dump corpora (not Cyanophage). */
+/** Whether this analyzer publishes selectable API corpora (not Cyanophage). */
 export function analyzerUsesSelectableCorpus(analyzer: StatsAnalyzer): boolean {
 	return analyzer === CMINI_ANALYZER || analyzer === MANA2_ANALYZER;
 }
 
-/** Published compact cmini stats for a corpus. */
-export function cminiStatsUrl(corpus: StatsCorpus = DEFAULT_STATS_CORPUS): string {
-	return `/layout-stats-cmini-${corpus}.json`;
+/** Published compact cmini stats for a corpus and keyboard geometry. */
+export function cminiStatsUrl(
+	corpus: StatsCorpus = DEFAULT_STATS_CORPUS,
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
+): string {
+	return `/layout-stats-cmini-${corpus}-${statsBoardForGeometry(geometry)}-${DEFAULT_STATS_SPACE}.json`;
 }
 
 /** Published Cyanophage stats for a viewer-selected keyboard geometry. */
@@ -120,13 +134,12 @@ export function cyanophageStatsUrl(geometry: KeyboardGeometry = DEFAULT_KEYBOARD
 	return `/layout-stats-cyanophage-${geometry}.json`;
 }
 
-/** Published Mana2 stats for a corpus / board / space context. */
+/** Published Mana2 stats for a corpus and keyboard geometry. */
 export function mana2StatsUrl(
 	corpus: StatsCorpus = DEFAULT_STATS_CORPUS,
-	board: string = DEFAULT_MANA2_BOARD,
-	space: string = DEFAULT_MANA2_SPACE
+	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): string {
-	return `/layout-stats-mana2-${corpus}-${board}-${space}.json`;
+	return `/layout-stats-mana2-${corpus}-${statsBoardForGeometry(geometry)}-${DEFAULT_STATS_SPACE}.json`;
 }
 
 /**
@@ -139,13 +152,29 @@ export const STATS_DATASETS = [
 		analyzer: CMINI_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS)
+		geometry: 'column-stagger',
+		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS, 'column-stagger')
 	},
 	{
 		analyzer: CMINI_ANALYZER,
 		corpus: REDDIT_CORPUS,
 		isDefault: false,
-		statsUrl: cminiStatsUrl(REDDIT_CORPUS)
+		geometry: 'column-stagger',
+		statsUrl: cminiStatsUrl(REDDIT_CORPUS, 'column-stagger')
+	},
+	{
+		analyzer: CMINI_ANALYZER,
+		corpus: MONKEYRACER_CORPUS,
+		isDefault: false,
+		geometry: 'row-stagger',
+		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS, 'row-stagger')
+	},
+	{
+		analyzer: CMINI_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		geometry: 'row-stagger',
+		statsUrl: cminiStatsUrl(REDDIT_CORPUS, 'row-stagger')
 	},
 	{
 		analyzer: CYANOPHAGE_ANALYZER,
@@ -165,26 +194,42 @@ export const STATS_DATASETS = [
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
 		isDefault: true,
-		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
+		geometry: 'column-stagger',
+		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, 'column-stagger')
 	},
 	{
 		analyzer: MANA2_ANALYZER,
 		corpus: REDDIT_CORPUS,
 		isDefault: false,
-		statsUrl: mana2StatsUrl(REDDIT_CORPUS, DEFAULT_MANA2_BOARD, DEFAULT_MANA2_SPACE)
+		geometry: 'column-stagger',
+		statsUrl: mana2StatsUrl(REDDIT_CORPUS, 'column-stagger')
+	},
+	{
+		analyzer: MANA2_ANALYZER,
+		corpus: MONKEYRACER_CORPUS,
+		isDefault: false,
+		geometry: 'row-stagger',
+		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, 'row-stagger')
+	},
+	{
+		analyzer: MANA2_ANALYZER,
+		corpus: REDDIT_CORPUS,
+		isDefault: false,
+		geometry: 'row-stagger',
+		statsUrl: mana2StatsUrl(REDDIT_CORPUS, 'row-stagger')
 	}
 ] as const satisfies readonly {
 	analyzer: StatsAnalyzer;
 	corpus: StatsCorpus | null;
 	isDefault: boolean;
 	statsUrl: string;
-	geometry?: KeyboardGeometry;
+	geometry: KeyboardGeometry;
 }[];
 
 export type StatsDatasetDefinition = (typeof STATS_DATASETS)[number];
 
 /** Dump-backed corpora published for an analyzer (excludes Cyanophage). */
-export function dumpSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
+export function apiSyncedCorpora(analyzer: StatsAnalyzer): StatsCorpus[] {
 	const corpora: StatsCorpus[] = [];
 	for (const entry of STATS_DATASETS) {
 		if (entry.analyzer !== analyzer || entry.corpus === null) continue;
@@ -229,14 +274,12 @@ export function getStatsDataset(
 	corpus?: StatsCorpus,
 	geometry: KeyboardGeometry = DEFAULT_KEYBOARD_GEOMETRY
 ): StatsDatasetDefinition {
+	const resolvedCorpus = corpus ?? DEFAULT_STATS_CORPUS;
 	const dataset = STATS_DATASETS.find(
 		(entry) =>
 			entry.analyzer === analyzer &&
-			(analyzer === CYANOPHAGE_ANALYZER
-				? 'geometry' in entry && entry.geometry === geometry
-				: corpus === undefined
-					? entry.isDefault
-					: entry.corpus === corpus)
+			entry.geometry === geometry &&
+			(analyzer === CYANOPHAGE_ANALYZER ? entry.corpus === null : entry.corpus === resolvedCorpus)
 	);
 	if (!dataset) {
 		throw new Error(
@@ -246,7 +289,7 @@ export function getStatsDataset(
 	return dataset;
 }
 
-/** Resolve the current generated artifact for an analyzer and optional corpus. */
+/** Resolve the current generated artifact for an analyzer, corpus, and geometry. */
 export function getAnalyzerStatsUrl(
 	analyzer: StatsAnalyzer,
 	corpus?: StatsCorpus,
