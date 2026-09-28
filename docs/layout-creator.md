@@ -102,7 +102,7 @@ drafts in the browser.
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
   is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
   Clearing `@` or `*` from a slot does not remove its mapping.
-  Keyboard geometry is Column stagger or Row stagger, matching Settings. Thumb keys use the same left/right
+  Keyboard geometry is Row stagger or Column stagger, matching the index toolbar. Thumb keys use the same left/right
   separation as the presentation keyboard, with an empty spacebar-sized gap
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the

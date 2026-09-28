@@ -15,7 +15,7 @@ describe('loadAnalyzerStats', () => {
 			}
 		});
 
-		expect(requested).toEqual(['/layout-stats-cmini-reddit-ortho-none.json']);
+		expect(requested).toEqual(['/layout-stats-cmini-reddit-rowstag-none.json']);
 		expect(result).toEqual({
 			status: 'loaded',
 			map: { Canary: [1, 2, 3] }

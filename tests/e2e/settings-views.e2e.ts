@@ -11,24 +11,33 @@ function backupView(id: string, name: string) {
 	};
 }
 
-test('persists keyboard geometry as a display preference', async ({ page }) => {
+test('defaults to row stagger, persists the toolbar choice, and omits it from Settings', async ({
+	page
+}) => {
 	await page.goto('/?stats=0&testArea=0&likes=0&newIndicator=0');
+	const keyboard = page
+		.locator('.results-toolbar-keyboard')
+		.getByRole('radiogroup', { name: 'Keyboard geometry' });
+	await expect(keyboard.getByRole('radio')).toHaveText(['Row stagger', 'Column stagger']);
+	await expect(keyboard.getByRole('radio', { name: 'Row stagger' })).toHaveAttribute(
+		'aria-checked',
+		'true'
+	);
+	await keyboard.getByRole('radio', { name: 'Column stagger' }).click();
+
 	await page.getByRole('button', { name: 'Settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Settings' });
-	const rowStagger = dialog.getByRole('radio', { name: 'Row stagger' });
-	await rowStagger.click();
-	await expect(rowStagger).toHaveAttribute('aria-checked', 'true');
+	await expect(dialog.getByRole('radiogroup', { name: 'Keyboard geometry' })).toHaveCount(0);
 	await dialog.getByRole('button', { name: 'Close' }).click();
 
 	await page.reload();
-	await page.getByRole('button', { name: 'Settings' }).click();
-	await expect(dialog.getByRole('radio', { name: 'Row stagger' })).toHaveAttribute(
+	await expect(keyboard.getByRole('radio', { name: 'Column stagger' })).toHaveAttribute(
 		'aria-checked',
 		'true'
 	);
 	await expect
 		.poll(() => page.evaluate(() => localStorage.getItem('keyboardGeometry')))
-		.toBe('row-stagger');
+		.toBe('column-stagger');
 });
 
 test('reloads API-backed analyzer stats for the selected geometry', async ({ page }) => {
@@ -47,14 +56,22 @@ test('reloads API-backed analyzer stats for the selected geometry', async ({ pag
 
 	await page.goto('/?name=QWERTY&stats=1&testArea=0&likes=0&newIndicator=0');
 	const stats = page.locator('[data-layout-name="QWERTY"]').getByLabel('cmini core statistics');
-	await expect(stats.getByText('1.00%', { exact: true })).toBeVisible();
-
-	await page.getByRole('button', { name: 'Settings' }).click();
-	const dialog = page.getByRole('dialog', { name: 'Settings' });
-	await dialog.getByRole('radio', { name: 'Row stagger' }).click();
-	await dialog.getByRole('button', { name: 'Close' }).click();
-
 	await expect(stats.getByText('2.00%', { exact: true })).toBeVisible();
+
+	const keyboardControl = page.locator('.results-toolbar-keyboard');
+	const keyboard = keyboardControl.getByRole('radiogroup', { name: 'Keyboard geometry' });
+	await expect(keyboardControl.getByText('Keyboard', { exact: true })).toBeVisible();
+	const rowStagger = keyboard.getByRole('radio', { name: 'Row stagger' });
+	await expect(rowStagger).toHaveAttribute('aria-checked', 'true');
+	await rowStagger.focus();
+	await rowStagger.press('ArrowRight');
+	await expect(keyboard.getByRole('radio', { name: 'Column stagger' })).toHaveAttribute(
+		'aria-checked',
+		'true'
+	);
+
+	await expect(stats.getByText('1.00%', { exact: true })).toBeVisible();
+	await expect(page.getByRole('radiogroup', { name: 'Stats display' })).toHaveCount(0);
 });
 
 test('selectively exports and replaces custom views from pasted backup text', async ({ page }) => {

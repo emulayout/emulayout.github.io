@@ -15,7 +15,6 @@
 	import type { SimilarityMatchInfo } from '$lib/layoutSimilarity';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import InputMappingsWindow from './InputMappingsWindow.svelte';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		items: LayoutListItem[];
@@ -97,12 +96,7 @@
 	});
 
 	const cardItemSize = $derived(
-		getLayoutCardItemSize(
-			filterStore.showLayoutStats,
-			filterStore.showLayoutTestArea,
-			filterStore.statsAnalyzer,
-			uiPrefs.layoutCardStatsMode
-		)
+		getLayoutCardItemSize(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 	const statHighlights = $derived(
 		getStatCardHighlightState(filterStore.appliedStatLimits, filterStore.sortBy)
@@ -199,7 +193,6 @@
 			? (similarMirrorDiffPositions ?? similarDiffPositions)
 			: similarDiffPositions}
 		{statHighlights}
-		statsMode={uiPrefs.layoutCardStatsMode}
 	/>
 {/snippet}
 

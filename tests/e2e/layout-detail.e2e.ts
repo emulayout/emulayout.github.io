@@ -142,7 +142,12 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 				layout: qwerty,
 				authorName: 'cmini',
 				likeCount: 0,
-				stats: { cmini: { 'column-stagger': { monkeyracer, reddit } } }
+				stats: {
+					cmini: {
+						'column-stagger': { monkeyracer, reddit },
+						'row-stagger': { monkeyracer, reddit }
+					}
+				}
 			}
 		});
 	});
@@ -157,7 +162,7 @@ test('uses the persisted corpus on a direct detail visit', async ({ page }) => {
 	const corpus = page.getByRole('combobox', { name: 'Corpus' });
 	await expect(corpus).toHaveValue('reddit');
 	await expect(summaryStats.getByText('2.00%', { exact: true })).toBeVisible();
-	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit-ortho-none.json');
+	expect(requestedPaths).not.toContain('/layout-stats-cmini-reddit-rowstag-none.json');
 
 	await corpus.selectOption('monkeyracer');
 	await expect(summaryStats.getByText('1.00%', { exact: true })).toBeVisible();
@@ -302,7 +307,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	expect(previewBox).not.toBeNull();
 	expect(practiceInputContainerBox).not.toBeNull();
 	expect(keyboardOptionsBox).not.toBeNull();
-	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'column-stagger');
+	await expect(keyboardPreview).toHaveAttribute('data-geometry', 'row-stagger');
 	expect(tabsBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.x).toBeGreaterThan(cardBox!.x + cardBox!.width);
 	expect(practiceInputContainerBox!.y + practiceInputContainerBox!.height).toBeLessThanOrEqual(

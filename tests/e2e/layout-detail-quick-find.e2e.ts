@@ -5,6 +5,10 @@ import { lela } from './fixtures/catalog-data';
 test.use({ catalogVariant: 'core' });
 
 test('loads Quick Find names and highlighted layout details on demand', async ({ page }) => {
+	const cmini = [
+		1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711, 792, 2041, 948,
+		1331, 275, 0, 0, 0
+	];
 	await page.route(`**/layout-details/${layoutDetailFileId('lela')}.json`, async (route) => {
 		await route.fulfill({
 			json: {
@@ -14,12 +18,8 @@ test('loads Quick Find names and highlighted layout details on demand', async ({
 				likeCount: 0,
 				stats: {
 					cmini: {
-						'column-stagger': {
-							monkeyracer: [
-								1923, 2032, 1766, 106, 127, 578, 38, 641, 593, 597, 5448, 4552, 2044, 1857, 711,
-								792, 2041, 948, 1331, 275, 0, 0, 0
-							]
-						}
+						'column-stagger': { monkeyracer: cmini },
+						'row-stagger': { monkeyracer: cmini }
 					}
 				}
 			}

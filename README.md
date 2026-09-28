@@ -41,7 +41,7 @@ are not currently included in analyzer results.
 ## Try layouts in place
 
 Every layout card can include a typing area, so layouts can be sampled without installing them.
-Choose column-stagger or row-stagger presentation globally; layouts themselves remain
+Choose row-stagger or column-stagger presentation globally; layouts themselves remain
 geometry-neutral, while every analyzer uses the corresponding physical-board context.
 Anglemod can be toggled per card, and links open the selected presentation in Cyanophage or
 [a specialized fork of Colemak Camp](https://colemakcamp.github.io) that supports links to typing
@@ -155,7 +155,7 @@ Likes come from each layout's `likes` array; only the count is published.
 
 AKLDB's `spark/1` schema intentionally stores layout positions without prescribing a physical
 board. Emulayout follows that model: board type is not catalog metadata or a filter. A persisted
-display preference renders every layout as column stagger (the default) or row stagger. The same
+display preference renders every layout as row stagger (the default) or column stagger. The same
 choice selects matching cmini, Cyanophage, and Mana2 stats and the geometry used for Cyanophage and
 Colemak Camp links. akl.gg's `ortho.none` context represents column stagger and `rowstag.none`
 represents row stagger. Anglemod remains an explicit per-layout presentation transform;

@@ -175,7 +175,7 @@ test.describe('typing-practice input layout', () => {
 		await dialog.getByRole('option', { name: 'night', exact: true }).click();
 		await expect(baseLayout).toBeFocused();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'false');
-		await expect(keyboardGeometry).toHaveValue('ortho');
+		await expect(keyboardGeometry).toHaveValue('staggered');
 		await expect(
 			dialog.locator('[data-keyboard-input-row="3"] [data-keyboard-input-slot]')
 		).toHaveCount(2);

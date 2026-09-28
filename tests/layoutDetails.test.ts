@@ -140,17 +140,27 @@ describe('per-layout detail data', () => {
 			layout: compactLayout,
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: { 'column-stagger': { monkeyracer: [1], reddit: [2] } } }
+			stats: {
+				cmini: {
+					'column-stagger': { monkeyracer: [1], reddit: [2] },
+					'row-stagger': { monkeyracer: [3], reddit: [4] }
+				}
+			}
 		};
 
 		expect(decodeLayoutDetail(payload, compactLayout[0])).toMatchObject({
 			authorName: 'derek',
 			likeCount: 7,
-			stats: { cmini: { 'column-stagger': { monkeyracer: [1], reddit: [2] } } },
+			stats: {
+				cmini: {
+					'column-stagger': { monkeyracer: [1], reddit: [2] },
+					'row-stagger': { monkeyracer: [3], reddit: [4] }
+				}
+			},
 			layout: { name: compactLayout[0], user: '42' }
 		});
 		expect(resolveLayoutDetailStats(payload.stats, 'reddit')).toEqual({
-			cmini: [2],
+			cmini: [4],
 			cyanophage: undefined,
 			mana2: undefined
 		});

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import FingerUsageBars from '$lib/components/FingerUsageBars.svelte';
 	import { getLayoutCardStatsHeight } from '$lib/constants';
-	import LayoutStatsBlock from '$lib/components/LayoutStatsBlock.svelte';
 	import {
 		buildFocusedMetricSlots,
 		type LayoutCardMetric,
@@ -28,8 +27,6 @@
 			useValue: boolean
 		) => void;
 		onSortMetric?: (metric: LayoutCardMetric, order: SortOrder) => void;
-		/** Highlights uses visual finger usage; Detailed uses the text stat block. */
-		mode?: 'focused' | 'detailed';
 		/** Allows a wide Highlights row in detail-page summary cards only. */
 		wideFocusedLayout?: boolean;
 		/** Replaces the analyzer-specific unavailable subtitle when stats are missing. */
@@ -46,7 +43,6 @@
 		onFilterMetric,
 		onFilterFingerUsage,
 		onSortMetric,
-		mode = 'focused',
 		wideFocusedLayout = false,
 		unavailableDetail
 	}: Props = $props();
@@ -111,16 +107,6 @@
 	{/if}
 {/snippet}
 
-{#snippet statsItem(model: LayoutStatsBlockModel)}
-	<LayoutStatsBlock
-		lines={model.lines}
-		fallback={fallbackText(model)}
-		unavailable={!model.loading}
-		mana2={model.mana2}
-		shrink
-	/>
-{/snippet}
-
 {#snippet focusedStatsItem(model: LayoutStatsBlockModel)}
 	{@const analyzerLabel = analyzerShortLabel(model.analyzer)}
 	{@const metricSlots = buildFocusedMetricSlots(model, sortMetric)}
@@ -128,7 +114,7 @@
 		class="core-stats core-stats--{model.analyzer}"
 		aria-label="{analyzerLabel} core statistics"
 		class:core-stats--wide-focused={wideFocusedLayout && Boolean(model.fingerUsage)}
-		style={`--core-stats-min-height: ${getLayoutCardStatsHeight(model.analyzer, 'focused')}px`}
+		style={`--core-stats-min-height: ${getLayoutCardStatsHeight()}px`}
 	>
 		{#if model.cardMetrics}
 			<dl class="core-stats-grid">
@@ -220,25 +206,13 @@
 
 <div class="stats-stack">
 	{#if cmini}
-		{#if mode === 'detailed'}
-			{@render statsItem(cmini)}
-		{:else}
-			{@render focusedStatsItem(cmini)}
-		{/if}
+		{@render focusedStatsItem(cmini)}
 	{/if}
 	{#if cyanophage}
-		{#if mode === 'detailed'}
-			{@render statsItem(cyanophage)}
-		{:else}
-			{@render focusedStatsItem(cyanophage)}
-		{/if}
+		{@render focusedStatsItem(cyanophage)}
 	{/if}
 	{#if mana2}
-		{#if mode === 'detailed'}
-			{@render statsItem(mana2)}
-		{:else}
-			{@render focusedStatsItem(mana2)}
-		{/if}
+		{@render focusedStatsItem(mana2)}
 	{/if}
 </div>
 

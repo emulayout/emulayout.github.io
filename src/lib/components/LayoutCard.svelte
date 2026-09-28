@@ -8,7 +8,7 @@
 		LayoutData
 	} from '$lib/layout';
 	import { filterStore, type StatLimitOperator } from '$lib/filterStore.svelte';
-	import { uiPrefs, type LayoutCardStatsMode } from '$lib/uiPrefs.svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { geometryLabel, type KeyboardGeometry } from '$lib/keyboardGeometry';
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
@@ -90,7 +90,6 @@
 		statFilterInteraction?: 'focus' | 'apply-only' | 'disabled';
 		/** Whether this catalog-style card exposes layout selection. */
 		allowSelection?: boolean;
-		statsMode?: LayoutCardStatsMode;
 		/** Controlled analyzer for a standalone card; catalog cards use the global analyzer. */
 		statsAnalyzer?: StatsAnalyzer;
 		onStatsAnalyzerChange?: (analyzer: StatsAnalyzer) => void;
@@ -132,7 +131,6 @@
 		statHighlights,
 		statFilterInteraction = 'focus',
 		allowSelection = true,
-		statsMode = 'focused',
 		statsAnalyzer,
 		onStatsAnalyzerChange,
 		allowStatSorting = true,
@@ -357,12 +355,7 @@
 	}
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(
-			filterStore.showLayoutStats,
-			filterStore.showLayoutTestArea,
-			displayedStatsAnalyzer,
-			statsMode
-		)
+		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 	const renderStats = $derived(variant === 'summary' || filterStore.showLayoutStats);
 	const renderTestArea = $derived(variant === 'catalog' && filterStore.showLayoutTestArea);
@@ -593,7 +586,6 @@
 						: undefined}
 					onSortMetric={variant === 'catalog' && allowStatSorting ? handleSortMetric : undefined}
 					showFingerDistanceBars={uiPrefs.fingerDistanceBars}
-					mode={statsMode}
 					wideFocusedLayout={variant === 'summary'}
 					unavailableDetail={statsUnavailableDetail}
 				/>

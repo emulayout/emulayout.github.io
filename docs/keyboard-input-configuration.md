@@ -49,7 +49,7 @@ changing the keyboard shape; the QWERTY placeholders then remain the effective d
 Reset restores the modal draft to the complete Row stagger QWERTY default. Like other draft edits,
 the reset does not replace the persisted input profile until Save is selected.
 
-Keyboard geometry is currently `Column stagger` or `Row stagger`, matching the global Settings
+Keyboard geometry is currently `Row stagger` or `Column stagger`, matching the index toolbar
 language. Catalog layouts do not prescribe this choice; the viewer's keyboard-geometry preference
 initializes the input configuration. This choice controls editor presentation and is retained
 independently after customization. Column stagger uses aligned split geometry: each row is a

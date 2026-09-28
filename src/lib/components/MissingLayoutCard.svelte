@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getLayoutCardHeight } from '$lib/constants';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		name: string;
@@ -11,12 +10,7 @@
 	const { name, onRemove }: Props = $props();
 
 	const cardHeight = $derived(
-		getLayoutCardHeight(
-			filterStore.showLayoutStats,
-			filterStore.showLayoutTestArea,
-			filterStore.statsAnalyzer,
-			uiPrefs.layoutCardStatsMode
-		)
+		getLayoutCardHeight(filterStore.showLayoutStats, filterStore.showLayoutTestArea)
 	);
 </script>
 

@@ -597,6 +597,7 @@ test('composes next-key guidance with home-key styling', async ({ page }) => {
 });
 
 test('places special mappings without clipping the typing-practice keyboard', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'column-stagger'));
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.route('**/layout-details/*.json', async (route) => {
 		await route.fulfill({

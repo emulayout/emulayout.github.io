@@ -13,11 +13,11 @@ const keys = {
 };
 
 describe('keyboard geometry preference', () => {
-	test('parses only supported values and uses a neutral column-stagger default', () => {
-		expect(DEFAULT_KEYBOARD_GEOMETRY).toBe('column-stagger');
+	test('parses only supported values and uses a row-stagger default', () => {
+		expect(DEFAULT_KEYBOARD_GEOMETRY).toBe('row-stagger');
 		expect(parseKeyboardGeometry('column-stagger')).toBe('column-stagger');
 		expect(parseKeyboardGeometry('row-stagger')).toBe('row-stagger');
-		expect(parseKeyboardGeometry('ortho')).toBe('column-stagger');
+		expect(parseKeyboardGeometry('ortho')).toBe('row-stagger');
 		expect(geometryLabel('row-stagger')).toBe('Row stagger');
 	});
 

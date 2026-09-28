@@ -7,7 +7,7 @@
 	} from '$lib/activeFilterChips';
 	import AnalyzerTabs from '$lib/components/AnalyzerTabs.svelte';
 	import CorpusTabs from '$lib/components/CorpusTabs.svelte';
-	import StatsDisplayTabs from '$lib/components/StatsDisplayTabs.svelte';
+	import KeyboardGeometryTabs from '$lib/components/KeyboardGeometryTabs.svelte';
 	import SourceSelectionModal from '$lib/components/SourceSelectionModal.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { CYANOPHAGE_ANALYZER, CMINI_ANALYZER, MANA2_ANALYZER } from '$lib/statsAnalyzers';
@@ -105,11 +105,11 @@
 		{/if}
 
 		<div class="results-toolbar-view-modes">
-			<div class="results-toolbar-stats-display">
-				<span class="results-toolbar-stats-label">Stats</span>
-				<StatsDisplayTabs
-					value={uiPrefs.layoutCardStatsMode}
-					onChange={(next) => uiPrefs.setLayoutCardStatsMode(next)}
+			<div class="results-toolbar-keyboard">
+				<span class="results-toolbar-keyboard-label">Keyboard</span>
+				<KeyboardGeometryTabs
+					value={uiPrefs.keyboardGeometry}
+					onChange={(next) => uiPrefs.setKeyboardGeometry(next)}
 				/>
 			</div>
 
@@ -445,14 +445,14 @@
 		min-width: 0;
 	}
 
-	.results-toolbar-stats-display {
+	.results-toolbar-keyboard {
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
 		flex-shrink: 0;
 	}
 
-	.results-toolbar-stats-label {
+	.results-toolbar-keyboard-label {
 		color: var(--text-secondary);
 		font-size: 0.75rem;
 		line-height: 1.2;
@@ -499,14 +499,14 @@
 			margin-left: 0;
 		}
 
-		.results-toolbar-stats-display,
+		.results-toolbar-keyboard,
 		.results-toolbar-analyzer,
 		.results-toolbar-corpus {
 			justify-content: space-between;
 			width: 100%;
 		}
 
-		.results-toolbar-stats-display :global(.stats-display-tabs),
+		.results-toolbar-keyboard :global(.keyboard-geometry-tabs),
 		.results-toolbar-analyzer :global(.analyzer-tabs--toolbar) {
 			flex: 1 1 auto;
 			min-width: 0;

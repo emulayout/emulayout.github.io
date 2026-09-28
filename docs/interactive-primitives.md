@@ -58,7 +58,7 @@ panel. Tabs use automatic activation: moving focus with an arrow also selects th
 Use `SegmentedControl` for mutually exclusive settings that change presentation or select a mode
 without a tabpanel. It uses radiogroup/radio semantics. Both primitives leave the selected option as
 the sole Tab stop and fall back to the first option if persisted runtime state is invalid.
-`AnalyzerTabs` and `StatsDisplayTabs` are toolbar-styled consumers.
+`AnalyzerTabs` and `KeyboardGeometryTabs` are toolbar-styled consumers.
 
 The Settings modal uses `Tabs` to switch among its Display settings, Import views, and Export views
 panels. Each tab owns one persistent panel id so arrow-key navigation and ARIA relationships remain
@@ -156,7 +156,7 @@ catalog author.
   them.
 - Visible labels and accessible names use the same sentence-case wording unless assistive
   technology needs extra context.
-- The Display settings keyboard-geometry choice uses `SegmentedControl`; its arrow-key and roving
+- The results-toolbar keyboard-geometry choice uses `SegmentedControl`; its arrow-key and roving
   focus behavior follow the same contract as other segmented controls.
 - Consumer-specific styles remain scoped under a local wrapper when a class is applied inside a
   child primitive.

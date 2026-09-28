@@ -36,19 +36,19 @@ describe('stats analyzer catalog', () => {
 		]);
 		expect(DEFAULT_STATS_ANALYZER).toBe(CMINI_ANALYZER);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER)).toBe(
-			'/layout-stats-cmini-monkeyracer-ortho-none.json'
+			'/layout-stats-cmini-monkeyracer-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, undefined, 'row-stagger')).toBe(
 			'/layout-stats-cmini-monkeyracer-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER)).toBe(
-			'/layout-stats-cyanophage-column-stagger.json'
+			'/layout-stats-cyanophage-row-stagger.json'
 		);
 		expect(getAnalyzerStatsUrl(CYANOPHAGE_ANALYZER, undefined, 'row-stagger')).toBe(
 			'/layout-stats-cyanophage-row-stagger.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER)).toBe(
-			'/layout-stats-mana2-monkeyracer-ortho-none.json'
+			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
 		);
 		expect(analyzerShortLabel(CMINI_ANALYZER)).toBe('cmini');
 	});
@@ -59,8 +59,8 @@ describe('stats analyzer catalog', () => {
 			analyzer: CMINI_ANALYZER,
 			corpus: MONKEYRACER_CORPUS,
 			isDefault: true,
-			geometry: 'column-stagger',
-			statsUrl: '/layout-stats-cmini-monkeyracer-ortho-none.json'
+			geometry: 'row-stagger',
+			statsUrl: '/layout-stats-cmini-monkeyracer-rowstag-none.json'
 		});
 		expect(STATS_DATASETS).toContainEqual({
 			analyzer: CMINI_ANALYZER,
@@ -86,16 +86,16 @@ describe('stats analyzer catalog', () => {
 		expect(getStatsDataset(MANA2_ANALYZER).corpus).toBe(MONKEYRACER_CORPUS);
 		expect(getStatsDataset(CYANOPHAGE_ANALYZER).corpus).toBeNull();
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, MONKEYRACER_CORPUS)).toBe(
-			'/layout-stats-cmini-monkeyracer-ortho-none.json'
+			'/layout-stats-cmini-monkeyracer-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(CMINI_ANALYZER, REDDIT_CORPUS)).toBe(
-			'/layout-stats-cmini-reddit-ortho-none.json'
+			'/layout-stats-cmini-reddit-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, MONKEYRACER_CORPUS)).toBe(
-			'/layout-stats-mana2-monkeyracer-ortho-none.json'
+			'/layout-stats-mana2-monkeyracer-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, REDDIT_CORPUS)).toBe(
-			'/layout-stats-mana2-reddit-ortho-none.json'
+			'/layout-stats-mana2-reddit-rowstag-none.json'
 		);
 		expect(getAnalyzerStatsUrl(MANA2_ANALYZER, REDDIT_CORPUS, 'row-stagger')).toBe(
 			'/layout-stats-mana2-reddit-rowstag-none.json'

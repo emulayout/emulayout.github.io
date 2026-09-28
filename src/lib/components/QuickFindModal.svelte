@@ -16,7 +16,6 @@
 	import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
 	import { afterPaint } from '$lib/focusFilterControl';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
 
 	interface Props {
 		open: boolean;
@@ -307,7 +306,6 @@
 						inputProfile={highlightedDetail.inputProfile}
 						statFilterInteraction={openedFromDetailPage ? 'disabled' : 'apply-only'}
 						allowSelection={!openedFromDetailPage}
-						statsMode={uiPrefs.layoutCardStatsMode}
 						allowStatSorting={false}
 						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>

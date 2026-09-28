@@ -1,27 +1,25 @@
-# Layout-card stats views
+# Layout-card stats
 
-AI implementation context for the Highlights and Detailed statistics shown on layout cards.
+AI implementation context for the Highlights statistics shown on layout cards.
 
 ## Product model
 
-- `Stats` is a two-option display control in the results toolbar:
-  - `Highlights` is the compact default;
-  - `Detailed` restores the legacy preformatted-text statistics.
-- The selection applies to every layout card, including the card preview in Quick Find.
-- The selection is a presentation preference, not a filter or analyzer setting. Changing it must not
-  alter the active analyzer, sort, filters, or result set.
+- Index and Quick Find layout cards always use the compact Highlights presentation. There is no
+  card-stats display mode or persisted mode preference.
+- The first results-toolbar selector is `Keyboard`, with `Row stagger` and `Column stagger`
+  options. Row stagger is the default. The selector edits the persisted geometry preference and
+  applies to rendering, analyzer data, Quick Find, Compare, detail views, and external keyboard
+  links. Settings does not duplicate this page-level choice.
 - Analyzer choice normally comes from the results toolbar. The detail-page summary card instead owns
   a local analyzer selector below finger usage so readers can inspect each analyzer without changing
   the index's analyzer preference.
 - A wide detail-page summary card places the Highlights metric grid and finger-usage chart in one
   row. This is a summary-only container-responsive presentation; index and Quick Find cards retain
   their existing stacked stats layout and responsiveness.
-- The preference is stored as `layoutCardStatsDisplay`; any value other than `detailed` resolves to
-  `focused`/Highlights.
-- Highlights always renders visual finger usage. Detailed always renders finger usage as part of the
-  formatted text block. There is no independent visual/text finger-usage preference.
-- Card and virtual-row heights depend on the selected stats view and active analyzer. Keep the
-  dimension helpers synchronized with rendered content whenever either presentation changes.
+- Highlights always renders visual finger usage. There is no independent visual/text finger-usage
+  preference.
+- Cards and virtual rows use one Highlights height for every analyzer. Keep the dimension helpers
+  synchronized with rendered content whenever this presentation changes.
 
 ## Highlights content
 
@@ -70,10 +68,7 @@ cell, and analyzer tones identify active filter state and cross-analyzer provena
 
 ## Quick Find interactions
 
-Quick Find follows the global `Stats` selection. It must not force Highlights when Detailed is
-selected.
-
-When Quick Find is showing Highlights:
+Quick Find uses the same Highlights presentation as the index:
 
 - sort controls are omitted; the preview card cannot change sorting;
 - click and Shift-click on a metric cell are equivalent;
@@ -87,14 +82,11 @@ When Quick Find is showing Highlights:
 Quick Find's apply-only behavior is required because the sidebar is behind the modal shadowbox.
 Do not reuse the normal click-to-focus behavior inside the modal.
 
-When Quick Find is showing Detailed, it renders the same formatted text as regular Detailed cards;
-there are no metric-cell filter or sort targets.
-
 ## Data and loading
 
-- Highlights metrics and Detailed text are built from the same decoded and derived analyzer stats.
-- Keep both representations available in `LayoutStatsBlockModel`: `cardMetrics` for Highlights and
-  `lines` for Detailed.
+- Highlights metrics are built from the same decoded and derived analyzer stats used by expanded
+  detail and comparison views. `LayoutStatsBlockModel.cardMetrics` supplies the card presentation;
+  its formatted `lines` remain available to non-card consumers.
 - A sort owned by another analyzer may require that analyzer's compact stats even though its tab is
   not currently displayed. The injected final cell should appear once that source data is
   available.
@@ -106,7 +98,7 @@ there are no metric-cell filter or sort targets.
   created layout.
 - Cyanophage may additionally show finger-distance bars when that preference is enabled; Cmini and
   Mana2 show finger usage only.
-- Keyboard geometry is a persisted display preference, not layout metadata. Column stagger and row
+- Keyboard geometry is a persisted display preference, not layout metadata. Row stagger and column
   stagger select separate artifacts for every analyzer, so cards, detail views, Quick Find,
   Compare, and playground links use the same geometry. The API-backed analyzers map column stagger
   to akl.gg's `ortho.none` context and row stagger to `rowstag.none`. Changing geometry invalidates
@@ -130,11 +122,11 @@ there are no metric-cell filter or sort targets.
 - Shared corpus control (native select): `src/lib/components/CorpusTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`,
   `src/lib/components/LayoutExpandedView.svelte`
-- Toolbar toggle: `src/lib/components/StatsDisplayTabs.svelte`,
+- Toolbar keyboard selector: `src/lib/components/KeyboardGeometryTabs.svelte`,
   `src/lib/components/LayoutResultsToolbar.svelte`, `src/lib/components/SegmentedControl.svelte`
 - Analyzer models, base metrics, preferred sort directions, and dynamic sixth-cell placement:
   `src/lib/layoutStatsBlockModel.ts`
-- Highlights grid, filter target, sort target, analyzer tones, and Detailed rendering:
+- Highlights grid, filter target, sort target, and analyzer tones:
   `src/lib/components/LayoutCardStatsPanel.svelte`
 - Filter application, inclusive operator choice, cross-analyzer sort resolution, and card sizing:
   `src/lib/components/LayoutCard.svelte`
@@ -161,5 +153,5 @@ there are no metric-cell filter or sort targets.
 - The index and detail corpus selectors share one persisted corpus preference.
 - Filter values set from cells use inclusive `≤` or `≥` semantics according to the metric's
   preferred direction.
-- Highlights owns visual finger usage; Detailed owns text finger usage.
-- The mode preference changes presentation only and is shared by results and Quick Find.
+- Highlights owns visual finger usage on index and Quick Find cards.
+- The toolbar and Settings keyboard selectors edit one shared persisted geometry preference.

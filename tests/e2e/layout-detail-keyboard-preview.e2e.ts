@@ -155,6 +155,7 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 });
 
 test('preserves ortho columns when a row has a missing key', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'column-stagger'));
 	await page.route('**/layout-details/*.json', async (route) => {
 		await route.fulfill({
 			json: {
@@ -308,6 +309,7 @@ test.describe('full-catalog keyboard previews', () => {
 	});
 
 	test('places a left thumb key under the left index-finger column', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'column-stagger'));
 		await page.goto('/layouts/night');
 
 		const preview = page.getByRole('img', { name: 'night keyboard preview' });
@@ -326,6 +328,7 @@ test.describe('full-catalog keyboard previews', () => {
 	});
 
 	test('places a right thumb key under the right index-finger column', async ({ page }) => {
+		await page.addInitScript(() => localStorage.setItem('keyboardGeometry', 'column-stagger'));
 		await page.goto('/layouts/magic_sturdy');
 
 		const preview = page.getByRole('img', { name: 'magic_sturdy keyboard preview' });

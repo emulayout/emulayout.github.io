@@ -151,7 +151,7 @@ export const STATS_DATASETS = [
 	{
 		analyzer: CMINI_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
-		isDefault: true,
+		isDefault: false,
 		geometry: 'column-stagger',
 		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS, 'column-stagger')
 	},
@@ -165,7 +165,7 @@ export const STATS_DATASETS = [
 	{
 		analyzer: CMINI_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
-		isDefault: false,
+		isDefault: true,
 		geometry: 'row-stagger',
 		statsUrl: cminiStatsUrl(MONKEYRACER_CORPUS, 'row-stagger')
 	},
@@ -179,21 +179,21 @@ export const STATS_DATASETS = [
 	{
 		analyzer: CYANOPHAGE_ANALYZER,
 		corpus: null,
-		isDefault: true,
+		isDefault: false,
 		geometry: 'column-stagger',
 		statsUrl: cyanophageStatsUrl('column-stagger')
 	},
 	{
 		analyzer: CYANOPHAGE_ANALYZER,
 		corpus: null,
-		isDefault: false,
+		isDefault: true,
 		geometry: 'row-stagger',
 		statsUrl: cyanophageStatsUrl('row-stagger')
 	},
 	{
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
-		isDefault: true,
+		isDefault: false,
 		geometry: 'column-stagger',
 		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, 'column-stagger')
 	},
@@ -207,7 +207,7 @@ export const STATS_DATASETS = [
 	{
 		analyzer: MANA2_ANALYZER,
 		corpus: MONKEYRACER_CORPUS,
-		isDefault: false,
+		isDefault: true,
 		geometry: 'row-stagger',
 		statsUrl: mana2StatsUrl(MONKEYRACER_CORPUS, 'row-stagger')
 	},
