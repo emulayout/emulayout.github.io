@@ -101,8 +101,9 @@ Do not reuse the normal click-to-focus behavior inside the modal.
 - Keyboard geometry is a persisted display preference, not layout metadata. Row stagger and column
   stagger select separate artifacts for every analyzer, so cards, detail views, Quick Find,
   Compare, and playground links use the same geometry. The API-backed analyzers map column stagger
-  to akl.gg's `ortho.none` context and row stagger to `rowstag.none`. Changing geometry invalidates
-  and reloads cmini, Cyanophage, and Mana2 stats.
+  to akl.gg's `ortho.none` context and row stagger to `rowstag.none`. The stats store caches each
+  analyzer/corpus/geometry dataset for the session, so the first visit loads its artifact and
+  switching back to an already loaded geometry restores it immediately without another request.
 - Stats corpus (Monkeyracer / Reddit) is available in the results toolbar beside Analyzer and in the
   layout-detail Stats options. Both controls edit one persisted preference. It applies only to
   cmini and Mana2 API-derived artifacts; Cyanophage keeps its bundled word-frequency input. Changing corpus

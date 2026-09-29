@@ -9,7 +9,11 @@ import {
 	type StatsAnalyzerMode,
 	type StatsCorpus
 } from '$lib/statsAnalyzers';
-import { loadAnalyzerStats, type AnalyzerStatsLoadError } from '$lib/layoutStatsLoader';
+import {
+	loadAnalyzerStats,
+	type AnalyzerStatsLoadError,
+	type AnalyzerStatsMap
+} from '$lib/layoutStatsLoader';
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
 class LayoutStatsStore {
@@ -21,6 +25,7 @@ class LayoutStatsStore {
 	activeGeometry: KeyboardGeometry = $state(DEFAULT_KEYBOARD_GEOMETRY);
 
 	#abortControllers = new Map<StatsAnalyzer, AbortController>();
+	#mapCache = new Map<string, AnalyzerStatsMap>();
 
 	isLoaded(analyzer: StatsAnalyzer): boolean {
 		return this.maps[analyzer] !== undefined;
@@ -51,43 +56,26 @@ class LayoutStatsStore {
 		return this.maps[CMINI_ANALYZER] ?? {};
 	}
 
-	/**
-	 * Switch API-backed corpus. Clears cmini / Mana2 so the next ensureLoaded
-	 * fetches the matching artifacts. Cyanophage is left alone.
-	 */
+	/** Switch API-backed corpus, restoring a previously loaded dataset when available. */
 	applyCorpus(corpus: StatsCorpus): void {
 		if (this.activeCorpus === corpus) return;
 		this.activeCorpus = corpus;
-		for (const { value: analyzer } of STAT_ANALYZERS) {
-			if (!analyzerUsesSelectableCorpus(analyzer)) continue;
-			this.#abortControllers.get(analyzer)?.abort();
-			this.#abortControllers.delete(analyzer);
-			const maps = { ...this.maps };
-			delete maps[analyzer];
-			this.maps = maps;
-			this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
-			this.#clearLoadError(analyzer);
-		}
+		this.#activateDatasets(
+			STAT_ANALYZERS.map(({ value }) => value).filter(analyzerUsesSelectableCorpus)
+		);
 	}
 
-	/** Switch the keyboard geometry and invalidate every geometry-sensitive analyzer map. */
+	/** Switch keyboard geometry, restoring previously loaded analyzer maps when available. */
 	applyGeometry(geometry: KeyboardGeometry): void {
 		if (this.activeGeometry === geometry) return;
 		this.activeGeometry = geometry;
-		for (const { value: analyzer } of STAT_ANALYZERS) {
-			this.#abortControllers.get(analyzer)?.abort();
-			this.#abortControllers.delete(analyzer);
-			const maps = { ...this.maps };
-			delete maps[analyzer];
-			this.maps = maps;
-			this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
-			this.#clearLoadError(analyzer);
-		}
+		this.#activateDatasets(STAT_ANALYZERS.map(({ value }) => value));
 	}
 
 	hydrate(analyzer: StatsAnalyzer, map: NonNullable<StatsMaps[StatsAnalyzer]>): void {
 		this.#abortControllers.get(analyzer)?.abort();
 		this.#abortControllers.delete(analyzer);
+		this.#mapCache.set(this.#cacheKey(analyzer), map);
 		this.maps = { ...this.maps, [analyzer]: map };
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
 		this.#clearLoadError(analyzer);
@@ -98,6 +86,7 @@ class LayoutStatsStore {
 		this.#abortControllers.delete(analyzer);
 		const maps = { ...this.maps };
 		delete maps[analyzer];
+		this.#mapCache.delete(this.#cacheKey(analyzer));
 		this.maps = maps;
 		this.loadingAnalyzers = { ...this.loadingAnalyzers, [analyzer]: false };
 		this.loadErrors = { ...this.loadErrors, [analyzer]: error };
@@ -111,6 +100,7 @@ class LayoutStatsStore {
 			controller.abort();
 		}
 		this.#abortControllers.clear();
+		this.#mapCache.clear();
 		this.maps = {};
 		this.loadingAnalyzers = {};
 		this.loadErrors = {};
@@ -137,6 +127,7 @@ class LayoutStatsStore {
 			if (this.activeCorpus !== corpus && analyzerUsesSelectableCorpus(analyzer)) return;
 			if (this.activeGeometry !== geometry) return;
 			if (result.status === 'loaded') {
+				this.#mapCache.set(this.#cacheKey(analyzer, corpus, geometry), result.map);
 				this.maps = { ...this.maps, [analyzer]: result.map };
 				this.#clearLoadError(analyzer);
 			} else if (result.status === 'error') {
@@ -164,6 +155,35 @@ class LayoutStatsStore {
 		if (!this.loadErrors[analyzer]) return;
 		const loadErrors = { ...this.loadErrors };
 		delete loadErrors[analyzer];
+		this.loadErrors = loadErrors;
+	}
+
+	#cacheKey(
+		analyzer: StatsAnalyzer,
+		corpus: StatsCorpus = this.activeCorpus,
+		geometry: KeyboardGeometry = this.activeGeometry
+	): string {
+		return `${analyzer}:${analyzerUsesSelectableCorpus(analyzer) ? corpus : '-'}:${geometry}`;
+	}
+
+	#activateDatasets(analyzers: readonly StatsAnalyzer[]): void {
+		const maps = { ...this.maps };
+		const loadingAnalyzers = { ...this.loadingAnalyzers };
+		const loadErrors = { ...this.loadErrors };
+
+		for (const analyzer of analyzers) {
+			this.#abortControllers.get(analyzer)?.abort();
+			this.#abortControllers.delete(analyzer);
+
+			const cached = this.#mapCache.get(this.#cacheKey(analyzer));
+			if (cached) maps[analyzer] = cached;
+			else delete maps[analyzer];
+			loadingAnalyzers[analyzer] = false;
+			delete loadErrors[analyzer];
+		}
+
+		this.maps = maps;
+		this.loadingAnalyzers = loadingAnalyzers;
 		this.loadErrors = loadErrors;
 	}
 

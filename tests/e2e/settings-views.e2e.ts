@@ -40,17 +40,23 @@ test('defaults to row stagger, persists the toolbar choice, and omits it from Se
 		.toBe('column-stagger');
 });
 
-test('reloads API-backed analyzer stats for the selected geometry', async ({ page }) => {
+test('loads geometry-specific analyzer stats once and restores them from cache', async ({
+	page
+}) => {
 	const ortho = Array<number>(COMPACT_STAT_FIELD_COUNT).fill(0);
 	ortho[0] = 3000;
 	ortho[9] = 100;
 	const rowstag = [...ortho];
 	rowstag[9] = 200;
+	let orthoRequests = 0;
+	let rowstagRequests = 0;
 
 	await page.route('**/layout-stats-cmini-monkeyracer-ortho-none.json', async (route) => {
+		orthoRequests += 1;
 		await route.fulfill({ json: { QWERTY: ortho } });
 	});
 	await page.route('**/layout-stats-cmini-monkeyracer-rowstag-none.json', async (route) => {
+		rowstagRequests += 1;
 		await route.fulfill({ json: { QWERTY: rowstag } });
 	});
 
@@ -71,6 +77,11 @@ test('reloads API-backed analyzer stats for the selected geometry', async ({ pag
 	);
 
 	await expect(stats.getByText('1.00%', { exact: true })).toBeVisible();
+	await keyboard.getByRole('radio', { name: 'Row stagger' }).click();
+	await expect(stats.getByText('2.00%', { exact: true })).toBeVisible();
+	await expect(page.getByText('Loading analyzer stats…')).toHaveCount(0);
+	expect(orthoRequests).toBe(1);
+	expect(rowstagRequests).toBe(1);
 	await expect(page.getByRole('radiogroup', { name: 'Stats display' })).toHaveCount(0);
 });
 
