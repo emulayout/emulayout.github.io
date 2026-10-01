@@ -7,7 +7,11 @@
  * viewer geometry so the frontend can switch without conflating presentation with layout identity.
  */
 
-import { access, mkdir } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
+import {
+	cyanophageAnalyzerFingerprint,
+	openCyanophageStatsCache
+} from './cyanophage-stats-cache.js';
 import {
 	buildCyanophageStats,
 	CYANOPHAGE_ANALYZER,
@@ -22,27 +26,7 @@ import { supplementalFromAkldbLayout } from './akldb-spark.js';
 const GEOMETRIES = ['column-stagger', 'row-stagger'];
 const cyanophageStatsFile = (geometry) => `static/layout-stats-cyanophage-${geometry}.json`;
 
-async function pathExists(path) {
-	return access(path)
-		.then(() => true)
-		.catch(() => false);
-}
-
 async function run() {
-	const skipIfCatalogUnchanged =
-		process.env.CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED === '1' &&
-		process.env.CATALOG_REBUILT === 'false';
-	if (
-		skipIfCatalogUnchanged &&
-		(
-			await Promise.all(GEOMETRIES.map((geometry) => pathExists(cyanophageStatsFile(geometry))))
-		).every(Boolean)
-	) {
-		console.log('✔ Catalog unchanged; keeping existing Cyanophage geometry stats');
-		console.log('Done');
-		return;
-	}
-
 	console.log('→ Loading AKLDB layouts cache...');
 	const { layouts } = await readCachedAkldbLayouts();
 
@@ -61,15 +45,16 @@ async function run() {
 	const filtered = layouts.filter((layout) =>
 		isExcludedLayout(layout.name, excludedLayouts)
 	).length;
+	const eligible = layouts.filter((layout) => !isExcludedLayout(layout.name, excludedLayouts));
+	const cache = await openCyanophageStatsCache({
+		fingerprint: await cyanophageAnalyzerFingerprint(),
+		force: force || process.argv.includes('--recompute')
+	});
 
 	/**
 	 * @param {import('./akldb-cache.js').AkldbLayout} layout
 	 */
 	function processLayout(layout, geometry) {
-		if (isExcludedLayout(layout.name, excludedLayouts)) {
-			return null;
-		}
-
 		const rawLayout = { name: layout.name, user: layout.owner, geometry, keys: {} };
 		for (const key of layout.keys) {
 			if (key.char) {
@@ -77,11 +62,10 @@ async function run() {
 			}
 		}
 		const variants = supplementalFromAkldbLayout(layout).supplemental?.variants ?? [];
-		const cyanStats = buildCyanophageStats(rawLayout, cyanophageData, {
-			magicMappings: defaultMagicMappings(variants)
-		});
-		if (!cyanStats) return { name: rawLayout.name, stats: null };
-		return { name: rawLayout.name, stats: cyanStats };
+		const magicMappings = defaultMagicMappings(variants);
+		return cache.getOrCompute({ geometry, keys: rawLayout.keys, magicMappings }, () =>
+			buildCyanophageStats(rawLayout, cyanophageData, { magicMappings })
+		);
 	}
 
 	for (const geometry of GEOMETRIES) {
@@ -89,13 +73,19 @@ async function run() {
 		const cyanophageStats = {};
 		let loaded = 0;
 		let skipped = 0;
-		console.log(`→ Computing Cyanophage ${geometry} stats for ${layouts.length} layouts...`);
-		for (const layout of layouts) {
+		let cached = 0;
+		let computed = 0;
+		let checkpoint = 0;
+		console.log(
+			`→ Resolving Cyanophage ${geometry} stats for ${eligible.length} eligible layouts (cache enabled)...`
+		);
+		for (const layout of eligible) {
 			try {
 				const result = processLayout(layout, geometry);
-				if (!result) continue;
+				if (result.cached) cached++;
+				else computed++;
 				if (result.stats) {
-					cyanophageStats[result.name] = result.stats;
+					cyanophageStats[layout.name] = result.stats;
 					loaded++;
 				} else {
 					skipped++;
@@ -103,7 +93,13 @@ async function run() {
 			} catch (err) {
 				console.error(`  ⚠ Error processing ${layout.name}:`, err.message);
 			}
+			// Preserve completed work if a long cold run is interrupted.
+			if (computed - checkpoint >= 100) {
+				await cache.save();
+				checkpoint = computed;
+			}
 		}
+		await cache.save();
 
 		await mkdir('static', { recursive: true });
 		const sorted = Object.fromEntries(
@@ -113,7 +109,9 @@ async function run() {
 		);
 		const outputFile = cyanophageStatsFile(geometry);
 		await writeTextFileIfChanged(outputFile, JSON.stringify(sorted) + '\n');
-		console.log(`  ✔ ${loaded} layouts (${skipped} skipped) → ${outputFile}`);
+		console.log(
+			`  ✔ ${cached} cached, ${computed} computed; ${loaded} layouts (${skipped} skipped) → ${outputFile}`
+		);
 	}
 	console.log(`  ✔ ${filtered} meme-filtered layouts`);
 	console.log('Done');

@@ -117,7 +117,16 @@ same revision-matched akl.gg layout objects (Monkeyracer and Reddit by default).
 top-level sync always processes every configured corpus. To import only one corpus, invoke
 `bin/cmini-stats-sync.js` or `bin/mana2-stats-sync.js` directly with `--corpus=NAME`, or set that
 script's `CMINIBROWSER_CMINI_CORPUS` / `MANA2_STATS_CORPUS` environment override. Cyanophage stats
-are computed locally from the catalog cache. All generated `static/*.json` files are gitignored; CI
+are computed locally from the catalog cache. Results persist in `.cache/cyanophage/stats-v1.json`
+and are reused per key/finger map, Magic mappings, and geometry. Analyzer code or corpus-data
+changes invalidate the cache; names, owners, likes, and unrelated catalog changes do not.
+Unsupported results are cached too. Progress reports cached versus computed layouts after filtering.
+The first run populates the cache (existing published stats cannot safely seed it); completed work
+is checkpointed every 100 computations. Missing or malformed entries are recomputed.
+`--force` recomputes results as well as refreshing source inputs. To recompute without network
+access, use `bun run ./bin/cyanophage-stats-sync.js --offline --recompute`.
+CI restores and saves this cache and always checks the analysis fingerprint instead of skipping
+solely because the catalog is unchanged. All generated `static/*.json` files are gitignored; CI
 checks both upstream sources hourly and regenerates/deploys only when published data changes.
 
 ### Common commands

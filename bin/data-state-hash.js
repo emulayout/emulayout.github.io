@@ -65,6 +65,7 @@ export async function hashDataState(scope) {
 					...artifacts,
 					resolve(ROOT, '.cache', 'akldb'),
 					resolve(ROOT, '.cache', 'akl-stats-v1'),
+					resolve(ROOT, '.cache', 'cyanophage'),
 					resolve(ROOT, '.cache', 'akldb-synced-hash')
 				]
 			: artifacts;

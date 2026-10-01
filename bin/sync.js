@@ -67,7 +67,7 @@ const MODE_OPTIONS = /** @type {const} */ ([
 	{
 		value: 'force',
 		label: 'Force',
-		hint: 're-download akl.gg stats/v1 objects'
+		hint: 're-download akl.gg stats/v1 objects; recompute Cyanophage'
 	},
 	{
 		value: 'offline',
@@ -207,6 +207,14 @@ async function runScript(script, flags) {
 	else await $`bun ${script}`;
 }
 
+/** @param {SyncMode} sourceMode @param {SyncMode} requestedMode */
+export function cyanophageSyncFlags(sourceMode, requestedMode) {
+	return [
+		...flagsForTarget(sourceMode, 'cyanophage'),
+		...(requestedMode === 'force' ? ['--recompute'] : [])
+	];
+}
+
 /**
  * @param {SyncTarget[]} targets
  * @param {SyncMode} mode
@@ -227,7 +235,7 @@ async function runPlan(targets, mode) {
 		await runScript('./bin/mana2-stats-sync.js', flagsForTarget(analyzerMode, 'mana2-stats'));
 	}
 	if (targets.includes('cyanophage')) {
-		await runScript('./bin/cyanophage-stats-sync.js', flagsForTarget(analyzerMode, 'cyanophage'));
+		await runScript('./bin/cyanophage-stats-sync.js', cyanophageSyncFlags(analyzerMode, mode));
 	}
 	if (targets.includes('details')) {
 		await runScript('./bin/layout-details.js', []);

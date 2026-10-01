@@ -53,6 +53,7 @@ jobs:
           path: |
             .cache/akldb
             .cache/akl-stats-v1
+            .cache/cyanophage
             .cache/akldb-synced-hash
             static/all-layouts.json
             static/layout-supplemental.json
@@ -117,10 +118,6 @@ jobs:
         run: bun run ./bin/cyanophage-stats-sync.js
         env:
           CI: true
-          # Scheduled runs skip Cyanophage when catalog-sync itself skipped. Rebuild whenever
-          # AKLDB or the akl.gg stats/v1 inputs changed.
-          CYANOPHAGE_SKIP_IF_CATALOG_UNCHANGED: ${{ github.event_name == 'schedule' && '1' || '' }}
-          CATALOG_REBUILT: ${{ steps.catalog.outputs.catalog_rebuilt }}
 
       - name: Sync Mana2 stats
         # The build still verifies that a restored/generated artifact exists.
@@ -180,6 +177,7 @@ jobs:
           path: |
             .cache/akldb
             .cache/akl-stats-v1
+            .cache/cyanophage
             .cache/akldb-synced-hash
             static/all-layouts.json
             static/layout-supplemental.json
