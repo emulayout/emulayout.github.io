@@ -126,6 +126,13 @@ akl.gg's revision-matched stats/v1 objects.
 
 ## Runtime data and compilation
 
+The direct `/try` Spark importer adapts raw and chiral rules to this runtime using an explicit
+fixed-text fallback equal to the base trigger. Unmatched raw/chiral presses and chiral exceptions
+therefore retain ordinary key output. Magic declarations retain their own explicit defaults.
+Word-start and whitespace-context rules are currently omitted and reported by that importer;
+the shared runtime does not synthesize Spark's initial space context. See `layout-creator.md`
+for the direct-import boundaries.
+
 Sync publishes AKLDB Magic, chiral, and Adaptive mappings in:
 
 ```text

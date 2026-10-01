@@ -132,7 +132,7 @@ function decodeJsonParam(value: string): unknown {
 }
 
 function keySignature(key: KeyboardInputKey): string {
-	return `${key.slot}\0${key.value}\0${key.inert ? '1' : '0'}\0${key.thumbHand ?? ''}`;
+	return `${key.slot}\0${key.value}\0${key.inert ? '1' : '0'}\0${key.thumbHand ?? ''}\0${key.primary ? '1' : '0'}`;
 }
 
 function keysEqual(left: readonly KeyboardInputKey[], right: readonly KeyboardInputKey[]): boolean {
@@ -223,7 +223,7 @@ function shouldEncodeKey(key: KeyboardInputKey): boolean {
 }
 
 function encodeKeyEntry(key: KeyboardInputKey): string {
-	const flags = `${key.inert ? 'i' : ''}${key.thumbHand ?? ''}`;
+	const flags = `${key.inert ? 'i' : ''}${key.thumbHand ?? ''}${key.primary ? 'p' : ''}`;
 	return `${key.slot}:${flags}:${encodeURIComponent(key.value)}`;
 }
 
@@ -246,6 +246,7 @@ function parseKeyEntry(entry: string): KeyboardInputKey | null {
 	return {
 		slot,
 		value,
+		...(flags.includes('p') ? { primary: true } : {}),
 		...(inert ? { inert: true } : {}),
 		...(thumbHand ? { thumbHand } : {})
 	};

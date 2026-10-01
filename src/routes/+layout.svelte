@@ -33,11 +33,9 @@
 	let compareSession = $state(0);
 
 	const layouts = $derived(layoutsCatalog.layouts);
-	const usesDocumentScroll = $derived(
-		page.route.id === '/layouts/[name]' || page.route.id === '/create'
-	);
+	const onCreatePage = $derived(page.route.id === '/create' || page.route.id === '/try');
+	const usesDocumentScroll = $derived(page.route.id === '/layouts/[name]' || onCreatePage);
 	const onDiscoverPage = $derived(page.route.id === '/' || page.route.id === '/layouts/[name]');
-	const onCreatePage = $derived(page.route.id === '/create');
 	const authorsData = $derived(layoutsCatalog.authorsData);
 	const statsMaps = $derived(layoutStatsStore.maps);
 	const authorById = $derived(

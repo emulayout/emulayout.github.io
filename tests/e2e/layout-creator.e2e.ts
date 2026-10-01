@@ -792,7 +792,7 @@ test('confirms before switching away from unsaved creator changes', async ({ pag
 	await savedLayoutTab(creations, 'Beta').click();
 	const discardDialog = page.getByRole('dialog', { name: 'Discard changes?' });
 	await expect(discardDialog).toContainText(
-		'Discard unsaved changes to Alpha draft and open Beta?'
+		'Discard unsaved changes to Alpha draft? This cannot be undone.'
 	);
 	await discardDialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(page.getByRole('tabpanel', { name: 'Alpha draft' })).toBeVisible();
@@ -808,7 +808,7 @@ test('confirms before switching away from unsaved creator changes', async ({ pag
 	await restoredBeta.getByRole('textbox', { name: 'Layout name' }).fill('Beta draft');
 	await page.getByRole('button', { name: '+ New layout' }).click();
 	await expect(discardDialog).toContainText(
-		'Discard unsaved changes to Beta draft and start a new layout?'
+		'Discard unsaved changes to Beta draft? This cannot be undone.'
 	);
 	await discardDialog.getByRole('button', { name: 'Discard changes' }).click();
 	await expect(page.getByRole('tabpanel', { name: 'New layout' })).toBeVisible();

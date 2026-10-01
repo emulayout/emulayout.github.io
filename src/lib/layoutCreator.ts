@@ -182,5 +182,23 @@ export function createLayoutFromKeyConfig(
 		cols,
 		thumbHands || undefined
 	];
-	return decodeLayout(compact);
+	const layout = decodeLayout(compact);
+	// The compact legacy decoder uses the last occurrence for character lookups.
+	// Imported primary slots are explicit so visual sorting never changes their identity.
+	const primaryCharacters = new Set<string>();
+	for (const key of config.keys) {
+		if (!key.primary) continue;
+		const value = normalizeKeyboardInputValue(key.value);
+		const position = parseKeyboardInputSlot(key.slot);
+		if (!value || !position || primaryCharacters.has(value)) continue;
+		primaryCharacters.add(value);
+		layout.keys[value] = {
+			row: position.row,
+			col: position.column,
+			...(position.row >= THUMB_ROW
+				? { thumbHand: key.thumbHand ?? (position.column < 5 ? 'l' : 'r') }
+				: {})
+		};
+	}
+	return layout;
 }

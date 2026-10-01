@@ -180,6 +180,28 @@ drafts in the browser.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
+- `/try#akl=<payload>` is the stable akl.gg handoff route. The payload is compact wrapper JSON
+  encoded as UTF-8 and then unpadded RFC 4648 base64url. The route consumes a version-1 `spark/1`
+  wrapper entirely in the browser, immediately removes the fragment, and opens the imported layout
+  as an unsaved Preview. Percent-encoded JSON and other transport encodings are not accepted. The
+  wrapper supplies name, optional author, board type, and optional source URL. Spark rows 0–4
+  and columns 0–12 are accepted; out-of-bounds keys are omitted and reported before rendering.
+  Encoded payloads over 64 KiB are rejected. Free keys, duplicate characters, thumb hands, Magic keys (including
+  multi-character contexts, fallbacks, and exceptions), chiral keys, representable raw rules, and
+  Adaptive swaps are imported. The number row and custom non-thumb finger assignments are not
+  represented by the creator; a status notice names omitted data. Raw rules that rewrite or delete
+  earlier text are also omitted. Word-start and other whitespace-context rules are omitted with
+  an explicit notice: the current runtime does not model Spark's initial word boundary.
+  Imported raw and chiral triggers retain their base output outside matching contexts, including
+  chiral exceptions. Explicit Magic defaults keep their declared behavior.
+  The first occurrence of a duplicate character is marked `primary` on the key configuration;
+  the creator URL's key flags encode this as `p`, preserving the primary slot through sorting,
+  reload, sharing, and saved-layout storage. Changing that key's value clears the marker.
+  `/try` uses the same document scrolling and current Create navigation state as `/create`.
+  Invalid base64url or UTF-8, invalid JSON, an unknown wrapper
+  version or format, or a payload with no usable keys opens the normal creator and reports
+  `Couldn't read this akl.gg link.` Optional unknown wrapper fields are ignored. After import, the
+  creator's ordinary URL synchronization keeps the draft reloadable without re-reading the hash.
 - Saved layouts persist only layout and lesson content in a versioned local-storage document, each
   with its own id; Preview/Edit mode and the selected detail tab remain URL view state. Share,
   **Edit** / **Lock**, Duplicate, and save stack under the summary card while the page document-scrolls.
@@ -221,6 +243,8 @@ drafts in the browser.
 
 - Default canvas, tab values, duplicate names, and key-editor conversion: `src/lib/layoutCreator.ts`
 - Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
+- akl.gg `spark/1` handoff parsing and adaptation: `src/lib/aklTryImport.ts`,
+  `src/routes/try/+page.svelte`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
   (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
 - Saved-layout backup parsing and merge rules: `src/lib/savedLayoutsBackup.ts`

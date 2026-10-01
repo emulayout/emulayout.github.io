@@ -111,22 +111,34 @@
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 	import type { TabOption } from '$lib/tabs';
 
-	type PendingCreatorNavigation =
-		| { kind: 'saved'; savedId: string; destinationName: string }
-		| { kind: 'new' };
+	type PendingCreatorNavigation = { kind: 'saved'; savedId: string } | { kind: 'new' };
 
 	const NEW_TAB_ID = 'layout-creator-tab-new';
 	const PANEL_ID = 'layout-creator-panel';
 	const MAGIC_MAPPINGS_PANEL_ID = 'layout-creator-magic-mappings';
 	const ADAPTIVE_MAPPINGS_PANEL_ID = 'layout-creator-adaptive-mappings';
-	const CREATOR_PATH = resolve('/create');
+	let {
+		path = '/create',
+		initialSnapshot = null,
+		importNotice = null,
+		importSource = null
+	}: {
+		path?: '/create' | '/try';
+		initialSnapshot?: CreatorUrlSnapshot | null;
+		importNotice?: string | null;
+		importSource?: string | null;
+	} = $props();
+	const creatorPath = resolve(untrack(() => path));
+	const importedSnapshot = untrack(() => initialSnapshot);
 	const CREATOR_URL_DEBOUNCE_MS = 300;
 	const initialLayouts = loadSavedLayouts();
 	const initialSharedLayout = readCreatorShareFromSearch(page.url.searchParams);
-	const initialSession = resolveCreatorSession(
-		initialSharedLayout ? new URLSearchParams() : page.url.searchParams,
-		initialLayouts
-	);
+	const initialSession = importedSnapshot
+		? { savedId: null, snapshot: importedSnapshot }
+		: resolveCreatorSession(
+				initialSharedLayout ? new URLSearchParams() : page.url.searchParams,
+				initialLayouts
+			);
 
 	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
 	let activeSavedId = $state<string | null>(initialSession.savedId);
@@ -319,11 +331,6 @@
 			? isActiveSavedDirty
 			: !creatorUrlContentEqual(currentCreatorSnapshot(), createDefaultCreatorUrlSnapshot())
 	);
-	const discardDestination = $derived(
-		pendingCreatorNavigation?.kind === 'saved'
-			? `open ${pendingCreatorNavigation.destinationName}`
-			: 'start a new layout'
-	);
 	const deleteDiscardsUnsavedChanges = $derived(
 		deleteSavedLayoutId !== null && deleteSavedLayoutId === activeSavedId && isActiveSavedDirty
 	);
@@ -463,7 +470,7 @@
 		savedSnapshot: CreatorContentSnapshot | null
 	) {
 		if (typeof window === 'undefined') return;
-		if (page.url.pathname !== CREATOR_PATH) return;
+		if (page.url.pathname !== creatorPath) return;
 		const baseSearch = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
 		let search = baseSearch;
 		if (hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)) {
@@ -473,15 +480,16 @@
 			search = query ? `?${query}` : '';
 		}
 		lastWrittenSearch = search;
+		const nextHash = path === '/try' ? '' : page.url.hash;
 		const next = createHistoryTarget({
-			pathname: CREATOR_PATH,
+			pathname: creatorPath,
 			search,
-			hash: page.url.hash
+			hash: nextHash
 		});
 		const current = createHistoryTarget({
 			pathname: page.url.pathname,
 			search: page.url.search,
-			hash: page.url.hash
+			hash: typeof window === 'undefined' ? page.url.hash : window.location.hash
 		});
 		if (!shouldWriteHistory('replace', next, current)) return;
 		try {
@@ -502,7 +510,7 @@
 	}
 
 	$effect(() => {
-		if (page.url.pathname !== CREATOR_PATH) return;
+		if (page.url.pathname !== creatorPath) return;
 		const search = page.url.search;
 		if (search === lastWrittenSearch) return;
 		const sharedLayout = readCreatorShareFromSearch(page.url.searchParams);
@@ -693,8 +701,7 @@
 		if (hasUnsavedCreatorChanges) {
 			pendingCreatorNavigation = {
 				kind: 'saved',
-				savedId: saved.id,
-				destinationName: saved.name
+				savedId: saved.id
 			};
 			return;
 		}
@@ -952,6 +959,15 @@
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
+		{#if importNotice}
+			<div class="layout-creator-import-notice" role="status">
+				<span>{importNotice}</span>
+				{#if importSource}
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+					<a href={importSource} target="_blank" rel="noopener noreferrer">View on akl.gg</a>
+				{/if}
+			</div>
+		{/if}
 		{#snippet creatorHeaderStart()}
 			<div class="layout-creator-name">
 				<label class="layout-creator-name-field">
@@ -1353,7 +1369,6 @@
 <DiscardCreatorChangesModal
 	open={pendingCreatorNavigation !== null}
 	{layoutName}
-	destination={discardDestination}
 	onClose={closeDiscardChangesModal}
 	onConfirm={confirmDiscardChanges}
 />
@@ -1378,6 +1393,23 @@
 		margin: 0;
 		color: var(--keyboard-input-validation-error);
 		font-size: 0.875rem;
+	}
+
+	.layout-creator-import-notice {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin: 0 0 0.75rem;
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		background: var(--surface-secondary, var(--surface));
+		font-size: 0.875rem;
+	}
+
+	.layout-creator-import-notice a {
+		flex: none;
 	}
 
 	.layout-creator-view-bar {

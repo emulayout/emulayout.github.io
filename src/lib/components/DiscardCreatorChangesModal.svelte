@@ -5,12 +5,11 @@
 	interface Props {
 		open: boolean;
 		layoutName: string;
-		destination: string;
 		onClose: () => void;
 		onConfirm: () => void;
 	}
 
-	let { open, layoutName, destination, onClose, onConfirm }: Props = $props();
+	let { open, layoutName, onClose, onConfirm }: Props = $props();
 </script>
 
 <ModalShell {open} {onClose} labelledBy="discard-creator-changes-title" panelClass="max-w-md">
@@ -24,8 +23,8 @@
 	<div class="px-5 py-4">
 		<p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
 			Discard unsaved changes to
-			<span style="color: var(--text-primary); font-weight: 600;">{layoutName}</span> and
-			{destination}? This cannot be undone.
+			<span style="color: var(--text-primary); font-weight: 600;">{layoutName}</span>? This cannot
+			be undone.
 		</p>
 	</div>
 

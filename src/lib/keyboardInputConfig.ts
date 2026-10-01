@@ -10,6 +10,8 @@ export type InputKeyboardType = 'ortho' | 'staggered';
 export interface KeyboardInputKey {
 	slot: string;
 	value: string;
+	/** Preferred physical occurrence of an imported duplicate character. */
+	primary?: boolean;
 	/** The imported base layout does not assign this physical slot. */
 	inert?: boolean;
 	thumbHand?: 'l' | 'r';
@@ -317,6 +319,7 @@ export function updateKeyboardInputKey(
 				? {
 						slot: key.slot,
 						value: normalizedValue,
+						...(key.primary && key.value === normalizedValue ? { primary: true } : {}),
 						...(!normalizedValue && key.inert ? { inert: true } : {}),
 						...(key.thumbHand ? { thumbHand: key.thumbHand } : {})
 					}
@@ -437,6 +440,7 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		keys.push({
 			slot: entry.slot,
 			value: normalizedValue,
+			...(entry.primary === true ? { primary: true } : {}),
 			...(!normalizedValue && entry.inert === true ? { inert: true } : {}),
 			...(thumbHand ? { thumbHand } : {})
 		});
