@@ -6,6 +6,32 @@ drafts in the browser.
 
 ## Product model
 
+### Native chiral keys
+
+The creator's special-key buttons and mapping sections follow Magic, Adaptive, Chiral order.
+Chiral keyboard fills, creator controls, and mapping checkboxes use a distinct teal palette
+(`--chiral-key` / `--chiral-key-fg`), including read-only keyboard previews. The Chiral section
+beside Magic and Adaptive edits one compact definition per trigger: same-hand
+output, opposite-hand output, and exception characters. Either output can repeat the previous
+character, emit one character, or type the trigger normally. Invalid definitions show validation
+feedback; only the first valid definition per trigger applies. Hiding the panel does not disable
+its mappings; each trigger has an enable checkbox.
+
+Chirals follow the assigned hand of the previous emitted character, not the physical hand that
+pressed its key. Unknown context, no preceding character, and exceptions type the trigger normally.
+Hand lookup is rebuilt when keys move. Imported explicit hand assignments belong to physical slots.
+Magic definitions on the same trigger take precedence. Outputs are not recursively interpreted.
+
+Drafts, browser saves, backups, and share links retain the compact chiral draft in the base64url
+`chiral` query field. Catalog and Spark imports preserve native definitions rather than expanding
+them into Magic lists. Existing saved expanded Magic definitions remain unchanged: their original
+chiral intent cannot be recovered reliably.
+
+Code: `chiralKeys.ts`, `creatorChiralMappings.ts`, `CreatorChiralMappingsPanel.svelte`, and the shared
+creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runtime composition.
+
+### Workspace
+
 - The shared app bar includes **Discover** and **Create** choice-chip links to the right of the
   logo. Discover goes to `/` and stays current on layout show pages. Create goes to
   `/create?edit=1`.

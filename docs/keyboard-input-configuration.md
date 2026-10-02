@@ -9,6 +9,12 @@ configuration deliberately sits below those features so every test surface uses 
 
 ## Terminology and product model
 
+Creator key configuration may also carry an explicit `hand` (`l` or `r`) on a physical slot,
+independently of thumb placement. Spark imports preserve this assignment for native chirals;
+editing the slot's character preserves its hand. Without an explicit hand, main-grid columns
+0–4 are left-handed and later columns right-handed. The compact creator key codec uses `L`/`R`
+flags for these assignments; lowercase thumb flags retain their existing meaning.
+
 - The **input layout** is the layout the browser reports through `KeyboardEvent.key`, such as
   Gallium.
 - The **target layout** is the layout being tested or practiced, such as Vylet.

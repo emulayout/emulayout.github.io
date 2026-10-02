@@ -15,6 +15,8 @@ export interface KeyboardInputKey {
 	/** The imported base layout does not assign this physical slot. */
 	inert?: boolean;
 	thumbHand?: 'l' | 'r';
+	/** Explicit imported hand at this physical slot, including nonstandard main-row hands. */
+	hand?: 'l' | 'r';
 }
 
 export interface KeyboardInputConfig {
@@ -165,7 +167,8 @@ export function createKeyboardInputConfigFromLayout(
 		return {
 			slot,
 			value: normalizeKeyboardInputValue(value),
-			...(thumbHand ? { thumbHand } : {})
+			...(thumbHand ? { thumbHand } : {}),
+			...(info?.hand ? { hand: info.hand } : {})
 		};
 	});
 
@@ -320,6 +323,7 @@ export function updateKeyboardInputKey(
 						slot: key.slot,
 						value: normalizedValue,
 						...(key.primary && key.value === normalizedValue ? { primary: true } : {}),
+						...(key.hand ? { hand: key.hand } : {}),
 						...(!normalizedValue && key.inert ? { inert: true } : {}),
 						...(key.thumbHand ? { thumbHand: key.thumbHand } : {})
 					}
@@ -441,6 +445,7 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 			slot: entry.slot,
 			value: normalizedValue,
 			...(entry.primary === true ? { primary: true } : {}),
+			...(entry.hand === 'l' || entry.hand === 'r' ? { hand: entry.hand } : {}),
 			...(!normalizedValue && entry.inert === true ? { inert: true } : {}),
 			...(thumbHand ? { thumbHand } : {})
 		});

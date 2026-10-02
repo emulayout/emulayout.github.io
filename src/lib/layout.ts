@@ -1,4 +1,5 @@
 export interface KeyInfo {
+	hand?: 'l' | 'r';
 	row: number;
 	col: number;
 	/** Left or right thumb (row 3+ only), from cmini finger when available. */

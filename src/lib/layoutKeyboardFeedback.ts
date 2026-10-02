@@ -1,4 +1,5 @@
 import { resolveAdaptiveSwap, type AdaptiveSwapProfile } from '$lib/adaptiveSwaps';
+import { resolveChiralKeyOutput, chiralMappingId, type ChiralKeyProfile } from '$lib/chiralKeys';
 import { magicFallbackMappingId, magicRuleMappingId } from '$lib/inputMappingControls';
 import {
 	resolveMagicKeyOutput,
@@ -7,7 +8,7 @@ import {
 } from '$lib/magicKeys';
 import { DEFAULT_REPEAT_KEY, resolveRepeatKeyOutput, type RepeatKeyProfile } from '$lib/repeatKeys';
 
-export type LayoutKeyboardFeedbackKind = 'magic' | 'adaptive' | 'repeat';
+export type LayoutKeyboardFeedbackKind = 'magic' | 'adaptive' | 'repeat' | 'chiral';
 
 export interface LayoutKeyboardKeyFeedback {
 	kind: LayoutKeyboardFeedbackKind;
@@ -19,11 +20,11 @@ export interface LayoutKeyboardKeyFeedback {
 
 export type LayoutKeyboardFeedback = ReadonlyMap<string, LayoutKeyboardKeyFeedback>;
 
-/** Magic and Repeat keycaps share the special-key fill; Adaptive uses its own. */
+/** Contextual trigger keycaps use feature fills and optional glyphs; Adaptive uses swap feedback. */
 export function isSpecialTriggerFeedback(
 	kind: LayoutKeyboardFeedbackKind | undefined
-): kind is 'magic' | 'repeat' {
-	return kind === 'magic' || kind === 'repeat';
+): kind is 'magic' | 'repeat' | 'chiral' {
+	return kind === 'magic' || kind === 'repeat' || kind === 'chiral';
 }
 
 /**
@@ -188,6 +189,7 @@ export function buildAdaptiveKeyboardSwapPaths(
 }
 
 export interface LayoutKeyboardFeedbackOptions {
+	chiralKeys?: ChiralKeyProfile;
 	magicKeys?: MagicKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
 	repeatKey?: RepeatKeyProfile;
@@ -203,6 +205,7 @@ export interface LayoutKeyboardFeedbackOptions {
  * has not claimed that trigger as a mapped key.
  */
 export function buildLayoutKeyboardFeedback({
+	chiralKeys,
 	magicKeys,
 	adaptiveSwaps,
 	repeatKey,
@@ -213,12 +216,27 @@ export function buildLayoutKeyboardFeedback({
 	const feedback = new Map(
 		buildMagicKeyboardFeedback(magicKeys, inputHistory, disabledMappingIds, knownMagicTriggers)
 	);
+	for (const rule of chiralKeys?.keys ?? []) {
+		if (magicKeys?.triggers[rule.key] || disabledMappingIds.includes(chiralMappingId(rule.key)))
+			continue;
+		const result = resolveChiralKeyOutput(
+			chiralKeys,
+			inputHistory,
+			rule.key,
+			new Set(disabledMappingIds)
+		);
+		feedback.set(rule.key, {
+			kind: 'chiral',
+			value: result.text,
+			active: result.text !== rule.key
+		});
+	}
 	for (const [key, state] of buildRepeatKeyboardFeedback(
 		repeatKey,
 		inputHistory,
 		disabledMappingIds
 	)) {
-		if (feedback.get(key)?.kind === 'magic') continue;
+		if (isSpecialTriggerFeedback(feedback.get(key)?.kind)) continue;
 		feedback.set(key, state);
 	}
 	for (const [key, state] of buildAdaptiveKeyboardFeedback(

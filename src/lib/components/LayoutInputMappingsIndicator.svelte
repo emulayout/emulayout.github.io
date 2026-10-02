@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { chiralMappingId } from '$lib/chiralKeys';
 	import type { LayoutData } from '$lib/layout';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import LayoutInputFeatureControl, {
@@ -13,6 +14,7 @@
 		repeatKeyEnabled?: boolean;
 		adaptiveMappingsEnabled?: boolean;
 		magicMappingsEnabled?: boolean;
+		disabledMappingIds?: readonly string[];
 		onToggleRepeat?: () => void;
 		onToggleMappings?: () => void;
 	}
@@ -25,6 +27,7 @@
 		repeatKeyEnabled = true,
 		adaptiveMappingsEnabled = true,
 		magicMappingsEnabled = true,
+		disabledMappingIds = [],
 		onToggleRepeat,
 		onToggleMappings
 	}: Props = $props();
@@ -34,6 +37,7 @@
 	const hasAvailableAdaptiveBehavior = $derived(Boolean(inputProfile?.adaptiveSwaps));
 	const hasUnavailableMagicBehavior = $derived(
 		!hasAvailableMagicBehavior &&
+			!inputProfile?.chiralKeys &&
 			(layout.hasMagicKey ||
 				layout.hasMagicKeyMappings ||
 				Object.prototype.hasOwnProperty.call(layout.keys, '*'))
@@ -42,7 +46,8 @@
 		layout.hasAdaptiveSwap && !hasAvailableAdaptiveBehavior
 	);
 	const hasAnyIndicator = $derived(
-		hasAvailableRepeatBehavior ||
+		Boolean(inputProfile?.chiralKeys) ||
+			hasAvailableRepeatBehavior ||
 			hasAvailableMagicBehavior ||
 			hasAvailableAdaptiveBehavior ||
 			hasUnavailableMagicBehavior ||
@@ -73,6 +78,20 @@
 
 {#if hasAnyIndicator}
 	<div class="input-mappings-indicators">
+		{#if inputProfile?.chiralKeys}
+			<LayoutInputFeatureControl
+				feature="chiral"
+				state={inputProfile.chiralKeys.keys.some(
+					(rule) => !disabledMappingIds.includes(chiralMappingId(rule.key))
+				)
+					? 'on'
+					: 'off'}
+				label={onToggleMappings ? mappingsTitle : 'Chiral key mappings'}
+				pressed={active}
+				highlighted={active}
+				onActivate={onToggleMappings}
+			/>
+		{/if}
 		{#if hasAvailableRepeatBehavior}
 			<LayoutInputFeatureControl
 				feature="repeat"

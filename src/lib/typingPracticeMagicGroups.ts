@@ -1,5 +1,30 @@
 import { magicFallbackMappingId, magicRuleMappingId } from '$lib/inputMappingControls';
 import { resolveMagicKeyOutput, type MagicKeyProfile } from '$lib/magicKeys';
+import { resolveChiralKeyOutput } from '$lib/chiralKeys';
+import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
+
+/** Native chiral groups retain their identity rather than inheriting Magic presentation. */
+export function buildTypingPracticeChiralGroupIndexes(
+	word: string,
+	profile: LayoutInputProfile | undefined,
+	disabledMappingIds: readonly string[] = []
+): ReadonlySet<number> {
+	const indexes = new Set<number>();
+	const characters = Array.from(word);
+	const disabled = new Set(disabledMappingIds);
+	for (let boundary = 1; boundary < characters.length; boundary += 1) {
+		const history = characters.slice(0, boundary).join('');
+		for (const rule of profile?.chiralKeys?.keys ?? []) {
+			if (profile?.magicKeys?.triggers[rule.key]) continue;
+			const result = resolveChiralKeyOutput(profile?.chiralKeys, history, rule.key, disabled);
+			if (result.matched && result.text !== rule.key && result.text === characters[boundary]) {
+				indexes.add(boundary - 1);
+				indexes.add(boundary);
+			}
+		}
+	}
+	return indexes;
+}
 
 /**
  * Find characters in one lesson word that can be produced as a Magic group.

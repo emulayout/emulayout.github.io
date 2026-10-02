@@ -18,11 +18,7 @@ import { createHash } from 'node:crypto';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
-import {
-	defaultMagicMappings,
-	hasAdaptiveSwapMappings,
-	hasMagicKeyMappings
-} from './layout-features.js';
+import { hasAdaptiveSwapMappings, hasMagicKeyMappings } from './layout-features.js';
 import {
 	LAYOUTS_FILE,
 	parseOfflineForceArgs,
@@ -147,7 +143,7 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 		positions: layout.keys
 	};
 	const transformedLayout = transformLayout(rawLayout);
-	const { supplemental, repeatTrigger } = supplementalFromAkldbLayout(layout);
+	const { supplemental, repeatTrigger, analyzerMappings } = supplementalFromAkldbLayout(layout);
 	const variants = supplemental?.variants ?? [];
 	transformedLayout.updatedAt =
 		layout.formatModifiedAt > layout.modifiedAt ? layout.formatModifiedAt : layout.modifiedAt;
@@ -155,7 +151,7 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 	transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
 	transformedLayout.hasRepeatKey = repeatTrigger;
 	transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
-		defaultMagicMappings(variants),
+		analyzerMappings,
 		transformedLayout.keys
 	);
 	transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);

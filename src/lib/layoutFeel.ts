@@ -16,7 +16,10 @@ import {
 	type LayoutTestKeyMaps
 } from '$lib/layoutTestEmulator';
 import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
-import { buildTypingPracticeMagicGroupIndexes } from '$lib/typingPracticeMagicGroups';
+import {
+	buildTypingPracticeMagicGroupIndexes,
+	buildTypingPracticeChiralGroupIndexes
+} from '$lib/typingPracticeMagicGroups';
 import {
 	type TypingPracticeCharacterFeedback,
 	type TypingPracticeSession,
@@ -54,6 +57,7 @@ export type FeelWordPlan = {
 	/** Preferred known-layout labels for each planned keystroke. */
 	feelWord: string;
 	magicIndexes: ReadonlySet<number>;
+	chiralIndexes: ReadonlySet<number>;
 	adaptiveIndexes: ReadonlySet<number>;
 };
 
@@ -131,7 +135,8 @@ function inputValuesForKey(key: string): string[] {
 
 function keystrokeRank(keystroke: Omit<FeelKeystroke, 'feel' | 'alternateFeel'>): number {
 	let rank = Array.from(keystroke.emitted).length * 100;
-	if (keystroke.applied.includes('magic-key')) rank += 3;
+	if (keystroke.applied.includes('magic-key') || keystroke.applied.includes('chiral-key'))
+		rank += 3;
 	if (keystroke.applied.includes('adaptive-swap')) rank += 2;
 	if (keystroke.applied.includes('repeat-key')) rank += 1;
 	return rank;
@@ -192,7 +197,7 @@ function magicAlternateFeel(
 	preferredFeel: string,
 	targetToKnown: KeyMap
 ): string | undefined {
-	if (!applied.includes('magic-key')) return undefined;
+	if (!applied.includes('magic-key') && !applied.includes('chiral-key')) return undefined;
 	const emittedCharacters = Array.from(emitted);
 	if (emittedCharacters.length !== 1) return undefined;
 	const literalFeel = feelLabelForTargetKey(emittedCharacters[0]!, targetToKnown);
@@ -310,6 +315,10 @@ export function planFeelWord(
 		feelWord: keystrokes.map((keystroke) => keystroke.feel).join(''),
 		magicIndexes: mapSourceIndexesToFeel(
 			buildTypingPracticeMagicGroupIndexes(sourceWord, profile?.magicKeys, disabledMappingIds),
+			keystrokes
+		),
+		chiralIndexes: mapSourceIndexesToFeel(
+			buildTypingPracticeChiralGroupIndexes(sourceWord, profile, disabledMappingIds),
 			keystrokes
 		),
 		adaptiveIndexes: mapSourceIndexesToFeel(

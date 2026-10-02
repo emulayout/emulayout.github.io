@@ -12,6 +12,8 @@ import {
 	type CreatorMagicSection
 } from '$lib/layoutCreatorMappings';
 import { createDefaultCreatorUrlSnapshot, type CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+import { validateChiralKeySource } from '$lib/chiralKeys';
+import { chiralDraftFromSource, createEmptyCreatorChiralDraft } from '$lib/creatorChiralMappings';
 
 export const AKL_TRY_HASH_PREFIX = '#akl=';
 // The current keyboard supports the three letter rows and two thumb rows,
@@ -68,13 +70,6 @@ function parseSource(value: unknown): string | null {
 	} catch {
 		return null;
 	}
-}
-
-function magicValue(value: unknown, previous: string): string | null {
-	if (!isRecord(value)) return null;
-	if (value.kind === 'repeat') return previous;
-	if (value.kind === 'char' && typeof value.char === 'string' && value.char) return value.char;
-	return null;
 }
 
 function sectionFor(
@@ -185,6 +180,11 @@ function parseSparkKeys(
 		keys.push({
 			slot,
 			value: char ?? '',
+			...(finger.startsWith('L')
+				? { hand: 'l' as const }
+				: finger.startsWith('R')
+					? { hand: 'r' as const }
+					: {}),
 			...(!char ? { inert: true } : {}),
 			...(row >= 3 && (finger === 'LT' || finger === 'RT')
 				? { thumbHand: finger === 'LT' ? ('l' as const) : ('r' as const) }
@@ -208,7 +208,12 @@ function importMagic(
 	warnings: Set<string>
 ): Pick<
 	CreatorUrlSnapshot,
-	'includeMagicKey' | 'includeAdaptiveKey' | 'magicDraft' | 'adaptiveDraft'
+	| 'includeMagicKey'
+	| 'includeAdaptiveKey'
+	| 'magicDraft'
+	| 'adaptiveDraft'
+	| 'chiralDraft'
+	| 'includeChiralKey'
 > {
 	const sections = new Map<string, CreatorMagicSection>();
 	const adaptiveDraft = createEmptyCreatorAdaptiveDraft();
@@ -253,33 +258,21 @@ function importMagic(
 		}
 	}
 
-	const primaryKeys = new Map<string, SparkKey>();
-	for (const key of sparkKeys)
-		if (key.char && !primaryKeys.has(key.char)) primaryKeys.set(key.char, key);
+	const chiralDraft = createEmptyCreatorChiralDraft();
 	for (const raw of Array.isArray(value.chiral_keys) ? value.chiral_keys : []) {
-		if (!isRecord(raw) || !isSingleCharacter(raw.key)) {
+		try {
+			const source = validateChiralKeySource({ keys: [raw] });
+			if (!sparkKeys.some((key) => key.char === source.keys[0].key)) {
+				warnings.add('chiral triggers missing from the keyboard');
+				continue;
+			}
+			if (chiralDraft.rules.some((rule) => rule.key === source.keys[0].key)) {
+				warnings.add('duplicate chiral triggers');
+				continue;
+			}
+			chiralDraft.rules.push(...chiralDraftFromSource(source).rules);
+		} catch {
 			warnings.add('some chiral keys');
-			continue;
-		}
-		const triggerKey = primaryKeys.get(raw.key);
-		const triggerHand = triggerKey?.finger[0];
-		if (triggerHand !== 'L' && triggerHand !== 'R') {
-			warnings.add('a chiral key without a known hand');
-			continue;
-		}
-		const exceptions = new Set(
-			(Array.isArray(raw.except) ? raw.except : []).filter(
-				(entry): entry is string => typeof entry === 'string'
-			)
-		);
-		sectionFor(sections, raw.key, true);
-		for (const [after, key] of primaryKeys) {
-			const afterHand = key.finger[0];
-			if (afterHand !== 'L' && afterHand !== 'R') continue;
-			const output: string = exceptions.has(after)
-				? raw.key
-				: (magicValue(afterHand === triggerHand ? raw.same : raw.opposite, after) ?? raw.key);
-			addMagicRule(sections, raw.key, after, output, warnings);
 		}
 	}
 
@@ -320,6 +313,8 @@ function importMagic(
 
 	return {
 		includeMagicKey: sections.size > 0,
+		chiralDraft,
+		includeChiralKey: chiralDraft.rules.length > 0,
 		includeAdaptiveKey: adaptiveDraft.rules.length > 0,
 		magicDraft:
 			sections.size > 0 ? { sections: [...sections.values()] } : createEmptyCreatorMagicDraft(),

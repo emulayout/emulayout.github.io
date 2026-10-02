@@ -298,6 +298,7 @@
 		class:keyboard-input-editor__key--home={home}
 		class:keyboard-input-editor__key--home-colored={highlightHomeKeys && home}
 		class:keyboard-input-editor__key--next={next}
+		class:keyboard-input-editor__key--chiral={state?.kind === 'chiral'}
 		class:keyboard-input-editor__key--magic={state?.kind === 'magic'}
 		class:keyboard-input-editor__key--repeat={state?.kind === 'repeat'}
 		class:keyboard-input-editor__key--active={Boolean(state?.active)}
@@ -635,6 +636,7 @@
 		letter-spacing: -0.02em;
 	}
 
+	.keyboard-input-editor__key--chiral input,
 	.keyboard-input-editor__key--magic input,
 	.keyboard-input-editor__key--repeat input {
 		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
@@ -667,6 +669,7 @@
 		caret-color: var(--text-primary);
 	}
 
+	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--chiral input,
 	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--magic input,
 	.keyboard-input-editor__key--overlay.keyboard-input-editor__key--repeat input {
 		caret-color: var(--magic-key-fg);
@@ -692,6 +695,7 @@
 		letter-spacing: -0.02em;
 	}
 
+	.keyboard-input-editor__key--chiral .keyboard-input-editor__key-overlay,
 	.keyboard-input-editor__key--magic .keyboard-input-editor__key-overlay,
 	.keyboard-input-editor__key--repeat .keyboard-input-editor__key-overlay {
 		color: var(--magic-key-fg);
@@ -724,5 +728,9 @@
 			transparent calc(50% + 0.09rem)
 		);
 		pointer-events: none;
+	}
+	.keyboard-input-editor__key--chiral {
+		--magic-key: var(--chiral-key);
+		--magic-key-fg: var(--chiral-key-fg);
 	}
 </style>

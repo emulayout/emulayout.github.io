@@ -74,7 +74,9 @@ describe('akl.gg try import', () => {
 				snapshot.magicDraft,
 				snapshot.includeAdaptiveKey,
 				snapshot.adaptiveDraft,
-				Object.keys(createLayoutFromKeyConfig(snapshot.keyConfig).keys)
+				Object.keys(createLayoutFromKeyConfig(snapshot.keyConfig).keys),
+				snapshot.chiralDraft,
+				createLayoutFromKeyConfig(snapshot.keyConfig).keys
 			);
 			expect(profile).toBeDefined();
 			for (const [history, key, expected] of [

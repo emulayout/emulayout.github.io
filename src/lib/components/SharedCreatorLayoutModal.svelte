@@ -27,7 +27,7 @@
 	const layout = $derived(
 		createLayoutFromKeyConfig(shared.keyConfig, {
 			name: previewName,
-			magicKey: shared.includeMagicKey,
+			magicKey: shared.includeMagicKey || shared.includeChiralKey,
 			adaptiveKey: shared.includeAdaptiveKey
 		})
 	);
@@ -41,7 +41,9 @@
 			shared.magicDraft,
 			shared.includeAdaptiveKey,
 			shared.adaptiveDraft,
-			Object.keys(layout.keys)
+			Object.keys(layout.keys),
+			shared.includeChiralKey ? shared.chiralDraft : undefined,
+			layout.keys
 		)
 	);
 

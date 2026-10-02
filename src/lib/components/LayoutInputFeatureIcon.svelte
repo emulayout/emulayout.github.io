@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export type LayoutInputFeature = 'repeat' | 'adaptive' | 'magic';
+	export type LayoutInputFeature = 'repeat' | 'adaptive' | 'magic' | 'chiral';
 </script>
 
 <script lang="ts">
@@ -25,6 +25,16 @@
 		<path d="m7 22-4-4 4-4" />
 		<path d="M21 13v2a3 3 0 0 1-3 3H3" />
 	</svg>
+{:else if feature === 'chiral'}
+	<svg
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"><path d="M12 3v18M8 7H3l3-3M3 7l3 3M16 17h5l-3-3M21 17l-3 3" /></svg
+	>
 {:else if feature === 'adaptive'}
 	<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 		<!-- Material Insights icon paths, inlined to avoid a MUI dependency. -->

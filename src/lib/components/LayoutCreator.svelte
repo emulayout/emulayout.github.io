@@ -1,4 +1,10 @@
 <script lang="ts">
+	import CreatorChiralMappingsPanel from '$lib/components/CreatorChiralMappingsPanel.svelte';
+	import {
+		createEmptyCreatorChiralDraft,
+		chiralDraftEnabled,
+		chiralSourceFromDraft
+	} from '$lib/creatorChiralMappings';
 	import { replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -153,6 +159,11 @@
 	let disabledMappingIds = $state<string[]>([...initialSession.snapshot.disabledMappingIds]);
 	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
 	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
+	let includeChiralKey = $state(initialSession.snapshot.includeChiralKey ?? false);
+	let chiralPanelOpen = $state(initialSession.snapshot.includeChiralKey ?? false);
+	let chiralDraft = $state.raw(
+		initialSession.snapshot.chiralDraft ?? createEmptyCreatorChiralDraft()
+	);
 	let magicPanelOpen = $state(initialSession.snapshot.includeMagicKey);
 	let adaptivePanelOpen = $state(initialSession.snapshot.includeAdaptiveKey);
 	let magicDraft = $state.raw(initialSession.snapshot.magicDraft);
@@ -192,7 +203,7 @@
 	const layout = $derived(
 		createLayoutFromKeyConfig(keyConfig, {
 			name: layoutName,
-			magicKey: practiceMagicEnabled,
+			magicKey: practiceMagicEnabled || includeChiralKey,
 			adaptiveKey: practiceAdaptiveEnabled
 		})
 	);
@@ -219,15 +230,18 @@
 			magicDraft,
 			practiceAdaptiveEnabled,
 			adaptiveDraft,
-			availableLayoutKeys
+			availableLayoutKeys,
+			includeChiralKey ? chiralDraft : undefined,
+			layout.keys
 		)
 	);
-	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen);
+	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen || chiralPanelOpen);
 	const missingLetters = $derived(
 		creatorLayoutMissingKeys(
 			includeMagicKey ? magicDraft : undefined,
 			availableLayoutKeys,
-			disabledMappingIds
+			disabledMappingIds,
+			inputProfile?.chiralKeys
 		)
 	);
 	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
@@ -277,7 +291,8 @@
 		untrack(() => {
 			if (
 				creatorMagicDraftHasMappings(magicDraft) ||
-				creatorAdaptiveDraftHasMappings(adaptiveDraft)
+				creatorAdaptiveDraftHasMappings(adaptiveDraft) ||
+				chiralDraft.rules.length > 0
 			) {
 				return;
 			}
@@ -315,6 +330,8 @@
 			section: parseCreatorDetailSection(activeSection),
 			includeMagicKey,
 			includeAdaptiveKey,
+			includeChiralKey,
+			chiralDraft,
 			magicDraft,
 			adaptiveDraft,
 			keyConfig,
@@ -374,6 +391,9 @@
 		activeSection = next.section;
 		includeMagicKey = next.includeMagicKey;
 		includeAdaptiveKey = next.includeAdaptiveKey;
+		includeChiralKey = next.includeChiralKey ?? false;
+		chiralPanelOpen = includeChiralKey;
+		chiralDraft = next.chiralDraft ?? createEmptyCreatorChiralDraft();
 		magicPanelOpen = next.includeMagicKey;
 		adaptivePanelOpen = next.includeAdaptiveKey;
 		magicDraft = next.magicDraft;
@@ -530,6 +550,9 @@
 	});
 
 	function applyEmptyMappingDrafts() {
+		chiralDraft = createEmptyCreatorChiralDraft();
+		includeChiralKey = false;
+		chiralPanelOpen = false;
 		magicDraft = createEmptyCreatorMagicDraft();
 		adaptiveDraft = createEmptyCreatorAdaptiveDraft();
 		disabledMappingIds = [];
@@ -539,8 +562,19 @@
 		const seeded = creatorDraftsFromSupplemental(layoutsCatalog.supplemental, name);
 		magicDraft = seeded.magicDraft;
 		adaptiveDraft = seeded.adaptiveDraft;
-		if (seeded.hasMagicMappings) includeMagicKey = true;
-		if (seeded.hasMagicMappings) magicPanelOpen = true;
+		chiralDraft = seeded.chiralDraft;
+		includeChiralKey = seeded.hasChiralMappings;
+		chiralPanelOpen = seeded.hasChiralMappings;
+		if (seeded.chiralHands)
+			keyConfig = {
+				...keyConfig,
+				keys: keyConfig.keys.map((key) => ({
+					...key,
+					...(seeded.chiralHands?.[key.value] ? { hand: seeded.chiralHands[key.value] } : {})
+				}))
+			};
+		includeMagicKey = seeded.hasMagicMappings || keyboardConfigHasMagicTrigger(keyConfig);
+		magicPanelOpen = includeMagicKey;
 		if (seeded.hasAdaptiveMappings) {
 			includeAdaptiveKey = true;
 			adaptivePanelOpen = true;
@@ -1098,6 +1132,31 @@
 					</span>
 					<span class="layout-creator-special-key__label">Adaptive</span>
 				</button>
+				<button
+					type="button"
+					class="layout-creator-special-key"
+					class:layout-creator-special-key--chiral={true}
+					class:layout-creator-special-key--magic={chiralPanelOpen &&
+						chiralDraftEnabled(chiralDraft, availableLayoutKeys, disabledMappingIds)}
+					class:layout-creator-special-key--magic-data={!chiralPanelOpen &&
+						Boolean(chiralSourceFromDraft(chiralDraft, availableLayoutKeys))}
+					aria-expanded={chiralPanelOpen}
+					aria-controls="creator-chiral-mappings"
+					aria-label={chiralPanelOpen
+						? 'Hide chiral mappings'
+						: includeChiralKey
+							? 'Show chiral mappings'
+							: 'Add chiral'}
+					onclick={() => {
+						includeChiralKey = true;
+						chiralPanelOpen = !chiralPanelOpen;
+					}}
+				>
+					<span class="layout-creator-special-key__cap"
+						><LayoutInputFeatureIcon feature="chiral" /></span
+					>
+					<span class="layout-creator-special-key__label">Chiral</span>
+				</button>
 			</div>
 		{/snippet}
 
@@ -1120,6 +1179,18 @@
 						availableKeys={availableLayoutKeys}
 						{disabledMappingIds}
 						onDraftChange={setAdaptiveDraft}
+						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+					/>
+				</div>
+			{/if}
+			{#if chiralPanelOpen}
+				<div id="creator-chiral-mappings">
+					<CreatorChiralMappingsPanel
+						draft={chiralDraft}
+						availableKeys={availableLayoutKeys}
+						magicTriggers={Object.keys(inputProfile?.magicKeys?.triggers ?? {})}
+						{disabledMappingIds}
+						onDraftChange={(draft) => (chiralDraft = draft)}
 						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
 					/>
 				</div>
@@ -1946,5 +2017,9 @@
 			flex-wrap: wrap;
 			justify-content: center;
 		}
+	}
+	.layout-creator-special-key--chiral {
+		--magic-key: var(--chiral-key);
+		--magic-key-fg: var(--chiral-key-fg);
 	}
 </style>

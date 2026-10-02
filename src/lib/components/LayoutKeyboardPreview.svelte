@@ -217,6 +217,7 @@
 	<span
 		class="keyboard-preview__key"
 		class:keyboard-preview__key--ansi-thumb={Boolean(attrs.ansiThumb)}
+		class:keyboard-preview__key--chiral={keyFeedback?.kind === 'chiral'}
 		class:keyboard-preview__key--magic={keyFeedback?.kind === 'magic'}
 		class:keyboard-preview__key--repeat={keyFeedback?.kind === 'repeat'}
 		class:keyboard-preview__key--active={Boolean(keyFeedback?.active)}
@@ -505,6 +506,7 @@
 		white-space: nowrap;
 	}
 
+	.keyboard-preview__key--chiral,
 	.keyboard-preview__key--magic,
 	.keyboard-preview__key--repeat {
 		border-color: color-mix(in srgb, var(--magic-key) 70%, black);
@@ -526,5 +528,9 @@
 		filter: drop-shadow(
 			0 0 0.35rem color-mix(in srgb, var(--typing-practice-next-key-decoration) 42%, transparent)
 		);
+	}
+	.keyboard-preview__key--chiral {
+		--magic-key: var(--chiral-key);
+		--magic-key-fg: var(--chiral-key-fg);
 	}
 </style>

@@ -144,10 +144,15 @@
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
 			layout.hasRepeatKey ||
-			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.repeatKey)
+			Boolean(
+				inputProfile?.chiralKeys ||
+				inputProfile?.magicKeys ||
+				inputProfile?.adaptiveSwaps ||
+				inputProfile?.repeatKey
+			)
 	);
 	const hasSpecialMappings = $derived(
-		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+		Boolean(inputProfile?.chiralKeys || inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
 	const specialCandidateWords = $derived(
 		hasSpecialMappings
@@ -155,7 +160,9 @@
 			: []
 	);
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
-	const hasMagicGroupPreview = $derived(Boolean(inputProfile?.magicKeys));
+	const hasMagicGroupPreview = $derived(
+		Boolean(inputProfile?.magicKeys || inputProfile?.chiralKeys)
+	);
 	const showSpecialMappings = $derived(hasSpecialMappings && displayOptions.showSpecialKeys);
 	const simulateThumbKeys = $derived(layout.hasThumbKeys && displayOptions.simulateThumbKeys);
 	const thumbKeys = $derived([
@@ -206,6 +213,16 @@
 			])
 		)
 	);
+	const chiralGroupIndexes = $derived(
+		new Map(
+			prompt.map((word, wordIndex) => [
+				word.id,
+				displayOptions.underlineMagicGroups
+					? (remainingPlans[wordIndex]?.chiralIndexes ?? new Set<number>())
+					: new Set<number>()
+			])
+		)
+	);
 	const adaptiveGroupIndexes = $derived(
 		new Map(
 			prompt.map((word, wordIndex) => [
@@ -248,6 +265,7 @@
 	const keyboardFeedback = $derived(
 		filterAdaptiveKeyboardFeedbackByKeys(
 			buildLayoutKeyboardFeedback({
+				chiralKeys: displayOptions.showSpecialKeys ? inputProfile?.chiralKeys : undefined,
 				magicKeys: displayOptions.showSpecialKeys ? inputProfile?.magicKeys : undefined,
 				adaptiveSwaps:
 					displayOptions.showSpecialKeys && displayOptions.showAdaptiveSwaps
@@ -627,6 +645,12 @@
 										class:typing-practice-character--magic-group={magicGroupIndexes
 											.get(word.id)
 											?.has(characterIndex)}
+										class:typing-practice-character--chiral-group={chiralGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										data-chiral-group={chiralGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
 										class:typing-practice-character--adaptive-group={adaptiveGroupIndexes
 											.get(word.id)
 											?.has(characterIndex)}
@@ -778,7 +802,11 @@
 				{#if hasMagicGroupPreview}
 					<ToggleSwitch
 						checked={displayOptions.underlineMagicGroups}
-						label="Underline magic group"
+						label={inputProfile?.chiralKeys
+							? inputProfile.magicKeys
+								? 'Underline magic and chiral groups'
+								: 'Underline chiral group'
+							: 'Underline magic group'}
 						onCheckedChange={(checked) =>
 							uiPrefs.setTypingPracticeDisplayOption('underlineMagicGroups', checked)}
 					/>
@@ -1042,6 +1070,7 @@
 		}
 	}
 
+	.typing-practice-character--chiral-group,
 	.typing-practice-character--magic-group,
 	.typing-practice-character--adaptive-group {
 		text-decoration-line: underline;
@@ -1051,6 +1080,10 @@
 
 	.typing-practice-character--magic-group {
 		text-decoration-color: var(--magic-key);
+	}
+
+	.typing-practice-character--chiral-group {
+		text-decoration-color: var(--chiral-key);
 	}
 
 	.typing-practice-character--adaptive-group {

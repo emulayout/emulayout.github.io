@@ -65,6 +65,8 @@ html {
 	--typing-practice-next-key-decoration: #292622;
 	--typing-practice-home-key: #c8bca9;
 	--magic-key: #7a4fb0;
+	--chiral-key: #167579;
+	--chiral-key-fg: var(--bg-primary);
 	--magic-key-fg: var(--bg-primary);
 	--adaptive-key: #bc5e11;
 	--adaptive-key-fg: var(--bg-primary);
@@ -115,6 +117,7 @@ html {
 	--typing-practice-next-key-decoration: #f3efe8;
 	--typing-practice-home-key: #625c54;
 	--magic-key: #c9a6ef;
+	--chiral-key: #77d2ca;
 	--adaptive-key: #dc6e14;
 	--keyboard-input-validation-error: #e07060;
 	--keyboard-input-reset-destructive: #e07060;

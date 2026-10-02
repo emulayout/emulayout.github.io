@@ -18,6 +18,12 @@ import type {
 	MagicKeyRules
 } from '$lib/magicKeys';
 import { DEFAULT_REPEAT_KEY } from '$lib/repeatKeys';
+import {
+	chiralDraftFromSource,
+	chiralSourceFromDraft,
+	type CreatorChiralDraft
+} from '$lib/creatorChiralMappings';
+import { chiralRuleMappings, type ChiralKeyProfile, type ChiralKeySource } from '$lib/chiralKeys';
 
 export type CreatorMagicRule = {
 	id: string;
@@ -238,15 +244,20 @@ export function creatorDraftsFromSupplemental(
 	adaptiveDraft: CreatorAdaptiveDraft;
 	hasMagicMappings: boolean;
 	hasAdaptiveMappings: boolean;
+	chiralDraft: CreatorChiralDraft;
+	chiralHands: ChiralKeySource['hands'];
+	hasChiralMappings: boolean;
 } {
 	const raw = supplemental[layoutName];
 	let magicKeys: MagicKeySource | undefined;
 	let adaptiveSwaps: AdaptiveSwapSource | undefined;
+	let chiralKeys: ChiralKeySource | undefined;
 	if (raw) {
 		try {
 			const variant = validateLayoutSupplemental(raw, { derived: true }).variants[0];
 			magicKeys = variant?.magicKeys;
 			adaptiveSwaps = variant?.adaptiveSwaps;
+			chiralKeys = variant?.chiralKeys;
 		} catch {
 			magicKeys = undefined;
 			adaptiveSwaps = undefined;
@@ -254,6 +265,9 @@ export function creatorDraftsFromSupplemental(
 	}
 
 	return {
+		chiralDraft: chiralDraftFromSource(chiralKeys),
+		chiralHands: chiralKeys?.hands,
+		hasChiralMappings: Boolean(chiralKeys),
 		magicDraft: magicDraftFromSource(magicKeys),
 		adaptiveDraft: adaptiveDraftFromSource(adaptiveSwaps),
 		hasMagicMappings: Boolean(magicKeys),
@@ -386,9 +400,13 @@ function magicEmittedLetters(
 export function creatorLayoutMissingKeys(
 	magicDraft: CreatorMagicDraft | undefined,
 	availableKeys: readonly string[],
-	disabledMappingIds: readonly string[] = []
+	disabledMappingIds: readonly string[] = [],
+	chiralKeys?: ChiralKeyProfile
 ): string[] {
 	const covered = new Set(availableKeys.map((key) => key.toLowerCase()));
+	for (const rules of Object.values(chiralRuleMappings(chiralKeys, new Set(disabledMappingIds)))) {
+		for (const emitted of Object.values(rules)) addEnglishLetters(covered, emitted);
+	}
 	if (magicDraft) {
 		for (const letter of magicEmittedLetters(magicDraft, availableKeys, disabledMappingIds)) {
 			covered.add(letter);
@@ -554,15 +572,24 @@ export function compileCreatorInputProfile(
 	magicDraft: CreatorMagicDraft,
 	adaptiveEnabled: boolean,
 	adaptiveDraft: CreatorAdaptiveDraft,
-	availableKeys?: readonly string[]
+	availableKeys?: readonly string[],
+	chiralDraft?: CreatorChiralDraft,
+	layoutKeys?: unknown
 ): LayoutInputProfile | undefined {
 	const magicKeys = magicEnabled ? magicSourceFromDraft(magicDraft, availableKeys) : undefined;
 	const adaptiveSwaps = adaptiveEnabled
 		? adaptiveSourceFromDraft(adaptiveDraft, availableKeys)
 		: undefined;
-	const combined = compileFeatureProfile(magicKeys, adaptiveSwaps);
-	if (combined) return combined;
-	return (
-		compileFeatureProfile(magicKeys, undefined) ?? compileFeatureProfile(undefined, adaptiveSwaps)
-	);
+	const combined =
+		compileFeatureProfile(magicKeys, adaptiveSwaps) ??
+		compileFeatureProfile(magicKeys, undefined) ??
+		compileFeatureProfile(undefined, adaptiveSwaps);
+	const chiralKeys = chiralDraft ? chiralSourceFromDraft(chiralDraft, availableKeys) : undefined;
+	if (!chiralKeys) return combined;
+	const chiralProfile = compileLayoutInputProfile({ chiralKeys }, layoutKeys, false);
+	return {
+		...combined,
+		chiralKeys: chiralProfile.chiralKeys,
+		maxHistoryLength: Math.max(1, combined?.maxHistoryLength ?? 0)
+	};
 }

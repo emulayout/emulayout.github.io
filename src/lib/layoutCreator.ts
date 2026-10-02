@@ -200,5 +200,18 @@ export function createLayoutFromKeyConfig(
 				: {})
 		};
 	}
+	for (const key of config.keys) {
+		const value = normalizeKeyboardInputValue(key.value);
+		const position = parseKeyboardInputSlot(key.slot);
+		const primary = layout.keys[value];
+		if (
+			primary &&
+			position &&
+			primary.row === position.row &&
+			primary.col === position.column &&
+			key.hand
+		)
+			primary.hand = key.hand;
+	}
 	return layout;
 }

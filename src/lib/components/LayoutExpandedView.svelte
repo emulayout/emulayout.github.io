@@ -182,19 +182,25 @@
 		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
 	);
 	const hasSpecialMappings = $derived(
-		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+		Boolean(inputProfile?.chiralKeys || inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
 	const hasSpecialKeys = $derived(
 		layout.hasMagicKey ||
 			layout.hasAdaptiveSwap ||
 			layout.hasRepeatKey ||
-			Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.repeatKey)
+			Boolean(
+				inputProfile?.chiralKeys ||
+				inputProfile?.magicKeys ||
+				inputProfile?.adaptiveSwaps ||
+				inputProfile?.repeatKey
+			)
 	);
 	const conventionalMagicTriggers = $derived(
 		layout.hasMagicKey && Object.prototype.hasOwnProperty.call(layout.keys, '*') ? ['*'] : []
 	);
 	const hasMagicKeyPreview = $derived(
-		conventionalMagicTriggers.length > 0 || Boolean(inputProfile?.magicKeys)
+		conventionalMagicTriggers.length > 0 ||
+			Boolean(inputProfile?.magicKeys || inputProfile?.chiralKeys)
 	);
 	const hasRepeatKeyPreview = $derived(Boolean(inputProfile?.repeatKey));
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
@@ -206,6 +212,10 @@
 	);
 	const keyboardFeedback = $derived(
 		buildLayoutKeyboardFeedback({
+			chiralKeys:
+				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
+					? inputProfile?.chiralKeys
+					: undefined,
 			magicKeys:
 				testDisplayOptions.showSpecialKeys && testDisplayOptions.previewContextualKeyOutput
 					? inputProfile?.magicKeys

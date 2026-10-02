@@ -159,7 +159,7 @@
 	const keyboardDragThreshold = 5;
 
 	const inputMappingsAvailable = $derived(
-		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
+		Boolean(inputProfile?.magicKeys || inputProfile?.adaptiveSwaps || inputProfile?.chiralKeys)
 	);
 	const mappingsLabel = $derived(
 		inputProfile
@@ -514,6 +514,7 @@
 			/>
 		{/if}
 		<LayoutInputMappingsIndicator
+			{disabledMappingIds}
 			{layout}
 			{mappingsLabel}
 			{inputProfile}

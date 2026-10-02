@@ -86,11 +86,26 @@ export function supplementalFromAkldbLayout(layout) {
 
 	const hasMagic = Object.keys(mappings).length > 0;
 	const hasAdaptive = Object.keys(adaptiveMappings).length > 0;
-	if (!hasMagic && !hasAdaptive) return { supplemental: undefined, repeatTrigger };
+	const analyzerMappings = hasMagic ? mappings : undefined;
+	const nativeMappings = Object.fromEntries(
+		Object.entries(mappings).filter(
+			([trigger]) =>
+				!chiralKeys.some((key) => isRecord(key) && key.key === trigger) ||
+				magicKeys.some((key) => isRecord(key) && key.key === trigger)
+		)
+	);
+	/** @type {Record<string, 'l' | 'r'>} */
+	const hands = Object.create(null);
+	for (const key of layout.keys)
+		if (key.char && !Object.hasOwn(hands, key.char))
+			hands[key.char] = key.finger.startsWith('L') ? 'l' : 'r';
+	if (!hasMagic && !hasAdaptive && !chiralKeys.length)
+		return { supplemental: undefined, repeatTrigger, analyzerMappings };
 	const supplemental = validateLayoutSupplemental({
 		schema: 1,
-		...(hasMagic ? { magicKeys: { mappings } } : {}),
+		...(Object.keys(nativeMappings).length ? { magicKeys: { mappings: nativeMappings } } : {}),
+		...(chiralKeys.length ? { chiralKeys: { keys: chiralKeys, hands } } : {}),
 		...(hasAdaptive ? { adaptiveSwaps: { mappings: adaptiveMappings } } : {})
 	});
-	return { supplemental, repeatTrigger };
+	return { supplemental, repeatTrigger, analyzerMappings };
 }

@@ -12,7 +12,8 @@ For Magic-specific runtime and analyzer details, see
 
 The canonical source for layouts, Magic-key intent, chiral-key intent, and Adaptive swaps is
 AKLDB's stored `spark/1` payload. Catalog sync also requests AKLDB's derived `mana2/1` projection so
-it can lower contextual Magic and chiral rules into Emulayout's current runtime representation. The
+it can lower contextual Magic rules and preserve expanded analyzer inputs. Native chiral intent
+is retained separately for the client. The
 derived projection is not treated as a second source of layout truth.
 
 `bin/akldb-spark.js` adapts those two views and publishes the existing client-facing payload during
@@ -73,8 +74,18 @@ the Magic key emits, so the importer removes the `after` prefix:
 { "after": "c", "output": "ck" }
 ```
 
-becomes `"c": "k"`. Spark identifies Magic and chiral triggers while Mana2 supplies their flattened
-contextual rules. Multiple triggers and multi-character contexts remain supported.
+becomes `"c": "k"`. Spark identifies Magic triggers while Mana2 supplies their flattened
+contextual rules. Multiple triggers and multi-character contexts remain supported. Chiral keys
+instead retain `chiralKeys: { keys: [{ key, same, opposite, except }], hands }`. The optional hands
+map preserves primary character hands from Spark. Native compilation adds uppercase and shifted
+aliases without replacing explicit assignments. Same/opposite compare the trigger's hand with the
+last emitted character's assigned hand. Missing context or hand, missing branches, and exceptions
+produce the literal trigger. A branch can emit one character or repeat the previous character.
+
+`chiralKeys.ts` owns validation, compilation, and resolution. Shortcut planners use a temporary
+Magic-rule projection; the UI and persisted data never use that projection. Cyanophage continues
+to receive the original authoritative Mana2 expansion through `analyzerMappings`, independently
+of the compact client representation. Legacy saved expanded Magic lists are not reverse-engineered.
 
 A conventional rule-free `@` whose Spark default has repeat semantics is omitted from the Magic
 payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic and
@@ -109,12 +120,12 @@ For each captured layout key:
 3. Apply at most one adaptive-swap lookup using the preceding uninterrupted emitted history.
 4. Treat the Adaptive result as the candidate Magic-key trigger.
 5. Apply at most one Magic-key rule.
-6. If Magic did not match, apply Repeat-key behavior.
+6. If Magic did not match, apply native Chiral behavior; if neither matched, apply Repeat behavior.
 7. Insert the final output once.
 8. Append that final output to bounded shared history.
 
 Output is not recursively processed during the same physical keypress. It can trigger behavior on
-the next keypress through history. The explicit Adaptive-then-Magic-then-Repeat order also means an
+the next keypress through history. The explicit Adaptive-then-Magic-then-Chiral-then-Repeat order also means an
 Adaptive output may become a contextual trigger during the same keypress.
 
 History represents uninterrupted logical input, not text near the caret. Navigation, pointer
@@ -122,8 +133,8 @@ repositioning, blur, paste, undo, deletion, or another native edit clears it. Ma
 Repeat-key output is stored as history, so contextual behavior can chain. Multi-character output
 contributes its final bounded suffix.
 
-Adaptive rule identities are normalized to lowercase. Magic and chiral contexts remain
-case-sensitive so the runtime preserves AKLDB's lowered semantics. A shifted adaptive input
+Adaptive rule identities are normalized to lowercase. Magic contexts and chiral exceptions remain
+case-sensitive; native chiral hands also recognize inferred uppercase/shifted aliases. A shifted adaptive input
 preserves uppercase intent in the swapped output.
 
 ## UI boundaries

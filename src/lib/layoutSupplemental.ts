@@ -1,4 +1,5 @@
 import { validateAdaptiveSwapSource, type AdaptiveSwapSource } from '$lib/adaptiveSwaps';
+import { validateChiralKeySource, type ChiralKeySource } from '$lib/chiralKeys';
 import { validateMagicKeyMappings, type MagicKeyMappings } from '$lib/magicKeys';
 
 /** Version of the generated supplemental payload consumed by the client. */
@@ -32,6 +33,7 @@ export interface LayoutSupplementalVariant {
 	stale?: boolean;
 	magicKeys?: MagicKeySource;
 	adaptiveSwaps?: AdaptiveSwapSource;
+	chiralKeys?: ChiralKeySource;
 }
 
 /**
@@ -54,8 +56,16 @@ export interface ValidateLayoutSupplementalOptions {
 	derived?: boolean;
 }
 
-const TOP_LEVEL_KEYS = ['schema', 'meta', 'magicKeys', 'adaptiveSwaps', 'variants'];
-const VARIANT_KEYS = ['id', 'label', 'description', 'outdated', 'magicKeys', 'adaptiveSwaps'];
+const TOP_LEVEL_KEYS = ['schema', 'meta', 'magicKeys', 'adaptiveSwaps', 'chiralKeys', 'variants'];
+const VARIANT_KEYS = [
+	'id',
+	'label',
+	'description',
+	'outdated',
+	'magicKeys',
+	'adaptiveSwaps',
+	'chiralKeys'
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -108,15 +118,18 @@ function validateMagicKeySource(value: unknown, location: string): MagicKeySourc
 function validateVariantFeatures(
 	value: Record<string, unknown>,
 	location: string
-): Pick<LayoutSupplementalVariant, 'magicKeys' | 'adaptiveSwaps'> {
+): Pick<LayoutSupplementalVariant, 'magicKeys' | 'adaptiveSwaps' | 'chiralKeys'> {
 	const magicKeys =
 		value.magicKeys === undefined ? undefined : validateMagicKeySource(value.magicKeys, location);
 	const adaptiveSwaps =
 		value.adaptiveSwaps === undefined ? undefined : validateAdaptiveSwapSource(value.adaptiveSwaps);
-	if (!magicKeys && !adaptiveSwaps) {
+	const chiralKeys =
+		value.chiralKeys === undefined ? undefined : validateChiralKeySource(value.chiralKeys);
+	if (!magicKeys && !adaptiveSwaps && !chiralKeys) {
 		throw new Error(`${location} must define magicKeys or adaptiveSwaps`);
 	}
 	return {
+		...(chiralKeys ? { chiralKeys } : {}),
 		...(magicKeys ? { magicKeys } : {}),
 		...(adaptiveSwaps ? { adaptiveSwaps } : {})
 	};
@@ -200,7 +213,10 @@ export function validateLayoutSupplemental(
 		throw new Error(`Supplemental layout data must set "schema": ${LAYOUT_SUPPLEMENTAL_SCHEMA}`);
 	}
 
-	const shorthand = value.magicKeys !== undefined || value.adaptiveSwaps !== undefined;
+	const shorthand =
+		value.magicKeys !== undefined ||
+		value.adaptiveSwaps !== undefined ||
+		value.chiralKeys !== undefined;
 	if (shorthand && value.variants !== undefined) {
 		throw new Error(
 			'Supplemental layout data cannot mix top-level mappings with variants; move the mappings into a variant'

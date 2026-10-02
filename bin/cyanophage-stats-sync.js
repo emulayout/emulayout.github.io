@@ -17,7 +17,6 @@ import {
 	CYANOPHAGE_ANALYZER,
 	loadCyanophageData
 } from './cyanophage-stats.js';
-import { defaultMagicMappings } from './layout-features.js';
 import { isExcludedLayout, loadMemeFilterExclusions } from './cminibrowser-meme-filter.js';
 import { parseOfflineForceArgs, writeTextFileIfChanged } from './sync-shared.js';
 import { readCachedAkldbLayouts } from './akldb-cache.js';
@@ -61,8 +60,7 @@ async function run() {
 				rawLayout.keys[key.char] = { row: key.row, col: key.col, finger: key.finger };
 			}
 		}
-		const variants = supplementalFromAkldbLayout(layout).supplemental?.variants ?? [];
-		const magicMappings = defaultMagicMappings(variants);
+		const magicMappings = supplementalFromAkldbLayout(layout).analyzerMappings;
 		return cache.getOrCompute({ geometry, keys: rawLayout.keys, magicMappings }, () =>
 			buildCyanophageStats(rawLayout, cyanophageData, { magicMappings })
 		);

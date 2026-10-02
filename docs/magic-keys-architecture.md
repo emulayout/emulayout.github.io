@@ -24,7 +24,7 @@ separate features even though both use the same contextual-input engine.
 
 The conventions are deliberately overridable:
 
-- any symbol becomes a Magic key when AKLDB stores it as a Magic or chiral trigger;
+- any symbol can be a Magic or native chiral trigger;
 - `@` is a Repeat key when it is present on the layout and AKLDB provides no mapped `@` rules,
   including the conventional rule-free repeat declaration;
 - mapped `@` rules completely override default Repeat-key behavior;
@@ -53,7 +53,7 @@ Names are never used to infer either behavior.
 ## Generated Magic format
 
 Magic and Adaptive intent comes from AKLDB's stored `spark/1` payload. The sync uses AKLDB's derived
-`mana2/1` projection to lower Magic and chiral rules for Emulayout's current runtime. See
+`mana2/1` projection to lower Magic rules and retain expanded analyzer inputs. Chirals remain native. See
 [`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md#source-adaptation) for the
 source-to-runtime conversion. The normalized client payload stores each trigger under
 `magicKeys.mappings`.
@@ -126,8 +126,8 @@ akl.gg's revision-matched stats/v1 objects.
 
 ## Runtime data and compilation
 
-The direct `/try` Spark importer adapts raw and chiral rules to this runtime using an explicit
-fixed-text fallback equal to the base trigger. Unmatched raw/chiral presses and chiral exceptions
+The direct `/try` Spark importer adapts raw rules using an explicit fixed-text fallback equal to
+the base trigger. Chirals use the native resolver. Unmatched raw/chiral presses and chiral exceptions
 therefore retain ordinary key output. Magic declarations retain their own explicit defaults.
 Word-start and whitespace-context rules are currently omitted and reported by that importer;
 the shared runtime does not synthesize Spark's initial space context. See `layout-creator.md`
@@ -222,6 +222,8 @@ its own current uninterrupted emitted history and the page's shared disabled-map
 
 - Magic triggers use the `--magic-key` fill with `--magic-key-fg` glyph or label color;
 - Repeat keys use the same fill with the Repeat glyph until they can emit;
+- Native chiral triggers use `--chiral-key` teal fill and `--chiral-key-fg` foreground,
+  distinct from Magic purple. Their mapping checkboxes use the same teal palette.
 - Adaptive armed keys use the `--adaptive-key` fill; swap-path strokes use the same token;
 - when pressing the trigger would emit a value, the keycap displays that value;
 - when no rule or emitting fallback applies, the Magic or Repeat symbol remains on the keycap;
@@ -239,6 +241,12 @@ context and emitted target characters for every enabled rule that can replace pa
 For a trigger with repeat-last fallback, eligible adjacent doubled letters in the same word are
 marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
 set; it does not alter input resolution or the default prompt presentation.
+
+Native chiral groups retain separate underline indexes in both Typing practice and Layout feel:
+Magic is purple, Chiral teal, and Adaptive orange. Overlapping enabled groups use Adaptive over
+Chiral over Magic color precedence. Magic and Chiral share the existing persisted underline
+preference; its label names Chiral when present. Disabled, excepted, ordinary-output, and
+Magic-shadowed chiral rules do not create chiral underlines.
 
 Layout feel plans those same Magic shortcuts into the remapped prompt and underlines the remapped
 keystroke spans. The prompt and next-key highlight keep the preferred Magic trigger. When Magic
@@ -273,7 +281,7 @@ swaps are not included.
   results.
 - AKLDB's Spark payload is authoritative for Magic presence and behavior.
 - `@` implies Repeat only when AKLDB does not provide mapped `@` rules.
-- Any stored Magic or chiral trigger symbol establishes Magic behavior.
+- Stored chiral triggers establish native chiral behavior; the catalog Magic filter remains an umbrella.
 - Explicit `@` Magic mappings override default Repeat behavior completely.
 - Repeat fallback inside a Magic profile is always explicit.
 - A Magic trigger never types its own symbol; an unmatched press emits nothing.
@@ -281,7 +289,7 @@ swaps are not included.
 - Magic and Adaptive presence always include mappings because both come from the same AKLDB snapshot.
 - Matching uses uninterrupted emitted history, never text near the caret.
 - The longest matching Magic preceding sequence wins.
-- Adaptive swaps run before Magic, which runs before Repeat.
+- Adaptive swaps run before Magic, then native Chiral, then Repeat. The first matching contextual behavior wins.
 - Final output is inserted and added to history exactly once.
 - Filtering uses compact metadata rather than mapping details.
 - Analyzer metadata states independently which contextual behavior affected the result.

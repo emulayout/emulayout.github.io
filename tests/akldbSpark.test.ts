@@ -39,13 +39,13 @@ describe('AKLDB Spark behavior adapter', () => {
 				})
 			);
 			expect(result.repeatTrigger).toBe(false);
-			expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
+			expect(result.analyzerMappings).toEqual({
 				'@': { rules: { a: 'o' } }
 			});
 		}
 	);
 
-	test('uses AKLDB lowering for Magic and chiral triggers', () => {
+	test('preserves native chirals while keeping authoritative lowering for analyzers', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({
 				magic: {
@@ -62,9 +62,10 @@ describe('AKLDB Spark behavior adapter', () => {
 			})
 		);
 		expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
-			'*': { rules: { c: 'k' } },
-			y: { rules: { a: 'a' } }
+			'*': { rules: { c: 'k' } }
 		});
+		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([{ key: 'y' }]);
+		expect(result.analyzerMappings?.y).toEqual({ rules: { a: 'a' } });
 	});
 
 	test('keeps a conventional rule-free @ in the dedicated Repeat model', () => {
@@ -107,7 +108,7 @@ describe('AKLDB Spark behavior adapter', () => {
 			})
 		);
 
-		expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
+		expect(result.analyzerMappings).toEqual({
 			y: { rules: { y: '#', Y: 'y' } },
 			Y: { rules: { y: 'y' } }
 		});

@@ -1,4 +1,5 @@
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
+import { planningMagicProfile } from '$lib/layoutInputBehaviors';
 import {
 	selectRandomTypingPracticeWords,
 	type TypingPracticeRandomSource
@@ -18,7 +19,11 @@ export function isTypingPracticeSpecialWord(
 ): boolean {
 	if (!profile) return false;
 	return (
-		buildTypingPracticeMagicGroupIndexes(word, profile.magicKeys, disabledMappingIds).size > 0 ||
+		buildTypingPracticeMagicGroupIndexes(
+			word,
+			planningMagicProfile(profile, new Set(disabledMappingIds)),
+			disabledMappingIds
+		).size > 0 ||
 		buildTypingPracticeAdaptiveGroupIndexes(word, profile, disabledMappingIds).size > 0
 	);
 }
@@ -28,7 +33,7 @@ export function filterTypingPracticeSpecialWords(
 	profile: LayoutInputProfile | undefined,
 	disabledMappingIds: readonly string[] = []
 ): string[] {
-	if (!profile?.magicKeys && !profile?.adaptiveSwaps) return [];
+	if (!profile?.magicKeys && !profile?.adaptiveSwaps && !profile?.chiralKeys) return [];
 	return words.filter((word) => isTypingPracticeSpecialWord(word, profile, disabledMappingIds));
 }
 

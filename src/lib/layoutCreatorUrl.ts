@@ -6,6 +6,12 @@ import {
 	type KeyboardInputKey
 } from '$lib/keyboardInputConfig';
 import type { LayoutData } from '$lib/layout';
+import {
+	createEmptyCreatorChiralDraft,
+	createCreatorChiralRule,
+	type ChiralOutputKind,
+	type CreatorChiralDraft
+} from '$lib/creatorChiralMappings';
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, createDefaultCreatorKeyConfig } from '$lib/layoutCreator';
 import {
 	createCreatorAdaptiveRule,
@@ -63,6 +69,8 @@ export type CreatorContentSnapshot = {
 	includeAdaptiveKey: boolean;
 	magicDraft: CreatorMagicDraft;
 	adaptiveDraft: CreatorAdaptiveDraft;
+	chiralDraft?: CreatorChiralDraft;
+	includeChiralKey?: boolean;
 	keyConfig: KeyboardInputConfig;
 	practiceLesson: TypingPracticeLessonSettings;
 	disabledMappingIds: string[];
@@ -132,7 +140,7 @@ function decodeJsonParam(value: string): unknown {
 }
 
 function keySignature(key: KeyboardInputKey): string {
-	return `${key.slot}\0${key.value}\0${key.inert ? '1' : '0'}\0${key.thumbHand ?? ''}\0${key.primary ? '1' : '0'}`;
+	return `${key.slot}\0${key.value}\0${key.inert ? '1' : '0'}\0${key.thumbHand ?? ''}\0${key.primary ? '1' : '0'}\0${key.hand ?? ''}`;
 }
 
 function keysEqual(left: readonly KeyboardInputKey[], right: readonly KeyboardInputKey[]): boolean {
@@ -218,12 +226,12 @@ const RECONSTRUCTIBLE_EMPTY_KEY_IDENTITIES = new Set(
 );
 
 function shouldEncodeKey(key: KeyboardInputKey): boolean {
-	if (key.value !== '' || key.inert) return true;
+	if (key.value !== '' || key.inert || key.hand) return true;
 	return !RECONSTRUCTIBLE_EMPTY_KEY_IDENTITIES.has(emptyTopologyKeyIdentity(key));
 }
 
 function encodeKeyEntry(key: KeyboardInputKey): string {
-	const flags = `${key.inert ? 'i' : ''}${key.thumbHand ?? ''}${key.primary ? 'p' : ''}`;
+	const flags = `${key.inert ? 'i' : ''}${key.thumbHand ?? ''}${key.primary ? 'p' : ''}${key.hand === 'l' ? 'L' : key.hand === 'r' ? 'R' : ''}`;
 	return `${key.slot}:${flags}:${encodeURIComponent(key.value)}`;
 }
 
@@ -247,6 +255,11 @@ function parseKeyEntry(entry: string): KeyboardInputKey | null {
 		slot,
 		value,
 		...(flags.includes('p') ? { primary: true } : {}),
+		...(flags.includes('L')
+			? { hand: 'l' as const }
+			: flags.includes('R')
+				? { hand: 'r' as const }
+				: {}),
 		...(inert ? { inert: true } : {}),
 		...(thumbHand ? { thumbHand } : {})
 	};
@@ -447,6 +460,8 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 		includeAdaptiveKey: false,
 		magicDraft: createEmptyCreatorMagicDraft(),
 		adaptiveDraft: createEmptyCreatorAdaptiveDraft(),
+		chiralDraft: createEmptyCreatorChiralDraft(),
+		includeChiralKey: false,
 		keyConfig: createDefaultCreatorKeyConfig(),
 		practiceLesson: normalizeTypingPracticeLessonSettings(null),
 		disabledMappingIds: []
@@ -479,6 +494,22 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 
 	writeMagicParam(params, snapshot);
 	writeAdaptiveParam(params, snapshot);
+	if (snapshot.includeChiralKey)
+		params.set(
+			'chiral',
+			encodeJsonParam(
+				(snapshot.chiralDraft?.rules ?? []).map(
+					({ key, sameKind, sameChar, oppositeKind, oppositeChar, except }) => ({
+						key,
+						sameKind,
+						sameChar,
+						oppositeKind,
+						oppositeChar,
+						except
+					})
+				)
+			)
+		);
 	writeDisabledParam(params, snapshot);
 	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
 	writeCreatorSectionParam(params, snapshot.section);
@@ -507,6 +538,8 @@ export function creatorContentFromSnapshot(snapshot: CreatorUrlSnapshot): Creato
 		includeAdaptiveKey: normalized.includeAdaptiveKey,
 		magicDraft: normalized.magicDraft,
 		adaptiveDraft: normalized.adaptiveDraft,
+		chiralDraft: normalized.chiralDraft,
+		includeChiralKey: normalized.includeChiralKey,
 		keyConfig: normalized.keyConfig,
 		practiceLesson: normalized.practiceLesson,
 		disabledMappingIds: normalized.disabledMappingIds
@@ -658,10 +691,41 @@ export function readCreatorUrlSnapshot(
 		}
 	}
 
+	let chiralDraft = createEmptyCreatorChiralDraft();
+	let includeChiralKey = false;
+	const chirals = decodeJsonParam(searchParams.get('chiral') ?? '');
+	if (
+		Array.isArray(chirals) &&
+		chirals.every(
+			(rule) =>
+				isRecord(rule) &&
+				['key', 'sameChar', 'oppositeChar', 'except'].every(
+					(field) => typeof rule[field] === 'string'
+				) &&
+				['sameKind', 'oppositeKind'].every((field) =>
+					['key', 'repeat', 'char'].includes(String(rule[field]))
+				)
+		)
+	) {
+		chiralDraft = {
+			rules: chirals.map((rule) => ({
+				...createCreatorChiralRule(),
+				key: rule.key as string,
+				sameKind: rule.sameKind as ChiralOutputKind,
+				sameChar: rule.sameChar as string,
+				oppositeKind: rule.oppositeKind as ChiralOutputKind,
+				oppositeChar: rule.oppositeChar as string,
+				except: rule.except as string
+			}))
+		};
+		includeChiralKey = true;
+	}
 	return {
 		name,
 		author,
 		preview,
+		chiralDraft,
+		includeChiralKey,
 		section: parseCreatorDetailSection(searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
 		includeMagicKey,
 		includeAdaptiveKey,

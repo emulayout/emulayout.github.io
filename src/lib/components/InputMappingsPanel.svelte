@@ -1,4 +1,11 @@
 <script lang="ts">
+	import { chiralMappingId, type ChiralOutput } from '$lib/chiralKeys';
+	const outputLabel = (output: ChiralOutput | undefined) =>
+		output?.kind === 'repeat'
+			? 'repeat previous'
+			: output?.kind === 'char'
+				? output.char
+				: 'type trigger key';
 	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import type { AdaptiveSwapRule } from '$lib/adaptiveSwaps';
 	import {
@@ -250,9 +257,42 @@
 			{@render adaptiveRules(group.rules, group.id)}
 		{/each}
 	{/if}
+	{#if profile.chiralKeys}
+		<h3
+			class="input-mappings-heading input-mappings-heading--readonly"
+			class:input-mappings-heading--separated={Boolean(profile.magicKeys || profile.adaptiveSwaps)}
+		>
+			Chiral key mappings
+		</h3>
+		{#each profile.chiralKeys.keys as rule (rule.key)}
+			{@const id = chiralMappingId(rule.key)}
+			<div class="chiral-mapping" class:mapping-row--disabled={disabledIds.has(id)}>
+				{#if !readOnly}<label class="mapping-row"
+						><input
+							type="checkbox"
+							class="input-mappings-checkbox--chiral"
+							checked={!disabledIds.has(id)}
+							onchange={(event) => setMappingEnabled(id, event.currentTarget.checked)}
+						/><span>Chiral key {rule.key}</span></label
+					>
+				{:else}<strong>Chiral key {rule.key}</strong>{/if}
+				<p>Same hand → {outputLabel(rule.same)}</p>
+				<p>Opposite hand → {outputLabel(rule.opposite)}</p>
+				{#if rule.except?.length}<p>Except: {rule.except.join(' ')}</p>{/if}
+			</div>
+		{/each}
+	{/if}
 </section>
 
 <style>
+	.chiral-mapping {
+		padding: 0.5rem 0;
+		font-size: 0.8125rem;
+		color: var(--text-primary);
+	}
+	.chiral-mapping p {
+		margin: 0.25rem 0 0.25rem 1.5rem;
+	}
 	.input-mappings-panel {
 		container: input-mappings-panel / inline-size;
 		min-height: 208px;
@@ -297,7 +337,7 @@
 		cursor: default;
 	}
 
-	.input-mappings-heading--readonly {
+	.input-mappings-heading--readonly:not(.input-mappings-heading--separated) {
 		margin-block-start: 0;
 	}
 
@@ -341,6 +381,7 @@
 		border-color: var(--adaptive-key);
 	}
 
+	.input-mappings-checkbox--chiral:checked,
 	.input-mappings-checkbox--magic:checked,
 	.input-mappings-checkbox--adaptive:checked {
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
@@ -351,6 +392,7 @@
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23f4f4f4' stroke-width='2.25' stroke-linecap='round' d='M4 8h8'/%3E%3C/svg%3E");
 	}
 
+	:global(.dark) .input-mappings-checkbox--chiral:checked,
 	:global(.dark) .input-mappings-checkbox--magic:checked,
 	:global(.dark) .input-mappings-checkbox--adaptive:checked {
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23100f0d' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
@@ -445,5 +487,13 @@
 		.adaptive-swap-mappings-list {
 			grid-template-columns: minmax(0, 1fr);
 		}
+	}
+	.input-mappings-checkbox--chiral:checked {
+		background-color: var(--chiral-key);
+		border-color: var(--chiral-key);
+	}
+	.input-mappings-checkbox--chiral:focus-visible {
+		outline: 2px solid var(--chiral-key);
+		outline-offset: 1px;
 	}
 </style>

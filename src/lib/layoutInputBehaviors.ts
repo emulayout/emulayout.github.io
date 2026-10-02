@@ -21,6 +21,12 @@ import {
 } from '$lib/layoutSupplemental';
 import type { DisabledInputMappingIds } from '$lib/inputMappingControls';
 import type { LayoutData } from '$lib/layout';
+import {
+	compileChiralKeys,
+	resolveChiralKeyOutput,
+	chiralRuleMappings,
+	type ChiralKeyProfile
+} from '$lib/chiralKeys';
 
 export type LayoutInputVariantSource = Partial<LayoutSupplementalVariant>;
 
@@ -28,6 +34,7 @@ type LayoutInputLayout = Pick<LayoutData, 'name' | 'keys'> &
 	Partial<Pick<LayoutData, 'hasRepeatKey'>>;
 
 export interface LayoutInputProfile {
+	chiralKeys?: ChiralKeyProfile;
 	magicKeys?: MagicKeyProfile;
 	repeatKey?: RepeatKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
@@ -54,7 +61,11 @@ export interface CompiledLayoutSupplemental {
 	variants: readonly CompiledSupplementalVariant[];
 }
 
-export type AppliedLayoutInputBehavior = 'adaptive-swap' | 'magic-key' | 'repeat-key';
+export type AppliedLayoutInputBehavior =
+	| 'adaptive-swap'
+	| 'magic-key'
+	| 'repeat-key'
+	| 'chiral-key';
 
 export interface LayoutInputResult {
 	text: string;
@@ -75,25 +86,32 @@ export function compileLayoutInputProfile(
 	const magicKeys = variant.magicKeys
 		? compileMagicKeyMappings(variant.magicKeys.mappings)
 		: undefined;
+	const chiralKeys = variant.chiralKeys
+		? compileChiralKeys(variant.chiralKeys, rawLayoutKeys)
+		: undefined;
 	const repeatKey =
-		repeatKeyEnabled && !magicKeys?.triggers[DEFAULT_REPEAT_KEY]
+		repeatKeyEnabled &&
+		!magicKeys?.triggers[DEFAULT_REPEAT_KEY] &&
+		!chiralKeys?.keys.some((rule) => rule.key === DEFAULT_REPEAT_KEY)
 			? compileRepeatKeyProfile(rawLayoutKeys)
 			: undefined;
 	const adaptiveSwaps = variant.adaptiveSwaps
 		? compileAdaptiveSwapSource(variant.adaptiveSwaps)
 		: undefined;
-	if (!magicKeys && !repeatKey && !adaptiveSwaps) {
+	if (!magicKeys && !repeatKey && !adaptiveSwaps && !chiralKeys) {
 		throw new Error('Layout input profile must contain at least one behavior');
 	}
 
 	return {
+		...(chiralKeys ? { chiralKeys } : {}),
 		...(magicKeys ? { magicKeys } : {}),
 		...(repeatKey ? { repeatKey } : {}),
 		...(adaptiveSwaps ? { adaptiveSwaps } : {}),
 		maxHistoryLength: Math.max(
 			magicKeys?.maxHistoryLength ?? 0,
 			repeatKey ? 1 : 0,
-			adaptiveSwaps ? 1 : 0
+			adaptiveSwaps ? 1 : 0,
+			chiralKeys ? 1 : 0
 		),
 		...(variant.id ? { variantId: variant.id } : {}),
 		...(variant.label ? { variantLabel: variant.label } : {}),
@@ -212,12 +230,17 @@ export function resolveLayoutInput(
 		adaptive.text,
 		disabledMappingIds
 	);
-	const repeat = magic.matched
+	const chiral = magic.matched
 		? { text: magic.text, matched: false }
-		: resolveRepeatKeyOutput(profile.repeatKey, inputHistory, adaptive.text, disabledMappingIds);
+		: resolveChiralKeyOutput(profile.chiralKeys, inputHistory, adaptive.text, disabledMappingIds);
+	const repeat =
+		magic.matched || chiral.matched
+			? { text: chiral.text, matched: false }
+			: resolveRepeatKeyOutput(profile.repeatKey, inputHistory, adaptive.text, disabledMappingIds);
 	const applied: AppliedLayoutInputBehavior[] = [];
 	if (adaptive.matched) applied.push('adaptive-swap');
 	if (magic.matched) applied.push('magic-key');
+	if (chiral.matched) applied.push('chiral-key');
 	if (repeat.matched) applied.push('repeat-key');
 
 	return {
@@ -230,7 +253,10 @@ export function resolveLayoutInput(
 export function inputMappingsLabel(features: {
 	magicKeys: boolean;
 	adaptiveSwaps: boolean;
+	chiralKeys?: boolean;
 }): string {
+	if (features.chiralKeys)
+		return features.magicKeys || features.adaptiveSwaps ? 'input mappings' : 'chiral key mappings';
 	if (features.magicKeys && features.adaptiveSwaps) return 'input mappings';
 	if (features.adaptiveSwaps) return 'adaptive swap mappings';
 	return 'magic key mappings';
@@ -238,7 +264,22 @@ export function inputMappingsLabel(features: {
 
 export function inputProfileMappingsLabel(profile: LayoutInputProfile): string {
 	return inputMappingsLabel({
+		chiralKeys: Boolean(profile.chiralKeys),
 		magicKeys: Boolean(profile.magicKeys),
 		adaptiveSwaps: Boolean(profile.adaptiveSwaps)
 	});
+}
+
+/** Compatibility projection for shortcut planning; the runtime and UI retain native chirals. */
+export function planningMagicProfile(
+	profile: LayoutInputProfile | undefined,
+	disabled?: DisabledInputMappingIds
+): MagicKeyProfile | undefined {
+	if (!profile?.chiralKeys) return profile?.magicKeys;
+	const projected = chiralRuleMappings(profile.chiralKeys, disabled);
+	const triggers = {
+		...(Object.keys(projected).length ? compileMagicKeyMappings(projected).triggers : {}),
+		...profile.magicKeys?.triggers
+	};
+	return { triggers, maxHistoryLength: Math.max(1, profile.magicKeys?.maxHistoryLength ?? 0) };
 }
