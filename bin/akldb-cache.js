@@ -6,6 +6,7 @@
  * Magic and chiral authoring intent into executable rules.
  */
 
+import { validateSparkLayout } from '../src/lib/sparkSchema.ts';
 import { createHash } from 'node:crypto';
 import { access, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -25,7 +26,6 @@ export const AKLDB_REQUEST_TIMEOUT_MS = 90_000;
 
 const SNAPSHOT_VERSION = 1;
 const USER_AGENT = 'emulayout-akldb-sync/1.0 (+https://github.com/emulayout/emulayout.github.io)';
-const FINGERS = new Set(['LP', 'LR', 'LM', 'LI', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT']);
 
 /**
  * @typedef {{ char?: string, row: number, col: number, finger: string }} AkldbKey
@@ -87,142 +87,19 @@ function parseId(value, label) {
 	throw new Error(`${label} must be a decimal string`);
 }
 
-/** @param {unknown} value @param {string} label @returns {string} */
-function parseCharacter(value, label) {
-	if (typeof value !== 'string' || Array.from(value).length !== 1) {
-		throw new Error(`${label} must be one character`);
-	}
-	return value;
-}
-
-/** @param {unknown} value @param {string} label */
-function parseStringArray(value, label) {
-	if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
-		throw new Error(`${label} must be an array of strings`);
-	}
-}
-
-/** @param {unknown} value @param {string} label @returns {unknown[]} */
-function parseArray(value, label) {
-	if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
-	return value;
-}
-
-/** @param {unknown} value @param {string} label */
-function parseMagicValue(value, label) {
-	if (!isRecord(value) || (value.kind !== 'repeat' && value.kind !== 'char')) {
-		throw new Error(`${label} must be a tagged Magic value`);
-	}
-	if (value.kind === 'char') parseCharacter(value.char, `${label}.char`);
-}
-
-/** @param {unknown} value @param {string} label @returns {AkldbMagic} */
-function parseSparkMagic(value, label) {
-	if (!isRecord(value)) throw new Error(`${label} must be an object`);
-	const magicKeys = parseArray(value.magic_keys ?? [], `${label}.magic_keys`);
-	const chiralKeys = parseArray(value.chiral_keys ?? [], `${label}.chiral_keys`);
-	const adaptiveSwaps = parseArray(value.adaptive_swaps ?? [], `${label}.adaptive_swaps`);
-	const rawRules = parseArray(value.rules ?? [], `${label}.rules`);
-
-	for (const [index, entry] of magicKeys.entries()) {
-		const itemLabel = `${label}.magic_keys[${index}]`;
-		if (!isRecord(entry)) throw new Error(`${itemLabel} must be an object`);
-		parseCharacter(entry.key, `${itemLabel}.key`);
-		if (entry.default !== undefined) parseMagicValue(entry.default, `${itemLabel}.default`);
-		if (entry.except !== undefined) parseStringArray(entry.except, `${itemLabel}.except`);
-		const rules = entry.rules ?? [];
-		if (!Array.isArray(rules)) throw new Error(`${itemLabel}.rules must be an array`);
-		for (const [ruleIndex, rule] of rules.entries()) {
-			if (
-				!isRecord(rule) ||
-				typeof rule.after !== 'string' ||
-				!rule.after ||
-				typeof rule.emit !== 'string' ||
-				!rule.emit
-			) {
-				throw new Error(`${itemLabel}.rules[${ruleIndex}] must contain after and emit text`);
-			}
-		}
-	}
-
-	for (const [index, entry] of chiralKeys.entries()) {
-		const itemLabel = `${label}.chiral_keys[${index}]`;
-		if (!isRecord(entry)) throw new Error(`${itemLabel} must be an object`);
-		parseCharacter(entry.key, `${itemLabel}.key`);
-		for (const side of ['same', 'opposite']) {
-			if (entry[side] !== undefined && entry[side] !== null) {
-				parseMagicValue(entry[side], `${itemLabel}.${side}`);
-			}
-		}
-		if (entry.except !== undefined) parseStringArray(entry.except, `${itemLabel}.except`);
-	}
-
-	for (const [index, entry] of adaptiveSwaps.entries()) {
-		const itemLabel = `${label}.adaptive_swaps[${index}]`;
-		if (!isRecord(entry)) throw new Error(`${itemLabel} must be an object`);
-		parseCharacter(entry.trigger, `${itemLabel}.trigger`);
-		if (!Array.isArray(entry.swap) || entry.swap.length !== 2) {
-			throw new Error(`${itemLabel}.swap must contain two characters`);
-		}
-		parseCharacter(entry.swap[0], `${itemLabel}.swap[0]`);
-		parseCharacter(entry.swap[1], `${itemLabel}.swap[1]`);
-	}
-
-	for (const [index, rule] of rawRules.entries()) {
-		if (
-			!isRecord(rule) ||
-			typeof rule.inputs !== 'string' ||
-			Array.from(rule.inputs).length < 2 ||
-			typeof rule.output !== 'string' ||
-			!rule.output
-		) {
-			throw new Error(`${label}.rules[${index}] must contain usable inputs and output text`);
-		}
-	}
-	return /** @type {AkldbMagic} */ (value);
-}
-
-/** @param {unknown} value @param {string} label @returns {AkldbKey} */
-function parseKey(value, label) {
-	if (!isRecord(value)) throw new Error(`${label} must be an object`);
-	if (
-		!Number.isInteger(value.row) ||
-		/** @type {number} */ (value.row) < 0 ||
-		/** @type {number} */ (value.row) > 4
-	) {
-		throw new Error(`${label}.row must be an integer from 0 through 4`);
-	}
-	if (!Number.isInteger(value.col) || /** @type {number} */ (value.col) < 0) {
-		throw new Error(`${label}.col must be a non-negative integer`);
-	}
-	if (typeof value.finger !== 'string' || !FINGERS.has(value.finger)) {
-		throw new Error(`${label}.finger is not recognized`);
-	}
-	if (value.char !== undefined) parseCharacter(value.char, `${label}.char`);
-	return {
-		...(typeof value.char === 'string' ? { char: value.char } : {}),
-		row: /** @type {number} */ (value.row),
-		col: /** @type {number} */ (value.col),
-		finger: value.finger
-	};
-}
-
-/** @param {unknown} value @param {string} label */
+/** Shared structural validation plus the catalog's existing acceptance policy.
+ * @param {unknown} value @param {string} label
+ */
 function parseSparkPayload(value, label) {
-	if (!isRecord(value) || !Array.isArray(value.keys)) {
-		throw new Error(`${label} must contain a keys array`);
+	const document = validateSparkLayout(value, label);
+	for (const key of document.keys) {
+		if (key.row < 0 || key.row > 4)
+			throw new Error(`${label}.row must be an integer from 0 through 4`);
 	}
-	const keys = value.keys.map((key, index) => parseKey(key, `${label}.keys[${index}]`));
-	const slots = new Set();
-	for (const key of keys) {
-		const slot = `${key.row},${key.col}`;
-		if (slots.has(slot)) throw new Error(`${label} repeats position ${slot}`);
-		slots.add(slot);
+	for (const rule of document.magic?.rules ?? []) {
+		if (!rule.output) throw new Error(`${label}.rules must contain usable inputs and output text`);
 	}
-	return {
-		keys,
-		...(value.magic !== undefined ? { magic: parseSparkMagic(value.magic, `${label}.magic`) } : {})
-	};
+	return document;
 }
 
 /** @param {unknown} value @param {string} label @returns {AkldbManaMagic | undefined} */

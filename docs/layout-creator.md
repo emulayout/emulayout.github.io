@@ -130,7 +130,10 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   Clearing `@` or `*` from a slot does not remove its mapping.
   Import also offers **Spark schema/1** for pasted JSON: either a raw object with `keys` and
   optional `magic`, or the version-1 `spark/1` AKL wrapper. The existing AKL importer handles
-  conversion and reports omissions before Import. Invalid JSON, unsupported versions, no usable
+  conversion through the shared Spark validator/compiler and reports omissions before Import.
+  Malformed known fields reject the whole import; valid but unsupported content produces warnings.
+  The compiler retains the source document, but the legacy creator adapter still stores only the
+  supported projection (see `spark-transition.md`). Invalid JSON, unsupported versions, no usable
   keys, and inputs over 64 KiB cannot be applied. Spark replaces all draft keys and mappings,
   clearing prior disabled mappings; it preserves practice settings, the active typing section,
   and the saved-layout identity without writing saved storage. Raw objects retain the current
@@ -281,6 +284,8 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 - Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
 - akl.gg `spark/1` handoff parsing and adaptation: `src/lib/aklTryImport.ts`,
   `src/routes/try/+page.svelte`
+- Shared Spark types and structural validation: `src/lib/sparkSchema.ts`; supported-subset
+  compilation and diagnostics: `src/lib/sparkCompiler.ts`; foundation tests: `tests/spark.test.ts`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
   (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
 - Saved-layout backup parsing and merge rules: `src/lib/savedLayoutsBackup.ts`
