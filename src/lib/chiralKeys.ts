@@ -22,9 +22,15 @@ export function chiralMappingId(key: string): string {
 function record(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
-function character(value: unknown): value is string {
-	return typeof value === 'string' && Array.from(value).length === 1 && !/\s/u.test(value);
+export function isChiralCharacter(value: unknown): value is string {
+	return (
+		typeof value === 'string' &&
+		Array.from(value).length === 1 &&
+		(value === ' ' || !/\s/u.test(value))
+	);
 }
+export const chiralCharacterLabel = (value: string): string => (value === ' ' ? 'Space' : value);
+const character = isChiralCharacter;
 function output(value: unknown): ChiralOutput | undefined {
 	if (value === undefined) return undefined;
 	if (record(value) && value.kind === 'repeat') return { kind: 'repeat' };

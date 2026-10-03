@@ -341,6 +341,9 @@
 			}}
 			onclick={(event) => event.currentTarget.select()}
 		/>
+		{#if key.value === ' ' && !overlay}
+			<span class="keyboard-input-editor__key-overlay" aria-hidden="true">␣</span>
+		{/if}
 		{#if overlay === 'icon' && isSpecialTriggerFeedback(state?.kind)}
 			<span class="keyboard-input-editor__key-overlay" aria-hidden="true">
 				<span class="keyboard-input-editor__magic-icon">

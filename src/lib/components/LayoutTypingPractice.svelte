@@ -492,7 +492,7 @@
 	}
 
 	function resolvePracticeInput(history: string, inputText: string): LayoutInputResult {
-		if (inputText === ' ') {
+		if (inputText === ' ' && !inputProfile?.chiralKeys?.keys.some((rule) => rule.key === ' ')) {
 			const simulatedThumb = resolveSimulatedTypingPracticeThumbInput(
 				session,
 				thumbKeys,
@@ -721,7 +721,7 @@
 						/>
 						<Tooltip
 							alwaysVisible
-							text="When enabled, Space simulates whichever thumb key produces the next required character, including Magic or Repeat. Between words, it types a normal space. Configured thumb mappings are ignored."
+							text="When enabled, Space simulates whichever thumb key produces the next required character, including Magic or Repeat. An explicitly defined Space chiral takes precedence. Otherwise, between words it types a normal space. Configured thumb mappings are ignored."
 						/>
 					</div>
 				{/if}

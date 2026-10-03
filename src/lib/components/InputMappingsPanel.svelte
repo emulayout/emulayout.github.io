@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { chiralMappingId, type ChiralOutput } from '$lib/chiralKeys';
+	import { chiralMappingId, chiralCharacterLabel, type ChiralOutput } from '$lib/chiralKeys';
 	const outputLabel = (output: ChiralOutput | undefined) =>
 		output?.kind === 'repeat'
 			? 'repeat previous'
 			: output?.kind === 'char'
-				? output.char
+				? chiralCharacterLabel(output.char)
 				: 'type trigger key';
 	import { inputProfileMappingsLabel, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 	import type { AdaptiveSwapRule } from '$lib/adaptiveSwaps';
@@ -273,12 +273,14 @@
 							class="input-mappings-checkbox--chiral"
 							checked={!disabledIds.has(id)}
 							onchange={(event) => setMappingEnabled(id, event.currentTarget.checked)}
-						/><span>Chiral key {rule.key}</span></label
+						/><span>Chiral key {chiralCharacterLabel(rule.key)}</span></label
 					>
-				{:else}<strong>Chiral key {rule.key}</strong>{/if}
+				{:else}<strong>Chiral key {chiralCharacterLabel(rule.key)}</strong>{/if}
 				<p>Same hand → {outputLabel(rule.same)}</p>
 				<p>Opposite hand → {outputLabel(rule.opposite)}</p>
-				{#if rule.except?.length}<p>Except: {rule.except.join(' ')}</p>{/if}
+				{#if rule.except?.length}<p>
+						Except: {rule.except.map(chiralCharacterLabel).join(' ')}
+					</p>{/if}
 			</div>
 		{/each}
 	{/if}

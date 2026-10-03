@@ -33,7 +33,7 @@ describe('AKLDB Spark behavior adapter', () => {
 		expect(result.supplemental?.variants[0].adaptiveSwaps?.mappings).toEqual({ a: { h: 'j' } });
 	});
 
-	test('retains authoritative rules for whitespace chirals outside native support', () => {
+	test('keeps Space outputs native with explicit Space hands', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({
 				keys: [{ char: ' ', row: 3, col: 0, finger: 'LT' }],
@@ -51,13 +51,12 @@ describe('AKLDB Spark behavior adapter', () => {
 				}
 			})
 		);
-		expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
-			_: { rules: { a: ' ' } }
-		});
+		expect(result.supplemental?.variants[0].magicKeys).toBeUndefined();
 		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([
+			{ key: '_', same: { kind: 'char', char: '^' }, opposite: { kind: 'char', char: ' ' } },
 			{ key: '/', same: { kind: 'repeat' } }
 		]);
-		expect(result.supplemental?.variants[0].chiralKeys?.hands).toEqual({});
+		expect(result.supplemental?.variants[0].chiralKeys?.hands).toEqual({ ' ': 'l' });
 	});
 
 	test('normalizes nullable chiral branches without changing Spark source', () => {

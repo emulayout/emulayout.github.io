@@ -83,10 +83,12 @@ last emitted character's assigned hand. Missing context or hand, missing branche
 produce the literal trigger. A branch can emit one character or repeat the previous character.
 The catalog adapter normalizes Spark's `null` branches to omitted runtime branches, preserving
 the original source in the cache.
-Definitions outside native chiral support (such as whitespace triggers or outputs) retain AKL's
+Literal Space is supported as a native trigger, output, exception, and assigned-hand character.
+Tabs, newlines, and other whitespace remain invalid native characters.
+Definitions outside native chiral support retain AKL's
 authoritative Mana2 rules in the Magic representation, with a sync warning. Only supported native
-definitions have their expanded rules removed from the client payload. Whitespace hand entries
-are excluded from the native hand map.
+definitions have their expanded rules removed from the client payload. Unsupported whitespace hand
+entries are excluded from the native hand map; Space hands are retained.
 
 `chiralKeys.ts` owns validation, compilation, and resolution. Shortcut planners use a temporary
 Magic-rule projection; the UI and persisted data never use that projection. Cyanophage continues

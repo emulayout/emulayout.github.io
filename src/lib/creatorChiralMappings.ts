@@ -1,4 +1,9 @@
-import { chiralMappingId, type ChiralKeySource, type ChiralOutput } from '$lib/chiralKeys';
+import {
+	chiralMappingId,
+	isChiralCharacter,
+	type ChiralKeySource,
+	type ChiralOutput
+} from '$lib/chiralKeys';
 
 export type ChiralOutputKind = 'key' | 'repeat' | 'char';
 export interface CreatorChiralRule {
@@ -46,16 +51,14 @@ export function creatorChiralRuleError(
 	availableKeys?: readonly string[]
 ): string | null {
 	if (!rule.key) return null;
-	if (Array.from(rule.key).length !== 1 || /\s/u.test(rule.key))
-		return 'A chiral trigger must be one key.';
+	if (!isChiralCharacter(rule.key)) return 'A chiral trigger must be one key.';
 	if (availableKeys && !availableKeys.includes(rule.key))
 		return 'The chiral trigger is not assigned to the keyboard.';
 	for (const side of ['same', 'opposite'] as const)
-		if (
-			rule[`${side}Kind`] === 'char' &&
-			(Array.from(rule[`${side}Char`]).length !== 1 || /\s/u.test(rule[`${side}Char`]))
-		)
+		if (rule[`${side}Kind`] === 'char' && !isChiralCharacter(rule[`${side}Char`]))
 			return 'Choose one output character for each hand.';
+	if (Array.from(rule.except).some((char) => !isChiralCharacter(char)))
+		return 'Exceptions may include Space, but not tabs or other whitespace.';
 	return null;
 }
 export function chiralSourceFromDraft(
@@ -77,7 +80,7 @@ export function chiralSourceFromDraft(
 				key: rule.key,
 				same: value('same'),
 				opposite: value('opposite'),
-				except: Array.from(rule.except).filter((c) => !/\s/u.test(c))
+				except: Array.from(rule.except).filter(isChiralCharacter)
 			}
 		];
 	});

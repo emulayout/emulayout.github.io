@@ -21,6 +21,10 @@ Chirals follow the assigned hand of the previous emitted character, not the phys
 pressed its key. Unknown context, no preceding character, and exceptions type the trigger normally.
 Hand lookup is rebuilt when keys move. Imported explicit hand assignments belong to physical slots.
 Magic definitions on the same trigger take precedence. Outputs are not recursively interpreted.
+Literal Space is allowed in trigger/output/exception fields and Spark keys; other whitespace is
+not. Assign Space to a keyboard slot to give a Space trigger its hand (there is no assumed hand
+for an unassigned spacebar). Mapping labels identify it as `Space`; the key editor shows `␣`.
+Press Space in a field to enter the character, not the word "Space". Saves and shares preserve it.
 
 Drafts, browser saves, backups, and share links retain the compact chiral draft in the base64url
 `chiral` query field. Catalog and Spark imports preserve native definitions rather than expanding

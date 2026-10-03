@@ -1,5 +1,5 @@
 import { validateLayoutSupplemental } from '../src/lib/layoutSupplemental.ts';
-import { validateChiralKeySource } from '../src/lib/chiralKeys.ts';
+import { validateChiralKeySource, isChiralCharacter } from '../src/lib/chiralKeys.ts';
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isRecord(value) {
@@ -117,7 +117,7 @@ export function supplementalFromAkldbLayout(layout) {
 	/** @type {Record<string, 'l' | 'r'>} */
 	const hands = Object.create(null);
 	for (const key of layout.keys)
-		if (key.char && !/\s/u.test(key.char) && !Object.hasOwn(hands, key.char))
+		if (isChiralCharacter(key.char) && !Object.hasOwn(hands, key.char))
 			hands[key.char] = key.finger.startsWith('L') ? 'l' : 'r';
 	if (!hasMagic && !hasAdaptive && !nativeChiralKeys.length)
 		return { supplemental: undefined, repeatTrigger, analyzerMappings };

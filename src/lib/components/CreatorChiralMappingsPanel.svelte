@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Tooltip from '$lib/components/Tooltip.svelte';
-	import { chiralMappingId } from '$lib/chiralKeys';
+	import { chiralMappingId, chiralCharacterLabel } from '$lib/chiralKeys';
 	import {
 		createCreatorChiralRule,
 		creatorChiralRuleError,
@@ -35,18 +35,18 @@
 	<div class="chiral-heading">
 		<h3>Chiral mappings</h3>
 		<Tooltip
-			text="Chiral keys choose an output based on whether the previous character is assigned to the same hand as the trigger or the opposite hand. Each side can emit a character, repeat the previous character, or type the trigger normally. Exceptions, no previous character, and unknown hand assignments type the trigger normally."
+			text="Chiral keys choose an output based on whether the previous character is assigned to the same hand as the trigger or the opposite hand. Each side can emit a character, repeat the previous character, or type the trigger normally. Press Space to use a literal space in a trigger, output, or exception field. Space triggers need a Space assigned on the keyboard to establish their hand. Exceptions, no previous character, and unknown hand assignments type the trigger normally."
 		/>
 	</div>
 	{#each draft.rules as rule (rule.id)}
 		{@const error = creatorChiralRuleError(rule, availableKeys)}
 		<fieldset>
-			<legend>Chiral key {rule.key || '—'}</legend>
+			<legend>Chiral key {chiralCharacterLabel(rule.key) || '—'}</legend>
 			<div class="chiral-top-row">
 				<label class="enabled"
 					><input
 						type="checkbox"
-						aria-label={`Enable chiral key ${rule.key || 'mapping'}`}
+						aria-label={`Enable chiral key ${chiralCharacterLabel(rule.key) || 'mapping'}`}
 						checked={!disabledMappingIds.includes(chiralMappingId(rule.key))}
 						onchange={(event) => {
 							const id = chiralMappingId(rule.key);
@@ -61,7 +61,7 @@
 				<button
 					type="button"
 					class="chiral-text-button"
-					aria-label={`Remove chiral key ${rule.key || 'mapping'}`}
+					aria-label={`Remove chiral key ${chiralCharacterLabel(rule.key) || 'mapping'}`}
 					onclick={() =>
 						onDraftChange({ rules: draft.rules.filter((value) => value.id !== rule.id) })}
 					>Remove</button
@@ -73,6 +73,7 @@
 					oninput={(event) => update(rule.id, { key: event.currentTarget.value })}
 				/></label
 			>
+			{#if rule.key === ' '}<small>Trigger: Space</small>{/if}
 			{#each ['same', 'opposite'] as const as side (side)}
 				<div class="chiral-output-row">
 					<label
@@ -95,6 +96,7 @@
 								oninput={(event) => update(rule.id, { [`${side}Char`]: event.currentTarget.value })}
 							/></label
 						>
+						{#if rule[`${side}Char`] === ' '}<small>Space</small>{/if}
 					{/if}
 				</div>
 			{/each}
@@ -105,6 +107,7 @@
 					oninput={(event) => update(rule.id, { except: event.currentTarget.value })}
 				/></label
 			>
+			{#if rule.except.includes(' ')}<small>Exceptions include Space</small>{/if}
 			{#if error}<p role="status">{error}</p>{/if}
 			{#if draft.rules.find((other) => other.key === rule.key)?.id !== rule.id}<p role="status">
 					This trigger already has a chiral mapping; only the first applies.

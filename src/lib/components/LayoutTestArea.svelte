@@ -94,7 +94,7 @@
 		const replacementValue = onResolvedInput?.(result);
 		if (replacementValue === undefined) return false;
 		setTextValue(replacementValue);
-		resetInputHistory();
+		setInputHistory(result.nextHistory);
 		return true;
 	}
 
@@ -155,7 +155,6 @@
 			processLayoutText(decision.edit.text);
 		} else if (
 			!decision.preventDefault &&
-			resolveInput &&
 			event.key === ' ' &&
 			!event.ctrlKey &&
 			!event.altKey &&
@@ -163,16 +162,6 @@
 		) {
 			event.preventDefault();
 			processLayoutText(event.key);
-		} else if (
-			!decision.preventDefault &&
-			onResolvedInput &&
-			event.key === ' ' &&
-			!event.ctrlKey &&
-			!event.altKey &&
-			!event.metaKey
-		) {
-			const result = resolveLayoutInput(inputProfile, inputHistory, event.key, disabledMappings);
-			if (applyResolvedReplacement(result)) event.preventDefault();
 		} else if (!isModifierKey(event.key)) {
 			resetInputHistory();
 		}

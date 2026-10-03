@@ -138,7 +138,15 @@ application shortcuts pass through the emulator.
 
 Typing practice has one explicit exception to the saved thumb assignments: its optional Simulate
 thumb keys mode omits them from `inputKeyMap` and resolves Space against the target layout's thumb
-outputs using the next required lesson text. Layout feel has the same Simulate thumb keys switch;
+outputs using the next required lesson text.
+
+An explicitly defined native Space chiral takes precedence over simulated thumb selection in
+Typing practice, including its disabled/literal state. Physical input-layout translation still
+runs first. Resolved Space output advances a completed practice word; a letter emitted by Space
+does not. Free typing also resolves Space, and practice retains emitted history across word
+advancement so Space can supply context to the next chiral key.
+
+Layout feel has the same Simulate thumb keys switch;
 while enabled, planned thumb keystrokes (except space) show as `_` in the remapped prompt, and Space
 inserts that marker for the next planned thumb key. Literal remapped letters for those thumb slots
 are not accepted. With Simulate off, Feel soft-locks any practiced-layout character that has no

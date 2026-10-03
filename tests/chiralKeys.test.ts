@@ -31,6 +31,42 @@ const source = {
 };
 const keys = { a: { col: 0 }, h: { col: 5 }, m: { col: 6 }, '/': { col: 9 } };
 
+test('Space triggers, outputs and exceptions use assigned hands and survive draft URLs', () => {
+	const source = validateChiralKeySource({
+		keys: [
+			{
+				key: ' ',
+				same: { kind: 'char', char: 'e' },
+				opposite: { kind: 'char', char: ' ' },
+				except: ['m']
+			},
+			{ key: '/', same: { kind: 'char', char: ' ' }, opposite: { kind: 'repeat' }, except: [' '] }
+		],
+		hands: { ' ': 'l' }
+	});
+	const profile = compileLayoutInputProfile({ chiralKeys: source }, keys);
+	expect(resolveLayoutInput(profile, 'a', ' ').text).toBe('e');
+	expect(resolveLayoutInput(profile, 'h', ' ').text).toBe(' ');
+	expect(resolveLayoutInput(profile, '', ' ').text).toBe(' ');
+	expect(resolveLayoutInput(profile, 'm', ' ').text).toBe(' ');
+	expect(resolveLayoutInput(profile, 'h', '/').text).toBe(' ');
+	expect(resolveLayoutInput(profile, ' ', '/').text).toBe('/');
+	expect(resolveLayoutInput(profile, 'a', ' ', new Set([chiralMappingId(' ')])).text).toBe(' ');
+	const snapshot = createDefaultCreatorUrlSnapshot();
+	snapshot.includeChiralKey = true;
+	snapshot.chiralDraft = chiralDraftFromSource(source);
+	const params = writeCreatorUrlParams(snapshot);
+	const restored = readCreatorUrlSnapshot(params);
+	expect(chiralSourceFromDraft(restored.chiralDraft!)?.keys).toEqual(source.keys);
+	for (const char of ['\t', '\n', '\u00a0']) {
+		expect(() => validateChiralKeySource({ keys: [{ key: char }] })).toThrow();
+		expect(() =>
+			validateChiralKeySource({ keys: [{ key: '/', same: { kind: 'char', char } }] })
+		).toThrow();
+		expect(() => validateChiralKeySource({ keys: [{ key: '/', except: [char] }] })).toThrow();
+	}
+});
+
 test('marks native chiral groups separately, respecting exceptions, disabled keys and Magic priority', () => {
 	const profile = compileLayoutInputProfile({ chiralKeys: source }, keys);
 	expect([...buildTypingPracticeChiralGroupIndexes('ai', profile)]).toEqual([0, 1]);

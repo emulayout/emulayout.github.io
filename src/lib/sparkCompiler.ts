@@ -1,6 +1,6 @@
 import { validateSparkLayout, type SparkKey, type SparkMagic } from './sparkSchema';
 import type { KeyboardInputKey } from './keyboardInputConfig';
-import { validateChiralKeySource, type ChiralKey } from './chiralKeys';
+import { validateChiralKeySource, isChiralCharacter, type ChiralKey } from './chiralKeys';
 import { compileLayoutInputProfile, type LayoutInputVariantSource } from './layoutInputBehaviors';
 import type { ExtendedMagicKeyTriggerSource } from './magicKeys';
 
@@ -71,7 +71,7 @@ function projectSparkKeys(
 			warnings.add('the number row');
 			continue;
 		}
-		if (raw.char !== undefined && !isSingleCharacter(raw.char)) {
+		if (raw.char !== undefined && !isChiralCharacter(raw.char)) {
 			warnings.add('whitespace keys');
 			continue;
 		}
