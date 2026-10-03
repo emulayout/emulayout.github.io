@@ -19,6 +19,65 @@ function layout(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AKLDB Spark behavior adapter', () => {
+	test('omits identity adaptive swaps without rejecting the layout', () => {
+		const result = supplementalFromAkldbLayout(
+			layout({
+				magic: {
+					adaptive_swaps: [
+						{ trigger: 'a', swap: ['y', 'y'] },
+						{ trigger: 'a', swap: ['h', 'j'] }
+					]
+				}
+			})
+		);
+		expect(result.supplemental?.variants[0].adaptiveSwaps?.mappings).toEqual({ a: { h: 'j' } });
+	});
+
+	test('retains authoritative rules for whitespace chirals outside native support', () => {
+		const result = supplementalFromAkldbLayout(
+			layout({
+				keys: [{ char: ' ', row: 3, col: 0, finger: 'LT' }],
+				magic: {
+					chiral_keys: [
+						{ key: '_', same: { kind: 'char', char: '^' }, opposite: { kind: 'char', char: ' ' } },
+						{ key: '/', same: { kind: 'repeat' } }
+					]
+				},
+				manaMagic: {
+					rules: [
+						{ inputs: 'a_', output: 'a ' },
+						{ inputs: 'a/', output: 'aa' }
+					]
+				}
+			})
+		);
+		expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
+			_: { rules: { a: ' ' } }
+		});
+		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([
+			{ key: '/', same: { kind: 'repeat' } }
+		]);
+		expect(result.supplemental?.variants[0].chiralKeys?.hands).toEqual({});
+	});
+
+	test('normalizes nullable chiral branches without changing Spark source', () => {
+		const source = layout({
+			magic: {
+				chiral_keys: [
+					{ key: '/', same: null, opposite: { kind: 'char', char: 'e' } },
+					{ key: ';', same: { kind: 'repeat' }, opposite: null }
+				]
+			}
+		});
+		const before = JSON.stringify(source);
+		const result = supplementalFromAkldbLayout(source);
+		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([
+			{ key: '/', opposite: { kind: 'char', char: 'e' } },
+			{ key: ';', same: { kind: 'repeat' } }
+		]);
+		expect(JSON.stringify(source)).toBe(before);
+	});
+
 	test('preserves bare @ Repeat behavior without an explicit Spark declaration', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({ keys: [{ char: '@', row: 3, col: 4, finger: 'LT' }] })

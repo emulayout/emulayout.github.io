@@ -92,10 +92,6 @@ function parseId(value, label) {
  */
 function parseSparkPayload(value, label) {
 	const document = validateSparkLayout(value, label);
-	for (const key of document.keys) {
-		if (key.row < 0 || key.row > 4)
-			throw new Error(`${label}.row must be an integer from 0 through 4`);
-	}
 	for (const rule of document.magic?.rules ?? []) {
 		if (!rule.output) throw new Error(`${label}.rules must contain usable inputs and output text`);
 	}

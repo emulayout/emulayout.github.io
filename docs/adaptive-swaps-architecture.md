@@ -81,6 +81,12 @@ map preserves primary character hands from Spark. Native compilation adds upperc
 aliases without replacing explicit assignments. Same/opposite compare the trigger's hand with the
 last emitted character's assigned hand. Missing context or hand, missing branches, and exceptions
 produce the literal trigger. A branch can emit one character or repeat the previous character.
+The catalog adapter normalizes Spark's `null` branches to omitted runtime branches, preserving
+the original source in the cache.
+Definitions outside native chiral support (such as whitespace triggers or outputs) retain AKL's
+authoritative Mana2 rules in the Magic representation, with a sync warning. Only supported native
+definitions have their expanded rules removed from the client payload. Whitespace hand entries
+are excluded from the native hand map.
 
 `chiralKeys.ts` owns validation, compilation, and resolution. Shortcut planners use a temporary
 Magic-rule projection; the UI and persisted data never use that projection. Cyanophage continues
@@ -97,6 +103,7 @@ Spark Adaptive entries already store one side of a two-way swap:
 { "trigger": "l", "swap": ["y", "j"] }
 ```
 
+Identity swaps (a character paired with itself) are omitted as no-ops.
 The importer lowercases these case-insensitive identities and compiles both directions:
 
 ```text

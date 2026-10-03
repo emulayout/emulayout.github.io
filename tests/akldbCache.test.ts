@@ -71,6 +71,36 @@ function meta(overrides: Record<string, unknown> = {}) {
 }
 
 describe('AKLDB parsing', () => {
+	test('preserves number rows in source while projecting supported catalog rows', () => {
+		const keys = [
+			{ char: '1', row: -1, col: 0, finger: 'LP' },
+			{ char: 'a', row: 0, col: 0, finger: 'LP' },
+			{ row: 0, col: 1, finger: 'LR' },
+			{ char: 'e', row: 4, col: 0, finger: 'LT' },
+			{ char: 'z', row: 5, col: 0, finger: 'LP' }
+		];
+		const parsed = parseAkldbCatalog(
+			{ items: [sparkLayout({ payload: { keys } })] },
+			{ items: [manaLayout()] },
+			{ author: '9007199254740993' }
+		).layouts.layouts[0];
+		expect(parsed.keys).toEqual(keys);
+		// Exercise the build-script boundary without importing untyped build modules into tsc.
+		const result = Bun.spawnSync([
+			process.execPath,
+			'-e',
+			`
+			import { transformLayout } from './bin/layout-transformer.js';
+			import { encodeLayout } from './bin/layout-codec.js';
+			const projected = transformLayout({ positions: ${JSON.stringify(parsed.keys)} });
+			console.log(JSON.stringify({ chars: Object.keys(projected.keys), rows: encodeLayout(projected)[6] }));
+		`
+		]);
+		expect(result.exitCode).toBe(0);
+		expect(JSON.parse(result.stdout.toString())).toEqual({ chars: ['a', 'e'], rows: [0, 0, 4] });
+		expect(parsed.keys).toEqual(keys);
+	});
+
 	test('preserves exact ids, ordered positions, free positions, and format timestamps', () => {
 		const parsed = parseAkldbCatalog(
 			{ items: [sparkLayout()] },
@@ -124,7 +154,21 @@ describe('AKLDB cache', () => {
 		const snapshotPath = join(directory, 'catalog.json');
 		const bodies = new Map<string, unknown>([
 			[AKLDB_META_URL, meta()],
-			[AKLDB_LAYOUTS_URL, { items: [sparkLayout()] }],
+			[
+				AKLDB_LAYOUTS_URL,
+				{
+					items: [
+						sparkLayout({
+							payload: {
+								keys: [
+									{ char: '1', row: -1, col: 0, finger: 'LP' },
+									{ char: 'a', row: 0, col: 0, finger: 'LP' }
+								]
+							}
+						})
+					]
+				}
+			],
 			[AKLDB_MANA_LAYOUTS_URL, { items: [manaLayout()] }],
 			[AKLDB_AUTHORS_URL, { author: '9007199254740993' }]
 		]);
@@ -137,6 +181,7 @@ describe('AKLDB cache', () => {
 
 		const offline = await ensureAkldbCatalog({ snapshotPath, offline: true });
 		expect(offline.fromCache).toBe(true);
+		expect(offline.json.layouts.layouts[0].keys[0].row).toBe(-1);
 		expect(offline.json.authors).toEqual({ author: '9007199254740993' });
 	});
 

@@ -1,4 +1,5 @@
 import { validateLayoutSupplemental } from '../src/lib/layoutSupplemental.ts';
+import { validateChiralKeySource } from '../src/lib/chiralKeys.ts';
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isRecord(value) {
@@ -28,7 +29,14 @@ function conventionalRepeatTrigger(layout) {
  */
 export function supplementalFromAkldbLayout(layout) {
 	const magicKeys = Array.isArray(layout.magic?.magic_keys) ? layout.magic.magic_keys : [];
-	const chiralKeys = Array.isArray(layout.magic?.chiral_keys) ? layout.magic.chiral_keys : [];
+	const chiralKeys = Array.isArray(layout.magic?.chiral_keys)
+		? layout.magic.chiral_keys.filter(isRecord).map((key) => ({
+				...key,
+				key: key.key,
+				same: key.same ?? undefined,
+				opposite: key.opposite ?? undefined
+			}))
+		: [];
 	const triggerKeys = new Set(
 		[...magicKeys, ...chiralKeys]
 			.filter(isRecord)
@@ -79,6 +87,8 @@ export function supplementalFromAkldbLayout(layout) {
 				`AKLDB adaptive swap ${index} for ${JSON.stringify(layout.name)} is malformed`
 			);
 		}
+		// Spark can explicitly list an identity swap; it adds no runtime behavior.
+		if (entry.swap[0].toLowerCase() === entry.swap[1].toLowerCase()) continue;
 		(adaptiveMappings[entry.trigger.toLowerCase()] ??= Object.create(null))[
 			entry.swap[0].toLowerCase()
 		] = entry.swap[1].toLowerCase();
@@ -87,24 +97,34 @@ export function supplementalFromAkldbLayout(layout) {
 	const hasMagic = Object.keys(mappings).length > 0;
 	const hasAdaptive = Object.keys(adaptiveMappings).length > 0;
 	const analyzerMappings = hasMagic ? mappings : undefined;
+	const nativeChiralKeys = chiralKeys.flatMap((key) => {
+		try {
+			return validateChiralKeySource({ keys: [key] }).keys;
+		} catch {
+			console.warn(
+				`  ⚠ ${layout.name}: using Mana2 rules for unsupported native chiral ${JSON.stringify(key.key)}`
+			);
+			return [];
+		}
+	});
 	const nativeMappings = Object.fromEntries(
 		Object.entries(mappings).filter(
 			([trigger]) =>
-				!chiralKeys.some((key) => isRecord(key) && key.key === trigger) ||
+				!nativeChiralKeys.some((key) => key.key === trigger) ||
 				magicKeys.some((key) => isRecord(key) && key.key === trigger)
 		)
 	);
 	/** @type {Record<string, 'l' | 'r'>} */
 	const hands = Object.create(null);
 	for (const key of layout.keys)
-		if (key.char && !Object.hasOwn(hands, key.char))
+		if (key.char && !/\s/u.test(key.char) && !Object.hasOwn(hands, key.char))
 			hands[key.char] = key.finger.startsWith('L') ? 'l' : 'r';
-	if (!hasMagic && !hasAdaptive && !chiralKeys.length)
+	if (!hasMagic && !hasAdaptive && !nativeChiralKeys.length)
 		return { supplemental: undefined, repeatTrigger, analyzerMappings };
 	const supplemental = validateLayoutSupplemental({
 		schema: 1,
 		...(Object.keys(nativeMappings).length ? { magicKeys: { mappings: nativeMappings } } : {}),
-		...(chiralKeys.length ? { chiralKeys: { keys: chiralKeys, hands } } : {}),
+		...(nativeChiralKeys.length ? { chiralKeys: { keys: nativeChiralKeys, hands } } : {}),
 		...(hasAdaptive ? { adaptiveSwaps: { mappings: adaptiveMappings } } : {})
 	});
 	return { supplemental, repeatTrigger, analyzerMappings };

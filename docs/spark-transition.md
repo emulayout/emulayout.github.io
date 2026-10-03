@@ -91,8 +91,10 @@ Step 1 is complete. Stopped here; steps 2–5 have not started.
   temporary legacy behavior `source`, compiled runtime `profile`, and omission `warnings`.
 - `src/lib/aklTryImport.ts`: keeps transport/wrapper handling and converts the compiled source to
   existing creator drafts. Both pasted JSON and AKL links use this path.
-- `bin/akldb-cache.js`: reuses structural validation, retaining catalog-specific row and raw-output
-  constraints. Catalog lowering remains unchanged for step 2.
+- `bin/akldb-cache.js`: reuses structural validation, retaining catalog-specific raw-output
+  constraints. Source rows (including the number row at -1) remain intact in the cache;
+  `bin/layout-transformer.js` projects only rows 0–4 into the current client catalog.
+  Catalog behavior lowering remains unchanged for step 2.
 - `tests/spark.test.ts`: malformed inputs, source preservation, extension fields, duplicate-hand
   identity, conflicts, and supported runtime parity through the legacy creator bridge.
 

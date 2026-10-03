@@ -31,6 +31,9 @@ export function transformLayout(layout) {
 
 	for (const [key, info] of sourcePositions) {
 		if (info && typeof info.row === 'number' && typeof info.col === 'number') {
+			// Preserve all Spark rows in the source cache, but publish only the rows
+			// supported by the current keyboard UI (the number row is -1).
+			if (info.row < 0 || info.row > 4) continue;
 			const position = { char: key, row: info.row, col: info.col };
 			if (info.row >= THUMB_ROW) position.thumbHand = computeKeyThumbHand(info);
 			positions.push(position);
@@ -73,7 +76,7 @@ function computeCyanophageThumb(layout) {
 	const entries = Array.isArray(layout.positions)
 		? layout.positions.map((info) => [info.char ?? '', info])
 		: Object.entries(layout.keys ?? {});
-	const thumbs = entries.filter(([, info]) => info && info.row >= 3);
+	const thumbs = entries.filter(([, info]) => info && info.row >= 3 && info.row <= 4);
 	if (thumbs.length !== 1) return undefined;
 
 	const [, info] = thumbs[0];
