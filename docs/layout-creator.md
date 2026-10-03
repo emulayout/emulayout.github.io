@@ -128,6 +128,14 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   with no empty mapping row; Add mapping still adds rows. `*` uses the empty Magic section. If Magic
   is still unused and the first typed trigger is `@`, the placeholder `*` section is omitted.
   Clearing `@` or `*` from a slot does not remove its mapping.
+  Import also offers **Spark schema/1** for pasted JSON: either a raw object with `keys` and
+  optional `magic`, or the version-1 `spark/1` AKL wrapper. The existing AKL importer handles
+  conversion and reports omissions before Import. Invalid JSON, unsupported versions, no usable
+  keys, and inputs over 64 KiB cannot be applied. Spark replaces all draft keys and mappings,
+  clearing prior disabled mappings; it preserves practice settings, the active typing section,
+  and the saved-layout identity without writing saved storage. Raw objects retain the current
+  name, author, and geometry; wrappers supply them. The result stays in Edit and persists through
+  ordinary draft URL/save/share behavior. Cancel changes nothing.
   Keyboard geometry is Row stagger or Column stagger, matching the index toolbar. Thumb keys use the same left/right
   separation as the presentation keyboard, with an empty spacebar-sized gap
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on

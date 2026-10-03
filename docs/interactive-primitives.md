@@ -126,6 +126,11 @@ field. The field receives initial focus. Import applies the parsed grid to the c
 closes the modal, and restores focus to the trigger; Cancel, Close, Escape, and backdrop dismissal
 make no changes and restore the same focus. Grid parsing stays in `keyboardInputConfig.ts`, not in
 the modal or editor component.
+The import-format radio group adds Spark schema/1 alongside Key rows. Each format retains its
+own text while switching; every opening resets to empty Key rows. Spark JSON validation and
+omission notices appear before applying, with Import disabled for invalid payloads. Parsing
+and conversion reuse `aklTryImport.ts`. The panel is viewport-bounded with a scrolling body
+and visible action footer.
 
 Opening a creator share link uses `ModalShell` and `ModalHeader` for a **Shared layout** review.
 Layout name receives initial focus and is the only editable payload field. The keyboard uses the

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { importAklTryPayload, readAklTryHash } from '../src/lib/aklTryImport';
+import { importAklTryPayload, readAklTryHash, readSparkImportText } from '../src/lib/aklTryImport';
 import { createLayoutFromKeyConfig } from '../src/lib/layoutCreator';
 import { compileCreatorInputProfile } from '../src/lib/layoutCreatorMappings';
 import { resolveLayoutInput } from '../src/lib/layoutInputBehaviors';
@@ -23,6 +23,33 @@ const qwertyKeys = [
 	['e', 3, 2, 'LT'],
 	['r', 3, 6, 'RT']
 ].map(([char, row, col, finger]) => ({ char, row, col, finger }));
+
+test('pasted raw Spark and AKL wrappers reuse the link importer', () => {
+	const defaults = { name: 'Current', author: 'Author', board: 'staggered' as const };
+	const raw = readSparkImportText(JSON.stringify(payload().layout), defaults);
+	expect(raw.snapshot?.name).toBe('Current');
+	expect(raw.snapshot?.author).toBe('Author');
+	expect(raw.snapshot?.keyConfig.keyboardType).toBe('staggered');
+	expect(raw.snapshot?.includeMagicKey).toBe(true);
+	expect(raw.snapshot?.includeAdaptiveKey).toBe(true);
+	expect(raw.snapshot?.includeChiralKey).toBe(true);
+	expect(raw.notice).toContain('Will import without');
+	const wrapped = readSparkImportText(JSON.stringify(payload()), defaults);
+	expect(wrapped.snapshot?.name).toBe('idioms-example');
+	expect(wrapped.snapshot?.keyConfig.keyboardType).toBe('ortho');
+	for (const value of [
+		null,
+		{},
+		{ ...payload(), v: 2 },
+		{ ...payload(), format: 'spark/2' },
+		{ schema: 2, keys: qwertyKeys },
+		{ keys: [] }
+	]) {
+		expect(readSparkImportText(JSON.stringify(value), defaults).snapshot).toBeNull();
+	}
+	expect(readSparkImportText('{', defaults).snapshot).toBeNull();
+	expect(readSparkImportText(' '.repeat(65537), defaults).notice).toContain('64 KiB');
+});
 
 function payload() {
 	return {

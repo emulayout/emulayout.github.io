@@ -383,3 +383,42 @@ export function readAklTryHash(hash: string): AklTryImportResult {
 		return INVALID_AKL_TRY_RESULT;
 	}
 }
+
+/** Plain JSON import; link transport decoding remains exclusive to readAklTryHash. */
+export function readSparkImportText(
+	text: string,
+	defaults: { name: string; author: string; board: InputKeyboardType }
+): AklTryImportResult {
+	const invalid = (notice: string): AklTryImportResult => ({
+		snapshot: null,
+		notice,
+		source: null
+	});
+	if (
+		text.length > MAX_ENCODED_PAYLOAD_LENGTH ||
+		new TextEncoder().encode(text).length > MAX_ENCODED_PAYLOAD_LENGTH
+	)
+		return invalid('Spark JSON must be 64 KiB or smaller.');
+	let value: unknown;
+	try {
+		value = JSON.parse(text);
+	} catch {
+		return invalid('Paste valid JSON for a Spark schema/1 layout.');
+	}
+	if (!isRecord(value)) return invalid('Expected a Spark layout object.');
+	// A wrapper must pass the existing version/format checks; never silently unwrap unknown versions.
+	const wrapped = 'layout' in value || 'v' in value || 'format' in value;
+	if (!wrapped && 'schema' in value && value.schema !== 1)
+		return invalid('Only Spark schema version 1 is supported.');
+	const result = importAklTryPayload(
+		wrapped ? value : { v: 1, format: 'spark/1', ...defaults, layout: value }
+	);
+	if (!result.snapshot)
+		return invalid('Could not read this Spark schema/1 layout. Check the version and keys.');
+	return {
+		...result,
+		notice: result.notice?.startsWith('Imported from akl.gg without ')
+			? result.notice.replace('Imported from akl.gg without ', 'Will import without ')
+			: 'Ready to import keys and mappings.'
+	};
+}

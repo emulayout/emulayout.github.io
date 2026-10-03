@@ -1424,6 +1424,18 @@
 
 <LayoutKeyImportModal
 	open={keyImportOpen}
+	name={layoutName}
+	author={layoutAuthor}
+	onSparkImport={(snapshot) =>
+		applyCreatorSnapshot(
+			{
+				...snapshot,
+				preview: false,
+				section: parseCreatorDetailSection(activeSection),
+				practiceLesson
+			},
+			practiceLessonUrlOverrides
+		)}
 	config={keyConfig}
 	onClose={() => (keyImportOpen = false)}
 	onImport={setKeyConfig}

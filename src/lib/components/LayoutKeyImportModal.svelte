@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
+	import { readSparkImportText } from '$lib/aklTryImport';
+	import type { CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
 	import {
 		applyKeyboardInputImport,
 		parseKeyboardInputImportRows,
@@ -10,24 +12,44 @@
 	interface Props {
 		open: boolean;
 		config: KeyboardInputConfig;
+		name: string;
+		author: string;
+		onSparkImport: (snapshot: CreatorUrlSnapshot) => void;
 		onClose: () => void;
 		onImport: (config: KeyboardInputConfig) => void;
 	}
 
-	let { open, config, onClose, onImport }: Props = $props();
+	let { open, config, name, author, onSparkImport, onClose, onImport }: Props = $props();
 	const exampleLayout = `q w e r t y u i o p
 a s d f g h j k l ;
 z x c v b n m , . /`;
 	let text = $state('');
+	let format = $state<'rows' | 'spark'>('rows');
+	let sparkText = $state('');
+	const spark = $derived(
+		format === 'spark' && sparkText.trim()
+			? readSparkImportText(sparkText, { name, author, board: config.keyboardType })
+			: null
+	);
 	const parsedRows = $derived(parseKeyboardInputImportRows(text));
 	const invalidText = $derived(Boolean(text.trim()) && !parsedRows);
 
 	$effect(() => {
-		if (open) text = '';
+		if (open) {
+			text = '';
+			sparkText = '';
+			format = 'rows';
+		}
 	});
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
+		if (format === 'spark') {
+			if (!spark?.snapshot) return;
+			onSparkImport(spark.snapshot);
+			onClose();
+			return;
+		}
 		const imported = applyKeyboardInputImport(config, text);
 		if (!imported) return;
 		onImport(imported);
@@ -39,45 +61,76 @@ z x c v b n m , . /`;
 	{open}
 	{onClose}
 	labelledBy="layout-key-import-title"
-	panelClass="max-w-xl"
+	panelClass="max-w-xl max-h-[calc(100dvh-2rem)] overflow-hidden"
 	initialFocusSelector="#layout-key-import-text"
 >
 	<ModalHeader titleId="layout-key-import-title" title="Import layout" {onClose} />
 
-	<form onsubmit={submit}>
-		<div class="layout-key-import-content">
-			<p>
-				Paste one keyboard row per line, with spaces between keys. Bracketed rows and
-				Markdown-linked rows are also supported.
-			</p>
-			<label>
-				<span>Layout keys</span>
-				<textarea
-					id="layout-key-import-text"
-					bind:value={text}
-					rows="6"
-					spellcheck="false"
-					aria-describedby="layout-key-import-hint"
-					placeholder={exampleLayout}></textarea>
-			</label>
-			<p id="layout-key-import-hint" class="layout-key-import-hint">
-				If a row has fewer keys than the editor, its remaining fields will be cleared.
-			</p>
-			{#if invalidText}
-				<p class="layout-key-import-error" role="alert">
-					Each key must be a single character separated from the next key by whitespace.
+	<form onsubmit={submit} class="flex min-h-0 flex-col">
+		<div class="layout-key-import-content overflow-y-auto">
+			<fieldset class="flex gap-4">
+				<legend class="mb-2">Import format</legend>
+				<label><input type="radio" bind:group={format} value="rows" />Key rows</label>
+				<label><input type="radio" bind:group={format} value="spark" />Spark schema/1</label>
+			</fieldset>
+			{#if format === 'spark'}
+				<p>
+					Paste a Spark layout object with keys and optional magic mappings, or an AKL version-1
+					spark/1 wrapper.
 				</p>
+				<label
+					><span>Spark JSON</span><textarea
+						bind:value={sparkText}
+						rows="8"
+						spellcheck="false"
+						aria-describedby="spark-import-hint"
+						aria-invalid={Boolean(spark && !spark.snapshot)}></textarea></label
+				>
+				<p id="spark-import-hint" class="layout-key-import-hint">
+					Replaces all keys and mappings in this draft. Raw layouts keep the current name, author,
+					and geometry; wrappers supply their own. Practice settings are kept. Saved layouts change
+					only when you save.
+				</p>
+				{#if spark}<p
+						class:layout-key-import-error={!spark.snapshot}
+						role={spark.snapshot ? 'status' : 'alert'}
+					>
+						{spark.notice}
+					</p>{/if}
+			{:else}
+				<p>
+					Paste one keyboard row per line, with spaces between keys. Bracketed rows and
+					Markdown-linked rows are also supported.
+				</p>
+				<label>
+					<span>Layout keys</span>
+					<textarea
+						id="layout-key-import-text"
+						bind:value={text}
+						rows="6"
+						spellcheck="false"
+						aria-describedby="layout-key-import-hint"
+						placeholder={exampleLayout}></textarea>
+				</label>
+				<p id="layout-key-import-hint" class="layout-key-import-hint">
+					If a row has fewer keys than the editor, its remaining fields will be cleared.
+				</p>
+				{#if invalidText}
+					<p class="layout-key-import-error" role="alert">
+						Each key must be a single character separated from the next key by whitespace.
+					</p>
+				{/if}
 			{/if}
 		</div>
 
-		<div class="layout-key-import-actions">
+		<div class="layout-key-import-actions shrink-0">
 			<button type="button" class="filter-reset-button layout-key-import-button" onclick={onClose}>
 				Cancel
 			</button>
 			<button
 				type="submit"
 				class="filter-reset-button layout-key-import-button layout-key-import-button--primary"
-				disabled={!parsedRows}
+				disabled={format === 'spark' ? !spark?.snapshot : !parsedRows}
 			>
 				Import
 			</button>
@@ -86,6 +139,13 @@ z x c v b n m , . /`;
 </ModalShell>
 
 <style>
+	.layout-key-import-content fieldset label {
+		flex-direction: row;
+		align-items: center;
+	}
+	.layout-key-import-content input[type='radio'] {
+		accent-color: var(--accent);
+	}
 	.layout-key-import-content {
 		display: flex;
 		flex-direction: column;
