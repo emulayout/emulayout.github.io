@@ -179,6 +179,7 @@ test('keeps lesson words at full size and only shrinks Accuracy and WPM', async 
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await dialog.getByRole('radio', { name: 'Colemak Club' }).click();
 	await dialog.getByRole('button', { name: 'Save' }).click();
 	const lessonPrompt = practicePanel.getByLabel('Practice words');
@@ -206,6 +207,7 @@ test('keeps Monkeytype Accuracy and WPM at its smaller typing size', async ({ pa
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await dialog.getByRole('radio', { name: 'Monkeytype' }).click();
 	await dialog.getByRole('button', { name: 'Save' }).click();
 
@@ -236,6 +238,7 @@ test('uses Monkeytype sizing, feedback, completed words, and a moving cursor', a
 
 	await expect(practicePanel.getByRole('radiogroup', { name: 'Test style' })).toHaveCount(0);
 	await settingsButton.click();
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	expect(
 		(await testStyle.getByRole('radio').allTextContents()).map((label) => label.trim())
 	).toEqual(['Monkeytype', 'Colemak Club']);
@@ -248,6 +251,7 @@ test('uses Monkeytype sizing, feedback, completed words, and a moving cursor', a
 	await expect(practiceInputBox).toHaveCSS('height', '56px');
 
 	await settingsButton.click();
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await expect(monkeytype).toBeChecked();
 	await colemakClub.click();
 	await dialog.getByRole('button', { name: 'Save' }).click();
@@ -263,6 +267,7 @@ test('uses Monkeytype sizing, feedback, completed words, and a moving cursor', a
 	expect(await practiceWords.allTextContents()).not.toContain('alpha');
 
 	await settingsButton.click();
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await expect(colemakClub).toBeChecked();
 	await monkeytype.click();
 	await expect(practiceWords).toHaveCount(9);
@@ -345,6 +350,7 @@ test('uses Monkeytype sizing, feedback, completed words, and a moving cursor', a
 
 	await page.reload();
 	await settingsButton.click();
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await expect(monkeytype).toBeChecked();
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(prompt).toHaveCSS('flex-wrap', 'wrap');
@@ -404,14 +410,13 @@ test('balances random lessons toward words matching the active special keys', as
 	await settingsButton.click();
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
 	const balanceSlider = dialog.getByRole('slider', {
-		name: 'Increase magic/adaptive key occurrences'
+		name: 'Words with remappings'
 	});
 	await expect(dialog.getByRole('radio', { name: 'Random words' })).toBeChecked();
+	await dialog.getByRole('tab', { name: 'Remappings', exact: true }).click();
 	await expect(balanceSlider).toHaveValue('100');
 	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeEnabled();
-	await expect(
-		dialog.getByText('6 of 12 words match the active magic/adaptive keys.')
-	).toBeVisible();
+	await expect(dialog.getByText('6 of 12 words match the active remappings.')).toBeVisible();
 
 	await balanceSlider.fill('0');
 	await dialog.getByRole('button', { name: 'Save' }).click();
@@ -420,6 +425,7 @@ test('balances random lessons toward words matching the active special keys', as
 
 	await settingsButton.click();
 	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
+	await dialog.getByRole('tab', { name: 'Remappings', exact: true }).click();
 	await balanceSlider.fill('100');
 	await dialog.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100&words=10');
@@ -661,6 +667,7 @@ test('places special mappings without clipping the typing-practice keyboard', as
 	).toHaveText(['l', 'j']);
 	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
 	const practiceDialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await practiceDialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await practiceDialog.getByRole('radio', { name: 'Monkeytype' }).click();
 	await practiceDialog.getByRole('button', { name: 'Save' }).click();
 	const adaptiveCursor = practicePanel.locator('[data-practice-cursor="true"]');
@@ -858,6 +865,7 @@ test('underlines enabled Magic groups in typing-practice words', async ({ page }
 	await expect(words.nth(1).locator('[data-magic-group="true"]')).toHaveText(['l', 'l']);
 	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await dialog.getByRole('radio', { name: 'Monkeytype' }).click();
 	await dialog.getByRole('button', { name: 'Save' }).click();
 	const magicCursor = practicePanel.locator('[data-practice-cursor="true"]');
@@ -877,6 +885,7 @@ test('colors typing-practice feedback and advances only a completed word', async
 	const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 	await practicePanel.getByRole('button', { name: 'Practice lesson settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('tab', { name: 'Test style', exact: true }).click();
 	await dialog.getByRole('radio', { name: 'Colemak Club' }).click();
 	await dialog.getByRole('button', { name: 'Save' }).click();
 	const practiceWords = practicePanel.getByLabel('Practice words');

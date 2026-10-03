@@ -5,6 +5,7 @@ export const TYPING_PRACTICE_LESSON_WORD_COUNT = DEFAULT_TYPING_PRACTICE_WORD_CO
 export type SharedTypingPracticeLessonSource = {
 	customText: string | null;
 	specialWordsPercent: number;
+	remappingSignature?: string;
 	wordCount: number;
 	specialCandidateSignature: string;
 	unreachableKeysSignature: string;
@@ -15,13 +16,15 @@ export function sharedTypingPracticeLessonMatches(
 	hasLesson: boolean,
 	customText: string | null,
 	specialWordsPercent: number,
-	wordCount: number
+	wordCount: number,
+	remappingSignature = ''
 ): boolean {
 	if (!stored || !hasLesson) return false;
 	if (customText !== null) return stored.customText === customText;
 	return (
 		stored.customText === null &&
 		stored.specialWordsPercent === specialWordsPercent &&
+		(stored.remappingSignature ?? '') === remappingSignature &&
 		stored.wordCount === wordCount
 	);
 }

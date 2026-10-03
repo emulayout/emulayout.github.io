@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { remappingPreferencesSignature } from '$lib/typingPracticeRemappingPreferences';
+	import { typingPracticeRemappingPools } from '$lib/typingPracticeSpecialWords';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import KeyboardInputConfigControl from '$lib/components/KeyboardInputConfigControl.svelte';
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
@@ -128,6 +130,16 @@
 	}: Props = $props();
 
 	const customPracticeText = $derived(practiceLesson?.customText ?? null);
+	const remappingPreferences = $derived(practiceLesson?.remappingPreferences);
+	const remappingSignature = $derived(remappingPreferencesSignature(remappingPreferences));
+	const remappingPools = $derived(
+		typingPracticeRemappingPools(sharedLesson.wordPool, inputProfile, disabledMappingIds)
+	);
+	const remappingCounts = $derived({
+		magic: remappingPools.magic.length,
+		adaptive: remappingPools.adaptive.length,
+		chiral: remappingPools.chiral.length
+	});
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
 	const lessonWordCount = $derived(practiceLesson?.wordCount ?? TYPING_PRACTICE_LESSON_WORD_COUNT);
 	const wordPool = $derived(sharedLesson.wordPool);
@@ -154,6 +166,7 @@
 				words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
 				count: lessonWordCount,
 				specialWordsPercent,
+				remappingPreferences,
 				profile: inputProfile,
 				disabledMappingIds,
 				excludedWords
@@ -315,10 +328,13 @@
 
 	function currentLessonSource(customText: string | null): SharedTypingPracticeLessonSource {
 		return {
+			remappingSignature,
 			customText,
 			specialWordsPercent,
 			wordCount: lessonWordCount,
-			specialCandidateSignature: specialCandidateWords.join('\0'),
+			specialCandidateSignature: remappingPreferences?.split
+				? JSON.stringify(remappingPools)
+				: specialCandidateWords.join('\0'),
 			unreachableKeysSignature
 		};
 	}
@@ -336,6 +352,7 @@
 			words: typingPracticeWordsForReachability(wordPool, unreachableKeySet),
 			count,
 			specialWordsPercent,
+			remappingPreferences,
 			profile: inputProfile,
 			disabledMappingIds,
 			excludedWords
@@ -356,12 +373,18 @@
 		// Lesson-source settings always rebuild the lesson; mapping toggles are
 		// handled separately so they cannot reset a lesson mid-typing.
 		void specialWordsPercent;
+		void remappingSignature;
 		void lessonWordCount;
 
 		if (customPracticeText) {
 			if (
 				!untrack(() =>
-					sharedLesson.matchesLesson(customPracticeText, specialWordsPercent, lessonWordCount)
+					sharedLesson.matchesLesson(
+						customPracticeText,
+						specialWordsPercent,
+						lessonWordCount,
+						remappingSignature
+					)
 				)
 			) {
 				replacePracticeLesson();
@@ -371,7 +394,11 @@
 
 		sharedLesson.ensureWordPool(fetch);
 		if (wordPool.length > 0) {
-			if (!untrack(() => sharedLesson.matchesLesson(null, specialWordsPercent, lessonWordCount))) {
+			if (
+				!untrack(() =>
+					sharedLesson.matchesLesson(null, specialWordsPercent, lessonWordCount, remappingSignature)
+				)
+			) {
 				replacePracticeLesson();
 			}
 		}
@@ -383,7 +410,9 @@
 		// Once typing starts, the next restart picks up the change instead.
 		if (customPracticeText || specialWordsPercent <= 0) return;
 		if (wordPool.length === 0) return;
-		const candidateSignature = specialCandidateWords.join('\0');
+		const candidateSignature = remappingPreferences?.split
+			? JSON.stringify(remappingPools)
+			: specialCandidateWords.join('\0');
 		if (untrack(() => sharedLesson.hasStarted)) return;
 		if (
 			untrack(() =>
@@ -406,7 +435,9 @@
 		if (
 			untrack(() =>
 				sharedLesson.matchesUntouchedRandomSignatures(
-					specialCandidateWords.join('\0'),
+					remappingPreferences?.split
+						? JSON.stringify(remappingPools)
+						: specialCandidateWords.join('\0'),
 					unreachableKeysSignature
 				)
 			)
@@ -751,6 +782,7 @@
 	<TypingPracticeLessonModal
 		open={lessonModalOpen}
 		lesson={{
+			remappingPreferences,
 			customText: customPracticeText,
 			specialWordsPercent,
 			wordCount: lessonWordCount
@@ -758,6 +790,7 @@
 		initialText={lessonWords.join(' ')}
 		specialWordsAvailable={hasSpecialMappings}
 		specialWordCount={specialCandidateWords.length}
+		{remappingCounts}
 		wordCount={wordPool.length}
 		testStyle={displayOptions.testStyle}
 		onTestStyleChange={(value) => uiPrefs.setTypingPracticeDisplayOption('testStyle', value)}

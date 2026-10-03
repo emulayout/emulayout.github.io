@@ -58,13 +58,19 @@ export class SharedTypingPracticeLesson {
 		);
 	}
 
-	matchesLesson(customText: string | null, specialWordsPercent: number, wordCount: number) {
+	matchesLesson(
+		customText: string | null,
+		specialWordsPercent: number,
+		wordCount: number,
+		remappingSignature = ''
+	) {
 		return sharedTypingPracticeLessonMatches(
 			this.source,
 			this.hasLesson,
 			customText,
 			specialWordsPercent,
-			wordCount
+			wordCount,
+			remappingSignature
 		);
 	}
 

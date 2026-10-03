@@ -1,4 +1,10 @@
 import { clampTypingPracticeSpecialWordsPercent } from '$lib/typingPracticeSpecialWords';
+import {
+	normalizeRemappingPreferences,
+	parseRemappingPreferences,
+	encodeRemappingPreferences,
+	type RemappingPreferences
+} from '$lib/typingPracticeRemappingPreferences';
 
 export const TYPING_PRACTICE_TEXT_PARAM = 'text';
 export const TYPING_PRACTICE_SPECIAL_WORDS_PARAM = 'special';
@@ -13,10 +19,11 @@ const TYPING_PRACTICE_LESSON_SETTINGS_VERSION = 1;
 
 /**
  * Lesson source settings. Custom text takes precedence; otherwise random
- * words are drawn with the requested share of special-key (Magic/Adaptive)
+ * words are drawn with the requested share of remapping (Magic/Adaptive/Chiral)
  * words, where 100 means only such words and 0 means an ordinary lesson.
  */
 export interface TypingPracticeLessonSettings {
+	remappingPreferences?: RemappingPreferences;
 	customText: string | null;
 	specialWordsPercent: number;
 	wordCount: TypingPracticeWordCount;
@@ -24,6 +31,7 @@ export interface TypingPracticeLessonSettings {
 
 /** URL fields that were actually present. Absent keys fall back to stored prefs. */
 export interface TypingPracticeLessonUrlOverrides {
+	remappingPreferences?: RemappingPreferences;
 	customText?: string | null;
 	specialWordsPercent?: number;
 	wordCount?: TypingPracticeWordCount;
@@ -64,7 +72,11 @@ export function normalizeTypingPracticeLessonSettings(
 	settings: Partial<TypingPracticeLessonSettings> | null | undefined
 ): TypingPracticeLessonSettings {
 	const customText = normalizeTypingPracticeText(settings?.customText);
+	const preferences = customText
+		? undefined
+		: normalizeRemappingPreferences(settings?.remappingPreferences);
 	return {
+		...(preferences ? { remappingPreferences: preferences } : {}),
 		customText,
 		// Custom text replaces the random word source, so a balance never
 		// coexists with it in canonical state.
@@ -82,6 +94,7 @@ export function isDefaultTypingPracticeLessonSettings(
 ): boolean {
 	return (
 		settings.customText === null &&
+		settings.remappingPreferences === undefined &&
 		settings.specialWordsPercent === 0 &&
 		settings.wordCount === DEFAULT_TYPING_PRACTICE_WORD_COUNT
 	);
@@ -91,6 +104,8 @@ export function typingPracticeLessonOverridesFromSearchParams(
 	searchParams: URLSearchParams
 ): TypingPracticeLessonUrlOverrides {
 	const overrides: TypingPracticeLessonUrlOverrides = {};
+	const preferences = parseRemappingPreferences(searchParams.get('remap') ?? '');
+	if (preferences) overrides.remappingPreferences = preferences;
 	if (searchParams.has(TYPING_PRACTICE_TEXT_PARAM)) {
 		overrides.customText = normalizeTypingPracticeText(
 			searchParams.get(TYPING_PRACTICE_TEXT_PARAM)
@@ -115,6 +130,7 @@ export function hasTypingPracticeLessonUrlOverrides(
 ): boolean {
 	return (
 		overrides.customText !== undefined ||
+		overrides.remappingPreferences !== undefined ||
 		overrides.specialWordsPercent !== undefined ||
 		overrides.wordCount !== undefined
 	);
@@ -127,14 +143,15 @@ export function typingPracticeLessonOverridesForSettings(
 	const lesson = normalizeTypingPracticeLessonSettings(settings);
 	if (lesson.customText) return { customText: lesson.customText };
 	return {
+		...(lesson.remappingPreferences ? { remappingPreferences: lesson.remappingPreferences } : {}),
 		specialWordsPercent: lesson.specialWordsPercent,
 		wordCount: lesson.wordCount
 	};
 }
 
 /**
- * URL params overlay stored prefs. A random-lesson URL option (`special` or
- * `words` without `text`) is a temporary random lesson and ignores stored
+ * URL params overlay stored prefs. A random-lesson URL option (`special`,
+ * `remap`, or `words` without `text`) is a temporary random lesson and ignores stored
  * custom text. `text` still wins over `special` when both are present.
  */
 export function resolveTypingPracticeLessonSettings(
@@ -148,8 +165,13 @@ export function resolveTypingPracticeLessonSettings(
 			wordCount: overrides.wordCount ?? persisted.wordCount
 		});
 	}
-	if (overrides.specialWordsPercent !== undefined || overrides.wordCount !== undefined) {
+	if (
+		overrides.specialWordsPercent !== undefined ||
+		overrides.wordCount !== undefined ||
+		overrides.remappingPreferences !== undefined
+	) {
 		return normalizeTypingPracticeLessonSettings({
+			remappingPreferences: overrides.remappingPreferences ?? persisted.remappingPreferences,
 			customText: null,
 			specialWordsPercent: overrides.specialWordsPercent ?? persisted.specialWordsPercent,
 			wordCount: overrides.wordCount ?? persisted.wordCount
@@ -180,6 +202,8 @@ export function writeTypingPracticeLessonParams(
 	if (lesson.specialWordsPercent > 0) {
 		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
 	}
+	if (lesson.remappingPreferences)
+		params.set('remap', encodeRemappingPreferences(lesson.remappingPreferences));
 	if (lesson.wordCount !== DEFAULT_TYPING_PRACTICE_WORD_COUNT) {
 		params.set(TYPING_PRACTICE_WORD_COUNT_PARAM, String(lesson.wordCount));
 	}
@@ -193,6 +217,7 @@ export function writeTypingPracticeLessonOverrideParams(
 	params.delete(TYPING_PRACTICE_TEXT_PARAM);
 	params.delete(TYPING_PRACTICE_SPECIAL_WORDS_PARAM);
 	params.delete(TYPING_PRACTICE_WORD_COUNT_PARAM);
+	params.delete('remap');
 
 	if (overrides.customText !== undefined) {
 		params.set(TYPING_PRACTICE_TEXT_PARAM, overrides.customText ?? '');
@@ -207,6 +232,8 @@ export function writeTypingPracticeLessonOverrideParams(
 			String(clampTypingPracticeSpecialWordsPercent(overrides.specialWordsPercent))
 		);
 	}
+	if (overrides.remappingPreferences)
+		params.set('remap', encodeRemappingPreferences(overrides.remappingPreferences));
 	if (overrides.wordCount !== undefined) {
 		params.set(TYPING_PRACTICE_WORD_COUNT_PARAM, String(overrides.wordCount));
 	}

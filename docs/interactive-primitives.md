@@ -90,7 +90,15 @@ and detail-tab changes are view state and do not trigger this confirmation.
 
 Typing practice uses `ModalShell` and `ModalHeader` for Practice lesson settings. Layout feel reuses
 that same modal; saving keeps the current detail tab (`feel` or `practice`) while writing `text` /
-`special` / `words` and persisting those choices. The settings control opens the modal with the
+`special` / `words` / `remap` and persisting those choices. An Adjust by type disclosure
+reveals three labeled native range inputs for relative Magic, Adaptive, and Chiral weights.
+These are staged with the other lesson settings and retain their values when collapsed.
+The lesson form body scrolls within a viewport-bounded panel while its action footer remains visible.
+The shared Tabs primitive separates Test source (including word count/custom text), Remappings,
+and Test style. Layout feel omits Test style. Each opening starts on Test source; switching tabs
+preserves staged edits. Remappings explains its unavailability for custom text or layouts without
+remappings. Save, Cancel, and Reset apply across all tabs, and tab selection is not persisted.
+The settings control opens the modal with the
 current lesson; Cancel, the header close button, Escape, and backdrop dismissal restore focus to
 that control. Typing practice adds a staged Test style segmented control with Colemak Club and
 Monkeytype choices to the modal; Layout feel omits it. Saving persists that choice and replaces

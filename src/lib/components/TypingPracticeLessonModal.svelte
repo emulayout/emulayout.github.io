@@ -1,6 +1,13 @@
 <script lang="ts">
+	import {
+		defaultRemappingPreferences,
+		REMAPPING_TYPES,
+		type RemappingType
+	} from '$lib/typingPracticeRemappingPreferences';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
+	import type { TabOption } from '$lib/tabs';
 	import SegmentedControl from '$lib/components/SegmentedControl.svelte';
 	import type { SegmentedOption } from '$lib/segmentedControl';
 	import {
@@ -27,6 +34,9 @@
 		{ value: 'colemak-club', label: 'Colemak Club' }
 	];
 
+	type LessonTab = 'source' | 'remappings' | 'style';
+	let activeTab = $state<LessonTab>('source');
+
 	type LessonSource = 'random-words' | 'custom-text';
 
 	interface Props {
@@ -38,6 +48,7 @@
 		specialWordsAvailable: boolean;
 		/** Words in the pool that match the currently enabled special keys. */
 		specialWordCount: number;
+		remappingCounts?: Record<RemappingType, number>;
 		/** Total words in the random word pool. */
 		wordCount: number;
 		/** Typing-practice-only display option. Omit for Layout feel. */
@@ -53,6 +64,7 @@
 		initialText,
 		specialWordsAvailable,
 		specialWordCount,
+		remappingCounts = { magic: 0, adaptive: 0, chiral: 0 },
 		wordCount,
 		testStyle = DEFAULT_TYPING_PRACTICE_TEST_STYLE,
 		onTestStyleChange,
@@ -63,6 +75,21 @@
 	let source = $state<LessonSource>('random-words');
 	let text = $state('');
 	let specialWordsPercent = $state(0);
+	let remappingPreferences = $state(defaultRemappingPreferences());
+	let preferencesCustomized = $state(false);
+	const preferencePanelId = $props.id();
+	const tabOptions = $derived<TabOption<LessonTab>[]>(
+		[
+			{ value: 'source' as const, label: 'Test source' },
+			{ value: 'remappings' as const, label: 'Remappings' },
+			...(onTestStyleChange ? [{ value: 'style' as const, label: 'Test style' }] : [])
+		].map((option) => ({
+			...option,
+			id: `${preferencePanelId}-${option.value}-tab`,
+			controls: `${preferencePanelId}-${option.value}-panel`
+		}))
+	);
+	const typeLabels = { magic: 'Magic', adaptive: 'Adaptive', chiral: 'Chiral' };
 	let lessonWordCount = $state<TypingPracticeWordCount>(DEFAULT_TYPING_PRACTICE_WORD_COUNT);
 	let draftTestStyle = $state<TypingPracticeTestStyle>(DEFAULT_TYPING_PRACTICE_TEST_STYLE);
 	let textField = $state<HTMLTextAreaElement | undefined>(undefined);
@@ -90,9 +117,12 @@
 
 	$effect(() => {
 		if (!open) return;
+		activeTab = 'source';
 		source = lesson.customText ? 'custom-text' : 'random-words';
 		text = initialText;
 		specialWordsPercent = lesson.specialWordsPercent;
+		remappingPreferences = { ...(lesson.remappingPreferences ?? defaultRemappingPreferences()) };
+		preferencesCustomized = Boolean(lesson.remappingPreferences);
 		lessonWordCount = lesson.wordCount;
 		draftTestStyle = testStyle;
 	});
@@ -126,6 +156,7 @@
 		onSave(
 			normalizeTypingPracticeLessonSettings({
 				customText: null,
+				...(preferencesCustomized ? { remappingPreferences } : {}),
 				specialWordsPercent: specialWordsAvailable
 					? specialWordsPercent
 					: lesson.specialWordsPercent,
@@ -152,125 +183,227 @@
 	{open}
 	{onClose}
 	labelledBy="typing-practice-lesson-title"
-	panelClass="max-w-xl"
+	panelClass="max-w-xl max-h-[calc(100dvh-2rem)] overflow-hidden"
 	initialFocusSelector={lesson.customText ? '.typing-practice-lesson-text-field' : null}
 >
 	<ModalHeader titleId="typing-practice-lesson-title" title="Practice lesson" {onClose} />
 
-	<form onsubmit={submit}>
-		<div class="flex flex-col gap-4 px-5 py-4">
-			<fieldset class="typing-practice-lesson-source">
-				<legend>Test source</legend>
-				<label>
-					<input
-						type="radio"
-						name="typing-practice-lesson-source"
-						value="random-words"
-						bind:group={source}
-					/>
-					<span>Random words</span>
-				</label>
-				<label>
-					<input
-						type="radio"
-						name="typing-practice-lesson-source"
-						value="custom-text"
-						bind:group={source}
-					/>
-					<span>Custom text</span>
-				</label>
-			</fieldset>
+	<div class="lesson-tabs shrink-0 border-b px-5" style="border-color: var(--border);">
+		<Tabs
+			value={activeTab}
+			onChange={(value) => (activeTab = value)}
+			options={tabOptions}
+			ariaLabel="Practice lesson sections"
+			class="lesson-tab-list"
+			buttonClass="lesson-tab"
+			selectedClass="lesson-tab--selected"
+		/>
+	</div>
+	<form onsubmit={submit} class="flex min-h-0 flex-col">
+		<div class="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 py-4">
+			{#each tabOptions as option (option.value)}
+				<div
+					id={option.controls}
+					role="tabpanel"
+					aria-labelledby={option.id}
+					hidden={activeTab !== option.value}
+				>
+					{#if activeTab === option.value}
+						{#if option.value === 'source'}
+							<div class="flex flex-col gap-4">
+								<fieldset class="typing-practice-lesson-source">
+									<legend>Test source</legend>
+									<label>
+										<input
+											type="radio"
+											name="typing-practice-lesson-source"
+											value="random-words"
+											bind:group={source}
+										/>
+										<span>Random words</span>
+									</label>
+									<label>
+										<input
+											type="radio"
+											name="typing-practice-lesson-source"
+											value="custom-text"
+											bind:group={source}
+										/>
+										<span>Custom text</span>
+									</label>
+								</fieldset>
 
-			{#if source === 'random-words'}
-				<div class="typing-practice-lesson-word-count">
-					<span class="typing-practice-lesson-label">Word count</span>
-					<SegmentedControl
-						value={selectedWordCount}
-						onChange={setLessonWordCount}
-						options={wordCountOptions}
-						ariaLabel="Word count"
-						class="typing-practice-lesson-word-count-control"
-						buttonClass="typing-practice-lesson-word-count-option"
-						selectedClass="typing-practice-lesson-word-count-option--selected"
-					/>
-				</div>
-				{#if specialWordsAvailable}
-					<div class="typing-practice-lesson-balance">
-						<label class="typing-practice-lesson-balance-control">
-							<span class="typing-practice-lesson-label">
-								Increase magic/adaptive key occurrences
-							</span>
-							<span class="typing-practice-lesson-balance-row">
-								<input
-									type="range"
-									min="0"
-									max="100"
-									step="10"
-									bind:value={specialWordsPercent}
-									aria-valuetext={balanceValueText}
-								/>
-								<span class="typing-practice-lesson-balance-value" aria-hidden="true">
-									{balanceLabel}
-								</span>
-							</span>
-						</label>
-						<p class="typing-practice-lesson-hint typing-practice-lesson-description">
-							Fills this share of the lesson with words the enabled magic/adaptive keys can help
-							type. Disabled mappings don't count; at Only, every word matches.
-						</p>
-						{#if wordCount > 0}
-							{#if specialWordCount === 0 && specialWordsPercent > 0}
-								<p class="typing-practice-lesson-hint" role="status">
-									No words match the active magic/adaptive keys, so ordinary random words will be
-									used.
-								</p>
-							{:else}
-								<p class="typing-practice-lesson-hint">
-									{specialWordCount} of {wordCount} words match the active magic/adaptive keys.
-								</p>
-							{/if}
-						{/if}
-					</div>
-				{/if}
-			{:else}
-				<label class="flex flex-col gap-1.5">
-					<span class="typing-practice-lesson-label">Practice text</span>
-					<textarea
-						bind:this={textField}
-						bind:value={text}
-						rows="5"
-						class="typing-practice-lesson-text-field w-full resize-y rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:ring-2"
-						style="
+								{#if source === 'random-words'}
+									<div class="typing-practice-lesson-word-count">
+										<span class="typing-practice-lesson-label">Word count</span>
+										<SegmentedControl
+											value={selectedWordCount}
+											onChange={setLessonWordCount}
+											options={wordCountOptions}
+											ariaLabel="Word count"
+											class="typing-practice-lesson-word-count-control"
+											buttonClass="typing-practice-lesson-word-count-option"
+											selectedClass="typing-practice-lesson-word-count-option--selected"
+										/>
+									</div>
+								{:else}
+									<label class="flex flex-col gap-1.5">
+										<span class="typing-practice-lesson-label">Practice text</span>
+										<textarea
+											bind:this={textField}
+											bind:value={text}
+											rows="5"
+											class="typing-practice-lesson-text-field w-full resize-y rounded-xl px-4 py-3 outline-none transition-all duration-200 focus:ring-2"
+											style="
 							background-color: var(--input-bg);
 							color: var(--text-primary);
 							border: 1px solid var(--border);
 							--tw-ring-color: var(--accent);
 						"></textarea>
-				</label>
-			{/if}
-
-			{#if onTestStyleChange}
-				<div class="typing-practice-lesson-test-style">
-					<span class="typing-practice-lesson-label">Test style</span>
-					<SegmentedControl
-						value={draftTestStyle}
-						onChange={(value) => (draftTestStyle = value)}
-						options={testStyleOptions}
-						ariaLabel="Test style"
-						class="typing-practice-lesson-test-style-control"
-						buttonClass="typing-practice-lesson-test-style-option"
-						selectedClass="typing-practice-lesson-test-style-option--selected"
-					/>
-					<p class="typing-practice-lesson-hint typing-practice-lesson-description">
-						Monkeytype shows the full test, wraps when needed, and keeps completed words visible.
-						Colemak Club uses a large, single-line queue that advances as words are completed.
-					</p>
+									</label>
+								{/if}
+							</div>
+						{:else if option.value === 'remappings'}
+							{#if source === 'custom-text'}
+								<p class="typing-practice-lesson-hint">
+									Remapping preferences apply to random words. Choose Random words in Test source to
+									adjust them.
+								</p>
+							{:else if !specialWordsAvailable}
+								<p class="typing-practice-lesson-hint">
+									This layout has no Magic, Adaptive, or Chiral mappings.
+								</p>
+							{:else}
+								{#if specialWordsAvailable}
+									<div class="typing-practice-lesson-balance">
+										<label class="typing-practice-lesson-balance-control">
+											<span class="typing-practice-lesson-label"> Words with remappings </span>
+											<span class="typing-practice-lesson-balance-row">
+												<input
+													type="range"
+													min="0"
+													max="100"
+													step="10"
+													bind:value={specialWordsPercent}
+													aria-valuetext={balanceValueText}
+												/>
+												<span class="typing-practice-lesson-balance-value" aria-hidden="true">
+													{balanceLabel}
+												</span>
+											</span>
+										</label>
+										<p class="typing-practice-lesson-hint typing-practice-lesson-description">
+											Fills this share of the lesson with words the enabled remappings can help
+											type. Disabled mappings don't count. If no selected type has matching words,
+											ordinary random words are used.
+										</p>
+										<button
+											type="button"
+											class="filter-reset-button remapping-preferences-button"
+											aria-expanded={remappingPreferences.split}
+											aria-controls={preferencePanelId}
+											onclick={() => {
+												preferencesCustomized = true;
+												remappingPreferences = {
+													...remappingPreferences,
+													split: !remappingPreferences.split
+												};
+											}}
+										>
+											{remappingPreferences.split ? 'Use combined selection' : 'Adjust by type'}
+										</button>
+										{#if remappingPreferences.split}
+											<div id={preferencePanelId} class="remapping-preferences">
+												<p class="typing-practice-lesson-hint">
+													Relative preferences, not percentages. Equal values favor types equally; 0
+													stops selecting for that type. A word may still use more than one type.
+												</p>
+												{#each REMAPPING_TYPES as type (type)}
+													<label class="typing-practice-lesson-balance-control">
+														<span class="typing-practice-lesson-label"
+															>{typeLabels[type]} preference</span
+														>
+														<span class="typing-practice-lesson-balance-row">
+															<input
+																type="range"
+																min="0"
+																max="100"
+																step="10"
+																value={remappingPreferences[type]}
+																style:accent-color={`var(--${type}-key)`}
+																aria-valuetext={remappingPreferences[type] === 0
+																	? 'Off'
+																	: `${remappingPreferences[type]} relative weight`}
+																oninput={(event) => {
+																	preferencesCustomized = true;
+																	remappingPreferences = {
+																		...remappingPreferences,
+																		[type]: Number(event.currentTarget.value)
+																	};
+																}}
+															/>
+															<span class="typing-practice-lesson-balance-value" aria-hidden="true"
+																>{remappingPreferences[type] || 'Off'}</span
+															>
+														</span>
+													</label>
+													{#if wordCount > 0 && remappingCounts[type] === 0}<p
+															class="typing-practice-lesson-hint"
+														>
+															No matching {typeLabels[type]} words; this preference is skipped.
+														</p>{/if}
+												{/each}
+												{#if REMAPPING_TYPES.every((type) => remappingPreferences[type] === 0)}<p
+														class="typing-practice-lesson-hint"
+														role="status"
+													>
+														All preferences are off; ordinary random words will be used.
+													</p>{/if}
+											</div>
+										{/if}
+										{#if wordCount > 0}
+											{#if specialWordCount === 0 && specialWordsPercent > 0}
+												<p class="typing-practice-lesson-hint" role="status">
+													No words match the active remappings, so ordinary random words will be
+													used.
+												</p>
+											{:else}
+												<p class="typing-practice-lesson-hint">
+													{specialWordCount} of {wordCount} words match the active remappings.
+												</p>
+											{/if}
+										{/if}
+									</div>
+								{/if}
+							{/if}
+						{:else}
+							{#if onTestStyleChange}
+								<div class="typing-practice-lesson-test-style">
+									<span class="typing-practice-lesson-label">Test style</span>
+									<SegmentedControl
+										value={draftTestStyle}
+										onChange={(value) => (draftTestStyle = value)}
+										options={testStyleOptions}
+										ariaLabel="Test style"
+										class="typing-practice-lesson-test-style-control"
+										buttonClass="typing-practice-lesson-test-style-option"
+										selectedClass="typing-practice-lesson-test-style-option--selected"
+									/>
+									<p class="typing-practice-lesson-hint typing-practice-lesson-description">
+										Monkeytype shows the full test, wraps when needed, and keeps completed words
+										visible. Colemak Club uses a large, single-line queue that advances as words are
+										completed.
+									</p>
+								</div>
+							{/if}
+						{/if}
+					{/if}
 				</div>
-			{/if}
+			{/each}
 		</div>
 
 		<div
-			class="flex items-center justify-between gap-2 border-t px-5 py-4"
+			class="flex shrink-0 items-center justify-between gap-2 border-t px-5 py-4"
 			style="border-color: var(--border);"
 		>
 			<button
@@ -302,6 +435,36 @@
 </ModalShell>
 
 <style>
+	.lesson-tabs :global(.lesson-tab-list) {
+		display: flex;
+	}
+	.lesson-tabs :global(.lesson-tab) {
+		flex: 1;
+		padding: 0.75rem 0.25rem;
+		border-bottom: 2px solid transparent;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+	}
+	.lesson-tabs :global(.lesson-tab--selected) {
+		border-color: var(--accent);
+		color: var(--text-primary);
+	}
+	.lesson-tabs :global(.lesson-tab:focus-visible) {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+
+	.remapping-preferences-button {
+		align-self: flex-start;
+	}
+	.remapping-preferences {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+	}
 	.typing-practice-lesson-source {
 		display: flex;
 		flex-direction: column;
