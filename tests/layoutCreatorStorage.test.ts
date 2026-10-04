@@ -1,3 +1,4 @@
+import type { CreatorDocument } from '../src/lib/creatorDocument';
 import { describe, expect, test } from 'bun:test';
 import {
 	updateKeyboardInputKey,
@@ -19,6 +20,7 @@ import {
 	createDefaultCreatorUrlSnapshot,
 	creatorContentFromSnapshot,
 	creatorSearchFromSnapshot,
+	readCreatorUrlSnapshot,
 	type CreatorUrlSnapshot
 } from '../src/lib/layoutCreatorUrl';
 
@@ -31,7 +33,7 @@ function namedSnapshot(name: string, extra: Partial<CreatorUrlSnapshot> = {}): C
 }
 
 describe('saved layout storage', () => {
-	test('writes and reads the versioned document using compact query snapshots', () => {
+	test('writes and reads the versioned document using Spark document content', () => {
 		const snapshot = namedSnapshot('Magic lela', {
 			author: 'derek',
 			keyConfig: updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '0,0', 'w')
@@ -46,14 +48,17 @@ describe('saved layout storage', () => {
 		const serialized = serializeSavedLayoutsDocument([layout]);
 		const document = JSON.parse(serialized) as {
 			version: number;
-			layouts: { id: string; name: string; query: string }[];
+			layouts: { id: string; name: string; document: CreatorDocument }[];
 		};
 
 		expect(document.version).toBe(SAVED_LAYOUTS_SCHEMA_VERSION);
-		expect(document.layouts[0]?.query).toContain('name=Magic+lela');
-		expect(document.layouts[0]?.query).toContain('author=derek');
-		expect(document.layouts[0]?.query).toContain('keys=');
-		expect(document.layouts[0]?.query).not.toContain('edit=');
+		expect(document.layouts[0]?.document.format).toBe('spark/1');
+		expect(document.layouts[0]?.document.emulayout.name).toBe('Magic lela');
+		expect(document.layouts[0]?.document.emulayout.author).toBe('derek');
+		expect('preview' in document.layouts[0]!.document.emulayout).toBe(false);
+		expect(
+			document.layouts[0]?.document.layout.keys.find((key) => key.row === 0 && key.col === 0)?.char
+		).toBe('w');
 
 		const restored = parseSavedLayoutsDocument(document);
 		expect(restored).toHaveLength(1);
@@ -64,11 +69,11 @@ describe('saved layout storage', () => {
 		expect(restored[0]?.snapshot.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 	});
 
-	test('treats omitted keys as QWERTY in version one and the current schema', () => {
+	test('treats omitted keys as QWERTY in both legacy schemas', () => {
 		const entry = { id: 'layout-1', name: 'Legacy', createdAt: 1, query: 'name=Legacy' };
 		const legacy = parseSavedLayoutsDocument({ version: 1, layouts: [entry] })[0]!;
 		const current = parseSavedLayoutsDocument({
-			version: SAVED_LAYOUTS_SCHEMA_VERSION,
+			version: 2,
 			layouts: [entry]
 		})[0]!;
 
@@ -120,7 +125,7 @@ describe('saved layout storage', () => {
 		expect(mergeSavedLayouts([first], [updated, second])).toEqual([updated, second]);
 		expect(
 			parseSavedLayoutsDocument({
-				version: SAVED_LAYOUTS_SCHEMA_VERSION,
+				version: 2,
 				layouts: [
 					{ id: 'id-a', name: 'Alpha', createdAt: 1, query: 'name=Alpha' },
 					{ id: 'id-a', name: 'Duplicate', createdAt: 2, query: 'name=Duplicate' }
@@ -266,11 +271,10 @@ describe('creator URL saved id', () => {
 				{ savedId: 'id-a', savedSnapshot: snapshot }
 			)
 		).toBe('?id=id-a&edit=1&tab=test');
-		expect(
-			creatorSearchFromSnapshot(namedSnapshot('Beta'), {
-				savedId: 'id-a',
-				savedSnapshot: snapshot
-			})
-		).toBe('?name=Beta&edit=1&id=id-a');
+		const dirty = new URLSearchParams(
+			creatorSearchFromSnapshot(namedSnapshot('Beta'), { savedId: 'id-a', savedSnapshot: snapshot })
+		);
+		expect(dirty.get('id')).toBe('id-a');
+		expect(readCreatorUrlSnapshot(dirty).name).toBe('Beta');
 	});
 });

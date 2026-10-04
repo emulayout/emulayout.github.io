@@ -11,12 +11,12 @@ The aim is fewer competing representations, not making every UI component interp
 | Area                      | Current format                                   | Direction                                          |
 | ------------------------- | ------------------------------------------------ | -------------------------------------------------- |
 | AKL ingestion             | Spark plus analyzer-only Mana2 projection        | Shared Spark validation                            |
-| Links / pasted imports    | Spark lowered immediately to creator drafts      | Shared compilation, then a temporary draft adapter |
+| Links / pasted imports    | Spark retained with supported editor projection  | Shared compilation, then a temporary draft adapter |
 | Catalog geometry          | Compact positional arrays and feature flags      | Retain delivery optimization initially             |
 | Catalog behavior          | Preserved Spark documents compiled on the client | Complete in step 2                                 |
 | Creator                   | Slot-based keys and Magic/Adaptive/Chiral drafts | Spark-shaped content with editor sidecar in step 4 |
-| URLs                      | Independent key and mapping codecs               | Unified document transport in step 3               |
-| Saves / backups           | Versioned query-string snapshots                 | Store document content directly in step 3          |
+| URLs                      | Versioned Spark-plus-Emulayout document          | Complete in step 3                                 |
+| Saves / backups           | Versioned creator documents                      | Complete in step 3                                 |
 | Runtime                   | Compiled profiles and maps                       | Retain as derived data                             |
 | Lessons / filters / stats | App settings and analyzer artifacts              | Keep outside Spark                                 |
 
@@ -24,9 +24,9 @@ Catalog behavior and imports now share Spark compilation. Mana2 remains an analy
 not an alternative source of executable client behavior. The old supplemental format is retained
 as a compatibility reader; new catalog documents do not contain variants or staleness metadata.
 
-Creator URL serialization currently also performs cloning/normalization. Creator key construction
-builds a compact catalog tuple, decodes it, then restores primary duplicate positions. Both are
-candidates for removal once a common document builder exists.
+Creator cloning and normalization now use a common document builder rather than URL codecs.
+Creator key construction still builds a compact catalog tuple, decodes it, then restores primary
+positions; direct geometry construction remains step 4.
 
 ## Expected savings and constraints
 
@@ -36,8 +36,8 @@ phases, not a measured deletion target. Step 1 may grow the code while creating 
 Compatibility readers reduce immediate savings; tests, validation, and runtime logic remain necessary.
 
 Preserve incomplete editor rows, stable UI identities, grouping, disabled mappings, base-layout
-selection, lesson settings, and view state outside valid Spark content. Decide how to represent
-Emulayout's multi-character fixed fallbacks before migrating saves. Do not drop unsupported raw
+selection, lesson settings, and view state outside valid Spark content. Keep Emulayout's
+multi-character fixed fallbacks in the editor sidecar; Spark defaults emit one character. Do not drop unsupported raw
 rewrites, whitespace contexts, finger assignments, or extension fields from the canonical document.
 Compiling a supported subset is distinct from validating or storing the source.
 
@@ -51,14 +51,15 @@ Compiling a supported subset is distinct from validating or storing the source.
 2. **Catalog behavior — complete (2026-10-04).** Publish preserved Spark documents and compile
    catalog behavior with the shared compiler. Mana2 expansion is analyzer-only. Old supplemental
    generation is removed; its reader stays until the compatibility phase.
-3. **Persistence and sharing — not started.** Define a versioned Spark-plus-Emulayout envelope,
-   migrate storage/backups/URLs, and define legacy-reader support. Keep incomplete drafts recoverable.
+3. **Persistence and sharing — complete (2026-10-04).** Store and transport a versioned
+   Spark-plus-Emulayout document. Preserve source content and incomplete editor drafts; retain
+   legacy URL/share/storage readers.
 4. **Editor and geometry — not started.** Use Spark-shaped content with separate transient draft
    state; build key maps directly instead of routing through compact transport.
 5. **Compatibility retirement — not started.** Remove obsolete readers only under an explicit
    compatibility policy.
 
-**Authorization: steps 1 and 2 are authorized and complete. Steps 3–5 require a new request.**
+**Authorization: steps 1–3 are authorized and complete. Steps 4–5 require a new request.**
 
 ## Step 1 boundaries (historical)
 
@@ -73,7 +74,7 @@ Compiling a supported subset is distinct from validating or storing the source.
 
 ## Verification record
 
-Step 1 verification is recorded below. Step 2 has its own record at the end; steps 3–5 have not started.
+Step 1 verification is recorded below. Steps 2 and 3 have their own records; steps 4–5 have not started.
 
 - `bun run lint`: passed.
 - `bun run check`: passed, no errors or warnings.
@@ -99,8 +100,8 @@ Step 1 verification is recorded below. Step 2 has its own record at the end; ste
   identity, conflicts, and supported runtime parity through the legacy creator bridge.
 
 Malformed optional mappings now reject an import instead of being silently skipped. Structurally
-valid but unsupported features still produce omission warnings. Source preservation is a compiler
-contract only until the persistence migration; it does not yet make creator imports lossless.
+valid but unsupported features still produce omission warnings. At this historical stage, source preservation was a compiler
+contract only; step 3 adds creator persistence of the original document.
 
 ## Step 2 implementation and verification
 
@@ -132,3 +133,39 @@ contract only until the persistence migration; it does not yet make creator impo
   dirty-tab timeout (116 passed); that test passed in isolation, and the subsequent full
   single-worker run passed without code changes.
 - `bun run generate:layout-details`: passed; updated 153 per-layout copies.
+
+## Step 3 implementation and verification
+
+- `creatorDocument.ts` owns the version-1 `{ version, format: "spark/1", layout, emulayout }`
+  envelope, normalization, strict reading, content comparison, and source/edit reconciliation.
+  Imported and catalog Spark content retains unsupported raw rules, number-row keys, custom
+  finger assignments, and extension fields through reload, saves, backups, and shares.
+- Editing a projected identity updates its known fields while retaining unrelated source fields.
+  Editing/removing a projected raw-rule trigger removes its executable raw source rules so stale
+  source cannot override the edit; unsupported rewrites/deletions remain stored. Replacing the
+  base layout or clearing the canvas starts new source ownership.
+- The Emulayout sidecar retains metadata, geometry, base selection, incomplete editor rows,
+  stable row/group ids, disabled mappings, and lessons. Multi-character fixed fallbacks remain
+  outside Spark defaults. The full supported editor projection is transitional recovery data;
+  native editor ownership and geometry simplification remain step 4.
+- Draft URLs use one UTF-8 base64url `document` field. Edit/Preview and detail tabs remain external
+  view state; explicit lesson options can overlay stored settings. Default and clean saved URLs
+  keep their existing compact forms. Malformed/future/oversized documents do not fall back to
+  legacy fields. Share version 2 requires a valid document and excludes local ids and view state.
+- Storage/backup version 3 writes documents directly. Version 1/2 query snapshots and share
+  version 1 remain readable; migration occurs on successful writes/export without changing local
+  ids or ordering. Legacy field codecs remain for old links and catalog edit-link seeding.
+- `creatorDraftId.ts` prevents new mapping rows from colliding with restored ids. Stable content
+  comparison ignores transient editor row ids while retaining group identities and source fields.
+- `tests/creatorDocument.test.ts` covers source retention, targeted edits, incomplete drafts,
+  fallbacks, legacy migration, malformed documents, and identity comparisons. Creator/import browser
+  tests cover persistence, sharing, backup export/restore, failed writes, and tab synchronization.
+- `bun run lint`: passed.
+- `bun run check`: passed, no errors or warnings.
+- `bun test`: 532 passed.
+- Focused creator/import browser files: 30 passed; the final full run also covers retained
+  imported source in backup export.
+- `bun run test:e2e --workers=1`: all 117 passed. Earlier runs exposed obsolete URL assertions,
+  a rapid-edit focus race in the chiral test, and one practice-timer timeout. URL assertions now
+  inspect the document transport; the chiral test waits for the editor's focus advancement.
+  The timer test passed in isolation and in the final full run without application changes.

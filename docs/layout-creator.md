@@ -26,8 +26,8 @@ not. Assign Space to a keyboard slot to give a Space trigger its hand (there is 
 for an unassigned spacebar). Mapping labels identify it as `Space`; the key editor shows `␣`.
 Press Space in a field to enter the character, not the word "Space". Saves and shares preserve it.
 
-Drafts, browser saves, backups, and share links retain the compact chiral draft in the base64url
-`chiral` query field. Catalog and Spark imports preserve native definitions rather than expanding
+Drafts, browser saves, backups, and share links retain native Spark chiral definitions and the
+recoverable chiral editor draft in the versioned creator document. Catalog and Spark imports preserve native definitions rather than expanding
 them into Magic lists. Existing saved expanded Magic definitions remain unchanged: their original
 chiral intent cannot be recovered reliably.
 
@@ -75,41 +75,40 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   the subtitle `Local layouts have no analyzer stats.` There is no card analyzer selector, no Stats
   tab, and no akl.gg or Colemak Camp link. A Cyanophage link stays when it can be built from
   the live keymap.
-- The current draft is the `/create` query string, using the same replace-state sync as the index.
-  Name, author, base layout, keyboard geometry, key grid, preview, practice lesson, the Practice /
-  Test / Feel `tab`, Magic/Adaptive
-  mappings (including incomplete rows), and which complete special mappings are disabled are
-  written when they differ from the default QWERTY canvas. An active saved
-  layout also writes `id` (a local-storage UUID). When that saved layout is unchanged, other draft
-  params are omitted so the URL is `/create?id=<uuid>`. Opening that clean saved URL starts in
-  Preview unless `edit=1` requests Edit; switching to a saved tab starts in Preview. Preview is the
-  default view and is not written to the query. Edit writes `edit=1` and does not count as a
-  saveable change. The shared show-page `tab`
-  param keeps Typing practice, Layout test area, or Layout feel across refresh; it is omitted
-  at Typing practice and is not a saveable change. Invalid or `stats` values become Typing
-  practice. Dirty edits stay in the query
-  alongside `id` so a refresh keeps them. Writes wait 300ms after the last edit, matching the
-  index filter URL persist, and flush on page hide so a refresh keeps the latest keystrokes. The
-  Create link and **+ New layout** start a fresh canvas in Edit (`/create?edit=1`). A catalog
-  show-page **Edit layout** link opens that same unsaved Edit canvas with the shown layout as `base`
-  and its keys when they differ from QWERTY; the draft stays named `New layout`. If the query has
-  `base` without keys, the creator seeds the grid and mappings once the catalog loads, matching Base
-  layout selection. A bare
-  `/create` opens Preview of the default canvas. Reloading or opening the URL restores the draft,
-  and a known `id` restores that saved layout from local storage. Empty standard slots are omitted
-  from `keys`; because the default canvas is QWERTY, a cleared board writes `keys=v1:-` (or the
-  equivalent empty encoding) and the default board omits `keys` and `base`. The legacy `keys=v1:-`
-  form still restores an empty board. Do not put draft names, saved ids, or key maps into GoatCounter
-  paths or events.
+- The current draft is the `/create` query string, using replace-state synchronization. Content
+  uses one UTF-8 base64url `document` field containing the version-1 creator envelope:
+  `{ version: 1, format: "spark/1", layout, emulayout }`. `layout` is validated Spark content;
+  `emulayout` holds name, author, geometry, base selection, editor drafts and stable row/group ids,
+  disabled mappings, and practice settings. The editor recovery sidecar currently includes the
+  supported key and mapping projection; replacing that duplication is step 4 of the transition.
+  Incomplete or invalid editor rows remain recoverable but do not enter executable Spark content.
+  Multi-character fixed Magic fallbacks stay in the Emulayout sidecar because Spark defaults emit
+  one character. They retain their existing runtime behavior.
+  An unchanged default canvas omits `document`. Active saved layouts also write `id` (a local
+  UUID); an unchanged saved layout uses `/create?id=<uuid>`. Dirty edits include `document`
+  alongside `id`, so refresh retains them. `edit=1` and the Practice / Test / Feel `tab` remain
+  separate view state and do not count as saveable changes. Preview and Typing practice are the
+  omitted defaults; invalid or `stats` tabs become Typing practice. Explicit lesson query options
+  can overlay document settings for the current visit.
+  Writes wait 300ms after the last edit and flush on page hide. Create and **+ New layout** open
+  a fresh Edit canvas (`/create?edit=1`); bare `/create` opens the default Preview.
+  Catalog **Edit layout** links use the document transport to seed an unsaved canvas named
+  `New layout`. Old links with a `base` without keys still seed once the catalog loads. Readers
+  retain old name, author, geometry, keys, Magic, Adaptive,
+  Chiral, disabled-mapping, and lesson codecs, including `keys=v1:-` for an empty board.
+  Malformed, oversized (over 1 MiB encoded), or future-version documents restore a default canvas
+  rather than reading unrelated legacy fields. Do not put document payloads, names, saved ids,
+  key maps, or lesson text into GoatCounter paths or events.
 - Share, Edit/Lock, Duplicate, and save stack under the summary card in the left column.
   **Share** is immediately before **Edit** in Preview and immediately before **Lock** in Edit.
   **Lock** is hidden on an unsaved canvas. **Save** appears on that canvas while it differs from the
   default snapshot; **Save changes** appears only while a saved layout has unsaved changes. Share copies an absolute `/create` URL containing the normalized
   content snapshot: layout name, author, keyboard geometry and keys, Magic and Adaptive drafts,
   disabled mappings, and practice settings. It never includes a browser-local saved-layout `id`
-  or transient Edit/Preview/detail-tab state. The link uses `share=1` to distinguish a portable
-  layout offer from an ordinary creator draft URL.
-- Opening a `share=1` creator URL does not apply the payload to the live canvas. It opens a
+  or transient Edit/Preview/detail-tab state. The link uses `share=2` to distinguish a portable
+  layout offer from an ordinary creator draft URL. Legacy `share=1` links remain readable;
+  malformed or future document offers are not opened.
+- Opening a `share=2` creator URL does not apply the payload to the live canvas. It opens a
   **Shared layout** modal with an editable Layout name, read-only author, presentation keyboard,
   and read-only compiled Magic/Adaptive mappings. The share query stays intact while the offer is
   open, then is replaced by the current creator URL when the modal closes. Cancel discards the
@@ -136,8 +135,9 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   optional `magic`, or the version-1 `spark/1` AKL wrapper. The existing AKL importer handles
   conversion through the shared Spark validator/compiler and reports omissions before Import.
   Malformed known fields reject the whole import; valid but unsupported content produces warnings.
-  The compiler retains the source document, but the legacy creator adapter still stores only the
-  supported projection (see `spark-transition.md`). Invalid JSON, unsupported versions, no usable
+  The original Spark document survives draft URLs, browser saves, backups, and shares. Targeted
+  edits reconcile the supported projection while preserving unrelated source content, extension
+  fields, and original finger assignments (see `spark-transition.md`). Invalid JSON, unsupported versions, no usable
   keys, and inputs over 64 KiB cannot be applied. Spark replaces all draft keys and mappings,
   clearing prior disabled mappings; it preserves practice settings, the active typing section,
   and the saved-layout identity without writing saved storage. Raw objects retain the current
@@ -214,7 +214,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   can replace that lesson with custom `text`, raise the remapping word share with
   `special`, adjust relative Magic/Adaptive/Chiral weights with `remap`, or set random-lesson
   `words` to 10, 25, or 50. Weights and combined/split mode also survive saved layouts, shares,
-  and backups through the lesson codec. Menu Save persists those choices and
+  and backups through the document sidecar. Menu Save persists those choices and
   writes them to the creator query; loading a URL that already has those params applies them only
   for that visit. Untouched defaults are omitted; defaults explicitly saved from the menu remain
   query overlays so they can override different stored prefs. Magic and
@@ -233,14 +233,14 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   multi-character contexts, fallbacks, and exceptions), chiral keys, representable raw rules, and
   Adaptive swaps are imported. The number row and custom non-thumb finger assignments are not
   represented by the creator; a status notice names omitted data. Raw rules that rewrite or delete
-  earlier text are also omitted. Whitespace-context rules use
+  earlier text are also omitted from execution; they remain in the canonical document. Whitespace-context rules use
   literal preceding-text matches. Whitespace is preserved in these contexts; the runtime does not
   synthesize Spark's initial word boundary.
   Imported raw and chiral triggers retain their base output outside matching contexts, including
   chiral exceptions. Explicit Magic defaults keep their declared behavior.
   The first occurrence of a duplicate character is marked `primary` on the key configuration;
-  the creator URL's key flags encode this as `p`, preserving the primary slot through sorting,
-  reload, sharing, and saved-layout storage. Changing that key's value clears the marker.
+  the editor sidecar preserves this marker while Spark ordering preserves the primary slot through
+  sorting, reload, sharing, and saved-layout storage. Changing that key's value clears the marker.
   `/try` uses the same document scrolling and current Create navigation state as `/create`.
   Invalid base64url or UTF-8, invalid JSON, an unknown wrapper
   version or format, or a payload with no usable keys opens the normal creator and reports
@@ -266,8 +266,11 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   **Clear all keys** is available only on the unsaved canvas. It blanks the key grid, clears the
   selected base layout, and removes all Magic and Adaptive rules while preserving the name, author,
   keyboard geometry, and practice lesson. It is disabled when those key and mapping fields are already
-  empty. Saved-layout storage version 2 uses the QWERTY default. Version 1 entries without explicit
-  keys restore the same QWERTY board.
+  empty. Saved-layout storage version 3 stores each entry's creator `document` directly with its
+  local id, name, and creation time. Version 1 and 2 query-string snapshots remain readable and
+  migrate on the next successful save or backup export; local ids and ordering are retained.
+  Version 1 entries without explicit keys restore the QWERTY board. Malformed version-3 entries
+  are skipped rather than falling back to legacy queries.
 - **Layout backup settings** mirrors the custom-view backup UI. It opens on **Export layouts**,
   where any subset of saved layouts can be copied as versioned JSON or downloaded as
   `emulayout-layouts-YYYY-MM-DD.json`. **Import layouts** accepts pasted JSON or a `.json` file,
@@ -286,7 +289,9 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 ## Code map
 
 - Default canvas, tab values, duplicate names, and key-editor conversion: `src/lib/layoutCreator.ts`
-- Shareable `/create` query codec: `src/lib/layoutCreatorUrl.ts`
+- Versioned Spark document builder, edit reconciliation, validation, and content signatures:
+  `src/lib/creatorDocument.ts`; stable draft ids: `src/lib/creatorDraftId.ts`
+- Shareable `/create` document transport and legacy query reader: `src/lib/layoutCreatorUrl.ts`
 - akl.gg `spark/1` handoff parsing and adaptation: `src/lib/aklTryImport.ts`,
   `src/routes/try/+page.svelte`
 - Shared Spark types and structural validation: `src/lib/sparkSchema.ts`; supported-subset
@@ -323,7 +328,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   `src/lib/layoutKeyboardSwapPathLayer.ts`
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
-  `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`,
+  `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`, `tests/creatorDocument.test.ts`,
   `tests/layoutDisplay.test.ts`, `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 

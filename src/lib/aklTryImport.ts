@@ -1,3 +1,4 @@
+import { creatorSparkProjection } from '$lib/creatorDocument';
 import { buildKeyboardInputConfig, type InputKeyboardType } from '$lib/keyboardInputConfig';
 import { magicDraftFromSource, adaptiveDraftFromSource } from '$lib/layoutCreatorMappings';
 import { compileSparkLayout } from '$lib/sparkCompiler';
@@ -74,6 +75,7 @@ export function importAklTryPayload(value: unknown): AklTryImportResult {
 	const keyboardType = value.board as InputKeyboardType;
 
 	const snapshot: CreatorUrlSnapshot = {
+		sparkSource: compiled.document,
 		...createDefaultCreatorUrlSnapshot(),
 		name: value.name.trim() || 'New layout',
 		author: typeof value.author === 'string' ? value.author.trim() : '',
@@ -91,6 +93,7 @@ export function importAklTryPayload(value: unknown): AklTryImportResult {
 			keys
 		})
 	};
+	snapshot.sparkEditorBaseline = creatorSparkProjection(snapshot);
 	const omitted = [...warnings];
 	return {
 		snapshot,

@@ -1,3 +1,4 @@
+import { createCreatorDraftId } from '$lib/creatorDraftId';
 import {
 	chiralMappingId,
 	isChiralCharacter,
@@ -18,10 +19,9 @@ export interface CreatorChiralRule {
 export interface CreatorChiralDraft {
 	rules: CreatorChiralRule[];
 }
-let nextId = 0;
 export function createCreatorChiralRule(): CreatorChiralRule {
 	return {
-		id: `chiral-${++nextId}`,
+		id: createCreatorDraftId('chiral'),
 		key: '',
 		sameKind: 'key',
 		sameChar: '',

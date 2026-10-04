@@ -1,7 +1,7 @@
+import { buildCreatorDocument, readCreatorDocument } from '$lib/creatorDocument';
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
 import {
 	creatorContentFromSnapshot,
-	creatorContentSnapshotSignature,
 	creatorUrlContentEqual,
 	creatorUrlHasDraftParams,
 	creatorSnapshotFromContent,
@@ -19,11 +19,13 @@ import {
 
 export const SAVED_LAYOUTS_STORAGE_KEY = 'emulayout:saved-layouts';
 const LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION = 1;
-export const SAVED_LAYOUTS_SCHEMA_VERSION = 2;
+export const SAVED_LAYOUTS_SCHEMA_VERSION = 3;
 
 export function isSupportedSavedLayoutsSchemaVersion(value: unknown): value is number {
 	return (
-		value === LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION || value === SAVED_LAYOUTS_SCHEMA_VERSION
+		value === LEGACY_QWERTY_SAVED_LAYOUTS_SCHEMA_VERSION ||
+		value === 2 ||
+		value === SAVED_LAYOUTS_SCHEMA_VERSION
 	);
 }
 
@@ -75,17 +77,23 @@ export function findSavedLayout(
 	return id ? layouts.find((entry) => entry.id === id) : undefined;
 }
 
-function parseSavedLayout(value: unknown): SavedCreatorLayout | null {
+function parseSavedLayout(value: unknown, version: number): SavedCreatorLayout | null {
 	if (!isPlainObject(value)) return null;
 	if (typeof value.id !== 'string' || !value.id) return null;
 	if (typeof value.name !== 'string' || !value.name.trim()) return null;
 	if (typeof value.createdAt !== 'number' || !Number.isFinite(value.createdAt)) return null;
-	if (typeof value.query !== 'string') return null;
+	const content =
+		version === 3
+			? readCreatorDocument(value.document)
+			: typeof value.query === 'string'
+				? creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query)))
+				: null;
+	if (!content) return null;
 
 	return {
 		id: value.id,
 		name: value.name.trim(),
-		snapshot: creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query))),
+		snapshot: content,
 		createdAt: value.createdAt
 	};
 }
@@ -106,7 +114,7 @@ export function parseSavedLayoutsDocument(value: unknown): SavedCreatorLayout[] 
 	const layouts: SavedCreatorLayout[] = [];
 	const ids = new Set<string>();
 	for (const rawLayout of value.layouts) {
-		const layout = parseSavedLayout(rawLayout);
+		const layout = parseSavedLayout(rawLayout, value.version);
 		if (!layout || ids.has(layout.id)) continue;
 		ids.add(layout.id);
 		layouts.push(layout);
@@ -125,7 +133,7 @@ export function serializeSavedLayoutsDocument(
 				id: layout.id,
 				name: layout.name,
 				createdAt: layout.createdAt,
-				query: creatorContentSnapshotSignature(layout.snapshot)
+				document: buildCreatorDocument(layout.snapshot)
 			}))
 		},
 		null,

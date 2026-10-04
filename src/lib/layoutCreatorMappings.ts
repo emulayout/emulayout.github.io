@@ -1,3 +1,4 @@
+import { createCreatorDraftId } from '$lib/creatorDraftId';
 import { compileSparkLayout } from '$lib/sparkCompiler';
 import type { AdaptiveSwapMappings, AdaptiveSwapSource } from '$lib/adaptiveSwaps';
 import {
@@ -64,12 +65,7 @@ export type CreatorAdaptiveDraft = {
 	groups: CreatorAdaptiveSection[];
 };
 
-let nextCreatorMappingId = 0;
-
-function createCreatorMappingId(prefix: string): string {
-	nextCreatorMappingId += 1;
-	return `${prefix}-${nextCreatorMappingId}`;
-}
+const createCreatorMappingId = createCreatorDraftId;
 
 export function createCreatorMagicRule(): CreatorMagicRule {
 	return { id: createCreatorMappingId('magic-rule'), after: '', emit: '' };

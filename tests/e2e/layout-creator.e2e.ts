@@ -1,3 +1,5 @@
+import { readCreatorUrlSnapshot } from '../../src/lib/layoutCreatorUrl';
+import type { CreatorDocument } from '../../src/lib/creatorDocument';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures/test';
 
@@ -158,7 +160,9 @@ test('clears every key and special mapping from a new layout', async ({ page }) 
 	await expect(panel.getByRole('region', { name: 'Magic key mappings' })).toHaveCount(0);
 	await expect(panel.getByRole('region', { name: 'Adaptive swap mappings' })).toHaveCount(0);
 	await expect(clearAllKeys).toBeDisabled();
-	await expect.poll(() => new URL(page.url()).searchParams.get('name')).toBe('Scratch layout');
+	await expect
+		.poll(() => readCreatorUrlSnapshot(new URL(page.url()).searchParams).name)
+		.toBe('Scratch layout');
 });
 
 test('keeps editing and custom lessons available when the shared word list fails', async ({
@@ -272,7 +276,10 @@ test('imports keyboard rows from the dedicated modal', async ({ page }) => {
 		'true'
 	);
 	await expect(panel.getByRole('textbox', { name: 'Magic trigger' })).toHaveValue('*');
-	await expect(page).toHaveURL(/keys=/);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
 
 	await page.reload();
 	await expect(
@@ -440,12 +447,23 @@ test('keeps creator edits in the URL across reload', async ({ page }) => {
 	await expect(namedPanel.getByRole('button', { name: 'Show adaptive mappings' })).toBeVisible();
 
 	await expect(page).toHaveURL(/\/create\?/);
-	await expect(page).toHaveURL(/name=Shared(\+|%20)draft/);
-	await expect(page).toHaveURL(/author=derek/);
-	await expect(page).toHaveURL(/type=ortho/);
-	await expect(page).toHaveURL(/keys=/);
-	await expect(page).toHaveURL(/magic=/);
-	await expect(page).toHaveURL(/adaptive=1/);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
+	expect(readCreatorUrlSnapshot(new URL(page.url()).searchParams).author).toBe('derek');
+	expect(readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keyboardType).toBe(
+		'ortho'
+	);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
+	expect(readCreatorUrlSnapshot(new URL(page.url()).searchParams).includeAdaptiveKey).toBe(true);
 
 	await page.reload();
 	await expect(page).toHaveTitle('Shared draft · Emulayout');
@@ -498,12 +516,14 @@ test('shares a complete creator layout as a reviewed local-save offer', async ({
 	await expect(portablePanel.getByRole('button', { name: 'Link copied' })).toBeVisible();
 	const sharedUrl = await page.evaluate(() => navigator.clipboard.readText());
 	const sharedParams = new URL(sharedUrl).searchParams;
-	expect(sharedParams.get('share')).toBe('1');
-	expect(sharedParams.get('name')).toBe('Portable layout');
-	expect(sharedParams.get('author')).toBe('Layout author');
-	expect(sharedParams.has('keys')).toBe(true);
-	expect(sharedParams.has('magic')).toBe(true);
-	expect(sharedParams.has('adaptive')).toBe(true);
+	expect(sharedParams.get('share')).toBe('2');
+	expect(readCreatorUrlSnapshot(sharedParams)).toMatchObject({
+		name: 'Portable layout',
+		author: 'Layout author',
+		includeMagicKey: true,
+		includeAdaptiveKey: true
+	});
+	expect(sharedParams.has('document')).toBe(true);
 	expect(sharedParams.has('id')).toBe(false);
 
 	await page.goto(sharedUrl);
@@ -670,10 +690,11 @@ test('selectively exports layouts and preserves a dirty draft while restoring a 
 	await expect(exportPanel.getByRole('checkbox', { name: 'Beta' })).toBeChecked();
 	await exportPanel.getByRole('checkbox', { name: 'Beta' }).uncheck();
 	const exported = JSON.parse(await exportPanel.getByLabel('Backup JSON').inputValue()) as {
-		layouts: { name: string; query: string }[];
+		layouts: { name: string; document: CreatorDocument }[];
 	};
 	expect(exported.layouts.map((layout) => layout.name)).toEqual(['Alpha']);
-	expect(exported.layouts[0].query).not.toContain('edit=');
+	expect(exported.layouts[0].document.format).toBe('spark/1');
+	expect('preview' in exported.layouts[0].document.emulayout).toBe(false);
 	const downloadStarted = page.waitForEvent('download');
 	await exportPanel.getByRole('button', { name: 'Download file' }).click();
 	const download = await downloadStarted;
@@ -703,7 +724,10 @@ test('selectively exports layouts and preserves a dirty draft while restoring a 
 	await expect(savedLayoutTab(creations, 'Alpha')).toHaveCount(0);
 	await expect(savedLayoutTab(creations, 'Beta')).toHaveCount(0);
 	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
-	await expect(page).toHaveURL(/name=Beta(?:\+|%20)draft/);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
 
 	await savedLayoutTab(creations, 'Restored layout').click();
 	await page
@@ -936,7 +960,10 @@ test('keeps a recoverable URL when browser storage rejects a save', async ({ pag
 	await unsavedSaveButton(renamedPanel).click();
 
 	await expect(renamedPanel.getByRole('alert')).toContainText('Your draft is still in the URL');
-	await expect(page).toHaveURL(/name=Unsaved(\+|%20)recovery/);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
 	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
 	await page.reload();
 	await expect(page).toHaveTitle('Unsaved recovery · Emulayout');
@@ -991,7 +1018,10 @@ test('preserves dirty edits when another tab deletes the saved layout', async ({
 	await expect(unsavedSaveButton(page)).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Lock' })).toHaveCount(0);
 	await expect(page).not.toHaveURL(/(?:\?|&)id=/);
-	await expect(page).toHaveURL(/name=Alpha(?:\+|%20)draft/);
+	await expect(page).toHaveURL(/document=/);
+	expect(
+		readCreatorUrlSnapshot(new URL(page.url()).searchParams).keyConfig.keys.length
+	).toBeGreaterThan(0);
 });
 
 test('deletes a saved layout from its tab', async ({ page }) => {

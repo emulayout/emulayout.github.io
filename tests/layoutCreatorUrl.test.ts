@@ -24,7 +24,7 @@ import {
 	creatorKeyConfigNeedsCatalogBaseSeed,
 	creatorSearchFromSnapshot,
 	readCreatorUrlSnapshot,
-	writeCreatorUrlParams,
+	writeLegacyCreatorUrlParams as writeCreatorUrlParams,
 	type CreatorUrlSnapshot
 } from '../src/lib/layoutCreatorUrl';
 
@@ -55,8 +55,8 @@ describe('creator URL state', () => {
 		const search = creatorEditSearchFromLayout(colemakLike);
 		const params = new URLSearchParams(search);
 		expect(params.get('edit')).toBe('1');
-		expect(params.get('base')).toBe('Colemak-DH');
-		expect(params.has('keys')).toBe(true);
+		expect(readCreatorUrlSnapshot(params).keyConfig.baseLayoutName).toBe('Colemak-DH');
+		expect(params.has('document')).toBe(true);
 		expect(params.has('name')).toBe(false);
 		const restored = readCreatorUrlSnapshot(params);
 		expect(restored.name).toBe(LAYOUT_CREATOR_NEW_LAYOUT_NAME);

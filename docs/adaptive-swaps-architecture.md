@@ -63,7 +63,10 @@ generated behavior payload cannot be loaded.
 The shared Spark compiler preserves the validated document independently from executable
 output. It compiles Magic rules, explicit fallbacks and exceptions, Adaptive swaps, and native
 Chiral behavior directly from Spark. Client behavior never falls back to Mana2 expansions.
-Unsupported features produce diagnostics while remaining in the published source.
+Unsupported features produce diagnostics while remaining in the published source. Creator saves,
+backups, and document links preserve that canonical Spark source alongside editor recovery state.
+Adaptive group labels, stable group ids, incomplete rows, and disabled mapping ids stay in the
+Emulayout sidecar; Spark stores the complete flat adaptive definitions.
 
 Literal whitespace in preceding Magic contexts is retained and matched exactly. History does not
 synthesize an initial word boundary. Raw rewrites/deletions and unsupported native definitions

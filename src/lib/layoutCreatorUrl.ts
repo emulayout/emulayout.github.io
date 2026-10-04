@@ -1,4 +1,10 @@
 import {
+	buildCreatorDocument,
+	readCreatorDocument,
+	creatorDocumentSignature
+} from '$lib/creatorDocument';
+import type { SparkLayout } from '$lib/sparkSchema';
+import {
 	buildKeyboardInputConfig,
 	createKeyboardInputConfigFromLayout,
 	type InputKeyboardType,
@@ -37,6 +43,8 @@ import {
 } from '$lib/layoutDetailTabs';
 import {
 	normalizeTypingPracticeLessonSettings,
+	resolveTypingPracticeLessonSettings,
+	typingPracticeLessonOverridesFromSearchParams,
 	typingPracticeLessonFromSearchParams,
 	writeTypingPracticeLessonParams,
 	type TypingPracticeLessonSettings
@@ -63,6 +71,8 @@ const KEYS_UNMODIFIED_FLAG = '-';
 const DEFAULT_BASE_LAYOUT_NAME = 'QWERTY';
 
 export type CreatorContentSnapshot = {
+	sparkSource?: SparkLayout;
+	sparkEditorBaseline?: SparkLayout;
 	name: string;
 	author: string;
 	includeMagicKey: boolean;
@@ -105,20 +115,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function encodeBase64Url(value: string): string {
+export function encodeBase64Url(value: string): string {
 	const bytes = new TextEncoder().encode(value);
 	let binary = '';
 	for (const byte of bytes) binary += String.fromCharCode(byte);
 	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
-function decodeBase64Url(value: string): string | null {
+export function decodeBase64Url(value: string): string | null {
 	try {
 		const padded = value.replace(/-/g, '+').replace(/_/g, '/');
 		const pad = padded.length % 4 === 0 ? '' : '='.repeat(4 - (padded.length % 4));
 		const binary = atob(padded + pad);
 		const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-		return new TextDecoder().decode(bytes);
+		return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 	} catch {
 		return null;
 	}
@@ -468,7 +478,7 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 	};
 }
 
-export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchParams {
+export function writeLegacyCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchParams {
 	const params = new URLSearchParams();
 	const defaults = createDefaultCreatorUrlSnapshot();
 	const name = snapshot.name.trim();
@@ -517,51 +527,88 @@ export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchPa
 	return params;
 }
 
+export const CREATOR_DOCUMENT_PARAM = 'document';
+const MAX_CREATOR_DOCUMENT_LENGTH = 1024 * 1024;
+
+export function writeCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchParams {
+	const params = new URLSearchParams();
+	if (
+		creatorDocumentSignature(snapshot) !==
+		creatorDocumentSignature(createDefaultCreatorUrlSnapshot())
+	)
+		params.set(
+			CREATOR_DOCUMENT_PARAM,
+			encodeBase64Url(JSON.stringify(buildCreatorDocument(snapshot)))
+		);
+	writeCreatorSectionParam(params, snapshot.section);
+	if (!snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
+	return params;
+}
+
+export function readCreatorDocumentFromSearch(
+	searchParams: URLSearchParams
+): CreatorContentSnapshot | null {
+	const encoded = searchParams.get(CREATOR_DOCUMENT_PARAM) ?? '';
+	let content: CreatorContentSnapshot | null = null;
+	try {
+		if (encoded.length <= MAX_CREATOR_DOCUMENT_LENGTH) {
+			const text = decodeBase64Url(encoded);
+			if (text !== null) content = readCreatorDocument(JSON.parse(text));
+		}
+	} catch {
+		/* Invalid document content never falls back to legacy draft fields. */
+	}
+	return content;
+}
+
+export function readCreatorUrlSnapshot(
+	searchParams: URLSearchParams,
+	options: { defaultKeyConfig?: KeyboardInputConfig } = {}
+): CreatorUrlSnapshot {
+	if (!searchParams.has(CREATOR_DOCUMENT_PARAM))
+		return readLegacyCreatorUrlSnapshot(searchParams, options);
+	const content = readCreatorDocumentFromSearch(searchParams);
+	return {
+		...(content ?? createDefaultCreatorUrlSnapshot()),
+		practiceLesson: resolveTypingPracticeLessonSettings(
+			content?.practiceLesson ?? createDefaultCreatorUrlSnapshot().practiceLesson,
+			typingPracticeLessonOverridesFromSearchParams(searchParams)
+		),
+		preview: readCreatorPreviewFlag(searchParams),
+		section: parseCreatorDetailSection(searchParams.get(LAYOUT_DETAIL_TAB_PARAM))
+	};
+}
+
 export function creatorUrlSnapshotSignature(snapshot: CreatorUrlSnapshot): string {
-	return writeCreatorUrlParams(snapshot).toString();
+	return `${creatorDocumentSignature(snapshot)}\0${snapshot.preview}\0${snapshot.section}`;
 }
 
 export function cloneCreatorUrlSnapshot(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
-	return readCreatorUrlSnapshot(writeCreatorUrlParams(snapshot));
+	const content = readCreatorDocument(buildCreatorDocument(snapshot));
+	if (!content) throw new Error('Cannot clone an invalid creator document');
+	return {
+		...content,
+		preview: snapshot.preview,
+		section: parseCreatorDetailSection(snapshot.section)
+	};
 }
 
 export function creatorContentFromSnapshot(snapshot: CreatorUrlSnapshot): CreatorContentSnapshot {
-	const normalized = cloneCreatorUrlSnapshot({
-		...snapshot,
-		preview: true,
-		section: DEFAULT_LAYOUT_DETAIL_SECTION
-	});
-	return {
-		name: normalized.name,
-		author: normalized.author,
-		includeMagicKey: normalized.includeMagicKey,
-		includeAdaptiveKey: normalized.includeAdaptiveKey,
-		magicDraft: normalized.magicDraft,
-		adaptiveDraft: normalized.adaptiveDraft,
-		chiralDraft: normalized.chiralDraft,
-		includeChiralKey: normalized.includeChiralKey,
-		keyConfig: normalized.keyConfig,
-		practiceLesson: normalized.practiceLesson,
-		disabledMappingIds: normalized.disabledMappingIds
-	};
+	const { preview, section, ...content } = cloneCreatorUrlSnapshot(snapshot);
+	void preview;
+	void section;
+	return content;
 }
 
 export function creatorSnapshotFromContent(
 	content: CreatorContentSnapshot,
-	view: CreatorViewState = {
-		preview: true,
-		section: DEFAULT_LAYOUT_DETAIL_SECTION
-	}
+	view: CreatorViewState = { preview: true, section: DEFAULT_LAYOUT_DETAIL_SECTION }
 ): CreatorUrlSnapshot {
 	return cloneCreatorUrlSnapshot({ ...content, ...view });
 }
 
 export function creatorContentSnapshotSignature(content: CreatorContentSnapshot): string {
-	return creatorUrlSnapshotSignature({
-		...content,
-		preview: true,
-		section: DEFAULT_LAYOUT_DETAIL_SECTION
-	});
+	return creatorDocumentSignature(content);
 }
 
 export function creatorUrlSnapshotsEqual(
@@ -571,7 +618,6 @@ export function creatorUrlSnapshotsEqual(
 	return creatorUrlSnapshotSignature(left) === creatorUrlSnapshotSignature(right);
 }
 
-/** Compare saved-layout content, ignoring Edit/Preview view state. */
 export function creatorUrlContentEqual(
 	left: CreatorUrlSnapshot | CreatorContentSnapshot,
 	right: CreatorUrlSnapshot | CreatorContentSnapshot
@@ -632,7 +678,7 @@ export function creatorSearchFromSnapshot(
 	return query ? `?${query}` : '';
 }
 
-export function readCreatorUrlSnapshot(
+export function readLegacyCreatorUrlSnapshot(
 	searchParams: URLSearchParams,
 	options: { defaultKeyConfig?: KeyboardInputConfig } = {}
 ): CreatorUrlSnapshot {

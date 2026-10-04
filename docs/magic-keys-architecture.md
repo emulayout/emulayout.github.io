@@ -103,6 +103,10 @@ A press whose preceding output matches no rule is governed by the trigger's `fal
 }
 ```
 
+Creator persistence stores single-character and repeat defaults in Spark. Multi-character fixed
+fallbacks remain in the versioned Emulayout editor sidecar and keep the same runtime behavior;
+they are not encoded as a Spark single-character default.
+
 Explicit rules take precedence over the fallback. Emitted output enters history, so `b@@` produces
 `bbb` in this example. `repeat-last` with no history has nothing to repeat and degrades to `no-op`;
 fixed text needs no history and always applies. A Magic key never types its own trigger symbol, so a

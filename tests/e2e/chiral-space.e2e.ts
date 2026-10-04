@@ -62,7 +62,7 @@ test('Space chiral takes priority over simulated thumbs and advances only on emi
 	page
 }) => {
 	await page.goto(`/try#akl=${Buffer.from(JSON.stringify(payload)).toString('base64url')}`);
-	await expect(page).toHaveURL(/chiral=/);
+	await expect(page).toHaveURL(/document=/);
 	const url = new URL(page.url());
 	url.searchParams.set('text', 'ae ae');
 	await page.goto(url.toString());

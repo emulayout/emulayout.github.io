@@ -30,7 +30,7 @@ test('opens an akl.gg Spark link as an unsaved preview and consumes the hash', a
 	};
 	await page.goto(`/try#akl=${encodeBase64UrlUtf8(payload)}`);
 
-	await expect(page).toHaveURL(/\/try\?(?=[^#]*name=Akl\+handoff)[^#]+$/);
+	await expect(page).toHaveURL(/\/try\?(?=[^#]*document=)[^#]+$/);
 	await expect(page.getByRole('heading', { name: 'Akl handoff', exact: true })).toBeVisible();
 	await expect(page.getByText('Example author', { exact: true })).toBeVisible();
 	await expect(page.getByRole('status').filter({ hasText: 'Imported from akl.gg.' })).toBeVisible();

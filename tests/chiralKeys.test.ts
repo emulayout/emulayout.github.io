@@ -189,7 +189,7 @@ test('round-trips compact creator definitions and custom hands without Magic exp
 	snapshot.chiralDraft = chiralDraftFromSource(source);
 	snapshot.keyConfig.keys[0].hand = 'r';
 	const params = writeCreatorUrlParams(snapshot);
-	expect(params.has('chiral')).toBe(true);
+	expect(params.has('document')).toBe(true);
 	expect(params.has('magic')).toBe(false);
 	const restored = readCreatorUrlSnapshot(params);
 	expect(chiralSourceFromDraft(restored.chiralDraft!)).toEqual(source);

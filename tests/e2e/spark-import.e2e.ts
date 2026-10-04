@@ -16,7 +16,9 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	await expect(dialog.getByRole('button', { name: 'Import', exact: true })).toBeDisabled();
 	await json.fill(
 		JSON.stringify({
+			extension: { note: 'Retain imported source' },
 			keys: [
+				{ char: '1', row: -1, col: 0, finger: 'LP' },
 				{ char: 'a', row: 1, col: 0, finger: 'LP' },
 				{ char: ';', row: 1, col: 9, finger: 'RP' },
 				{ char: '/', row: 2, col: 9, finger: 'RP' }
@@ -47,7 +49,7 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	await input.press('Escape');
 	await input.pressSequentially('a;');
 	await expect(input).toHaveValue('ab');
-	await expect.poll(() => new URL(page.url()).searchParams.has('chiral')).toBe(true);
+	await expect.poll(() => new URL(page.url()).searchParams.has('document')).toBe(true);
 	await page.reload();
 	await input.pressSequentially('a/');
 	await expect(input).toHaveValue('ai');
@@ -56,4 +58,15 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	await json.fill('{"keys":[]}');
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(page.getByRole('textbox', { name: 'Row 2, key 1', exact: true })).toHaveValue('a');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect.poll(() => new URL(page.url()).searchParams.has('id')).toBe(true);
+	await page.reload();
+	await page.getByRole('button', { name: 'Layout backup settings' }).click();
+	const backup = page.getByRole('dialog', { name: 'Layout backups' });
+	const exported = JSON.parse(await backup.getByLabel('Backup JSON').inputValue());
+	expect(exported.version).toBe(3);
+	const source = exported.layouts[0].document.layout;
+	expect(source.extension).toEqual({ note: 'Retain imported source' });
+	expect(source.keys).toContainEqual({ char: '1', row: -1, col: 0, finger: 'LP' });
+	expect(source.magic.rules).toEqual([{ inputs: 'xy', output: 'z' }]);
 });

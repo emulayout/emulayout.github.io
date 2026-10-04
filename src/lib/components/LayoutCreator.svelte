@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { creatorSparkProjection } from '$lib/creatorDocument';
 	import CreatorChiralMappingsPanel from '$lib/components/CreatorChiralMappingsPanel.svelte';
 	import {
 		createEmptyCreatorChiralDraft,
@@ -169,6 +170,8 @@
 	let magicDraft = $state.raw(initialSession.snapshot.magicDraft);
 	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
 	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
+	let sparkSource = $state.raw(initialSession.snapshot.sparkSource);
+	let sparkEditorBaseline = $state.raw(initialSession.snapshot.sparkEditorBaseline);
 	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let practiceLessonUrlOverrides = $state.raw<TypingPracticeLessonUrlOverrides>(
 		typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
@@ -334,6 +337,8 @@
 			chiralDraft,
 			magicDraft,
 			adaptiveDraft,
+			sparkSource,
+			sparkEditorBaseline,
 			keyConfig,
 			practiceLesson,
 			disabledMappingIds
@@ -399,6 +404,8 @@
 		magicDraft = next.magicDraft;
 		adaptiveDraft = next.adaptiveDraft;
 		keyConfig = next.keyConfig;
+		sparkSource = next.sparkSource;
+		sparkEditorBaseline = next.sparkEditorBaseline;
 		practiceLesson = next.practiceLesson;
 		practiceLessonUrlOverrides = lessonOverrides;
 		disabledMappingIds = [...next.disabledMappingIds];
@@ -559,6 +566,8 @@
 	}
 
 	function applySupplementalDrafts(name: string) {
+		const raw = $state.snapshot(layoutsCatalog.supplemental[name]);
+		sparkSource = raw && 'format' in raw ? raw.layout : undefined;
 		const seeded = creatorDraftsFromSupplemental(
 			$state.snapshot(layoutsCatalog.supplemental),
 			name
@@ -582,6 +591,9 @@
 			includeAdaptiveKey = true;
 			adaptivePanelOpen = true;
 		}
+		sparkEditorBaseline = sparkSource
+			? creatorSparkProjection(currentCreatorSnapshot())
+			: undefined;
 		disabledMappingIds = [];
 	}
 
@@ -590,6 +602,8 @@
 		if (!nextLayout) return;
 		const seed = ++baseLayoutSeed;
 		keyConfig = createKeyboardInputConfigFromLayout(nextLayout, keyConfig.keyboardType);
+		sparkSource = undefined;
+		sparkEditorBaseline = undefined;
 		includeMagicKey = nextLayout.hasMagicKey;
 		includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
 		magicPanelOpen = nextLayout.hasMagicKey;
@@ -603,6 +617,8 @@
 	function clearAllKeys() {
 		baseLayoutSeed += 1;
 		keyConfig = clearKeyboardInputConfig(keyConfig);
+		sparkSource = undefined;
+		sparkEditorBaseline = undefined;
 		includeMagicKey = false;
 		includeAdaptiveKey = false;
 		magicPanelOpen = false;

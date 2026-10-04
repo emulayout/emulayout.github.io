@@ -580,7 +580,7 @@ test('Edit layout opens a new creator canvas seeded from the shown layout', asyn
 	const detailPage = page.getByRole('article', { name: 'Colemak-DH details' });
 	const editLayout = detailPage.getByRole('link', { name: 'Edit layout' });
 	await expect(editLayout).toHaveAttribute('href', /\/create\?(?:.*&)?edit=1(?:&|$)/);
-	await expect(editLayout).toHaveAttribute('href', /\/create\?(?:.*&)?base=Colemak-DH(?:&|$)/);
+	await expect(editLayout).toHaveAttribute('href', /\/create\?(?:.*&)?document=[^&]+(?:&|$)/);
 	await editLayout.click();
 
 	await expect(page).toHaveURL(/\/create\?/);

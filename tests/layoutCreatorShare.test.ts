@@ -48,16 +48,12 @@ describe('creator layout sharing', () => {
 
 		expect(url.pathname).toBe('/create');
 		expect(url.hash).toBe('');
-		expect(url.searchParams.get(CREATOR_SHARE_PARAM)).toBe('1');
+		expect(url.searchParams.get(CREATOR_SHARE_PARAM)).toBe('2');
 		expect(url.searchParams.has('id')).toBe(false);
 		expect(url.searchParams.has('edit')).toBe(false);
 		expect(url.searchParams.has('tab')).toBe(false);
-		expect(url.searchParams.get('name')).toBe('Portable layout');
-		expect(url.searchParams.get('author')).toBe('Layout author');
-		expect(url.searchParams.has('keys')).toBe(true);
-		expect(url.searchParams.has('magic')).toBe(true);
-		expect(url.searchParams.has('adaptive')).toBe(true);
-		expect(url.searchParams.has('off')).toBe(true);
+		expect(url.searchParams.has('document')).toBe(true);
+		expect(url.searchParams.has('keys')).toBe(false);
 
 		const restored = readCreatorShareFromSearch(url.searchParams);
 		expect(restored).not.toBeNull();

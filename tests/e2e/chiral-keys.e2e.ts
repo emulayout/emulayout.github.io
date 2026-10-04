@@ -69,14 +69,21 @@ test('creates, edits, disables, saves and shares compact chiral keys', async ({ 
 	await expect(input).toHaveValue('a/');
 	await editor.getByRole('checkbox', { name: 'Enable chiral key /', exact: true }).check();
 	await page.getByRole('textbox', { name: 'Row 2, key 1', exact: true }).fill('h');
+	await expect(page.getByRole('textbox', { name: 'Row 2, key 2', exact: true })).toBeFocused();
 	await page.getByRole('textbox', { name: 'Row 2, key 6', exact: true }).fill('a');
+	await expect(page.getByRole('textbox', { name: 'Row 2, key 7', exact: true })).toBeFocused();
 	await input.press('Escape');
+	await expect(page.getByRole('textbox', { name: 'Row 2, key 1', exact: true })).toHaveValue('h');
+	await expect(page.getByRole('textbox', { name: 'Row 2, key 6', exact: true })).toHaveValue('a');
 	await input.pressSequentially('h/');
 	await expect(input).toHaveValue('ae');
 	await page.getByRole('button', { name: 'Share', exact: true }).click();
 	await expect(page.getByRole('button', { name: 'Link copied', exact: true })).toBeVisible();
 	const url = await page.evaluate(() => navigator.clipboard.readText());
-	expect(new URL(url).searchParams.has('chiral')).toBe(true);
+	const document = JSON.parse(
+		Buffer.from(new URL(url).searchParams.get('document')!, 'base64url').toString()
+	);
+	expect(document.layout.magic.chiral_keys).toHaveLength(1);
 	expect(new URL(url).searchParams.has('magic')).toBe(false);
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	await expect(page).toHaveURL(/[?&]id=/);
