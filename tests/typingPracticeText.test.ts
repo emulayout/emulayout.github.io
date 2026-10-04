@@ -202,3 +202,21 @@ describe('typing practice lesson settings', () => {
 		expect(isDefaultTypingPracticeLessonSettings(settings)).toBe(false);
 	});
 });
+
+test('word-bank URL overlays and storage preserve the optional selection', () => {
+	const stored = normalizeTypingPracticeLessonSettings({ wordBank: 'english10k' });
+	expect(parseTypingPracticeLessonSettings(serializeTypingPracticeLessonSettings(stored))).toEqual(
+		stored
+	);
+	expect(isDefaultTypingPracticeLessonSettings(stored)).toBe(false);
+	const overrides = typingPracticeLessonOverridesFromSearchParams(
+		new URLSearchParams('bank=english1k')
+	);
+	expect(resolveTypingPracticeLessonSettings(stored, overrides).wordBank).toBe('english1k');
+	const params = new URLSearchParams();
+	writeTypingPracticeLessonOverrideParams(params, typingPracticeLessonOverridesForSettings(stored));
+	expect(params.get('bank')).toBe('english10k');
+	expect(
+		typingPracticeLessonOverridesFromSearchParams(new URLSearchParams('bank=unknown'))
+	).toEqual({});
+});

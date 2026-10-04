@@ -14,7 +14,7 @@ and calculation logic outside the renderer.
   key editor stays on every tab so the live draft can be tested in any mode. Do not send
   typed test-area text to analytics. Catalog layout detail pages remain practice-only on this tab.
 - Without custom text, each new lesson samples the configured number of distinct words from the
-  vendored English 1k list (10, 25, or 50; default 10). The first remaining word is the active target.
+  selected vendored English word bank (English 1k by default; optional English 10k) (10, 25, or 50; default 10). The first remaining word is the active target.
   Random lessons also skip words that need a practiced-layout character with no physical mapping
   from the configured input keyboard (for example an unassigned thumb). Keys without a mapping
   show a red slash on the practice keyboard; hovering explains the exclusion, and thumb keys add a
@@ -294,3 +294,21 @@ The successful-space path is intentionally ordered:
   labels) and Feel-only flash/ignore-wrong-key UI.
 - Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
   displayed target layout or its contextual profile.
+
+## Expanded word bank
+
+Test source offers a Word bank selector below Random words and Custom text. English 1k
+remains the default; English 10k expands the candidates for remapping examples. Selection
+is staged until Save, persisted with lesson settings, and shared through `bank=english10k`
+(or explicit `bank=english1k` when returning to the default). Reset restores English 1k.
+Custom text bypasses word-bank loading. Practice and Layout feel use the selected bank;
+changing banks loads the new pool and starts a fresh lesson. Stale requests cannot replace
+a newer selection.
+
+`static/languages/english10k.json` contains Monkeytype's original English 10k payload (9,944 words) from
+the same pinned commit as English 1k:
+[english_10k.json](https://github.com/monkeytypegame/monkeytype/blob/d7eb4b76f3b3000199022ea52a52365b9346b8d0/frontend/static/languages/english_10k.json).
+
+The word-bank selector displays a trailing chevron. Clicking the `english_1k` or `english_10k`
+credit opens Practice lesson on Test source and focuses Word bank. The remapping settings tab
+is labeled Special mappings.

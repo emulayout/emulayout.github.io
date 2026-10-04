@@ -6,6 +6,8 @@ import {
 	type RemappingPreferences
 } from '$lib/typingPracticeRemappingPreferences';
 
+export type TypingPracticeWordBank = 'english1k' | 'english10k';
+
 export const TYPING_PRACTICE_TEXT_PARAM = 'text';
 export const TYPING_PRACTICE_SPECIAL_WORDS_PARAM = 'special';
 export const TYPING_PRACTICE_WORD_COUNT_PARAM = 'words';
@@ -23,6 +25,7 @@ const TYPING_PRACTICE_LESSON_SETTINGS_VERSION = 1;
  * words, where 100 means only such words and 0 means an ordinary lesson.
  */
 export interface TypingPracticeLessonSettings {
+	wordBank?: TypingPracticeWordBank;
 	remappingPreferences?: RemappingPreferences;
 	customText: string | null;
 	specialWordsPercent: number;
@@ -31,6 +34,7 @@ export interface TypingPracticeLessonSettings {
 
 /** URL fields that were actually present. Absent keys fall back to stored prefs. */
 export interface TypingPracticeLessonUrlOverrides {
+	wordBank?: TypingPracticeWordBank;
 	remappingPreferences?: RemappingPreferences;
 	customText?: string | null;
 	specialWordsPercent?: number;
@@ -76,6 +80,9 @@ export function normalizeTypingPracticeLessonSettings(
 		? undefined
 		: normalizeRemappingPreferences(settings?.remappingPreferences);
 	return {
+		...(settings?.wordBank === 'english10k' || settings?.wordBank === 'english1k'
+			? { wordBank: settings.wordBank }
+			: {}),
 		...(preferences ? { remappingPreferences: preferences } : {}),
 		customText,
 		// Custom text replaces the random word source, so a balance never
@@ -93,6 +100,7 @@ export function isDefaultTypingPracticeLessonSettings(
 	settings: TypingPracticeLessonSettings
 ): boolean {
 	return (
+		settings.wordBank !== 'english10k' &&
 		settings.customText === null &&
 		settings.remappingPreferences === undefined &&
 		settings.specialWordsPercent === 0 &&
@@ -104,6 +112,8 @@ export function typingPracticeLessonOverridesFromSearchParams(
 	searchParams: URLSearchParams
 ): TypingPracticeLessonUrlOverrides {
 	const overrides: TypingPracticeLessonUrlOverrides = {};
+	const bank = searchParams.get('bank');
+	if (bank === 'english1k' || bank === 'english10k') overrides.wordBank = bank;
 	const preferences = parseRemappingPreferences(searchParams.get('remap') ?? '');
 	if (preferences) overrides.remappingPreferences = preferences;
 	if (searchParams.has(TYPING_PRACTICE_TEXT_PARAM)) {
@@ -129,6 +139,7 @@ export function hasTypingPracticeLessonUrlOverrides(
 	overrides: TypingPracticeLessonUrlOverrides
 ): boolean {
 	return (
+		overrides.wordBank !== undefined ||
 		overrides.customText !== undefined ||
 		overrides.remappingPreferences !== undefined ||
 		overrides.specialWordsPercent !== undefined ||
@@ -144,6 +155,7 @@ export function typingPracticeLessonOverridesForSettings(
 	if (lesson.customText) return { customText: lesson.customText };
 	return {
 		...(lesson.remappingPreferences ? { remappingPreferences: lesson.remappingPreferences } : {}),
+		...(lesson.wordBank ? { wordBank: lesson.wordBank } : {}),
 		specialWordsPercent: lesson.specialWordsPercent,
 		wordCount: lesson.wordCount
 	};
@@ -161,16 +173,19 @@ export function resolveTypingPracticeLessonSettings(
 	const persisted = normalizeTypingPracticeLessonSettings(stored);
 	if (overrides.customText !== undefined) {
 		return normalizeTypingPracticeLessonSettings({
+			wordBank: overrides.wordBank ?? persisted.wordBank,
 			customText: overrides.customText,
 			wordCount: overrides.wordCount ?? persisted.wordCount
 		});
 	}
 	if (
+		overrides.wordBank !== undefined ||
 		overrides.specialWordsPercent !== undefined ||
 		overrides.wordCount !== undefined ||
 		overrides.remappingPreferences !== undefined
 	) {
 		return normalizeTypingPracticeLessonSettings({
+			wordBank: overrides.wordBank ?? persisted.wordBank,
 			remappingPreferences: overrides.remappingPreferences ?? persisted.remappingPreferences,
 			customText: null,
 			specialWordsPercent: overrides.specialWordsPercent ?? persisted.specialWordsPercent,
@@ -199,6 +214,7 @@ export function writeTypingPracticeLessonParams(
 		params.set(TYPING_PRACTICE_TEXT_PARAM, lesson.customText);
 		return;
 	}
+	if (lesson.wordBank === 'english10k') params.set('bank', lesson.wordBank);
 	if (lesson.specialWordsPercent > 0) {
 		params.set(TYPING_PRACTICE_SPECIAL_WORDS_PARAM, String(lesson.specialWordsPercent));
 	}
@@ -218,6 +234,8 @@ export function writeTypingPracticeLessonOverrideParams(
 	params.delete(TYPING_PRACTICE_SPECIAL_WORDS_PARAM);
 	params.delete(TYPING_PRACTICE_WORD_COUNT_PARAM);
 	params.delete('remap');
+	params.delete('bank');
+	if (overrides.wordBank) params.set('bank', overrides.wordBank);
 
 	if (overrides.customText !== undefined) {
 		params.set(TYPING_PRACTICE_TEXT_PARAM, overrides.customText ?? '');

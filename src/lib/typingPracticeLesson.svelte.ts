@@ -15,6 +15,7 @@ import {
 } from '$lib/typingPracticeLesson';
 import {
 	ENGLISH_1K_WORD_POOL_URL,
+	ENGLISH_10K_WORD_POOL_URL,
 	loadTypingPracticeWords,
 	type TypingPracticeWordFetcher
 } from '$lib/typingPracticeWords';
@@ -40,7 +41,8 @@ export class SharedTypingPracticeLesson {
 	currentTimeMilliseconds = $state(0);
 	source = $state<SharedTypingPracticeLessonSource | null>(null);
 
-	#wordPoolLoadStarted = false;
+	#wordPoolBank = '';
+	#wordPoolRequest = 0;
 
 	get hasLesson() {
 		return this.sourceWords.length > 0;
@@ -87,22 +89,26 @@ export class SharedTypingPracticeLesson {
 		);
 	}
 
-	ensureWordPool(fetcher: TypingPracticeWordFetcher) {
-		if (this.wordPool.length > 0) {
-			this.wordPoolStatus = 'ready';
-			return;
-		}
-		if (this.#wordPoolLoadStarted) return;
-		this.#wordPoolLoadStarted = true;
+	ensureWordPool(fetcher: TypingPracticeWordFetcher, bank = 'english1k') {
+		if (this.#wordPoolBank === bank) return;
+		this.#wordPoolBank = bank;
+		const request = ++this.#wordPoolRequest;
+		this.wordPool = [];
+		this.source = null;
 		this.wordPoolStatus = 'loading';
-		void loadTypingPracticeWords(fetcher, ENGLISH_1K_WORD_POOL_URL)
+		void loadTypingPracticeWords(
+			fetcher,
+			bank === 'english10k' ? ENGLISH_10K_WORD_POOL_URL : ENGLISH_1K_WORD_POOL_URL
+		)
 			.then((words) => {
+				if (request !== this.#wordPoolRequest) return;
 				this.wordPool = words;
 				this.wordPoolStatus = 'ready';
 			})
 			.catch(() => {
+				if (request !== this.#wordPoolRequest) return;
 				this.wordPoolStatus = 'error';
-				this.#wordPoolLoadStarted = false;
+				this.#wordPoolBank = '';
 			});
 	}
 

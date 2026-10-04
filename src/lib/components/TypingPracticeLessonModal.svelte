@@ -21,6 +21,7 @@
 		normalizeTypingPracticeText,
 		TYPING_PRACTICE_WORD_COUNTS,
 		type TypingPracticeLessonSettings,
+		type TypingPracticeWordBank,
 		type TypingPracticeWordCount
 	} from '$lib/typingPracticeText';
 
@@ -41,6 +42,7 @@
 
 	interface Props {
 		open: boolean;
+		focusWordBank?: boolean;
 		lesson: TypingPracticeLessonSettings;
 		/** Prefill for the custom text field, usually the current lesson words. */
 		initialText: string;
@@ -60,6 +62,7 @@
 
 	let {
 		open,
+		focusWordBank = false,
 		lesson,
 		initialText,
 		specialWordsAvailable,
@@ -72,6 +75,7 @@
 		onSave
 	}: Props = $props();
 
+	let wordBank = $state<TypingPracticeWordBank>('english1k');
 	let source = $state<LessonSource>('random-words');
 	let text = $state('');
 	let specialWordsPercent = $state(0);
@@ -81,7 +85,7 @@
 	const tabOptions = $derived<TabOption<LessonTab>[]>(
 		[
 			{ value: 'source' as const, label: 'Test source' },
-			{ value: 'remappings' as const, label: 'Remappings' },
+			{ value: 'remappings' as const, label: 'Special mappings' },
 			...(onTestStyleChange ? [{ value: 'style' as const, label: 'Test style' }] : [])
 		].map((option) => ({
 			...option,
@@ -124,6 +128,7 @@
 		remappingPreferences = { ...(lesson.remappingPreferences ?? defaultRemappingPreferences()) };
 		preferencesCustomized = Boolean(lesson.remappingPreferences);
 		lessonWordCount = lesson.wordCount;
+		wordBank = lesson.wordBank ?? 'english1k';
 		draftTestStyle = testStyle;
 	});
 
@@ -155,6 +160,7 @@
 		commitTestStyle(draftTestStyle);
 		onSave(
 			normalizeTypingPracticeLessonSettings({
+				...(wordBank === 'english10k' || lesson.wordBank ? { wordBank } : {}),
 				customText: null,
 				...(preferencesCustomized ? { remappingPreferences } : {}),
 				specialWordsPercent: specialWordsAvailable
@@ -167,7 +173,9 @@
 
 	function reset() {
 		commitTestStyle(DEFAULT_TYPING_PRACTICE_TEST_STYLE);
-		onSave(normalizeTypingPracticeLessonSettings(null));
+		onSave(
+			normalizeTypingPracticeLessonSettings(lesson.wordBank ? { wordBank: 'english1k' } : null)
+		);
 	}
 
 	function commitTestStyle(value: TypingPracticeTestStyle) {
@@ -184,7 +192,11 @@
 	{onClose}
 	labelledBy="typing-practice-lesson-title"
 	panelClass="max-w-xl max-h-[calc(100dvh-2rem)] overflow-hidden"
-	initialFocusSelector={lesson.customText ? '.typing-practice-lesson-text-field' : null}
+	initialFocusSelector={focusWordBank
+		? '.typing-practice-word-bank-select'
+		: lesson.customText
+			? '.typing-practice-lesson-text-field'
+			: null}
 >
 	<ModalHeader titleId="typing-practice-lesson-title" title="Practice lesson" {onClose} />
 
@@ -234,6 +246,29 @@
 								</fieldset>
 
 								{#if source === 'random-words'}
+									<label class="flex flex-col gap-1.5">
+										<span class="typing-practice-lesson-label">Word bank</span>
+										<span class="word-bank-select-wrapper">
+											<select
+												bind:value={wordBank}
+												class="typing-practice-word-bank-select rounded-lg border p-2"
+												style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border);"
+											>
+												<option value="english1k">English 1k</option>
+												<option value="english10k">English 10k</option>
+											</select>
+											<svg
+												class="word-bank-chevron"
+												aria-hidden="true"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"><path d="m6 9 6 6 6-6" /></svg
+											>
+										</span>
+									</label>
 									<div class="typing-practice-lesson-word-count">
 										<span class="typing-practice-lesson-label">Word count</span>
 										<SegmentedControl
@@ -435,6 +470,28 @@
 </ModalShell>
 
 <style>
+	.word-bank-select-wrapper {
+		position: relative;
+		display: block;
+	}
+	.typing-practice-word-bank-select {
+		width: 100%;
+		appearance: none;
+		padding-right: 2.5rem;
+	}
+	.typing-practice-word-bank-select:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.word-bank-chevron {
+		position: absolute;
+		right: 0.75rem;
+		top: 50%;
+		transform: translateY(-50%);
+		pointer-events: none;
+		color: var(--text-secondary);
+	}
+
 	.lesson-tabs :global(.lesson-tab-list) {
 		display: flex;
 	}

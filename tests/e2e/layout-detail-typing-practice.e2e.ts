@@ -413,7 +413,7 @@ test('balances random lessons toward words matching the active special keys', as
 		name: 'Words with remappings'
 	});
 	await expect(dialog.getByRole('radio', { name: 'Random words' })).toBeChecked();
-	await dialog.getByRole('tab', { name: 'Remappings', exact: true }).click();
+	await dialog.getByRole('tab', { name: 'Special mappings', exact: true }).click();
 	await expect(balanceSlider).toHaveValue('100');
 	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeEnabled();
 	await expect(dialog.getByText('6 of 12 words match the active remappings.')).toBeVisible();
@@ -425,7 +425,7 @@ test('balances random lessons toward words matching the active special keys', as
 
 	await settingsButton.click();
 	await expect(dialog.getByRole('button', { name: 'Reset' })).toBeDisabled();
-	await dialog.getByRole('tab', { name: 'Remappings', exact: true }).click();
+	await dialog.getByRole('tab', { name: 'Special mappings', exact: true }).click();
 	await balanceSlider.fill('100');
 	await dialog.getByRole('button', { name: 'Save' }).click();
 	await expect(page).toHaveURL('/layouts/vylet?tab=practice&special=100&words=10');
@@ -1087,3 +1087,45 @@ test.describe('unreachable input-layout keys', () => {
 		await expect(thumbKey).not.toHaveAttribute('data-key-unreachable', 'true');
 	});
 });
+
+test('stages and persists the optional English 10k word bank', async ({ page }) => {
+	await page.goto('/layouts/QWERTY');
+	const panel = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const settings = panel.getByRole('button', { name: 'Practice lesson settings' });
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
+	await settings.click();
+	await expect(dialog.getByLabel('Word bank')).toHaveValue('english1k');
+	await dialog.getByLabel('Word bank').selectOption('english10k');
+	await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await settings.click();
+	await expect(dialog.getByLabel('Word bank')).toHaveValue('english1k');
+	await dialog.getByLabel('Word bank').selectOption('english10k');
+	await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page).toHaveURL(/bank=english10k/);
+	await expect(panel.locator('[data-practice-word]')).toHaveCount(10);
+	await page.reload();
+	await settings.click();
+	await expect(dialog.getByLabel('Word bank')).toHaveValue('english10k');
+	await dialog.getByRole('button', { name: 'Reset', exact: true }).click();
+	await expect(page).toHaveURL(/bank=english1k/);
+	await settings.click();
+	await expect(dialog.getByLabel('Word bank')).toHaveValue('english1k');
+});
+
+for (const tab of ['Typing practice', 'Layout feel']) {
+	test(`word-bank credit focuses its selector in ${tab}`, async ({ page }) => {
+		await page.goto('/layouts/QWERTY');
+		await page.getByRole('tab', { name: tab, exact: true }).click();
+		const panel = page.getByRole('tabpanel', { name: tab, exact: true });
+		const credit = panel.getByRole('button', { name: 'english_1k', exact: true });
+		await credit.focus();
+		await credit.press('Enter');
+		const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+		await expect(dialog.getByLabel('Word bank')).toBeFocused();
+		await expect(dialog.getByRole('tab', { name: 'Special mappings', exact: true })).toBeVisible();
+		await expect(dialog.locator('.word-bank-chevron')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(credit).toBeFocused();
+	});
+}

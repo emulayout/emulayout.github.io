@@ -27,3 +27,14 @@ describe('typing practice word loading', () => {
 		).rejects.toThrow('Typing-practice word data is malformed');
 	});
 });
+
+test('loads the vendored English 10k bank', async () => {
+	const payload = await Bun.file('static/languages/english10k.json').json();
+	const words = await loadTypingPracticeWords(async (input) => {
+		expect(input).toBe('/languages/english10k.json');
+		return Response.json(payload);
+	}, '/languages/english10k.json');
+	expect(payload.name).toBe('english_10k');
+	expect(words).toHaveLength(9944);
+	expect(new Set(words).size).toBe(9944);
+});

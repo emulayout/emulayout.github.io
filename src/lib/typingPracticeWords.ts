@@ -1,3 +1,5 @@
+export const ENGLISH_10K_WORD_POOL_URL = '/languages/english10k.json';
+
 export const ENGLISH_1K_WORD_POOL_URL = '/languages/english1k.json';
 
 interface TypingPracticeWordPoolPayload {

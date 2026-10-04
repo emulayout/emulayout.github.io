@@ -139,6 +139,11 @@
 	let lessonPlans = $state<FeelWordPlan[]>([]);
 	const session = $derived(sharedLesson.toFeelSession(lessonPlans));
 	let lessonModalOpen = $state(false);
+	let focusWordBank = $state(false);
+	function openLessonModal(targetWordBank = false) {
+		focusWordBank = targetWordBank;
+		lessonModalOpen = true;
+	}
 	const testCharacterCount = $derived(
 		countTypingPracticeTestCharacters(lessonPlans.map((plan) => plan.feelWord))
 	);
@@ -416,7 +421,7 @@
 			return;
 		}
 
-		sharedLesson.ensureWordPool(fetch);
+		sharedLesson.ensureWordPool(fetch, practiceLesson?.wordBank ?? 'english1k');
 		if (wordPool.length > 0) {
 			if (
 				!untrack(() =>
@@ -625,7 +630,7 @@
 					<button
 						type="button"
 						class="typing-practice-load-action"
-						onclick={() => (lessonModalOpen = true)}>Use custom text</button
+						onclick={() => openLessonModal()}>Use custom text</button
 					>
 				{/if}
 			{:else}
@@ -707,7 +712,7 @@
 						class="typing-practice-lesson-action"
 						aria-label="Layout feel lesson settings"
 						title="Layout feel lesson settings"
-						onclick={() => (lessonModalOpen = true)}
+						onclick={() => openLessonModal()}
 					>
 						<svg
 							viewBox="0 0 24 24"
@@ -755,7 +760,14 @@
 						<a href="https://monkeytype.com/" target="_blank" rel="noopener noreferrer">
 							monkeytype <span aria-hidden="true">↗</span>
 						</a>
-						(english_1k)
+						({#if onPracticeLessonChange}<button
+								type="button"
+								class="word-bank-source-button"
+								onclick={() => openLessonModal(true)}
+								>{practiceLesson?.wordBank === 'english10k' ? 'english_10k' : 'english_1k'}</button
+							>{:else}{practiceLesson?.wordBank === 'english10k'
+								? 'english_10k'
+								: 'english_1k'}{/if})
 					</span>
 				{/if}
 				<span class="typing-practice-status__time" aria-label={`Elapsed time: ${elapsedTime}`}
@@ -883,7 +895,9 @@
 {#if onPracticeLessonChange}
 	<TypingPracticeLessonModal
 		open={lessonModalOpen}
+		{focusWordBank}
 		lesson={{
+			wordBank: practiceLesson?.wordBank,
 			remappingPreferences,
 			customText: customPracticeText,
 			specialWordsPercent,
@@ -900,6 +914,24 @@
 {/if}
 
 <style>
+	.word-bank-source-button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+	}
+	.word-bank-source-button:hover {
+		color: var(--text-secondary);
+		text-decoration: underline;
+	}
+	.word-bank-source-button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+		border-radius: 0.2rem;
+	}
+
 	.layout-feel {
 		--typing-practice-font-size: 2.5rem;
 		min-width: 0;

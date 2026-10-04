@@ -94,11 +94,12 @@ that same modal; saving keeps the current detail tab (`feel` or `practice`) whil
 reveals three labeled native range inputs for relative Magic, Adaptive, and Chiral weights.
 These are staged with the other lesson settings and retain their values when collapsed.
 The lesson form body scrolls within a viewport-bounded panel while its action footer remains visible.
-The shared Tabs primitive separates Test source (including word count/custom text), Remappings,
+The shared Tabs primitive separates Test source (including word count/custom text), Special mappings,
 and Test style. Layout feel omits Test style. Each opening starts on Test source; switching tabs
-preserves staged edits. Remappings explains its unavailability for custom text or layouts without
+preserves staged edits. Special mappings explains its unavailability for custom text or layouts without
 remappings. Save, Cancel, and Reset apply across all tabs, and tab selection is not persisted.
-The settings control opens the modal with the
+The clickable word-bank credit opens Test source with the Word bank selector focused; dismissal
+restores focus to that credit. The settings control opens the modal with the
 current lesson; Cancel, the header close button, Escape, and backdrop dismissal restore focus to
 that control. Typing practice adds a staged Test style segmented control with Colemak Club and
 Monkeytype choices to the modal; Layout feel omits it. Saving persists that choice and replaces

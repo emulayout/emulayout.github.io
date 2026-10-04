@@ -12,10 +12,10 @@ test('lesson tabs preserve drafts, support keyboard navigation, and cancel toget
 	const sourceTab = dialog.getByRole('tab', { name: 'Test source', exact: true });
 	await sourceTab.focus();
 	await sourceTab.press('ArrowRight');
-	const remappingTab = dialog.getByRole('tab', { name: 'Remappings', exact: true });
+	const remappingTab = dialog.getByRole('tab', { name: 'Special mappings', exact: true });
 	await expect(remappingTab).toBeFocused();
 	await expect(remappingTab).toHaveAttribute('aria-selected', 'true');
-	await expect(dialog.getByRole('tabpanel', { name: 'Remappings' })).toContainText(
+	await expect(dialog.getByRole('tabpanel', { name: 'Special mappings' })).toContainText(
 		'apply to random words'
 	);
 	await remappingTab.press('ArrowRight');
@@ -47,7 +47,7 @@ test('saves relative preferences and keeps URL overrides temporary across practi
 		await page.getByRole('button', { name: /^(Practice|Layout feel) lesson settings$/ }).click();
 		await page
 			.getByRole('dialog', { name: 'Practice lesson', exact: true })
-			.getByRole('tab', { name: 'Remappings', exact: true })
+			.getByRole('tab', { name: 'Special mappings', exact: true })
 			.click();
 	};
 	const dialog = page.getByRole('dialog', { name: 'Practice lesson', exact: true });
