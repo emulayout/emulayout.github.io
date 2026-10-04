@@ -1,3 +1,4 @@
+import { compileSparkLayout } from '$lib/sparkCompiler';
 import type { AdaptiveSwapMappings, AdaptiveSwapSource } from '$lib/adaptiveSwaps';
 import {
 	adaptiveProfileMappingIds,
@@ -254,7 +255,10 @@ export function creatorDraftsFromSupplemental(
 	let chiralKeys: ChiralKeySource | undefined;
 	if (raw) {
 		try {
-			const variant = validateLayoutSupplemental(raw, { derived: true }).variants[0];
+			const variant =
+				'format' in raw
+					? compileSparkLayout(raw.layout).source
+					: validateLayoutSupplemental(raw, { derived: true }).variants[0];
 			magicKeys = variant?.magicKeys;
 			adaptiveSwaps = variant?.adaptiveSwaps;
 			chiralKeys = variant?.chiralKeys;
@@ -376,7 +380,7 @@ function magicEmittedLetters(
 		const trigger = section.trigger.trim();
 		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 		for (const rule of section.rules) {
-			const after = rule.after.trim();
+			const after = rule.after;
 			if (!after || !rule.emit.trim() || disabledIds.has(magicRuleMappingId(trigger, after))) {
 				continue;
 			}
@@ -463,7 +467,7 @@ export function magicSourceFromDraft(
 		const current = byTrigger.get(trigger) ?? { rules: {} };
 		const seen = new Set(Object.keys(current.rules));
 		for (const rule of section.rules) {
-			const after = rule.after.trim();
+			const after = rule.after;
 			const emit = rule.emit;
 			if (!after || !emit.trim()) continue;
 			if (seen.has(after) || current.rules[after] !== undefined) continue;

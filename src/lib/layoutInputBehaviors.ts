@@ -1,3 +1,4 @@
+import { compileSparkLayout } from '$lib/sparkCompiler';
 import {
 	compileAdaptiveSwapSource,
 	resolveAdaptiveSwap,
@@ -152,6 +153,17 @@ export function compileLayoutSupplementalRegistry(
 	for (const [layoutName, rawEntry] of Object.entries(sources)) {
 		const layout = layoutByName.get(layoutName);
 		try {
+			if (rawEntry && typeof rawEntry === 'object' && 'format' in rawEntry) {
+				if (rawEntry.format !== 'spark/1' || !('layout' in rawEntry))
+					throw new Error('Unsupported catalog Spark transport');
+				const compiled = compileSparkLayout(rawEntry.layout);
+				if (compiled.warnings.length)
+					console.warn(`Spark compilation omissions for ${layoutName}:`, compiled.warnings);
+				entries.set(layoutName, {
+					variants: compiled.profile ? [{ id: 'default', profile: compiled.profile }] : []
+				});
+				continue;
+			}
 			const supplemental = validateLayoutSupplemental(rawEntry, { derived: true });
 			entries.set(layoutName, {
 				...(supplemental.meta ? { meta: supplemental.meta } : {}),

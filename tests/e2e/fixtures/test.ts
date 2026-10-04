@@ -1,32 +1,43 @@
 import { expect, test as base } from '@playwright/test';
 import { LAYOUT_DETAIL_VERSION, layoutDetailFileId } from '../../../src/lib/layoutDetails';
-import { validateLayoutSupplemental } from '../../../src/lib/layoutSupplemental';
+import { decodeLayout } from '../../../src/lib/layoutCodec';
 import { CYANOPHAGE_COMPACT_STAT_FIELD_COUNT } from '../../../src/lib/statsDerivation';
-import { authors, catalog, coreCatalog } from './catalog-data';
+import { authors, catalog, coreCatalog, vylet } from './catalog-data';
 
-const vyletSupplemental = validateLayoutSupplemental({
-	schema: 1,
-	magicKeys: {
-		mappings: {
-			'*': {
-				c: 'k',
-				"'": 'l',
-				l: 'l',
-				g: 'h',
-				p: 't',
-				r: 'k',
-				s: 'c',
-				w: 'r',
-				f: 't',
-				m: 'b',
-				b: 't',
-				a: 'x',
-				e: 'x',
-				i: 'x'
-			}
+const vyletSupplemental = {
+	format: 'spark/1',
+	layout: {
+		keys: Object.entries(decodeLayout(vylet).keys).map(([char, key]) => ({
+			char,
+			row: key.row,
+			col: key.col,
+			finger: ['LP', 'LR', 'LM', 'LI', 'LI', 'RI', 'RI', 'RM', 'RR', 'RP'][key.col] ?? 'RP'
+		})),
+		magic: {
+			magic_keys: [
+				{
+					key: '*',
+					rules: Object.entries({
+						c: 'k',
+						"'": 'l',
+						l: 'l',
+						g: 'h',
+						p: 't',
+						r: 'k',
+						s: 'c',
+						w: 'r',
+						f: 't',
+						m: 'b',
+						b: 't',
+						a: 'x',
+						e: 'x',
+						i: 'x'
+					}).map(([after, emit]) => ({ after, emit }))
+				}
+			]
 		}
 	}
-});
+};
 
 const supplemental = { vylet: vyletSupplemental };
 

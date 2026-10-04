@@ -11,31 +11,23 @@ For Magic-specific runtime and analyzer details, see
 ## Data ownership
 
 The canonical source for layouts, Magic-key intent, chiral-key intent, and Adaptive swaps is
-AKLDB's stored `spark/1` payload. Catalog sync also requests AKLDB's derived `mana2/1` projection so
-it can lower contextual Magic rules and preserve expanded analyzer inputs. Native chiral intent
-is retained separately for the client. The
-derived projection is not treated as a second source of layout truth.
+AKLDB's stored `spark/1` payload. Catalog sync retains the derived `mana2/1` projection
+for analyzer inputs only. Client behavior and creator imports use `compileSparkLayout`.
 
-`bin/akldb-spark.js` adapts those two views and publishes the existing client-facing payload during
-catalog sync:
+`bin/akldb-spark.js` publishes preserved Spark documents in the existing sidecar filename:
 
 ```json
 {
 	"example": {
-		"schema": 1,
-		"variants": [
-			{
-				"id": "default",
-				"magicKeys": {
-					"mappings": {
-						"*": { "rules": { "c": "k" }, "fallback": "repeat-last" }
-					}
-				},
-				"adaptiveSwaps": {
-					"mappings": { "l": { "y": "j" } }
-				}
+		"format": "spark/1",
+		"layout": {
+			"keys": [{ "char": "*", "row": 1, "col": 4, "finger": "LI" }],
+			"magic": {
+				"magic_keys": [
+					{ "key": "*", "default": { "kind": "repeat" }, "rules": [{ "after": "c", "emit": "k" }] }
+				]
 			}
-		]
+		}
 	}
 }
 ```
@@ -68,37 +60,32 @@ generated behavior payload cannot be loaded.
 
 ## Source adaptation
 
-AKLDB's Mana2 projection stores the complete contextual result. Emulayout stores only what pressing
-the Magic key emits, so the importer removes the `after` prefix:
+The shared Spark compiler preserves the validated document independently from executable
+output. It compiles Magic rules, explicit fallbacks and exceptions, Adaptive swaps, and native
+Chiral behavior directly from Spark. Client behavior never falls back to Mana2 expansions.
+Unsupported features produce diagnostics while remaining in the published source.
 
-```json
-{ "after": "c", "output": "ck" }
-```
+Literal whitespace in preceding Magic contexts is retained and matched exactly. History does not
+synthesize an initial word boundary. Raw rewrites/deletions and unsupported native definitions
+remain outside the executable subset.
 
-becomes `"c": "k"`. Spark identifies Magic triggers while Mana2 supplies their flattened
-contextual rules. Multiple triggers and multi-character contexts remain supported. Chiral keys
-instead retain `chiralKeys: { keys: [{ key, same, opposite, except }], hands }`. The optional hands
-map preserves primary character hands from Spark. Native compilation adds uppercase and shifted
-aliases without replacing explicit assignments. Same/opposite compare the trigger's hand with the
-last emitted character's assigned hand. Missing context or hand, missing branches, and exceptions
-produce the literal trigger. A branch can emit one character or repeat the previous character.
-The catalog adapter normalizes Spark's `null` branches to omitted runtime branches, preserving
-the original source in the cache.
-Literal Space is supported as a native trigger, output, exception, and assigned-hand character.
-Tabs, newlines, and other whitespace remain invalid native characters.
-Definitions outside native chiral support retain AKL's
-authoritative Mana2 rules in the Magic representation, with a sync warning. Only supported native
-definitions have their expanded rules removed from the client payload. Unsupported whitespace hand
-entries are excluded from the native hand map; Space hands are retained.
+Chirals retain `chiralKeys: { keys: [{ key, same, opposite, except }], hands }` in derived compiler
+output. The hands map preserves first-occurrence character hands from Spark. Native compilation
+adds uppercase and shifted aliases without replacing explicit assignments. Same/opposite compare
+the trigger's hand with the last emitted character's assigned hand. Missing context or hand,
+missing branches, and exceptions produce the literal trigger. Literal Space is supported; other
+whitespace is excluded from native characters. Nullable branches normalize only in compiled output.
 
-`chiralKeys.ts` owns validation, compilation, and resolution. Shortcut planners use a temporary
-Magic-rule projection; the UI and persisted data never use that projection. Cyanophage continues
-to receive the original authoritative Mana2 expansion through `analyzerMappings`, independently
-of the compact client representation. Legacy saved expanded Magic lists are not reverse-engineered.
+`chiralKeys.ts` owns native validation, compilation, and resolution. Shortcut planners use a
+transient Magic projection. Cyanophage receives Mana2 expansion through `analyzerMappings`;
+that adapter is independent of client compilation and its outputs are unchanged by this transition.
 
-A conventional rule-free `@` whose Spark default has repeat semantics is omitted from the Magic
-payload and represented by Emulayout's dedicated Repeat profile. Mapped `@` rules remain Magic and
-override that profile.
+A conventional rule-free `@` with repeat default uses the dedicated Repeat profile. Other explicit
+Magic or Chiral declarations claim `@` and suppress conventional Repeat behavior.
+
+The previous supplemental validator, variants, and staleness metadata remain only as compatibility
+readers for previously generated catalogs. New catalog output does not use them. Reader retirement
+belongs to the separate compatibility phase.
 
 Spark Adaptive entries already store one side of a two-way swap:
 

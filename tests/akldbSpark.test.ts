@@ -10,7 +10,12 @@ function layout(overrides: Record<string, unknown> = {}) {
 		createdAt: '2026-01-01T00:00:00Z',
 		modifiedAt: '2026-01-01T00:00:00Z',
 		formatModifiedAt: '2026-01-01T00:00:00Z',
-		keys: [],
+		keys: ['_', '/', ';', 'y', 'Y', '*', '@'].map((char, col) => ({
+			char,
+			row: 1,
+			col,
+			finger: 'LI'
+		})),
 		likes: [],
 		likeCount: 0,
 		link: null,
@@ -30,13 +35,17 @@ describe('AKLDB Spark behavior adapter', () => {
 				}
 			})
 		);
-		expect(result.supplemental?.variants[0].adaptiveSwaps?.mappings).toEqual({ a: { h: 'j' } });
+		expect(result.source.adaptiveSwaps?.mappings).toEqual({ a: { h: 'j' } });
 	});
 
 	test('keeps Space outputs native with explicit Space hands', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({
-				keys: [{ char: ' ', row: 3, col: 0, finger: 'LT' }],
+				keys: [
+					{ char: ' ', row: 3, col: 0, finger: 'LT' },
+					{ char: '_', row: 1, col: 0, finger: 'LP' },
+					{ char: '/', row: 1, col: 1, finger: 'LR' }
+				],
 				magic: {
 					chiral_keys: [
 						{ key: '_', same: { kind: 'char', char: '^' }, opposite: { kind: 'char', char: ' ' } },
@@ -51,12 +60,12 @@ describe('AKLDB Spark behavior adapter', () => {
 				}
 			})
 		);
-		expect(result.supplemental?.variants[0].magicKeys).toBeUndefined();
-		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([
+		expect(result.source.magicKeys).toBeUndefined();
+		expect(result.source.chiralKeys?.keys).toEqual([
 			{ key: '_', same: { kind: 'char', char: '^' }, opposite: { kind: 'char', char: ' ' } },
 			{ key: '/', same: { kind: 'repeat' } }
 		]);
-		expect(result.supplemental?.variants[0].chiralKeys?.hands).toEqual({ ' ': 'l' });
+		expect(result.source.chiralKeys?.hands).toEqual({ ' ': 'l', _: 'l', '/': 'l' });
 	});
 
 	test('normalizes nullable chiral branches without changing Spark source', () => {
@@ -70,7 +79,7 @@ describe('AKLDB Spark behavior adapter', () => {
 		});
 		const before = JSON.stringify(source);
 		const result = supplementalFromAkldbLayout(source);
-		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([
+		expect(result.source.chiralKeys?.keys).toEqual([
 			{ key: '/', opposite: { kind: 'char', char: 'e' } },
 			{ key: ';', same: { kind: 'repeat' } }
 		]);
@@ -83,7 +92,7 @@ describe('AKLDB Spark behavior adapter', () => {
 		);
 		expect(result.repeatTrigger).toBe(true);
 		expect(result.supplemental).toBeUndefined();
-		expect(supplementalFromAkldbLayout(layout()).repeatTrigger).toBe(false);
+		expect(supplementalFromAkldbLayout(layout({ keys: [] })).repeatTrigger).toBe(false);
 	});
 
 	test.each(['magic_keys', 'chiral_keys'])(
@@ -107,7 +116,7 @@ describe('AKLDB Spark behavior adapter', () => {
 		const result = supplementalFromAkldbLayout(
 			layout({
 				magic: {
-					magic_keys: [{ key: '*' }],
+					magic_keys: [{ key: '*', rules: [{ after: 'c', emit: 'k' }] }],
 					chiral_keys: [{ key: 'y' }]
 				},
 				manaMagic: {
@@ -119,10 +128,10 @@ describe('AKLDB Spark behavior adapter', () => {
 				}
 			})
 		);
-		expect(result.supplemental?.variants[0].magicKeys?.mappings).toEqual({
+		expect(result.source.magicKeys?.mappings).toEqual({
 			'*': { rules: { c: 'k' } }
 		});
-		expect(result.supplemental?.variants[0].chiralKeys?.keys).toEqual([{ key: 'y' }]);
+		expect(result.source.chiralKeys?.keys).toEqual([{ key: 'y' }]);
 		expect(result.analyzerMappings?.y).toEqual({ rules: { a: 'a' } });
 	});
 
@@ -136,7 +145,8 @@ describe('AKLDB Spark behavior adapter', () => {
 			})
 		);
 		expect(result.repeatTrigger).toBe(true);
-		expect(result.supplemental).toBeUndefined();
+		expect(result.source.magicKeys).toBeUndefined();
+		expect(result.supplemental?.layout.magic?.magic_keys).toHaveLength(1);
 	});
 
 	test('adapts Spark adaptive swaps independently from lowered Magic rules', () => {
@@ -146,10 +156,10 @@ describe('AKLDB Spark behavior adapter', () => {
 				manaMagic: { rules: [{ inputs: 'ly', output: 'lj' }] }
 			})
 		);
-		expect(result.supplemental?.variants[0].adaptiveSwaps?.mappings).toEqual({
+		expect(result.source.adaptiveSwaps?.mappings).toEqual({
 			l: { y: 'j' }
 		});
-		expect(result.supplemental?.variants[0].magicKeys).toBeUndefined();
+		expect(result.source.magicKeys).toBeUndefined();
 	});
 
 	test('preserves case-sensitive lowered contexts and triggers', () => {
@@ -171,4 +181,33 @@ describe('AKLDB Spark behavior adapter', () => {
 			Y: { rules: { y: 'y' } }
 		});
 	});
+});
+
+test('catalog runtime follows Spark intent while Mana2 stays an independent analyzer projection', () => {
+	const result = supplementalFromAkldbLayout(
+		layout({
+			magic: {
+				magic_keys: [{ key: '*', default: { kind: 'repeat' }, rules: [{ after: 'c', emit: 'k' }] }]
+			},
+			manaMagic: { rules: [{ inputs: 'c*', output: 'cx' }] }
+		})
+	);
+	expect(result.source.magicKeys?.mappings['*']).toEqual({
+		rules: { c: 'k' },
+		fallback: 'repeat-last'
+	});
+	expect(result.analyzerMappings?.['*']).toEqual({ rules: { c: 'x' } });
+	expect(result.supplemental?.format).toBe('spark/1');
+});
+
+test('published Spark retains unsupported content and extensions with compilation diagnostics', () => {
+	const spark = {
+		keys: [],
+		future: { value: 1 },
+		magic: { rules: [{ inputs: 'ab', output: '' }] }
+	};
+	const result = supplementalFromAkldbLayout(layout({ keys: [], spark }));
+	expect(result.supplemental?.layout).toEqual(spark);
+	expect(result.warnings).toContain('raw rules that rewrite or delete earlier text');
+	expect(result.source.magicKeys).toBeUndefined();
 });

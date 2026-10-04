@@ -1,9 +1,12 @@
 import { expect, test } from 'bun:test';
 import { validateSparkLayout } from '$lib/sparkSchema';
 import { compileSparkLayout } from '$lib/sparkCompiler';
-import { resolveLayoutInput } from '$lib/layoutInputBehaviors';
+import { compileLayoutInputRegistry, resolveLayoutInput } from '$lib/layoutInputBehaviors';
 import { importAklTryPayload } from '$lib/aklTryImport';
-import { compileCreatorInputProfile } from '$lib/layoutCreatorMappings';
+import {
+	creatorDraftsFromSupplemental,
+	compileCreatorInputProfile
+} from '$lib/layoutCreatorMappings';
 import { createLayoutFromKeyConfig } from '$lib/layoutCreator';
 import { chiralMappingId } from '$lib/chiralKeys';
 
@@ -94,8 +97,7 @@ test('source content and extension fields survive compilation unchanged and inde
 		expect.arrayContaining([
 			'the number row',
 			'keys outside supported keyboard bounds',
-			'raw rules that rewrite or delete earlier text',
-			'word-start or whitespace-context rules'
+			'raw rules that rewrite or delete earlier text'
 		])
 	);
 	expect(result.keys.some((key) => key.inert)).toBe(true);
@@ -168,4 +170,58 @@ test('unsupported conflicts are reported without corrupting supported behavior',
 	expect(result.document.magic?.adaptive_swaps).toHaveLength(2);
 	expect(resolveLayoutInput(result.profile, 'n', 'h').text).toBe('j');
 	expect(compileSparkLayout({ keys: [] }).profile).toBeUndefined();
+});
+
+test('catalog, imports, and creator seeding preserve literal whitespace contexts', () => {
+	const document = layout();
+	document.magic.magic_keys[0].rules = [{ after: ' a', emit: 'x' }];
+	const transport = { format: 'spark/1' as const, layout: validateSparkLayout(document) };
+	const compiled = compileSparkLayout(document);
+	const keys = Object.fromEntries(document.keys.map((key) => [key.char, key]));
+	const catalog = compileLayoutInputRegistry({ example: transport }, [
+		{ name: 'example', keys }
+	]).get('example');
+	const drafts = creatorDraftsFromSupplemental({ example: transport }, 'example');
+	const seeded = compileCreatorInputProfile(
+		true,
+		drafts.magicDraft,
+		true,
+		drafts.adaptiveDraft,
+		Object.keys(keys),
+		drafts.chiralDraft,
+		keys
+	);
+	const snapshot = importAklTryPayload({
+		v: 1,
+		format: 'spark/1',
+		name: 'example',
+		board: 'ortho',
+		layout: document
+	}).snapshot!;
+	const imported = compileCreatorInputProfile(
+		true,
+		snapshot.magicDraft,
+		true,
+		snapshot.adaptiveDraft,
+		Object.keys(keys),
+		snapshot.chiralDraft,
+		keys
+	);
+	for (const profile of [compiled.profile, catalog, seeded, imported]) {
+		expect(resolveLayoutInput(profile, ' a', ';').text).toBe('x');
+		expect(resolveLayoutInput(profile, 'a', ';').text).toBe('a');
+	}
+});
+
+test('Spark claims suppress bare Repeat while conventional declarations retain it', () => {
+	const document = layout();
+	document.magic.magic_keys = [{ key: '@', default: { kind: 'repeat' }, rules: [], except: [] }];
+	const conventional = compileSparkLayout(document);
+	expect(conventional.source.magicKeys?.mappings['@']).toBeUndefined();
+	expect(resolveLayoutInput(conventional.profile, 'a', '@').text).toBe('a');
+	const claimed = compileSparkLayout({
+		keys: document.keys,
+		magic: { magic_keys: [{ key: '@' }] }
+	});
+	expect(claimed.profile?.repeatKey).toBeUndefined();
 });

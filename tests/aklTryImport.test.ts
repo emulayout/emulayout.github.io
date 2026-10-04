@@ -123,15 +123,15 @@ describe('akl.gg try import', () => {
 		}
 	});
 
-	test('reports word-start contexts instead of silently losing them in compilation', () => {
+	test('preserves literal whitespace contexts in imported drafts', () => {
 		const value = payload();
 		value.layout.magic.magic_keys[0].rules.push({ after: ' ', emit: 'x' });
 		value.layout.magic.rules.push({ inputs: ' b', output: ' x' });
 		const result = importAklTryPayload(value);
-		expect(result.notice).toContain('word-start or whitespace-context rules');
-		expect(
-			result.snapshot!.magicDraft.sections.flatMap((section) => section.rules)
-		).not.toContainEqual(expect.objectContaining({ after: ' ' }));
+		expect(result.notice).not.toContain('whitespace-context rules');
+		expect(result.snapshot!.magicDraft.sections.flatMap((section) => section.rules)).toContainEqual(
+			expect.objectContaining({ after: ' ', emit: 'x' })
+		);
 		expect(result.snapshot!.magicDraft.sections.flatMap((section) => section.rules)).toContainEqual(
 			expect.objectContaining({ after: 'th', emit: 'e' })
 		);

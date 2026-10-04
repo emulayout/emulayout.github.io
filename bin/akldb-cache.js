@@ -2,8 +2,7 @@
  * Download, validate, and cache one coordinated AKLDB catalog snapshot.
  *
  * Spark is the stored source format. AKLDB's Mana2 projection is cached beside
- * it because that projection is the server's authoritative compilation of
- * Magic and chiral authoring intent into executable rules.
+ * it for analyzer expansion. Client behavior is compiled directly from Spark.
  */
 
 import { validateSparkLayout } from '../src/lib/sparkSchema.ts';
@@ -42,6 +41,7 @@ const USER_AGENT = 'emulayout-akldb-sync/1.0 (+https://github.com/emulayout/emul
  *   keys: AkldbKey[],
  *   magic?: AkldbMagic,
  *   manaMagic?: AkldbManaMagic,
+ *   spark?: import('../src/lib/sparkSchema.ts').SparkLayout,
  *   likes: string[],
  *   likeCount: number,
  *   link: string | null
@@ -87,15 +87,11 @@ function parseId(value, label) {
 	throw new Error(`${label} must be a decimal string`);
 }
 
-/** Shared structural validation plus the catalog's existing acceptance policy.
+/** Shared structural validation preserves supported and unsupported source content.
  * @param {unknown} value @param {string} label
  */
 function parseSparkPayload(value, label) {
-	const document = validateSparkLayout(value, label);
-	for (const rule of document.magic?.rules ?? []) {
-		if (!rule.output) throw new Error(`${label}.rules must contain usable inputs and output text`);
-	}
-	return document;
+	return validateSparkLayout(value, label);
 }
 
 /** @param {unknown} value @param {string} label @returns {AkldbManaMagic | undefined} */
@@ -198,6 +194,7 @@ export function parseAkldbLayouts(json, manaJson) {
 			formatModifiedAt,
 			...payload,
 			manaMagic: mana.magic,
+			spark: payload,
 			likes,
 			likeCount: /** @type {number} */ (item.like_count),
 			link: /** @type {string | null} */ (item.link)
@@ -418,6 +415,8 @@ export async function hashCachedAkldbSources() {
 	const cached = await readCachedCatalog(akldbCachePath(AKLDB_SNAPSHOT_CACHE_FILE));
 	if (!cached) throw new Error(`AKLDB catalog cache is missing at ${AKLDB_CACHE_DIR}`);
 	const hash = createHash('sha256');
+	// Invalidate the old supplemental generation even when the source snapshot is unchanged.
+	hash.update('catalog-spark/1\n');
 	hash.update(JSON.stringify(cached.snapshot.layouts));
 	hash.update('\n');
 	hash.update(JSON.stringify(cached.snapshot.manaLayouts));

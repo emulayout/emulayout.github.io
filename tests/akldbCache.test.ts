@@ -193,3 +193,17 @@ describe('AKLDB cache', () => {
 		).rejects.toBeInstanceOf(AkldbCatalogUnavailableError);
 	});
 });
+
+test('catalog preserves unsupported raw deletion rules and extension fields as Spark content', () => {
+	const payload = {
+		keys: [],
+		future: { value: 1 },
+		magic: { rules: [{ inputs: 'ab', output: '' }] }
+	};
+	const parsed = parseAkldbCatalog(
+		{ items: [sparkLayout({ payload })] },
+		{ items: [manaLayout()] },
+		{}
+	);
+	expect(parsed.layouts.layouts[0].spark).toEqual(payload);
+});

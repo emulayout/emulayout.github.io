@@ -1,3 +1,4 @@
+import type { SparkLayout } from '$lib/sparkSchema';
 import { validateAdaptiveSwapSource, type AdaptiveSwapSource } from '$lib/adaptiveSwaps';
 import { validateChiralKeySource, type ChiralKeySource } from '$lib/chiralKeys';
 import { validateMagicKeyMappings, type MagicKeyMappings } from '$lib/magicKeys';
@@ -47,7 +48,11 @@ export interface LayoutSupplemental {
 	variants: readonly LayoutSupplementalVariant[];
 }
 
-export type LayoutSupplementalByLayout = Readonly<Record<string, LayoutSupplemental>>;
+export type CatalogSparkContent = { format: 'spark/1'; layout: SparkLayout };
+
+/** Spark content plus the reader for previously generated catalogs. */
+export type CatalogLayoutContent = CatalogSparkContent | LayoutSupplemental;
+export type LayoutSupplementalByLayout = Readonly<Record<string, CatalogLayoutContent>>;
 
 export interface ValidateLayoutSupplementalOptions {
 	/**

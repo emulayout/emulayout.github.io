@@ -10,7 +10,7 @@ import type {
 } from '$lib/layout';
 import { decodeLayout, type CompactLayout } from '$lib/layoutCodec';
 import { compileLayoutInputRegistry, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
-import type { LayoutSupplemental } from '$lib/layoutSupplemental';
+import type { CatalogLayoutContent } from '$lib/layoutSupplemental';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
@@ -38,7 +38,7 @@ export interface CompactLayoutDetail {
 	layout: CompactLayout;
 	authorName: string;
 	likeCount: number;
-	supplemental?: LayoutSupplemental;
+	supplemental?: CatalogLayoutContent;
 	stats: LayoutDetailStats;
 }
 

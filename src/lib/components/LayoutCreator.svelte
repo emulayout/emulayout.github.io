@@ -559,7 +559,10 @@
 	}
 
 	function applySupplementalDrafts(name: string) {
-		const seeded = creatorDraftsFromSupplemental(layoutsCatalog.supplemental, name);
+		const seeded = creatorDraftsFromSupplemental(
+			$state.snapshot(layoutsCatalog.supplemental),
+			name
+		);
 		magicDraft = seeded.magicDraft;
 		adaptiveDraft = seeded.adaptiveDraft;
 		chiralDraft = seeded.chiralDraft;

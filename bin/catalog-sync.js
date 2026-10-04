@@ -18,7 +18,6 @@ import { createHash } from 'node:crypto';
 import { transformLayout } from './layout-transformer.js';
 import { encodeLayout, layoutEntryName } from './layout-codec.js';
 import { cyanophageStatsNeedMagicMappings } from './cyanophage-magic.js';
-import { hasAdaptiveSwapMappings, hasMagicKeyMappings } from './layout-features.js';
 import {
 	LAYOUTS_FILE,
 	parseOfflineForceArgs,
@@ -143,23 +142,23 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 		positions: layout.keys
 	};
 	const transformedLayout = transformLayout(rawLayout);
-	const { supplemental, repeatTrigger, analyzerMappings } = supplementalFromAkldbLayout(layout);
-	const variants = supplemental?.variants ?? [];
+	const { supplemental, source, repeatTrigger, analyzerMappings, warnings } =
+		supplementalFromAkldbLayout(layout);
+	if (warnings.length)
+		console.warn(`  ⚠ ${layout.name}: Spark compilation omissions: ${warnings.join(', ')}`);
 	transformedLayout.updatedAt =
 		layout.formatModifiedAt > layout.modifiedAt ? layout.formatModifiedAt : layout.modifiedAt;
-	transformedLayout.hasMagicKeyMappings = hasMagicKeyMappings(variants);
+	transformedLayout.hasMagicKeyMappings = Boolean(source.magicKeys);
 	transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
 	transformedLayout.hasRepeatKey = repeatTrigger;
 	transformedLayout.cyanophageStatsNeedMagicMappings = cyanophageStatsNeedMagicMappings(
 		analyzerMappings,
 		transformedLayout.keys
 	);
-	transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
+	transformedLayout.hasAdaptiveSwapMappings = Boolean(source.adaptiveSwaps);
 	transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
 	transformedLayout.hasChiralKey = Boolean(layout.magic?.chiral_keys?.length);
-	transformedLayout.hasChiralKeyMappings = variants.some((variant) =>
-		Boolean(variant.chiralKeys?.keys.length)
-	);
+	transformedLayout.hasChiralKeyMappings = Boolean(source.chiralKeys?.keys.length);
 	return {
 		encoded: encodeLayout(transformedLayout),
 		supplemental: supplemental ? { name: layout.name, supplemental } : null

@@ -52,10 +52,10 @@ Names are never used to infer either behavior.
 
 ## Generated Magic format
 
-Magic and Adaptive intent comes from AKLDB's stored `spark/1` payload. The sync uses AKLDB's derived
-`mana2/1` projection to lower Magic rules and retain expanded analyzer inputs. Chirals remain native. See
+Magic and Adaptive intent comes from AKLDB's stored `spark/1` payload. The shared Spark compiler derives client behavior directly from that content. AKLDB's derived
+`mana2/1` projection remains an analyzer input only. Chirals remain native. See
 [`adaptive-swaps-architecture.md`](./adaptive-swaps-architecture.md#source-adaptation) for the
-source-to-runtime conversion. The normalized client payload stores each trigger under
+source-to-runtime conversion. The derived compiler output stores each trigger under
 `magicKeys.mappings`.
 
 Inside `mappings`, each key is a Magic trigger and each rule maps preceding emitted text to the text
@@ -77,7 +77,7 @@ emitted by the trigger:
 
 Triggers need not be `*`. Multiple triggers, multi-character preceding sequences, and
 multi-character output are supported. Preceding sequences are case-sensitive, as required by
-Spark/Mana2 lowering. Output is emitted exactly as stored.
+Spark compilation. Output is emitted exactly as stored.
 
 ## Fallback behavior
 
@@ -129,17 +129,17 @@ akl.gg's revision-matched stats/v1 objects.
 The direct `/try` Spark importer adapts raw rules using an explicit fixed-text fallback equal to
 the base trigger. Chirals use the native resolver. Unmatched raw/chiral presses and chiral exceptions
 therefore retain ordinary key output. Magic declarations retain their own explicit defaults.
-Word-start and whitespace-context rules are currently omitted and reported by that importer;
+Literal whitespace contexts are preserved and matched exactly;
 the shared runtime does not synthesize Spark's initial space context. See `layout-creator.md`
 for the direct-import boundaries.
 
-Sync publishes AKLDB Magic, chiral, and Adaptive mappings in:
+Sync publishes Spark behavior documents in:
 
 ```text
 static/layout-supplemental.json
 ```
 
-The detail-data generation step also copies the matching layout's normalized supplemental record
+The detail-data generation step also copies the matching layout's preserved Spark document
 into its `static/layout-details/<id>.json` payload. The aggregate payload
 remains authoritative for the layout index; the per-layout copy lets direct detail and Quick Find
 views avoid downloading it.

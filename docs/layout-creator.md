@@ -233,8 +233,9 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   multi-character contexts, fallbacks, and exceptions), chiral keys, representable raw rules, and
   Adaptive swaps are imported. The number row and custom non-thumb finger assignments are not
   represented by the creator; a status notice names omitted data. Raw rules that rewrite or delete
-  earlier text are also omitted. Word-start and other whitespace-context rules are omitted with
-  an explicit notice: the current runtime does not model Spark's initial word boundary.
+  earlier text are also omitted. Whitespace-context rules use
+  literal preceding-text matches. Whitespace is preserved in these contexts; the runtime does not
+  synthesize Spark's initial word boundary.
   Imported raw and chiral triggers retain their base output outside matching contexts, including
   chiral exceptions. Explicit Magic defaults keep their declared behavior.
   The first occurrence of a duplicate character is marked `primary` on the key configuration;

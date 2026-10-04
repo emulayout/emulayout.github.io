@@ -44,10 +44,6 @@ function addMagicRule(
 		warnings.add('some Magic rules');
 		return;
 	}
-	if (/\s/u.test(after)) {
-		warnings.add('word-start or whitespace-context rules');
-		return;
-	}
 	const section = sectionFor(sections, trigger);
 	if (section.rules.some((rule) => rule.after === after)) {
 		warnings.add('overlapping Magic rules');
@@ -136,6 +132,14 @@ function lowerSparkBehavior(
 	if (!value) return {};
 
 	for (const raw of value.magic_keys ?? []) {
+		// The conventional rule-free @ uses the dedicated Repeat model.
+		if (
+			raw.key === '@' &&
+			raw.default?.kind === 'repeat' &&
+			!raw.rules?.length &&
+			!raw.except?.length
+		)
+			continue;
 		if (!isSingleCharacter(raw.key)) {
 			warnings.add('some Magic keys');
 			continue;
@@ -208,11 +212,10 @@ function lowerSparkBehavior(
 			warnings.add('some Adaptive swaps');
 			continue;
 		}
+		// Identity swaps do not change behavior.
+		if (left === right) continue;
 		const swaps = (adaptiveMappings[trigger] ??= Object.create(null));
-		if (
-			left === right ||
-			Object.entries(swaps).some(([a, b]) => [a, b].includes(left) || [a, b].includes(right))
-		) {
+		if (Object.entries(swaps).some(([a, b]) => [a, b].includes(left) || [a, b].includes(right))) {
 			warnings.add('conflicting Adaptive swaps');
 			continue;
 		}
@@ -265,8 +268,15 @@ export function compileSparkLayout(value: unknown) {
 				col: key.col,
 				hand: key.finger.startsWith('L') ? 'l' : 'r'
 			};
+	const magicAt = document.magic?.magic_keys?.find((key) => key.key === '@');
+	const claimedAt = Boolean(magicAt || document.magic?.chiral_keys?.some((key) => key.key === '@'));
+	const conventionalAt =
+		magicAt?.default?.kind === 'repeat' && !magicAt.rules?.length && !magicAt.except?.length;
+	const repeatEnabled = Object.hasOwn(rawKeys, '@') && (!claimedAt || conventionalAt);
 	const hasBehavior =
-		source.magicKeys || source.adaptiveSwaps || source.chiralKeys || Object.hasOwn(rawKeys, '@');
-	const profile = hasBehavior ? compileLayoutInputProfile(source, rawKeys) : undefined;
+		source.magicKeys || source.adaptiveSwaps || source.chiralKeys || repeatEnabled;
+	const profile = hasBehavior
+		? compileLayoutInputProfile(source, rawKeys, repeatEnabled)
+		: undefined;
 	return { document, keys, source, profile, warnings: [...warnings] };
 }

@@ -96,12 +96,13 @@ test('keeps normal key output around imported contextual rules after saving and 
 	await page.goto(`/try#akl=${encodeBase64UrlUtf8(payload)}`);
 	const notice = page.getByRole('status').filter({ hasText: 'Imported from akl.gg without' });
 	await expect(notice).toContainText('keys outside supported keyboard bounds');
-	await expect(notice).toContainText('word-start or whitespace-context rules');
+	await expect(notice).not.toContainText('whitespace-context rules');
 	await page.getByRole('tab', { name: 'Layout test area', exact: true }).click();
 	const input = page.getByRole('textbox', { name: 'Layout test area', exact: true });
 	for (const [keys, expected] of [
 		['ab', 'ax'],
 		['bb', 'bb'],
+		[' b', ' x'],
 		['b/', 'b/'],
 		['a/', 'ai']
 	]) {
