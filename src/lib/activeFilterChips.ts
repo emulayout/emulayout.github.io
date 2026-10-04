@@ -1,6 +1,7 @@
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 import type {
 	AdaptiveSwapFilter,
+	ChiralKeyFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
 	RepeatKeyFilter,
@@ -41,6 +42,7 @@ export type FilterChipSource = {
 	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
+	chiralKeyFilter: ChiralKeyFilter;
 	characterSetFilter: CharacterSetFilter;
 	showUnfinished: boolean;
 	appliedIncludeGrid: string[][];
@@ -74,6 +76,7 @@ export function chipSourceFromViewSnapshot(
 		repeatKeyFilter: snapshot.repeatKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
+		chiralKeyFilter: snapshot.chiralKeyFilter,
 		characterSetFilter: snapshot.characterSetFilter,
 		showUnfinished: snapshot.showUnfinished,
 		appliedIncludeGrid: snapshot.appliedIncludeGrid,
@@ -182,6 +185,7 @@ export type ActiveFilterClearAction =
 	| { kind: 'repeatKey' }
 	| { kind: 'magicKey' }
 	| { kind: 'adaptiveSwap' }
+	| { kind: 'chiralKey' }
 	| { kind: 'characterSet' }
 	| { kind: 'showUnfinished' }
 	| { kind: 'keyFilter'; filter: KeyFilterKind }
@@ -276,23 +280,27 @@ export function getActiveFilterChips(store: FilterChipSource): ActiveFilterChip[
 		);
 	}
 	if (store.magicKeyFilter !== 'optional') {
-		const label =
-			store.magicKeyFilter === 'required-mapped'
-				? 'Magic: known mappings'
-				: `Magic ${store.magicKeyFilter}`;
+		const label = `Magic ${store.magicKeyFilter}`;
 		pushChip(chips, 'magic', label, { kind: 'magicKey' }, { target: 'keyboard', field: 'magic' });
 	}
 	if (store.adaptiveSwapFilter !== 'optional') {
-		const label =
-			store.adaptiveSwapFilter === 'required-mapped'
-				? 'Adaptive: known mappings'
-				: `Adaptive ${store.adaptiveSwapFilter}`;
+		const label = `Adaptive ${store.adaptiveSwapFilter}`;
 		pushChip(
 			chips,
 			'adaptive',
 			label,
 			{ kind: 'adaptiveSwap' },
 			{ target: 'keyboard', field: 'adaptive' }
+		);
+	}
+	if (store.chiralKeyFilter !== 'optional') {
+		const label = `Chiral ${store.chiralKeyFilter}`;
+		pushChip(
+			chips,
+			'chiral',
+			label,
+			{ kind: 'chiralKey' },
+			{ target: 'keyboard', field: 'chiral' }
 		);
 	}
 	if (store.characterSetFilter !== 'english') {
@@ -495,6 +503,7 @@ export interface ActiveFilterClearTarget {
 	setRepeatKeyFilter(value: RepeatKeyFilter): void;
 	setMagicKeyFilter(value: MagicKeyFilter): void;
 	setAdaptiveSwapFilter(value: AdaptiveSwapFilter): void;
+	setChiralKeyFilter(value: ChiralKeyFilter): void;
 	setCharacterSetFilter(value: CharacterSetFilter): void;
 	setShowUnfinished(value: boolean): void;
 	clearInclude(): void;
@@ -531,6 +540,9 @@ export function clearActiveFilterChip(
 			break;
 		case 'adaptiveSwap':
 			store.setAdaptiveSwapFilter('optional');
+			break;
+		case 'chiralKey':
+			store.setChiralKeyFilter('optional');
 			break;
 		case 'characterSet':
 			store.setCharacterSetFilter('english');

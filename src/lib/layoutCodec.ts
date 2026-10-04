@@ -13,6 +13,8 @@ export const LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS = 128;
 export const LAYOUT_FLAG_ADAPTIVE_SWAP = 256;
 export const LAYOUT_FLAG_REPEAT_KEY = 512;
 export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
+export const LAYOUT_FLAG_CHIRAL_KEY = 2048;
+export const LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS = 4096;
 
 /** Current wire format field count (no displayValue). */
 export const COMPACT_LAYOUT_FIELD_COUNT = 8;
@@ -142,6 +144,8 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 			(flags & LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED) !== 0,
 		hasAdaptiveSwap: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP) !== 0,
 		hasAdaptiveSwapMappings: (flags & LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS) !== 0,
+		hasChiralKey: (flags & LAYOUT_FLAG_CHIRAL_KEY) !== 0,
+		hasChiralKeyMappings: (flags & LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS) !== 0,
 		characterSet: computeCharacterSet(keyChars),
 		cyanophageCompatible: (flags & LAYOUT_FLAG_CYANOPHAGE_COMPATIBLE) !== 0,
 		cyanophageThumb:

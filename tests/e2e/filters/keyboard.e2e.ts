@@ -33,24 +33,22 @@ test('combines thumb and magic key filters', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toHaveCount(0);
 });
 
-test('filters magic-key layouts to those with known mappings', async ({ page }) => {
-	await page.goto(lightweightView);
-	await page.getByRole('button', { name: 'Keyboard filters', exact: true }).click();
-
-	const magicKey = page.getByRole('region', { name: 'Keyboard filters' }).getByLabel('Magic key');
-	await magicKey.selectOption('required');
-	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toBeVisible();
-
-	await magicKey.selectOption('required-mapped');
-
-	await expect(page.locator('#results-status')).toContainText('Showing 1 layout');
-	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
-	await expect(page.getByRole('heading', { name: 'magic_sturdy', exact: true })).toHaveCount(0);
-	await expect(page).toHaveURL(/(?:\?|&)magicKey=required-mapped(?:&|$)/);
-
-	await page.reload();
-	await page.getByRole('button', { name: /^Keyboard filters/ }).click();
-	await expect(magicKey).toHaveValue('required-mapped');
-	await expect(page.getByRole('heading', { name: 'vylet', exact: true })).toBeVisible();
-});
+for (const [param, label] of [
+	['magicKey', 'Magic key'],
+	['adaptiveSwap', 'Adaptive swap']
+]) {
+	test(`migrates legacy ${param} URLs to the simplified filter`, async ({ page }) => {
+		await page.goto(`${lightweightView}&${param}=required-mapped`);
+		await page.getByRole('button', { name: /^Keyboard filters/ }).click();
+		const filter = page.getByRole('region', { name: 'Keyboard filters' }).getByLabel(label);
+		await expect(filter).toHaveValue('required');
+		await expect(filter.locator('option')).toHaveCount(3);
+		await page.reload();
+		await page.getByRole('button', { name: /^Keyboard filters/ }).click();
+		await expect(filter).toHaveValue('required');
+		await filter.selectOption('excluded');
+		await expect(page).toHaveURL(new RegExp(`[?&]${param}=excluded(?:&|$)`));
+		await filter.selectOption('required');
+		await expect(page).toHaveURL(new RegExp(`[?&]${param}=required(?:&|$)`));
+	});
+}

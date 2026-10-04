@@ -3,6 +3,7 @@
 	import {
 		filterStore,
 		type AdaptiveSwapFilter,
+		type ChiralKeyFilter,
 		type CharacterSetFilter,
 		type MagicKeyFilter,
 		type RepeatKeyFilter,
@@ -21,6 +22,7 @@
 	const showRepeat = $derived(!only || only.repeat);
 	const showMagic = $derived(!only || only.magic);
 	const showAdaptive = $derived(!only || only.adaptive);
+	const showChiral = $derived(!only || only.chiral);
 	const showCharset = $derived(!only || only.charset);
 	const showUnfinished = $derived(!only || only.unfinished);
 </script>
@@ -102,7 +104,6 @@
 				<option value="optional">Optional</option>
 				<option value="excluded">Excluded</option>
 				<option value="required">Required</option>
-				<option value="required-mapped">Require with known mappings</option>
 			</select>
 		</label>
 	{/if}
@@ -134,7 +135,34 @@
 				<option value="optional">Optional</option>
 				<option value="excluded">Excluded</option>
 				<option value="required">Required</option>
-				<option value="required-mapped">Require with known mappings</option>
+			</select>
+		</label>
+	{/if}
+
+	{#if showChiral}
+		<label class="keyboard-filters-field">
+			<span
+				class="keyboard-filters-label keyboard-filters-label--with-tip"
+				style="color: var(--text-secondary);"
+			>
+				Chiral keys
+				<Tooltip text="Chooses an output based on the hand assigned to the previous character." />
+			</span>
+			<select
+				value={filterStore.chiralKeyFilter}
+				onchange={(e) => filterStore.setChiralKeyFilter(e.currentTarget.value as ChiralKeyFilter)}
+				class="keyboard-filters-select"
+				data-keyboard-field="chiral"
+				style="
+					background-color: var(--input-bg);
+					color: var(--text-primary);
+					border: 1px solid var(--border);
+					--tw-ring-color: var(--accent);
+				"
+			>
+				<option value="optional">Optional</option>
+				<option value="excluded">Excluded</option>
+				<option value="required">Required</option>
 			</select>
 		</label>
 	{/if}

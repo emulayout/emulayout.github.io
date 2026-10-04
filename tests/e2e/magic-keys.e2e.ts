@@ -334,9 +334,7 @@ test('filters Repeat keys independently from Magic keys', async ({ page }) => {
 	await expect(page).toHaveURL(/(?:\?|&)repeatKey=required(?:&|$)/);
 });
 
-test('filters to layouts with known magic-key mappings and applies their rules', async ({
-	page
-}) => {
+test('filters to magic-key layouts and applies their rules', async ({ page }) => {
 	await page.route('**/all-layouts.json', async (route) => {
 		await route.fulfill({ json: [qwerty, magicSturdy, vylet] });
 	});
@@ -349,10 +347,10 @@ test('filters to layouts with known magic-key mappings and applies their rules',
 	const magicKeyFilter = page
 		.getByRole('region', { name: 'Keyboard filters' })
 		.getByLabel('Magic key');
-	await magicKeyFilter.selectOption({ label: 'Require with known mappings' });
+	await magicKeyFilter.selectOption('required');
 
-	await expect(page.locator('#results-status')).toContainText('Showing 1 layout');
-	await expect(cards).toHaveCount(1);
+	await expect(page.locator('#results-status')).toContainText('Showing 2 layouts');
+	await expect(cards).toHaveCount(2);
 
 	const card = page.locator(`[data-layout-name="${mappedLayoutName}"]`);
 	await expect(card).toBeVisible();

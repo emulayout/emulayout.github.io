@@ -35,6 +35,7 @@ export const VIEW_FILTER_URL_PARAMS = [
 	'repeatKey',
 	'magicKey',
 	'adaptiveSwap',
+	'chiralKey',
 	'characterSet',
 	'name',
 	'authors',
@@ -166,6 +167,9 @@ export function writeViewFilterUrlState(
 	if (snapshot.adaptiveSwapFilter !== 'optional') {
 		params.set('adaptiveSwap', snapshot.adaptiveSwapFilter);
 	}
+	if (snapshot.chiralKeyFilter !== 'optional') {
+		params.set('chiralKey', snapshot.chiralKeyFilter);
+	}
 	if (snapshot.characterSetFilter !== 'english') {
 		params.set('characterSet', snapshot.characterSetFilter);
 	}
@@ -287,7 +291,7 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 		magicKey === 'required-mapped' ||
 		magicKey === 'optional'
 	) {
-		snapshot.magicKeyFilter = magicKey;
+		snapshot.magicKeyFilter = magicKey === 'required-mapped' ? 'required' : magicKey;
 	}
 
 	const repeatKey = params.get('repeatKey');
@@ -302,7 +306,16 @@ export function readViewFilterUrlState(params: URLSearchParams): DecodedViewFilt
 		adaptiveSwap === 'required-mapped' ||
 		adaptiveSwap === 'optional'
 	) {
-		snapshot.adaptiveSwapFilter = adaptiveSwap;
+		snapshot.adaptiveSwapFilter = adaptiveSwap === 'required-mapped' ? 'required' : adaptiveSwap;
+	}
+	const chiralKey = params.get('chiralKey');
+	if (
+		chiralKey === 'excluded' ||
+		chiralKey === 'required' ||
+		chiralKey === 'required-mapped' ||
+		chiralKey === 'optional'
+	) {
+		snapshot.chiralKeyFilter = chiralKey === 'required-mapped' ? 'required' : chiralKey;
 	}
 
 	const characterSet = params.get('characterSet');

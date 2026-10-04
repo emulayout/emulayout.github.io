@@ -52,6 +52,8 @@ export interface LayoutData {
 	hasAdaptiveSwap: boolean;
 	/** AKLDB adaptive-swap mappings are available in the input-behavior payload. */
 	hasAdaptiveSwapMappings: boolean;
+	hasChiralKey?: boolean;
+	hasChiralKeyMappings?: boolean;
 	cyanophageCompatible: boolean;
 	/** Set when the layout has exactly one thumb key (cyanophage playground). */
 	cyanophageThumb?: 'l' | 'r';

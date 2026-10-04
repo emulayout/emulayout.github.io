@@ -7,6 +7,7 @@ export type KeyboardFilterField =
 	| 'repeat'
 	| 'magic'
 	| 'adaptive'
+	| 'chiral'
 	| 'charset'
 	| 'unfinished';
 export type SidebarFilterField = 'name' | 'authors' | 'similarity';

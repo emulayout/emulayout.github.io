@@ -61,8 +61,9 @@ The compact layout tuple retains its existing wire fields for compatibility:
 - `hasAdaptiveSwapMappings`: same source boundary as `hasAdaptiveSwap`.
 
 The presence and mapping-availability flags are now equal because the canonical snapshot supplies both
-facts together. The duplicate fields and `Require with known mappings` filter values remain to avoid
-a wire-format and saved-filter migration. The compact Repeat flag stays authoritative if the
+facts together. The duplicate compact fields remain for wire compatibility. Filters offer only
+Optional, Excluded, and Required; legacy `required-mapped` values in URLs and saved settings
+normalize to `required`. The compact Repeat flag stays authoritative if the
 generated behavior payload cannot be loaded.
 
 ## Source adaptation

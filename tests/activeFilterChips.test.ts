@@ -12,9 +12,10 @@ describe('active filter chips', () => {
 		const snapshot = createDefaultViewSnapshot();
 		snapshot.nameFilter = 'Canary';
 		snapshot.selectedAuthors = ['12', '34'];
-		snapshot.magicKeyFilter = 'required-mapped';
+		snapshot.magicKeyFilter = 'required';
 		snapshot.repeatKeyFilter = 'required';
-		snapshot.adaptiveSwapFilter = 'required-mapped';
+		snapshot.adaptiveSwapFilter = 'required';
+		snapshot.chiralKeyFilter = 'required';
 		snapshot.appliedIncludeGrid[0][0] = 'a';
 		snapshot.appliedStatLimits['cyano-sfb'] = { operator: 'lt', value: '1.5' };
 		snapshot.appliedStatLimits['cyano-lh'] = { operator: 'gt', value: '45' };
@@ -38,6 +39,7 @@ describe('active filter chips', () => {
 			'repeat',
 			'magic',
 			'adaptive',
+			'chiral',
 			'keys-and',
 			'stat-cyano-sfb',
 			'hand-cyano-lh',
@@ -88,9 +90,10 @@ describe('active filter chips', () => {
 			}
 		});
 		expect(chips.find(({ id }) => id === 'similarity')?.label).toBe('Similarity ≥ 70%');
-		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic: known mappings');
+		expect(chips.find(({ id }) => id === 'magic')?.label).toBe('Magic required');
 		expect(chips.find(({ id }) => id === 'repeat')?.label).toBe('Repeat required');
-		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive: known mappings');
+		expect(chips.find(({ id }) => id === 'adaptive')?.label).toBe('Adaptive required');
+		expect(chips.find(({ id }) => id === 'chiral')?.label).toBe('Chiral required');
 	});
 
 	test('uses standalone labels for stats whose row abbreviations need group context', () => {
@@ -138,6 +141,7 @@ describe('active filter chips', () => {
 			setMagicKeyFilter: (value) => calls.push(`magic:${value}`),
 			setRepeatKeyFilter: (value) => calls.push(`repeat:${value}`),
 			setAdaptiveSwapFilter: (value) => calls.push(`adaptive:${value}`),
+			setChiralKeyFilter: (value) => calls.push(`chiral:${value}`),
 			setCharacterSetFilter: (value) => calls.push(`charset:${value}`),
 			setShowUnfinished: (value) => calls.push(`unfinished:${value}`),
 			clearInclude: () => calls.push('keys:and'),
@@ -155,6 +159,7 @@ describe('active filter chips', () => {
 		clearActiveFilterChip(target, { kind: 'magicKey' });
 		clearActiveFilterChip(target, { kind: 'repeatKey' });
 		clearActiveFilterChip(target, { kind: 'adaptiveSwap' });
+		clearActiveFilterChip(target, { kind: 'chiralKey' });
 		clearActiveFilterChip(target, { kind: 'characterSet' });
 		clearActiveFilterChip(target, { kind: 'showUnfinished' });
 		clearActiveFilterChip(target, { kind: 'keyFilter', filter: 'and' });
@@ -172,6 +177,7 @@ describe('active filter chips', () => {
 			'magic:optional',
 			'repeat:optional',
 			'adaptive:optional',
+			'chiral:optional',
 			'charset:english',
 			'unfinished:false',
 			'keys:and',

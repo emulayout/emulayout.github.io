@@ -34,6 +34,7 @@ import {
 	FILTER_THUMB_KEYS_PER_HAND,
 	createEmptyThumbKeyFilters,
 	type AdaptiveSwapFilter,
+	type ChiralKeyFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
 	type RepeatKeyFilter,
@@ -57,6 +58,7 @@ export interface LayoutFilterCriteria {
 	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
+	chiralKeyFilter: ChiralKeyFilter;
 	characterSetFilter: CharacterSetFilter;
 	nameFilter: string;
 	selectedAuthors: ReadonlySet<AuthorId>;
@@ -253,7 +255,6 @@ function getNameSearchRank(layout: LayoutData, nameTerms: string[]): number {
 function matchesMagicKeyFilter(layout: LayoutData, filter: MagicKeyFilter): boolean {
 	if (filter === 'optional') return true;
 	if (filter === 'required') return layout.hasMagicKey;
-	if (filter === 'required-mapped') return layout.hasMagicKey && layout.hasMagicKeyMappings;
 	return !layout.hasMagicKey;
 }
 
@@ -265,10 +266,12 @@ function matchesRepeatKeyFilter(layout: LayoutData, filter: RepeatKeyFilter): bo
 function matchesAdaptiveSwapFilter(layout: LayoutData, filter: AdaptiveSwapFilter): boolean {
 	if (filter === 'optional') return true;
 	if (filter === 'required') return layout.hasAdaptiveSwap;
-	if (filter === 'required-mapped') {
-		return layout.hasAdaptiveSwap && layout.hasAdaptiveSwapMappings;
-	}
 	return !layout.hasAdaptiveSwap;
+}
+function matchesChiralKeyFilter(layout: LayoutData, filter: ChiralKeyFilter): boolean {
+	if (filter === 'optional') return true;
+	if (filter === 'required') return Boolean(layout.hasChiralKey);
+	return !layout.hasChiralKey;
 }
 
 function matchesThumbKeyFilter(layout: LayoutData, filter: ThumbKeyFilter): boolean {
@@ -400,6 +403,7 @@ export function filterLayouts(
 		if (!matchesRepeatKeyFilter(layout, criteria.repeatKeyFilter)) return false;
 		if (!matchesMagicKeyFilter(layout, criteria.magicKeyFilter)) return false;
 		if (!matchesAdaptiveSwapFilter(layout, criteria.adaptiveSwapFilter)) return false;
+		if (!matchesChiralKeyFilter(layout, criteria.chiralKeyFilter)) return false;
 		if (!matchesCharacterSet(layout, criteria.characterSetFilter)) return false;
 		if (!matchesName(layout, nameTerms)) return false;
 		if (criteria.selectedAuthors.size > 0 && !criteria.selectedAuthors.has(layout.user)) {

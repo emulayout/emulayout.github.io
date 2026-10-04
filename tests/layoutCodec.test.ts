@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
 	decodeLayout,
+	LAYOUT_FLAG_CHIRAL_KEY,
+	LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS,
 	LAYOUT_FLAG_ADAPTIVE_SWAP,
 	LAYOUT_FLAG_ADAPTIVE_SWAP_MAPPINGS,
 	LAYOUT_FLAG_ALL_LETTERS,
@@ -12,6 +14,18 @@ import {
 } from '$lib/layoutCodec';
 
 describe('layout codec flags', () => {
+	test('decodes independent chiral presence and mapping flags, defaulting older tuples to false', () => {
+		for (const [flags, present, mapped] of [
+			[0, false, false],
+			[LAYOUT_FLAG_CHIRAL_KEY, true, false],
+			[LAYOUT_FLAG_CHIRAL_KEY | LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS, true, true]
+		] as const) {
+			const layout = decodeLayout(['chiral', 1, 2, '2026-10-03', flags, ['/'], [0], [0]]);
+			expect(layout.hasChiralKey).toBe(present);
+			expect(layout.hasChiralKeyMappings).toBe(mapped);
+			expect(layout.hasAdaptiveSwap).toBe(false);
+		}
+	});
 	test('decodes magic layout presence separately from known mappings', () => {
 		const base = ['magic', 1, 2, '2026-01-01', 0, ['*'], [0], [0]] as const;
 		const knownMagic = decodeLayout([

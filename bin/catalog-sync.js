@@ -156,6 +156,10 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 	);
 	transformedLayout.hasAdaptiveSwapMappings = hasAdaptiveSwapMappings(variants);
 	transformedLayout.hasAdaptiveSwap = transformedLayout.hasAdaptiveSwapMappings;
+	transformedLayout.hasChiralKey = Boolean(layout.magic?.chiral_keys?.length);
+	transformedLayout.hasChiralKeyMappings = variants.some((variant) =>
+		Boolean(variant.chiralKeys?.keys.length)
+	);
 	return {
 		encoded: encodeLayout(transformedLayout),
 		supplemental: supplemental ? { name: layout.name, supplemental } : null

@@ -92,6 +92,7 @@ import {
 	createEmptyThumbKeyFilters,
 	normalizeViewSortBy,
 	type AdaptiveSwapFilter,
+	type ChiralKeyFilter,
 	type CharacterSetFilter,
 	type MagicKeyFilter,
 	type RepeatKeyFilter,
@@ -105,6 +106,7 @@ import { goatcounterFilterEvent, goatcounterSortEvent, trackGoatCounterEvent } f
 
 export type {
 	AdaptiveSwapFilter,
+	ChiralKeyFilter,
 	CharacterSetFilter,
 	MagicKeyFilter,
 	RepeatKeyFilter,
@@ -142,6 +144,7 @@ export class FilterStore {
 	repeatKeyFilter: RepeatKeyFilter = $state('optional');
 	magicKeyFilter: MagicKeyFilter = $state('optional');
 	adaptiveSwapFilter: AdaptiveSwapFilter = $state('optional');
+	chiralKeyFilter: ChiralKeyFilter = $state('optional');
 	characterSetFilter: CharacterSetFilter = $state('english');
 	nameFilterInput: string = $state(''); // Immediate input value
 	nameFilter: string = $state(''); // Debounced filter value
@@ -329,6 +332,7 @@ export class FilterStore {
 		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
+		this.chiralKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
@@ -558,6 +562,7 @@ export class FilterStore {
 			repeatKeyFilter: this.repeatKeyFilter,
 			magicKeyFilter: this.magicKeyFilter,
 			adaptiveSwapFilter: this.adaptiveSwapFilter,
+			chiralKeyFilter: this.chiralKeyFilter,
 			characterSetFilter: this.characterSetFilter,
 			nameFilterInput: this.nameFilterInput,
 			nameFilter: this.nameFilter,
@@ -607,6 +612,7 @@ export class FilterStore {
 		this.repeatKeyFilter = restored.repeatKeyFilter;
 		this.magicKeyFilter = restored.magicKeyFilter;
 		this.adaptiveSwapFilter = restored.adaptiveSwapFilter;
+		this.chiralKeyFilter = restored.chiralKeyFilter;
 		this.characterSetFilter = restored.characterSetFilter;
 		this.nameFilterInput = restored.nameFilterInput;
 		this.nameFilter = restored.nameFilter;
@@ -757,6 +763,11 @@ export class FilterStore {
 		this.adaptiveSwapFilter = value;
 		this.#debouncedSave();
 	}
+	setChiralKeyFilter(value: ChiralKeyFilter) {
+		this.#trackFilter('chiral-keys');
+		this.chiralKeyFilter = value;
+		this.#debouncedSave();
+	}
 
 	setCharacterSetFilter(value: CharacterSetFilter) {
 		this.#trackFilter('character-set');
@@ -770,6 +781,7 @@ export class FilterStore {
 		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
+		this.chiralKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.#applyFiltersNow();
 		this.#debouncedSave();
@@ -1620,6 +1632,7 @@ export class FilterStore {
 		this.repeatKeyFilter = 'optional';
 		this.magicKeyFilter = 'optional';
 		this.adaptiveSwapFilter = 'optional';
+		this.chiralKeyFilter = 'optional';
 		this.characterSetFilter = 'english';
 		this.nameFilterInput = '';
 		this.nameFilter = '';
@@ -1767,6 +1780,7 @@ export class FilterStore {
 			this.repeatKeyFilter !== 'optional' ||
 			this.magicKeyFilter !== 'optional' ||
 			this.adaptiveSwapFilter !== 'optional' ||
+			this.chiralKeyFilter !== 'optional' ||
 			this.characterSetFilter !== 'english'
 		);
 	}
@@ -1806,6 +1820,7 @@ export class FilterStore {
 				repeatKeyFilter: this.repeatKeyFilter,
 				magicKeyFilter: this.magicKeyFilter,
 				adaptiveSwapFilter: this.adaptiveSwapFilter,
+				chiralKeyFilter: this.chiralKeyFilter,
 				characterSetFilter: this.characterSetFilter,
 				nameFilter: this.nameFilter,
 				selectedAuthors: this.selectedAuthors,

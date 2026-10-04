@@ -55,8 +55,8 @@ export function defaultMagicMappings(variants) {
 }
 
 /**
- * Mapping availability spans every variant so `Require with known mappings`
- * still matches a layout whose alternatives carry the feature.
+ * Feature presence spans every variant so filters still match a layout
+ * whose alternatives carry the feature.
  *
  * @param {readonly LayoutSupplementalVariant[]} variants
  */

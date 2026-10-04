@@ -78,20 +78,6 @@
 
 {#if hasAnyIndicator}
 	<div class="input-mappings-indicators">
-		{#if inputProfile?.chiralKeys}
-			<LayoutInputFeatureControl
-				feature="chiral"
-				state={inputProfile.chiralKeys.keys.some(
-					(rule) => !disabledMappingIds.includes(chiralMappingId(rule.key))
-				)
-					? 'on'
-					: 'off'}
-				label={onToggleMappings ? mappingsTitle : 'Chiral key mappings'}
-				pressed={active}
-				highlighted={active}
-				onActivate={onToggleMappings}
-			/>
-		{/if}
 		{#if hasAvailableRepeatBehavior}
 			<LayoutInputFeatureControl
 				feature="repeat"
@@ -99,6 +85,23 @@
 				label={repeatTitle}
 				pressed={repeatKeyEnabled}
 				onActivate={onToggleRepeat}
+			/>
+		{/if}
+
+		{#if hasAvailableMagicBehavior}
+			<LayoutInputFeatureControl
+				feature="magic"
+				state={mappingState(magicMappingsEnabled)}
+				label={magicMappingsLabel}
+				pressed={active}
+				highlighted={active}
+				onActivate={onToggleMappings}
+			/>
+		{:else if hasUnavailableMagicBehavior}
+			<LayoutInputFeatureControl
+				feature="magic"
+				state="unavailable"
+				label={unavailableMagicLabel}
 			/>
 		{/if}
 
@@ -119,20 +122,18 @@
 			/>
 		{/if}
 
-		{#if hasAvailableMagicBehavior}
+		{#if inputProfile?.chiralKeys}
 			<LayoutInputFeatureControl
-				feature="magic"
-				state={mappingState(magicMappingsEnabled)}
-				label={magicMappingsLabel}
+				feature="chiral"
+				state={inputProfile.chiralKeys.keys.some(
+					(rule) => !disabledMappingIds.includes(chiralMappingId(rule.key))
+				)
+					? 'on'
+					: 'off'}
+				label={onToggleMappings ? mappingsTitle : 'Chiral key mappings'}
 				pressed={active}
 				highlighted={active}
 				onActivate={onToggleMappings}
-			/>
-		{:else if hasUnavailableMagicBehavior}
-			<LayoutInputFeatureControl
-				feature="magic"
-				state="unavailable"
-				label={unavailableMagicLabel}
 			/>
 		{/if}
 	</div>

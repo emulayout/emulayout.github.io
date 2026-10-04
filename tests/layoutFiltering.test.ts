@@ -24,7 +24,9 @@ function makeLayout(
 		hasRepeatKey = false,
 		hasMagicKeyMappings = false,
 		hasAdaptiveSwap = false,
+		hasChiralKey = false,
 		hasAdaptiveSwapMappings = false,
+		hasChiralKeyMappings = false,
 		updatedAt = '2026-01-01'
 	}: Partial<{
 		user: string;
@@ -37,7 +39,9 @@ function makeLayout(
 		hasRepeatKey: boolean;
 		hasMagicKeyMappings: boolean;
 		hasAdaptiveSwap: boolean;
+		hasChiralKey: boolean;
 		hasAdaptiveSwapMappings: boolean;
+		hasChiralKeyMappings: boolean;
 		updatedAt: string;
 	}> = {}
 ): LayoutData {
@@ -55,7 +59,9 @@ function makeLayout(
 		hasMagicKeyMappings,
 		cyanophageStatsNeedMagicMappings: false,
 		hasAdaptiveSwap,
+		hasChiralKey,
 		hasAdaptiveSwapMappings,
+		hasChiralKeyMappings,
 		cyanophageCompatible: true,
 		updatedAt
 	};
@@ -72,6 +78,7 @@ function makeCriteria(overrides: Partial<LayoutFilterCriteria> = {}): LayoutFilt
 		repeatKeyFilter: snapshot.repeatKeyFilter,
 		magicKeyFilter: snapshot.magicKeyFilter,
 		adaptiveSwapFilter: snapshot.adaptiveSwapFilter,
+		chiralKeyFilter: snapshot.chiralKeyFilter,
 		characterSetFilter: snapshot.characterSetFilter,
 		nameFilter: snapshot.nameFilter,
 		selectedAuthors: new Set(),
@@ -152,7 +159,7 @@ describe('filterLayouts', () => {
 		expect(filterLayouts(layouts, criteria).map((layout) => layout.name)).toEqual(['Canary']);
 	});
 
-	test('distinguishes all magic layouts from those with known mappings', () => {
+	test('requires or excludes magic layouts', () => {
 		const plain = makeLayout('Plain');
 		const unknown = makeLayout('Unknown magic', { hasMagicKey: true });
 		const mapped = makeLayout('Mapped magic', {
@@ -166,11 +173,10 @@ describe('filterLayouts', () => {
 			)
 		).toEqual(['Unknown magic', 'Mapped magic']);
 		expect(
-			filterLayouts(
-				[plain, unknown, mapped],
-				makeCriteria({ magicKeyFilter: 'required-mapped' })
-			).map((layout) => layout.name)
-		).toEqual(['Mapped magic']);
+			filterLayouts([plain, unknown, mapped], makeCriteria({ magicKeyFilter: 'excluded' })).map(
+				(layout) => layout.name
+			)
+		).toEqual(['Plain']);
 	});
 
 	test('filters repeat keys independently from magic keys', () => {
@@ -190,7 +196,7 @@ describe('filterLayouts', () => {
 		).toEqual(['Magic']);
 	});
 
-	test('distinguishes all adaptive layouts from those with known mappings', () => {
+	test('requires or excludes adaptive layouts', () => {
 		const ordinary = makeLayout('ordinary');
 		const unknown = makeLayout('adaptive-unknown', { hasAdaptiveSwap: true });
 		const mapped = makeLayout('adaptive-mapped', {
@@ -203,10 +209,25 @@ describe('filterLayouts', () => {
 			unknown,
 			mapped
 		]);
-		expect(filterLayouts(layouts, makeCriteria({ adaptiveSwapFilter: 'required-mapped' }))).toEqual(
-			[mapped]
-		);
 		expect(filterLayouts(layouts, makeCriteria({ adaptiveSwapFilter: 'excluded' }))).toEqual([
+			ordinary
+		]);
+	});
+
+	test('requires or excludes chiral layouts', () => {
+		const ordinary = makeLayout('ordinary');
+		const unknown = makeLayout('chiral-unknown', { hasChiralKey: true });
+		const mapped = makeLayout('chiral-mapped', {
+			hasChiralKey: true,
+			hasChiralKeyMappings: true
+		});
+		const layouts = [ordinary, unknown, mapped];
+
+		expect(filterLayouts(layouts, makeCriteria({ chiralKeyFilter: 'required' }))).toEqual([
+			unknown,
+			mapped
+		]);
+		expect(filterLayouts(layouts, makeCriteria({ chiralKeyFilter: 'excluded' }))).toEqual([
 			ordinary
 		]);
 	});

@@ -7,9 +7,32 @@ import {
 	readViewFilterUrlState,
 	writeViewFilterUrlState
 } from '$lib/filterUrlCodec';
-import { createDefaultViewSnapshot } from '$lib/filterSnapshot';
+import { createDefaultViewSnapshot, normalizeViewFilterSnapshot } from '$lib/filterSnapshot';
 
 describe('view filter URL codec', () => {
+	test('migrates former Magic and Adaptive known-mappings choices', () => {
+		const { snapshot } = decodeViewFilterSnapshot(
+			'magicKey=required-mapped&adaptiveSwap=required-mapped'
+		);
+		expect(snapshot.magicKeyFilter).toBe('required');
+		expect(snapshot.adaptiveSwapFilter).toBe('required');
+		expect(encodeViewFilterSnapshot(snapshot)).toBe('magicKey=required&adaptiveSwap=required');
+		const saved = normalizeViewFilterSnapshot({
+			magicKeyFilter: 'required-mapped',
+			adaptiveSwapFilter: 'required-mapped'
+		});
+		expect(saved.magicKeyFilter).toBe('required');
+		expect(saved.adaptiveSwapFilter).toBe('required');
+	});
+	test('migrates the former chiral known-mappings choice to required', () => {
+		const { snapshot } = decodeViewFilterSnapshot('chiralKey=required-mapped');
+		expect(snapshot.chiralKeyFilter).toBe('required');
+		expect(encodeViewFilterSnapshot(snapshot)).toBe('chiralKey=required');
+		expect(
+			normalizeViewFilterSnapshot({ chiralKeyFilter: 'required-mapped' }).chiralKeyFilter
+		).toBe('required');
+	});
+
 	test('omits defaults and restores the canonical default snapshot', () => {
 		const defaults = createDefaultViewSnapshot();
 
@@ -48,9 +71,10 @@ describe('view filter URL codec', () => {
 		snapshot.appliedIncludeOrRightThumbKeys = ['n', '', '', ''];
 		snapshot.showUnfinished = true;
 		snapshot.thumbKeyFilter = 'required';
-		snapshot.magicKeyFilter = 'required-mapped';
+		snapshot.magicKeyFilter = 'required';
 		snapshot.repeatKeyFilter = 'required';
 		snapshot.adaptiveSwapFilter = 'required';
+		snapshot.chiralKeyFilter = 'required';
 		snapshot.characterSetFilter = 'international';
 		snapshot.nameFilter = 'Canary & Friends';
 		snapshot.selectedAuthors = ['12', '34'];
@@ -85,9 +109,10 @@ describe('view filter URL codec', () => {
 		expect(decoded.snapshot.includeOrRightThumbKeys).toEqual(['n', '', '', '']);
 		expect(decoded.snapshot.showUnfinished).toBe(true);
 		expect(decoded.snapshot.thumbKeyFilter).toBe('required');
-		expect(decoded.snapshot.magicKeyFilter).toBe('required-mapped');
+		expect(decoded.snapshot.magicKeyFilter).toBe('required');
 		expect(decoded.snapshot.repeatKeyFilter).toBe('required');
 		expect(decoded.snapshot.adaptiveSwapFilter).toBe('required');
+		expect(decoded.snapshot.chiralKeyFilter).toBe('required');
 		expect(decoded.snapshot.characterSetFilter).toBe('international');
 		expect(decoded.snapshot.nameFilterInput).toBe('Canary & Friends');
 		expect(decoded.snapshot.nameFilter).toBe('Canary & Friends');
@@ -169,6 +194,7 @@ describe('view filter URL codec', () => {
 			magicKey: 'maybe',
 			repeatKey: 'maybe',
 			adaptiveSwap: 'maybe',
+			chiralKey: 'maybe',
 			characterSet: 'emoji',
 			boardType: 'curved',
 			sort: 'unknown',
@@ -188,6 +214,7 @@ describe('view filter URL codec', () => {
 		expect(snapshot.magicKeyFilter).toBe('optional');
 		expect(snapshot.repeatKeyFilter).toBe('optional');
 		expect(snapshot.adaptiveSwapFilter).toBe('optional');
+		expect(snapshot.chiralKeyFilter).toBe('optional');
 		expect(snapshot.characterSetFilter).toBe('english');
 		expect(snapshot.sortBy).toBe('similarity');
 		expect(snapshot.sortOrder).toBe('desc');

@@ -11,8 +11,9 @@ import type { AuthorId } from '$lib/layout';
 
 export type ThumbKeyFilter = 'optional' | 'excluded' | 'required';
 export type RepeatKeyFilter = 'optional' | 'excluded' | 'required';
-export type MagicKeyFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
-export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required' | 'required-mapped';
+export type MagicKeyFilter = 'optional' | 'excluded' | 'required';
+export type AdaptiveSwapFilter = 'optional' | 'excluded' | 'required';
+export type ChiralKeyFilter = 'optional' | 'excluded' | 'required';
 export type CharacterSetFilter = 'all' | 'english' | 'international';
 export type StatLimitOperator = 'lt' | 'gt';
 
@@ -43,6 +44,7 @@ export type ViewFilterSnapshot = {
 	repeatKeyFilter: RepeatKeyFilter;
 	magicKeyFilter: MagicKeyFilter;
 	adaptiveSwapFilter: AdaptiveSwapFilter;
+	chiralKeyFilter: ChiralKeyFilter;
 	characterSetFilter: CharacterSetFilter;
 	nameFilterInput: string;
 	nameFilter: string;
@@ -176,6 +178,7 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		repeatKeyFilter: 'optional',
 		magicKeyFilter: 'optional',
 		adaptiveSwapFilter: 'optional',
+		chiralKeyFilter: 'optional',
 		characterSetFilter: 'english',
 		nameFilterInput: '',
 		nameFilter: '',
@@ -406,14 +409,19 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 			defaults.repeatKeyFilter
 		),
 		magicKeyFilter: normalizeEnum<MagicKeyFilter>(
-			value.magicKeyFilter,
-			['optional', 'excluded', 'required', 'required-mapped'],
+			value.magicKeyFilter === 'required-mapped' ? 'required' : value.magicKeyFilter,
+			['optional', 'excluded', 'required'],
 			defaults.magicKeyFilter
 		),
 		adaptiveSwapFilter: normalizeEnum<AdaptiveSwapFilter>(
-			value.adaptiveSwapFilter,
-			['optional', 'excluded', 'required', 'required-mapped'],
+			value.adaptiveSwapFilter === 'required-mapped' ? 'required' : value.adaptiveSwapFilter,
+			['optional', 'excluded', 'required'],
 			defaults.adaptiveSwapFilter
+		),
+		chiralKeyFilter: normalizeEnum<ChiralKeyFilter>(
+			value.chiralKeyFilter === 'required-mapped' ? 'required' : value.chiralKeyFilter,
+			['optional', 'excluded', 'required'],
+			defaults.chiralKeyFilter
 		),
 		characterSetFilter: normalizeEnum<CharacterSetFilter>(
 			value.characterSetFilter,

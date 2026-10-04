@@ -129,6 +129,7 @@ describe('goatcounterCountRequestUrl', () => {
 describe('goatcounter feature event names', () => {
 	test('names filters and sorts without values', () => {
 		expect(goatcounterFilterEvent('name')).toBe('filter-name');
+		expect(goatcounterFilterEvent('chiral-keys')).toBe('filter-chiral-keys');
 		expect(goatcounterFilterEvent('stat-sfb')).toBe('filter-stat-sfb');
 		expect(goatcounterSortEvent('cyano-sfb')).toBe('sort-cyano-sfb');
 	});
