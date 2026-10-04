@@ -53,7 +53,7 @@ it replaces the last good cached snapshot.
 
 The compact layout tuple retains its existing wire fields for compatibility:
 
-- `hasMagicKey`: AKLDB provides a Magic or chiral profile.
+- `hasMagicKey`: AKLDB provides a Magic profile.
 - `hasRepeatKey`: the base layout contains `@` and AKLDB does not provide mapped `@` rules.
 - `hasMagicKeyMappings`: same source boundary as `hasMagicKey`.
 - `cyanophageStatsNeedMagicMappings`: the default profile cannot be modeled by Cyanophage.

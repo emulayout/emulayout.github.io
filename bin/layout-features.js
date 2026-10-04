@@ -61,7 +61,7 @@ export function defaultMagicMappings(variants) {
  * @param {readonly LayoutSupplementalVariant[]} variants
  */
 export function hasMagicKeyMappings(variants) {
-	return variants.some((variant) => Boolean(variant.magicKeys || variant.chiralKeys));
+	return variants.some((variant) => Boolean(variant.magicKeys));
 }
 
 /** @param {readonly LayoutSupplementalVariant[]} variants */

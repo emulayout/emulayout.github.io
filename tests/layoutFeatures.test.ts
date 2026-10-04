@@ -44,6 +44,18 @@ describe('mapping availability across variants', () => {
 		expect(hasAdaptiveSwapMappings([])).toBe(false);
 	});
 
+	test('does not classify native Chiral or Adaptive profiles as Magic', () => {
+		const chiralVariant = {
+			...adaptiveVariant,
+			chiralKeys: { keys: [{ key: 'y', same: { kind: 'repeat' as const } }] }
+		};
+		expect(hasMagicKeyMappings([chiralVariant])).toBe(false);
+		expect(hasAdaptiveSwapMappings([chiralVariant])).toBe(true);
+		expect(hasMagicKeyMappings([{ ...chiralVariant, magicKeys: magicVariant.magicKeys }])).toBe(
+			true
+		);
+	});
+
 	test('scopes Repeat classification to the variant loaded first', () => {
 		const keys = { a: {}, '@': {} };
 		const claimsAt = { id: 'v0', magicKeys: { mappings: { '@': { a: 'o' } } } };
