@@ -1,3 +1,4 @@
+import legacyUrl from './fixtures/creator-legacy-url.json';
 import { describe, expect, test } from 'bun:test';
 import {
 	buildKeyboardInputConfig,
@@ -24,7 +25,9 @@ import {
 	creatorKeyConfigNeedsCatalogBaseSeed,
 	creatorSearchFromSnapshot,
 	readCreatorUrlSnapshot,
-	writeLegacyCreatorUrlParams as writeCreatorUrlParams,
+	writeCreatorUrlParams,
+	creatorUrlContentEqual,
+	encodeBase64Url,
 	type CreatorUrlSnapshot
 } from '../src/lib/layoutCreatorUrl';
 
@@ -33,6 +36,87 @@ function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
 }
 
 describe('creator URL state', () => {
+	test('reads a fixed legacy link and rewrites its content as a Spark document', () => {
+		const restored = readCreatorUrlSnapshot(new URLSearchParams(legacyUrl));
+		expect(restored).toMatchObject({
+			name: 'Legacy fixture',
+			author: 'derek',
+			preview: true,
+			section: 'feel',
+			includeMagicKey: true,
+			includeAdaptiveKey: true,
+			includeChiralKey: true
+		});
+		expect(restored.keyConfig).toMatchObject({
+			baseLayoutName: 'vylet',
+			baseLayoutModified: true,
+			keyboardType: 'ortho'
+		});
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,0')).toMatchObject({
+			value: 'a',
+			primary: true,
+			hand: 'l'
+		});
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,1')).toMatchObject({
+			value: 'a',
+			hand: 'r'
+		});
+		expect(restored.keyConfig.keys.find((key) => key.slot === '0,12')?.inert).toBe(true);
+		expect(restored.keyConfig.keys.find((key) => key.slot === '1,9')?.value).toBe(';');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '3,0')?.thumbHand).toBe('l');
+		expect(restored.keyConfig.keys.find((key) => key.slot === '3,1')?.thumbHand).toBe('r');
+		expect(restored.magicDraft.sections[0]).toMatchObject({
+			trigger: '*',
+			fallbackKind: 'emit',
+			fallbackEmit: 'the',
+			rules: [
+				{ after: 'c', emit: 'k' },
+				{ after: '', emit: '' }
+			]
+		});
+		expect(restored.magicDraft.sections[1]).toMatchObject({
+			trigger: '#',
+			rules: [{ after: 't', emit: 'ion' }]
+		});
+		expect(restored.adaptiveDraft).toMatchObject({
+			rules: [
+				{ trigger: 'l', left: 'y', right: 'j' },
+				{ trigger: '', left: '', right: '' }
+			],
+			groups: [{ id: 'sfb', label: 'SFB', rules: [{ trigger: 's', left: 'c', right: 'd' }] }]
+		});
+		expect(restored.chiralDraft?.rules[0]).toMatchObject({
+			key: 'y',
+			sameKind: 'repeat',
+			oppositeKind: 'char',
+			oppositeChar: 'e',
+			except: 'a'
+		});
+		expect(restored.disabledMappingIds).toEqual([
+			'["adaptive-rule","","l","y","j"]',
+			'["magic-fallback","*"]'
+		]);
+		expect(restored.practiceLesson).toEqual({
+			customText: 'hello legacy world',
+			specialWordsPercent: 0,
+			wordCount: 25
+		});
+		const rewritten = writeCreatorUrlParams(restored);
+		expect([...rewritten.keys()]).toEqual(['document', 'tab']);
+		expect(creatorUrlContentEqual(readCreatorUrlSnapshot(rewritten), restored)).toBe(true);
+	});
+
+	test('reads legacy empty-feature flags and a cleared board', () => {
+		const restored = readCreatorUrlSnapshot(
+			new URLSearchParams('keys=v1:-&magic=1&adaptive=1&edit=1')
+		);
+		expect(restored.includeMagicKey).toBe(true);
+		expect(restored.includeAdaptiveKey).toBe(true);
+		expect(restored.keyConfig.keys.every((key) => key.value === '')).toBe(true);
+		expect(restored.keyConfig.baseLayoutName).toBeNull();
+		expect(restored.preview).toBe(false);
+	});
+
 	test('builds an Edit canvas query from a catalog layout', () => {
 		const qwerty = createLayoutFromKeyConfig(createDefaultKeyboardInputConfig(), {
 			name: 'QWERTY'
@@ -83,7 +167,7 @@ describe('creator URL state', () => {
 			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40, wordCount: 10 }
 		};
 		const customParams = writeCreatorUrlParams(custom);
-		expect(customParams.get('text')).toBe('hello creator world');
+		expect(customParams.has('document')).toBe(true);
 		expect(customParams.has('special')).toBe(false);
 		expect(roundTrip(custom).practiceLesson).toEqual({
 			customText: 'hello creator world',
@@ -95,8 +179,7 @@ describe('creator URL state', () => {
 			...createDefaultCreatorUrlSnapshot(),
 			practiceLesson: { customText: null, specialWordsPercent: 40, wordCount: 25 }
 		};
-		expect(writeCreatorUrlParams(balanced).get('special')).toBe('40');
-		expect(writeCreatorUrlParams(balanced).get('words')).toBe('25');
+		expect(writeCreatorUrlParams(balanced).has('document')).toBe(true);
 		expect(roundTrip(balanced).practiceLesson).toEqual({
 			customText: null,
 			specialWordsPercent: 40,
@@ -112,7 +195,8 @@ describe('creator URL state', () => {
 			author: '  derek  '
 		};
 		const params = writeCreatorUrlParams(snapshot);
-		expect(params.get('author')).toBe('derek');
+		expect(params.has('author')).toBe(false);
+		expect(params.has('document')).toBe(true);
 		expect(roundTrip(snapshot).author).toBe('derek');
 	});
 
@@ -126,11 +210,12 @@ describe('creator URL state', () => {
 		};
 
 		const params = writeCreatorUrlParams(snapshot);
-		expect(params.get('name')).toBe('Shared draft');
+		expect(params.has('name')).toBe(false);
+		expect(params.has('document')).toBe(true);
 		expect(params.has('edit')).toBe(false);
 		expect(params.has('preview')).toBe(false);
 		expect(params.has('locked')).toBe(false);
-		expect(params.get('keys')?.startsWith('v1:m;')).toBe(true);
+		expect(params.has('keys')).toBe(false);
 		expect(params.has('base')).toBe(false);
 
 		const restored = roundTrip(snapshot);
@@ -200,10 +285,7 @@ describe('creator URL state', () => {
 			keyConfig: clearKeyboardInputConfig(createDefaultKeyboardInputConfig())
 		};
 		const clearedParams = writeCreatorUrlParams(cleared);
-		expect(clearedParams.get('name')).toBe('Magic lela');
-		expect(clearedParams.get('keys')).toBe('v1:-');
-		expect(clearedParams.has('base')).toBe(false);
-		expect(clearedParams.toString()).toBe('name=Magic+lela&keys=v1%3A-&edit=1');
+		expect([...clearedParams.keys()]).toEqual(['document', 'edit']);
 
 		const restoredCleared = roundTrip(cleared);
 		expect(restoredCleared.keyConfig.baseLayoutName).toBeNull();
@@ -270,12 +352,13 @@ describe('creator URL state', () => {
 			disabledMappingIds
 		};
 		const params = writeCreatorUrlParams(snapshot);
-		expect(params.has('off')).toBe(true);
+		expect(params.has('document')).toBe(true);
+		expect(params.has('off')).toBe(false);
 		expect(roundTrip(snapshot).disabledMappingIds).toEqual([...disabledMappingIds].sort());
 		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('off')).toBe(false);
 	});
 
-	test('stores feature flags without mapping payloads for empty drafts', () => {
+	test('stores enabled features with empty drafts in the document', () => {
 		const snapshot: CreatorUrlSnapshot = {
 			...createDefaultCreatorUrlSnapshot(),
 			includeMagicKey: true,
@@ -284,8 +367,9 @@ describe('creator URL state', () => {
 			adaptiveDraft: createEmptyCreatorAdaptiveDraft()
 		};
 		const params = writeCreatorUrlParams(snapshot);
-		expect(params.get('magic')).toBe('1');
-		expect(params.get('adaptive')).toBe('1');
+		expect(params.has('document')).toBe(true);
+		expect(params.has('magic')).toBe(false);
+		expect(params.has('adaptive')).toBe(false);
 		expect(params.has('keys')).toBe(false);
 		expect(roundTrip(snapshot).includeMagicKey).toBe(true);
 		expect(roundTrip(snapshot).includeAdaptiveKey).toBe(true);
@@ -305,7 +389,8 @@ describe('creator URL state', () => {
 		const params = writeCreatorUrlParams(snapshot);
 		const restored = readCreatorUrlSnapshot(params);
 
-		expect(params.get('keys')).toContain('1,11::');
+		expect(params.has('document')).toBe(true);
+		expect(params.has('keys')).toBe(false);
 		expect(restored.keyConfig.keys.find((key) => key.slot === '1,11')?.value).toBe('');
 	});
 
@@ -319,13 +404,15 @@ describe('creator URL state', () => {
 	});
 
 	test('rejects duplicate adaptive group ids from an untrusted URL', () => {
-		const first = createCreatorAdaptiveSection('One');
-		const second = createCreatorAdaptiveSection('Two');
-		second.id = first.id;
-		const params = writeCreatorUrlParams({
-			...createDefaultCreatorUrlSnapshot(),
-			includeAdaptiveKey: true,
-			adaptiveDraft: { rules: [], groups: [first, second] }
+		const params = new URLSearchParams({
+			adaptive: `v1:${encodeBase64Url(
+				JSON.stringify({
+					g: [
+						{ i: 'duplicate', l: 'One', r: [] },
+						{ i: 'duplicate', l: 'Two', r: [] }
+					]
+				})
+			)}`
 		});
 		const restored = readCreatorUrlSnapshot(params);
 

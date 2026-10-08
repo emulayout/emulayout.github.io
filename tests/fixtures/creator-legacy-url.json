@@ -1,0 +1,15 @@
+{
+	"name": "Legacy fixture",
+	"author": "derek",
+	"base": "vylet",
+	"type": "ortho",
+	"keys": "v1:m;0,0:pL:a;0,1:R:a;0,12:i:;1,9::%3B;3,0:l:x;3,1:r:y",
+	"magic": "v1:eyJzIjpbeyJ0IjoiKiIsInIiOltbImMiLCJrIl0sWyIiLCIiXV0sImYiOiJlbWl0IiwiZSI6InRoZSJ9LHsidCI6IiMiLCJyIjpbWyJ0IiwiaW9uIl1dfV19",
+	"adaptive": "v1:eyJyIjpbWyJsIiwieSIsImoiXSxbIiIsIiIsIiJdXSwiZyI6W3siaSI6InNmYiIsImwiOiJTRkIiLCJyIjpbWyJzIiwiYyIsImQiXV19XX0",
+	"chiral": "v1:W3sia2V5IjoieSIsInNhbWVLaW5kIjoicmVwZWF0Iiwic2FtZUNoYXIiOiIiLCJvcHBvc2l0ZUtpbmQiOiJjaGFyIiwib3Bwb3NpdGVDaGFyIjoiZSIsImV4Y2VwdCI6ImEifV0",
+	"off": "v1:WyJbXCJtYWdpYy1mYWxsYmFja1wiLFwiKlwiXSIsIltcImFkYXB0aXZlLXJ1bGVcIixcIlwiLFwibFwiLFwieVwiLFwialwiXSJd",
+	"text": "hello legacy world",
+	"words": "25",
+	"tab": "feel",
+	"locked": "1"
+}

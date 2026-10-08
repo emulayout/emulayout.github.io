@@ -1,3 +1,4 @@
+import legacyUrl from './fixtures/creator-legacy-url.json';
 import { expect, test } from 'bun:test';
 import type { SparkLayout } from '$lib/sparkSchema';
 import {
@@ -13,8 +14,7 @@ import {
 	creatorUrlContentEqual,
 	readCreatorUrlSnapshot,
 	writeCreatorUrlParams,
-	encodeBase64Url,
-	writeLegacyCreatorUrlParams
+	encodeBase64Url
 } from '$lib/layoutCreatorUrl';
 import {
 	parseSavedLayoutsDocument,
@@ -163,14 +163,14 @@ test('new invalid documents and future versions cannot fall back to legacy field
 });
 
 test('legacy links and version-1/2 saves migrate to the same document writer', () => {
-	const snapshot = { ...createDefaultCreatorUrlSnapshot(), name: 'Legacy' };
-	const params = writeLegacyCreatorUrlParams(snapshot);
+	const params = new URLSearchParams(legacyUrl);
+	const snapshot = readCreatorUrlSnapshot(params);
 	params.set('share', '1');
-	expect(readCreatorShareFromSearch(params)?.name).toBe('Legacy');
+	expect(readCreatorShareFromSearch(params)?.name).toBe('Legacy fixture');
 	for (const version of [1, 2]) {
 		const layouts = parseSavedLayoutsDocument({
 			version,
-			layouts: [{ id: 'legacy', name: 'Legacy', createdAt: 1, query: params.toString() }]
+			layouts: [{ id: 'legacy', name: 'Legacy fixture', createdAt: 1, query: params.toString() }]
 		});
 		const migrated = JSON.parse(serializeSavedLayoutsDocument(layouts));
 		expect(migrated.version).toBe(3);

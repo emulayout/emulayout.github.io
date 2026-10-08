@@ -26,13 +26,10 @@ import {
 	createCreatorMagicSection,
 	createEmptyCreatorAdaptiveDraft,
 	createEmptyCreatorMagicDraft,
-	isDefaultCreatorMagicDraft,
 	type CreatorAdaptiveDraft,
 	type CreatorAdaptiveRule,
 	type CreatorAdaptiveSection,
 	type CreatorMagicDraft,
-	type CreatorMagicFallbackKind,
-	type CreatorMagicRule,
 	type CreatorMagicSection
 } from '$lib/layoutCreatorMappings';
 import {
@@ -46,7 +43,6 @@ import {
 	resolveTypingPracticeLessonSettings,
 	typingPracticeLessonOverridesFromSearchParams,
 	typingPracticeLessonFromSearchParams,
-	writeTypingPracticeLessonParams,
 	type TypingPracticeLessonSettings
 } from '$lib/typingPracticeText';
 
@@ -93,24 +89,6 @@ export type CreatorViewState = {
 
 export type CreatorUrlSnapshot = CreatorContentSnapshot & CreatorViewState;
 
-type MagicUrlSection = {
-	t: string;
-	r: [string, string][];
-	f?: CreatorMagicFallbackKind;
-	e?: string;
-};
-
-type AdaptiveUrlGroup = {
-	i?: string;
-	l: string;
-	r: [string, string, string][];
-};
-
-type AdaptiveUrlPayload = {
-	r?: [string, string, string][];
-	g?: AdaptiveUrlGroup[];
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -132,10 +110,6 @@ export function decodeBase64Url(value: string): string | null {
 	} catch {
 		return null;
 	}
-}
-
-function encodeJsonParam(value: unknown): string {
-	return `${MAPPING_VERSION}:${encodeBase64Url(JSON.stringify(value))}`;
 }
 
 function decodeJsonParam(value: string): unknown {
@@ -192,59 +166,6 @@ export function creatorEditSearchFromLayout(
 	return `?${writeCreatorUrlParams(createCreatorEditSnapshotFromLayout(layout, keyboardType)).toString()}`;
 }
 
-function magicRulePayload(rule: CreatorMagicRule): [string, string] {
-	return [rule.after, rule.emit];
-}
-
-function magicSectionPayload(section: CreatorMagicSection): MagicUrlSection {
-	const payload: MagicUrlSection = {
-		t: section.trigger,
-		r: section.rules.map(magicRulePayload)
-	};
-	if (section.fallbackKind !== 'no-op') payload.f = section.fallbackKind;
-	if (section.fallbackKind === 'emit' && section.fallbackEmit) payload.e = section.fallbackEmit;
-	return payload;
-}
-
-function adaptiveRulePayload(rule: CreatorAdaptiveRule): [string, string, string] {
-	return [rule.trigger, rule.left, rule.right];
-}
-
-function isDefaultAdaptiveDraft(draft: CreatorAdaptiveDraft): boolean {
-	return (
-		draft.groups.length === 0 &&
-		draft.rules.length === 1 &&
-		draft.rules[0].trigger === '' &&
-		draft.rules[0].left === '' &&
-		draft.rules[0].right === ''
-	);
-}
-
-function emptyTopologyKeyIdentity(key: KeyboardInputKey): string {
-	return `${key.slot}\0${key.inert ? '1' : '0'}\0${key.thumbHand ?? ''}`;
-}
-
-const RECONSTRUCTIBLE_EMPTY_KEY_IDENTITIES = new Set(
-	buildKeyboardInputConfig({
-		baseLayoutName: null,
-		baseLayoutModified: false,
-		keyboardType: 'staggered',
-		keys: []
-	})
-		.keys.filter((key) => key.value === '' && !key.inert)
-		.map(emptyTopologyKeyIdentity)
-);
-
-function shouldEncodeKey(key: KeyboardInputKey): boolean {
-	if (key.value !== '' || key.inert || key.hand) return true;
-	return !RECONSTRUCTIBLE_EMPTY_KEY_IDENTITIES.has(emptyTopologyKeyIdentity(key));
-}
-
-function encodeKeyEntry(key: KeyboardInputKey): string {
-	const flags = `${key.inert ? 'i' : ''}${key.thumbHand ?? ''}${key.primary ? 'p' : ''}${key.hand === 'l' ? 'L' : key.hand === 'r' ? 'R' : ''}`;
-	return `${key.slot}:${flags}:${encodeURIComponent(key.value)}`;
-}
-
 function parseKeyEntry(entry: string): KeyboardInputKey | null {
 	const slotEnd = entry.indexOf(':');
 	if (slotEnd <= 0) return null;
@@ -273,14 +194,6 @@ function parseKeyEntry(entry: string): KeyboardInputKey | null {
 		...(inert ? { inert: true } : {}),
 		...(thumbHand ? { thumbHand } : {})
 	};
-}
-
-function encodeKeysParam(config: KeyboardInputConfig): string {
-	const flag = config.baseLayoutModified ? KEYS_MODIFIED_FLAG : KEYS_UNMODIFIED_FLAG;
-	const entries = config.keys.filter(shouldEncodeKey).map(encodeKeyEntry);
-	return entries.length > 0
-		? `${KEYS_VERSION}:${flag};${entries.join(';')}`
-		: `${KEYS_VERSION}:${flag}`;
 }
 
 function parseKeysParam(value: string): { modified: boolean; keys: KeyboardInputKey[] } | null {
@@ -404,26 +317,8 @@ function adaptiveDraftFromPayload(value: unknown): CreatorAdaptiveDraft | null {
 	};
 }
 
-function writeMagicParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
-	if (!snapshot.includeMagicKey) return;
-	if (isDefaultCreatorMagicDraft(snapshot.magicDraft)) {
-		params.set(CREATOR_MAGIC_PARAM, ENABLED_FLAG);
-		return;
-	}
-	params.set(
-		CREATOR_MAGIC_PARAM,
-		encodeJsonParam({ s: snapshot.magicDraft.sections.map(magicSectionPayload) })
-	);
-}
-
 export function normalizeDisabledMappingIds(ids: readonly string[]): string[] {
 	return [...new Set(ids.map((id) => id.trim()).filter(Boolean))].sort();
-}
-
-function writeDisabledParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
-	const ids = normalizeDisabledMappingIds(snapshot.disabledMappingIds ?? []);
-	if (ids.length === 0) return;
-	params.set(CREATOR_DISABLED_PARAM, encodeJsonParam(ids));
 }
 
 function readDisabledMappingIds(searchParams: URLSearchParams): string[] {
@@ -432,26 +327,6 @@ function readDisabledMappingIds(searchParams: URLSearchParams): string[] {
 	const decoded = decodeJsonParam(raw);
 	if (!Array.isArray(decoded)) return [];
 	return normalizeDisabledMappingIds(decoded.filter((id): id is string => typeof id === 'string'));
-}
-
-function writeAdaptiveParam(params: URLSearchParams, snapshot: CreatorUrlSnapshot) {
-	if (!snapshot.includeAdaptiveKey) return;
-	if (isDefaultAdaptiveDraft(snapshot.adaptiveDraft)) {
-		params.set(CREATOR_ADAPTIVE_PARAM, ENABLED_FLAG);
-		return;
-	}
-	const payload: AdaptiveUrlPayload = {};
-	if (snapshot.adaptiveDraft.rules.length > 0) {
-		payload.r = snapshot.adaptiveDraft.rules.map(adaptiveRulePayload);
-	}
-	if (snapshot.adaptiveDraft.groups.length > 0) {
-		payload.g = snapshot.adaptiveDraft.groups.map((group) => ({
-			i: group.id,
-			l: group.label,
-			r: group.rules.map(adaptiveRulePayload)
-		}));
-	}
-	params.set(CREATOR_ADAPTIVE_PARAM, encodeJsonParam(payload));
 }
 
 function writeCreatorSectionParam(params: URLSearchParams, section: CreatorUrlSnapshot['section']) {
@@ -476,55 +351,6 @@ export function createDefaultCreatorUrlSnapshot(): CreatorUrlSnapshot {
 		practiceLesson: normalizeTypingPracticeLessonSettings(null),
 		disabledMappingIds: []
 	};
-}
-
-export function writeLegacyCreatorUrlParams(snapshot: CreatorUrlSnapshot): URLSearchParams {
-	const params = new URLSearchParams();
-	const defaults = createDefaultCreatorUrlSnapshot();
-	const name = snapshot.name.trim();
-	if (name && name !== LAYOUT_CREATOR_NEW_LAYOUT_NAME) {
-		params.set(CREATOR_NAME_PARAM, name);
-	}
-	const author = snapshot.author.trim();
-	if (author) params.set(CREATOR_AUTHOR_PARAM, author);
-
-	const baseName = snapshot.keyConfig.baseLayoutName?.trim() ?? '';
-	if (baseName && baseName !== defaults.keyConfig.baseLayoutName) {
-		params.set(CREATOR_BASE_PARAM, baseName);
-	}
-	if (snapshot.keyConfig.keyboardType !== defaults.keyConfig.keyboardType) {
-		params.set(CREATOR_TYPE_PARAM, snapshot.keyConfig.keyboardType);
-	}
-	if (
-		snapshot.keyConfig.baseLayoutModified ||
-		!keysEqual(snapshot.keyConfig.keys, defaults.keyConfig.keys)
-	) {
-		params.set(CREATOR_KEYS_PARAM, encodeKeysParam(snapshot.keyConfig));
-	}
-
-	writeMagicParam(params, snapshot);
-	writeAdaptiveParam(params, snapshot);
-	if (snapshot.includeChiralKey)
-		params.set(
-			'chiral',
-			encodeJsonParam(
-				(snapshot.chiralDraft?.rules ?? []).map(
-					({ key, sameKind, sameChar, oppositeKind, oppositeChar, except }) => ({
-						key,
-						sameKind,
-						sameChar,
-						oppositeKind,
-						oppositeChar,
-						except
-					})
-				)
-			)
-		);
-	writeDisabledParam(params, snapshot);
-	writeTypingPracticeLessonParams(params, snapshot.practiceLesson);
-	writeCreatorSectionParam(params, snapshot.section);
-	if (!snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
-	return params;
 }
 
 export const CREATOR_DOCUMENT_PARAM = 'document';

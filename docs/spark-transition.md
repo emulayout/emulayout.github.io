@@ -57,10 +57,10 @@ Compiling a supported subset is distinct from validating or storing the source.
 4. **Editor and geometry — complete (2026-10-08).** Own Spark content with separate editor
    recovery; build key maps directly instead of routing through compact transport.
 5. **Compatibility retirement — catalog cleanup complete (2026-10-08).** Retire the old generated
-   supplemental format and unused variant helpers. Keep old creator documents, saves, backups,
+   supplemental format, unused variant helpers, and unused legacy URL writer. Keep old creator documents, saves, backups,
    shares, and URLs readable; further removal of user-content readers requires a separate decision.
 
-**Authorization: steps 1–4 and the step-5 catalog cleanup are authorized and complete.
+**Authorization: steps 1–4 and the step-5 catalog and unused-writer cleanup are authorized and complete.
 Retiring user-content compatibility is outside this cleanup.**
 
 ## Step 1 boundaries (historical)
@@ -246,3 +246,19 @@ contract only; step 3 adds creator persistence of the original document.
 - `bun run test:e2e --workers=1 --retries=1`: completed successfully, 115 passed and 2 flaky tests
   passed on retry (detail-page Compare seeding and lesson-settings tabs). Catalog behavior,
   creator persistence, Spark import, and preview checks passed without retries.
+
+### Legacy writer cleanup
+
+- `writeLegacyCreatorUrlParams` had no application consumers; only unit tests still called it.
+  Remove it and its key/mapping serializers, writer-only payload types, and empty-slot encoding
+  helpers. Retain the old readers, current Spark document writer, and shared view/lesson handling.
+- `tests/layoutCreatorUrl.test.ts` now exercises the actual document writer for current round trips.
+  Fixed legacy wire data in `tests/fixtures/creator-legacy-url.json` independently tests old key
+  flags, thumbs, duplicate primaries, semicolons, incomplete mappings, groups, chirals, disabled
+  mappings, and lesson settings. Migration tests reuse that fixture for share version 1 and
+  storage/backup versions 1/2. No user-data compatibility is retired.
+- Production change: 174 lines removed, with no production additions.
+- `bun run lint` and `bun run check`: passed; no type-check errors or warnings.
+- `bun test`: 529 passed; focused creator document/URL/share/storage tests: 43 passed.
+- Focused creator/import browser tests: 27 passed.
+- `bun run test:e2e --workers=1 --retries=1`: all 117 passed without retries.

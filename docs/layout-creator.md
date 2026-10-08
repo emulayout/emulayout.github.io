@@ -103,6 +103,8 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   `New layout`. Old links with a `base` without keys still seed once the catalog loads. Readers
   retain old name, author, geometry, keys, Magic, Adaptive,
   Chiral, disabled-mapping, and lesson codecs, including `keys=v1:-` for an empty board.
+  Compatibility is read-only: the unused legacy URL writer is retired. Current writes always use
+  the document transport; fixed legacy fixtures verify old links, shares, and saved-query migration.
   Malformed, oversized (over 1 MiB encoded), or future-version documents restore a default canvas
   rather than reading unrelated legacy fields. Do not put document payloads, names, saved ids,
   key maps, or lesson text into GoatCounter paths or events.
