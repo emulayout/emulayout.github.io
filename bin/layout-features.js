@@ -1,8 +1,4 @@
 /**
- * @typedef {import('../src/lib/layoutSupplemental.ts').LayoutSupplementalVariant} LayoutSupplementalVariant
- */
-
-/**
  * @param {unknown} value
  * @returns {value is Record<string, unknown>}
  */
@@ -41,30 +37,4 @@ export function hasRepeatKey(rawKeys, magicMappings) {
 		hasOwn(rawKeys, '@') &&
 		(!isRecord(magicMappings) || !hasOwn(magicMappings, '@'))
 	);
-}
-
-/**
- * Magic mappings of the variant the runtime loads first. Repeat-key
- * classification is scoped to it so the compact flag matches the profile the
- * client actually compiles.
- *
- * @param {readonly LayoutSupplementalVariant[]} variants
- */
-export function defaultMagicMappings(variants) {
-	return variants[0]?.magicKeys?.mappings;
-}
-
-/**
- * Feature presence spans every variant so filters still match a layout
- * whose alternatives carry the feature.
- *
- * @param {readonly LayoutSupplementalVariant[]} variants
- */
-export function hasMagicKeyMappings(variants) {
-	return variants.some((variant) => Boolean(variant.magicKeys));
-}
-
-/** @param {readonly LayoutSupplementalVariant[]} variants */
-export function hasAdaptiveSwapMappings(variants) {
-	return variants.some((variant) => Boolean(variant.adaptiveSwaps));
 }

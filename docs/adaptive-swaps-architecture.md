@@ -89,9 +89,10 @@ that adapter is independent of client compilation and its outputs are unchanged 
 A conventional rule-free `@` with repeat default uses the dedicated Repeat profile. Other explicit
 Magic or Chiral declarations claim `@` and suppress conventional Repeat behavior.
 
-The previous supplemental validator, variants, and staleness metadata remain only as compatibility
-readers for previously generated catalogs. New catalog output does not use them. Reader retirement
-belongs to the separate compatibility phase.
+Catalog readers accept only the `spark/1` transport through `catalogSpark.ts`. The previous
+supplemental validator, variants, shorthand, and staleness metadata are retired. Malformed or
+non-Spark entries are skipped with a warning, while compact Repeat metadata remains authoritative
+for missing behavior data. Legacy personal saves, backups, shares, and URLs keep their readers.
 
 Spark Adaptive entries already store one side of a two-way swap:
 
@@ -113,7 +114,8 @@ after l: base j emits y
 `magicKeys`, `repeatKey`, and `adaptiveSwaps`. The client compiles the generated payload and compact
 layout metadata once into a map keyed by layout name.
 
-`compileLayoutSupplementalRegistry` compiles the generated default profile for each layout.
+`compileLayoutInputRegistry` compiles one Spark profile per layout directly, without a variant
+registry. Derived behavior-source adapters remain for creator grouping and app-only fallbacks.
 
 For each captured layout key:
 

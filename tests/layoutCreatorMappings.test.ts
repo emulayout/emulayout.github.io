@@ -22,7 +22,7 @@ import {
 	magicDraftFromSource,
 	magicSourceFromDraft
 } from '../src/lib/layoutCreatorMappings';
-import { validateLayoutSupplemental } from '../src/lib/layoutSupplemental';
+import { readCatalogSparkContent } from '../src/lib/catalogSpark';
 
 describe('magicSourceFromDraft', () => {
 	test('omits incomplete rows and compiles a complete rule', () => {
@@ -224,12 +224,17 @@ describe('adaptiveSourceFromDraft', () => {
 });
 
 describe('creatorDraftsFromSupplemental', () => {
-	test('seeds the default variant mappings', () => {
+	test('seeds Spark catalog mappings', () => {
 		const supplemental = {
-			vylet: validateLayoutSupplemental({
-				schema: 1,
-				magicKeys: { mappings: { '*': { c: 'k' } } },
-				adaptiveSwaps: { mappings: { l: { y: 'j' } } }
+			vylet: readCatalogSparkContent({
+				format: 'spark/1',
+				layout: {
+					keys: [],
+					magic: {
+						magic_keys: [{ key: '*', rules: [{ after: 'c', emit: 'k' }] }],
+						adaptive_swaps: [{ trigger: 'l', swap: ['y', 'j'] }]
+					}
+				}
 			})
 		};
 		const seeded = creatorDraftsFromSupplemental(supplemental, 'vylet');

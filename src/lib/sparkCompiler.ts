@@ -1,7 +1,7 @@
 import { validateSparkLayout, type SparkKey, type SparkMagic } from './sparkSchema';
 import type { KeyboardInputKey } from './keyboardInputConfig';
 import { validateChiralKeySource, isChiralCharacter, type ChiralKey } from './chiralKeys';
-import { compileLayoutInputProfile, type LayoutInputVariantSource } from './layoutInputBehaviors';
+import { compileLayoutInputProfile, type LayoutInputSource } from './layoutInputBehaviors';
 import type { ExtendedMagicKeyTriggerSource } from './magicKeys';
 
 const MAX_IMPORT_COLUMN = 12;
@@ -125,7 +125,7 @@ function lowerSparkBehavior(
 	value: SparkMagic | undefined,
 	sparkKeys: readonly SparkKey[],
 	warnings: Set<string>
-): LayoutInputVariantSource {
+): LayoutInputSource {
 	const sections = new Map<string, LoweredMagicSection>();
 	const adaptiveMappings: Record<string, Record<string, string>> = Object.create(null);
 	const chiralKeys: ChiralKey[] = [];

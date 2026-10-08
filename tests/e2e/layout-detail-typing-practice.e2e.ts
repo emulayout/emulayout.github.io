@@ -370,8 +370,11 @@ test('balances random lessons toward words matching the active special keys', as
 				authorName: 'acas',
 				likeCount: 0,
 				supplemental: {
-					schema: 1,
-					variants: [{ id: 'default', magicKeys: { mappings: { '*': { c: 'k' } } } }]
+					format: 'spark/1',
+					layout: {
+						keys: [],
+						magic: { magic_keys: [{ key: '*', rules: [{ after: 'c', emit: 'k' }] }] }
+					}
 				},
 				stats: {}
 			}
@@ -613,13 +616,17 @@ test('places special mappings without clipping the typing-practice keyboard', as
 				authorName: 'acas',
 				likeCount: 0,
 				supplemental: {
-					schema: 1,
-					variants: [
-						{
-							id: 'default',
-							adaptiveSwaps: { mappings: { l: { y: 'j', h: 'k' }, n: { y: 'r' } } }
+					format: 'spark/1',
+					layout: {
+						keys: [],
+						magic: {
+							adaptive_swaps: [
+								{ trigger: 'l', swap: ['y', 'j'] },
+								{ trigger: 'l', swap: ['h', 'k'] },
+								{ trigger: 'n', swap: ['y', 'r'] }
+							]
 						}
-					]
+					}
 				},
 				stats: {}
 			}
@@ -837,17 +844,15 @@ test('underlines enabled Magic groups in typing-practice words', async ({ page }
 				authorName: 'acas',
 				likeCount: 0,
 				supplemental: {
-					schema: 1,
-					variants: [
-						{
-							id: 'default',
-							magicKeys: {
-								mappings: {
-									'*': { rules: { e: 'x' }, fallback: 'repeat-last' }
-								}
-							}
+					format: 'spark/1',
+					layout: {
+						keys: [],
+						magic: {
+							magic_keys: [
+								{ key: '*', default: { kind: 'repeat' }, rules: [{ after: 'e', emit: 'x' }] }
+							]
 						}
-					]
+					}
 				},
 				stats: {}
 			}

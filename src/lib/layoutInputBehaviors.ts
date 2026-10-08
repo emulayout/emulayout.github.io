@@ -2,11 +2,13 @@ import { compileSparkLayout } from '$lib/sparkCompiler';
 import {
 	compileAdaptiveSwapSource,
 	resolveAdaptiveSwap,
+	type AdaptiveSwapSource,
 	type AdaptiveSwapProfile
 } from '$lib/adaptiveSwaps';
 import {
 	compileMagicKeyMappings,
 	resolveMagicKeyOutput,
+	type MagicKeySource,
 	type MagicKeyProfile
 } from '$lib/magicKeys';
 import {
@@ -15,21 +17,23 @@ import {
 	resolveRepeatKeyOutput,
 	type RepeatKeyProfile
 } from '$lib/repeatKeys';
-import {
-	validateLayoutSupplemental,
-	type LayoutSupplementalMeta,
-	type LayoutSupplementalVariant
-} from '$lib/layoutSupplemental';
+import { readCatalogSparkContent } from '$lib/catalogSpark';
 import type { DisabledInputMappingIds } from '$lib/inputMappingControls';
 import type { LayoutData } from '$lib/layout';
 import {
 	compileChiralKeys,
 	resolveChiralKeyOutput,
 	chiralRuleMappings,
+	type ChiralKeySource,
 	type ChiralKeyProfile
 } from '$lib/chiralKeys';
 
-export type LayoutInputVariantSource = Partial<LayoutSupplementalVariant>;
+/** Derived behavior sources; grouping and fixed-text fallbacks also serve the creator. */
+export interface LayoutInputSource {
+	magicKeys?: MagicKeySource;
+	adaptiveSwaps?: AdaptiveSwapSource;
+	chiralKeys?: ChiralKeySource;
+}
 
 type LayoutInputLayout = Pick<LayoutData, 'name' | 'keys'> &
 	Partial<Pick<LayoutData, 'hasRepeatKey'>>;
@@ -40,26 +44,6 @@ export interface LayoutInputProfile {
 	repeatKey?: RepeatKeyProfile;
 	adaptiveSwaps?: AdaptiveSwapProfile;
 	maxHistoryLength: number;
-	variantId?: string;
-	variantLabel?: string;
-	/** Author-declared: superseded by a newer set but still usable. */
-	outdated?: boolean;
-	/** Sync-derived: references a key the layout no longer has. */
-	stale?: boolean;
-}
-
-export interface CompiledSupplementalVariant {
-	id: string;
-	label?: string;
-	description?: string;
-	outdated?: boolean;
-	stale?: boolean;
-	profile: LayoutInputProfile;
-}
-
-export interface CompiledLayoutSupplemental {
-	meta?: LayoutSupplementalMeta;
-	variants: readonly CompiledSupplementalVariant[];
 }
 
 export type AppliedLayoutInputBehavior =
@@ -80,15 +64,15 @@ function trimContext(context: string, maxLength: number): string {
 }
 
 export function compileLayoutInputProfile(
-	variant: LayoutInputVariantSource,
+	source: LayoutInputSource,
 	rawLayoutKeys?: unknown,
-	repeatKeyEnabled = Boolean(compileRepeatKeyProfile(rawLayoutKeys, variant.magicKeys?.mappings))
+	repeatKeyEnabled = Boolean(compileRepeatKeyProfile(rawLayoutKeys, source.magicKeys?.mappings))
 ): LayoutInputProfile {
-	const magicKeys = variant.magicKeys
-		? compileMagicKeyMappings(variant.magicKeys.mappings)
+	const magicKeys = source.magicKeys
+		? compileMagicKeyMappings(source.magicKeys.mappings)
 		: undefined;
-	const chiralKeys = variant.chiralKeys
-		? compileChiralKeys(variant.chiralKeys, rawLayoutKeys)
+	const chiralKeys = source.chiralKeys
+		? compileChiralKeys(source.chiralKeys, rawLayoutKeys)
 		: undefined;
 	const repeatKey =
 		repeatKeyEnabled &&
@@ -96,8 +80,8 @@ export function compileLayoutInputProfile(
 		!chiralKeys?.keys.some((rule) => rule.key === DEFAULT_REPEAT_KEY)
 			? compileRepeatKeyProfile(rawLayoutKeys)
 			: undefined;
-	const adaptiveSwaps = variant.adaptiveSwaps
-		? compileAdaptiveSwapSource(variant.adaptiveSwaps)
+	const adaptiveSwaps = source.adaptiveSwaps
+		? compileAdaptiveSwapSource(source.adaptiveSwaps)
 		: undefined;
 	if (!magicKeys && !repeatKey && !adaptiveSwaps && !chiralKeys) {
 		throw new Error('Layout input profile must contain at least one behavior');
@@ -113,93 +97,32 @@ export function compileLayoutInputProfile(
 			repeatKey ? 1 : 0,
 			adaptiveSwaps ? 1 : 0,
 			chiralKeys ? 1 : 0
-		),
-		...(variant.id ? { variantId: variant.id } : {}),
-		...(variant.label ? { variantLabel: variant.label } : {}),
-		...(variant.outdated ? { outdated: true } : {}),
-		...(variant.stale ? { stale: true } : {})
+		)
 	};
 }
 
-/**
- * Compact metadata is authoritative for the variant the runtime loads first.
- * Later variants re-derive because that flag is scoped to the default one and
- * an alternative may claim `@` as a magic trigger while the default does not.
- */
-function repeatEnabledForVariant(
-	layout: LayoutInputLayout | undefined,
-	variant: LayoutSupplementalVariant,
-	isDefault: boolean
-): boolean {
-	const derived = Boolean(compileRepeatKeyProfile(layout?.keys, variant.magicKeys?.mappings));
-	return isDefault ? (layout?.hasRepeatKey ?? derived) : derived;
-}
-
-/**
- * Compile the published supplemental payload. Entries that fail validation are
- * dropped with a warning so one bad record cannot break the whole catalog.
- */
-export function compileLayoutSupplementalRegistry(
-	value: unknown,
-	layouts: readonly LayoutInputLayout[] = []
-): ReadonlyMap<string, CompiledLayoutSupplemental> {
-	const entries = new Map<string, CompiledLayoutSupplemental>();
-	const sources =
-		value && typeof value === 'object' && !Array.isArray(value)
-			? (value as Record<string, unknown>)
-			: {};
-	const layoutByName = new Map(layouts.map((layout) => [layout.name, layout]));
-
-	for (const [layoutName, rawEntry] of Object.entries(sources)) {
-		const layout = layoutByName.get(layoutName);
-		try {
-			if (rawEntry && typeof rawEntry === 'object' && 'format' in rawEntry) {
-				if (rawEntry.format !== 'spark/1' || !('layout' in rawEntry))
-					throw new Error('Unsupported catalog Spark transport');
-				const compiled = compileSparkLayout(rawEntry.layout);
-				if (compiled.warnings.length)
-					console.warn(`Spark compilation omissions for ${layoutName}:`, compiled.warnings);
-				entries.set(layoutName, {
-					variants: compiled.profile ? [{ id: 'default', profile: compiled.profile }] : []
-				});
-				continue;
-			}
-			const supplemental = validateLayoutSupplemental(rawEntry, { derived: true });
-			entries.set(layoutName, {
-				...(supplemental.meta ? { meta: supplemental.meta } : {}),
-				variants: supplemental.variants.map((variant, index) => ({
-					id: variant.id,
-					...(variant.label ? { label: variant.label } : {}),
-					...(variant.description ? { description: variant.description } : {}),
-					...(variant.outdated ? { outdated: true } : {}),
-					...(variant.stale ? { stale: true } : {}),
-					profile: compileLayoutInputProfile(
-						variant,
-						layout?.keys,
-						repeatEnabledForVariant(layout, variant, index === 0)
-					)
-				}))
-			});
-		} catch (error) {
-			console.warn(`Ignoring invalid supplemental data for ${layoutName}:`, error);
-		}
-	}
-	return entries;
-}
-
-/**
- * The profile each layout loads by default: its first variant, or a repeat-only
- * profile for a layout whose `@` needs no exported mapping data.
- */
+/** Compile Spark catalog entries, isolating malformed records from the rest of the catalog. */
 export function compileLayoutInputRegistry(
 	value: unknown,
 	layouts: readonly LayoutInputLayout[] = []
 ): ReadonlyMap<string, LayoutInputProfile> {
 	const profiles = new Map<string, LayoutInputProfile>();
-	for (const [layoutName, entry] of compileLayoutSupplementalRegistry(value, layouts)) {
-		const defaultVariant = entry.variants[0];
-		if (defaultVariant) profiles.set(layoutName, defaultVariant.profile);
+	const sources =
+		value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Record<string, unknown>)
+			: {};
+	for (const [layoutName, rawEntry] of Object.entries(sources)) {
+		try {
+			const content = readCatalogSparkContent(rawEntry);
+			const compiled = compileSparkLayout(content.layout);
+			if (compiled.warnings.length)
+				console.warn(`Spark compilation omissions for ${layoutName}:`, compiled.warnings);
+			if (compiled.profile) profiles.set(layoutName, compiled.profile);
+		} catch (error) {
+			console.warn(`Ignoring invalid catalog Spark data for ${layoutName}:`, error);
+		}
 	}
+	// Compact metadata remains authoritative when behavior data is missing or invalid.
 
 	for (const layout of layouts) {
 		if (profiles.has(layout.name)) continue;

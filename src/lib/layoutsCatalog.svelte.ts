@@ -9,7 +9,7 @@ import {
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
 import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
-import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
+import type { CatalogSparkByLayout } from '$lib/catalogSpark';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
 import { DEFAULT_STATS_CORPUS, type StatsCorpus } from '$lib/statsAnalyzers';
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
@@ -25,7 +25,7 @@ class LayoutsCatalog {
 	authorsData: AuthorsMap = $state({});
 	likesData: LayoutLikesMap = $state({});
 	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
-	supplemental: LayoutSupplementalByLayout = $state({});
+	supplemental: CatalogSparkByLayout = $state({});
 	layoutNames: string[] = $state([]);
 	fullCatalogLoaded = $state(false);
 	namesLoaded = $state(false);
@@ -43,7 +43,7 @@ class LayoutsCatalog {
 		authorsData: AuthorsMap,
 		likesData: LayoutLikesMap,
 		inputProfiles: ReadonlyMap<string, LayoutInputProfile> = new Map(),
-		supplemental?: LayoutSupplementalByLayout
+		supplemental?: CatalogSparkByLayout
 	) {
 		this.layouts = layouts;
 		this.authorsData = authorsData;
@@ -144,7 +144,7 @@ class LayoutsCatalog {
 		this.#supplementalRequest = fetcher('/layout-supplemental.json')
 			.then(async (response) => {
 				if (!response.ok) throw new Error(`Supplemental request failed (${response.status}).`);
-				const supplemental = (await response.json()) as LayoutSupplementalByLayout;
+				const supplemental = (await response.json()) as CatalogSparkByLayout;
 				if (!supplemental || typeof supplemental !== 'object' || Array.isArray(supplemental)) {
 					throw new Error('Supplemental response was invalid.');
 				}

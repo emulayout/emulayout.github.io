@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures/test';
-import { validateLayoutSupplemental } from '../../src/lib/layoutSupplemental';
+import { readCatalogSparkContent } from '../../src/lib/catalogSpark';
 import {
 	combinedInputBehaviors,
 	magicSturdy,
@@ -83,16 +83,23 @@ test('shows mappings in a floating window', async ({ page }) => {
 	expect(Math.abs(summaryIndicatorRightInset - catalogIndicatorRightInset)).toBeLessThanOrEqual(1);
 });
 
-test('shows a toggle for an emitting fallback and a plain note for a no-op', async ({ page }) => {
+test('shows a toggle for an emitting fallback and none for an implicit no-op', async ({ page }) => {
 	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({
 			json: {
-				[mappedLayoutName]: validateLayoutSupplemental({
-					schema: 1,
-					magicKeys: {
-						mappings: {
-							'*': { rules: { c: 'k' }, fallback: { emit: 'the' } },
-							'#': { rules: { c: 'v' }, fallback: 'no-op' }
+				[mappedLayoutName]: readCatalogSparkContent({
+					format: 'spark/1',
+					layout: {
+						keys: [],
+						magic: {
+							magic_keys: [
+								{
+									key: '*',
+									rules: [{ after: 'c', emit: 'k' }],
+									default: { kind: 'char', char: 't' }
+								},
+								{ key: '#', rules: [{ after: 'c', emit: 'v' }] }
+							]
 						}
 					}
 				})
@@ -107,13 +114,13 @@ test('shows a toggle for an emitting fallback and a plain note for a no-op', asy
 		name: `${mappedLayoutName} magic key mappings`
 	});
 
-	const emitRow = mappingsWindow.getByRole('checkbox', { name: 'otherwise * the' });
+	const emitRow = mappingsWindow.getByRole('checkbox', { name: 'otherwise * t' });
 	await expect(emitRow).toBeChecked();
 	await emitRow.uncheck();
 	await expect(emitRow).not.toBeChecked();
 
-	// A no-op emits nothing, so it is described rather than made toggleable.
-	await expect(mappingsWindow.getByText(/otherwise\s*#\s*→\s*nothing/)).toBeVisible();
+	// Spark omits a default for a no-op. Its explicit rule remains toggleable.
+	await expect(mappingsWindow.getByRole('checkbox', { name: 'c # cv' })).toBeChecked();
 	await expect(mappingsWindow.getByRole('checkbox', { name: /otherwise #/ })).toHaveCount(0);
 });
 
@@ -202,10 +209,15 @@ test('uses one hover and off-state treatment for Repeat, Adaptive, and Magic', a
 	await page.route('**/layout-supplemental.json', async (route) => {
 		await route.fulfill({
 			json: {
-				[combinedInputBehaviors[0]]: validateLayoutSupplemental({
-					schema: 1,
-					magicKeys: { mappings: { '#': { v: 'm' } } },
-					adaptiveSwaps: { mappings: { v: { m: 'l' } } }
+				[combinedInputBehaviors[0]]: readCatalogSparkContent({
+					format: 'spark/1',
+					layout: {
+						keys: [{ char: '@', row: 0, col: 0, finger: 'LP' }],
+						magic: {
+							magic_keys: [{ key: '#', rules: [{ after: 'v', emit: 'm' }] }],
+							adaptive_swaps: [{ trigger: 'v', swap: ['m', 'l'] }]
+						}
+					}
 				})
 			}
 		});

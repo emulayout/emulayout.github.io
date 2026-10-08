@@ -16,7 +16,7 @@ import { analyzersNeededForLoad } from '$lib/statsUsage';
 import { isStatSortBy, normalizeSortBy, type SortBy } from '$lib/statsSorting';
 import { loadAnalyzerStats } from '$lib/layoutStatsLoader';
 import { layoutStatsStore } from '$lib/layoutStatsStore.svelte';
-import type { LayoutSupplementalByLayout } from '$lib/layoutSupplemental';
+import type { CatalogSparkByLayout } from '$lib/catalogSpark';
 import {
 	KEYBOARD_GEOMETRY_STORAGE_KEY,
 	parseKeyboardGeometry,
@@ -82,7 +82,7 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData = normalizeAuthorsMap(await authorsResponse.json());
-	const supplemental: LayoutSupplementalByLayout = supplementalResponse.ok
+	const supplemental: CatalogSparkByLayout = supplementalResponse.ok
 		? await supplementalResponse.json()
 		: {};
 	const likesData: LayoutLikesMap =

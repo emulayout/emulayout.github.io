@@ -13,7 +13,7 @@ import {
 import { normalizeAuthorsMap } from '$lib/layout';
 import type { CompactLayout } from '$lib/layoutCodec';
 import { layoutDetailPageHref, parseLayoutDetailSection } from '$lib/layoutDetailTabs';
-import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
+import { readCatalogSparkContent } from '$lib/catalogSpark';
 
 const compactLayout: CompactLayout = [
 	"dave's_layout:1",
@@ -62,21 +62,16 @@ describe('per-layout detail data', () => {
 	});
 
 	test('merges layout metadata, mappings, and every analyzer into one payload', () => {
-		const supplemental = validateLayoutSupplemental({
-			schema: 1,
-			variants: [
-				{
-					id: 'current',
-					label: 'Current',
-					magicKeys: { mappings: { '*': { a: 'b' } } }
-				},
-				{
-					id: 'original',
-					label: 'Original',
-					outdated: true,
-					adaptiveSwaps: { mappings: { a: { b: 'c' } } }
+		const supplemental = readCatalogSparkContent({
+			format: 'spark/1',
+			layout: {
+				keys: [],
+				homepage: 'https://example.com/layout',
+				magic: {
+					magic_keys: [{ key: '*', rules: [{ after: 'a', emit: 'b' }] }],
+					adaptive_swaps: [{ trigger: 'a', swap: ['b', 'c'] }]
 				}
-			]
+			}
 		});
 		const [detail] = buildCompactLayoutDetails(
 			[compactLayout],

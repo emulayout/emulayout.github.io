@@ -15,33 +15,57 @@ import {
 	magicRuleMappingId,
 	repeatKeyMappingId
 } from '$lib/inputMappingControls';
-import { validateLayoutSupplemental } from '$lib/layoutSupplemental';
+import { readCatalogSparkContent } from '$lib/catalogSpark';
 
 const vyletData = {
-	schema: 1,
-	magicKeys: {
-		mappings: {
-			'*': {
-				rules: { c: 'k', "'": 'l', l: 'l' },
-				fallback: 'repeat-last' as const
-			}
+	format: 'spark/1',
+	layout: {
+		keys: [],
+		magic: {
+			magic_keys: [
+				{
+					key: '*',
+					default: { kind: 'repeat' },
+					rules: [
+						{ after: 'c', emit: 'k' },
+						{ after: "'", emit: 'l' },
+						{ after: 'l', emit: 'l' }
+					]
+				}
+			]
 		}
 	}
 };
 const whirlData = {
-	schema: 1,
-	magicKeys: {
-		mappings: { '*': { rules: { w: 'h' }, fallback: 'repeat-last' as const } }
+	format: 'spark/1',
+	layout: {
+		keys: [],
+		magic: {
+			magic_keys: [
+				{
+					key: '*',
+					default: { kind: 'repeat' },
+					rules: [{ after: 'w', emit: 'h' }]
+				}
+			]
+		}
 	}
 };
 const vyletV4Data = {
-	schema: 1,
-	adaptiveSwaps: {
-		mappings: { l: { y: 'j' }, n: { l: 'b', "'": 'h', y: 'r' } },
-		groups: [
-			{ id: 'slides', label: 'Slides', mappings: { p: { h: 'm' }, u: { e: 'o' } } },
-			{ id: 'comfort', label: 'Comfort', mappings: { w: { s: 'm' } } }
-		]
+	format: 'spark/1',
+	layout: {
+		keys: [],
+		magic: {
+			adaptive_swaps: [
+				{ trigger: 'l', swap: ['y', 'j'] },
+				{ trigger: 'n', swap: ['l', 'b'] },
+				{ trigger: 'n', swap: ["'", 'h'] },
+				{ trigger: 'n', swap: ['y', 'r'] },
+				{ trigger: 'p', swap: ['h', 'm'] },
+				{ trigger: 'u', swap: ['e', 'o'] },
+				{ trigger: 'w', swap: ['s', 'm'] }
+			]
+		}
 	}
 };
 
@@ -65,11 +89,11 @@ function typeLogicalKeys(
 }
 
 describe('layout input registry', () => {
-	// Normalize first so the registry sees exactly what sync publishes.
+	// Read the same Spark transport that catalog sync publishes.
 	const profiles = compileLayoutInputRegistry({
-		vylet: validateLayoutSupplemental(vyletData),
-		whirl: validateLayoutSupplemental(whirlData),
-		'vylet-v4': validateLayoutSupplemental(vyletV4Data)
+		vylet: readCatalogSparkContent(vyletData),
+		whirl: readCatalogSparkContent(whirlData),
+		'vylet-v4': readCatalogSparkContent(vyletV4Data)
 	});
 
 	test('loads each behavior by its Cmini layout name', () => {
@@ -121,7 +145,13 @@ describe('layout input registry', () => {
 
 		expect(compileLayoutInputRegistry({}, layouts).has('mapped-at')).toBe(false);
 
-		const mappedAt = { schema: 1, magicKeys: { mappings: { '@': { a: 'o' } } } };
+		const mappedAt = {
+			format: 'spark/1',
+			layout: {
+				keys: [],
+				magic: { magic_keys: [{ key: '@', rules: [{ after: 'a', emit: 'o' }] }] }
+			}
+		};
 		const profile = compileLayoutInputRegistry({ 'mapped-at': mappedAt }, layouts).get(
 			'mapped-at'
 		)!;
@@ -139,7 +169,12 @@ describe('layout input registry', () => {
 	test('preserves authoritative Repeat metadata when an @ sidecar profile is malformed', () => {
 		const warning = spyOn(console, 'warn').mockImplementation(() => {});
 		const profile = compileLayoutInputRegistry(
-			{ 'repeat-layout': { schema: 1, magicKeys: { mappings: { '@': null } } } },
+			{
+				'repeat-layout': {
+					format: 'spark/1',
+					layout: { keys: [], magic: { magic_keys: [{ key: '@', rules: null }] } }
+				}
+			},
 			[
 				{
 					name: 'repeat-layout',
@@ -365,7 +400,13 @@ describe('magic-key resolution through the unified engine', () => {
 
 describe('adaptive-swap resolution through the unified engine', () => {
 	const profile = compileLayoutInputProfile({
-		adaptiveSwaps: validateAdaptiveSwapSource(vyletV4Data.adaptiveSwaps)
+		adaptiveSwaps: validateAdaptiveSwapSource({
+			mappings: { l: { y: 'j' }, n: { l: 'b', "'": 'h', y: 'r' } },
+			groups: [
+				{ id: 'slides', label: 'Slides', mappings: { p: { h: 'm' }, u: { e: 'o' } } },
+				{ id: 'comfort', label: 'Comfort', mappings: { w: { s: 'm' } } }
+			]
+		})
 	});
 
 	test('compiles both directions and all stored groups', () => {

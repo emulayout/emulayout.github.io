@@ -140,8 +140,6 @@ test('recompiles hands after edits and honors explicit primary hand assignments'
 test('supports repeat and Unicode without recursively interpreting emitted text', () => {
 	const profile = compileLayoutInputProfile(
 		{
-			id: 'default',
-			label: 'Default',
 			chiralKeys: {
 				keys: [{ key: '@', same: { kind: 'repeat' }, opposite: { kind: 'char', char: '🙂' } }]
 			}
@@ -160,8 +158,6 @@ test('supports repeat and Unicode without recursively interpreting emitted text'
 test('composes adaptive then Magic then chiral and respects Magic priority', () => {
 	const profile = compileLayoutInputProfile(
 		{
-			id: 'default',
-			label: 'Default',
 			chiralKeys: source,
 			adaptiveSwaps: { mappings: { a: { h: '/' } } }
 		},
@@ -173,8 +169,6 @@ test('composes adaptive then Magic then chiral and respects Magic priority', () 
 	});
 	const magic = compileLayoutInputProfile(
 		{
-			id: 'default',
-			label: 'Default',
 			chiralKeys: source,
 			magicKeys: { mappings: { '/': { rules: { a: 'x' }, fallback: { emit: '/' } } } }
 		},

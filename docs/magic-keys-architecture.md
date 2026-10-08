@@ -50,6 +50,13 @@ This prevents a missing or invalid runtime sidecar from accidentally reclassifyi
 
 Names are never used to infer either behavior.
 
+## Catalog compatibility
+
+Catalog behavior readers accept only preserved `spark/1` documents. The old supplemental schema,
+variants, shorthand, and staleness metadata are retired. `catalogSpark.ts` validates the transport;
+`compileLayoutInputRegistry` compiles each document directly. Missing/invalid sidecars still use
+compact Repeat classification. Legacy personal saves, backups, shares, and URLs remain readable.
+
 ## Generated Magic format
 
 Magic and Adaptive intent comes from AKLDB's stored `spark/1` payload. The shared Spark compiler derives client behavior directly from that content. AKLDB's derived

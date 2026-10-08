@@ -21,8 +21,8 @@ The aim is fewer competing representations, not making every UI component interp
 | Lessons / filters / stats | App settings and analyzer artifacts              | Keep outside Spark                                 |
 
 Catalog behavior and imports now share Spark compilation. Mana2 remains an analyzer adapter,
-not an alternative source of executable client behavior. The old supplemental format is retained
-as a compatibility reader; new catalog documents do not contain variants or staleness metadata.
+not an alternative source of executable client behavior. Catalog readers accept Spark documents only; the previous supplemental schema, variants, shorthand,
+and staleness metadata are retired. The existing sidecar filename remains a delivery detail.
 
 Creator cloning and normalization use a common document builder rather than URL codecs.
 The creator owns a Spark document with sparse editor recovery; geometry is built directly from
@@ -56,10 +56,12 @@ Compiling a supported subset is distinct from validating or storing the source.
    legacy URL/share/storage readers.
 4. **Editor and geometry — complete (2026-10-08).** Own Spark content with separate editor
    recovery; build key maps directly instead of routing through compact transport.
-5. **Compatibility retirement — not started.** Remove obsolete readers only under an explicit
-   compatibility policy.
+5. **Compatibility retirement — catalog cleanup complete (2026-10-08).** Retire the old generated
+   supplemental format and unused variant helpers. Keep old creator documents, saves, backups,
+   shares, and URLs readable; further removal of user-content readers requires a separate decision.
 
-**Authorization: steps 1–4 are authorized and complete. Step 5 requires a new request.**
+**Authorization: steps 1–4 and the step-5 catalog cleanup are authorized and complete.
+Retiring user-content compatibility is outside this cleanup.**
 
 ## Step 1 boundaries (historical)
 
@@ -74,7 +76,7 @@ Compiling a supported subset is distinct from validating or storing the source.
 
 ## Verification record
 
-Step 1 verification is recorded below. Steps 2–4 have their own records; step 5 has not started.
+Step 1 verification is recorded below. Steps 2–4 have their own records; step 5 records catalog compatibility retirement below.
 
 - `bun run lint`: passed.
 - `bun run check`: passed, no errors or warnings.
@@ -207,3 +209,40 @@ contract only; step 3 adds creator persistence of the original document.
 - `bun run test:e2e --workers=1 --retries=1`: all 117 passed without retries. An earlier final
   recheck had one practice-settings dialog timeout (116 passed); that test passed in isolation
   and in the final full run without application changes.
+
+## Step 5 catalog cleanup and compatibility policy
+
+- The site deploys its generated catalog with the application. Retire internal schema-1
+  supplemental catalogs, including variants, shorthand mappings, metadata-only records, and
+  outdated/stale fields. They are no longer valid catalog input. Invalid entries are isolated
+  with warnings; remaining layouts still load. Spark source extension fields remain preserved.
+- Keep creator envelope version 1, legacy URL/query snapshots, share version 1, and storage/backup
+  versions 1/2 readable. Their migration and recovery paths are unchanged. App-only grouping and
+  multi-character fallbacks still use derived behavior adapters; they are not obsolete formats.
+- `catalogSpark.ts` replaces the supplemental validator with the Spark transport reader and types.
+  `compileLayoutInputRegistry` compiles Spark directly, without a variant registry. Creator seeding
+  uses the same boundary. The runtime drops unused variant labels and staleness fields.
+- Remove unused variant feature helpers from `bin/layout-features.js`; retain Repeat classification
+  for base geometry and Magic/Repeat helpers used by the Cyanophage analyzer adapter.
+- Preserve compact geometry, `layout-supplemental.json`, the per-layout `supplemental` field, and
+  detail transport version 5. This is reader retirement, with no generated-output format change.
+  Older cached non-Spark catalog entries are skipped; compact Repeat metadata still governs
+  missing/invalid behavior fallback. Old personal data is not affected by that catalog policy.
+- Audit: all 153 local aggregate behavior entries use `spark/1`; none use the retired schema.
+  Browser fixtures now supply native Spark, including single-character fixed Magic defaults.
+  Creator/runtime tests continue covering app-only multi-character fallbacks and Adaptive groups.
+- `tests/catalogSpark.test.ts` covers source preservation, retired/future/malformed transport
+  rejection, record isolation, and creator seeding. Existing persistence migration tests remain.
+- The local generated-data audit validated all 153 aggregate entries and all 153 detail sidecars
+  without regeneration. The aggregate compiled 152 executable profiles; valid unsupported content
+  remains source data and can produce omission diagnostics rather than an executable profile.
+- `bun run lint`: passed.
+- `bun run check`: passed, no errors or warnings.
+- `bun test`: 527 passed. Tests of the retired supplemental schema and variant helpers are removed;
+  tests of still-used analyzer helpers and creator/runtime adapters remain.
+- Focused browser run: 59 passed initially, with one obsolete explicit-no-op fixture assertion and
+  one multi-tab deletion dialog timeout. The fixture now checks Spark's implicit no-op; both
+  affected tests passed on recheck without persistence changes.
+- `bun run test:e2e --workers=1 --retries=1`: completed successfully, 115 passed and 2 flaky tests
+  passed on retry (detail-page Compare seeding and lesson-settings tabs). Catalog behavior,
+  creator persistence, Spark import, and preview checks passed without retries.

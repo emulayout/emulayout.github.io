@@ -9,13 +9,10 @@ import {
 } from '$lib/inputMappingControls';
 import { compileLayoutInputProfile, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import { CREATOR_MAGIC_KEY } from '$lib/layoutCreator';
-import {
-	validateLayoutSupplemental,
-	type LayoutSupplementalByLayout,
-	type MagicKeySource
-} from '$lib/layoutSupplemental';
+import { readCatalogSparkContent, type CatalogSparkByLayout } from '$lib/catalogSpark';
 import type {
 	ExtendedMagicKeyTriggerSource,
+	MagicKeySource,
 	MagicKeyFallbackSource,
 	MagicKeyRules
 } from '$lib/magicKeys';
@@ -237,7 +234,7 @@ export function adaptiveDraftFromSource(
 }
 
 export function creatorDraftsFromSupplemental(
-	supplemental: LayoutSupplementalByLayout,
+	supplemental: CatalogSparkByLayout,
 	layoutName: string
 ): {
 	magicDraft: CreatorMagicDraft;
@@ -254,13 +251,10 @@ export function creatorDraftsFromSupplemental(
 	let chiralKeys: ChiralKeySource | undefined;
 	if (raw) {
 		try {
-			const variant =
-				'format' in raw
-					? compileSparkLayout(raw.layout).source
-					: validateLayoutSupplemental(raw, { derived: true }).variants[0];
-			magicKeys = variant?.magicKeys;
-			adaptiveSwaps = variant?.adaptiveSwaps;
-			chiralKeys = variant?.chiralKeys;
+			const source = compileSparkLayout(readCatalogSparkContent(raw).layout).source;
+			magicKeys = source.magicKeys;
+			adaptiveSwaps = source.adaptiveSwaps;
+			chiralKeys = source.chiralKeys;
 		} catch {
 			magicKeys = undefined;
 			adaptiveSwaps = undefined;

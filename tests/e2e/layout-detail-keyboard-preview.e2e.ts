@@ -39,13 +39,8 @@ test('previews armed Adaptive swaps on the styled keyboard', async ({ page }) =>
 				authorName: 'acas',
 				likeCount: 0,
 				supplemental: {
-					schema: 1,
-					variants: [
-						{
-							id: 'default',
-							adaptiveSwaps: { mappings: { l: { y: 'j' } } }
-						}
-					]
+					format: 'spark/1',
+					layout: { keys: [], magic: { adaptive_swaps: [{ trigger: 'l', swap: ['y', 'j'] }] } }
 				},
 				stats: {}
 			}

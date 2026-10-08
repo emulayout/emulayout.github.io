@@ -1,11 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import {
-	defaultMagicMappings,
-	hasAdaptiveSwapMappings,
-	hasMagicKey,
-	hasMagicKeyMappings,
-	hasRepeatKey
-} from '../bin/layout-features.js';
+import { hasMagicKey, hasRepeatKey } from '../bin/layout-features.js';
 
 describe('layout contextual feature classification', () => {
 	test('uses AKL mappings for Magic and unclaimed @ for Repeat', () => {
@@ -30,38 +24,5 @@ describe('layout contextual feature classification', () => {
 
 		expect(hasMagicKey(keys, mappings)).toBe(true);
 		expect(hasRepeatKey(keys, mappings)).toBe(false);
-	});
-});
-
-describe('mapping availability across variants', () => {
-	const magicVariant = { id: 'v1', magicKeys: { mappings: { '*': { a: 'o' } } } };
-	const adaptiveVariant = { id: 'v2', adaptiveSwaps: { mappings: { l: { y: 'j' } } } };
-
-	test('reports a feature when any variant carries it', () => {
-		expect(hasMagicKeyMappings([magicVariant, adaptiveVariant])).toBe(true);
-		expect(hasAdaptiveSwapMappings([magicVariant, adaptiveVariant])).toBe(true);
-		expect(hasMagicKeyMappings([adaptiveVariant])).toBe(false);
-		expect(hasAdaptiveSwapMappings([])).toBe(false);
-	});
-
-	test('does not classify native Chiral or Adaptive profiles as Magic', () => {
-		const chiralVariant = {
-			...adaptiveVariant,
-			chiralKeys: { keys: [{ key: 'y', same: { kind: 'repeat' as const } }] }
-		};
-		expect(hasMagicKeyMappings([chiralVariant])).toBe(false);
-		expect(hasAdaptiveSwapMappings([chiralVariant])).toBe(true);
-		expect(hasMagicKeyMappings([{ ...chiralVariant, magicKeys: magicVariant.magicKeys }])).toBe(
-			true
-		);
-	});
-
-	test('scopes Repeat classification to the variant loaded first', () => {
-		const keys = { a: {}, '@': {} };
-		const claimsAt = { id: 'v0', magicKeys: { mappings: { '@': { a: 'o' } } } };
-
-		expect(hasRepeatKey(keys, defaultMagicMappings([claimsAt, magicVariant]))).toBe(false);
-		expect(hasRepeatKey(keys, defaultMagicMappings([magicVariant, claimsAt]))).toBe(true);
-		expect(hasRepeatKey(keys, defaultMagicMappings([]))).toBe(true);
 	});
 });

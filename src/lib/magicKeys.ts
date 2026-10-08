@@ -34,6 +34,11 @@ export type MagicKeyMappings = Readonly<
 	Record<string, MagicKeyRules | ExtendedMagicKeyTriggerSource>
 >;
 
+/** Derived Magic input for runtime compilation and creator adapters. */
+export interface MagicKeySource {
+	mappings: MagicKeyMappings;
+}
+
 export interface CompiledMagicKeyRule {
 	after: string;
 	emit: string;
