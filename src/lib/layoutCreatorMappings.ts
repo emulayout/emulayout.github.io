@@ -28,6 +28,7 @@ import {
 import { chiralRuleMappings, type ChiralKeyProfile, type ChiralKeySource } from '$lib/chiralKeys';
 
 export type CreatorMagicRule = {
+	sparkExtensions?: Record<string, unknown>;
 	id: string;
 	after: string;
 	emit: string;
@@ -36,6 +37,7 @@ export type CreatorMagicRule = {
 export type CreatorMagicFallbackKind = 'no-op' | 'repeat-last' | 'emit';
 
 export type CreatorMagicSection = {
+	sparkExtensions?: Record<string, unknown>;
 	id: string;
 	trigger: string;
 	rules: CreatorMagicRule[];
@@ -48,6 +50,7 @@ export type CreatorMagicDraft = {
 };
 
 export type CreatorAdaptiveRule = {
+	sparkExtensions?: Record<string, unknown>;
 	id: string;
 	trigger: string;
 	left: string;

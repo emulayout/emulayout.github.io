@@ -105,7 +105,9 @@ A press whose preceding output matches no rule is governed by the trigger's `fal
 
 Creator persistence stores single-character and repeat defaults in Spark. Multi-character fixed
 fallbacks remain in the versioned Emulayout editor sidecar and keep the same runtime behavior;
-they are not encoded as a Spark single-character default.
+they are not encoded as a Spark single-character default. Version-2 creator recovery references
+supported Spark rules and keeps explicit incomplete rows or differing fallback headers. Editing a
+control updates the canonical document; runtime profiles remain derived data.
 
 Explicit rules take precedence over the fallback. Emitted output enters history, so `b@@` produces
 `bbb` in this example. `repeat-last` with no history has nothing to repeat and degrades to `no-op`;

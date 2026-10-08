@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { creatorSparkProjection } from '$lib/creatorDocument';
+	import { CreatorEditor } from '$lib/creatorEditor.svelte';
+	import { createLayoutFromSparkKeys } from '$lib/creatorGeometry';
 	import CreatorChiralMappingsPanel from '$lib/components/CreatorChiralMappingsPanel.svelte';
 	import {
 		createEmptyCreatorChiralDraft,
@@ -46,7 +47,6 @@
 		LAYOUT_CREATOR_NEW_TAB,
 		LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL,
 		createDefaultCreatorKeyConfig,
-		createLayoutFromKeyConfig,
 		nextDuplicatedLayoutName,
 		keyboardConfigGainedMagicTriggers,
 		keyboardConfigHasMagicTrigger,
@@ -147,32 +147,18 @@
 				initialLayouts
 			);
 
+	const editor = new CreatorEditor(initialSession.snapshot);
 	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
 	let activeSavedId = $state<string | null>(initialSession.savedId);
-	let layoutNameDraft = $state(initialSession.snapshot.name);
-	let layoutAuthorDraft = $state(initialSession.snapshot.author);
 	let layoutPreview = $state(initialSession.snapshot.preview);
 	let layoutNameFocusEpoch = $state(
 		!initialSession.savedId && !initialSession.snapshot.preview ? 1 : 0
 	);
 	let consumedLayoutNameFocusEpoch = 0;
 	let autofocusFirstKey = $state(false);
-	let disabledMappingIds = $state<string[]>([...initialSession.snapshot.disabledMappingIds]);
-	let includeMagicKey = $state(initialSession.snapshot.includeMagicKey);
-	let includeAdaptiveKey = $state(initialSession.snapshot.includeAdaptiveKey);
-	let includeChiralKey = $state(initialSession.snapshot.includeChiralKey ?? false);
 	let chiralPanelOpen = $state(initialSession.snapshot.includeChiralKey ?? false);
-	let chiralDraft = $state.raw(
-		initialSession.snapshot.chiralDraft ?? createEmptyCreatorChiralDraft()
-	);
 	let magicPanelOpen = $state(initialSession.snapshot.includeMagicKey);
 	let adaptivePanelOpen = $state(initialSession.snapshot.includeAdaptiveKey);
-	let magicDraft = $state.raw(initialSession.snapshot.magicDraft);
-	let adaptiveDraft = $state.raw(initialSession.snapshot.adaptiveDraft);
-	let keyConfig = $state.raw(initialSession.snapshot.keyConfig);
-	let sparkSource = $state.raw(initialSession.snapshot.sparkSource);
-	let sparkEditorBaseline = $state.raw(initialSession.snapshot.sparkEditorBaseline);
-	let practiceLesson = $state.raw(initialSession.snapshot.practiceLesson);
 	let practiceLessonUrlOverrides = $state.raw<TypingPracticeLessonUrlOverrides>(
 		typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
 	);
@@ -189,8 +175,8 @@
 	let urlSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 	let shareCopiedTimeout: ReturnType<typeof setTimeout> | null = null;
 	let lastWrittenSearch = page.url.search;
-	const layoutName = $derived(layoutNameDraft.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
-	const layoutAuthor = $derived(layoutAuthorDraft.trim());
+	const layoutName = $derived(editor.name.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME);
+	const layoutAuthor = $derived(editor.author.trim());
 	const authorNames = $derived(
 		Object.keys(layoutsCatalog.authorsData).toSorted((a, b) =>
 			a.localeCompare(b, undefined, { sensitivity: 'base' })
@@ -201,53 +187,61 @@
 		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
 	);
 	const selectedTabId = $derived(activeSavedId ? savedCreatorTabId(activeSavedId) : NEW_TAB_ID);
-	const practiceMagicEnabled = $derived(includeMagicKey);
-	const practiceAdaptiveEnabled = $derived(includeAdaptiveKey);
+	const practiceMagicEnabled = $derived(editor.includeMagicKey);
+	const practiceAdaptiveEnabled = $derived(editor.includeAdaptiveKey);
 	const layout = $derived(
-		createLayoutFromKeyConfig(keyConfig, {
+		createLayoutFromSparkKeys(editor.layout.keys, {
 			name: layoutName,
-			magicKey: practiceMagicEnabled || includeChiralKey,
+			magicKey: practiceMagicEnabled || editor.includeChiralKey,
 			adaptiveKey: practiceAdaptiveEnabled
 		})
 	);
 	const availableLayoutKeys = $derived(Object.keys(layout.keys));
 	const magicDraftHasMappings = $derived(
-		creatorMagicDraftHasMappings(magicDraft, availableLayoutKeys)
+		creatorMagicDraftHasMappings(editor.magicDraft, availableLayoutKeys)
 	);
 	const adaptiveDraftHasMappings = $derived(
-		creatorAdaptiveDraftHasMappings(adaptiveDraft, availableLayoutKeys)
+		creatorAdaptiveDraftHasMappings(editor.adaptiveDraft, availableLayoutKeys)
 	);
 	const magicIconActive = $derived(
 		magicPanelOpen &&
-			creatorMagicDraftHasEnabledMappings(magicDraft, disabledMappingIds, availableLayoutKeys)
+			creatorMagicDraftHasEnabledMappings(
+				editor.magicDraft,
+				editor.disabledMappingIds,
+				availableLayoutKeys
+			)
 	);
 	const adaptiveIconActive = $derived(
 		adaptivePanelOpen &&
-			creatorAdaptiveDraftHasEnabledMappings(adaptiveDraft, disabledMappingIds, availableLayoutKeys)
+			creatorAdaptiveDraftHasEnabledMappings(
+				editor.adaptiveDraft,
+				editor.disabledMappingIds,
+				availableLayoutKeys
+			)
 	);
 	const magicIconHasData = $derived(!magicPanelOpen && magicDraftHasMappings);
 	const adaptiveIconHasData = $derived(!adaptivePanelOpen && adaptiveDraftHasMappings);
 	const inputProfile = $derived(
 		compileCreatorInputProfile(
 			practiceMagicEnabled,
-			magicDraft,
+			editor.magicDraft,
 			practiceAdaptiveEnabled,
-			adaptiveDraft,
+			editor.adaptiveDraft,
 			availableLayoutKeys,
-			includeChiralKey ? chiralDraft : undefined,
+			editor.includeChiralKey ? editor.chiralDraft : undefined,
 			layout.keys
 		)
 	);
 	const showEditorMappings = $derived(magicPanelOpen || adaptivePanelOpen || chiralPanelOpen);
 	const missingLetters = $derived(
 		creatorLayoutMissingKeys(
-			includeMagicKey ? magicDraft : undefined,
+			editor.includeMagicKey ? editor.magicDraft : undefined,
 			availableLayoutKeys,
-			disabledMappingIds,
+			editor.disabledMappingIds,
 			inputProfile?.chiralKeys
 		)
 	);
-	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(keyConfig));
+	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(editor.keyConfig));
 	const options: TabOption<LayoutCreatorTabValue>[] = $derived.by(() => {
 		const savedTabs = savedLayouts.map((saved) => ({
 			value: savedCreatorTabValue(saved.id),
@@ -271,6 +265,7 @@
 	);
 
 	let baseLayoutSeed = 0;
+	let supplementalDraftsSeededFor: string | null = null;
 
 	$effect(() => {
 		void layoutsCatalog.ensureLoaded();
@@ -279,7 +274,7 @@
 
 	$effect(() => {
 		if (activeSavedId) return;
-		const config = keyConfig;
+		const config = editor.keyConfig;
 		const name = config.baseLayoutName?.trim() ?? '';
 		if (!name) return;
 		void layoutsCatalog.layouts;
@@ -290,12 +285,12 @@
 		if (name === createDefaultCreatorKeyConfig().baseLayoutName || config.baseLayoutModified) {
 			return;
 		}
-		if (!layoutsCatalog.supplementalLoaded) return;
+		if (!layoutsCatalog.supplementalLoaded || supplementalDraftsSeededFor === name) return;
 		untrack(() => {
 			if (
-				creatorMagicDraftHasMappings(magicDraft) ||
-				creatorAdaptiveDraftHasMappings(adaptiveDraft) ||
-				chiralDraft.rules.length > 0
+				creatorMagicDraftHasMappings(editor.magicDraft) ||
+				creatorAdaptiveDraftHasMappings(editor.adaptiveDraft) ||
+				editor.chiralDraft.rules.length > 0
 			) {
 				return;
 			}
@@ -327,21 +322,9 @@
 
 	function currentCreatorSnapshot(): CreatorUrlSnapshot {
 		return {
-			name: layoutNameDraft,
-			author: layoutAuthorDraft,
+			...editor.snapshot(),
 			preview: layoutPreview,
-			section: parseCreatorDetailSection(activeSection),
-			includeMagicKey,
-			includeAdaptiveKey,
-			includeChiralKey,
-			chiralDraft,
-			magicDraft,
-			adaptiveDraft,
-			sparkSource,
-			sparkEditorBaseline,
-			keyConfig,
-			practiceLesson,
-			disabledMappingIds
+			section: parseCreatorDetailSection(activeSection)
 		};
 	}
 
@@ -360,10 +343,10 @@
 	const showDuplicateButton = $derived(Boolean(activeSavedId && !isActiveSavedDirty));
 	const canClearNewLayout = $derived(
 		!activeSavedId &&
-			(Boolean(keyConfig.baseLayoutName) ||
-				keyConfig.keys.some((key) => Boolean(key.value)) ||
-				includeMagicKey ||
-				includeAdaptiveKey)
+			(Boolean(editor.keyConfig.baseLayoutName) ||
+				editor.keyConfig.keys.some((key) => Boolean(key.value)) ||
+				editor.includeMagicKey ||
+				editor.includeAdaptiveKey)
 	);
 
 	$effect(() => {
@@ -390,25 +373,14 @@
 		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
 	) {
 		const next = cloneCreatorUrlSnapshot(snapshot);
-		layoutNameDraft = next.name;
-		layoutAuthorDraft = next.author;
+		supplementalDraftsSeededFor = null;
+		editor.replace(next);
 		layoutPreview = next.preview;
 		activeSection = next.section;
-		includeMagicKey = next.includeMagicKey;
-		includeAdaptiveKey = next.includeAdaptiveKey;
-		includeChiralKey = next.includeChiralKey ?? false;
-		chiralPanelOpen = includeChiralKey;
-		chiralDraft = next.chiralDraft ?? createEmptyCreatorChiralDraft();
+		chiralPanelOpen = next.includeChiralKey ?? false;
 		magicPanelOpen = next.includeMagicKey;
 		adaptivePanelOpen = next.includeAdaptiveKey;
-		magicDraft = next.magicDraft;
-		adaptiveDraft = next.adaptiveDraft;
-		keyConfig = next.keyConfig;
-		sparkSource = next.sparkSource;
-		sparkEditorBaseline = next.sparkEditorBaseline;
-		practiceLesson = next.practiceLesson;
 		practiceLessonUrlOverrides = lessonOverrides;
-		disabledMappingIds = [...next.disabledMappingIds];
 		saveError = null;
 		autofocusFirstKey = false;
 	}
@@ -557,91 +529,93 @@
 	});
 
 	function applyEmptyMappingDrafts() {
-		chiralDraft = createEmptyCreatorChiralDraft();
-		includeChiralKey = false;
+		editor.chiralDraft = createEmptyCreatorChiralDraft();
+		editor.includeChiralKey = false;
 		chiralPanelOpen = false;
-		magicDraft = createEmptyCreatorMagicDraft();
-		adaptiveDraft = createEmptyCreatorAdaptiveDraft();
-		disabledMappingIds = [];
+		editor.magicDraft = createEmptyCreatorMagicDraft();
+		editor.adaptiveDraft = createEmptyCreatorAdaptiveDraft();
+		editor.disabledMappingIds = [];
 	}
 
 	function applySupplementalDrafts(name: string) {
+		supplementalDraftsSeededFor = name;
 		const raw = $state.snapshot(layoutsCatalog.supplemental[name]);
-		sparkSource = raw && 'format' in raw ? raw.layout : undefined;
 		const seeded = creatorDraftsFromSupplemental(
 			$state.snapshot(layoutsCatalog.supplemental),
 			name
 		);
-		magicDraft = seeded.magicDraft;
-		adaptiveDraft = seeded.adaptiveDraft;
-		chiralDraft = seeded.chiralDraft;
-		includeChiralKey = seeded.hasChiralMappings;
+		editor.magicDraft = seeded.magicDraft;
+		editor.adaptiveDraft = seeded.adaptiveDraft;
+		editor.chiralDraft = seeded.chiralDraft;
+		editor.includeChiralKey = seeded.hasChiralMappings;
 		chiralPanelOpen = seeded.hasChiralMappings;
 		if (seeded.chiralHands)
-			keyConfig = {
-				...keyConfig,
-				keys: keyConfig.keys.map((key) => ({
+			editor.keyConfig = {
+				...editor.keyConfig,
+				keys: editor.keyConfig.keys.map((key) => ({
 					...key,
 					...(seeded.chiralHands?.[key.value] ? { hand: seeded.chiralHands[key.value] } : {})
 				}))
 			};
-		includeMagicKey = seeded.hasMagicMappings || keyboardConfigHasMagicTrigger(keyConfig);
-		magicPanelOpen = includeMagicKey;
+		editor.includeMagicKey =
+			seeded.hasMagicMappings || keyboardConfigHasMagicTrigger(editor.keyConfig);
+		magicPanelOpen = editor.includeMagicKey;
 		if (seeded.hasAdaptiveMappings) {
-			includeAdaptiveKey = true;
+			editor.includeAdaptiveKey = true;
 			adaptivePanelOpen = true;
 		}
-		sparkEditorBaseline = sparkSource
-			? creatorSparkProjection(currentCreatorSnapshot())
-			: undefined;
-		disabledMappingIds = [];
+		editor.adoptSource(raw && 'format' in raw ? raw.layout : undefined);
+		editor.disabledMappingIds = [];
 	}
 
 	async function selectBaseLayout(name: string) {
 		const nextLayout = layoutsCatalog.layouts.find((candidate) => candidate.name === name);
 		if (!nextLayout) return;
 		const seed = ++baseLayoutSeed;
-		keyConfig = createKeyboardInputConfigFromLayout(nextLayout, keyConfig.keyboardType);
-		sparkSource = undefined;
-		sparkEditorBaseline = undefined;
-		includeMagicKey = nextLayout.hasMagicKey;
-		includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
+		supplementalDraftsSeededFor = null;
+		editor.keyConfig = createKeyboardInputConfigFromLayout(
+			nextLayout,
+			editor.keyConfig.keyboardType
+		);
+		editor.adoptSource(undefined);
+		editor.includeMagicKey = nextLayout.hasMagicKey;
+		editor.includeAdaptiveKey = nextLayout.hasAdaptiveSwap;
 		magicPanelOpen = nextLayout.hasMagicKey;
 		adaptivePanelOpen = nextLayout.hasAdaptiveSwap;
 		applyEmptyMappingDrafts();
 		await layoutsCatalog.ensureSupplementalLoaded();
-		if (seed !== baseLayoutSeed || keyConfig.baseLayoutName !== name) return;
+		if (seed !== baseLayoutSeed || editor.keyConfig.baseLayoutName !== name) return;
 		applySupplementalDrafts(name);
 	}
 
 	function clearAllKeys() {
 		baseLayoutSeed += 1;
-		keyConfig = clearKeyboardInputConfig(keyConfig);
-		sparkSource = undefined;
-		sparkEditorBaseline = undefined;
-		includeMagicKey = false;
-		includeAdaptiveKey = false;
+		editor.keyConfig = clearKeyboardInputConfig(editor.keyConfig);
+		editor.adoptSource(undefined);
+		editor.includeMagicKey = false;
+		editor.includeAdaptiveKey = false;
 		magicPanelOpen = false;
 		adaptivePanelOpen = false;
 		applyEmptyMappingDrafts();
 	}
 
 	function setKeyboardType(keyboardType: InputKeyboardType) {
-		keyConfig = { ...keyConfig, keyboardType };
+		editor.keyConfig = { ...editor.keyConfig, keyboardType };
 	}
 
 	function setKeyConfig(nextConfig: KeyboardInputConfig) {
-		const gainedTriggers = keyboardConfigGainedMagicTriggers(keyConfig, nextConfig);
-		const replaceUnusedPlaceholder = !includeMagicKey && !keyboardConfigHasMagicTrigger(keyConfig);
-		keyConfig = nextConfig;
+		const gainedTriggers = keyboardConfigGainedMagicTriggers(editor.keyConfig, nextConfig);
+		const replaceUnusedPlaceholder =
+			!editor.includeMagicKey && !keyboardConfigHasMagicTrigger(editor.keyConfig);
+		editor.keyConfig = nextConfig;
 		if (gainedTriggers.length === 0) return;
 
-		let nextDraft = magicDraft;
+		let nextDraft = editor.magicDraft;
 		for (const trigger of gainedTriggers) {
 			nextDraft = ensureCreatorMagicTrigger(nextDraft, trigger, { replaceUnusedPlaceholder });
 		}
-		if (nextDraft !== magicDraft) magicDraft = nextDraft;
-		includeMagicKey = true;
+		if (nextDraft !== editor.magicDraft) editor.magicDraft = nextDraft;
+		editor.includeMagicKey = true;
 		magicPanelOpen = true;
 	}
 
@@ -650,10 +624,10 @@
 			magicPanelOpen = false;
 			return;
 		}
-		includeMagicKey = true;
+		editor.includeMagicKey = true;
 		magicPanelOpen = true;
-		if (magicDraft.sections.length === 0) {
-			magicDraft = createEmptyCreatorMagicDraft();
+		if (editor.magicDraft.sections.length === 0) {
+			editor.magicDraft = createEmptyCreatorMagicDraft();
 		}
 	}
 
@@ -662,31 +636,31 @@
 			adaptivePanelOpen = false;
 			return;
 		}
-		includeAdaptiveKey = true;
+		editor.includeAdaptiveKey = true;
 		adaptivePanelOpen = true;
 		if (
-			includeAdaptiveKey &&
-			adaptiveDraft.rules.length === 0 &&
-			adaptiveDraft.groups.length === 0
+			editor.includeAdaptiveKey &&
+			editor.adaptiveDraft.rules.length === 0 &&
+			editor.adaptiveDraft.groups.length === 0
 		) {
-			adaptiveDraft = createEmptyCreatorAdaptiveDraft();
+			editor.adaptiveDraft = createEmptyCreatorAdaptiveDraft();
 		}
 	}
 
 	function setMagicDraft(next: CreatorMagicDraft) {
-		magicDraft = next;
+		editor.magicDraft = next;
 	}
 
 	function setAdaptiveDraft(next: CreatorAdaptiveDraft) {
-		adaptiveDraft = next;
+		editor.adaptiveDraft = next;
 	}
 
 	function setLayoutName(name: string) {
-		layoutNameDraft = name;
+		editor.name = name;
 	}
 
 	function setLayoutAuthor(author: string) {
-		layoutAuthorDraft = author;
+		editor.author = author;
 	}
 
 	function toggleLayoutPreview() {
@@ -727,14 +701,14 @@
 	const effectivePracticeLesson = $derived(
 		hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)
 			? resolveTypingPracticeLessonSettings(storedPracticeLesson, practiceLessonUrlOverrides)
-			: isDefaultTypingPracticeLessonSettings(practiceLesson)
+			: isDefaultTypingPracticeLessonSettings(editor.practiceLesson)
 				? storedPracticeLesson
-				: practiceLesson
+				: editor.practiceLesson
 	);
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
 		const next = normalizeTypingPracticeLessonSettings(lesson);
-		practiceLesson = next;
+		editor.practiceLesson = next;
 		practiceLessonUrlOverrides = typingPracticeLessonOverridesForSettings(next);
 		uiPrefs.setTypingPracticeLessonSettings(next);
 	}
@@ -1028,7 +1002,7 @@
 					<input
 						{@attach !activeSavedId && focusNewLayoutName}
 						type="text"
-						value={layoutNameDraft}
+						value={editor.name}
 						autocomplete="off"
 						spellcheck="false"
 						aria-label="Layout name"
@@ -1042,7 +1016,7 @@
 						id="layout-creator-author"
 						label="Author name"
 						placeholder="Search or add author"
-						selected={layoutAuthorDraft}
+						selected={editor.author}
 						onChange={setLayoutAuthor}
 						onClear={() => setLayoutAuthor('')}
 						loading={layoutsCatalog.loading && authorNames.length === 0}
@@ -1062,7 +1036,7 @@
 							id="layout-creator-base"
 							label="Base layout (optional)"
 							placeholder="Search layouts…"
-							selected={keyConfig.baseLayoutName}
+							selected={editor.keyConfig.baseLayoutName}
 							onSelect={selectBaseLayout}
 							onClear={clearAllKeys}
 							loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
@@ -1086,7 +1060,7 @@
 				<label class="layout-creator-keyboard-field">
 					<span>Keyboard geometry</span>
 					<select
-						value={keyConfig.keyboardType}
+						value={editor.keyConfig.keyboardType}
 						onchange={(event) => setKeyboardType(event.currentTarget.value as InputKeyboardType)}
 					>
 						<option value="ortho">{geometryLabel('column-stagger')}</option>
@@ -1098,7 +1072,7 @@
 
 		{#snippet creatorKeyboard(presentation: LayoutKeyboardPresentation)}
 			<KeyboardInputEditor
-				config={keyConfig}
+				config={editor.keyConfig}
 				showPlaceholders={false}
 				ariaLabel="Layout keys"
 				onConfigChange={setKeyConfig}
@@ -1122,7 +1096,7 @@
 					aria-controls={MAGIC_MAPPINGS_PANEL_ID}
 					aria-label={magicPanelOpen
 						? 'Hide magic mappings'
-						: includeMagicKey
+						: editor.includeMagicKey
 							? 'Show magic mappings'
 							: 'Add magic'}
 					onclick={toggleMagicKey}
@@ -1141,7 +1115,7 @@
 					aria-controls={ADAPTIVE_MAPPINGS_PANEL_ID}
 					aria-label={adaptivePanelOpen
 						? 'Hide adaptive mappings'
-						: includeAdaptiveKey
+						: editor.includeAdaptiveKey
 							? 'Show adaptive mappings'
 							: 'Add adaptive'}
 					onclick={toggleAdaptiveKey}
@@ -1156,18 +1130,18 @@
 					class="layout-creator-special-key"
 					class:layout-creator-special-key--chiral={true}
 					class:layout-creator-special-key--magic={chiralPanelOpen &&
-						chiralDraftEnabled(chiralDraft, availableLayoutKeys, disabledMappingIds)}
+						chiralDraftEnabled(editor.chiralDraft, availableLayoutKeys, editor.disabledMappingIds)}
 					class:layout-creator-special-key--magic-data={!chiralPanelOpen &&
-						Boolean(chiralSourceFromDraft(chiralDraft, availableLayoutKeys))}
+						Boolean(chiralSourceFromDraft(editor.chiralDraft, availableLayoutKeys))}
 					aria-expanded={chiralPanelOpen}
 					aria-controls="creator-chiral-mappings"
 					aria-label={chiralPanelOpen
 						? 'Hide chiral mappings'
-						: includeChiralKey
+						: editor.includeChiralKey
 							? 'Show chiral mappings'
 							: 'Add chiral'}
 					onclick={() => {
-						includeChiralKey = true;
+						editor.includeChiralKey = true;
 						chiralPanelOpen = !chiralPanelOpen;
 					}}
 				>
@@ -1183,34 +1157,34 @@
 			{#if magicPanelOpen}
 				<div id={MAGIC_MAPPINGS_PANEL_ID}>
 					<CreatorMagicMappingsPanel
-						draft={magicDraft}
+						draft={editor.magicDraft}
 						availableKeys={availableLayoutKeys}
-						{disabledMappingIds}
+						disabledMappingIds={editor.disabledMappingIds}
 						onDraftChange={setMagicDraft}
-						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+						onDisabledMappingIdsChange={(ids) => (editor.disabledMappingIds = ids)}
 					/>
 				</div>
 			{/if}
 			{#if adaptivePanelOpen}
 				<div id={ADAPTIVE_MAPPINGS_PANEL_ID}>
 					<CreatorAdaptiveMappingsPanel
-						draft={adaptiveDraft}
+						draft={editor.adaptiveDraft}
 						availableKeys={availableLayoutKeys}
-						{disabledMappingIds}
+						disabledMappingIds={editor.disabledMappingIds}
 						onDraftChange={setAdaptiveDraft}
-						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+						onDisabledMappingIdsChange={(ids) => (editor.disabledMappingIds = ids)}
 					/>
 				</div>
 			{/if}
 			{#if chiralPanelOpen}
 				<div id="creator-chiral-mappings">
 					<CreatorChiralMappingsPanel
-						draft={chiralDraft}
+						draft={editor.chiralDraft}
 						availableKeys={availableLayoutKeys}
 						magicTriggers={Object.keys(inputProfile?.magicKeys?.triggers ?? {})}
-						{disabledMappingIds}
-						onDraftChange={(draft) => (chiralDraft = draft)}
-						onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+						disabledMappingIds={editor.disabledMappingIds}
+						onDraftChange={(draft) => (editor.chiralDraft = draft)}
+						onDisabledMappingIdsChange={(ids) => (editor.disabledMappingIds = ids)}
 					/>
 				</div>
 			{/if}
@@ -1415,12 +1389,12 @@
 		{#key activeTab}
 			<LayoutExpandedView
 				{layout}
-				geometry={keyConfig.keyboardType === 'ortho' ? 'column-stagger' : 'row-stagger'}
+				geometry={editor.keyConfig.keyboardType === 'ortho' ? 'column-stagger' : 'row-stagger'}
 				authorName={layoutAuthor}
 				likeCount={0}
 				{inputProfile}
-				{disabledMappingIds}
-				onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+				disabledMappingIds={editor.disabledMappingIds}
+				onDisabledMappingIdsChange={(ids) => (editor.disabledMappingIds = ids)}
 				{activeSection}
 				onActiveSectionChange={setActiveSection}
 				practiceLesson={effectivePracticeLesson}
@@ -1451,11 +1425,11 @@
 				...snapshot,
 				preview: false,
 				section: parseCreatorDetailSection(activeSection),
-				practiceLesson
+				practiceLesson: editor.practiceLesson
 			},
 			practiceLessonUrlOverrides
 		)}
-	config={keyConfig}
+	config={editor.keyConfig}
 	onClose={() => (keyImportOpen = false)}
 	onImport={setKeyConfig}
 />

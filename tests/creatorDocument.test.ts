@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { SparkLayout } from '$lib/sparkSchema';
-import { buildCreatorDocument, readCreatorDocument } from '$lib/creatorDocument';
+import {
+	buildCreatorDocument,
+	readCreatorDocument,
+	updateCreatorDocument
+} from '$lib/creatorDocument';
 import { importAklTryPayload } from '$lib/aklTryImport';
 import {
 	createDefaultCreatorUrlSnapshot,
@@ -118,7 +122,7 @@ test('incomplete rows, group identities, disabled mappings, and multi-character 
 	snapshot.disabledMappingIds = ['disabled'];
 	const doc = buildCreatorDocument(snapshot);
 	expect(doc.layout.magic?.magic_keys?.[0].default).toBeUndefined();
-	expect(doc.emulayout.magicDraft.sections[0].fallbackEmit).toBe('the');
+	expect(doc.emulayout.magicDraft.sections[0].draft?.fallbackEmit).toBe('the');
 	const restored = readCreatorDocument(doc)!;
 	expect(restored.magicDraft.sections[0].id).toBe(section.id);
 	expect(restored.magicDraft.sections[0].rules[0]).toEqual(section.rules[0]);
@@ -133,10 +137,10 @@ test('incomplete rows, group identities, disabled mappings, and multi-character 
 
 test('new invalid documents and future versions cannot fall back to legacy fields', () => {
 	const doc = buildCreatorDocument(createDefaultCreatorUrlSnapshot());
-	expect(readCreatorDocument({ ...doc, version: 2 })).toBeNull();
+	expect(readCreatorDocument({ ...doc, version: 99 })).toBeNull();
 	expect(readCreatorDocument({ ...doc, layout: { keys: 'invalid' } })).toBeNull();
 	const params = new URLSearchParams({
-		document: encodeBase64Url(JSON.stringify({ ...doc, version: 2 })),
+		document: encodeBase64Url(JSON.stringify({ ...doc, version: 99 })),
 		name: 'Unexpected',
 		share: '2'
 	});
@@ -151,7 +155,7 @@ test('new invalid documents and future versions cannot fall back to legacy field
 					name: 'Unexpected',
 					createdAt: 1,
 					query: 'name=Unexpected',
-					document: { ...doc, version: 2 }
+					document: { ...doc, version: 99 }
 				}
 			]
 		})
@@ -219,4 +223,96 @@ test('changing the primary duplicate updates canonical Spark ordering without lo
 	expect(layout.keys[0]).toMatchObject({ col: 9, finger: 'RP', extension: 'second' });
 	expect(layout.keys[1]).toMatchObject({ col: 0, finger: 'LI', extension: 'first' });
 	expect(buildCreatorDocument(cloneCreatorUrlSnapshot(snapshot)).layout).toEqual(layout);
+});
+
+test('version-2 recovery references Spark values and rejects broken references', () => {
+	const { snapshot } = imported();
+	const document = buildCreatorDocument(snapshot);
+	expect(document.version).toBe(2);
+	const section = document.emulayout.magicDraft.sections.find((section) => section.source === 0)!;
+	expect(section.draft).toBeUndefined();
+	expect(section.rules[0]).toEqual({ id: snapshot.magicDraft.sections[0].rules[0].id, source: 0 });
+	const key = document.emulayout.keyConfig.keys.find((key) => key.slot === '1,0')!;
+	expect('value' in key).toBe(false);
+	expect(JSON.stringify(key)).not.toContain('"a"');
+	expect(readCreatorDocument(document)?.keyConfig).toEqual(snapshot.keyConfig);
+	const broken = structuredClone(document);
+	broken.emulayout.magicDraft.sections[0].source = 999;
+	expect(readCreatorDocument(broken)).toBeNull();
+	const invalidRow = structuredClone(document);
+	invalidRow.emulayout.magicDraft.sections[0].rules[0] = { id: 'bad', source: -1 };
+	expect(readCreatorDocument(invalidRow)).toBeNull();
+});
+
+test('version-1 documents migrate without changing recovery state or unsupported source', () => {
+	const { snapshot } = imported();
+	const { sparkSource, sparkEditorBaseline, ...emulayout } = creatorContentFromSnapshot(snapshot);
+	void sparkEditorBaseline;
+	const legacy = { version: 1, format: 'spark/1', layout: sparkSource, emulayout };
+	const restored = readCreatorDocument(legacy)!;
+	expect(restored.magicDraft).toEqual(snapshot.magicDraft);
+	expect(buildCreatorDocument(restored).layout).toEqual(snapshot.sparkSource!);
+	expect(buildCreatorDocument(restored).version).toBe(2);
+});
+
+test('migrating version-1 editor-created duplicates preserves the legacy last-slot primary', () => {
+	const content = creatorContentFromSnapshot(createDefaultCreatorUrlSnapshot());
+	content.keyConfig.keys.find((key) => key.slot === '0,0')!.value = 'e';
+	const layout = buildCreatorDocument(content).layout;
+	// Version 1 stored slot order, while the old runtime chose the last duplicate.
+	layout.keys.sort((a, b) => a.row - b.row || a.col - b.col);
+	const restored = readCreatorDocument({
+		version: 1,
+		format: 'spark/1',
+		layout,
+		emulayout: content
+	})!;
+	expect(buildCreatorDocument(restored).layout.keys.find((key) => key.char === 'e')?.col).toBe(2);
+});
+
+test('editing through an incomplete row preserves its source extensions, while deleting it removes the rule', () => {
+	const { snapshot } = imported();
+	let document = buildCreatorDocument(snapshot);
+	let draft = structuredClone(snapshot.magicDraft);
+	draft.sections.find((section) => section.trigger === '*')!.rules[0].emit = '';
+	document = updateCreatorDocument(document, { magicDraft: draft });
+	expect(document.layout.magic?.magic_keys?.[0].rules).toBeUndefined();
+	const deleted = readCreatorDocument(document)!.magicDraft;
+	deleted.sections.find((section) => section.trigger === '*')!.rules = [];
+	expect(
+		updateCreatorDocument(document, { magicDraft: deleted }).layout.magic?.magic_keys?.[0].rules
+	).toBeUndefined();
+	const recovered = readCreatorDocument(document)!;
+	expect(
+		recovered.magicDraft.sections.find((section) => section.trigger === '*')!.rules[0].emit
+	).toBe('');
+	draft = recovered.magicDraft;
+	draft.sections.find((section) => section.trigger === '*')!.rules[0].emit = 'z';
+	document = updateCreatorDocument(document, { magicDraft: draft });
+	expect(document.layout.magic?.magic_keys?.[0].rules?.[0]).toMatchObject({
+		emit: 'z',
+		extension: 'rule'
+	});
+	expect(document.emulayout.magicDraft.sections[0].rules[0]).toMatchObject({ source: 0 });
+	draft = readCreatorDocument(document)!.magicDraft;
+	draft.sections.find((section) => section.trigger === '*')!.rules = [];
+	document = updateCreatorDocument(document, { magicDraft: draft });
+	expect(document.layout.magic?.magic_keys?.[0].rules).toBeUndefined();
+});
+
+test('editor preferences do not rewrite raw source or exception projections just to retain metadata', () => {
+	const { layout } = imported();
+	layout.magic!.rules!.push({ inputs: 'a*', output: 'ax', note: 'Keep raw authoring' });
+	layout.magic!.magic_keys![0].except = ['q'];
+	const snapshot = importAklTryPayload({
+		v: 1,
+		format: 'spark/1',
+		board: 'ortho',
+		name: 'Preserved',
+		layout
+	}).snapshot!;
+	const document = updateCreatorDocument(buildCreatorDocument(snapshot), {
+		includeAdaptiveKey: true
+	});
+	expect(document.layout).toEqual(layout);
 });

@@ -1,20 +1,11 @@
 import type { LayoutData } from '$lib/layout';
-import {
-	LAYOUT_FLAG_ADAPTIVE_SWAP,
-	LAYOUT_FLAG_ALL_LETTERS,
-	LAYOUT_FLAG_MAGIC_KEY,
-	LAYOUT_FLAG_REPEAT_KEY,
-	LAYOUT_FLAG_THUMB_KEYS,
-	decodeLayout,
-	type CurrentCompactLayout
-} from '$lib/layoutCodec';
+import { creatorSparkKeys, createLayoutFromSparkKeys } from '$lib/creatorGeometry';
 import {
 	createDefaultKeyboardInputConfig,
 	normalizeKeyboardInputValue,
 	parseKeyboardInputSlot,
 	type KeyboardInputConfig
 } from '$lib/keyboardInputConfig';
-import { THUMB_ROW } from '$lib/layoutDisplay';
 import { DEFAULT_REPEAT_KEY } from '$lib/repeatKeys';
 
 export const LAYOUT_CREATOR_NEW_TAB = 'new';
@@ -130,88 +121,10 @@ export function createLayoutFromKeyConfig(
 	config: KeyboardInputConfig,
 	options: CreateLayoutFromKeyConfigOptions = {}
 ): LayoutData {
-	const name = options.name ?? LAYOUT_CREATOR_NEW_LAYOUT_NAME;
-	const assigned = config.keys.flatMap((key) => {
-		const value = normalizeKeyboardInputValue(key.value);
-		const position = parseKeyboardInputSlot(key.slot);
-		if (!value || !position) return [];
-		return [{ value, ...position, thumbHand: key.thumbHand }];
-	});
-
-	const keyChars: string[] = [];
-	const rows: number[] = [];
-	const cols: number[] = [];
-	const thumbs: { col: number; hand: 'l' | 'r' }[] = [];
-
-	for (const key of assigned) {
-		keyChars.push(key.value);
-		rows.push(key.row);
-		cols.push(key.column);
-		if (key.row >= THUMB_ROW) {
-			thumbs.push({
-				col: key.column,
-				hand: key.thumbHand ?? (key.column < 5 ? 'l' : 'r')
-			});
-		}
-	}
-
-	thumbs.sort((a, b) => a.col - b.col);
-	const thumbHands = thumbs.map((thumb) => thumb.hand).join('');
-
-	const letters = new Set<string>();
-	for (const key of keyChars) {
-		for (const character of key.toLowerCase()) {
-			if (character >= 'a' && character <= 'z') letters.add(character);
-		}
-	}
-
-	let flags = 0;
-	if (thumbs.length > 0) flags |= LAYOUT_FLAG_THUMB_KEYS;
-	if (letters.size === 26) flags |= LAYOUT_FLAG_ALL_LETTERS;
-	if (options.magicKey || keyChars.includes(CREATOR_MAGIC_KEY)) flags |= LAYOUT_FLAG_MAGIC_KEY;
-	if (keyChars.includes(DEFAULT_REPEAT_KEY)) flags |= LAYOUT_FLAG_REPEAT_KEY;
-	if (options.adaptiveKey) flags |= LAYOUT_FLAG_ADAPTIVE_SWAP;
-
-	const compact: CurrentCompactLayout = [
-		name,
-		0,
-		'',
-		flags,
-		keyChars,
-		rows,
-		cols,
-		thumbHands || undefined
-	];
-	const layout = decodeLayout(compact);
-	// The compact legacy decoder uses the last occurrence for character lookups.
-	// Imported primary slots are explicit so visual sorting never changes their identity.
-	const primaryCharacters = new Set<string>();
-	for (const key of config.keys) {
-		if (!key.primary) continue;
-		const value = normalizeKeyboardInputValue(key.value);
-		const position = parseKeyboardInputSlot(key.slot);
-		if (!value || !position || primaryCharacters.has(value)) continue;
-		primaryCharacters.add(value);
-		layout.keys[value] = {
-			row: position.row,
-			col: position.column,
-			...(position.row >= THUMB_ROW
-				? { thumbHand: key.thumbHand ?? (position.column < 5 ? 'l' : 'r') }
-				: {})
-		};
-	}
-	for (const key of config.keys) {
-		const value = normalizeKeyboardInputValue(key.value);
-		const position = parseKeyboardInputSlot(key.slot);
-		const primary = layout.keys[value];
-		if (
-			primary &&
-			position &&
-			primary.row === position.row &&
-			primary.col === position.column &&
-			key.hand
-		)
-			primary.hand = key.hand;
+	const layout = createLayoutFromSparkKeys(creatorSparkKeys(config), options);
+	// Preserve the adapter's optional hand contract for older input-layout consumers.
+	for (const info of Object.values(layout.keys)) {
+		if (!config.keys.find((key) => key.slot === `${info.row},${info.col}`)?.hand) delete info.hand;
 	}
 	return layout;
 }

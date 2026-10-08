@@ -8,6 +8,7 @@ import {
 
 export type ChiralOutputKind = 'key' | 'repeat' | 'char';
 export interface CreatorChiralRule {
+	sparkExtensions?: Record<string, unknown>;
 	id: string;
 	key: string;
 	sameKind: ChiralOutputKind;

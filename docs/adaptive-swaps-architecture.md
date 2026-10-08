@@ -66,7 +66,10 @@ Chiral behavior directly from Spark. Client behavior never falls back to Mana2 e
 Unsupported features produce diagnostics while remaining in the published source. Creator saves,
 backups, and document links preserve that canonical Spark source alongside editor recovery state.
 Adaptive group labels, stable group ids, incomplete rows, and disabled mapping ids stay in the
-Emulayout sidecar; Spark stores the complete flat adaptive definitions.
+Emulayout sidecar; Spark stores the complete flat adaptive definitions. The creator's canonical
+state is a Spark document. Version-2 recovery references complete rows in the compiler projection
+and retains explicit incomplete/conflicting rows plus group membership and labels. Runtime profiles
+are still derived through the creator adapter to retain group identities and enable preferences.
 
 Literal whitespace in preceding Magic contexts is retained and matched exactly. History does not
 synthesize an initial word boundary. Raw rewrites/deletions and unsupported native definitions

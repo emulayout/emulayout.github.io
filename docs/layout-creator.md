@@ -76,11 +76,18 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   tab, and no akl.gg or Colemak Camp link. A Cyanophage link stays when it can be built from
   the live keymap.
 - The current draft is the `/create` query string, using replace-state synchronization. Content
-  uses one UTF-8 base64url `document` field containing the version-1 creator envelope:
-  `{ version: 1, format: "spark/1", layout, emulayout }`. `layout` is validated Spark content;
-  `emulayout` holds name, author, geometry, base selection, editor drafts and stable row/group ids,
-  disabled mappings, and practice settings. The editor recovery sidecar currently includes the
-  supported key and mapping projection; replacing that duplication is step 4 of the transition.
+  uses one UTF-8 base64url `document` field containing the version-2 creator envelope:
+  `{ version: 2, format: "spark/1", layout, emulayout }`. `layout` is validated Spark content;
+  `emulayout` holds name, author, geometry, base selection, editor recovery and stable row/group
+  ids, disabled mappings, and practice settings. Supported key values and mapping rows refer to
+  the Spark projection instead of storing another full copy. Key references use physical slots
+  with explicit overrides/omissions; mapping references use indexes in the shared compiler's
+  ordered projection. Incomplete rows and differing editor values stay explicit in recovery data.
+  Source-only fields travel with an incomplete row until it becomes valid again; deleting the
+  row discards that recovery. Metadata recovery does not rewrite untouched raw rules or exception
+  projections. Bad references reject the document. Version-1 full-sidecar documents remain readable and are
+  written as version 2 on the next save/export/URL write. Storage stays at version 3 and share
+  links stay at version 2; the nested document has its own version.
   Incomplete or invalid editor rows remain recoverable but do not enter executable Spark content.
   Multi-character fixed Magic fallbacks stay in the Emulayout sidecar because Spark defaults emit
   one character. They retain their existing runtime behavior.
@@ -148,7 +155,13 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
   live draft. Edits update the in-memory layout immediately so every Edit typing tab uses the
-  current keys. The same workspace options paint that editor: next-key outline, home-key coloring,
+  current keys. `CreatorEditor` owns one Spark document and reconstructs typed editor props;
+  each content callback commits its changes to that document. Panel visibility, view tabs, focus,
+  and unfinished metadata text remain separate UI state. Runtime geometry is built directly from
+  Spark keys, without compact catalog encoding/decoding. Source order selects the primary duplicate;
+  every physical slot and each thumb's hand stay distinct. Legacy editor-created duplicates migrate
+  with their previous last-slot primary; explicitly imported primaries keep source order.
+  The same workspace options paint that editor: next-key outline, home-key coloring,
   special-key fills and emitted values (Magic sparkles on mapped triggers, the Repeat glyph on `@`
   when it is Repeat or repeat-last-only), Adaptive swap paths, and unreachable slashes. While a key
   field is focused, the typed value stays visible instead of the contextual overlay.
@@ -289,6 +302,9 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 ## Code map
 
 - Default canvas, tab values, duplicate names, and key-editor conversion: `src/lib/layoutCreator.ts`
+- Canonical creator state and typed control adapters: `src/lib/creatorEditor.svelte.ts`
+- Sparse editor recovery references and reconstruction: `src/lib/creatorEditorRecovery.ts`
+- Direct Spark keyboard geometry and legacy slot adapter: `src/lib/creatorGeometry.ts`
 - Versioned Spark document builder, edit reconciliation, validation, and content signatures:
   `src/lib/creatorDocument.ts`; stable draft ids: `src/lib/creatorDraftId.ts`
 - Shareable `/create` document transport and legacy query reader: `src/lib/layoutCreatorUrl.ts`
@@ -329,7 +345,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 - Pageview sanitization: `src/lib/goatcounter.ts`
 - Unit coverage: `tests/layoutCreator.test.ts`, `tests/layoutCreatorMappings.test.ts`,
   `tests/layoutCreatorUrl.test.ts`, `tests/layoutCreatorStorage.test.ts`, `tests/creatorDocument.test.ts`,
-  `tests/layoutDisplay.test.ts`, `tests/goatcounter.test.ts`
+  `tests/creatorGeometry.test.ts`, `tests/layoutDisplay.test.ts`, `tests/goatcounter.test.ts`
 - Browser coverage: `tests/e2e/layout-creator.e2e.ts`
 
 ## Invariants

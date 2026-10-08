@@ -58,6 +58,8 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	await json.fill('{"keys":[]}');
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(page.getByRole('textbox', { name: 'Row 2, key 1', exact: true })).toHaveValue('a');
+	await page.getByRole('textbox', { name: 'Row 2, key 1', exact: true }).fill('b');
+	await expect(page.getByRole('textbox', { name: 'Row 2, key 2', exact: true })).toBeFocused();
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	await expect.poll(() => new URL(page.url()).searchParams.has('id')).toBe(true);
 	await page.reload();
@@ -65,7 +67,9 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	const backup = page.getByRole('dialog', { name: 'Layout backups' });
 	const exported = JSON.parse(await backup.getByLabel('Backup JSON').inputValue());
 	expect(exported.version).toBe(3);
+	expect(exported.layouts[0].document.version).toBe(2);
 	const source = exported.layouts[0].document.layout;
+	expect(source.keys).toContainEqual({ char: 'b', row: 1, col: 0, finger: 'LP' });
 	expect(source.extension).toEqual({ note: 'Retain imported source' });
 	expect(source.keys).toContainEqual({ char: '1', row: -1, col: 0, finger: 'LP' });
 	expect(source.magic.rules).toEqual([{ inputs: 'xy', output: 'z' }]);
