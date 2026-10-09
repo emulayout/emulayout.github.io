@@ -300,7 +300,6 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 
 - Repeat mapping editors.
 - Renaming saved drafts from the tab bar.
-- Consolidate repeated document projections separately from the module organization refactor.
 
 ## Creator module boundaries and compatibility
 
@@ -322,6 +321,12 @@ import content helpers directly rather than reaching through the URL module.
 and signatures. `creatorDocumentEdits.ts` owns Spark projection, source reconciliation, and carrying
 metadata through unfinished edits. The editing module does not depend on the document decoder.
 `creatorEditorRecovery.ts` remains responsible for sparse recovery references and reconstruction.
+Its operation-local projection pairs the validated Spark layout with supported keys and mapping
+rows; compaction and expansion consume that same projection. Document construction compiles once.
+Cloning through `normalizeCreatorContent` and signature expansion reuse the builder's projection,
+while external reads always create and validate a fresh one. Reconciliation compiles an imported
+source only when its editor baseline is absent; it always validates source input before editing. No projection cache or additional persisted
+representation is introduced; version-1 full-sidecar reading remains independently validated.
 
 The read-only pre-document query adapter is isolated in `creatorLegacyUrl.ts`. Its header names
 the supported formats and conditions for future removal. Current document transport shares only

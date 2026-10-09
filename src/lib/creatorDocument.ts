@@ -10,6 +10,8 @@ import { parseKeyboardInputSlot } from '$lib/keyboardInputConfig';
 import {
 	compactCreatorEditor,
 	expandCreatorEditor,
+	projectCreatorEditor,
+	type CreatorEditorProjection,
 	type CreatorEditorRecovery
 } from '$lib/creatorEditorRecovery';
 import type { CreatorContentSnapshot } from '$lib/creatorContent';
@@ -30,7 +32,7 @@ function copy<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export function buildCreatorDocument(content: CreatorContentSnapshot): CreatorDocument {
+function prepareCreatorDocument(content: CreatorContentSnapshot) {
 	// Normalize reactive drafts before Spark validation, which uses structuredClone.
 	const normalized = copy(content);
 	const { sparkSource, sparkEditorBaseline, ...editor } = normalized;
@@ -44,13 +46,26 @@ export function buildCreatorDocument(content: CreatorContentSnapshot): CreatorDo
 	editor.disabledMappingIds = [
 		...new Set(editor.disabledMappingIds.map((id) => id.trim()).filter(Boolean))
 	].sort();
-	const layout = reconcileCreatorSpark(normalized);
-	return {
+	const projection = projectCreatorEditor(reconcileCreatorSpark(normalized));
+	const document: CreatorDocument = {
 		version: CREATOR_DOCUMENT_VERSION,
 		format: 'spark/1',
-		layout: validateSparkLayout(layout),
-		emulayout: compactCreatorEditor(layout, editor)
+		layout: projection.layout,
+		emulayout: compactCreatorEditor(projection, editor)
 	};
+	return { document, projection };
+}
+
+export function buildCreatorDocument(content: CreatorContentSnapshot): CreatorDocument {
+	return prepareCreatorDocument(content).document;
+}
+
+/** Normalize through document recovery using the projection built for this operation. */
+export function normalizeCreatorContent(content: CreatorContentSnapshot): CreatorContentSnapshot {
+	const { document, projection } = prepareCreatorDocument(content);
+	const normalized = decodeCreatorDocument(document, projection);
+	if (!normalized) throw new Error('Cannot clone an invalid creator document');
+	return normalized;
 }
 
 /** Carry source-only fields through an incomplete edit; deleting the row deletes its recovery too. */
@@ -84,6 +99,14 @@ function rows(value: unknown, fields: string[]): boolean {
 
 /** Strict document boundary; malformed sidecars never fall back to unrelated legacy fields. */
 export function readCreatorDocument(value: unknown): CreatorContentSnapshot | null {
+	return decodeCreatorDocument(value);
+}
+
+// Only the private build/normalize path supplies a matching, already validated projection.
+function decodeCreatorDocument(
+	value: unknown,
+	prepared?: CreatorEditorProjection
+): CreatorContentSnapshot | null {
 	try {
 		if (
 			!record(value) ||
@@ -91,9 +114,11 @@ export function readCreatorDocument(value: unknown): CreatorContentSnapshot | nu
 			value.format !== 'spark/1'
 		)
 			return null;
-		const source = validateSparkLayout(value.layout);
+		const projection =
+			value.version === 2 ? (prepared ?? projectCreatorEditor(value.layout)) : null;
+		const source = projection?.layout ?? validateSparkLayout(value.layout);
 		// COMPATIBILITY: v1 stores the full editor sidecar. Retire only with v1 document support.
-		const e = value.version === 2 ? expandCreatorEditor(source, value.emulayout) : value.emulayout;
+		const e = projection ? expandCreatorEditor(projection, value.emulayout) : value.emulayout;
 		if (
 			!record(e) ||
 			!strings(e, ['name', 'author']) ||
@@ -214,11 +239,11 @@ export function creatorDocumentSignature(content: CreatorContentSnapshot): strin
 				.map((key) => [key, stable(value[key], editor)])
 		);
 	}
-	const document = buildCreatorDocument(content);
+	const { document, projection } = prepareCreatorDocument(content);
 	return JSON.stringify({
 		version: document.version,
 		format: document.format,
 		layout: stable(document.layout),
-		emulayout: stable(expandCreatorEditor(document.layout, document.emulayout), true)
+		emulayout: stable(expandCreatorEditor(projection, document.emulayout), true)
 	});
 }

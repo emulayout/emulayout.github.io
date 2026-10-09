@@ -1,8 +1,10 @@
 import legacyUrl from './fixtures/creator-legacy-url.json';
-import { expect, test } from 'bun:test';
+import { expect, spyOn, test } from 'bun:test';
+import * as sparkCompiler from '$lib/sparkCompiler';
 import type { SparkLayout } from '$lib/sparkSchema';
 import {
 	buildCreatorDocument,
+	creatorDocumentSignature,
 	readCreatorDocument,
 	updateCreatorDocument
 } from '$lib/creatorDocument';
@@ -323,4 +325,56 @@ test('editor preferences do not rewrite raw source or exception projections just
 		includeAdaptiveKey: true
 	});
 	expect(document.layout).toEqual(layout);
+});
+
+test('build, clone, and signature operations compile a baseline-backed source only once', () => {
+	const { layout, snapshot } = imported();
+	const compilation = spyOn(sparkCompiler, 'compileSparkLayout');
+	try {
+		const document = buildCreatorDocument(snapshot);
+		expect(compilation).toHaveBeenCalledTimes(1);
+		expect(document.layout).toEqual(layout);
+		compilation.mockClear();
+		const cloned = cloneCreatorSnapshot(snapshot);
+		expect(compilation).toHaveBeenCalledTimes(1);
+		expect(cloned.sparkSource).toEqual(layout);
+		compilation.mockClear();
+		expect(creatorDocumentSignature(snapshot)).toBeTruthy();
+		expect(compilation).toHaveBeenCalledTimes(1);
+	} finally {
+		compilation.mockRestore();
+	}
+});
+
+test('projection reuse is confined to an operation and never bypasses external validation', () => {
+	const { snapshot } = imported();
+	const original = cloneCreatorSnapshot(snapshot);
+	const originalSignature = creatorDocumentSignature(snapshot);
+	const rule = snapshot.magicDraft.sections.find((section) => section.trigger === '*')!.rules[0];
+	rule.emit = 'x';
+	const edited = cloneCreatorSnapshot(snapshot);
+	expect(creatorDocumentSignature(snapshot)).not.toBe(originalSignature);
+	expect(edited.sparkSource?.magic?.magic_keys?.[0].rules?.[0]).toMatchObject({
+		emit: 'x',
+		extension: 'rule'
+	});
+	expect(original.sparkSource?.magic?.magic_keys?.[0].rules?.[0].emit).toBe('e');
+	const document = buildCreatorDocument(snapshot);
+	document.layout.keys[0].char = 'invalid';
+	expect(readCreatorDocument(document)).toBeNull();
+});
+
+test('source without an editor baseline still derives its baseline before reconciliation', () => {
+	const { layout, snapshot } = imported();
+	delete snapshot.sparkEditorBaseline;
+	const document = buildCreatorDocument(snapshot);
+	expect(document.layout).toEqual(layout);
+	expect(readCreatorDocument(document)?.sparkSource).toEqual(layout);
+});
+
+test('a supplied baseline does not let reconciliation repair invalid source input', () => {
+	const { snapshot } = imported();
+	snapshot.sparkSource!.magic!.magic_keys![0].rules![0].emit = '';
+	snapshot.magicDraft.sections.find((section) => section.trigger === '*')!.rules[0].emit = 'x';
+	expect(() => buildCreatorDocument(snapshot)).toThrow('must be nonempty text');
 });

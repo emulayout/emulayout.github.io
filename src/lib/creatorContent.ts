@@ -1,8 +1,4 @@
-import {
-	buildCreatorDocument,
-	readCreatorDocument,
-	creatorDocumentSignature
-} from '$lib/creatorDocument';
+import { normalizeCreatorContent, creatorDocumentSignature } from '$lib/creatorDocument';
 import type { SparkLayout } from '$lib/sparkSchema';
 import {
 	createKeyboardInputConfigFromLayout,
@@ -111,8 +107,7 @@ export function creatorSnapshotSignature(snapshot: CreatorSnapshot): string {
 }
 
 export function cloneCreatorSnapshot(snapshot: CreatorSnapshot): CreatorSnapshot {
-	const content = readCreatorDocument(buildCreatorDocument(snapshot));
-	if (!content) throw new Error('Cannot clone an invalid creator document');
+	const content = normalizeCreatorContent(snapshot);
 	return {
 		...content,
 		preview: snapshot.preview,

@@ -1,6 +1,6 @@
 import { creatorSparkKeys } from '$lib/creatorGeometry';
 import { compileSparkLayout } from '$lib/sparkCompiler';
-import type { SparkLayout, SparkMagic } from '$lib/sparkSchema';
+import { validateSparkLayout, type SparkLayout, type SparkMagic } from '$lib/sparkSchema';
 import { buildKeyboardInputConfig } from '$lib/keyboardInputConfig';
 import { magicDraftFromSource, adaptiveDraftFromSource } from '$lib/layoutCreatorMappings';
 import { chiralDraftFromSource } from '$lib/creatorChiralMappings';
@@ -158,17 +158,21 @@ export function reconcileCreatorSpark(content: CreatorContentSnapshot): SparkLay
 	const current = creatorSparkProjection(content);
 	let layout = current;
 	if (sparkSource) {
-		const compiled = compileSparkLayout(sparkSource);
-		const baseline =
-			content.sparkEditorBaseline ??
-			creatorSparkProjection({
+		let baseline = content.sparkEditorBaseline;
+		if (baseline) {
+			// Validate before editing: reconciliation must not repair malformed source input.
+			layout = validateSparkLayout(sparkSource);
+		} else {
+			const compiled = compileSparkLayout(sparkSource);
+			layout = compiled.document;
+			baseline = creatorSparkProjection({
 				...content,
 				keyConfig: buildKeyboardInputConfig({ ...content.keyConfig, keys: compiled.keys }),
 				magicDraft: magicDraftFromSource(compiled.source.magicKeys),
 				adaptiveDraft: adaptiveDraftFromSource(compiled.source.adaptiveSwaps),
 				chiralDraft: chiralDraftFromSource(compiled.source.chiralKeys)
 			});
-		layout = copy(sparkSource);
+		}
 		layout.keys = reconcile(
 			layout.keys,
 			baseline.keys,

@@ -1,4 +1,3 @@
-import type { SparkLayout } from '$lib/sparkSchema';
 import { compileSparkLayout } from '$lib/sparkCompiler';
 import {
 	magicDraftFromSource,
@@ -109,9 +108,10 @@ function header({ id, rules, ...rest }: CreatorMagicSection): MagicHeader {
 	void rules;
 	return rest;
 }
-function projected(layout: SparkLayout) {
+export function projectCreatorEditor(layout: unknown) {
 	const compiled = compileSparkLayout(layout);
 	return {
+		layout: compiled.document,
 		keys: new Map(compiled.keys.map((key) => [key.slot, key])),
 		magic: magicDraftFromSource(compiled.source.magicKeys).sections,
 		adaptive: adaptiveDraftFromSource(compiled.source.adaptiveSwaps).rules,
@@ -119,9 +119,13 @@ function projected(layout: SparkLayout) {
 	};
 }
 
+export type CreatorEditorProjection = ReturnType<typeof projectCreatorEditor>;
+
 /** Complete supported values live in Spark; only references and editor-only differences are stored. */
-export function compactCreatorEditor(layout: SparkLayout, editor: Editor): CreatorEditorRecovery {
-	const source = projected(layout);
+export function compactCreatorEditor(
+	source: CreatorEditorProjection,
+	editor: Editor
+): CreatorEditorRecovery {
 	return {
 		...editor,
 		keyConfig: {
@@ -150,7 +154,8 @@ export function compactCreatorEditor(layout: SparkLayout, editor: Editor): Creat
 				const storedHeader =
 					base &&
 					equal(plainHeader, header(base)) &&
-					(!sparkExtensions || layout.magic?.magic_keys?.some((key) => key.key === section.trigger))
+					(!sparkExtensions ||
+						source.layout.magic?.magic_keys?.some((key) => key.key === section.trigger))
 						? undefined
 						: header(section);
 				return {
@@ -175,7 +180,7 @@ export function compactCreatorEditor(layout: SparkLayout, editor: Editor): Creat
 }
 
 /** Expand only domain references; the document reader validates the recovered editor afterwards. */
-export function expandCreatorEditor(layout: SparkLayout, value: unknown): unknown {
+export function expandCreatorEditor(source: CreatorEditorProjection, value: unknown): unknown {
 	if (
 		!record(value) ||
 		!record(value.keyConfig) ||
@@ -186,7 +191,6 @@ export function expandCreatorEditor(layout: SparkLayout, value: unknown): unknow
 		!Array.isArray(value.adaptiveDraft.groups)
 	)
 		throw new Error('Missing editor recovery');
-	const source = projected(layout);
 	return {
 		...value,
 		keyConfig: {

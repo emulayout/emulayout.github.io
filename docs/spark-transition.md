@@ -67,7 +67,7 @@ Retiring user-content compatibility is outside this cleanup.**
 
 Post-transition module organization is authorized: separate content from URL transport, isolate
 the legacy query reader, and separate document editing from validation. Session-state extraction
-is complete; consolidation of repeated projections remains follow-up work.
+and operation-local projection consolidation are complete.
 
 ## Step 1 boundaries (historical)
 
@@ -317,3 +317,28 @@ contract only; step 3 adds creator persistence of the original document.
   one flaky lesson-dialog focus test passing on retry. The intermittent focus assertion remains
   a verification limitation, rather than a claimed clean first-attempt pass.
 - `bun run lint`: passed after the implementation and documentation updates.
+
+## Creator projection consolidation
+
+- Recovery now pairs the compiler's validated layout with its supported editor projection.
+  Compaction and expansion receive that projection rather than recompiling the same layout.
+- The document builder prepares one projection. Cloning/normalization and content signatures reuse
+  it for recovery expansion; external readers validate a fresh projection and retain strict sidecar
+  checks. Version-1 readers continue validating full-sidecar documents through their existing path.
+- Reconciliation derives a source baseline only when none is already supplied; source validation still runs
+  before editing, so reconciliation cannot repair malformed input. Baseline-backed
+  document building uses one compilation instead of two; cloning and signature operations use one
+  instead of three. Focused tests enforce the compilation budget and verify fresh edits, independent
+  clones, malformed-input rejection, and the missing-baseline fallback.
+- Spark source, incomplete-row recovery, editor identities, format versions, and compatibility
+  readers are unchanged. Projections are local to an operation, with no long-lived cache.
+- Final review caught a validation regression from skipping the source compiler: an edit could
+  repair an invalid original rule before final validation. Reconciliation now validates the
+  untouched source first and uses the independent validated copy. A focused regression test
+  verifies rejection even when a supplied baseline and edit would produce valid output.
+- `bun run check`: passed, no errors or warnings. `bun test`: 534 passed; document tests: 19 passed.
+- Initial focused browser run: 31 passed and one preview-to-edit focus failure; that case passed
+  three rechecks. The full `bun run test:e2e --workers=1 --retries=1` run completed with 117 direct
+  passes and two tests passing on retry (Quick Find Enter and lesson-dialog keyboard focus).
+- After the source-validation correction, all 32 focused creator/import browser tests passed
+  without retries. No focus or interactive primitive changes were included.
