@@ -22,7 +22,9 @@ retain domain-specific markup and styling.
   state for independent boolean display options.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
   dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
-  focus must not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
+  focus waits for mounted controls. Keyboard or pointer interaction inside the dialog cancels that
+  pending focus, as do closing the dialog or replacing the focus request. Targeted modal focus must
+  not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
   title and close-button chrome. Confirmation dialogs may omit the header divider.
 - `Tooltip.svelte` and `HoverPopup.svelte` own focus/hover disclosure, tooltip description linkage,
   Escape dismissal, and body portal placement. Help triggers normally follow the global hint
@@ -98,6 +100,9 @@ The shared Tabs primitive separates Test source (including word count/custom tex
 and Test style. Layout feel omits Test style. Each opening starts on Test source; switching tabs
 preserves staged edits. Special mappings explains its unavailability for custom text or layouts without
 remappings. Save, Cancel, and Reset apply across all tabs, and tab selection is not persisted.
+Lesson settings and prefilled text are captured once per opening; late catalog or lesson updates
+must not reset staged edits or the selected tab. Deferred custom-text focus is cancelled when its
+panel is left and yields when focus has moved to another control.
 The clickable word-bank credit opens Test source with the Word bank selector focused; dismissal
 restores focus to that credit. The settings control opens the modal with the
 current lesson; Cancel, the header close button, Escape, and backdrop dismissal restore focus to

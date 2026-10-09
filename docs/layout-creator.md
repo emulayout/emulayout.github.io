@@ -301,6 +301,27 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 - Repeat mapping editors.
 - Renaming saved drafts from the tab bar.
 
+## Edit profiling
+
+A local Chromium development-build profile on October 9, 2026 measured 20 alternating field
+edits per scenario using the deterministic catalog fixtures. Each measurement spans a field fill
+and two animation frames. CDP renderer CPU counters were collected alongside CPU sampling at
+500 microseconds; the debounced URL update was also included in the CPU sample.
+
+| Edit                      | Median renderer work | 95th percentile renderer work | Median JavaScript work |
+| ------------------------- | -------------------- | ----------------------------- | ---------------------- |
+| Default key               | 6.54 ms              | 15.16 ms                      | 3.58 ms                |
+| Layout name               | 4.66 ms              | 5.24 ms                       | 1.70 ms                |
+| Imported vylet key        | 8.23 ms              | 9.24 ms                       | 4.47 ms                |
+| Imported vylet Magic emit | 7.32 ms              | 7.89 ms                       | 3.91 ms                |
+
+Renderer work is the CDP `TaskDuration` delta, not end-to-end keystroke latency. This small,
+unthrottled development sample includes profiling overhead and is not a production or mobile
+benchmark. Samples distribute work across validation, recovery comparisons, geometry, copying,
+and signatures rather than identifying one dominant bottleneck. These measurements do not justify
+another cache or persistence representation. Reprofile with larger documents or slower devices if
+editing becomes visibly slow.
+
 ## Creator module boundaries and compatibility
 
 `CreatorSession` in `creatorSession.svelte.ts` owns the saved collection, active saved id,

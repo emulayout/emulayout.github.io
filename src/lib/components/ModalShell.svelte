@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { afterPaint } from '$lib/focusFilterControl';
 	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
 	import { portalToBody } from '$lib/portalToBody';
 
@@ -122,22 +121,31 @@
 		const token = initialFocusToken;
 		void token;
 
-		// Defer past activating keyup; wait a paint so targeted controls exist after tab swaps.
+		let frame: number | undefined;
+		function cancelFocus() {
+			window.clearTimeout(focusTimer);
+			if (frame !== undefined) window.cancelAnimationFrame(frame);
+			document.removeEventListener('keydown', yieldToInteraction, true);
+			document.removeEventListener('pointerdown', yieldToInteraction, true);
+		}
+		function yieldToInteraction(event: Event) {
+			if (event.target instanceof Node && panelEl?.contains(event.target)) cancelFocus();
+		}
+
+		// Wait for controls to mount, but let navigation inside the dialog take ownership of focus.
 		const focusTimer = window.setTimeout(() => {
-			afterPaint(() => {
-				if (!panelEl) return;
-				const targeted = selector ? panelEl.querySelector<HTMLElement>(selector) : null;
-				if (targeted) {
-					targeted.focus({ preventScroll: true });
-				} else {
-					getInitialFocus(panelEl).focus();
-				}
+			frame = window.requestAnimationFrame(() => {
+				frame = window.requestAnimationFrame(() => {
+					cancelFocus();
+					if (!panelEl?.isConnected) return;
+					const targeted = selector ? panelEl.querySelector<HTMLElement>(selector) : null;
+					(targeted ?? getInitialFocus(panelEl)).focus({ preventScroll: true });
+				});
 			});
 		}, 0);
-
-		return () => {
-			window.clearTimeout(focusTimer);
-		};
+		document.addEventListener('keydown', yieldToInteraction, true);
+		document.addEventListener('pointerdown', yieldToInteraction, true);
+		return cancelFocus;
 	});
 
 	function blockBackgroundScroll(event: Event) {

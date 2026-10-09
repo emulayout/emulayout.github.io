@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import {
 		defaultRemappingPreferences,
 		REMAPPING_TYPES,
@@ -121,27 +122,30 @@
 
 	$effect(() => {
 		if (!open) return;
-		activeTab = 'source';
-		source = lesson.customText ? 'custom-text' : 'random-words';
-		text = initialText;
-		specialWordsPercent = lesson.specialWordsPercent;
-		remappingPreferences = { ...(lesson.remappingPreferences ?? defaultRemappingPreferences()) };
-		preferencesCustomized = Boolean(lesson.remappingPreferences);
-		lessonWordCount = lesson.wordCount;
-		wordBank = lesson.wordBank ?? 'english1k';
-		draftTestStyle = testStyle;
+		// Snapshot each opening; incoming lesson data must not overwrite an unsaved dialog draft.
+		untrack(() => {
+			activeTab = 'source';
+			source = lesson.customText ? 'custom-text' : 'random-words';
+			text = initialText;
+			specialWordsPercent = lesson.specialWordsPercent;
+			remappingPreferences = { ...(lesson.remappingPreferences ?? defaultRemappingPreferences()) };
+			preferencesCustomized = Boolean(lesson.remappingPreferences);
+			lessonWordCount = lesson.wordCount;
+			wordBank = lesson.wordBank ?? 'english1k';
+			draftTestStyle = testStyle;
+		});
 	});
 
-	function focusTextField() {
-		requestAnimationFrame(() => {
-			textField?.focus();
-			textField?.select();
-		});
-	}
-
 	$effect(() => {
-		if (!open || source !== 'custom-text') return;
-		focusTextField();
+		if (!open || activeTab !== 'source' || source !== 'custom-text' || !textField) return;
+		const field = textField;
+		const previous = document.activeElement;
+		const frame = requestAnimationFrame(() => {
+			if (!field.isConnected || document.activeElement !== previous) return;
+			field.focus();
+			field.select();
+		});
+		return () => cancelAnimationFrame(frame);
 	});
 
 	function submit(event: SubmitEvent) {
