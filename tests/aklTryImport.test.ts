@@ -3,7 +3,7 @@ import { importAklTryPayload, readAklTryHash, readSparkImportText } from '../src
 import { createLayoutFromKeyConfig } from '../src/lib/layoutCreator';
 import { compileCreatorInputProfile } from '../src/lib/layoutCreatorMappings';
 import { resolveLayoutInput } from '../src/lib/layoutInputBehaviors';
-import { cloneCreatorUrlSnapshot } from '../src/lib/layoutCreatorUrl';
+import { cloneCreatorSnapshot } from '../src/lib/creatorContent';
 import { updateKeyboardInputKey } from '../src/lib/keyboardInputConfig';
 import {
 	addSavedLayout,
@@ -95,7 +95,7 @@ function encodeBase64UrlUtf8(value: unknown): string {
 describe('akl.gg try import', () => {
 	test('preserves ordinary typing around raw and chiral rules, including after reload', () => {
 		const imported = importAklTryPayload(payload()).snapshot!;
-		for (const snapshot of [imported, cloneCreatorUrlSnapshot(imported)]) {
+		for (const snapshot of [imported, cloneCreatorSnapshot(imported)]) {
 			const profile = compileCreatorInputProfile(
 				snapshot.includeMagicKey,
 				snapshot.magicDraft,
@@ -154,7 +154,7 @@ describe('akl.gg try import', () => {
 			const restored = parseSavedLayoutsDocument(
 				JSON.parse(serializeSavedLayoutsDocument(saved))
 			)[0].snapshot;
-			for (const snapshot of [imported, cloneCreatorUrlSnapshot(imported), restored]) {
+			for (const snapshot of [imported, cloneCreatorSnapshot(imported), restored]) {
 				const layout = createLayoutFromKeyConfig(snapshot.keyConfig);
 				expect(layout.keys.a).toMatchObject({ row: keys[0].row, col: keys[0].col });
 				expect(layout.positionBySlot.size).toBe(2);

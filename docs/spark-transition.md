@@ -28,12 +28,14 @@ Creator cloning and normalization use a common document builder rather than URL 
 The creator owns a Spark document with sparse editor recovery; geometry is built directly from
 Spark keys. Compact catalog geometry remains a delivery format, independent of creator editing.
 
-## Expected savings and constraints
+## Code size and constraints
 
-The audit identified a 738-line creator URL codec, 258-line supplemental validator, and multiple
-source/draft/runtime conversions. A rough estimate is 500–1,000 net production lines after all
-phases, not a measured deletion target. Step 1 may grow the code while creating the shared foundation.
-Compatibility readers reduce immediate savings; tests, validation, and runtime logic remain necessary.
+The original audit identified a 738-line creator URL codec, 258-line supplemental validator, and
+multiple source/draft/runtime conversions. Its estimate of 500–1,000 fewer production lines was
+not achieved: preserving Spark source, unfinished editor work, and older personal data added
+recovery and migration code. Catalog retirement and the unused URL-writer removal reduce code;
+module extraction primarily clarifies ownership. Measure actual reductions rather than treating
+the original estimate as a target. Tests, validation, and runtime logic remain necessary.
 
 Preserve incomplete editor rows, stable UI identities, grouping, disabled mappings, base-layout
 selection, lesson settings, and view state outside valid Spark content. Keep Emulayout's
@@ -62,6 +64,10 @@ Compiling a supported subset is distinct from validating or storing the source.
 
 **Authorization: steps 1–4 and the step-5 catalog and unused-writer cleanup are authorized and complete.
 Retiring user-content compatibility is outside this cleanup.**
+
+Post-transition module organization is authorized: separate content from URL transport, isolate
+the legacy query reader, and separate document editing from validation. Session-state extraction
+and consolidation of repeated projections remain follow-up work.
 
 ## Step 1 boundaries (historical)
 
@@ -261,4 +267,30 @@ contract only; step 3 adds creator persistence of the original document.
 - `bun run lint` and `bun run check`: passed; no type-check errors or warnings.
 - `bun test`: 529 passed; focused creator document/URL/share/storage tests: 43 passed.
 - Focused creator/import browser tests: 27 passed.
+- `bun run test:e2e --workers=1 --retries=1`: all 117 passed without retries.
+
+## Creator module organization
+
+- Content snapshots, defaults, cloning, comparisons, and catalog canvas initialization move to
+  `creatorContent.ts`. Consumers import them directly; snapshot names no longer imply URL ownership.
+- `layoutCreatorUrl.ts` owns active document transport and view/query handling. Its old field codecs
+  move to the read-only `creatorLegacyUrl.ts`; UTF-8 base64url helpers live in `creatorUrlEncoding.ts`
+  so the legacy adapter does not import the active URL module.
+- `creatorDocumentEdits.ts` owns Spark projection, identity reconciliation, and source metadata
+  retention. `creatorDocument.ts` keeps envelope construction, reading/validation, version migration,
+  and content signatures. Editing has no runtime dependency on the document decoder.
+- The legacy reader names its supported formats and removal conditions. Small `COMPATIBILITY`
+  branches for document version 1, share version 1, and storage/backup versions 1/2 remain beside
+  shared decoding. `docs/layout-creator.md` records the removal map and compatibility policy.
+- This refactor reorganizes existing behavior; it does not retire personal-data formats, change
+  transport versions, or introduce additional persisted representations.
+- The focused browser run exposed a normalization regression during backup import. Document
+  construction now passes its already-normalized snapshot to reconciliation before Spark's
+  structured cloning. A proxied-source unit test covers the boundary; the backup browser test
+  passed after the fix and in the final full run.
+- `bun run lint`: passed.
+- `bun run check`: passed, no errors or warnings.
+- `bun test`: 530 passed.
+- Focused creator/import browser run: 29 passed before the backup fix; the affected backup test
+  passed on recheck. The final full suite covers all 30 focused cases on the corrected code.
 - `bun run test:e2e --workers=1 --retries=1`: all 117 passed without retries.

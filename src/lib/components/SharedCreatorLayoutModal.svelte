@@ -5,12 +5,12 @@
 	import { computeDisplayRows } from '$lib/layoutDisplay';
 	import { LAYOUT_CREATOR_NEW_LAYOUT_NAME, createLayoutFromKeyConfig } from '$lib/layoutCreator';
 	import { compileCreatorInputProfile } from '$lib/layoutCreatorMappings';
-	import { createDefaultCreatorUrlSnapshot, type CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+	import { createDefaultCreatorSnapshot, type CreatorSnapshot } from '$lib/creatorContent';
 	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
 
 	interface Props {
 		open: boolean;
-		snapshot: CreatorUrlSnapshot | null;
+		snapshot: CreatorSnapshot | null;
 		saveError?: string | null;
 		onClose: () => void;
 		onSave: (name: string) => void;
@@ -20,7 +20,7 @@
 	let layoutName = $state('');
 	let nameInput = $state<HTMLInputElement | undefined>(undefined);
 
-	const shared = $derived(snapshot ?? createDefaultCreatorUrlSnapshot());
+	const shared = $derived(snapshot ?? createDefaultCreatorSnapshot());
 	const trimmedName = $derived(layoutName.trim());
 	const canSave = $derived(trimmedName.length > 0);
 	const previewName = $derived(trimmedName || LAYOUT_CREATOR_NEW_LAYOUT_NAME);

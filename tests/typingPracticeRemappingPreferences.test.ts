@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createDefaultCreatorUrlSnapshot, creatorContentFromSnapshot } from '$lib/layoutCreatorUrl';
+import { createDefaultCreatorSnapshot, creatorContentFromSnapshot } from '$lib/creatorContent';
 import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
 import {
 	serializeSavedLayoutsDocument,
@@ -49,7 +49,7 @@ const words = ['luck', 'sick', 'back', "can't", 'ai', 'he', 'me', 'rest'];
 
 test('creator saves and portable shares retain relative settings', () => {
 	const snapshot = {
-		...createDefaultCreatorUrlSnapshot(),
+		...createDefaultCreatorSnapshot(),
 		practiceLesson: normalizeTypingPracticeLessonSettings({
 			specialWordsPercent: 80,
 			remappingPreferences: preferences

@@ -3,7 +3,7 @@ import {
 	parseSavedLayoutsDocument,
 	type SavedCreatorLayout
 } from '$lib/layoutCreatorStorage';
-import { creatorContentFromSnapshot, creatorSnapshotFromContent } from '$lib/layoutCreatorUrl';
+import { creatorContentFromSnapshot, creatorSnapshotFromContent } from '$lib/creatorContent';
 
 export type SavedLayoutsImportMode = 'add' | 'replace';
 export type SavedLayoutsBackupError =

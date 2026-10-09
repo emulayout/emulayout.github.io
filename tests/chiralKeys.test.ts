@@ -13,11 +13,8 @@ import {
 } from '../src/lib/chiralKeys';
 import { compileLayoutInputProfile, resolveLayoutInput } from '../src/lib/layoutInputBehaviors';
 import { chiralDraftFromSource, chiralSourceFromDraft } from '../src/lib/creatorChiralMappings';
-import {
-	createDefaultCreatorUrlSnapshot,
-	readCreatorUrlSnapshot,
-	writeCreatorUrlParams
-} from '../src/lib/layoutCreatorUrl';
+import { createDefaultCreatorSnapshot } from '../src/lib/creatorContent';
+import { readCreatorUrlSnapshot, writeCreatorUrlParams } from '../src/lib/layoutCreatorUrl';
 
 const source = {
 	keys: [
@@ -52,7 +49,7 @@ test('Space triggers, outputs and exceptions use assigned hands and survive draf
 	expect(resolveLayoutInput(profile, 'h', '/').text).toBe(' ');
 	expect(resolveLayoutInput(profile, ' ', '/').text).toBe('/');
 	expect(resolveLayoutInput(profile, 'a', ' ', new Set([chiralMappingId(' ')])).text).toBe(' ');
-	const snapshot = createDefaultCreatorUrlSnapshot();
+	const snapshot = createDefaultCreatorSnapshot();
 	snapshot.includeChiralKey = true;
 	snapshot.chiralDraft = chiralDraftFromSource(source);
 	const params = writeCreatorUrlParams(snapshot);
@@ -178,7 +175,7 @@ test('composes adaptive then Magic then chiral and respects Magic priority', () 
 });
 
 test('round-trips compact creator definitions and custom hands without Magic expansion', () => {
-	const snapshot = createDefaultCreatorUrlSnapshot();
+	const snapshot = createDefaultCreatorSnapshot();
 	snapshot.includeChiralKey = true;
 	snapshot.chiralDraft = chiralDraftFromSource(source);
 	snapshot.keyConfig.keys[0].hand = 'r';

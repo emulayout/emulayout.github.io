@@ -17,16 +17,15 @@ import {
 	type SavedCreatorLayout
 } from '../src/lib/layoutCreatorStorage';
 import {
-	createDefaultCreatorUrlSnapshot,
+	createDefaultCreatorSnapshot,
 	creatorContentFromSnapshot,
-	creatorSearchFromSnapshot,
-	readCreatorUrlSnapshot,
-	type CreatorUrlSnapshot
-} from '../src/lib/layoutCreatorUrl';
+	type CreatorSnapshot
+} from '../src/lib/creatorContent';
+import { creatorSearchFromSnapshot, readCreatorUrlSnapshot } from '../src/lib/layoutCreatorUrl';
 
-function namedSnapshot(name: string, extra: Partial<CreatorUrlSnapshot> = {}): CreatorUrlSnapshot {
+function namedSnapshot(name: string, extra: Partial<CreatorSnapshot> = {}): CreatorSnapshot {
 	return {
-		...createDefaultCreatorUrlSnapshot(),
+		...createDefaultCreatorSnapshot(),
 		name,
 		...extra
 	};

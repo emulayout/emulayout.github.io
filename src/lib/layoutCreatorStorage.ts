@@ -2,14 +2,16 @@ import { buildCreatorDocument, readCreatorDocument } from '$lib/creatorDocument'
 import { LAYOUT_CREATOR_NEW_LAYOUT_NAME } from '$lib/layoutCreator';
 import {
 	creatorContentFromSnapshot,
-	creatorUrlContentEqual,
-	creatorUrlHasDraftParams,
+	creatorContentEqual,
 	creatorSnapshotFromContent,
+	type CreatorContentSnapshot,
+	type CreatorSnapshot
+} from '$lib/creatorContent';
+import {
+	creatorUrlHasDraftParams,
 	readCreatorSavedId,
 	readCreatorPreviewFlag,
-	readCreatorUrlSnapshot,
-	type CreatorContentSnapshot,
-	type CreatorUrlSnapshot
+	readCreatorUrlSnapshot
 } from '$lib/layoutCreatorUrl';
 import {
 	DEFAULT_LAYOUT_DETAIL_SECTION,
@@ -37,7 +39,7 @@ export interface SavedCreatorLayout {
 }
 
 export interface SavedCreatorLayoutInput {
-	snapshot: CreatorUrlSnapshot;
+	snapshot: CreatorSnapshot;
 }
 
 export interface SavedCreatorLayoutWriteOptions {
@@ -51,7 +53,7 @@ export interface SavedCreatorLayoutWriteResult {
 }
 
 export type CreatorSession = {
-	snapshot: CreatorUrlSnapshot;
+	snapshot: CreatorSnapshot;
 	savedId: string | null;
 };
 
@@ -59,7 +61,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function savedCreatorLayoutName(snapshot: CreatorUrlSnapshot): string {
+export function savedCreatorLayoutName(snapshot: CreatorSnapshot): string {
 	return snapshot.name.trim() || LAYOUT_CREATOR_NEW_LAYOUT_NAME;
 }
 
@@ -82,8 +84,9 @@ function parseSavedLayout(value: unknown, version: number): SavedCreatorLayout |
 	if (typeof value.id !== 'string' || !value.id) return null;
 	if (typeof value.name !== 'string' || !value.name.trim()) return null;
 	if (typeof value.createdAt !== 'number' || !Number.isFinite(value.createdAt)) return null;
+	// COMPATIBILITY: versions 1/2 store queries; their reader is isolated in creatorLegacyUrl.ts.
 	const content =
-		version === 3
+		version === SAVED_LAYOUTS_SCHEMA_VERSION
 			? readCreatorDocument(value.document)
 			: typeof value.query === 'string'
 				? creatorContentFromSnapshot(readCreatorUrlSnapshot(new URLSearchParams(value.query)))
@@ -255,7 +258,7 @@ export function resolveCreatorSession(
 }
 
 /** Build a saved-layout view; callers may then overlay URL-owned view state. */
-export function snapshotForSavedLayoutView(snapshot: CreatorContentSnapshot): CreatorUrlSnapshot {
+export function snapshotForSavedLayoutView(snapshot: CreatorContentSnapshot): CreatorSnapshot {
 	return creatorSnapshotFromContent(snapshot, {
 		preview: true,
 		section: DEFAULT_LAYOUT_DETAIL_SECTION
@@ -263,9 +266,9 @@ export function snapshotForSavedLayoutView(snapshot: CreatorContentSnapshot): Cr
 }
 
 export function isSavedLayoutDirty(
-	snapshot: CreatorUrlSnapshot,
+	snapshot: CreatorSnapshot,
 	saved: SavedCreatorLayout | undefined
 ): boolean {
 	if (!saved) return false;
-	return !creatorUrlContentEqual(snapshot, saved.snapshot);
+	return !creatorContentEqual(snapshot, saved.snapshot);
 }

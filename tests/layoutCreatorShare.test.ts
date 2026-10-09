@@ -6,18 +6,18 @@ import {
 	createCreatorMagicSection
 } from '../src/lib/layoutCreatorMappings';
 import {
-	createDefaultCreatorUrlSnapshot,
-	creatorUrlContentEqual,
-	type CreatorUrlSnapshot
-} from '../src/lib/layoutCreatorUrl';
+	createDefaultCreatorSnapshot,
+	creatorContentEqual,
+	type CreatorSnapshot
+} from '../src/lib/creatorContent';
 import {
 	buildCreatorShareUrl,
 	CREATOR_SHARE_PARAM,
 	readCreatorShareFromSearch
 } from '../src/lib/layoutCreatorShare';
 
-function sharedSnapshot(): CreatorUrlSnapshot {
-	const defaults = createDefaultCreatorUrlSnapshot();
+function sharedSnapshot(): CreatorSnapshot {
+	const defaults = createDefaultCreatorSnapshot();
 	const magicSection = createCreatorMagicSection('*');
 	magicSection.rules = [{ ...createCreatorMagicRule(), after: 'c', emit: 'k' }];
 	return {
@@ -59,7 +59,7 @@ describe('creator layout sharing', () => {
 		expect(restored).not.toBeNull();
 		expect(restored?.preview).toBe(true);
 		expect(restored?.section).toBe('practice');
-		expect(restored && creatorUrlContentEqual(restored, snapshot)).toBe(true);
+		expect(restored && creatorContentEqual(restored, snapshot)).toBe(true);
 	});
 
 	test('ignores ordinary creator URLs and unknown share versions', () => {

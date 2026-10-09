@@ -20,18 +20,20 @@ import {
 	createEmptyCreatorMagicDraft
 } from '../src/lib/layoutCreatorMappings';
 import {
-	createDefaultCreatorUrlSnapshot,
-	creatorEditSearchFromLayout,
+	createDefaultCreatorSnapshot,
 	creatorKeyConfigNeedsCatalogBaseSeed,
+	creatorContentEqual,
+	type CreatorSnapshot
+} from '../src/lib/creatorContent';
+import {
+	creatorEditSearchFromLayout,
 	creatorSearchFromSnapshot,
 	readCreatorUrlSnapshot,
-	writeCreatorUrlParams,
-	creatorUrlContentEqual,
-	encodeBase64Url,
-	type CreatorUrlSnapshot
+	writeCreatorUrlParams
 } from '../src/lib/layoutCreatorUrl';
+import { encodeBase64Url } from '../src/lib/creatorUrlEncoding';
 
-function roundTrip(snapshot: CreatorUrlSnapshot): CreatorUrlSnapshot {
+function roundTrip(snapshot: CreatorSnapshot): CreatorSnapshot {
 	return readCreatorUrlSnapshot(writeCreatorUrlParams(snapshot));
 }
 
@@ -103,7 +105,7 @@ describe('creator URL state', () => {
 		});
 		const rewritten = writeCreatorUrlParams(restored);
 		expect([...rewritten.keys()]).toEqual(['document', 'tab']);
-		expect(creatorUrlContentEqual(readCreatorUrlSnapshot(rewritten), restored)).toBe(true);
+		expect(creatorContentEqual(readCreatorUrlSnapshot(rewritten), restored)).toBe(true);
 	});
 
 	test('reads legacy empty-feature flags and a cleared board', () => {
@@ -151,19 +153,19 @@ describe('creator URL state', () => {
 	});
 
 	test('writes edit=1 for the default Edit canvas and omits Preview', () => {
-		const defaults = createDefaultCreatorUrlSnapshot();
+		const defaults = createDefaultCreatorSnapshot();
 		expect(defaults.keyConfig.baseLayoutName).toBe('QWERTY');
 		expect(defaults.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('q');
 		expect(writeCreatorUrlParams(defaults).toString()).toBe('edit=1');
 		expect(creatorSearchFromSnapshot(defaults)).toBe('?edit=1');
 		expect(
-			writeCreatorUrlParams({ ...createDefaultCreatorUrlSnapshot(), preview: true }).toString()
+			writeCreatorUrlParams({ ...createDefaultCreatorSnapshot(), preview: true }).toString()
 		).toBe('');
 	});
 
 	test('round-trips custom practice text and a special-word balance', () => {
-		const custom: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const custom: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			practiceLesson: { customText: 'hello creator world', specialWordsPercent: 40, wordCount: 10 }
 		};
 		const customParams = writeCreatorUrlParams(custom);
@@ -175,8 +177,8 @@ describe('creator URL state', () => {
 			wordCount: 10
 		});
 
-		const balanced: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const balanced: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			practiceLesson: { customText: null, specialWordsPercent: 40, wordCount: 25 }
 		};
 		expect(writeCreatorUrlParams(balanced).has('document')).toBe(true);
@@ -188,10 +190,10 @@ describe('creator URL state', () => {
 	});
 
 	test('round-trips a custom author and omits the empty default', () => {
-		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('author')).toBe(false);
+		expect(writeCreatorUrlParams(createDefaultCreatorSnapshot()).has('author')).toBe(false);
 
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			author: '  derek  '
 		};
 		const params = writeCreatorUrlParams(snapshot);
@@ -201,8 +203,8 @@ describe('creator URL state', () => {
 	});
 
 	test('round-trips a renamed preview draft with an edited key', () => {
-		const defaults = createDefaultCreatorUrlSnapshot();
-		const snapshot: CreatorUrlSnapshot = {
+		const defaults = createDefaultCreatorSnapshot();
+		const snapshot: CreatorSnapshot = {
 			...defaults,
 			name: 'Shared draft',
 			preview: true,
@@ -236,13 +238,13 @@ describe('creator URL state', () => {
 	});
 
 	test('writes and restores the Practice, Test, and Feel tab', () => {
-		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('tab')).toBe(false);
+		expect(writeCreatorUrlParams(createDefaultCreatorSnapshot()).has('tab')).toBe(false);
 		expect(readCreatorUrlSnapshot(new URLSearchParams('edit=1')).section).toBe('practice');
 		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=stats')).section).toBe('practice');
 		expect(readCreatorUrlSnapshot(new URLSearchParams('tab=nope')).section).toBe('practice');
 
-		const feel: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const feel: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			section: 'feel'
 		};
 		expect(writeCreatorUrlParams(feel).get('tab')).toBe('feel');
@@ -251,8 +253,8 @@ describe('creator URL state', () => {
 	});
 
 	test('round-trips keyboard geometry, a catalog base, and a cleared board', () => {
-		const qwertyBase: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const qwertyBase: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			keyConfig: createDefaultKeyboardInputConfig()
 		};
 		const qwertyParams = writeCreatorUrlParams(qwertyBase);
@@ -260,8 +262,8 @@ describe('creator URL state', () => {
 		expect(qwertyParams.has('keys')).toBe(false);
 		expect(roundTrip(qwertyBase).keyConfig.baseLayoutName).toBe('QWERTY');
 
-		const fromBase: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const fromBase: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			keyConfig: buildKeyboardInputConfig({
 				baseLayoutName: 'vylet',
 				baseLayoutModified: false,
@@ -279,8 +281,8 @@ describe('creator URL state', () => {
 		expect(restoredBase.keyConfig.keys.find((key) => key.slot === '0,0')?.value).toBe('w');
 		expect(restoredBase.keyConfig.keys.find((key) => key.slot === '0,12')?.inert).toBe(true);
 
-		const cleared: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const cleared: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			name: 'Magic lela',
 			keyConfig: clearKeyboardInputConfig(createDefaultKeyboardInputConfig())
 		};
@@ -317,8 +319,8 @@ describe('creator URL state', () => {
 		group.id = 'sfb';
 		group.rules = [{ ...createCreatorAdaptiveRule(), trigger: 's', left: 'c', right: 'd' }];
 
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			includeMagicKey: true,
 			includeAdaptiveKey: true,
 			magicDraft: { sections: [magicSection, extraSection] },
@@ -346,8 +348,8 @@ describe('creator URL state', () => {
 
 	test('round-trips disabled special mappings and treats them as a draft change', () => {
 		const disabledMappingIds = ['["magic-fallback","*"]', '["adaptive-rule","","l","y","j"]'];
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			includeMagicKey: true,
 			disabledMappingIds
 		};
@@ -355,12 +357,12 @@ describe('creator URL state', () => {
 		expect(params.has('document')).toBe(true);
 		expect(params.has('off')).toBe(false);
 		expect(roundTrip(snapshot).disabledMappingIds).toEqual([...disabledMappingIds].sort());
-		expect(writeCreatorUrlParams(createDefaultCreatorUrlSnapshot()).has('off')).toBe(false);
+		expect(writeCreatorUrlParams(createDefaultCreatorSnapshot()).has('off')).toBe(false);
 	});
 
 	test('stores enabled features with empty drafts in the document', () => {
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			includeMagicKey: true,
 			includeAdaptiveKey: true,
 			magicDraft: createEmptyCreatorMagicDraft(),
@@ -381,8 +383,8 @@ describe('creator URL state', () => {
 			'1,11',
 			''
 		);
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			includeMagicKey: true,
 			keyConfig
 		};
@@ -439,8 +441,8 @@ describe('creator URL state', () => {
 	});
 
 	test('preserves a semicolon key value through the query string', () => {
-		const snapshot: CreatorUrlSnapshot = {
-			...createDefaultCreatorUrlSnapshot(),
+		const snapshot: CreatorSnapshot = {
+			...createDefaultCreatorSnapshot(),
 			keyConfig: updateKeyboardInputKey(createDefaultKeyboardInputConfig(), '1,9', ';')
 		};
 		const restored = readCreatorUrlSnapshot(

@@ -1,15 +1,15 @@
-import { creatorSparkProjection } from '$lib/creatorDocument';
+import { creatorSparkProjection } from '$lib/creatorDocumentEdits';
 import { buildKeyboardInputConfig, type InputKeyboardType } from '$lib/keyboardInputConfig';
 import { magicDraftFromSource, adaptiveDraftFromSource } from '$lib/layoutCreatorMappings';
 import { compileSparkLayout } from '$lib/sparkCompiler';
-import { createDefaultCreatorUrlSnapshot, type CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+import { createDefaultCreatorSnapshot, type CreatorSnapshot } from '$lib/creatorContent';
 import { chiralDraftFromSource } from '$lib/creatorChiralMappings';
 
 export const AKL_TRY_HASH_PREFIX = '#akl=';
 const MAX_ENCODED_PAYLOAD_LENGTH = 64 * 1024;
 
 export type AklTryImportResult = {
-	snapshot: CreatorUrlSnapshot | null;
+	snapshot: CreatorSnapshot | null;
 	notice: string | null;
 	source: string | null;
 };
@@ -74,9 +74,9 @@ export function importAklTryPayload(value: unknown): AklTryImportResult {
 	}
 	const keyboardType = value.board as InputKeyboardType;
 
-	const snapshot: CreatorUrlSnapshot = {
+	const snapshot: CreatorSnapshot = {
 		sparkSource: compiled.document,
-		...createDefaultCreatorUrlSnapshot(),
+		...createDefaultCreatorSnapshot(),
 		name: value.name.trim() || 'New layout',
 		author: typeof value.author === 'string' ? value.author.trim() : '',
 		preview: true,

@@ -9,7 +9,7 @@ import {
 } from '$lib/layoutCreatorMappings';
 import { chiralDraftFromSource, type CreatorChiralRule } from '$lib/creatorChiralMappings';
 import type { KeyboardInputKey } from '$lib/keyboardInputConfig';
-import type { CreatorContentSnapshot } from '$lib/layoutCreatorUrl';
+import type { CreatorContentSnapshot } from '$lib/creatorContent';
 
 type Editor = Omit<CreatorContentSnapshot, 'sparkSource' | 'sparkEditorBaseline'>;
 type Reference = { id: string; source: number };

@@ -85,16 +85,16 @@
 	} from '$lib/layoutCreatorStorage';
 	import { mergeSavedLayoutsBackup, type SavedLayoutsImportMode } from '$lib/savedLayoutsBackup';
 	import {
-		cloneCreatorUrlSnapshot,
-		createDefaultCreatorUrlSnapshot,
+		cloneCreatorSnapshot,
+		createDefaultCreatorSnapshot,
 		creatorKeyConfigNeedsCatalogBaseSeed,
-		creatorSearchFromSnapshot,
 		creatorSnapshotFromContent,
-		creatorUrlContentEqual,
-		creatorUrlSnapshotsEqual,
+		creatorContentEqual,
+		creatorSnapshotsEqual,
 		type CreatorContentSnapshot,
-		type CreatorUrlSnapshot
-	} from '$lib/layoutCreatorUrl';
+		type CreatorSnapshot
+	} from '$lib/creatorContent';
+	import { creatorSearchFromSnapshot } from '$lib/layoutCreatorUrl';
 	import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
@@ -131,7 +131,7 @@
 		importSource = null
 	}: {
 		path?: '/create' | '/try';
-		initialSnapshot?: CreatorUrlSnapshot | null;
+		initialSnapshot?: CreatorSnapshot | null;
 		importNotice?: string | null;
 		importSource?: string | null;
 	} = $props();
@@ -166,7 +166,7 @@
 	let saveMenuOpen = $state(false);
 	let keyImportOpen = $state(false);
 	let saveError = $state<string | null>(null);
-	let pendingSharedLayout = $state.raw<CreatorUrlSnapshot | null>(initialSharedLayout);
+	let pendingSharedLayout = $state.raw<CreatorSnapshot | null>(initialSharedLayout);
 	let shareCopied = $state(false);
 	let deleteSavedLayoutId = $state<string | null>(null);
 	let deleteSavedLayoutName = $state('');
@@ -320,7 +320,7 @@
 		};
 	});
 
-	function currentCreatorSnapshot(): CreatorUrlSnapshot {
+	function currentCreatorSnapshot(): CreatorSnapshot {
 		return {
 			...editor.snapshot(),
 			preview: layoutPreview,
@@ -334,7 +334,7 @@
 	const hasUnsavedCreatorChanges = $derived(
 		activeSavedId
 			? isActiveSavedDirty
-			: !creatorUrlContentEqual(currentCreatorSnapshot(), createDefaultCreatorUrlSnapshot())
+			: !creatorContentEqual(currentCreatorSnapshot(), createDefaultCreatorSnapshot())
 	);
 	const deleteDiscardsUnsavedChanges = $derived(
 		deleteSavedLayoutId !== null && deleteSavedLayoutId === activeSavedId && isActiveSavedDirty
@@ -369,10 +369,10 @@
 	};
 
 	function applyCreatorSnapshot(
-		snapshot: CreatorUrlSnapshot,
+		snapshot: CreatorSnapshot,
 		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
 	) {
-		const next = cloneCreatorUrlSnapshot(snapshot);
+		const next = cloneCreatorSnapshot(snapshot);
 		supplementalDraftsSeededFor = null;
 		editor.replace(next);
 		layoutPreview = next.preview;
@@ -424,7 +424,7 @@
 		const active = findSavedLayout(merged.layouts, activeSavedId);
 		if (!active) {
 			activeSavedId = null;
-			if (!preserveDraft) applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+			if (!preserveDraft) applyCreatorSnapshot(createDefaultCreatorSnapshot());
 		} else if (!preserveDraft && merged.importedIds.has(activeSavedId)) {
 			applyCreatorSnapshot(
 				creatorSnapshotFromContent(active.snapshot, {
@@ -446,7 +446,7 @@
 		savedLayouts = nextLayouts;
 		if (activeSavedId && !findSavedLayout(nextLayouts, activeSavedId)) {
 			activeSavedId = null;
-			if (!preserveAsUnsaved) applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+			if (!preserveAsUnsaved) applyCreatorSnapshot(createDefaultCreatorSnapshot());
 			flushCreatorUrl();
 		}
 	}
@@ -464,7 +464,7 @@
 	}
 
 	function writeCreatorHistory(
-		snapshot: CreatorUrlSnapshot,
+		snapshot: CreatorSnapshot,
 		savedId: string | null,
 		savedSnapshot: CreatorContentSnapshot | null
 	) {
@@ -772,7 +772,7 @@
 	function saveSharedLayout(name: string) {
 		const pending = pendingSharedLayout;
 		if (!pending) return;
-		const snapshot = cloneCreatorUrlSnapshot({
+		const snapshot = cloneCreatorSnapshot({
 			...pending,
 			name,
 			preview: true,
@@ -788,7 +788,7 @@
 
 	function duplicateSavedLayout() {
 		saveError = null;
-		const snapshot = cloneCreatorUrlSnapshot(currentCreatorSnapshot());
+		const snapshot = cloneCreatorSnapshot(currentCreatorSnapshot());
 		const layouts = savedLayoutsForWrite();
 		snapshot.name = nextDuplicatedLayoutName(
 			savedCreatorLayoutName(snapshot),
@@ -818,7 +818,7 @@
 
 	function startNewLayoutNow() {
 		activeSavedId = null;
-		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		applyCreatorSnapshot(createDefaultCreatorSnapshot());
 		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 		layoutNameFocusEpoch += 1;
@@ -827,7 +827,7 @@
 	function startNewLayout() {
 		if (
 			!activeSavedId &&
-			creatorUrlSnapshotsEqual(currentCreatorSnapshot(), createDefaultCreatorUrlSnapshot())
+			creatorSnapshotsEqual(currentCreatorSnapshot(), createDefaultCreatorSnapshot())
 		) {
 			return;
 		}
@@ -907,7 +907,7 @@
 		closeDeleteSavedLayoutModal(!wasActive);
 		if (!wasActive) return;
 		activeSavedId = null;
-		applyCreatorSnapshot(createDefaultCreatorUrlSnapshot());
+		applyCreatorSnapshot(createDefaultCreatorSnapshot());
 		flushCreatorUrl();
 		layoutNameFocusEpoch += 1;
 	}

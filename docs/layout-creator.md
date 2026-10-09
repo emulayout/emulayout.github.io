@@ -300,6 +300,34 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 
 - Repeat mapping editors.
 - Renaming saved drafts from the tab bar.
+- Extract saved-layout session transitions from the page into shared rune-based state; consolidate
+  repeated document projections separately from the module organization refactor.
+
+## Creator module boundaries and compatibility
+
+`creatorContent.ts` owns snapshot types, defaults, normalized copies, comparisons, and catalog
+canvas initialization. `layoutCreatorUrl.ts` owns URL transport and view state. Domain consumers
+import content helpers directly rather than reaching through the URL module.
+
+`creatorDocument.ts` owns the versioned envelope, validation, decoding, normalized construction,
+and signatures. `creatorDocumentEdits.ts` owns Spark projection, source reconciliation, and carrying
+metadata through unfinished edits. The editing module does not depend on the document decoder.
+`creatorEditorRecovery.ts` remains responsible for sparse recovery references and reconstruction.
+
+The read-only pre-document query adapter is isolated in `creatorLegacyUrl.ts`. Its header names
+the supported formats and conditions for future removal. Current document transport shares only
+UTF-8 base64url encoding through `creatorUrlEncoding.ts`. Legacy compatibility is not deprecated
+by this extraction, and no data or transport version changes.
+
+| Compatibility                        | Location                  | Removal condition                                                                                                  |
+| ------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Old key/mapping queries              | `creatorLegacyUrl.ts`     | Explicitly retire old draft URLs, share version 1, and saved-query backups; keep default-canvas URL initialization |
+| Share version 1 dispatch             | `layoutCreatorShare.ts`   | Retire old shared links                                                                                            |
+| Storage/backup versions 1/2 dispatch | `layoutCreatorStorage.ts` | Retire or provide a migration path for saved-query documents                                                       |
+| Creator document version 1           | `creatorDocument.ts`      | Retire full-sidecar creator documents                                                                              |
+
+Small compatibility dispatches stay beside their current readers, marked `COMPATIBILITY`, because
+they reuse validation and normalization. The larger old-format parser is the separate removal unit.
 
 ## Code map
 
@@ -307,9 +335,12 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 - Canonical creator state and typed control adapters: `src/lib/creatorEditor.svelte.ts`
 - Sparse editor recovery references and reconstruction: `src/lib/creatorEditorRecovery.ts`
 - Direct Spark keyboard geometry and legacy slot adapter: `src/lib/creatorGeometry.ts`
-- Versioned Spark document builder, edit reconciliation, validation, and content signatures:
-  `src/lib/creatorDocument.ts`; stable draft ids: `src/lib/creatorDraftId.ts`
-- Shareable `/create` document transport and legacy query reader: `src/lib/layoutCreatorUrl.ts`
+- Creator content snapshots, defaults, cloning, and comparisons: `src/lib/creatorContent.ts`
+- Versioned Spark document construction, validation, migration, and signatures:
+  `src/lib/creatorDocument.ts`; projection and reconciliation: `src/lib/creatorDocumentEdits.ts`;
+  stable draft ids: `src/lib/creatorDraftId.ts`
+- Shareable `/create` document transport: `src/lib/layoutCreatorUrl.ts`; read-only old queries:
+  `src/lib/creatorLegacyUrl.ts`; shared UTF-8 base64url transport: `src/lib/creatorUrlEncoding.ts`
 - akl.gg `spark/1` handoff parsing and adaptation: `src/lib/aklTryImport.ts`,
   `src/routes/try/+page.svelte`
 - Shared Spark types and structural validation: `src/lib/sparkSchema.ts`; supported-subset

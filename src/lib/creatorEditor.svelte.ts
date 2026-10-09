@@ -2,10 +2,10 @@ import {
 	buildCreatorDocument,
 	updateCreatorDocument,
 	readCreatorDocument,
-	creatorSparkProjection,
 	type CreatorDocument
 } from '$lib/creatorDocument';
-import type { CreatorContentSnapshot } from '$lib/layoutCreatorUrl';
+import { creatorSparkProjection } from '$lib/creatorDocumentEdits';
+import type { CreatorContentSnapshot } from '$lib/creatorContent';
 import type { SparkLayout } from '$lib/sparkSchema';
 
 /** One canonical Spark document owns content; editor controls receive reconstructed projections. */

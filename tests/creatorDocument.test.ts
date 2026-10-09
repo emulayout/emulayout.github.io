@@ -8,14 +8,13 @@ import {
 } from '$lib/creatorDocument';
 import { importAklTryPayload } from '$lib/aklTryImport';
 import {
-	createDefaultCreatorUrlSnapshot,
-	cloneCreatorUrlSnapshot,
+	createDefaultCreatorSnapshot,
+	cloneCreatorSnapshot,
 	creatorContentFromSnapshot,
-	creatorUrlContentEqual,
-	readCreatorUrlSnapshot,
-	writeCreatorUrlParams,
-	encodeBase64Url
-} from '$lib/layoutCreatorUrl';
+	creatorContentEqual
+} from '$lib/creatorContent';
+import { readCreatorUrlSnapshot, writeCreatorUrlParams } from '$lib/layoutCreatorUrl';
+import { encodeBase64Url } from '$lib/creatorUrlEncoding';
 import {
 	parseSavedLayoutsDocument,
 	serializeSavedLayoutsDocument,
@@ -78,7 +77,16 @@ test('source survives URLs, saves, backups, and sharing without losing unsupport
 	const shared = readCreatorShareFromSearch(share.searchParams)!;
 	expect(buildCreatorDocument(shared).layout).toEqual(layout);
 	expect(share.searchParams.has('id')).toBe(false);
-	expect(creatorUrlContentEqual(shared, snapshot)).toBe(true);
+	expect(creatorContentEqual(shared, snapshot)).toBe(true);
+});
+
+test('normalizes proxied source content before reconciliation and validation', () => {
+	const { layout, snapshot } = imported();
+	const source = new Proxy(snapshot.sparkSource!, {});
+	expect(() => structuredClone(source)).toThrow();
+	const document = buildCreatorDocument({ ...snapshot, sparkSource: source });
+	expect(document.layout).toEqual(layout);
+	expect(readCreatorDocument(document)).not.toBeNull();
 });
 
 test('editing one key or rule preserves unrelated fingers, extensions, and raw rewrites', () => {
@@ -110,7 +118,7 @@ test('removing an editable raw-rule projection keeps unsupported raw rewrites', 
 });
 
 test('incomplete rows, group identities, disabled mappings, and multi-character fallbacks stay outside Spark', () => {
-	const snapshot = createDefaultCreatorUrlSnapshot();
+	const snapshot = createDefaultCreatorSnapshot();
 	snapshot.includeMagicKey = true;
 	const section = snapshot.magicDraft.sections[0];
 	section.fallbackKind = 'emit';
@@ -128,7 +136,7 @@ test('incomplete rows, group identities, disabled mappings, and multi-character 
 	expect(restored.magicDraft.sections[0].rules[0]).toEqual(section.rules[0]);
 	expect(restored.adaptiveDraft.groups[0]).toEqual(group);
 	expect(restored.disabledMappingIds).toEqual(['disabled']);
-	expect(cloneCreatorUrlSnapshot({ ...restored, preview: true, section: 'feel' }).section).toBe(
+	expect(cloneCreatorSnapshot({ ...restored, preview: true, section: 'feel' }).section).toBe(
 		'feel'
 	);
 	expect('preview' in doc.emulayout).toBe(false);
@@ -136,7 +144,7 @@ test('incomplete rows, group identities, disabled mappings, and multi-character 
 });
 
 test('new invalid documents and future versions cannot fall back to legacy fields', () => {
-	const doc = buildCreatorDocument(createDefaultCreatorUrlSnapshot());
+	const doc = buildCreatorDocument(createDefaultCreatorSnapshot());
 	expect(readCreatorDocument({ ...doc, version: 99 })).toBeNull();
 	expect(readCreatorDocument({ ...doc, layout: { keys: 'invalid' } })).toBeNull();
 	const params = new URLSearchParams({
@@ -175,25 +183,25 @@ test('legacy links and version-1/2 saves migrate to the same document writer', (
 		const migrated = JSON.parse(serializeSavedLayoutsDocument(layouts));
 		expect(migrated.version).toBe(3);
 		expect(migrated.layouts[0].document.format).toBe('spark/1');
-		expect(creatorUrlContentEqual(layouts[0].snapshot, creatorContentFromSnapshot(snapshot))).toBe(
+		expect(creatorContentEqual(layouts[0].snapshot, creatorContentFromSnapshot(snapshot))).toBe(
 			true
 		);
 	}
 });
 
 test('row identity is stable but does not make identical drafts dirty, while source extensions do', () => {
-	const first = createDefaultCreatorUrlSnapshot(),
-		second = createDefaultCreatorUrlSnapshot();
+	const first = createDefaultCreatorSnapshot(),
+		second = createDefaultCreatorSnapshot();
 	expect(first.magicDraft.sections[0].id).not.toBe(second.magicDraft.sections[0].id);
-	expect(creatorUrlContentEqual(first, second)).toBe(true);
+	expect(creatorContentEqual(first, second)).toBe(true);
 	const { snapshot } = imported();
-	const changed = cloneCreatorUrlSnapshot(snapshot);
+	const changed = cloneCreatorSnapshot(snapshot);
 	changed.sparkSource!.id = 'changed extension';
-	expect(creatorUrlContentEqual(changed, snapshot)).toBe(false);
+	expect(creatorContentEqual(changed, snapshot)).toBe(false);
 });
 
 test('untrusted editor recovery rejects duplicate identities, invalid key bounds, and malformed preferences', () => {
-	const doc = buildCreatorDocument(createDefaultCreatorUrlSnapshot());
+	const doc = buildCreatorDocument(createDefaultCreatorSnapshot());
 	const duplicate = structuredClone(doc);
 	duplicate.emulayout.magicDraft.sections.push(duplicate.emulayout.magicDraft.sections[0]);
 	expect(readCreatorDocument(duplicate)).toBeNull();
@@ -222,7 +230,7 @@ test('changing the primary duplicate updates canonical Spark ordering without lo
 	const layout = buildCreatorDocument(snapshot).layout;
 	expect(layout.keys[0]).toMatchObject({ col: 9, finger: 'RP', extension: 'second' });
 	expect(layout.keys[1]).toMatchObject({ col: 0, finger: 'LI', extension: 'first' });
-	expect(buildCreatorDocument(cloneCreatorUrlSnapshot(snapshot)).layout).toEqual(layout);
+	expect(buildCreatorDocument(cloneCreatorSnapshot(snapshot)).layout).toEqual(layout);
 });
 
 test('version-2 recovery references Spark values and rejects broken references', () => {
@@ -256,7 +264,7 @@ test('version-1 documents migrate without changing recovery state or unsupported
 });
 
 test('migrating version-1 editor-created duplicates preserves the legacy last-slot primary', () => {
-	const content = creatorContentFromSnapshot(createDefaultCreatorUrlSnapshot());
+	const content = creatorContentFromSnapshot(createDefaultCreatorSnapshot());
 	content.keyConfig.keys.find((key) => key.slot === '0,0')!.value = 'e';
 	const layout = buildCreatorDocument(content).layout;
 	// Version 1 stored slot order, while the old runtime chose the last duplicate.

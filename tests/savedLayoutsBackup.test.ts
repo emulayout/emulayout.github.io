@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { addSavedLayout, serializeSavedLayoutsDocument } from '$lib/layoutCreatorStorage';
 import { mergeSavedLayoutsBackup, parseSavedLayoutsBackup } from '$lib/savedLayoutsBackup';
-import { createDefaultCreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+import { createDefaultCreatorSnapshot } from '$lib/creatorContent';
 
 function makeLayout(id: string, name: string, createdAt = 100) {
 	return addSavedLayout(
 		[],
-		{ snapshot: { ...createDefaultCreatorUrlSnapshot(), name } },
+		{ snapshot: { ...createDefaultCreatorSnapshot(), name } },
 		{ createId: () => id, now: () => createdAt }
 	).layouts[0];
 }

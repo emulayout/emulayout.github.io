@@ -2,7 +2,7 @@
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import { readSparkImportText } from '$lib/aklTryImport';
-	import type { CreatorUrlSnapshot } from '$lib/layoutCreatorUrl';
+	import type { CreatorSnapshot } from '$lib/creatorContent';
 	import {
 		applyKeyboardInputImport,
 		parseKeyboardInputImportRows,
@@ -14,7 +14,7 @@
 		config: KeyboardInputConfig;
 		name: string;
 		author: string;
-		onSparkImport: (snapshot: CreatorUrlSnapshot) => void;
+		onSparkImport: (snapshot: CreatorSnapshot) => void;
 		onClose: () => void;
 		onImport: (config: KeyboardInputConfig) => void;
 	}
