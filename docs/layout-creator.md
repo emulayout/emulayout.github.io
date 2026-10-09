@@ -300,10 +300,19 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 
 - Repeat mapping editors.
 - Renaming saved drafts from the tab bar.
-- Extract saved-layout session transitions from the page into shared rune-based state; consolidate
-  repeated document projections separately from the module organization refactor.
+- Consolidate repeated document projections separately from the module organization refactor.
 
 ## Creator module boundaries and compatibility
+
+`CreatorSession` in `creatorSession.svelte.ts` owns the saved collection, active saved id,
+persistence errors, content dirty checks, and save, duplicate, open, revert, delete, backup-import,
+and storage-update transitions. Writes merge current storage and commit collection and identity
+changes only after persistence succeeds. Transitions return a replacement snapshot only when the
+live canvas must change; a dirty removed save keeps its canvas and loses only its saved identity. Storage updates
+refresh the collection without replacing the live canvas when the active saved id still exists.
+`CreatorEditor` continues to own the live Spark document. `LayoutCreator.svelte` supplies current
+snapshots and applies returned snapshots; dialogs, confirmation, focus, clipboard feedback, lesson
+URL overrides, storage listeners, and history synchronization remain component responsibilities.
 
 `creatorContent.ts` owns snapshot types, defaults, normalized copies, comparisons, and catalog
 canvas initialization. `layoutCreatorUrl.ts` owns URL transport and view state. Domain consumers
@@ -345,6 +354,7 @@ they reuse validation and normalization. The larger old-format parser is the sep
   `src/routes/try/+page.svelte`
 - Shared Spark types and structural validation: `src/lib/sparkSchema.ts`; supported-subset
   compilation and diagnostics: `src/lib/sparkCompiler.ts`; foundation tests: `tests/spark.test.ts`
+- Saved-layout session state and transitions: `src/lib/creatorSession.svelte.ts`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
   (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
 - Saved-layout backup parsing and merge rules: `src/lib/savedLayoutsBackup.ts`

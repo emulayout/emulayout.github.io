@@ -52,7 +52,7 @@ export interface SavedCreatorLayoutWriteResult {
 	id: string;
 }
 
-export type CreatorSession = {
+export type ResolvedCreatorSession = {
 	snapshot: CreatorSnapshot;
 	savedId: string | null;
 };
@@ -242,7 +242,7 @@ export function updateSavedLayout(
 export function resolveCreatorSession(
 	searchParams: URLSearchParams,
 	layouts: readonly SavedCreatorLayout[]
-): CreatorSession {
+): ResolvedCreatorSession {
 	const savedId = readCreatorSavedId(searchParams);
 	const saved = findSavedLayout(layouts, savedId);
 	if (!saved) {

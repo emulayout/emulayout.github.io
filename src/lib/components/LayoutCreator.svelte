@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CreatorSession } from '$lib/creatorSession.svelte';
 	import { CreatorEditor } from '$lib/creatorEditor.svelte';
 	import { createLayoutFromSparkKeys } from '$lib/creatorGeometry';
 	import CreatorChiralMappingsPanel from '$lib/components/CreatorChiralMappingsPanel.svelte';
@@ -47,7 +48,6 @@
 		LAYOUT_CREATOR_NEW_TAB,
 		LOCAL_LAYOUT_STATS_UNAVAILABLE_DETAIL,
 		createDefaultCreatorKeyConfig,
-		nextDuplicatedLayoutName,
 		keyboardConfigGainedMagicTriggers,
 		keyboardConfigHasMagicTrigger,
 		savedCreatorTabId,
@@ -69,27 +69,16 @@
 		type CreatorMagicDraft
 	} from '$lib/layoutCreatorMappings';
 	import {
-		addSavedLayout,
-		findSavedLayout,
-		isSavedLayoutDirty,
 		loadSavedLayouts,
-		mergeSavedLayouts,
-		persistSavedLayouts,
-		removeSavedLayout,
 		resolveCreatorSession,
-		snapshotForSavedLayoutView,
 		SAVED_LAYOUTS_STORAGE_KEY,
-		savedCreatorLayoutName,
-		updateSavedLayout,
 		type SavedCreatorLayout
 	} from '$lib/layoutCreatorStorage';
-	import { mergeSavedLayoutsBackup, type SavedLayoutsImportMode } from '$lib/savedLayoutsBackup';
+	import type { SavedLayoutsImportMode } from '$lib/savedLayoutsBackup';
 	import {
 		cloneCreatorSnapshot,
 		createDefaultCreatorSnapshot,
 		creatorKeyConfigNeedsCatalogBaseSeed,
-		creatorSnapshotFromContent,
-		creatorContentEqual,
 		creatorSnapshotsEqual,
 		type CreatorContentSnapshot,
 		type CreatorSnapshot
@@ -148,8 +137,7 @@
 			);
 
 	const editor = new CreatorEditor(initialSession.snapshot);
-	let savedLayouts = $state.raw<SavedCreatorLayout[]>(initialLayouts);
-	let activeSavedId = $state<string | null>(initialSession.savedId);
+	const session = new CreatorSession(initialLayouts, initialSession.savedId);
 	let layoutPreview = $state(initialSession.snapshot.preview);
 	let layoutNameFocusEpoch = $state(
 		!initialSession.savedId && !initialSession.snapshot.preview ? 1 : 0
@@ -165,9 +153,10 @@
 	let activeSection = $state<LayoutDetailSection>(initialSession.snapshot.section);
 	let saveMenuOpen = $state(false);
 	let keyImportOpen = $state(false);
-	let saveError = $state<string | null>(null);
 	let pendingSharedLayout = $state.raw<CreatorSnapshot | null>(initialSharedLayout);
 	let shareCopied = $state(false);
+	let shareError = $state<string | null>(null);
+	const saveError = $derived(session.error ?? shareError);
 	let deleteSavedLayoutId = $state<string | null>(null);
 	let deleteSavedLayoutName = $state('');
 	let pendingCreatorNavigation = $state<PendingCreatorNavigation | null>(null);
@@ -182,11 +171,12 @@
 			a.localeCompare(b, undefined, { sensitivity: 'base' })
 		)
 	);
-	const activeSavedLayout = $derived(findSavedLayout(savedLayouts, activeSavedId));
 	const activeTab = $derived<LayoutCreatorTabValue>(
-		activeSavedId ? savedCreatorTabValue(activeSavedId) : LAYOUT_CREATOR_NEW_TAB
+		session.activeId ? savedCreatorTabValue(session.activeId) : LAYOUT_CREATOR_NEW_TAB
 	);
-	const selectedTabId = $derived(activeSavedId ? savedCreatorTabId(activeSavedId) : NEW_TAB_ID);
+	const selectedTabId = $derived(
+		session.activeId ? savedCreatorTabId(session.activeId) : NEW_TAB_ID
+	);
 	const practiceMagicEnabled = $derived(editor.includeMagicKey);
 	const practiceAdaptiveEnabled = $derived(editor.includeAdaptiveKey);
 	const layout = $derived(
@@ -243,13 +233,13 @@
 	);
 	const editorWidthTerms = $derived(keyboardInputEditorWidthTerms(editor.keyConfig));
 	const options: TabOption<LayoutCreatorTabValue>[] = $derived.by(() => {
-		const savedTabs = savedLayouts.map((saved) => ({
+		const savedTabs = session.layouts.map((saved) => ({
 			value: savedCreatorTabValue(saved.id),
-			label: saved.id === activeSavedId ? layoutName : saved.name,
+			label: saved.id === session.activeId ? layoutName : saved.name,
 			id: savedCreatorTabId(saved.id),
 			controls: PANEL_ID
 		}));
-		if (activeSavedId) return savedTabs;
+		if (session.activeId) return savedTabs;
 		return [
 			{
 				value: LAYOUT_CREATOR_NEW_TAB,
@@ -261,7 +251,7 @@
 		];
 	});
 	const savedLayoutByValue = $derived(
-		new Map(savedLayouts.map((saved) => [savedCreatorTabValue(saved.id), saved] as const))
+		new Map(session.layouts.map((saved) => [savedCreatorTabValue(saved.id), saved] as const))
 	);
 
 	let baseLayoutSeed = 0;
@@ -273,7 +263,7 @@
 	});
 
 	$effect(() => {
-		if (activeSavedId) return;
+		if (session.activeId) return;
 		const config = editor.keyConfig;
 		const name = config.baseLayoutName?.trim() ?? '';
 		if (!name) return;
@@ -305,8 +295,8 @@
 	$effect(() => {
 		if (pendingSharedLayout) return;
 		const snapshot = currentCreatorSnapshot();
-		const savedId = activeSavedId;
-		const savedSnapshot = findSavedLayout(savedLayouts, savedId)?.snapshot ?? null;
+		const savedId = session.activeId;
+		const savedSnapshot = session.activeLayout?.snapshot ?? null;
 		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
 		urlSyncTimeout = setTimeout(() => {
 			urlSyncTimeout = null;
@@ -328,21 +318,17 @@
 		};
 	}
 
-	const isActiveSavedDirty = $derived(
-		isSavedLayoutDirty(currentCreatorSnapshot(), activeSavedLayout)
-	);
+	const isActiveSavedDirty = $derived(session.isDirty(currentCreatorSnapshot()));
 	const hasUnsavedCreatorChanges = $derived(
-		activeSavedId
-			? isActiveSavedDirty
-			: !creatorContentEqual(currentCreatorSnapshot(), createDefaultCreatorSnapshot())
+		session.activeId ? isActiveSavedDirty : session.hasUnsavedChanges(currentCreatorSnapshot())
 	);
 	const deleteDiscardsUnsavedChanges = $derived(
-		deleteSavedLayoutId !== null && deleteSavedLayoutId === activeSavedId && isActiveSavedDirty
+		deleteSavedLayoutId !== null && deleteSavedLayoutId === session.activeId && isActiveSavedDirty
 	);
-	const showUpdateSplit = $derived(Boolean(activeSavedId && isActiveSavedDirty));
-	const showDuplicateButton = $derived(Boolean(activeSavedId && !isActiveSavedDirty));
+	const showUpdateSplit = $derived(Boolean(session.activeId && isActiveSavedDirty));
+	const showDuplicateButton = $derived(Boolean(session.activeId && !isActiveSavedDirty));
 	const canClearNewLayout = $derived(
-		!activeSavedId &&
+		!session.activeId &&
 			(Boolean(editor.keyConfig.baseLayoutName) ||
 				editor.keyConfig.keys.some((key) => Boolean(key.value)) ||
 				editor.includeMagicKey ||
@@ -368,6 +354,11 @@
 		requestAnimationFrame(focus);
 	};
 
+	function clearCreatorError() {
+		session.clearError();
+		shareError = null;
+	}
+
 	function applyCreatorSnapshot(
 		snapshot: CreatorSnapshot,
 		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
@@ -381,74 +372,27 @@
 		magicPanelOpen = next.includeMagicKey;
 		adaptivePanelOpen = next.includeAdaptiveKey;
 		practiceLessonUrlOverrides = lessonOverrides;
-		saveError = null;
+		clearCreatorError();
 		autofocusFirstKey = false;
-	}
-
-	function commitSavedLayouts(layouts: SavedCreatorLayout[], id: string): boolean {
-		if (!persistSavedLayouts(layouts)) {
-			saveError = 'Unable to save this layout in your browser. Your draft is still in the URL.';
-			flushCreatorUrl();
-			return false;
-		}
-		savedLayouts = layouts;
-		activeSavedId = id;
-		saveError = null;
-		return true;
-	}
-
-	function savedLayoutsForWrite(): SavedCreatorLayout[] {
-		return mergeSavedLayouts(savedLayouts, loadSavedLayouts());
 	}
 
 	function importSavedLayoutBackup(
 		importedLayouts: SavedCreatorLayout[],
 		mode: SavedLayoutsImportMode
 	): boolean {
-		const currentSnapshot = currentCreatorSnapshot();
-		const previousSaved = findSavedLayout(savedLayouts, activeSavedId);
-		const preserveDraft = isSavedLayoutDirty(currentSnapshot, previousSaved);
-		const merged = mergeSavedLayoutsBackup(savedLayoutsForWrite(), importedLayouts, mode);
-		if (!persistSavedLayouts(merged.layouts)) {
-			saveError = 'Unable to import layouts in this browser. Your current draft is unchanged.';
-			return false;
-		}
-
-		savedLayouts = merged.layouts;
-		saveError = null;
-		if (!activeSavedId) {
-			flushCreatorUrl();
-			return true;
-		}
-
-		const active = findSavedLayout(merged.layouts, activeSavedId);
-		if (!active) {
-			activeSavedId = null;
-			if (!preserveDraft) applyCreatorSnapshot(createDefaultCreatorSnapshot());
-		} else if (!preserveDraft && merged.importedIds.has(activeSavedId)) {
-			applyCreatorSnapshot(
-				creatorSnapshotFromContent(active.snapshot, {
-					preview: layoutPreview,
-					section: parseCreatorDetailSection(activeSection)
-				})
-			);
-		}
+		const result = session.importBackup(currentCreatorSnapshot(), importedLayouts, mode);
+		if (!result.ok) return false;
+		shareError = null;
+		if (result.snapshot) applyCreatorSnapshot(result.snapshot);
 		flushCreatorUrl();
 		return true;
 	}
 
 	function handleSavedLayoutsStorage(event: StorageEvent) {
 		if (event.key !== SAVED_LAYOUTS_STORAGE_KEY && event.key !== null) return;
-		const currentSnapshot = currentCreatorSnapshot();
-		const previousSaved = findSavedLayout(savedLayouts, activeSavedId);
-		const preserveAsUnsaved = isSavedLayoutDirty(currentSnapshot, previousSaved);
-		const nextLayouts = loadSavedLayouts();
-		savedLayouts = nextLayouts;
-		if (activeSavedId && !findSavedLayout(nextLayouts, activeSavedId)) {
-			activeSavedId = null;
-			if (!preserveAsUnsaved) applyCreatorSnapshot(createDefaultCreatorSnapshot());
-			flushCreatorUrl();
-		}
+		const result = session.syncStorage(currentCreatorSnapshot());
+		if (result.snapshot) applyCreatorSnapshot(result.snapshot);
+		if (result.activeRemoved) flushCreatorUrl();
 	}
 
 	function flushCreatorUrl() {
@@ -458,8 +402,8 @@
 		}
 		writeCreatorHistory(
 			currentCreatorSnapshot(),
-			activeSavedId,
-			findSavedLayout(savedLayouts, activeSavedId)?.snapshot ?? null
+			session.activeId,
+			session.activeLayout?.snapshot ?? null
 		);
 	}
 
@@ -501,8 +445,8 @@
 				pendingHistoryRetry = false;
 				writeCreatorHistory(
 					currentCreatorSnapshot(),
-					activeSavedId,
-					findSavedLayout(savedLayouts, activeSavedId)?.snapshot ?? null
+					session.activeId,
+					session.activeLayout?.snapshot ?? null
 				);
 			}, 0);
 		}
@@ -515,14 +459,12 @@
 		const sharedLayout = readCreatorShareFromSearch(page.url.searchParams);
 		if (sharedLayout) {
 			pendingSharedLayout = sharedLayout;
-			saveError = null;
+			clearCreatorError();
 			lastWrittenSearch = search;
 			return;
 		}
-		const session = resolveCreatorSession(page.url.searchParams, savedLayouts);
-		activeSavedId = session.savedId;
 		applyCreatorSnapshot(
-			session.snapshot,
+			session.restore(page.url.searchParams),
 			typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
 		);
 		lastWrittenSearch = search;
@@ -677,10 +619,11 @@
 		const url = buildCreatorShareUrl(currentCreatorSnapshot());
 		const copied = await copyTextToClipboard(url);
 		if (!copied) {
-			saveError = 'Unable to copy the share link. Copy the current URL from your browser instead.';
+			session.clearError();
+			shareError = 'Unable to copy the share link. Copy the current URL from your browser instead.';
 			return;
 		}
-		saveError = null;
+		clearCreatorError();
 		shareCopied = true;
 		if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
 		shareCopiedTimeout = setTimeout(() => {
@@ -714,16 +657,16 @@
 	}
 
 	function openSavedLayout(saved: SavedCreatorLayout) {
-		activeSavedId = saved.id;
-		applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
-		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		const snapshot = session.open(saved.id);
+		if (!snapshot) return;
+		applyCreatorSnapshot(snapshot);
 		flushCreatorUrl();
 	}
 
 	function changeCreatorTab(value: LayoutCreatorTabValue) {
 		if (value === activeTab) return;
 		if (value === LAYOUT_CREATOR_NEW_TAB) return;
-		const saved = findSavedLayout(savedLayouts, value.slice('saved:'.length));
+		const saved = session.find(value.slice('saved:'.length));
 		if (!saved) return;
 		if (hasUnsavedCreatorChanges) {
 			pendingCreatorNavigation = {
@@ -736,36 +679,28 @@
 	}
 
 	function saveCurrentLayout() {
-		saveError = null;
-		const snapshot = currentCreatorSnapshot();
-		const input = { snapshot };
-		const layouts = savedLayoutsForWrite();
-		if (activeSavedId) {
-			const next = updateSavedLayout(layouts, activeSavedId, input);
-			if (!next) return;
-			if (!commitSavedLayouts(next, activeSavedId)) return;
-		} else {
-			const result = addSavedLayout(layouts, input);
-			if (!commitSavedLayouts(result.layouts, result.id)) return;
+		shareError = null;
+		if (!session.save(currentCreatorSnapshot())) {
+			if (session.error) flushCreatorUrl();
+			return;
 		}
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
 
 	function saveAsNewLayout() {
-		saveError = null;
-		const snapshot = currentCreatorSnapshot();
-		const result = addSavedLayout(savedLayoutsForWrite(), {
-			snapshot
-		});
-		if (!commitSavedLayouts(result.layouts, result.id)) return;
+		shareError = null;
+		if (!session.saveAsNew(currentCreatorSnapshot())) {
+			flushCreatorUrl();
+			return;
+		}
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
 
 	function closeSharedLayout() {
 		pendingSharedLayout = null;
-		saveError = null;
+		clearCreatorError();
 		flushCreatorUrl();
 	}
 
@@ -778,55 +713,44 @@
 			preview: true,
 			section: DEFAULT_LAYOUT_DETAIL_SECTION
 		});
-		const result = addSavedLayout(savedLayoutsForWrite(), { snapshot });
-		if (!commitSavedLayouts(result.layouts, result.id)) return;
-		const saved = findSavedLayout(result.layouts, result.id);
-		if (saved) applyCreatorSnapshot(snapshotForSavedLayoutView(saved.snapshot));
+		if (!session.saveAsNew(snapshot)) {
+			flushCreatorUrl();
+			return;
+		}
+		const savedSnapshot = session.open(session.activeId);
+		if (savedSnapshot) applyCreatorSnapshot(savedSnapshot);
 		pendingSharedLayout = null;
 		flushCreatorUrl();
 	}
 
 	function duplicateSavedLayout() {
-		saveError = null;
-		const snapshot = cloneCreatorSnapshot(currentCreatorSnapshot());
-		const layouts = savedLayoutsForWrite();
-		snapshot.name = nextDuplicatedLayoutName(
-			savedCreatorLayoutName(snapshot),
-			layouts.map((saved) => saved.name)
-		);
-		snapshot.preview = false;
-		const result = addSavedLayout(layouts, {
-			snapshot
-		});
-		if (!commitSavedLayouts(result.layouts, result.id)) return;
+		shareError = null;
+		const snapshot = session.duplicate(currentCreatorSnapshot());
+		if (!snapshot) {
+			flushCreatorUrl();
+			return;
+		}
 		applyCreatorSnapshot(snapshot);
-		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
 		flushCreatorUrl();
 	}
 
 	function undoSavedLayoutChanges() {
-		const saved = findSavedLayout(savedLayouts, activeSavedId);
-		if (!saved) return;
-		const next = creatorSnapshotFromContent(saved.snapshot, {
-			preview: layoutPreview,
-			section: parseCreatorDetailSection(activeSection)
-		});
-		applyCreatorSnapshot(next);
+		const snapshot = session.revert(currentCreatorSnapshot());
+		if (!snapshot) return;
+		applyCreatorSnapshot(snapshot);
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
 
 	function startNewLayoutNow() {
-		activeSavedId = null;
-		applyCreatorSnapshot(createDefaultCreatorSnapshot());
-		activeSection = DEFAULT_LAYOUT_DETAIL_SECTION;
+		applyCreatorSnapshot(session.startNew());
 		flushCreatorUrl();
 		layoutNameFocusEpoch += 1;
 	}
 
 	function startNewLayout() {
 		if (
-			!activeSavedId &&
+			!session.activeId &&
 			creatorSnapshotsEqual(currentCreatorSnapshot(), createDefaultCreatorSnapshot())
 		) {
 			return;
@@ -859,7 +783,7 @@
 			startNewLayoutNow();
 			return;
 		}
-		const saved = findSavedLayout(savedLayouts, navigation.savedId);
+		const saved = session.find(navigation.savedId);
 		if (saved) openSavedLayout(saved);
 		focusSelectedCreatorTab();
 	}
@@ -882,7 +806,7 @@
 	) {
 		if (event.key === 'Delete' || event.key === 'Backspace') {
 			event.preventDefault();
-			requestDeleteSavedLayout(saved.id, saved.id === activeSavedId ? layoutName : saved.name);
+			requestDeleteSavedLayout(saved.id, saved.id === session.activeId ? layoutName : saved.name);
 			return;
 		}
 		handleTabKeydown(event);
@@ -890,24 +814,11 @@
 
 	function confirmDeleteSavedLayout() {
 		if (!deleteSavedLayoutId) return;
-		const id = deleteSavedLayoutId;
-		const wasActive = activeSavedId === id;
-		const result = removeSavedLayout(savedLayoutsForWrite(), id);
-		if (!result.removed) {
-			closeDeleteSavedLayoutModal();
-			return;
-		}
-		if (!persistSavedLayouts(result.layouts)) {
-			saveError = 'Unable to delete this layout in your browser.';
-			closeDeleteSavedLayoutModal();
-			return;
-		}
-		savedLayouts = result.layouts;
-		saveError = null;
-		closeDeleteSavedLayoutModal(!wasActive);
-		if (!wasActive) return;
-		activeSavedId = null;
-		applyCreatorSnapshot(createDefaultCreatorSnapshot());
+		const result = session.delete(deleteSavedLayoutId);
+		if (result.ok) shareError = null;
+		closeDeleteSavedLayoutModal(!result.snapshot);
+		if (!result.ok || !result.snapshot) return;
+		applyCreatorSnapshot(result.snapshot);
 		flushCreatorUrl();
 		layoutNameFocusEpoch += 1;
 	}
@@ -945,12 +856,12 @@
 						<span
 							class="layout-creator-tab-delete"
 							aria-hidden="true"
-							title={`Delete layout ${saved.id === activeSavedId ? layoutName : saved.name}`}
+							title={`Delete layout ${saved.id === session.activeId ? layoutName : saved.name}`}
 							onclick={(event) => {
 								event.stopPropagation();
 								requestDeleteSavedLayout(
 									saved.id,
-									saved.id === activeSavedId ? layoutName : saved.name
+									saved.id === session.activeId ? layoutName : saved.name
 								);
 							}}
 						>
@@ -977,12 +888,12 @@
 				{/if}
 			{/snippet}
 		</Tabs>
-		{#if savedLayouts.length > 0}
+		{#if session.layouts.length > 0}
 			<button type="button" class="layout-creator-new" onclick={startNewLayout}>
 				+ New layout
 			</button>
 		{/if}
-		<LayoutBackupsMenu layouts={savedLayouts} onImport={importSavedLayoutBackup} />
+		<LayoutBackupsMenu layouts={session.layouts} onImport={importSavedLayoutBackup} />
 	</div>
 
 	<div id={PANEL_ID} class="layout-creator-panel" role="tabpanel" aria-labelledby={selectedTabId}>
@@ -1000,7 +911,7 @@
 				<label class="layout-creator-name-field">
 					<span class="layout-creator-name-label">Layout name</span>
 					<input
-						{@attach !activeSavedId && focusNewLayoutName}
+						{@attach !session.activeId && focusNewLayoutName}
 						type="text"
 						value={editor.name}
 						autocomplete="off"
@@ -1254,7 +1165,7 @@
 							Share
 						{/if}
 					</button>
-					{#if layoutPreview || activeSavedId}
+					{#if layoutPreview || session.activeId}
 						<button
 							type="button"
 							class="filter-reset-button layout-creator-action-button"
@@ -1371,7 +1282,7 @@
 							>
 								Duplicate layout
 							</button>
-						{:else if !activeSavedId}
+						{:else if !session.activeId}
 							<button
 								type="button"
 								class="filter-reset-button layout-creator-action-button"

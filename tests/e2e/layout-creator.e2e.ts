@@ -1093,3 +1093,69 @@ test('preview shows the author on the summary card as plain text', async ({ page
 	await expect(panel.getByText('cmini', { exact: true })).toBeVisible();
 	await expect(panel.getByRole('link', { name: 'cmini', exact: true })).toHaveCount(0);
 });
+
+test('resets a clean canvas when another tab removes its save, ignoring view-only changes', async ({
+	page,
+	context
+}) => {
+	await page.goto('/create?edit=1');
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await unsavedSaveButton(page).click();
+	await expect(page).toHaveURL(/(?:\?|&)id=/);
+	await page
+		.getByRole('tablist', { name: 'Layout detail sections' })
+		.getByRole('tab', { name: 'Layout test area' })
+		.click();
+	await expect(page).toHaveURL(/tab=test/);
+
+	const secondPage = await context.newPage();
+	await secondPage.goto('/create');
+	await expect(
+		savedLayoutTab(secondPage.getByRole('tablist', { name: 'Layout creations' }), 'Alpha')
+	).toBeVisible();
+	await secondPage.evaluate(() => localStorage.removeItem('emulayout:saved-layouts'));
+
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
+	await expect(page).toHaveURL('/create?edit=1');
+	await expect(unsavedSaveButton(page)).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Lock' })).toHaveCount(0);
+});
+
+test('retains the active save and dirty canvas when storage rejects deletion', async ({ page }) => {
+	await page.goto('/create?edit=1');
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha');
+	await unsavedSaveButton(page).click();
+	await expect(page).toHaveURL(/(?:\?|&)id=/);
+	const savedId = new URL(page.url()).searchParams.get('id');
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Alpha draft');
+	await page.evaluate(() => {
+		const removeItem = Storage.prototype.removeItem;
+		Storage.prototype.removeItem = function (key: string) {
+			if (key === 'emulayout:saved-layouts') {
+				throw new DOMException('Storage unavailable', 'QuotaExceededError');
+			}
+			return removeItem.call(this, key);
+		};
+	});
+	const tab = savedLayoutTab(
+		page.getByRole('tablist', { name: 'Layout creations' }),
+		'Alpha draft'
+	);
+	await tab.press('Delete');
+	await page
+		.getByRole('dialog', { name: 'Delete layout' })
+		.getByRole('button', { name: 'Delete' })
+		.click();
+
+	await expect(page.getByRole('alert')).toContainText('Unable to delete this layout');
+	await expect(tab).toHaveAttribute('aria-selected', 'true');
+	await expect(tab).toBeFocused();
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha draft');
+	await expect(page.getByRole('button', { name: 'Save changes', exact: true })).toBeVisible();
+	await expect(page).toHaveURL(/document=/);
+	expect(new URL(page.url()).searchParams.get('id')).toBe(savedId);
+	await page.reload();
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha draft');
+	await page.getByRole('button', { name: 'Undo changes' }).click();
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha');
+});

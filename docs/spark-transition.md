@@ -67,7 +67,7 @@ Retiring user-content compatibility is outside this cleanup.**
 
 Post-transition module organization is authorized: separate content from URL transport, isolate
 the legacy query reader, and separate document editing from validation. Session-state extraction
-and consolidation of repeated projections remain follow-up work.
+is complete; consolidation of repeated projections remains follow-up work.
 
 ## Step 1 boundaries (historical)
 
@@ -294,3 +294,26 @@ contract only; step 3 adds creator persistence of the original document.
 - Focused creator/import browser run: 29 passed before the backup fix; the affected backup test
   passed on recheck. The final full suite covers all 30 focused cases on the corrected code.
 - `bun run test:e2e --workers=1 --retries=1`: all 117 passed without retries.
+
+## Creator saved-layout session
+
+- `creatorSession.svelte.ts` owns reactive saved-layout collection, active identity, persistence
+  errors, dirty comparisons, and saved-layout transitions. `LayoutCreator.svelte` keeps the live
+  editor and UI/browser effects, applying replacement snapshots returned by the session.
+- Save, save-as-new, duplicate, delete, and backup import merge current storage before writing;
+  failed persistence leaves session identity, collection, and live content unchanged. External
+  storage removal and backup replacement preserve dirty drafts as unsaved canvases.
+- Existing persistence, URL, Spark document, and legacy compatibility formats are unchanged.
+  Repeated document projections remain a separate follow-up.
+- Added browser regressions for clean-save removal after view-only changes and failed deletion
+  retaining active identity, dirty content, keyboard focus, and reload recovery.
+- `bun run check`: passed with no errors or warnings. `bun test`: 530 passed.
+- Focused creator browser run: all 28 passed.
+- The first full browser run passed 118 tests and failed the lesson-dialog keyboard focus assertion.
+  Focus rechecks were intermittent (two passed and one failed in a three-repeat run); subsequent
+  comparisons passed 20 repeats on committed code and 10 on the refactor. No dialog or tab behavior
+  was changed as part of the session extraction.
+- Final `bun run test:e2e --workers=1 --retries=1`: completed successfully with 118 passed and
+  one flaky lesson-dialog focus test passing on retry. The intermittent focus assertion remains
+  a verification limitation, rather than a claimed clean first-attempt pass.
+- `bun run lint`: passed after the implementation and documentation updates.
