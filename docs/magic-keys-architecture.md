@@ -292,6 +292,12 @@ supported Magic profile (and optionally a default Repeat key):
 - layouts measured this way may still be playground-incompatible for deep-links;
 - Adaptive swaps are not included.
 
+The local scorer prepares ordered Repeat replacements followed by Magic replacements once per
+profile. It preserves sequential replacement semantics; these are not simultaneous substitutions.
+Per-layout key effort and travel distances are prepared before walking the corpus. Persistent-cache
+misses use a bounded worker pool; unsupported results remain cached, and geometry stays part of
+the cache identity. Parallel execution must preserve the exact compact metric arrays.
+
 Mana2 stats are imported from the same akl.gg stats/v1 object. For layouts with contextual rules,
 akl.gg computes the published Mana2 cells with the stored Magic/Repeat behavior applied. Adaptive
 swaps are not included.

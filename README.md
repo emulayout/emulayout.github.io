@@ -121,6 +121,12 @@ are computed locally from the catalog cache. Results persist in `.cache/cyanopha
 and are reused per key/finger map, Magic mappings, and geometry. Analyzer code or corpus-data
 changes invalidate the cache; names, owners, likes, and unrelated catalog changes do not.
 Unsupported results are cached too. Progress reports cached versus computed layouts after filtering.
+Cache misses are scored by at most four worker threads (bounded by available CPU parallelism).
+Threads start lazily, so a fully cached run does not load the scoring corpus or start workers.
+Concurrent identical inputs share a calculation; only the main thread writes the cache, with
+serialized checkpoints. Key geometry and travel distances are prepared once per calculation,
+and ordered Repeat/Magic replacements once per layout profile. Scoring semantics are unchanged.
+Cold-run progress includes elapsed time at each checkpoint and in each geometry's final summary.
 The first run populates the cache (existing published stats cannot safely seed it); completed work
 is checkpointed every 100 computations. Missing or malformed entries are recomputed.
 `--force` recomputes results as well as refreshing source inputs. To recompute without network
@@ -128,6 +134,15 @@ access, use `bun run ./bin/cyanophage-stats-sync.js --offline --recompute`.
 CI restores and saves this cache and always checks the analysis fingerprint instead of skipping
 solely because the catalog is unchanged. All generated `static/*.json` files are gitignored; CI
 checks both upstream sources hourly and regenerates/deploys only when published data changes.
+
+An October 9, 2026 local Bun benchmark scored the same 3,956 eligible layouts in both geometries
+without result-cache reuse. The previous sequential scorer took 184.33 seconds; prepared key
+measurements/replacements with four workers took 37.52 seconds (4.91× faster). All 7,912 compact
+results, including unsupported results, matched exactly. This measures scoring rather than
+network requests or cache/artifact writes; worker startup is included in the optimized measurement.
+The subsequent normal `bun run sync -- --all` completed in 63.07 seconds, including upstream
+updates and the scorer-fingerprint cache rebuild. A second normal run took 12.93 seconds, with
+3,961 hits and zero computations per geometry. These are local measurements, not CI guarantees.
 
 ### Common commands
 

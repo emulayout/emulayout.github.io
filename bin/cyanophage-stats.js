@@ -494,6 +494,32 @@ export function measureLayoutStats(
 		CYANOPHAGE_FINGER_STAT_KEYS.map((key) => [`distance-${key}`, 0])
 	);
 	let wordCount = 0;
+	// A finger starts at home for each word, then moves among this layout's key positions.
+	const positions = [
+		...FINGER_HOME_POSITIONS.map(([row, col]) => ({ row, col })),
+		...charMap.values()
+	];
+	const physicalPositions = positions.map(({ row, col }) =>
+		getPhysicalPosition(row, col, geometry)
+	);
+	const measurements = new Map();
+	let positionIndex = FINGER_HOME_POSITIONS.length;
+	for (const [char, pos] of charMap) {
+		const finger = getFinger(pos.row, pos.col);
+		const fingerKey = CYANOPHAGE_FINGER_ID_TO_KEY[finger];
+		const physical = physicalPositions[positionIndex];
+		measurements.set(char, {
+			...pos,
+			finger,
+			fingerKey,
+			distanceKey: `distance-${fingerKey}`,
+			effort: getEffort(effortGrid, pos.row, pos.col),
+			positionIndex,
+			distances: physicalPositions.map((previous) => physicalDistance(physical, previous))
+		});
+		positionIndex++;
+	}
+	const fingerPositions = FINGER_HOME_POSITIONS.map((_, index) => index);
 
 	for (const word in words) {
 		if (wordCount >= MAX_WORDS) break;
@@ -510,7 +536,8 @@ export function measureLayoutStats(
 			totalWordEffort += wordEffort[typedWord] * count;
 		}
 
-		const fingerPositions = FINGER_HOME_POSITIONS.map(([row, col]) => ({ row, col }));
+		for (let finger = 1; finger < fingerPositions.length; finger++)
+			fingerPositions[finger] = finger;
 		let prevChar = '';
 		let prevCol = -1;
 		let prevRow = -1;
@@ -522,8 +549,8 @@ export function measureLayoutStats(
 			const char = typedWord.charAt(i);
 			if (i > 0) prevChar = typedWord.charAt(i - 1);
 
-			const pos = getPosition(charMap, char);
-			if (!pos) continue;
+			const pos = measurements.get(char);
+			if (!pos || pos.col < 0) continue;
 
 			const { row, col } = pos;
 			if (i > 0) {
@@ -537,24 +564,15 @@ export function measureLayoutStats(
 				rh += count;
 			}
 
-			effortSum += count * getEffort(effortGrid, row, col);
+			effortSum += count * pos.effort;
 
-			const finger = getFinger(row, col);
-			const fingerKey = CYANOPHAGE_FINGER_ID_TO_KEY[finger];
+			const { finger, fingerKey } = pos;
 			if (fingerKey) {
 				fingerUsage[fingerKey] += count;
-
-				const previousPosition = fingerPositions[finger];
-				if (previousPosition) {
-					const distance =
-						physicalDistance(
-							getPhysicalPosition(row, col, geometry),
-							getPhysicalPosition(previousPosition.row, previousPosition.col, geometry)
-						) * count;
-					distanceSum += distance;
-					fingerDistance[`distance-${fingerKey}`] += distance;
-					fingerPositions[finger] = { row, col };
-				}
+				const distance = pos.distances[fingerPositions[finger]] * count;
+				distanceSum += distance;
+				fingerDistance[pos.distanceKey] += distance;
+				fingerPositions[finger] = pos.positionIndex;
 			}
 
 			if (i > 0 && prevCol >= 0) {

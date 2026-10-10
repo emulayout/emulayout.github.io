@@ -31,6 +31,64 @@ const input = {
 const stats = CYANOPHAGE_STAT_KEYS.map((_, index) => index);
 
 describe('persistent Cyanophage stats cache', () => {
+	test('shares concurrent misses, persists completed results, and retries failed computations', async () => {
+		const options = { directory: await temporaryDirectory(), fingerprint: 'async-v1' };
+		const cache = await openCyanophageStatsCache(options);
+		let calls = 0;
+		let release!: () => void;
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const compute = async () => {
+			calls++;
+			await gate;
+			return stats;
+		};
+		const first = cache.getOrComputeAsync(input, compute);
+		const duplicate = cache.getOrComputeAsync(input, compute);
+		release();
+		expect(await first).toEqual({ stats, cached: false });
+		expect(await duplicate).toEqual({ stats, cached: true });
+		expect(calls).toBe(1);
+		await cache.save();
+		const restored = await openCyanophageStatsCache(options);
+		expect(await restored.getOrComputeAsync(input, compute)).toEqual({ stats, cached: true });
+		expect(calls).toBe(1);
+		const other = { ...input, geometry: 'row-stagger' };
+		await expect(
+			cache.getOrComputeAsync(other, async () => {
+				throw Error('failed');
+			})
+		).rejects.toThrow('failed');
+		await expect(cache.getOrComputeAsync(other, async () => [NaN])).rejects.toThrow(
+			'Invalid Cyanophage'
+		);
+		expect(await cache.getOrComputeAsync(other, async () => null)).toEqual({
+			stats: null,
+			cached: false
+		});
+		expect(await cache.getOrComputeAsync(other, compute)).toEqual({ stats: null, cached: true });
+	});
+
+	test('force mode recomputes even concurrent duplicate inputs', async () => {
+		const cache = await openCyanophageStatsCache({
+			directory: await temporaryDirectory(),
+			fingerprint: 'v1',
+			force: true
+		});
+		let calls = 0;
+		const compute = async () => {
+			calls++;
+			return stats;
+		};
+		const results = await Promise.all([
+			cache.getOrComputeAsync(input, compute),
+			cache.getOrComputeAsync(input, compute)
+		]);
+		expect(calls).toBe(2);
+		expect(results.every((result) => !result.cached)).toBe(true);
+	});
+
 	test('preserves real corpus results for both geometries across a cold and warm run', async () => {
 		const options = {
 			directory: await temporaryDirectory(),

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
 	CYANOPHAGE_STAT_KEYS as BACKEND_CYANOPHAGE_STAT_KEYS,
 	buildCyanophageStats,
+	loadCyanophageData,
 	measureLayoutStats
 } from '../bin/cyanophage-stats.js';
 import {
@@ -11,8 +12,26 @@ import {
 } from '../bin/cyanophage-magic.js';
 import { CYANOPHAGE_STAT_KEYS as FRONTEND_CYANOPHAGE_STAT_KEYS } from '$lib/statsDerivation';
 import { isCyanophageCompatible, isCyanophageMeasurable } from '$lib/cyanophage';
+import corpusStats from './fixtures/cyanophage-corpus-stats.json';
 
 const ZERO_EFFORT_GRID = Array.from({ length: 4 }, () => Array(13).fill(0));
+
+test('retains pre-optimization full-corpus results for ordinary, Repeat, Magic, and thumb layouts', async () => {
+	const data = await loadCyanophageData();
+	for (const sample of corpusStats) {
+		const keys: Record<string, { row: number; col: number; finger: string }> = {};
+		for (const [char, key] of Object.entries(sample.keys)) {
+			if (key) keys[char] = key;
+		}
+		for (const geometry of ['column-stagger', 'row-stagger'] as const) {
+			expect(
+				buildCyanophageStats({ keys, geometry }, data, {
+					magicMappings: sample.magicMappings
+				})
+			).toEqual(sample.stats[geometry]);
+		}
+	}
+});
 
 describe('Cyanophage finger distance', () => {
 	test('keeps backend and frontend compact schemas aligned', () => {
@@ -75,6 +94,20 @@ describe('Cyanophage finger distance', () => {
 });
 
 describe('Cyanophage Magic / Repeat rewrite', () => {
+	test('prepared replacements retain ordered rewrites and Repeat-before-Magic behavior', () => {
+		const magicTable = { l: '@', s: 'c', c: 'r', r: '*' };
+		const prepared = prepareCyanophageContextualRewrite(
+			{ '*': { rules: magicTable } },
+			{ '*': {}, '@': {} }
+		);
+		expect(prepared).not.toBeNull();
+		for (const word of ['letter', 'scape', 'scrape', 'crr', 'jazz', 'sss', 'r*r*']) {
+			expect(prepared!.rewrite(word)).toBe(
+				rewriteCyanophageWord(word, { magicKey: '*', magicTable, repeatKey: '@' })
+			);
+		}
+	});
+
 	test('allows * and @ for offline measurement while playground stays incompatible', () => {
 		const sparse = {
 			q: { row: 0, col: 1 },

@@ -138,15 +138,28 @@ export function prepareCyanophageContextualRewrite(rawMappings, layoutKeys) {
 
 	if (!magicKey && !repeatKey) return null;
 
+	// Compile ordered replacements once; preserve Repeat-before-Magic and rule order.
+	const replacements = [
+		...(repeatKey
+			? Array.from(CYANOPHAGE_REPEAT_LETTERS, (letter) => [letter + letter, letter + repeatKey])
+			: []),
+		...(magicKey
+			? Object.entries(magicTable)
+					.filter(([, emit]) => emit)
+					.map(([letter, emit]) => [letter + emit, letter + magicKey])
+			: [])
+	];
 	/** @type {CyanophageContextualRewrite} */
 	const prepared = {
 		magicTable: magicKey ? magicTable : {},
-		rewrite: (word) =>
-			rewriteCyanophageWord(word, {
-				magicKey,
-				magicTable: magicKey ? magicTable : undefined,
-				repeatKey
-			})
+		rewrite: (word) => {
+			let modded = word;
+			for (let index = 0; index < replacements.length; index++) {
+				const [needle, emit] = replacements[index];
+				if (modded.includes(needle)) modded = modded.replaceAll(needle, emit);
+			}
+			return modded;
+		}
 	};
 	if (magicKey) prepared.magicKey = magicKey;
 	if (repeatKey) prepared.repeatKey = repeatKey;

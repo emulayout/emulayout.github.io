@@ -10,6 +10,7 @@ const CACHE_VERSION = 1;
 export const CYANOPHAGE_FINGERPRINT_FILES = [
 	'bin/cyanophage-stats.js',
 	'bin/cyanophage-magic.js',
+	'bin/cyanophage-stats-worker.js',
 	'bin/layout-features.js',
 	'src/lib/cyanophage.ts',
 	'bin/cyanophage-data/words-english.json',
@@ -48,6 +49,8 @@ export async function openCyanophageStatsCache({
 	const path = join(directory, 'stats-v1.json');
 	/** @type {Map<string, number[] | null>} */
 	const entries = new Map();
+	/** @type {Map<string, Promise<number[] | null>>} */
+	const pending = new Map();
 	try {
 		const stored = JSON.parse(await readFile(path, 'utf-8'));
 		if (
@@ -68,6 +71,24 @@ export async function openCyanophageStatsCache({
 		)
 			throw error;
 	}
+	/** @param {{ geometry: string, keys: unknown, magicMappings?: unknown }} input */
+	function inputKey(input) {
+		return createHash('sha256')
+			.update(
+				JSON.stringify({
+					geometry: input.geometry,
+					keys: input.keys,
+					magicMappings: input.magicMappings ?? null
+				})
+			)
+			.digest('hex');
+	}
+	/** @param {string} key @param {number[] | null} stats */
+	function store(key, stats) {
+		if (!validStats(stats)) throw new Error('Invalid Cyanophage computation result');
+		entries.set(key, stats);
+		return stats;
+	}
 	return {
 		/**
 		 * Hash the exact scorer inputs, preserving key/rule order. Names, owners,
@@ -76,20 +97,30 @@ export async function openCyanophageStatsCache({
 		 * @param {() => number[] | null} compute
 		 */
 		getOrCompute(input, compute) {
-			const key = createHash('sha256')
-				.update(
-					JSON.stringify({
-						geometry: input.geometry,
-						keys: input.keys,
-						magicMappings: input.magicMappings ?? null
-					})
-				)
-				.digest('hex');
+			const key = inputKey(input);
 			if (!force && entries.has(key)) return { stats: entries.get(key), cached: true };
-			const stats = compute();
-			if (!validStats(stats)) throw new Error('Invalid Cyanophage computation result');
-			entries.set(key, stats);
+			const stats = store(key, compute());
 			return { stats, cached: false };
+		},
+		/**
+		 * Share concurrent misses; workers never own or write the persistent cache.
+		 * @param {{ geometry: string, keys: unknown, magicMappings?: unknown }} input
+		 * @param {() => Promise<number[] | null>} compute
+		 */
+		async getOrComputeAsync(input, compute) {
+			const key = inputKey(input);
+			if (!force && entries.has(key)) return { stats: entries.get(key), cached: true };
+			const existing = !force && pending.get(key);
+			if (existing) return { stats: await existing, cached: true };
+			const calculation = Promise.resolve()
+				.then(compute)
+				.then((stats) => store(key, stats));
+			if (!force) pending.set(key, calculation);
+			try {
+				return { stats: await calculation, cached: false };
+			} finally {
+				if (!force) pending.delete(key);
+			}
 		},
 		async save() {
 			await mkdir(directory, { recursive: true });
