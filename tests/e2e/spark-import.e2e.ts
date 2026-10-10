@@ -50,7 +50,13 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	await input.pressSequentially('a;');
 	await expect(input).toHaveValue('ab');
 	await expect.poll(() => new URL(page.url()).searchParams.has('document')).toBe(true);
+	// The document may already exist while the debounced tab update is still pending.
+	await expect.poll(() => new URL(page.url()).searchParams.get('tab')).toBe('test');
 	await page.reload();
+	await expect(page.getByRole('tab', { name: 'Layout test area', exact: true })).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
 	await input.pressSequentially('a/');
 	await expect(input).toHaveValue('ai');
 	await trigger.click();
