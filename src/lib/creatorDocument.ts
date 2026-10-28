@@ -175,8 +175,11 @@ function decodeCreatorDocument(
 				(section) =>
 					strings(section, ['id', 'trigger', 'fallbackEmit']) &&
 					record(section) &&
-					['no-op', 'repeat-last', 'emit'].includes(String(section.fallbackKind)) &&
-					rows(section.rules, ['after', 'emit'])
+					['no-op', 'repeat-last', 'skip-repeat', 'emit'].includes(String(section.fallbackKind)) &&
+					rows(section.rules, ['after', 'emit']) &&
+					(section.rules as Record<string, unknown>[]).every(
+						(rule) => rule.wildcard === undefined || typeof rule.wildcard === 'boolean'
+					)
 			)
 		)
 			return null;

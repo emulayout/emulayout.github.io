@@ -431,3 +431,13 @@ they reuse validation and normalization. The larger old-format parser is the sep
   (`/create?edit=1`). A show-page **Edit layout** link opens that Edit canvas with the shown layout
   as the selected base. A bare `/create` link opens Preview of the default canvas. Saved-layout tabs
   come from local storage; `id` in the query selects one when it exists.
+
+## Wildcard Magic editing
+
+Each Magic row has a Context matching selector. Exact text preserves existing literal contexts.
+Wildcard mode uses `?` for one arbitrary Unicode character and backslash to escape a literal
+question mark or backslash. Imported Spark context arrays open in Wildcard mode. Invalid or
+unfinished patterns remain editable and survive document recovery, but are not executable.
+The “repeat two back” fallback stores Spark `skip_repeat` and uses the second most recent emitted
+character. These behaviors work in Edit, Preview, Typing practice, and Layout feel, with the same
+mapping checkboxes, keyboard previews, saves, backups, and shares as existing Magic rules.

@@ -1,3 +1,4 @@
+import { magicContextParts, type MagicContext } from './magicContext';
 import { validateSparkLayout, type SparkKey, type SparkMagic } from './sparkSchema';
 import type { KeyboardInputKey } from './keyboardInputConfig';
 import { validateChiralKeySource, isChiralCharacter, type ChiralKey } from './chiralKeys';
@@ -8,8 +9,8 @@ const MAX_IMPORT_COLUMN = 12;
 const MAX_IMPORT_ROW = 4;
 type LoweredMagicSection = {
 	trigger: string;
-	rules: { after: string; emit: string }[];
-	fallbackKind: 'no-op' | 'repeat-last' | 'emit';
+	rules: { after: MagicContext; emit: string }[];
+	fallbackKind: 'no-op' | 'repeat-last' | 'skip-repeat' | 'emit';
 	fallbackEmit: string;
 };
 function isSingleCharacter(value: unknown): value is string {
@@ -36,7 +37,7 @@ function sectionFor(
 function addMagicRule(
 	sections: Map<string, LoweredMagicSection>,
 	trigger: string,
-	after: string,
+	after: MagicContext,
 	emit: string,
 	warnings: Set<string>
 ) {
@@ -45,7 +46,12 @@ function addMagicRule(
 		return;
 	}
 	const section = sectionFor(sections, trigger);
-	if (section.rules.some((rule) => rule.after === after)) {
+	if (
+		section.rules.some(
+			(rule) =>
+				JSON.stringify(magicContextParts(rule.after)) === JSON.stringify(magicContextParts(after))
+		)
+	) {
 		warnings.add('overlapping Magic rules');
 		return;
 	}
@@ -147,6 +153,8 @@ function lowerSparkBehavior(
 		const section = sectionFor(sections, raw.key);
 		if (raw.default?.kind === 'repeat') {
 			section.fallbackKind = 'repeat-last';
+		} else if (raw.default?.kind === 'skip_repeat') {
+			section.fallbackKind = 'skip-repeat';
 		} else if (raw.default?.kind === 'char') {
 			section.fallbackKind = 'emit';
 			section.fallbackEmit = raw.default.char;
@@ -226,9 +234,11 @@ function lowerSparkBehavior(
 	for (const section of sections.values()) {
 		if (!section.rules.length && section.fallbackKind === 'no-op') continue;
 		mappings[section.trigger] = {
-			rules: Object.fromEntries(section.rules.map((rule) => [rule.after, rule.emit])),
-			...(section.fallbackKind === 'repeat-last'
-				? { fallback: 'repeat-last' as const }
+			rules: section.rules.some((rule) => typeof rule.after !== 'string')
+				? section.rules
+				: Object.fromEntries(section.rules.map((rule) => [rule.after as string, rule.emit])),
+			...(section.fallbackKind === 'repeat-last' || section.fallbackKind === 'skip-repeat'
+				? { fallback: section.fallbackKind }
 				: section.fallbackKind === 'emit'
 					? { fallback: { emit: section.fallbackEmit } }
 					: {})

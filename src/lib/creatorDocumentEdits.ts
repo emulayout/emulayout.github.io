@@ -2,7 +2,11 @@ import { creatorSparkKeys } from '$lib/creatorGeometry';
 import { compileSparkLayout } from '$lib/sparkCompiler';
 import { validateSparkLayout, type SparkLayout, type SparkMagic } from '$lib/sparkSchema';
 import { buildKeyboardInputConfig } from '$lib/keyboardInputConfig';
-import { magicDraftFromSource, adaptiveDraftFromSource } from '$lib/layoutCreatorMappings';
+import {
+	magicDraftFromSource,
+	adaptiveDraftFromSource,
+	creatorMagicContext
+} from '$lib/layoutCreatorMappings';
 import { chiralDraftFromSource } from '$lib/creatorChiralMappings';
 import type { CreatorContentSnapshot } from '$lib/creatorContent';
 
@@ -25,15 +29,18 @@ export function creatorSparkProjection(
 	magic.magic_keys = content.magicDraft.sections.flatMap((section) => {
 		const key = section.trigger.trim();
 		if (!character(key)) return [];
-		const rules = section.rules
-			.filter((rule) => rule.after && rule.emit)
-			.map(({ after, emit, sparkExtensions }) => ({ ...sparkExtensions, after, emit }));
+		const rules = section.rules.flatMap((rule) => {
+			const after = creatorMagicContext(rule);
+			return after && rule.emit ? [{ ...rule.sparkExtensions, after, emit: rule.emit }] : [];
+		});
 		const fallback =
 			section.fallbackKind === 'repeat-last'
 				? { kind: 'repeat' as const }
-				: section.fallbackKind === 'emit' && character(section.fallbackEmit)
-					? { kind: 'char' as const, char: section.fallbackEmit }
-					: undefined;
+				: section.fallbackKind === 'skip-repeat'
+					? { kind: 'skip_repeat' as const }
+					: section.fallbackKind === 'emit' && character(section.fallbackEmit)
+						? { kind: 'char' as const, char: section.fallbackEmit }
+						: undefined;
 		if (!rules.length && !fallback && !(section.fallbackKind === 'emit' && section.fallbackEmit))
 			return [];
 		return [
@@ -140,7 +147,8 @@ function reconcile<T extends Record<string, unknown>>(
 			merged.rules = merged.rules.map((rule) => {
 				if (!record(rule)) return rule;
 				const old = (entry.rules as unknown[]).find(
-					(original) => record(original) && original.after === rule.after
+					(original) =>
+						record(original) && JSON.stringify(original.after) === JSON.stringify(rule.after)
 				);
 				return record(old) ? { ...old, ...rule } : rule;
 			});
@@ -256,7 +264,10 @@ export function retainCreatorSourceExtensions(
 		};
 		for (const rule of section.rules) {
 			const old = before.rules.find((candidate) => candidate.id === rule.id);
-			const sourceRule = source?.rules?.find((candidate) => candidate.after === old?.after);
+			const sourceRule = source?.rules?.find(
+				(candidate) =>
+					old && JSON.stringify(candidate.after) === JSON.stringify(creatorMagicContext(old))
+			);
 			rule.sparkExtensions = { ...residue(sourceRule, ['after', 'emit']), ...rule.sparkExtensions };
 		}
 	}

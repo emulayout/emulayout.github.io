@@ -1,4 +1,10 @@
 import {
+	isMagicContext,
+	magicContextParts,
+	matchesMagicContext,
+	type MagicContext
+} from './magicContext';
+import {
 	magicFallbackMappingId,
 	magicRuleMappingId,
 	type DisabledInputMappingIds
@@ -10,25 +16,26 @@ import {
  * fixed text. Omitting it means `no-op`; spelling `no-op` out makes that
  * behavior explicit.
  */
-export type MagicKeyFallbackSource = 'repeat-last' | 'no-op' | { emit: string };
+export type MagicKeyFallbackSource = 'repeat-last' | 'skip-repeat' | 'no-op' | { emit: string };
 
 export type MagicKeyFallback =
 	| { kind: 'repeat-last' }
+	| { kind: 'skip-repeat' }
 	| { kind: 'no-op' }
 	| { kind: 'emit'; text: string };
 
 export type MagicKeyRules = Readonly<Record<string, string>>;
 
 export interface ExtendedMagicKeyTriggerSource {
-	rules: MagicKeyRules;
+	rules: MagicKeyRules | readonly CompiledMagicKeyRule[];
 	fallback?: MagicKeyFallbackSource;
 }
 
 /**
  * trigger key -> either a compact rule map or an extended trigger definition.
  *
- * Preceding sequences are strings rather than single characters so a future
- * rule such as `"th": "e"` does not require a storage or resolver change.
+ * Exact contexts use strings; extended rule arrays also retain wildcard contexts
+ * and source order. Compact string maps remain readable.
  */
 export type MagicKeyMappings = Readonly<
 	Record<string, MagicKeyRules | ExtendedMagicKeyTriggerSource>
@@ -40,7 +47,7 @@ export interface MagicKeySource {
 }
 
 export interface CompiledMagicKeyRule {
-	after: string;
+	after: MagicContext;
 	emit: string;
 }
 
@@ -76,7 +83,7 @@ function hasOwn(value: Record<string, unknown>, key: string): boolean {
 function isExtendedTriggerSource(
 	value: MagicKeyRules | ExtendedMagicKeyTriggerSource
 ): value is ExtendedMagicKeyTriggerSource {
-	return isRecord(value.rules);
+	return isRecord(value.rules) || Array.isArray(value.rules);
 }
 
 /** Whether a fallback produces output, as opposed to consuming the keypress. */
@@ -85,7 +92,7 @@ export function magicFallbackEmits(fallback: MagicKeyFallback | undefined): bool
 }
 
 function validateMagicKeyFallback(trigger: string, value: unknown): MagicKeyFallbackSource {
-	if (value === 'repeat-last' || value === 'no-op') return value;
+	if (value === 'repeat-last' || value === 'skip-repeat' || value === 'no-op') return value;
 	if (isRecord(value)) {
 		for (const key of Object.keys(value)) {
 			if (key !== 'emit') {
@@ -98,7 +105,7 @@ function validateMagicKeyFallback(trigger: string, value: unknown): MagicKeyFall
 		return { emit: value.emit };
 	}
 	throw new Error(
-		`Magic key "${trigger}" fallback must be "repeat-last", "no-op", or { "emit": "text" }`
+		`Magic key "${trigger}" fallback must be "repeat-last", "skip-repeat", "no-op", or { "emit": "text" }`
 	);
 }
 
@@ -106,7 +113,7 @@ function compileMagicKeyFallback(
 	source: MagicKeyFallbackSource | undefined
 ): MagicKeyFallback | undefined {
 	if (source === undefined) return undefined;
-	if (source === 'repeat-last') return { kind: 'repeat-last' };
+	if (source === 'repeat-last' || source === 'skip-repeat') return { kind: source };
 	if (source === 'no-op') return { kind: 'no-op' };
 	return { kind: 'emit', text: source.emit };
 }
@@ -129,10 +136,10 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 		}
 
 		const extended = hasOwn(rawTrigger, 'rules') || hasOwn(rawTrigger, 'fallback');
-		let rawRules: Record<string, unknown> = rawTrigger;
+		let rawRules: Record<string, unknown> | unknown[] = rawTrigger;
 		let fallback: MagicKeyFallbackSource | undefined;
 		if (extended) {
-			if (!isRecord(rawTrigger.rules)) {
+			if (!isRecord(rawTrigger.rules) && !Array.isArray(rawTrigger.rules)) {
 				throw new Error(`Magic key "${trigger}" rules must be an object`);
 			}
 			rawRules = rawTrigger.rules;
@@ -146,19 +153,32 @@ export function validateMagicKeyMappings(value: unknown): MagicKeyMappings {
 			}
 		}
 
-		const rules: Record<string, string> = Object.create(null);
-		for (const [after, emit] of Object.entries(rawRules)) {
-			if (!after) throw new Error(`Magic key "${trigger}" has an empty preceding sequence`);
-			if (typeof emit !== 'string' || !emit) {
-				throw new Error(`Magic key "${trigger}" rule "${after}" must emit nonempty text`);
-			}
-
-			rules[after] = emit;
-		}
-
-		if (Object.keys(rules).length === 0 && (fallback === undefined || fallback === 'no-op')) {
+		const entries = Array.isArray(rawRules)
+			? rawRules
+			: Object.entries(rawRules).map(([after, emit]) => ({ after, emit }));
+		const ruleList: CompiledMagicKeyRule[] = entries.map((rule) => {
+			if (
+				!isRecord(rule) ||
+				!isMagicContext(rule.after) ||
+				typeof rule.emit !== 'string' ||
+				!rule.emit
+			)
+				throw new Error(
+					`Magic key "${trigger}" must have a nonempty preceding sequence and emit nonempty text`
+				);
+			return {
+				after: typeof rule.after === 'string' ? rule.after : [...rule.after],
+				emit: rule.emit
+			};
+		});
+		if (!ruleList.length && (fallback === undefined || fallback === 'no-op'))
 			throw new Error(`Magic key "${trigger}" must have at least one rule or an emitting fallback`);
-		}
+		const rules = Array.isArray(rawRules)
+			? ruleList
+			: Object.assign(
+					Object.create(null),
+					Object.fromEntries(ruleList.map((rule) => [rule.after as string, rule.emit]))
+				);
 		mappings[trigger] = extended ? { rules, ...(fallback ? { fallback } : {}) } : rules;
 	}
 
@@ -179,15 +199,21 @@ export function compileMagicKeyMappings(value: unknown): MagicKeyProfile {
 		const fallback = compileMagicKeyFallback(extended ? rawTrigger.fallback : undefined);
 		const rules: CompiledMagicKeyRule[] = [];
 
-		for (const [after, emit] of Object.entries(rawRules)) {
+		for (const { after, emit } of magicRuleEntries(rawRules)) {
 			rules.push({ after, emit });
-			maxHistoryLength = Math.max(maxHistoryLength, Array.from(after).length);
+			maxHistoryLength = Math.max(maxHistoryLength, magicContextParts(after).length);
 		}
 
 		// Longest suffix wins if both a one-key and multi-key rule could match.
-		rules.sort((a, b) => Array.from(b.after).length - Array.from(a.after).length);
+		rules.sort(
+			(a, b) =>
+				magicContextParts(b.after).length - magicContextParts(a.after).length ||
+				magicContextParts(b.after).filter((part) => part !== null).length -
+					magicContextParts(a.after).filter((part) => part !== null).length
+		);
 		triggers[trigger] = { rules, ...(fallback ? { fallback } : {}) };
 		if (fallback?.kind === 'repeat-last') maxHistoryLength = Math.max(maxHistoryLength, 1);
+		if (fallback?.kind === 'skip-repeat') maxHistoryLength = Math.max(maxHistoryLength, 2);
 	}
 
 	return { triggers, maxHistoryLength };
@@ -207,15 +233,17 @@ export function resolveMagicKeyOutput(
 		const rule = trigger.rules.find(
 			({ after }) =>
 				!disabledMappingIds?.has(magicRuleMappingId(inputText, after)) &&
-				recentHistory.endsWith(after)
+				matchesMagicContext(recentHistory, after)
 		);
 		if (rule) return { text: rule.emit, matched: true };
 
 		const fallback = trigger.fallback;
 		if (fallback && !disabledMappingIds?.has(magicFallbackMappingId(inputText))) {
 			if (fallback.kind === 'emit') return { text: fallback.text, matched: true };
-			if (fallback.kind === 'repeat-last') {
-				const lastCharacter = Array.from(inputHistory).at(-1);
+			if (fallback.kind === 'repeat-last' || fallback.kind === 'skip-repeat') {
+				const lastCharacter = Array.from(inputHistory).at(
+					fallback.kind === 'skip-repeat' ? -2 : -1
+				);
 				if (lastCharacter !== undefined) return { text: lastCharacter, matched: true };
 			}
 		}
@@ -226,4 +254,12 @@ export function resolveMagicKeyOutput(
 	}
 
 	return { text: inputText, matched: false };
+}
+
+export function magicRuleEntries(
+	rules: MagicKeyRules | readonly CompiledMagicKeyRule[]
+): readonly CompiledMagicKeyRule[] {
+	return Array.isArray(rules)
+		? rules
+		: Object.entries(rules).map(([after, emit]) => ({ after, emit }));
 }

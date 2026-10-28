@@ -229,11 +229,11 @@ test('unknown Spark values drop only their smallest containing behavior', () => 
 	const original = {
 		keys: [],
 		magic: {
-			magic_keys: ['skip_repeat', 'some_future_kind'].map((kind) => ({
+			magic_keys: ['future_kind', 'some_future_kind'].map((kind) => ({
 				key: '*',
 				default: { kind },
 				rules: [
-					{ after: ['h', null], emit: 'x' },
+					{ after: ['h', {}], emit: 'x' },
 					{ after: { x: 1 }, emit: 'y' },
 					{ after: 'h', emit: 'e' }
 				]
@@ -258,13 +258,13 @@ test('unknown Spark values drop only their smallest containing behavior', () => 
 	]);
 	expect(dropped).toHaveLength(9);
 	expect(dropped.filter((drop) => drop.path.endsWith('.default'))).toHaveLength(2);
-	expect(dropped.some((drop) => drop.reason === 'skip magic')).toBe(true);
-	expect(compileSparkLayout(original).warnings).toContain('skip magic');
+	expect(dropped.some((drop) => drop.reason === 'unknown Magic outputs')).toBe(true);
+	expect(compileSparkLayout(original).warnings).toContain('unknown Magic outputs');
 });
 
-test('AKL imports surface omitted skip magic in the existing notice', () => {
+test('AKL imports surface omitted future Magic outputs in the existing notice', () => {
 	const source = layout();
-	source.magic.magic_keys[0].default = { kind: 'skip_repeat' };
+	source.magic.magic_keys[0].default = { kind: 'future_kind' };
 	const result = importAklTryPayload({
 		v: 1,
 		format: 'spark/1',
@@ -273,6 +273,6 @@ test('AKL imports surface omitted skip magic in the existing notice', () => {
 		layout: source
 	});
 	expect(result.snapshot).not.toBeNull();
-	expect(result.notice).toContain('without skip magic');
+	expect(result.notice).toContain('without unknown Magic outputs');
 	expect(result.snapshot?.sparkSource?.magic?.magic_keys?.[0].default).toBeUndefined();
 });

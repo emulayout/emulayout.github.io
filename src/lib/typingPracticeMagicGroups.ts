@@ -1,3 +1,4 @@
+import { matchesMagicContext, magicContextParts } from '$lib/magicContext';
 import { magicFallbackMappingId, magicRuleMappingId } from '$lib/inputMappingControls';
 import { resolveMagicKeyOutput, type MagicKeyProfile } from '$lib/magicKeys';
 import { resolveChiralKeyOutput } from '$lib/chiralKeys';
@@ -53,16 +54,17 @@ export function buildTypingPracticeMagicGroupIndexes(
 			const rule = definition.rules.find(
 				(candidate) =>
 					!disabledMappings.has(magicRuleMappingId(trigger, candidate.after)) &&
-					history.endsWith(candidate.after)
+					matchesMagicContext(history, candidate.after)
 			);
 			let start = boundary;
 			if (rule) {
-				start = boundary - Array.from(rule.after).length;
+				start = boundary - magicContextParts(rule.after).length;
 			} else if (
-				definition.fallback?.kind === 'repeat-last' &&
+				(definition.fallback?.kind === 'repeat-last' ||
+					definition.fallback?.kind === 'skip-repeat') &&
 				!disabledMappings.has(magicFallbackMappingId(trigger))
 			) {
-				start = boundary - 1;
+				start = boundary - (definition.fallback.kind === 'skip-repeat' ? 2 : 1);
 			}
 
 			const end = boundary + Array.from(result.text).length;

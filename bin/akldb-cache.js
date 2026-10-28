@@ -431,8 +431,8 @@ export async function hashCachedAkldbSources() {
 	const cached = await readCachedCatalog(akldbCachePath(AKLDB_SNAPSHOT_CACHE_FILE));
 	if (!cached) throw new Error(`AKLDB catalog cache is missing at ${AKLDB_CACHE_DIR}`);
 	const hash = createHash('sha256');
-	// Invalidate the old supplemental generation even when the source snapshot is unchanged.
-	hash.update('catalog-spark/1\n');
+	// Rebuild sanitized sidecars when supported Spark behavior changes, even with unchanged sources.
+	hash.update('catalog-spark/1:skip-magic/1\n');
 	hash.update(JSON.stringify(cached.snapshot.layouts));
 	hash.update('\n');
 	hash.update(JSON.stringify(cached.snapshot.manaLayouts));

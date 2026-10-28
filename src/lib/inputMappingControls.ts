@@ -1,3 +1,4 @@
+import type { MagicContext } from '$lib/magicContext';
 import type { AdaptiveSwapProfile, AdaptiveSwapRule } from '$lib/adaptiveSwaps';
 import { magicFallbackEmits, type MagicKeyProfile } from '$lib/magicKeys';
 
@@ -7,8 +8,8 @@ function mappingId(kind: string, parts: readonly string[]): string {
 	return JSON.stringify([kind, ...parts]);
 }
 
-export function magicRuleMappingId(trigger: string, after: string): string {
-	return mappingId('magic-rule', [trigger, after]);
+export function magicRuleMappingId(trigger: string, after: MagicContext): string {
+	return JSON.stringify(['magic-rule', trigger, after]);
 }
 
 export function magicFallbackMappingId(trigger: string): string {

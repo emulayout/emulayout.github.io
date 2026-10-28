@@ -80,3 +80,85 @@ test('imports pasted Spark keys and mappings, rejects invalid input, and preserv
 	expect(source.keys).toContainEqual({ char: '1', row: -1, col: 0, finger: 'LP' });
 	expect(source.magic.rules).toEqual([{ inputs: 'xy', output: 'z' }]);
 });
+
+test('edits wildcard Magic and skip repeat, previews output, and retains them after saving', async ({
+	page
+}) => {
+	await page.goto('/create?edit=1');
+	await page.getByRole('button', { name: 'Import', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: 'Import layout' });
+	await dialog.getByRole('radio', { name: 'Spark schema/1' }).check();
+	await dialog.getByRole('textbox', { name: 'Spark JSON' }).fill(
+		JSON.stringify({
+			keys: [
+				{ char: 'h', row: 1, col: 5, finger: 'RI' },
+				{ char: 'a', row: 1, col: 0, finger: 'LP' },
+				{ char: ';', row: 1, col: 9, finger: 'RP' },
+				{ char: '/', row: 2, col: 9, finger: 'RP' }
+			],
+			magic: {
+				magic_keys: [
+					{ key: ';', rules: [{ after: ['h', null], emit: 'h' }] },
+					{ key: '/', default: { kind: 'skip_repeat' } }
+				]
+			}
+		})
+	);
+	await expect(dialog.getByRole('status')).not.toContainText('without');
+	await dialog.getByRole('button', { name: 'Import', exact: true }).click();
+	const mappings = page.getByRole('region', { name: 'Magic key mappings', exact: true });
+	await expect(mappings.getByRole('textbox', { name: 'Preceding', exact: true })).toHaveValue('h?');
+	await expect(mappings.getByRole('combobox', { name: 'Context matching' })).toHaveValue(
+		'wildcard'
+	);
+	await expect(
+		mappings.getByRole('combobox', { name: 'Fallback', exact: true }).nth(1)
+	).toHaveValue('skip-repeat');
+	await page.getByRole('tab', { name: 'Layout test area', exact: true }).click();
+	const input = page.getByRole('textbox', { name: 'Layout test area', exact: true });
+	await input.pressSequentially('ha;');
+	await expect(input).toHaveValue('hah');
+	await input.press('Escape');
+	await input.pressSequentially('ha//');
+	await expect(input).toHaveValue('haha');
+	await mappings.getByRole('combobox', { name: 'Context matching' }).selectOption('exact');
+	await input.press('Escape');
+	await input.pressSequentially('ha;');
+	await expect(input).toHaveValue('ha');
+	await mappings.getByRole('combobox', { name: 'Context matching' }).selectOption('wildcard');
+	await mappings.getByRole('textbox', { name: 'Emit', exact: true }).fill('a');
+	await mappings
+		.getByRole('combobox', { name: 'Fallback', exact: true })
+		.nth(1)
+		.selectOption('repeat-last');
+	await mappings
+		.getByRole('combobox', { name: 'Fallback', exact: true })
+		.nth(1)
+		.selectOption('skip-repeat');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect.poll(() => new URL(page.url()).searchParams.has('id')).toBe(true);
+	await page.getByRole('button', { name: 'Lock', exact: true }).click();
+	await expect.poll(() => new URL(page.url()).searchParams.has('edit')).toBe(false);
+	await expect(page.getByText('repeat two back', { exact: true })).toBeVisible();
+	await input.pressSequentially('ha');
+	const keyboard = page
+		.getByRole('tabpanel', { name: 'Layout test area', exact: true })
+		.getByRole('img', { name: 'New layout keyboard preview' });
+	await expect(keyboard.locator('[data-key-char=";"]')).toHaveText('a');
+	await expect(keyboard.locator('[data-key-char="/"]')).toHaveText('h');
+	await input.pressSequentially(';');
+	await expect(input).toHaveValue('haa');
+	await input.press('Escape');
+	await input.pressSequentially('ha/');
+	await expect(input).toHaveValue('hah');
+	await page.reload();
+	await input.pressSequentially('ha;');
+	await expect(input).toHaveValue('haa');
+	await input.press('Escape');
+	await input.pressSequentially('ha/');
+	await expect(input).toHaveValue('hah');
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+	await expect(mappings.getByRole('combobox', { name: 'Context matching' })).toHaveValue(
+		'wildcard'
+	);
+});

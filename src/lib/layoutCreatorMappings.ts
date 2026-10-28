@@ -1,3 +1,5 @@
+import { parseMagicPattern, formatMagicContext, type MagicContext } from '$lib/magicContext';
+import { magicRuleEntries, type CompiledMagicKeyRule } from '$lib/magicKeys';
 import { createCreatorDraftId } from '$lib/creatorDraftId';
 import { compileSparkLayout } from '$lib/sparkCompiler';
 import type { AdaptiveSwapMappings, AdaptiveSwapSource } from '$lib/adaptiveSwaps';
@@ -28,10 +30,11 @@ export type CreatorMagicRule = {
 	sparkExtensions?: Record<string, unknown>;
 	id: string;
 	after: string;
+	wildcard?: boolean;
 	emit: string;
 };
 
-export type CreatorMagicFallbackKind = 'no-op' | 'repeat-last' | 'emit';
+export type CreatorMagicFallbackKind = 'no-op' | 'repeat-last' | 'skip-repeat' | 'emit';
 
 export type CreatorMagicSection = {
 	sparkExtensions?: Record<string, unknown>;
@@ -85,7 +88,8 @@ export function createCreatorMagicSection(trigger = CREATOR_MAGIC_KEY): CreatorM
 export function creatorMagicFallbackSource(
 	section: Pick<CreatorMagicSection, 'fallbackKind' | 'fallbackEmit'>
 ): MagicKeyFallbackSource | undefined {
-	if (section.fallbackKind === 'repeat-last') return 'repeat-last';
+	if (section.fallbackKind === 'repeat-last' || section.fallbackKind === 'skip-repeat')
+		return section.fallbackKind;
 	if (section.fallbackKind === 'emit' && section.fallbackEmit.trim()) {
 		return { emit: section.fallbackEmit };
 	}
@@ -162,14 +166,15 @@ function isExtendedTriggerSource(
 		return false;
 	}
 	const rules = value.rules;
-	return Boolean(rules) && typeof rules === 'object' && !Array.isArray(rules);
+	return Boolean(rules) && typeof rules === 'object';
 }
 
 function fallbackFieldsFromSource(fallback: MagicKeyFallbackSource | undefined): {
 	fallbackKind: CreatorMagicFallbackKind;
 	fallbackEmit: string;
 } {
-	if (fallback === 'repeat-last') return { fallbackKind: 'repeat-last', fallbackEmit: '' };
+	if (fallback === 'repeat-last' || fallback === 'skip-repeat')
+		return { fallbackKind: fallback, fallbackEmit: '' };
 	if (fallback && typeof fallback === 'object') {
 		return { fallbackKind: 'emit', fallbackEmit: fallback.emit };
 	}
@@ -184,9 +189,10 @@ export function magicDraftFromSource(source: MagicKeySource | undefined): Creato
 		const extended = isExtendedTriggerSource(rawTrigger);
 		const rulesMap = extended ? rawTrigger.rules : rawTrigger;
 		const fallback = extended ? rawTrigger.fallback : undefined;
-		const rules = Object.entries(rulesMap).map(([after, emit]) => ({
+		const rules = magicRuleEntries(rulesMap).map(({ after, emit }) => ({
 			id: createCreatorMappingId('magic-rule'),
-			after,
+			after: formatMagicContext(after),
+			...(typeof after === 'string' ? {} : { wildcard: true }),
 			emit
 		}));
 		sections.push({
@@ -373,7 +379,7 @@ function magicEmittedLetters(
 		const trigger = section.trigger.trim();
 		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 		for (const rule of section.rules) {
-			const after = rule.after;
+			const after = creatorMagicContext(rule);
 			if (!after || !rule.emit.trim() || disabledIds.has(magicRuleMappingId(trigger, after))) {
 				continue;
 			}
@@ -450,22 +456,23 @@ export function magicSourceFromDraft(
 ): MagicKeySource | undefined {
 	const byTrigger = new Map<
 		string,
-		{ rules: Record<string, string>; fallback?: MagicKeyFallbackSource }
+		{ rules: CompiledMagicKeyRule[]; fallback?: MagicKeyFallbackSource }
 	>();
 
 	for (const section of draft.sections) {
 		const trigger = section.trigger.trim();
 		if (!trigger || creatorMagicTriggerError(trigger, availableKeys)) continue;
 
-		const current = byTrigger.get(trigger) ?? { rules: {} };
-		const seen = new Set(Object.keys(current.rules));
+		const current = byTrigger.get(trigger) ?? { rules: [] };
+		const seen = new Set(current.rules.map((rule) => JSON.stringify(rule.after)));
 		for (const rule of section.rules) {
-			const after = rule.after;
+			const after = creatorMagicContext(rule);
 			const emit = rule.emit;
 			if (!after || !emit.trim()) continue;
-			if (seen.has(after) || current.rules[after] !== undefined) continue;
-			seen.add(after);
-			current.rules[after] = emit;
+			const identity = JSON.stringify(after);
+			if (seen.has(identity)) continue;
+			seen.add(identity);
+			current.rules.push({ after, emit });
 		}
 
 		const fallback = creatorMagicFallbackSource(section);
@@ -475,8 +482,14 @@ export function magicSourceFromDraft(
 
 	const mappings: Record<string, MagicKeyRules | ExtendedMagicKeyTriggerSource> = {};
 	for (const [trigger, { rules, fallback }] of byTrigger) {
-		if (Object.keys(rules).length === 0 && !fallback) continue;
-		mappings[trigger] = fallback ? { rules, fallback } : rules;
+		if (!rules.length && !fallback) continue;
+		const storedRules = rules.some((rule) => typeof rule.after !== 'string')
+			? rules
+			: Object.fromEntries(rules.map((rule) => [rule.after as string, rule.emit]));
+		mappings[trigger] =
+			fallback || Array.isArray(storedRules)
+				? { rules: storedRules, ...(fallback ? { fallback } : {}) }
+				: storedRules;
 	}
 	return Object.keys(mappings).length > 0 ? { mappings } : undefined;
 }
@@ -589,4 +602,10 @@ export function compileCreatorInputProfile(
 		chiralKeys: chiralProfile.chiralKeys,
 		maxHistoryLength: Math.max(1, combined?.maxHistoryLength ?? 0)
 	};
+}
+
+export function creatorMagicContext(
+	rule: Pick<CreatorMagicRule, 'after' | 'wildcard'>
+): MagicContext | null {
+	return rule.wildcard ? parseMagicPattern(rule.after) : rule.after || null;
 }

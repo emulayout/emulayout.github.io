@@ -347,7 +347,7 @@ contract only; step 3 adds creator persistence of the original document.
 
 `validateSparkLayout` returns `{ layout, dropped }`: an independent cleaned clone and
 path/reason diagnostics. Unknown Magic default and chiral-side kinds are removed; Magic rules
-with non-string contexts are dropped; chiral keys with `skip: true` are dropped because ignoring
+with unsupported context shapes are dropped; chiral keys with `skip: true` are dropped because ignoring
 that field would change their meaning. Supported siblings and extension fields survive.
 Malformed structure (including missing keys, invalid known outputs, and duplicate positions)
 still throws. The compiler includes dropped-value reasons in existing import omission notices.
@@ -355,3 +355,8 @@ still throws. The compiler includes dropped-value reasons in existing import omi
 AKLDB ingestion isolates malformed Spark records, logs each skipped name, and counts accepted
 plus skipped records against metadata. Snapshot download/revision consistency checks remain.
 This supersedes the earlier all-or-nothing policy for individual malformed catalog records.
+
+Wildcard context arrays and `skip_repeat` Magic defaults now belong to the supported subset.
+The shared compiler preserves their source forms and lowers them into the same runtime used by
+creator and catalog previews. Creator recovery retains an optional wildcard mode on text drafts;
+complete rules still live in canonical Spark, without a document or storage version bump.

@@ -131,7 +131,7 @@ The inner key is `rules` rather than `mappings` so it does not collide with the 
 
 The importer rejects incomplete or inconsistent AKLDB snapshots before replacing the last good
 cached copy. Individual malformed records are logged and skipped. Unknown Magic defaults and
-chiral-side kinds, non-string Magic contexts, and skip chiral keys are omitted by shared Spark
+chiral-side kinds, unsupported Magic context shapes, and skip chiral keys are omitted by shared Spark
 validation; supported sibling behavior survives. Direct imports report these omissions. Runtime validation also rejects malformed or empty triggers, unusable rule sets or
 fallbacks, and empty contexts or outputs.
 
@@ -317,10 +317,37 @@ swaps are not included.
 - Compact metadata is authoritative for feature classification.
 - Magic and Adaptive presence always include mappings because both come from the same AKLDB snapshot.
 - Matching uses uninterrupted emitted history, never text near the caret.
-- The longest matching Magic preceding sequence wins.
+- The longest matching Magic preceding sequence wins, then the most literal positions; source order breaks remaining ties.
 - Adaptive swaps run before Magic, then native Chiral, then Repeat. The first matching contextual behavior wins.
 - Final output is inserted and added to history exactly once.
 - Filtering uses compact metadata rather than mapping details.
 - Analyzer metadata states independently which contextual behavior affected the result.
   Cyanophage may rewrite corpus words for Magic/Repeat; akl.gg applies stored Magic/Repeat behavior
   to its cmini and Mana2 cells.
+
+## Wildcard Magic and skip repeat
+
+Spark Magic contexts accept exact strings or nonempty arrays of single Unicode characters and
+`null`. Each `null` matches exactly one emitted character, including whitespace; insufficient
+history does not match. For example, `["h", null]` matches `ha` or `h😀` but not `h`.
+The runtime orders matches by context length, then number of literal positions, then source order.
+Exact strings remain literal: `h?` is not a wildcard. Mapping IDs preserve the context's shape,
+so disabling a wildcard does not disable a similarly displayed literal rule.
+
+Spark `default: { kind: "skip_repeat" }` lowers to the `skip-repeat` fallback. It emits the second
+most recent Unicode character, consumes the key without output when fewer than two characters
+exist, and loses to an enabled matching rule. Emitted output enters history normally, so `ha//`
+with skip-repeat `/` produces `haha`. Skip repeat remains a Magic behavior, including on `@`;
+it does not enable the conventional Repeat profile or its glyph.
+
+Keyboard output previews, next-key guidance, lesson grouping, and Feel planning reuse the shared
+resolver. Underlines include the entire wildcard context or the two-character skip-repeat context.
+Creator context matching explicitly chooses Exact text or Wildcard. In Wildcard mode, `?` means
+any one character and backslash escapes the next character; a trailing backslash is incomplete.
+The fallback menu labels skip repeat “repeat two back.” Canonical documents store Spark arrays
+and skip-repeat defaults; editor recovery retains the mode and incomplete pattern text. Existing
+literal drafts keep their interpretation. Unknown future values still produce omission diagnostics.
+
+Mana2 projection and analyzer behavior are unchanged; they do not acquire wildcard support through
+this client implementation. Catalog source hashes include the supported behavior revision so the
+scheduled skip-if-unchanged path rebuilds previously sanitized sidecars.

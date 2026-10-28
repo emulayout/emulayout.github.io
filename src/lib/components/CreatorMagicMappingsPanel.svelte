@@ -5,6 +5,8 @@
 		createCreatorMagicSection,
 		creatorMagicFallbackSource,
 		creatorMagicTriggerError,
+		creatorMagicContext,
+		type CreatorMagicRule,
 		type CreatorMagicDraft,
 		type CreatorMagicFallbackKind,
 		type CreatorMagicSection
@@ -13,6 +15,7 @@
 	const FALLBACK_OPTIONS: { value: CreatorMagicFallbackKind; label: string }[] = [
 		{ value: 'no-op', label: 'nothing' },
 		{ value: 'repeat-last', label: 'repeat previous' },
+		{ value: 'skip-repeat', label: 'repeat two back' },
 		{ value: 'emit', label: 'text' }
 	];
 
@@ -33,9 +36,9 @@
 	}: Props = $props();
 	const disabledIds = $derived(new Set(disabledMappingIds));
 
-	function compiledRuleId(trigger: string, after: string): string | null {
+	function compiledRuleId(trigger: string, rule: CreatorMagicRule): string | null {
 		const nextTrigger = trigger.trim();
-		const nextAfter = after.trim().toLowerCase();
+		const nextAfter = creatorMagicContext(rule);
 		if (!nextTrigger || !nextAfter || creatorMagicTriggerError(nextTrigger, availableKeys))
 			return null;
 		return magicRuleMappingId(nextTrigger, nextAfter);
@@ -57,7 +60,7 @@
 
 	function sectionMappingIds(section: CreatorMagicSection): string[] {
 		const ruleIds = section.rules.flatMap((rule) => {
-			const id = compiledRuleId(section.trigger, rule.after);
+			const id = compiledRuleId(section.trigger, rule);
 			return id ? [id] : [];
 		});
 		const fallbackId = compiledFallbackId(section);
@@ -112,7 +115,12 @@
 		});
 	}
 
-	function updateRule(sectionId: string, ruleId: string, field: 'after' | 'emit', value: string) {
+	function updateRule(
+		sectionId: string,
+		ruleId: string,
+		field: 'after' | 'emit' | 'wildcard',
+		value: string | boolean
+	) {
 		updateDraft({
 			...draft,
 			sections: draft.sections.map((section) =>
@@ -206,10 +214,35 @@
 				<p id={triggerErrorId} class="creator-mappings-error">{triggerError}</p>
 			{/if}
 
+			{#if section.rules.some((rule) => rule.wildcard)}
+				<p id={`magic-pattern-help-${section.id}`} class="creator-pattern-help">
+					Use ? for any one character. Escape a literal ? or \ with \. A trailing \ needs another
+					character.
+				</p>
+			{/if}
 			<table class="creator-mappings-list">
 				<tbody>
 					{#each section.rules as rule (rule.id)}
-						{@const mappingId = compiledRuleId(section.trigger, rule.after)}
+						{@const mappingId = compiledRuleId(section.trigger, rule)}
+						<tr
+							><td></td><td colspan="4">
+								<select
+									class="creator-mappings-field creator-context-mode"
+									aria-label="Context matching"
+									value={rule.wildcard ? 'wildcard' : 'exact'}
+									onchange={(event) =>
+										updateRule(
+											section.id,
+											rule.id,
+											'wildcard',
+											event.currentTarget.value === 'wildcard'
+										)}
+								>
+									<option value="exact">Exact text</option>
+									<option value="wildcard">Wildcard</option>
+								</select>
+							</td><td></td></tr
+						>
 						<tr
 							class="creator-mappings-row"
 							class:creator-mappings-row--disabled={mappingId !== null &&
@@ -232,6 +265,8 @@
 									size="1"
 									value={rule.after}
 									aria-label="Preceding"
+									aria-invalid={rule.after && !creatorMagicContext(rule) ? 'true' : undefined}
+									aria-describedby={rule.wildcard ? `magic-pattern-help-${section.id}` : undefined}
 									oninput={(event) =>
 										updateRule(section.id, rule.id, 'after', event.currentTarget.value)}
 								/>
@@ -321,6 +356,17 @@
 </section>
 
 <style>
+	.creator-context-mode {
+		width: auto;
+		font-family: var(--font-sans);
+		font-size: 0.75rem;
+	}
+	.creator-pattern-help {
+		grid-column: 1 / -1;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		margin: 0 0 0.5rem;
+	}
 	.creator-mappings-panel {
 		min-width: 0;
 		padding: 0.75rem;

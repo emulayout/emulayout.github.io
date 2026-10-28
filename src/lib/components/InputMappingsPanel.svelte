@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatMagicContext } from '$lib/magicContext';
 	import { chiralMappingId, chiralCharacterLabel, type ChiralOutput } from '$lib/chiralKeys';
 	const outputLabel = (output: ChiralOutput | undefined) =>
 		output?.kind === 'repeat'
@@ -122,9 +123,14 @@
 				<span>Magic key mappings</span>
 			</label>
 		{/if}
+		{#if triggerGroups.some( ([, definition]) => definition.rules.some( (rule) => Array.isArray(rule.after) ) )}
+			<p class="magic-pattern-help">
+				Wildcard contexts use ? for any one character; \ escapes a literal character.
+			</p>
+		{/if}
 		<div class="magic-key-mappings-list">
 			{#each triggerGroups as [trigger, definition] (trigger)}
-				{#each definition.rules as rule (rule.after)}
+				{#each definition.rules as rule (JSON.stringify(rule.after))}
 					{@const mappingId = magicRuleMappingId(trigger, rule.after)}
 					{#if readOnly}
 						<p
@@ -132,10 +138,14 @@
 							class:mapping-row--disabled={disabledIds.has(mappingId)}
 						>
 							<span class="magic-key-mapping">
-								<span>{rule.after}</span>
+								<span
+									>{formatMagicContext(rule.after)}{#if Array.isArray(rule.after)}<small
+											class="magic-context-kind">wildcard</small
+										>{/if}</span
+								>
 								<span class="mapping-trigger">{trigger}</span>
 								<span class="mapping-arrow" aria-hidden="true">→</span>
-								<span>{rule.after}{rule.emit}</span>
+								<span>{formatMagicContext(rule.after)}{rule.emit}</span>
 							</span>
 						</p>
 					{:else}
@@ -147,10 +157,14 @@
 								onchange={(event) => setMappingEnabled(mappingId, event.currentTarget.checked)}
 							/>
 							<span class="magic-key-mapping">
-								<span>{rule.after}</span>
+								<span
+									>{formatMagicContext(rule.after)}{#if Array.isArray(rule.after)}<small
+											class="magic-context-kind">wildcard</small
+										>{/if}</span
+								>
 								<span class="mapping-trigger">{trigger}</span>
 								<span class="mapping-arrow" aria-hidden="true">→</span>
-								<span>{rule.after}{rule.emit}</span>
+								<span>{formatMagicContext(rule.after)}{rule.emit}</span>
 							</span>
 						</label>
 					{/if}
@@ -178,7 +192,9 @@
 								<span>
 									{definition.fallback.kind === 'repeat-last'
 										? 'repeat previous'
-										: definition.fallback.text}
+										: definition.fallback.kind === 'skip-repeat'
+											? 'repeat two back'
+											: definition.fallback.text}
 								</span>
 							</span>
 						</p>
@@ -200,7 +216,9 @@
 								<span>
 									{definition.fallback.kind === 'repeat-last'
 										? 'repeat previous'
-										: definition.fallback.text}
+										: definition.fallback.kind === 'skip-repeat'
+											? 'repeat two back'
+											: definition.fallback.text}
 								</span>
 							</span>
 						</label>
@@ -287,6 +305,18 @@
 </section>
 
 <style>
+	.magic-context-kind {
+		display: block;
+		font-family: var(--font-sans);
+		font-size: 0.625rem;
+		line-height: 1;
+		color: var(--text-secondary);
+	}
+	.magic-pattern-help {
+		margin: 0 0 0.5rem;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
 	.chiral-mapping {
 		padding: 0.5rem 0;
 		font-size: 0.8125rem;

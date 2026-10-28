@@ -372,7 +372,7 @@ describe('magic-key resolution through the unified engine', () => {
 		expect(() => validateMagicKeyMappings({ '*': {} })).toThrow('must have at least one rule');
 		expect(() => validateMagicKeyMappings({ '*': { A: 'x', a: 'y' } })).not.toThrow();
 		expect(() => validateMagicKeyMappings({ '*': { rules: {}, fallback: 'unknown' } })).toThrow(
-			'fallback must be "repeat-last", "no-op", or { "emit": "text" }'
+			'fallback must be "repeat-last", "skip-repeat", "no-op", or { "emit": "text" }'
 		);
 		expect(() => validateMagicKeyMappings({ '*': { fallback: 'repeat-last' } })).toThrow(
 			'rules must be an object'

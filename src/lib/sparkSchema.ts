@@ -1,3 +1,4 @@
+import { isMagicContext, type MagicContext } from './magicContext';
 /** Spark schema/1 layout content. Transport metadata and editor state are separate. */
 export const SPARK_FORMAT = 'spark/1';
 export const SPARK_FINGERS = ['LP', 'LR', 'LM', 'LI', 'RI', 'RM', 'RR', 'RP', 'LT', 'RT'] as const;
@@ -12,8 +13,8 @@ export type SparkKey = Extensions & {
 export type SparkOutput = ({ kind: 'repeat' } | { kind: 'char'; char: string }) & Extensions;
 export type SparkMagicKey = Extensions & {
 	key: string;
-	default?: SparkOutput;
-	rules?: (Extensions & { after: string; emit: string })[];
+	default?: SparkOutput | ({ kind: 'skip_repeat' } & Extensions);
+	rules?: (Extensions & { after: MagicContext; emit: string })[];
 	except?: string[];
 };
 export type SparkChiralKey = Extensions & {
@@ -52,11 +53,15 @@ function array(value: unknown, path: string): unknown[] {
 	if (!Array.isArray(value)) throw new Error(`${path} must be an array`);
 	return value;
 }
-function output(value: unknown, path: string) {
+function output(value: unknown, path: string, allowSkipRepeat = false) {
 	record(value, path);
 	if (value.kind === 'char') character(value.char, `${path}.char`);
 	else if (typeof value.kind !== 'string') throw new Error(`${path} must be a tagged Magic value`);
-	return value.kind === 'char' || value.kind === 'repeat';
+	return (
+		value.kind === 'char' ||
+		value.kind === 'repeat' ||
+		(allowSkipRepeat && value.kind === 'skip_repeat')
+	);
 }
 function exceptions(value: unknown, path: string) {
 	if (value === undefined) return;
@@ -73,7 +78,7 @@ export function validateSparkLayout(value: unknown, path = 'Spark layout') {
 	record(value, path);
 	const dropped: SparkDrop[] = [];
 	function sanitizeOutput(entry: Record<string, unknown>, field: string, at: string) {
-		if (!output(entry[field], `${at}.${field}`)) {
+		if (!output(entry[field], `${at}.${field}`, field === 'default')) {
 			const kind = (entry[field] as Record<string, unknown>).kind;
 			dropped.push({
 				path: `${at}.${field}`,
@@ -133,11 +138,11 @@ export function validateSparkLayout(value: unknown, path = 'Spark layout') {
 							entry.rules = array(entry.rules, `${at}.rules`).filter((rule, index) => {
 								const ruleAt = `${at}.rules[${index}]`;
 								record(rule, ruleAt);
-								if (typeof rule.after !== 'string') {
+								if (typeof rule.after !== 'string' && !isMagicContext(rule.after)) {
 									dropped.push({ path: ruleAt, reason: 'unsupported Magic contexts' });
 									return false;
 								}
-								text(rule.after, `${ruleAt}.after`);
+								if (typeof rule.after === 'string') text(rule.after, `${ruleAt}.after`);
 								text(rule.emit, `${ruleAt}.emit`);
 								return true;
 							});
