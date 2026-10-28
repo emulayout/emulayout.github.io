@@ -161,7 +161,7 @@ export function reconcileCreatorSpark(content: CreatorContentSnapshot): SparkLay
 		let baseline = content.sparkEditorBaseline;
 		if (baseline) {
 			// Validate before editing: reconciliation must not repair malformed source input.
-			layout = validateSparkLayout(sparkSource);
+			layout = validateSparkLayout(sparkSource).layout;
 		} else {
 			const compiled = compileSparkLayout(sparkSource);
 			layout = compiled.document;

@@ -342,3 +342,16 @@ contract only; step 3 adds creator persistence of the original document.
   passes and two tests passing on retry (Quick Find Enter and lesson-dialog keyboard focus).
 - After the source-validation correction, all 32 focused creator/import browser tests passed
   without retries. No focus or interactive primitive changes were included.
+
+## Forward-compatible Spark ingestion
+
+`validateSparkLayout` returns `{ layout, dropped }`: an independent cleaned clone and
+path/reason diagnostics. Unknown Magic default and chiral-side kinds are removed; Magic rules
+with non-string contexts are dropped; chiral keys with `skip: true` are dropped because ignoring
+that field would change their meaning. Supported siblings and extension fields survive.
+Malformed structure (including missing keys, invalid known outputs, and duplicate positions)
+still throws. The compiler includes dropped-value reasons in existing import omission notices.
+
+AKLDB ingestion isolates malformed Spark records, logs each skipped name, and counts accepted
+plus skipped records against metadata. Snapshot download/revision consistency checks remain.
+This supersedes the earlier all-or-nothing policy for individual malformed catalog records.

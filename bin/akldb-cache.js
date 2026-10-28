@@ -87,11 +87,13 @@ function parseId(value, label) {
 	throw new Error(`${label} must be a decimal string`);
 }
 
-/** Shared structural validation preserves supported and unsupported source content.
+/** Shared validation removes unknown behavior values and reports omissions.
  * @param {unknown} value @param {string} label
  */
 function parseSparkPayload(value, label) {
-	return validateSparkLayout(value, label);
+	const { layout, dropped } = validateSparkLayout(value, label);
+	for (const drop of dropped) console.warn(`  ⚠ ${drop.path}: omitted ${drop.reason}`);
+	return layout;
 }
 
 /** @param {unknown} value @param {string} label @returns {AkldbManaMagic | undefined} */
@@ -127,85 +129,92 @@ function parseManaLayouts(json) {
 	}
 	const result = new Map();
 	for (const [index, item] of json.items.entries()) {
-		if (!isRecord(item) || typeof item.id !== 'string' || typeof item.name !== 'string') {
-			throw new Error(`AKLDB Mana2 layout ${index} must contain id and name`);
+		try {
+			if (!isRecord(item) || typeof item.id !== 'string' || typeof item.name !== 'string') {
+				throw new Error(`AKLDB Mana2 layout ${index} must contain id and name`);
+			}
+			if (result.has(item.id)) throw new Error(`AKLDB Mana2 payload repeats layout id ${item.id}`);
+			if (!isRecord(item.payload)) throw new Error(`AKLDB Mana2 layout ${item.name} lacks payload`);
+			result.set(item.id, {
+				name: item.name,
+				magic: parseManaMagic(item.payload.magic, `AKLDB Mana2 layout ${item.name}.magic`)
+			});
+		} catch (error) {
+			console.warn(`  ⚠ skipping AKLDB Mana2 layout ${index}: ${errorMessage(error)}`);
 		}
-		if (result.has(item.id)) throw new Error(`AKLDB Mana2 payload repeats layout id ${item.id}`);
-		if (!isRecord(item.payload)) throw new Error(`AKLDB Mana2 layout ${item.name} lacks payload`);
-		result.set(item.id, {
-			name: item.name,
-			magic: parseManaMagic(item.payload.magic, `AKLDB Mana2 layout ${item.name}.magic`)
-		});
 	}
 	return result;
 }
 
-/** @param {unknown} json @param {unknown} manaJson @returns {{ layouts: AkldbLayout[], skipped: 0 }} */
+/** @param {unknown} json @param {unknown} manaJson @returns {{ layouts: AkldbLayout[], skipped: number }} */
 export function parseAkldbLayouts(json, manaJson) {
 	if (!isRecord(json) || !Array.isArray(json.items)) {
 		throw new Error('AKLDB Spark layouts payload must contain an items array');
 	}
 	const manaById = parseManaLayouts(manaJson);
 	const seenNames = new Set();
-	const layouts = json.items.map((item, index) => {
-		const label = `AKLDB Spark layout ${index}`;
-		if (!isRecord(item)) throw new Error(`${label} must be an object`);
-		if (typeof item.id !== 'string' || !item.id) throw new Error(`${label}.id is required`);
-		if (typeof item.name !== 'string' || !item.name) throw new Error(`${label}.name is required`);
-		const lowerName = item.name.toLowerCase();
-		if (seenNames.has(lowerName)) throw new Error(`AKLDB repeats layout name ${item.name}`);
-		seenNames.add(lowerName);
-		if (item.format !== AKLDB_FORMAT) throw new Error(`${label} did not return ${AKLDB_FORMAT}`);
-		if (!isRecord(item.formats) || !isRecord(item.formats[AKLDB_FORMAT])) {
-			throw new Error(`${label} has no stored ${AKLDB_FORMAT} metadata`);
+	let skipped = 0;
+	const layouts = [];
+	for (const [index, item] of json.items.entries()) {
+		try {
+			const label = `AKLDB Spark layout ${index}`;
+			if (!isRecord(item)) throw new Error(`${label} must be an object`);
+			if (typeof item.id !== 'string' || !item.id) throw new Error(`${label}.id is required`);
+			if (typeof item.name !== 'string' || !item.name) throw new Error(`${label}.name is required`);
+			const lowerName = item.name.toLowerCase();
+			if (seenNames.has(lowerName)) throw new Error(`AKLDB repeats layout name ${item.name}`);
+			seenNames.add(lowerName);
+			if (item.format !== AKLDB_FORMAT) throw new Error(`${label} did not return ${AKLDB_FORMAT}`);
+			if (!isRecord(item.formats) || !isRecord(item.formats[AKLDB_FORMAT])) {
+				throw new Error(`${label} has no stored ${AKLDB_FORMAT} metadata`);
+			}
+			const formatMeta = /** @type {Record<string, unknown>} */ (item.formats[AKLDB_FORMAT]);
+			const createdAt = parseTimestamp(item.created_at, `${label}.created_at`);
+			const modifiedAt = parseTimestamp(item.modified_at, `${label}.modified_at`);
+			const formatModifiedAt = parseTimestamp(
+				formatMeta.modified_at,
+				`${label}.formats[${AKLDB_FORMAT}].modified_at`
+			);
+			if (!isRecord(item.payload)) throw new Error(`${label}.payload must be an object`);
+			const payload = parseSparkPayload(item.payload, `${label}.payload`);
+			if (!Array.isArray(item.likes)) throw new Error(`${label}.likes must be an array`);
+			const likes = item.likes.map((id, likeIndex) => parseId(id, `${label}.likes[${likeIndex}]`));
+			if (!Number.isInteger(item.like_count) || item.like_count !== likes.length) {
+				throw new Error(`${label}.like_count must match likes`);
+			}
+			if (!Number.isInteger(item.layout_rev) || /** @type {number} */ (item.layout_rev) < 1) {
+				throw new Error(`${label}.layout_rev must be a positive integer`);
+			}
+			if (item.link !== null && typeof item.link !== 'string') {
+				throw new Error(`${label}.link must be a string or null`);
+			}
+			const mana = manaById.get(item.id);
+			if (!mana) throw new Error(`${label} is absent from the Mana2 projection`);
+			if (mana.name !== item.name) {
+				throw new Error(`${label} disagrees with the Mana2 layout name ${mana.name}`);
+			}
+			layouts.push({
+				id: item.id,
+				name: item.name,
+				owner: parseId(item.owner, `${label}.owner`),
+				layoutRev: /** @type {number} */ (item.layout_rev),
+				createdAt,
+				modifiedAt,
+				formatModifiedAt,
+				...payload,
+				manaMagic: mana.magic,
+				spark: payload,
+				likes,
+				likeCount: /** @type {number} */ (item.like_count),
+				link: /** @type {string | null} */ (item.link)
+			});
+		} catch (error) {
+			skipped++;
+			const name = isRecord(item) && typeof item.name === 'string' ? item.name : index;
+			console.warn(`  ⚠ skipping AKLDB layout ${name}: ${errorMessage(error)}`);
 		}
-		const formatMeta = /** @type {Record<string, unknown>} */ (item.formats[AKLDB_FORMAT]);
-		const createdAt = parseTimestamp(item.created_at, `${label}.created_at`);
-		const modifiedAt = parseTimestamp(item.modified_at, `${label}.modified_at`);
-		const formatModifiedAt = parseTimestamp(
-			formatMeta.modified_at,
-			`${label}.formats[${AKLDB_FORMAT}].modified_at`
-		);
-		if (!isRecord(item.payload)) throw new Error(`${label}.payload must be an object`);
-		const payload = parseSparkPayload(item.payload, `${label}.payload`);
-		if (!Array.isArray(item.likes)) throw new Error(`${label}.likes must be an array`);
-		const likes = item.likes.map((id, likeIndex) => parseId(id, `${label}.likes[${likeIndex}]`));
-		if (!Number.isInteger(item.like_count) || item.like_count !== likes.length) {
-			throw new Error(`${label}.like_count must match likes`);
-		}
-		if (!Number.isInteger(item.layout_rev) || /** @type {number} */ (item.layout_rev) < 1) {
-			throw new Error(`${label}.layout_rev must be a positive integer`);
-		}
-		if (item.link !== null && typeof item.link !== 'string') {
-			throw new Error(`${label}.link must be a string or null`);
-		}
-		const mana = manaById.get(item.id);
-		if (!mana) throw new Error(`${label} is absent from the Mana2 projection`);
-		if (mana.name !== item.name) {
-			throw new Error(`${label} disagrees with the Mana2 layout name ${mana.name}`);
-		}
-		return {
-			id: item.id,
-			name: item.name,
-			owner: parseId(item.owner, `${label}.owner`),
-			layoutRev: /** @type {number} */ (item.layout_rev),
-			createdAt,
-			modifiedAt,
-			formatModifiedAt,
-			...payload,
-			manaMagic: mana.magic,
-			spark: payload,
-			likes,
-			likeCount: /** @type {number} */ (item.like_count),
-			link: /** @type {string | null} */ (item.link)
-		};
-	});
-	if (manaById.size !== layouts.length) {
-		throw new Error(
-			`AKLDB format projections disagree: ${layouts.length} Spark layouts, ${manaById.size} Mana2 layouts`
-		);
 	}
-	return { layouts, skipped: 0 };
+	return { layouts, skipped };
 }
 
 /** @param {unknown} json @returns {Record<string, string>} */
@@ -360,8 +369,15 @@ export async function ensureAkldbCatalog(options = {}) {
 			fetchJson(AKLDB_MANA_LAYOUTS_URL, fetchOptions),
 			fetchJson(AKLDB_AUTHORS_URL, fetchOptions)
 		]);
+		if (
+			!isRecord(manaLayouts) ||
+			!Array.isArray(manaLayouts.items) ||
+			manaLayouts.items.length !== meta.layout_count
+		) {
+			throw new Error('AKLDB meta layout count does not match the downloaded Mana2 projection');
+		}
 		const parsed = parseAkldbCatalog(layouts, manaLayouts, authors);
-		if (parsed.layouts.layouts.length !== meta.layout_count) {
+		if (parsed.layouts.layouts.length + parsed.layouts.skipped !== meta.layout_count) {
 			throw new Error('AKLDB meta layout count does not match the downloaded catalog');
 		}
 		if (Object.keys(parsed.authors).length !== meta.author_count) {

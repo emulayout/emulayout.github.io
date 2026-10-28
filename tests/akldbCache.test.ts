@@ -118,24 +118,17 @@ describe('AKLDB parsing', () => {
 		});
 	});
 
-	test('rejects mismatched projections and unsafe numeric ids', () => {
-		expect(() =>
-			parseAkldbCatalog({ items: [sparkLayout()] }, { items: [] }, { author: '1' })
-		).toThrow('absent from the Mana2 projection');
-		expect(() =>
-			parseAkldbCatalog(
-				{ items: [sparkLayout()] },
-				{ items: [manaLayout({ name: 'other' })] },
-				{ author: '1' }
-			)
-		).toThrow('disagrees with the Mana2 layout name');
-		expect(() =>
-			parseAkldbCatalog(
-				{ items: [sparkLayout({ owner: 9007199254740992 })] },
-				{ items: [manaLayout()] },
-				{ author: '1' }
-			)
-		).toThrow('decimal string');
+	test('isolates mismatched projections and unsafe numeric ids', () => {
+		for (const [spark, mana] of [
+			[[sparkLayout()], []],
+			[[sparkLayout()], [manaLayout({ name: 'other' })]],
+			[[sparkLayout({ owner: 9007199254740992 })], [manaLayout()]]
+		]) {
+			expect(parseAkldbCatalog({ items: spark }, { items: mana }, {}).layouts).toEqual({
+				layouts: [],
+				skipped: 1
+			});
+		}
 	});
 
 	test('rejects unsupported API majors and missing Spark', () => {
@@ -206,4 +199,53 @@ test('catalog preserves unsupported raw deletion rules and extension fields as S
 		{}
 	);
 	expect(parsed.layouts.layouts[0].spark).toEqual(payload);
+});
+
+test('a malformed record does not block a coordinated snapshot or its offline reuse', async () => {
+	const directory = await mkdtemp(join(tmpdir(), 'emulayout-akldb-'));
+	temporaryDirectories.push(directory);
+	const snapshotPath = join(directory, 'catalog.json');
+	const bodies = new Map<string, unknown>([
+		[AKLDB_META_URL, meta({ layout_count: 2 })],
+		[
+			AKLDB_LAYOUTS_URL,
+			{ items: [sparkLayout({ id: 'bad', name: 'broken', payload: {} }), sparkLayout()] }
+		],
+		[AKLDB_MANA_LAYOUTS_URL, { items: [manaLayout({ id: 'bad', name: 'broken' }), manaLayout()] }],
+		[AKLDB_AUTHORS_URL, { author: '1' }]
+	]);
+	const fetchImpl = (async (url: string | URL | Request) =>
+		new Response(JSON.stringify(bodies.get(String(url))))) as typeof fetch;
+	const downloaded = await ensureAkldbCatalog({ snapshotPath, fetchImpl });
+	expect(downloaded.updated).toBe(true);
+	expect(downloaded.json.layouts.skipped).toBe(1);
+	expect(downloaded.json.layouts.layouts.map((layout) => layout.name)).toEqual(['example']);
+	const offline = await ensureAkldbCatalog({ snapshotPath, offline: true });
+	expect(offline.json.layouts).toEqual(downloaded.json.layouts);
+	bodies.set(AKLDB_MANA_LAYOUTS_URL, { items: [manaLayout()] });
+	const incomplete = await ensureAkldbCatalog({ snapshotPath, fetchImpl, force: true });
+	expect(incomplete.fromCache).toBe(true);
+	expect(incomplete.updated).toBe(false);
+	expect(incomplete.json.layouts).toEqual(downloaded.json.layouts);
+});
+
+test('a malformed Mana2 record does not block other Spark records', () => {
+	const result = parseAkldbCatalog(
+		{ items: [sparkLayout({ id: 'bad', name: 'broken' }), sparkLayout()] },
+		{ items: [manaLayout({ id: 'bad', name: 'broken', payload: {} }), manaLayout()] },
+		{}
+	);
+	expect(result.layouts.layouts).toHaveLength(2);
+	const malformed = parseAkldbCatalog(
+		{ items: [sparkLayout({ id: 'bad', name: 'broken' }), sparkLayout()] },
+		{
+			items: [
+				manaLayout({ id: 'bad', name: 'broken', payload: { magic: { rules: 'invalid' } } }),
+				manaLayout()
+			]
+		},
+		{}
+	);
+	expect(malformed.layouts.skipped).toBe(1);
+	expect(malformed.layouts.layouts.map((entry) => entry.name)).toEqual(['example']);
 });

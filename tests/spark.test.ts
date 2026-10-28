@@ -60,7 +60,6 @@ test('shared validation rejects malformed known fields with paths', () => {
 		{ keys: [valid.keys[0], valid.keys[0]] },
 		{ keys: [], magic: { magic_keys: [{ key: ';', default: { kind: 'char', char: 'word' } }] } },
 		{ keys: [], magic: { magic_keys: [{ key: ';', rules: [{ after: '', emit: 'x' }] }] } },
-		{ keys: [], magic: { chiral_keys: [{ key: '/', opposite: { kind: 'other' } }] } },
 		{ keys: [], magic: { adaptive_swaps: [{ trigger: 'n', swap: ['h'] }] } },
 		{ keys: [], magic: { rules: [{ inputs: 'ab', output: 1 }] } },
 		{ keys: [], magic: { rules: null } }
@@ -91,7 +90,7 @@ test('source content and extension fields survive compilation unchanged and inde
 	};
 	const before = JSON.stringify(original);
 	const result = compileSparkLayout(original);
-	expect(result.document).toEqual(validateSparkLayout(original));
+	expect(result.document).toEqual(validateSparkLayout(original).layout);
 	expect(JSON.stringify(original)).toBe(before);
 	expect(result.warnings).toEqual(
 		expect.arrayContaining([
@@ -175,7 +174,7 @@ test('unsupported conflicts are reported without corrupting supported behavior',
 test('catalog, imports, and creator seeding preserve literal whitespace contexts', () => {
 	const document = layout();
 	document.magic.magic_keys[0].rules = [{ after: ' a', emit: 'x' }];
-	const transport = { format: 'spark/1' as const, layout: validateSparkLayout(document) };
+	const transport = { format: 'spark/1' as const, layout: validateSparkLayout(document).layout };
 	const compiled = compileSparkLayout(document);
 	const keys = Object.fromEntries(document.keys.map((key) => [key.char, key]));
 	const catalog = compileLayoutInputRegistry({ example: transport }, [
@@ -224,4 +223,56 @@ test('Spark claims suppress bare Repeat while conventional declarations retain i
 		magic: { magic_keys: [{ key: '@' }] }
 	});
 	expect(claimed.profile?.repeatKey).toBeUndefined();
+});
+
+test('unknown Spark values drop only their smallest containing behavior', () => {
+	const original = {
+		keys: [],
+		magic: {
+			magic_keys: ['skip_repeat', 'some_future_kind'].map((kind) => ({
+				key: '*',
+				default: { kind },
+				rules: [
+					{ after: ['h', null], emit: 'x' },
+					{ after: { x: 1 }, emit: 'y' },
+					{ after: 'h', emit: 'e' }
+				]
+			})),
+			chiral_keys: [
+				{ key: '/', skip: true, same: { kind: 'repeat' } },
+				{ key: '#', same: { kind: 'future' }, opposite: { kind: 'char', char: 'e' } },
+				{ key: '&', same: { kind: 'repeat' }, opposite: { kind: 'future' } }
+			]
+		}
+	};
+	const before = structuredClone(original);
+	const { layout: cleaned, dropped } = validateSparkLayout(original);
+	expect(original).toEqual(before);
+	expect(cleaned.magic?.magic_keys).toEqual([
+		{ key: '*', rules: [{ after: 'h', emit: 'e' }] },
+		{ key: '*', rules: [{ after: 'h', emit: 'e' }] }
+	]);
+	expect(cleaned.magic?.chiral_keys).toEqual([
+		{ key: '#', opposite: { kind: 'char', char: 'e' } },
+		{ key: '&', same: { kind: 'repeat' } }
+	]);
+	expect(dropped).toHaveLength(9);
+	expect(dropped.filter((drop) => drop.path.endsWith('.default'))).toHaveLength(2);
+	expect(dropped.some((drop) => drop.reason === 'skip magic')).toBe(true);
+	expect(compileSparkLayout(original).warnings).toContain('skip magic');
+});
+
+test('AKL imports surface omitted skip magic in the existing notice', () => {
+	const source = layout();
+	source.magic.magic_keys[0].default = { kind: 'skip_repeat' };
+	const result = importAklTryPayload({
+		v: 1,
+		format: 'spark/1',
+		name: 'future',
+		board: 'ortho',
+		layout: source
+	});
+	expect(result.snapshot).not.toBeNull();
+	expect(result.notice).toContain('without skip magic');
+	expect(result.snapshot?.sparkSource?.magic?.magic_keys?.[0].default).toBeUndefined();
 });

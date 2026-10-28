@@ -55,7 +55,8 @@ function array(value: unknown, path: string): unknown[] {
 function output(value: unknown, path: string) {
 	record(value, path);
 	if (value.kind === 'char') character(value.char, `${path}.char`);
-	else if (value.kind !== 'repeat') throw new Error(`${path} must be a tagged Magic value`);
+	else if (typeof value.kind !== 'string') throw new Error(`${path} must be a tagged Magic value`);
+	return value.kind === 'char' || value.kind === 'repeat';
 }
 function exceptions(value: unknown, path: string) {
 	if (value === undefined) return;
@@ -63,9 +64,24 @@ function exceptions(value: unknown, path: string) {
 		if (typeof entry !== 'string') throw new Error(`${path} must be an array of strings`);
 }
 
-/** Validate structure without applying renderer/runtime limitations; preserve extension fields. */
-export function validateSparkLayout(value: unknown, path = 'Spark layout'): SparkLayout {
+export type SparkDrop = { path: string; reason: string };
+
+/** Sanitize unknown behavior values in an independent clone; reject broken structure. */
+export function validateSparkLayout(value: unknown, path = 'Spark layout') {
 	record(value, path);
+	value = structuredClone(value);
+	record(value, path);
+	const dropped: SparkDrop[] = [];
+	function sanitizeOutput(entry: Record<string, unknown>, field: string, at: string) {
+		if (!output(entry[field], `${at}.${field}`)) {
+			const kind = (entry[field] as Record<string, unknown>).kind;
+			dropped.push({
+				path: `${at}.${field}`,
+				reason: kind === 'skip_repeat' ? 'skip magic' : 'unknown Magic outputs'
+			});
+			delete entry[field];
+		}
+	}
 	if (value.schema !== undefined && value.schema !== 1)
 		throw new Error('Only Spark schema version 1 is supported');
 	const slots = new Set<string>();
@@ -86,9 +102,15 @@ export function validateSparkLayout(value: unknown, path = 'Spark layout'): Spar
 		record(magic, `${path}.magic`);
 		for (const field of ['magic_keys', 'chiral_keys', 'adaptive_swaps', 'rules'] as const) {
 			if (magic[field] === undefined) continue;
+			const kept: unknown[] = [];
 			for (const [index, entry] of array(magic[field], `${path}.magic.${field}`).entries()) {
 				const at = `${path}.magic.${field}[${index}]`;
 				record(entry, at);
+				if (field === 'chiral_keys' && entry.skip === true) {
+					dropped.push({ path: at, reason: 'skip chiral keys' });
+					continue;
+				}
+				kept.push(entry);
 				if (field === 'rules') {
 					text(entry.inputs, `${at}.inputs`);
 					if (Array.from(entry.inputs as string).length < 2)
@@ -106,18 +128,27 @@ export function validateSparkLayout(value: unknown, path = 'Spark layout'): Spar
 					character(entry.key, `${at}.key`);
 					exceptions(entry.except, `${at}.except`);
 					if (field === 'magic_keys') {
-						if (entry.default !== undefined) output(entry.default, `${at}.default`);
-						for (const rule of entry.rules === undefined ? [] : array(entry.rules, `${at}.rules`)) {
-							record(rule, `${at}.rules`);
-							text(rule.after, `${at}.rules.after`);
-							text(rule.emit, `${at}.rules.emit`);
+						if (entry.default !== undefined) sanitizeOutput(entry, 'default', at);
+						if (entry.rules !== undefined) {
+							entry.rules = array(entry.rules, `${at}.rules`).filter((rule, index) => {
+								const ruleAt = `${at}.rules[${index}]`;
+								record(rule, ruleAt);
+								if (typeof rule.after !== 'string') {
+									dropped.push({ path: ruleAt, reason: 'unsupported Magic contexts' });
+									return false;
+								}
+								text(rule.after, `${ruleAt}.after`);
+								text(rule.emit, `${ruleAt}.emit`);
+								return true;
+							});
 						}
 					} else
 						for (const side of ['same', 'opposite'])
-							if (entry[side] != null) output(entry[side], `${at}.${side}`);
+							if (entry[side] != null) sanitizeOutput(entry, side, at);
 				}
 			}
+			magic[field] = kept;
 		}
 	}
-	return structuredClone(value) as SparkLayout;
+	return { layout: value as SparkLayout, dropped };
 }

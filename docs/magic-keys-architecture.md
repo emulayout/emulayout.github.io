@@ -129,8 +129,10 @@ fallback may use an empty `rules` object.
 The inner key is `rules` rather than `mappings` so it does not collide with the feature-level
 `mappings` wrapper. The same extended form is available for `*` or any other Magic trigger.
 
-The importer rejects a malformed or inconsistent AKLDB snapshot before replacing the last good
-cached copy. Runtime validation also rejects malformed or empty triggers, unusable rule sets or
+The importer rejects incomplete or inconsistent AKLDB snapshots before replacing the last good
+cached copy. Individual malformed records are logged and skipped. Unknown Magic defaults and
+chiral-side kinds, non-string Magic contexts, and skip chiral keys are omitted by shared Spark
+validation; supported sibling behavior survives. Direct imports report these omissions. Runtime validation also rejects malformed or empty triggers, unusable rule sets or
 fallbacks, and empty contexts or outputs.
 
 Mana2's historical extended CLI adapter expanded `repeat-last` and single-character `{ "emit": … }`

@@ -116,7 +116,7 @@ function decodeCreatorDocument(
 			return null;
 		const projection =
 			value.version === 2 ? (prepared ?? projectCreatorEditor(value.layout)) : null;
-		const source = projection?.layout ?? validateSparkLayout(value.layout);
+		const source = projection?.layout ?? validateSparkLayout(value.layout).layout;
 		// COMPATIBILITY: v1 stores the full editor sidecar. Retire only with v1 document support.
 		const e = projection ? expandCreatorEditor(projection, value.emulayout) : value.emulayout;
 		if (
@@ -221,6 +221,7 @@ function decodeCreatorDocument(
 			...content,
 			sparkSource: source,
 			sparkEditorBaseline: validateSparkLayout(creatorSparkProjection(content, value.version === 1))
+				.layout
 		};
 	} catch {
 		return null;

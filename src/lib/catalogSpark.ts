@@ -14,5 +14,5 @@ export function readCatalogSparkContent(value: unknown): CatalogSparkContent {
 		!('layout' in value)
 	)
 		throw new Error('Unsupported catalog Spark transport');
-	return { format: 'spark/1', layout: validateSparkLayout(value.layout) };
+	return { format: 'spark/1', layout: validateSparkLayout(value.layout).layout };
 }

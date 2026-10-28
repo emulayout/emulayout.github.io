@@ -255,8 +255,8 @@ function lowerSparkBehavior(
 
 /** Compile the supported subset without mutating or discarding the validated source document. */
 export function compileSparkLayout(value: unknown) {
-	const document = validateSparkLayout(value);
-	const warnings = new Set<string>();
+	const { layout: document, dropped } = validateSparkLayout(value);
+	const warnings = new Set(dropped.map((drop) => drop.reason));
 	const { keys, sparkKeys } = projectSparkKeys(document.keys, warnings);
 	const source = lowerSparkBehavior(document.magic, sparkKeys, warnings);
 	const rawKeys: Record<string, { row: number; col: number; hand: 'l' | 'r' }> =
