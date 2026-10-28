@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FingerAssignmentOption from '$lib/components/FingerAssignmentOption.svelte';
 	import { resolve } from '$app/paths';
 	import { untrack, type Snippet } from 'svelte';
 	import type { LayoutData } from '$lib/layout';
@@ -403,6 +404,11 @@
 {/snippet}
 
 {#snippet testKeyboardOptions()}
+	{#if !keyboard}<FingerAssignmentOption
+			checked={testDisplayOptions.showFingerAssignments}
+			onChange={(checked) =>
+				uiPrefs.setLayoutTestAreaDisplayOption('showFingerAssignments', checked)}
+		/>{/if}
 	<ToggleSwitch
 		checked={testDisplayOptions.colorHomeKeys}
 		label="Color home keys"
@@ -620,6 +626,7 @@
 							feedback={keyboardFeedback}
 							swapPaths={keyboardSwapPaths}
 							highlightHomeKeys={testDisplayOptions.colorHomeKeys}
+							showFingerAssignments={testDisplayOptions.showFingerAssignments}
 							{inputProfile}
 							{disabledMappingIds}
 							{onDisabledMappingIdsChange}

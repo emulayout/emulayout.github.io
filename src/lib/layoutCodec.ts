@@ -1,3 +1,4 @@
+import { SPARK_FINGERS, type SparkFinger } from '$lib/sparkSchema';
 import type { AuthorId, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
 import { computeCharacterSet } from '$lib/layoutCharacterSet';
 import { THUMB_ROW } from '$lib/layoutDisplay';
@@ -16,8 +17,8 @@ export const LAYOUT_FLAG_CYANOPHAGE_MAGIC_MAPPINGS_REQUIRED = 1024;
 export const LAYOUT_FLAG_CHIRAL_KEY = 2048;
 export const LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS = 4096;
 
-/** Current wire format field count (no displayValue). */
-export const COMPACT_LAYOUT_FIELD_COUNT = 8;
+/** Current wire format field count, including optional finger assignments. */
+export const COMPACT_LAYOUT_FIELD_COUNT = 9;
 
 /** Default hand split for thumb keys without an explicit thumbHand. */
 const THUMB_SPLIT_COL = 5;
@@ -34,7 +35,8 @@ export type CurrentCompactLayout = [
 	rows: number[],
 	cols: number[],
 	/** Thumb keys in column order: 'l' or 'r' per thumb key. */
-	thumbHands?: string
+	thumbHands?: string,
+	fingerAssignments?: { fingers: (string | null)[] }
 ];
 
 /**
@@ -50,7 +52,8 @@ export type LegacyCompactLayout = [
 	keyChars: string[],
 	rows: number[],
 	cols: number[],
-	thumbHands?: string
+	thumbHands?: string,
+	fingerAssignments?: { fingers: (string | null)[] }
 ];
 
 export type CompactLayout = CurrentCompactLayout | LegacyCompactLayout;
@@ -91,11 +94,22 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 	const [name, user, updatedAt, flags, keyChars, rows, cols] = normalized as CurrentCompactLayout;
 	const { thumbHands } = resolveTrailingFields(normalized);
 
+	const extension = normalized[8];
+	const fingers =
+		extension &&
+		typeof extension === 'object' &&
+		'fingers' in extension &&
+		Array.isArray(extension.fingers)
+			? extension.fingers
+			: [];
+	const fingerBySlot = new Map<string, SparkFinger>();
 	const keys: Record<string, KeyInfo> = {};
 	const positionBySlot = new Map<string, string>();
 	const thumbIndices: number[] = [];
 	for (let i = 0; i < keyChars.length; i++) {
 		const keyInfo: KeyInfo = { row: rows[i], col: cols[i] };
+		if (SPARK_FINGERS.includes(fingers[i]))
+			fingerBySlot.set(positionSlotKey(rows[i], cols[i]), fingers[i]);
 		if (rows[i] >= THUMB_ROW) {
 			thumbIndices.push(i);
 		}
@@ -134,6 +148,7 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		user: String(user),
 		keys,
 		positionBySlot,
+		fingerBySlot,
 		thumbKeysByHand,
 		hasThumbKeys: (flags & LAYOUT_FLAG_THUMB_KEYS) !== 0,
 		hasAllLetters: (flags & LAYOUT_FLAG_ALL_LETTERS) !== 0,

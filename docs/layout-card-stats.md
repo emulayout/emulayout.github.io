@@ -156,3 +156,7 @@ Do not reuse the normal click-to-focus behavior inside the modal.
   preferred direction.
 - Highlights owns visual finger usage on index and Quick Find cards.
 - The toolbar and Settings keyboard selectors edit one shared persisted geometry preference.
+
+The catalog's optional trailing finger-assignment object is geometry metadata for read-only keyboard
+previews. It does not change analyzer stats, card stats modes, or Quick Find interaction. Older
+catalogs remain readable without inferred finger colors.

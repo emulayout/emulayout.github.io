@@ -32,7 +32,8 @@ export const LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS = 4096;
  *   string[],
  *   number[],
  *   number[],
- *   string | undefined
+ *   string | undefined,
+ *   { fingers: (string | null)[] }
  * ]} CompactLayout */
 
 /**
@@ -77,7 +78,8 @@ export function encodeLayout(layout) {
 		entries.map(([key]) => key),
 		entries.map(([, info]) => info.row),
 		entries.map(([, info]) => info.col),
-		thumbHands || undefined
+		thumbHands || undefined,
+		{ fingers: entries.map(([, info]) => info.finger ?? null) }
 	];
 }
 

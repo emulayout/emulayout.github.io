@@ -9,6 +9,7 @@ describe('typing practice display preferences', () => {
 	test('uses safe defaults for absent, malformed, and unknown documents', () => {
 		const defaults = createDefaultTypingPracticeDisplayOptions();
 		expect(defaults.colorHomeKeys).toBe(true);
+		expect(defaults.showFingerAssignments).toBe(false);
 		expect(defaults.testStyle).toBe('monkeytype');
 		expect(defaults.underlineMagicGroups).toBe(true);
 		expect(defaults.simulateThumbKeys).toBe(false);
@@ -22,6 +23,7 @@ describe('typing practice display preferences', () => {
 		const options = {
 			...createDefaultTypingPracticeDisplayOptions(),
 			testStyle: 'monkeytype' as const,
+			showFingerAssignments: true,
 			highlightNextKey: true,
 			colorHomeKeys: true,
 			simulateThumbKeys: true,

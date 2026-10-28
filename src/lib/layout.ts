@@ -1,3 +1,4 @@
+import type { SparkFinger } from '$lib/sparkSchema';
 export interface KeyInfo {
 	hand?: 'l' | 'r';
 	row: number;
@@ -36,6 +37,8 @@ export interface LayoutData {
 	keys: Record<string, KeyInfo>;
 	/** `"row,col"` → key character for O(1) position lookups, including duplicate letters. */
 	positionBySlot: Map<string, string>;
+	/** Authored finger by physical slot; independent of duplicate characters. */
+	fingerBySlot?: ReadonlyMap<string, SparkFinger>;
 	/** Pre-sorted thumb keys per hand (lowercase key chars). */
 	thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] };
 	hasThumbKeys: boolean;

@@ -441,3 +441,23 @@ unfinished patterns remain editable and survive document recovery, but are not e
 The “repeat two back” fallback stores Spark `skip_repeat` and uses the second most recent emitted
 character. These behaviors work in Edit, Preview, Typing practice, and Layout feel, with the same
 mapping checkboxes, keyboard previews, saves, backups, and shares as existing Magic rules.
+
+## Finger assignment preview
+
+Read-only keyboards in Preview offer a **Finger assignments** switch alongside the
+other keyboard options. Typing practice and Layout feel share the persisted practice preference;
+Layout test area retains its own preference. The default is Off. The option is hidden while the
+editable keyboard is displayed; assignment editing is deferred.
+
+When enabled, the key background shows each physical slot's authored Spark finger. The eight
+non-thumb colors use `--finger-LP` through `--finger-RP` CSS variables sampled from the supplied
+AKL reference; `--finger-LT` and `--finger-RT` use the neutral border color. Key titles and the keyboard's accessible description identify fingers without relying on color.
+Finger colors take precedence over special-key and home-key fills while enabled. When **Color home
+keys** is also on, home-key backgrounds mix in 35% black, controlled by `--finger-home-darken`. Next-key
+outlines, geometry, and input resolution are unchanged.
+Catalogs without assignment metadata remain neutral rather than inferring standard fingering.
+
+The compact catalog adds an optional trailing `{ fingers: [...] }` object aligned with the key,
+row, and column arrays. Readers retain older trailing-field compatibility. `LayoutData.fingerBySlot`
+keeps duplicate characters independent. Spark-backed creator previews derive the same map directly.
+The catalog compiler hash changes so scheduled sync republishes existing layouts with the new field.

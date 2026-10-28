@@ -91,6 +91,7 @@ export function createLayoutFromSparkKeys(
 		updatedAt: '',
 		keys,
 		positionBySlot,
+		fingerBySlot: new Map(source.map((key) => [`${key.row},${key.col}`, key.finger])),
 		thumbKeysByHand,
 		hasThumbKeys: thumbKeysByHand.l.length + thumbKeysByHand.r.length > 0,
 		characterSet: computeCharacterSet(chars),

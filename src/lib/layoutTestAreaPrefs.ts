@@ -4,6 +4,7 @@ const LAYOUT_TEST_AREA_DISPLAY_OPTIONS_VERSION = 1;
 
 export interface LayoutTestAreaDisplayOptions {
 	colorHomeKeys: boolean;
+	showFingerAssignments: boolean;
 	showSpecialKeys: boolean;
 	previewContextualKeyOutput: boolean;
 	showAdaptiveSwapPaths: boolean;
@@ -12,6 +13,7 @@ export interface LayoutTestAreaDisplayOptions {
 export function createDefaultLayoutTestAreaDisplayOptions(): LayoutTestAreaDisplayOptions {
 	return {
 		colorHomeKeys: true,
+		showFingerAssignments: false,
 		showSpecialKeys: true,
 		previewContextualKeyOutput: true,
 		showAdaptiveSwapPaths: false
@@ -27,6 +29,10 @@ function normalizeLayoutTestAreaDisplayOptions(value: unknown): LayoutTestAreaDi
 	if (!isRecord(value)) return defaults;
 
 	return {
+		showFingerAssignments:
+			typeof value.showFingerAssignments === 'boolean'
+				? value.showFingerAssignments
+				: defaults.showFingerAssignments,
 		colorHomeKeys:
 			typeof value.colorHomeKeys === 'boolean' ? value.colorHomeKeys : defaults.colorHomeKeys,
 		showSpecialKeys:

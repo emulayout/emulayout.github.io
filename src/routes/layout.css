@@ -575,3 +575,18 @@ select:not([multiple]) {
 	outline: none;
 	box-shadow: 0 0 0 2px var(--filter-action);
 }
+
+:root {
+	--finger-fg: #fff;
+	--finger-home-darken: 35%;
+	--finger-LP: #9c161f;
+	--finger-LR: #5d008f;
+	--finger-LM: #007884;
+	--finger-LI: #4c8229;
+	--finger-RI: #005f51;
+	--finger-RM: #b2350b;
+	--finger-RR: #0057b8;
+	--finger-RP: #a6004e;
+	--finger-LT: var(--border);
+	--finger-RT: var(--border);
+}

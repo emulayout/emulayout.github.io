@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FingerAssignmentOption from '$lib/components/FingerAssignmentOption.svelte';
 	import { remappingPreferencesSignature } from '$lib/typingPracticeRemappingPreferences';
 	import { typingPracticeRemappingPools } from '$lib/typingPracticeSpecialWords';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
@@ -787,6 +788,7 @@
 			highlightedKeys={nextPracticeKeys}
 			{unreachableKeys}
 			highlightHomeKeys={displayOptions.colorHomeKeys}
+			showFingerAssignments={displayOptions.showFingerAssignments}
 			{inputProfile}
 			{disabledMappingIds}
 			{onDisabledMappingIdsChange}
@@ -808,6 +810,11 @@
 				</div>
 			{/snippet}
 			{#snippet options()}
+				{#if !keyboard}<FingerAssignmentOption
+						checked={displayOptions.showFingerAssignments}
+						onChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('showFingerAssignments', checked)}
+					/>{/if}
 				<ToggleSwitch
 					checked={displayOptions.highlightNextKey}
 					label="Highlight next key"

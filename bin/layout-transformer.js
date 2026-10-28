@@ -23,7 +23,7 @@ const SPLIT_COL = 5;
 export function transformLayout(layout) {
 	/** @type {Record<string, { row: number, col: number, thumbHand?: 'l' | 'r' }>} */
 	const keys = {};
-	/** @type {{ char: string, row: number, col: number, thumbHand?: 'l' | 'r' }[]} */
+	/** @type {{ char: string, row: number, col: number, finger?: string, thumbHand?: 'l' | 'r' }[]} */
 	const positions = [];
 	const sourcePositions = Array.isArray(layout.positions)
 		? layout.positions.map((info) => [info.char ?? '', info])
@@ -34,7 +34,7 @@ export function transformLayout(layout) {
 			// Preserve all Spark rows in the source cache, but publish only the rows
 			// supported by the current keyboard UI (the number row is -1).
 			if (info.row < 0 || info.row > 4) continue;
-			const position = { char: key, row: info.row, col: info.col };
+			const position = { char: key, row: info.row, col: info.col, finger: info.finger };
 			if (info.row >= THUMB_ROW) position.thumbHand = computeKeyThumbHand(info);
 			positions.push(position);
 			if (key) {

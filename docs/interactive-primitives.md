@@ -183,3 +183,7 @@ catalog author.
   resizes or scrolls independently of the document.
 - Add focused unit coverage for extracted behavior helpers and Playwright coverage for rendered
   keyboard/focus behavior.
+
+`FingerAssignmentOption` uses `ToggleSwitch` for the finger-color preference in
+read-only Practice, Test, and Feel keyboards. It retains the shared switch and Space-key semantics;
+it does not introduce a new primitive or change keyboard-editing interactions.

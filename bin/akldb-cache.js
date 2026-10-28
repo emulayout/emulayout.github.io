@@ -432,7 +432,7 @@ export async function hashCachedAkldbSources() {
 	if (!cached) throw new Error(`AKLDB catalog cache is missing at ${AKLDB_CACHE_DIR}`);
 	const hash = createHash('sha256');
 	// Rebuild sanitized sidecars when supported Spark behavior changes, even with unchanged sources.
-	hash.update('catalog-spark/1:skip-magic/1\n');
+	hash.update('catalog-spark/1:skip-magic/1:fingers/1\n');
 	hash.update(JSON.stringify(cached.snapshot.layouts));
 	hash.update('\n');
 	hash.update(JSON.stringify(cached.snapshot.manaLayouts));

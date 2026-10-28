@@ -36,6 +36,7 @@
 		highlightedKeys?: readonly string[];
 		unreachableKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
+		showFingerAssignments?: boolean;
 		inputProfile?: LayoutInputProfile;
 		disabledMappingIds?: readonly string[];
 		onDisabledMappingIdsChange?: (ids: string[]) => void;
@@ -71,6 +72,7 @@
 		highlightedKeys = [],
 		unreachableKeys = [],
 		highlightHomeKeys = false,
+		showFingerAssignments = false,
 		inputProfile,
 		disabledMappingIds = [],
 		onDisabledMappingIdsChange,
@@ -225,6 +227,7 @@
 									{highlightedKeys}
 									{unreachableKeys}
 									{highlightHomeKeys}
+									{showFingerAssignments}
 									horizontalAlignment="start"
 								/>
 							{/if}

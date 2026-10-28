@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import { fingerForSlot, FINGER_LABELS } from '$lib/fingerAssignments';
 	import LayoutInputFeatureIcon from '$lib/components/LayoutInputFeatureIcon.svelte';
 	import type { LayoutData } from '$lib/layout';
 	import type { KeyboardGeometry } from '$lib/keyboardGeometry';
@@ -37,6 +38,7 @@
 		/** Practiced-layout characters with no physical mapping from the input keyboard. */
 		unreachableKeys?: readonly string[];
 		highlightHomeKeys?: boolean;
+		showFingerAssignments?: boolean;
 		horizontalAlignment?: 'start' | 'center';
 	}
 
@@ -68,6 +70,7 @@
 		highlightedKeys = [],
 		unreachableKeys = [],
 		highlightHomeKeys = false,
+		showFingerAssignments = false,
 		horizontalAlignment = 'center'
 	}: Props = $props();
 	let keysElement: HTMLDivElement | null = $state(null);
@@ -232,8 +235,20 @@
 		data-key-home={highlightHomeKeys && isHomeKey(key) ? 'true' : undefined}
 		data-key-next={assigned && isHighlightedKey(key.char) ? 'true' : undefined}
 		data-key-unreachable={unreachable ? 'true' : undefined}
-		title={assigned ? keyTitle(key, keyFeedback) : undefined}
-		style={attrs.style}
+		title={assigned
+			? [
+					keyTitle(key, keyFeedback),
+					showFingerAssignments && fingerForSlot(layout, key.slot)
+						? FINGER_LABELS[fingerForSlot(layout, key.slot)!]
+						: ''
+				]
+					.filter(Boolean)
+					.join(' · ') || undefined
+			: undefined}
+		style={`${attrs.style ?? ''};${showFingerAssignments && fingerForSlot(layout, key.slot) ? `--assigned-finger-color: var(--finger-${fingerForSlot(layout, key.slot)});` : ''}`}
+		data-assigned-finger={showFingerAssignments && assigned
+			? fingerForSlot(layout, key.slot)
+			: undefined}
 	>
 		{@render keyContent(key, keyFeedback)}
 	</span>
@@ -242,7 +257,16 @@
 <div
 	class="keyboard-preview"
 	role="img"
-	aria-label={`${layout.name} keyboard preview`}
+	aria-label={`${layout.name} keyboard preview${
+		showFingerAssignments
+			? '. Finger assignments: ' +
+				rows
+					.flat()
+					.filter((key) => key.char && key.slot && fingerForSlot(layout, key.slot))
+					.map((key) => `${key.char}: ${FINGER_LABELS[fingerForSlot(layout, key.slot!)!]}`)
+					.join(', ')
+			: ''
+	}`}
 	data-geometry={geometry}
 >
 	<div class="keyboard-preview__board" aria-hidden="true">
@@ -520,6 +544,25 @@
 			inset 0 1px 0 color-mix(in srgb, white 22%, transparent),
 			0 2px 0 color-mix(in srgb, var(--magic-key) 62%, black),
 			0 0 0.4rem color-mix(in srgb, var(--magic-key) 32%, transparent);
+	}
+
+	.keyboard-preview__key[data-assigned-finger] {
+		background: var(--assigned-finger-color);
+		color: var(--finger-fg);
+		border-color: color-mix(in srgb, var(--assigned-finger-color) 80%, white);
+		box-shadow:
+			inset 0 1px 0 color-mix(in srgb, white 16%, transparent),
+			0 2px 0 color-mix(in srgb, var(--assigned-finger-color) 80%, black),
+			0 0.2rem 0.35rem color-mix(in srgb, black 10%, transparent);
+	}
+
+	.keyboard-preview__key--home[data-assigned-finger] {
+		background: color-mix(in srgb, var(--assigned-finger-color), black var(--finger-home-darken));
+	}
+
+	.keyboard-preview__key[data-assigned-finger='LT'],
+	.keyboard-preview__key[data-assigned-finger='RT'] {
+		color: var(--text-primary);
 	}
 
 	.keyboard-preview__key--next {
