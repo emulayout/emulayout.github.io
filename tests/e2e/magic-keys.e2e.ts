@@ -235,6 +235,8 @@ test('uses one hover and off-state treatment for Repeat, Adaptive, and Magic', a
 	await expect(adaptiveToggle).toHaveCSS('border-top-width', '0px');
 	await expect(adaptiveToggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 	await expect(adaptiveToggle).toHaveAttribute('data-feature-state', 'on');
+	// Late web-font swaps can reflow the toolbar and move the card out from under the pointer.
+	await page.evaluate(() => document.fonts.ready.then(() => undefined));
 	const hoverStyles: { color: string; opacity: string; background: string; border: string }[] = [];
 	for (const control of [repeatToggle, adaptiveToggle, magicToggle]) {
 		await control.hover();
