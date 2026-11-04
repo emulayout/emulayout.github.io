@@ -285,7 +285,7 @@
 	const results = $derived(
 		calculateTypingPracticeResults(
 			{ correct: correctAttemptCount, incorrect: incorrectAttemptCount },
-			testCharacterCount,
+			Math.max(0, testCharacterCount - sharedLesson.skippedCharacterCount),
 			elapsedMilliseconds
 		)
 	);
@@ -486,10 +486,23 @@
 	}
 
 	function handleResolvedInput(result: LayoutInputResult): string | undefined {
-		if (result.text !== ' ' || !isTypingPracticeWordComplete(session)) return undefined;
+		if (
+			result.text !== ' ' ||
+			!session.remainingWords.length ||
+			(!displayOptions.spaceSkipsWords && !isTypingPracticeWordComplete(session))
+		)
+			return undefined;
 		const now = Date.now();
 		sharedLesson.recordAttempts(1, 0, now);
-		const nextSession = advanceTypingPracticeWord(session);
+		if (!isTypingPracticeWordComplete(session)) {
+			// A skipped word must not seed contextual mappings in the next word.
+			result.nextHistory = '';
+			const length = Array.from(session.remainingWords[0].text).length;
+			sharedLesson.skippedWordIds.push(session.remainingWords[0].id);
+			sharedLesson.skippedCharacterCount += length + (session.remainingWords.length > 1 ? 1 : 0);
+			sharedLesson.recordAttempts(0, Math.max(0, length - Array.from(session.input).length), now);
+		}
+		const nextSession = advanceTypingPracticeWord(session, displayOptions.spaceSkipsWords);
 		sharedLesson.applyPracticeSession(nextSession, inputHistory);
 		if (nextSession.completedWordCount === nextSession.totalWordCount) {
 			markPracticeComplete(now);
@@ -556,6 +569,9 @@
 									promptCursorIndex === word.characters.length}
 								data-practice-word={word.word}
 								data-current-word={word.current ? 'true' : undefined}
+								data-skipped-word={sharedLesson.skippedWordIds.includes(word.id)
+									? 'true'
+									: undefined}
 								data-completed-word={word.completed ? 'true' : undefined}
 								data-practice-cursor={word.current && promptCursorIndex === word.characters.length
 									? 'true'
@@ -794,6 +810,12 @@
 						/>
 					{/if}
 				{/if}
+				<ToggleSwitch
+					checked={displayOptions.spaceSkipsWords}
+					label="Allow incorrect words"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('spaceSkipsWords', checked)}
+				/>
 			{/snippet}
 		</LayoutKeyboardWorkspace>
 	{/if}
@@ -958,6 +980,10 @@
 
 	.typing-practice-copy--monkeytype [data-completed-word='true'] {
 		color: var(--typing-practice-monkeytype-correct);
+	}
+
+	.typing-practice-copy--monkeytype [data-skipped-word='true'] {
+		color: var(--typing-practice-incorrect);
 	}
 
 	.typing-practice-character--cursor,

@@ -34,6 +34,8 @@ export class SharedTypingPracticeLesson {
 	completedWordCount = $state(0);
 	currentSourceInput = $state('');
 	practiceInputHistory = $state('');
+	skippedWordIds = $state<string[]>([]);
+	skippedCharacterCount = $state(0);
 	correctAttemptCount = $state(0);
 	incorrectAttemptCount = $state(0);
 	startedAtMilliseconds = $state<number | null>(null);
@@ -138,6 +140,8 @@ export class SharedTypingPracticeLesson {
 		this.completedWordCount = 0;
 		this.currentSourceInput = '';
 		this.practiceInputHistory = '';
+		this.skippedWordIds = [];
+		this.skippedCharacterCount = 0;
 		this.correctAttemptCount = 0;
 		this.incorrectAttemptCount = 0;
 		this.startedAtMilliseconds = null;

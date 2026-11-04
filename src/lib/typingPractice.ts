@@ -130,8 +130,12 @@ export function hasTypingPracticeInputError(session: TypingPracticeSession): boo
 	);
 }
 
-export function advanceTypingPracticeWord(session: TypingPracticeSession): TypingPracticeSession {
-	if (!isTypingPracticeWordComplete(session)) return session;
+export function advanceTypingPracticeWord(
+	session: TypingPracticeSession,
+	allowSkip = false
+): TypingPracticeSession {
+	if (!session.remainingWords.length || (!allowSkip && !isTypingPracticeWordComplete(session)))
+		return session;
 	return {
 		...session,
 		remainingWords: session.remainingWords.slice(1),

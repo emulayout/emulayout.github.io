@@ -31,7 +31,13 @@ and calculation logic outside the renderer.
   `--typing-practice-incorrect` theme variables.
 - Comparison uses the selected layout's logical output, after Adaptive, Magic, and Repeat behavior,
   rather than the physical key pressed.
-- Space advances when the input exactly equals a non-final active word. The final word advances and
+- The shared, persisted, default-off Allow incorrect words option lets resolved Space advance
+  an incorrect or empty word, including the final word. Missing characters count as incorrect
+  attempts; skipped words add no character credit to WPM. Skipped completed words appear red in
+  the Monkeytype prompt. Input and contextual history clear together. Simulated thumb input takes
+  precedence when Space represents the next thumb keystroke. This provides an escape hatch for
+  firmware Magic mappings whose original physical key cannot be recovered by the browser.
+- By default, Space advances when the input exactly equals a non-final active word. The final word advances and
   ends the test as soon as its last correct character is entered, without requiring Space. A
   successful advance clears the field and contextual-input history and increments progress.
   Monkeytype, the default Test style, keeps completed words in their original positions. Colemak
@@ -274,7 +280,7 @@ The successful-space path is intentionally ordered:
 
 ## Invariants
 
-- Non-final words require an exact active-word match followed by resolved Space; the final exact
+- Unless Allow incorrect words is enabled, non-final words require an exact active-word match followed by resolved Space; the final exact
   match advances immediately.
 - The prompt queue, input field, progress count, and contextual history reset together on advance.
 - Custom lesson resets reproduce the normalized URL text exactly; random lesson resets exclude the

@@ -13,6 +13,7 @@ export interface TypingPracticeDisplayOptions {
 	colorHomeKeys: boolean;
 	showFingerAssignments: boolean;
 	simulateThumbKeys: boolean;
+	spaceSkipsWords: boolean;
 	showSpecialKeys: boolean;
 	underlineMagicGroups: boolean;
 	underlineAdaptiveGroups: boolean;
@@ -30,6 +31,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		colorHomeKeys: true,
 		showFingerAssignments: false,
 		simulateThumbKeys: false,
+		spaceSkipsWords: false,
 		showSpecialKeys: true,
 		underlineMagicGroups: true,
 		underlineAdaptiveGroups: false,
@@ -74,6 +76,8 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 			typeof value.simulateThumbKeys === 'boolean'
 				? value.simulateThumbKeys
 				: defaults.simulateThumbKeys,
+		spaceSkipsWords:
+			typeof value.spaceSkipsWords === 'boolean' ? value.spaceSkipsWords : defaults.spaceSkipsWords,
 		showSpecialKeys:
 			typeof value.showSpecialKeys === 'boolean' ? value.showSpecialKeys : defaults.showSpecialKeys,
 		underlineMagicGroups:

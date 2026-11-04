@@ -499,9 +499,15 @@ export function updateFeelPracticeInput(
 
 export function advanceFeelPracticeWord(
 	session: TypingPracticeSession,
-	plan: FeelWordPlan | undefined
+	plan: FeelWordPlan | undefined,
+	allowSkip = false
 ): TypingPracticeSession {
-	if (!plan || !isFeelWordComplete(plan, session.input)) return session;
+	if (
+		!plan ||
+		!session.remainingWords.length ||
+		(!allowSkip && !isFeelWordComplete(plan, session.input))
+	)
+		return session;
 	return {
 		...session,
 		remainingWords: session.remainingWords.slice(1),

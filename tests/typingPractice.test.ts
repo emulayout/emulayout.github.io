@@ -183,3 +183,16 @@ describe('typing practice sessions', () => {
 		expect(typingPracticeCursorIndex('hello', 'hellooo')).toBe(5);
 	});
 });
+
+test('optional skipping advances incorrect, empty, and final words', () => {
+	let session = createTypingPracticeSession(['boy', 'hello']);
+	expect(advanceTypingPracticeWord(session)).toEqual(session);
+	session = advanceTypingPracticeWord(session, true);
+	expect(session.completedWordCount).toBe(1);
+	session = updateTypingPracticeInput(session, 'wrong');
+	expect(advanceTypingPracticeWord(session)).toEqual(session);
+	session = advanceTypingPracticeWord(session, true);
+	expect(session.completedWordCount).toBe(2);
+	expect(session.input).toBe('');
+	expect(advanceTypingPracticeWord(session, true)).toEqual(session);
+});

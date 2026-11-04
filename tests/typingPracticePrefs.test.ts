@@ -13,6 +13,7 @@ describe('typing practice display preferences', () => {
 		expect(defaults.testStyle).toBe('monkeytype');
 		expect(defaults.underlineMagicGroups).toBe(true);
 		expect(defaults.simulateThumbKeys).toBe(false);
+		expect(defaults.spaceSkipsWords).toBe(false);
 		expect(defaults.ignoreWrongKeyPresses).toBe(true);
 		expect(parseTypingPracticeDisplayOptions(null)).toEqual(defaults);
 		expect(parseTypingPracticeDisplayOptions('{')).toEqual(defaults);
@@ -27,6 +28,7 @@ describe('typing practice display preferences', () => {
 			highlightNextKey: true,
 			colorHomeKeys: true,
 			simulateThumbKeys: true,
+			spaceSkipsWords: true,
 			underlineMagicGroups: true,
 			underlineAdaptiveGroups: true,
 			onlyRelevantAdaptiveSwaps: true,

@@ -141,6 +141,9 @@ describe('goatcounter feature event names', () => {
 		expect(goatcounterPracticeSettingEvent('showAdaptiveSwaps')).toBe(
 			'practice-setting-show-adaptive-swaps'
 		);
+		expect(goatcounterPracticeSettingEvent('spaceSkipsWords')).toBe(
+			'practice-setting-space-skips-words'
+		);
 		expect(goatcounterPracticeSettingEvent('testStyle')).toBe('practice-setting-test-style');
 	});
 });

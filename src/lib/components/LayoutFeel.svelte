@@ -267,7 +267,7 @@
 	const results = $derived(
 		calculateTypingPracticeResults(
 			{ correct: correctAttemptCount, incorrect: incorrectAttemptCount },
-			testCharacterCount,
+			Math.max(0, testCharacterCount - sharedLesson.skippedCharacterCount),
 			elapsedMilliseconds
 		)
 	);
@@ -572,12 +572,30 @@
 	}
 
 	function handleResolvedInput(result: LayoutInputResult): string | undefined {
-		if (result.text !== ' ' || !activePlan || !isFeelWordComplete(activePlan, session.input)) {
+		if (
+			result.text !== ' ' ||
+			!activePlan ||
+			(!displayOptions.spaceSkipsWords && !isFeelWordComplete(activePlan, session.input))
+		) {
 			return undefined;
 		}
 		const now = Date.now();
 		sharedLesson.recordAttempts(1, 0, now);
-		const nextSession = advanceFeelPracticeWord(session, activePlan);
+		if (!isFeelWordComplete(activePlan, session.input)) {
+			sharedLesson.skippedWordIds.push(session.remainingWords[0].id);
+			sharedLesson.skippedCharacterCount +=
+				activePlan.keystrokes.length + (session.remainingWords.length > 1 ? 1 : 0);
+			sharedLesson.recordAttempts(
+				0,
+				Math.max(0, activePlan.keystrokes.length - Array.from(session.input).length),
+				now
+			);
+		}
+		const nextSession = advanceFeelPracticeWord(
+			session,
+			activePlan,
+			displayOptions.spaceSkipsWords
+		);
 		sharedLesson.applyFeelProgress(nextSession.completedWordCount, undefined, '');
 		if (nextSession.completedWordCount === nextSession.totalWordCount) {
 			markFeelComplete(now);
@@ -893,6 +911,12 @@
 					checked={displayOptions.ignoreWrongKeyPresses}
 					label="Ignore wrong key presses"
 					onCheckedChange={setIgnoreWrongKeyPresses}
+				/>
+				<ToggleSwitch
+					checked={displayOptions.spaceSkipsWords}
+					label="Allow incorrect words"
+					onCheckedChange={(checked) =>
+						uiPrefs.setTypingPracticeDisplayOption('spaceSkipsWords', checked)}
 				/>
 			{/snippet}
 		</LayoutKeyboardWorkspace>

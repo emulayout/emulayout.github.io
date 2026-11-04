@@ -116,3 +116,28 @@ test('keeps leftover custom-lesson words and clears input when switching tabs', 
 	await expect(practicePanel.getByLabel('0 of 2 words complete')).toHaveText('0/2');
 	await expect(practicePanel.getByLabel('Elapsed time: 00:00')).toHaveText('00:00');
 });
+
+for (const tab of ['feel', 'practice']) {
+	test(`Space skipping is optional and persisted in ${tab}`, async ({ page }) => {
+		await page.goto(`/layouts/QWERTY?tab=${tab}&text=boy%20hello`);
+		const panel = page.getByRole('tabpanel', {
+			name: tab === 'feel' ? 'Layout feel' : 'Typing practice',
+			exact: true
+		});
+		const input = panel.getByRole('textbox', {
+			name: tab === 'feel' ? 'Layout feel input' : 'Typing practice input'
+		});
+		const toggle = panel.getByRole('switch', { name: 'Allow incorrect words' });
+		await expect(toggle).not.toBeChecked();
+		await toggle.click();
+		await input.fill('bx');
+		await input.press('Space');
+		await expect(input).toHaveValue('');
+		await expect(panel.getByLabel('1 of 2 words complete')).toHaveText('1/2');
+		await input.press('Space');
+		await expect(panel.getByLabel('2 of 2 words complete')).toHaveText('2/2');
+		await expect(panel.getByText('WPM: 0.00', { exact: true })).toBeVisible();
+		await page.reload();
+		await expect(toggle).toBeChecked();
+	});
+}

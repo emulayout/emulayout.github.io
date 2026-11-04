@@ -180,3 +180,6 @@ is a distinct pageview (`/layouts?tab=feel`).
 - Typing-practice keystroke analytics described as a possible future in
   `docs/typing-practice.md` are out of scope here and would need a separate, explicit privacy
   review before any implementation.
+
+The shared Allow incorrect words switch uses `practice-setting-space-skips-words`;
+no typed content or keyboard mappings are included.
