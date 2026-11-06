@@ -1,4 +1,5 @@
 import type { KeyInfo } from '$lib/layout';
+import { KEYBOARD_TOPOLOGIES, type LayoutPhysicalTopology } from '$lib/keyboardTopology';
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 import { SPLIT_COL } from '$lib/cmini/keyboard';
 
@@ -352,6 +353,7 @@ function indentCells(count: number): DisplayCell[] {
  */
 export function computeDisplayRows(
 	layout: {
+		physicalTopology?: LayoutPhysicalTopology;
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
 		positionBySlot?: Map<string, string>;
 		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };
@@ -381,26 +383,33 @@ export function computeDisplayRows(
 			const entries = rows[rowNum];
 
 			let rowCells: DisplayCell[];
+			let firstColumn = 0;
 			if (rowNum >= THUMB_ROW) {
 				rowCells = formatThumbRowCells(entries, rowNum, splitCol, mainRowMaxCol);
 			} else {
+				const physicalKeys =
+					isAnsiDisplay && layout.physicalTopology
+						? KEYBOARD_TOPOLOGIES[layout.physicalTopology.topology].keys
+						: undefined;
+				const positioned = entries.map(({ key, col }) => {
+					const slot = `${rowNum},${col}`;
+					const physicalId = layout.physicalTopology?.keyBySlot.get(slot);
+					const column = physicalKeys?.find((key) => key.id === physicalId)?.column ?? col;
+					return { char: key, slot, column };
+				});
+				firstColumn = Math.min(0, ...positioned.map((key) => key.column));
 				const r: Array<{ char: string; slot: string | null } | undefined> = [];
-				for (const { key, col } of entries) {
-					r[col] = { char: key, slot: `${rowNum},${col}` };
+				for (const { char, slot, column } of positioned) {
+					r[column - firstColumn] = { char, slot };
 				}
-				const maxCol = r.reduce((max, _, i) => (r[i] !== undefined ? i : max), 0);
-				const filled = Array.from(
-					{ length: maxCol + 1 },
-					(_, i) => r[i] ?? { char: ' ', slot: null }
-				);
-				rowCells = joinDisplayRowCells(filled, splitCol);
+				rowCells = joinDisplayRowCells(r, splitCol - firstColumn);
 			}
 
 			if (isAnsiDisplay) {
 				if (rowNum === 1) {
 					return [...indentCells(1), ...rowCells];
 				} else if (rowNum === 2) {
-					return [...indentCells(2), ...rowCells];
+					return [...indentCells(2 + firstColumn * 2), ...rowCells];
 				} else if (rowNum >= THUMB_ROW) {
 					// Match home-row indent so thumb keys line up with index columns above
 					return [...indentCells(1), ...rowCells];
@@ -432,6 +441,7 @@ export function computeDisplayRows(
  */
 export function computeDisplayValue(
 	layout: {
+		physicalTopology?: LayoutPhysicalTopology;
 		keys?: Record<string, DisplayKeyInfo | KeyInfo>;
 		positionBySlot?: Map<string, string>;
 		thumbKeysByHand?: { l: { key: string; col: number }[]; r: { key: string; col: number }[] };

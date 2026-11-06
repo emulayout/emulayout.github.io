@@ -233,3 +233,18 @@ describe('physical topology correspondence', () => {
 		expect(decodeLayout(revision).physicalTopology).toBeUndefined();
 	});
 });
+
+test('compact staggered rows use physical columns without changing authored slots', () => {
+	for (const topology of ['ansi', 'iso'] as const) {
+		const layout = decodeLayout(easyHarlot(topology));
+		const rows = computeDisplayRows(layout, 'row-stagger');
+		const text = displayRowsToString(rows).split('\n');
+		expect(text[0].startsWith('b f r l v')).toBe(true);
+		expect(text[1].startsWith(' n s h t d')).toBe(true);
+		expect(text[2].startsWith(topology === 'iso' ? 'q x z k m j' : '  q z k m j')).toBe(true);
+		expect(rows[1].find((cell) => cell.char === 'n')?.slot).toBe('1,1');
+		expect(rows[2].find((cell) => cell.char === 'q')?.slot).toBe(
+			topology === 'iso' ? '2,0' : '2,1'
+		);
+	}
+});

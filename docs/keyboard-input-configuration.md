@@ -133,6 +133,11 @@ adapters (or explicit source metadata) to support additional catalog conventions
 does not require duplicating Practice or Feel logic. This is not automatic detection of every
 ISO layout in the catalog.
 
+Compact row-staggered card previews also use the layout adapter’s physical columns, retaining
+authored slot IDs. This removes catalog coordinate padding without collapsing intentional gaps;
+ISO’s extra bottom-row key sits before the standard Z position. Ortholinear views retain the
+authored grid.
+
 The preview projects positions from the same resolver, retaining authored slot IDs for colors,
 feedback and swap paths. Home highlights follow the projected physical columns. Finger colors
 remain authored even when Shift to fit changes the fingers a user would actually use.
