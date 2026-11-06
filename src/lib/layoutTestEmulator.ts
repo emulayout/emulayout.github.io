@@ -1,3 +1,4 @@
+import { isAdditionalTopologySlot, resolvePhysicalKeys } from '$lib/keyboardTopology';
 import {
 	buildKeyMap,
 	buildShiftKeyMap,
@@ -9,6 +10,8 @@ import type { LayoutData } from '$lib/layout';
 import type { DisplayCell } from '$lib/layoutDisplay';
 import {
 	keyboardInputEffectiveValue,
+	keyboardInputShiftedValue,
+	keyboardInputTopology,
 	parseKeyboardInputSlot,
 	type KeyboardInputConfig
 } from '$lib/keyboardInputConfig';
@@ -121,6 +124,20 @@ export function withKeyboardInputConfig(
 	options: KeyboardInputTranslationOptions = {}
 ): LayoutTestKeyMaps {
 	const inputKeyMap: KeyMap = {};
+	const targetByInputSlot = new Map<string, string>();
+	if (targetLayout.physicalTopology) {
+		for (const [slot, resolved] of resolvePhysicalKeys(
+			targetLayout,
+			keyboardInputTopology(inputConfig),
+			inputConfig.missingKeyPolicy
+		)) {
+			if (resolved.row < 3 && resolved.inputSlot)
+				targetByInputSlot.set(
+					resolved.inputSlot,
+					keyMaps.slotKeyMap?.[slot] ?? targetLayout.positionBySlot.get(slot) ?? ''
+				);
+		}
+	}
 	const thumbKeysByHand = { l: [] as typeof inputConfig.keys, r: [] as typeof inputConfig.keys };
 
 	for (const inputKey of inputConfig.keys) {
@@ -147,11 +164,15 @@ export function withKeyboardInputConfig(
 		let shiftedTarget: string | undefined;
 		if (position.row < 3) {
 			const code = codeBySlot.get(inputKey.slot);
-			target = keyMaps.slotKeyMap
-				? (keyMaps.slotKeyMap[inputKey.slot] ?? '')
-				: code
-					? (keyMaps.keyMap[code] ?? '')
-					: '';
+			target = targetLayout.physicalTopology
+				? (targetByInputSlot.get(inputKey.slot) ?? '')
+				: isAdditionalTopologySlot(inputKey.slot, keyboardInputTopology(inputConfig))
+					? ''
+					: keyMaps.slotKeyMap
+						? (keyMaps.slotKeyMap[inputKey.slot] ?? '')
+						: code
+							? (keyMaps.keyMap[code] ?? '')
+							: '';
 			shiftedTarget = shiftedKeyCharacter(target);
 		} else {
 			const hand = inputKey.thumbHand ?? (position.column < 5 ? 'l' : 'r');
@@ -163,7 +184,7 @@ export function withKeyboardInputConfig(
 		}
 
 		inputKeyMap[source] = target;
-		const shiftedSource = shiftedKeyCharacter(source);
+		const shiftedSource = keyboardInputShiftedValue(inputKey);
 		if (shiftedSource) inputKeyMap[shiftedSource] = shiftedTarget ?? '';
 	}
 

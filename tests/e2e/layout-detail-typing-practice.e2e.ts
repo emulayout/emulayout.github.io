@@ -490,7 +490,9 @@ test('offers responsive next-key and home-key keyboard guidance', async ({ page 
 	const keyboardMain = practicePanel.locator('.layout-keyboard-workspace-main');
 	const keyboardCluster = practicePanel.locator('.layout-keyboard-workspace-cluster');
 	const keyboardOptions = practicePanel.getByRole('group', { name: 'Keyboard options' });
-	const inputLayoutControl = practicePanel.getByRole('button', { name: 'Input layout: QWERTY' });
+	const inputLayoutControl = practicePanel.getByRole('button', {
+		name: 'Input layout: QWERTY (ANSI)'
+	});
 	const nextKeyToggle = keyboardOptions.getByRole('switch', { name: 'Highlight next key' });
 	const homeKeyToggle = keyboardOptions.getByRole('switch', { name: 'Color home keys' });
 	await expect(keyboardOptions.getByRole('switch', { name: 'Show special keys' })).toHaveCount(0);

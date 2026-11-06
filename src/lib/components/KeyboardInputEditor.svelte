@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { KEYBOARD_TOPOLOGIES } from '$lib/keyboardTopology';
 	import { tick } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -6,6 +7,7 @@
 	import { SPLIT_COL } from '$lib/cmini/keyboard';
 	import {
 		isKeyboardInputHomeKeySlot,
+		keyboardInputTopology,
 		keyboardInputPlaceholderValue,
 		keyboardInputRows,
 		navigateKeyboardInputSlot,
@@ -67,6 +69,8 @@
 	const rows = $derived(keyboardInputRows(config));
 	const firstEditableSlot = $derived(rows[0]?.keys[0]?.slot ?? null);
 	const inputBySlot = new SvelteMap<string, HTMLInputElement>();
+	const topology = $derived(KEYBOARD_TOPOLOGIES[keyboardInputTopology(config)]);
+	const hasExtraLeftKey = $derived(topology.keys.some((key) => key.column < 0));
 	const orthoGeometry = $derived(config.keyboardType === 'ortho');
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
@@ -74,7 +78,11 @@
 		let max = 9;
 		for (const key of config.keys) {
 			const position = parseKeyboardInputSlot(key.slot);
-			if (position && position.row < 3) max = Math.max(max, position.column);
+			if (position && position.row < 3)
+				max = Math.max(
+					max,
+					topology.keys.find((candidate) => candidate.slot === key.slot)?.column ?? position.column
+				);
 		}
 		return Math.max(5, max - 4);
 	});
@@ -157,7 +165,12 @@
 		const right: KeyboardInputKey[] = [];
 		for (const key of keys) {
 			const position = parseKeyboardInputSlot(key.slot);
-			if (position && position.column >= SPLIT_COL) right.push(key);
+			if (
+				position &&
+				(topology.keys.find((candidate) => candidate.slot === key.slot)?.column ??
+					position.column) >= SPLIT_COL
+			)
+				right.push(key);
 			else left.push(key);
 		}
 		return { left, right };
@@ -400,6 +413,10 @@
 								{/if}
 							{/each}
 						{:else}
+							{#if hasExtraLeftKey && row.row !== 2}<span
+									class="keyboard-input-editor__key-placeholder"
+									aria-hidden="true"
+								></span>{/if}
 							{#each halves.left as key, keyIndex (key.slot)}
 								{@render keyField(key, row.row, keyIndex)}
 							{/each}
@@ -439,6 +456,9 @@
 			{:else}
 				<div
 					class="keyboard-input-editor__row"
+					style={hasExtraLeftKey
+						? `padding-left: calc(var(--editor-key-size) * ${row.row === 2 ? 0.68 : row.row === 1 ? 1.28 : 1} + var(--editor-key-gap) * ${row.row === 2 ? 0 : 1})`
+						: undefined}
 					class:keyboard-input-editor__row--stagger-home={row.row === 1}
 					class:keyboard-input-editor__row--stagger-bottom={row.row === 2}
 					data-keyboard-input-row={row.row}

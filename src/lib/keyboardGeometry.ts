@@ -12,5 +12,5 @@ export function parseKeyboardGeometry(value: string | null | undefined): Keyboar
 }
 
 export function geometryLabel(geometry: KeyboardGeometry): string {
-	return geometry === 'row-stagger' ? 'Row stagger' : 'Column stagger';
+	return geometry === 'row-stagger' ? 'Row-staggered' : 'Ortholinear';
 }

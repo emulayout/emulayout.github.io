@@ -28,6 +28,10 @@
 	import LayoutCard from '$lib/components/LayoutCard.svelte';
 	import LayoutExpandUniqueStats from '$lib/components/LayoutExpandUniqueStats.svelte';
 	import LayoutFeel from '$lib/components/LayoutFeel.svelte';
+	import {
+		collectReachableTargetCharacters,
+		unreachableTargetLayoutKeys
+	} from '$lib/layoutKeyReachability';
 	import LayoutKeyboardWorkspace from '$lib/components/LayoutKeyboardWorkspace.svelte';
 	import LayoutTestArea from '$lib/components/LayoutTestArea.svelte';
 	import LayoutTypingPractice from '$lib/components/LayoutTypingPractice.svelte';
@@ -182,6 +186,12 @@
 	const configuredTestKeyMaps = $derived(
 		withKeyboardInputConfig(testKeyMaps, layout, keyboardInputStore.config)
 	);
+	const testUnreachableKeys = $derived([
+		...unreachableTargetLayoutKeys(
+			layout,
+			collectReachableTargetCharacters(testKeyMaps, layout, keyboardInputStore.config)
+		)
+	]);
 	const hasSpecialMappings = $derived(
 		Boolean(inputProfile?.chiralKeys || inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
@@ -624,6 +634,7 @@
 							geometry={resolvedGeometry}
 							rows={displayRows}
 							feedback={keyboardFeedback}
+							unreachableKeys={testUnreachableKeys}
 							swapPaths={keyboardSwapPaths}
 							highlightHomeKeys={testDisplayOptions.colorHomeKeys}
 							showFingerAssignments={testDisplayOptions.showFingerAssignments}

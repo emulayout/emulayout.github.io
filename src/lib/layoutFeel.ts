@@ -1,6 +1,7 @@
 import { shiftedKeyCharacter, type KeyMap } from '$lib/cmini/keyboard';
 import {
 	keyboardInputEffectiveValue,
+	keyboardInputShiftedValue,
 	parseKeyboardInputSlot,
 	type KeyboardInputConfig
 } from '$lib/keyboardInputConfig';
@@ -394,7 +395,7 @@ export function buildFeelInputKeyMaps(
 		if (!source) continue;
 
 		inputKeyMap[source] = source;
-		const shiftedSource = shiftedKeyCharacter(source);
+		const shiftedSource = keyboardInputShiftedValue(inputKey);
 		if (shiftedSource) inputKeyMap[shiftedSource] = shiftedSource;
 	}
 

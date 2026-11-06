@@ -18,7 +18,8 @@ describe('keyboard geometry preference', () => {
 		expect(parseKeyboardGeometry('column-stagger')).toBe('column-stagger');
 		expect(parseKeyboardGeometry('row-stagger')).toBe('row-stagger');
 		expect(parseKeyboardGeometry('ortho')).toBe('row-stagger');
-		expect(geometryLabel('row-stagger')).toBe('Row stagger');
+		expect(geometryLabel('row-stagger')).toBe('Row-staggered');
+		expect(geometryLabel('column-stagger')).toBe('Ortholinear');
 	});
 
 	test('maps geometry and Anglemod explicitly for external tools', () => {

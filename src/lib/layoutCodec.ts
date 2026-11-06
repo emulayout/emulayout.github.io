@@ -1,3 +1,4 @@
+import { catalogPhysicalTopology } from '$lib/keyboardTopology';
 import { SPARK_FINGERS, type SparkFinger } from '$lib/sparkSchema';
 import type { AuthorId, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
 import { computeCharacterSet } from '$lib/layoutCharacterSet';
@@ -148,6 +149,7 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		user: String(user),
 		keys,
 		positionBySlot,
+		physicalTopology: catalogPhysicalTopology(name, positionBySlot),
 		fingerBySlot,
 		thumbKeysByHand,
 		hasThumbKeys: (flags & LAYOUT_FLAG_THUMB_KEYS) !== 0,

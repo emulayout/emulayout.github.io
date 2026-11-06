@@ -1,15 +1,24 @@
+import {
+	KEYBOARD_TOPOLOGIES,
+	isKeyboardTopology,
+	resolvePhysicalKeys,
+	type KeyboardTopologyId,
+	type MissingKeyPolicy
+} from '$lib/keyboardTopology';
 import type { LayoutData } from '$lib/layout';
 import { isHomeKeySlot, shiftedKeyCharacter } from '$lib/cmini/keyboard';
 
 export const KEYBOARD_INPUT_CONFIG_STORAGE_KEY = 'keyboardInputConfig';
 
-const KEYBOARD_INPUT_CONFIG_VERSION = 3;
+const KEYBOARD_INPUT_CONFIG_VERSION = 5;
 
 export type InputKeyboardType = 'ortho' | 'staggered';
 
 export interface KeyboardInputKey {
 	slot: string;
 	value: string;
+	/** Explicit shifted source character for regional input presets. */
+	shiftedValue?: string;
 	/** Preferred physical occurrence of an imported duplicate character. */
 	primary?: boolean;
 	/** The imported base layout does not assign this physical slot. */
@@ -20,6 +29,9 @@ export interface KeyboardInputKey {
 }
 
 export interface KeyboardInputConfig {
+	/** Optional for older callers and creator drafts; defaults to ANSI/preserve. */
+	topology?: KeyboardTopologyId;
+	missingKeyPolicy?: MissingKeyPolicy;
 	baseLayoutName: string | null;
 	/** At least one key has been edited since the current base was selected. */
 	baseLayoutModified: boolean;
@@ -101,7 +113,8 @@ function withKeyboardInputThumbPlaceholders(keys: KeyboardInputKey[]): KeyboardI
 
 function withKeyboardInputTopology(
 	keys: KeyboardInputKey[],
-	missingMainKeysInert = false
+	missingMainKeysInert = false,
+	topology: KeyboardTopologyId = 'ansi'
 ): KeyboardInputKey[] {
 	const result = keys.map((key) => ({ ...key }));
 	const slots = new Set(result.map((key) => key.slot));
@@ -114,6 +127,9 @@ function withKeyboardInputTopology(
 		});
 		slots.add(defaultKey.slot);
 	}
+	for (const key of KEYBOARD_TOPOLOGIES[topology].keys) {
+		if (!slots.has(key.slot)) result.push({ slot: key.slot, value: '' });
+	}
 	return withKeyboardInputThumbPlaceholders(result);
 }
 
@@ -124,6 +140,12 @@ export function keyboardInputPlaceholderValue(slot: string): string {
 export function keyboardInputEffectiveValue(key: KeyboardInputKey): string {
 	if (key.inert) return '';
 	return normalizeKeyboardInputValue(key.value) || keyboardInputPlaceholderValue(key.slot);
+}
+
+export function keyboardInputShiftedValue(key: KeyboardInputKey): string | undefined {
+	return key.inert
+		? undefined
+		: (key.shiftedValue ?? shiftedKeyCharacter(keyboardInputEffectiveValue(key)));
 }
 
 export function keyboardInputConfigLabel(config: KeyboardInputConfig): string {
@@ -138,6 +160,8 @@ export function keyboardInputConfigLabel(config: KeyboardInputConfig): string {
 
 export function createDefaultKeyboardInputConfig(): KeyboardInputConfig {
 	return {
+		topology: 'ansi',
+		missingKeyPolicy: 'preserve',
 		baseLayoutName: 'QWERTY',
 		baseLayoutModified: false,
 		keyboardType: 'staggered',
@@ -150,18 +174,25 @@ export function buildKeyboardInputConfig(
 	config: Omit<KeyboardInputConfig, 'keys'> & { keys: readonly KeyboardInputKey[] }
 ): KeyboardInputConfig {
 	return {
+		topology: config.topology ?? 'ansi',
+		missingKeyPolicy: config.missingKeyPolicy ?? 'preserve',
 		baseLayoutName: config.baseLayoutName,
 		baseLayoutModified: config.baseLayoutModified,
 		keyboardType: config.keyboardType,
-		keys: withKeyboardInputTopology(config.keys.map((key) => ({ ...key })))
+		keys: withKeyboardInputTopology(
+			config.keys.map((key) => ({ ...key })),
+			false,
+			config.topology
+		)
 	};
 }
 
 export function createKeyboardInputConfigFromLayout(
 	layout: LayoutData,
-	keyboardType: InputKeyboardType = 'staggered'
+	keyboardType: InputKeyboardType = 'staggered',
+	inputOptions?: { topology: KeyboardTopologyId; missingKeyPolicy: MissingKeyPolicy }
 ): KeyboardInputConfig {
-	const keys = Array.from(layout.positionBySlot, ([slot, value]): KeyboardInputKey => {
+	let keys = Array.from(layout.positionBySlot, ([slot, value]): KeyboardInputKey => {
 		const info = layout.keys[value];
 		const thumbHand = info?.row >= 3 ? (info.thumbHand ?? (info.col < 5 ? 'l' : 'r')) : undefined;
 		return {
@@ -172,12 +203,31 @@ export function createKeyboardInputConfigFromLayout(
 		};
 	});
 
-	return {
+	if (inputOptions) {
+		const resolved = resolvePhysicalKeys(
+			layout,
+			keyboardType === 'ortho' ? 'ortho' : inputOptions.topology,
+			inputOptions.missingKeyPolicy
+		);
+		keys = keys.flatMap((key) => {
+			const slot = resolved.get(key.slot)?.inputSlot;
+			return slot ? [{ ...key, slot }] : [];
+		});
+	}
+	const config: KeyboardInputConfig = {
+		topology:
+			inputOptions && keyboardType === 'ortho' ? 'ortho' : (inputOptions?.topology ?? 'ansi'),
+		missingKeyPolicy: inputOptions?.missingKeyPolicy ?? 'preserve',
 		baseLayoutName: layout.name,
 		baseLayoutModified: false,
 		keyboardType,
-		keys: withKeyboardInputTopology(keys, true)
+		keys: withKeyboardInputTopology(
+			keys,
+			true,
+			keyboardType === 'ortho' ? 'ortho' : inputOptions?.topology
+		)
 	};
+	return inputOptions ? applyQwertyHardwareDefaults(config, keyboardInputTopology(config)) : config;
 }
 
 export function cloneKeyboardInputConfig(config: KeyboardInputConfig): KeyboardInputConfig {
@@ -192,7 +242,7 @@ export function validateKeyboardInputConfig(
 		const value = keyboardInputEffectiveValue(key);
 		if (!value) continue;
 		const emittedValues = new Set(
-			[value, shiftedKeyCharacter(value)].filter(
+			[value, keyboardInputShiftedValue(key)].filter(
 				(emittedValue): emittedValue is string => emittedValue !== undefined
 			)
 		);
@@ -298,7 +348,12 @@ export function keyboardInputRows(config: KeyboardInputConfig): KeyboardInputRow
 	}
 	return Array.from(rows, ([row, keys]) => ({
 		row,
-		keys: keys.toSorted(compareKeyboardInputKeys)
+		keys: keys.toSorted((a, b) => {
+			const definition = KEYBOARD_TOPOLOGIES[keyboardInputTopology(config)];
+			const first = definition.keys.find((key) => key.slot === a.slot);
+			const second = definition.keys.find((key) => key.slot === b.slot);
+			return first && second ? first.column - second.column : compareKeyboardInputKeys(a, b);
+		})
 	})).toSorted((a, b) => a.row - b.row);
 }
 
@@ -322,6 +377,9 @@ export function updateKeyboardInputKey(
 				? {
 						slot: key.slot,
 						value: normalizedValue,
+						...(key.shiftedValue && key.value === normalizedValue
+							? { shiftedValue: key.shiftedValue }
+							: {}),
 						...(key.primary && key.value === normalizedValue ? { primary: true } : {}),
 						...(key.hand ? { hand: key.hand } : {}),
 						...(!normalizedValue && key.inert ? { inert: true } : {}),
@@ -433,6 +491,11 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		const position = parseKeyboardInputSlot(entry.slot);
 		if (!position) return null;
 		if (typeof entry.value !== 'string' || slots.has(entry.slot)) return null;
+		if (
+			entry.shiftedValue !== undefined &&
+			(typeof entry.shiftedValue !== 'string' || Array.from(entry.shiftedValue).length !== 1)
+		)
+			return null;
 		if (entry.inert !== undefined && typeof entry.inert !== 'boolean') return null;
 		if (entry.thumbHand !== undefined && entry.thumbHand !== 'l' && entry.thumbHand !== 'r') {
 			return null;
@@ -444,6 +507,7 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		keys.push({
 			slot: entry.slot,
 			value: normalizedValue,
+			...(typeof entry.shiftedValue === 'string' ? { shiftedValue: entry.shiftedValue } : {}),
 			...(entry.primary === true ? { primary: true } : {}),
 			...(entry.hand === 'l' || entry.hand === 'r' ? { hand: entry.hand } : {}),
 			...(!normalizedValue && entry.inert === true ? { inert: true } : {}),
@@ -452,11 +516,28 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 	}
 
 	const config: KeyboardInputConfig = {
+		topology: isKeyboardTopology(value.topology) ? value.topology : 'ansi',
+		missingKeyPolicy: value.missingKeyPolicy === 'shift' ? 'shift' : 'preserve',
 		baseLayoutName: typeof value.baseLayoutName === 'string' ? value.baseLayoutName : null,
 		baseLayoutModified: value.baseLayoutModified === true,
 		keyboardType: value.keyboardType,
-		keys: withKeyboardInputTopology(keys)
+		keys: withKeyboardInputTopology(
+			keys,
+			false,
+			isKeyboardTopology(value.topology) ? value.topology : 'ansi'
+		)
 	};
+	// Recognize the previous implicit UK preset without changing explicitly selected US QWERTY.
+	if (
+		config.baseLayoutName === 'QWERTY' &&
+		!config.baseLayoutModified &&
+		keyboardInputTopology(config) === 'iso' &&
+		config.keys.find((key) => key.slot === '0,12')?.value === '#' &&
+		config.keys.find((key) => key.slot === '2,10')?.value ===
+			DEFAULT_QWERTY_VALUE_BY_SLOT.get('0,12')
+	) {
+		config.baseLayoutName = 'QWERTY UK';
+	}
 	return keyboardInputConfigError(config) ? null : config;
 }
 
@@ -466,7 +547,11 @@ export function parseKeyboardInputConfig(storedValue: string | null): KeyboardIn
 		const document: unknown = JSON.parse(storedValue);
 		if (
 			!isRecord(document) ||
-			(document.version !== 1 && document.version !== 2 && document.version !== 3)
+			(document.version !== 1 &&
+				document.version !== 2 &&
+				document.version !== 3 &&
+				document.version !== 4 &&
+				document.version !== 5)
 		) {
 			return createDefaultKeyboardInputConfig();
 		}
@@ -480,4 +565,111 @@ export function serializeKeyboardInputConfig(config: KeyboardInputConfig): strin
 	const normalized = normalizeKeyboardInputConfig(config);
 	if (!normalized) throw new Error('Cannot persist an invalid keyboard input configuration.');
 	return JSON.stringify({ version: KEYBOARD_INPUT_CONFIG_VERSION, config: normalized });
+}
+
+/** Change hardware without shifting or losing shared physical assignments. */
+export function setKeyboardInputTopology(
+	config: KeyboardInputConfig,
+	topology: KeyboardTopologyId
+): KeyboardInputConfig {
+	const previous = KEYBOARD_TOPOLOGIES[keyboardInputTopology(config)];
+	const next = KEYBOARD_TOPOLOGIES[topology];
+	const removedSlots = new Set(
+		previous.keys
+			.filter((key) => !next.keys.some((candidate) => candidate.id === key.id))
+			.map((key) => key.slot)
+	);
+	return applyQwertyHardwareDefaults(
+		{
+			...config,
+			topology,
+			keys: withKeyboardInputTopology(
+				config.keys.filter((key) => !removedSlots.has(key.slot)),
+				false,
+				topology
+			)
+		},
+		topology
+	);
+}
+
+/** Hardware geometry takes precedence over dormant ANSI/ISO preferences in old saves. */
+export function keyboardInputTopology(
+	config: Pick<KeyboardInputConfig, 'keyboardType' | 'topology'>
+): KeyboardTopologyId {
+	return config.keyboardType === 'ortho' ? 'ortho' : config.topology === 'iso' ? 'iso' : 'ansi';
+}
+
+export function keyboardInputControlLabel(config: KeyboardInputConfig): string {
+	const name = keyboardInputConfigLabel(config);
+	const topology = keyboardInputTopology(config);
+	return topology === 'ortho' ? name : name + ' (' + KEYBOARD_TOPOLOGIES[topology].label + ')';
+}
+
+export function setKeyboardInputType(
+	config: KeyboardInputConfig,
+	keyboardType: InputKeyboardType
+): KeyboardInputConfig {
+	const topology = keyboardType === 'ortho' ? 'ortho' : config.topology === 'iso' ? 'iso' : 'ansi';
+	return { ...setKeyboardInputTopology(config, topology), keyboardType };
+}
+
+/** An explicit hardware/base selection seeds the regional preset, never a saved custom map. */
+function applyQwertyHardwareDefaults(
+	config: KeyboardInputConfig,
+	topology: KeyboardTopologyId
+): KeyboardInputConfig {
+	if (!['QWERTY', 'QWERTY UK'].includes(config.baseLayoutName ?? '') || config.baseLayoutModified)
+		return config;
+	return applyQwertyPreset(config, topology === 'iso' ? 'QWERTY UK' : 'QWERTY');
+}
+
+function applyQwertyPreset(
+	config: KeyboardInputConfig,
+	name: 'QWERTY' | 'QWERTY UK'
+): KeyboardInputConfig {
+	const uk = name === 'QWERTY UK';
+	return {
+		...config,
+		baseLayoutName: name,
+		keys: config.keys.map((key) => {
+			if (key.slot === '2,10' && keyboardInputTopology(config) === 'iso') {
+				const next = { ...key, value: uk ? DEFAULT_QWERTY_VALUE_BY_SLOT.get('0,12')! : '' };
+				delete next.inert;
+				delete next.shiftedValue;
+				return next;
+			}
+			if (key.slot === '0,12' || key.slot === '1,10') {
+				const next = {
+					...key,
+					value: key.slot === '0,12' ? (uk ? '#' : DEFAULT_QWERTY_VALUE_BY_SLOT.get('0,12')!) : "'"
+				};
+				delete next.shiftedValue;
+				delete next.inert;
+				if (uk) next.shiftedValue = key.slot === '0,12' ? '~' : '@';
+				return next;
+			}
+			return key;
+		})
+	};
+}
+
+/** Input-only presets do not create catalog records or analyzer data. */
+export const KEYBOARD_INPUT_PRESETS = ['QWERTY', 'QWERTY UK'] as const;
+export function createKeyboardInputPreset(
+	name: (typeof KEYBOARD_INPUT_PRESETS)[number],
+	hardware: KeyboardInputConfig
+): KeyboardInputConfig {
+	const topology = keyboardInputTopology(hardware);
+	const defaults = createDefaultKeyboardInputConfig();
+	return applyQwertyPreset(
+		{
+			...defaults,
+			keyboardType: hardware.keyboardType,
+			topology,
+			missingKeyPolicy: hardware.missingKeyPolicy,
+			keys: withKeyboardInputTopology(defaults.keys, false, topology)
+		},
+		name
+	);
 }

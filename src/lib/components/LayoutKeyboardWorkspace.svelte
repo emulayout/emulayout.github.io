@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { topologyPreviewRows } from '$lib/keyboardTopology';
+	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 	import type { Snippet } from 'svelte';
 	import InputMappingsPanel from '$lib/components/InputMappingsPanel.svelte';
 	import LayoutKeyboardPreview from '$lib/components/LayoutKeyboardPreview.svelte';
@@ -11,7 +13,7 @@
 		type DisplayCell
 	} from '$lib/layoutDisplay';
 	import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
-	import type { KeyboardWidthTerms } from '$lib/keyboardInputConfig';
+	import { keyboardInputTopology, type KeyboardWidthTerms } from '$lib/keyboardInputConfig';
 	import type {
 		LayoutKeyboardFeedback,
 		LayoutKeyboardPresentation,
@@ -121,15 +123,29 @@
 		};
 	});
 
-	const previewDisplayRows = $derived(fillPreviewKeyboardRows(rows));
+	const previewDisplayRows = $derived(
+		topologyPreviewRows(
+			layout,
+			rows,
+			keyboardInputTopology(keyboardInputStore.config),
+			keyboardInputStore.config.missingKeyPolicy
+		) ?? fillPreviewKeyboardRows(rows)
+	);
+	const minDisplayColumn = $derived(
+		Math.min(0, ...previewDisplayRows.flat().map((cell) => cell.displayColumn ?? 0))
+	);
 
 	function keyboardWidthTerms(): { keyUnits: number; gapCount: number } {
 		if (geometry === 'column-stagger') {
-			const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
+			const mainRowMaxColumn = previewDisplayRows.some((row) =>
+				row.some((cell) => cell.displayColumn !== undefined)
+			)
+				? Math.max(9, ...previewDisplayRows.flat().map((cell) => cell.displayColumn ?? 0))
+				: layoutMainRowMaxColumn(layout);
 			const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 			return {
-				keyUnits: 5 + rightSlotCount + 0.48,
-				gapCount: rightSlotCount + 3
+				keyUnits: 5 - minDisplayColumn + rightSlotCount + 0.48,
+				gapCount: rightSlotCount + 3 - minDisplayColumn
 			};
 		}
 
@@ -139,7 +155,12 @@
 			const rowNumber = Number(keys[0].slot?.split(',')[0]);
 			if (rowNumber >= 3) return [];
 			const rowOffset = rowNumber === 1 ? 0.28 : rowNumber === 2 ? 0.68 : 0;
-			return [{ keyUnits: keys.length + rowOffset, gapCount: Math.max(keys.length - 1, 0) }];
+			return [
+				{
+					keyUnits: keys.length + rowOffset + (keys[0].displayColumn ?? 0) - minDisplayColumn,
+					gapCount: Math.max(keys.length - 1 + (keys[0].displayColumn ?? 0) - minDisplayColumn, 0)
+				}
+			];
 		});
 
 		return (

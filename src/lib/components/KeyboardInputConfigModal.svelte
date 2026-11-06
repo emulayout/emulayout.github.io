@@ -1,11 +1,22 @@
 <script lang="ts">
+	import {
+		KEYBOARD_TOPOLOGIES,
+		type KeyboardTopologyId,
+		type MissingKeyPolicy
+	} from '$lib/keyboardTopology';
 	import { untrack } from 'svelte';
+	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import KeyboardInputEditor from '$lib/components/KeyboardInputEditor.svelte';
-	import LayoutAutocomplete from '$lib/components/LayoutAutocomplete.svelte';
+	import TextAutocomplete from '$lib/components/TextAutocomplete.svelte';
 	import ModalHeader from '$lib/components/ModalHeader.svelte';
 	import ModalShell from '$lib/components/ModalShell.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
 	import {
+		KEYBOARD_INPUT_PRESETS,
+		createKeyboardInputPreset,
+		keyboardInputTopology,
+		setKeyboardInputTopology,
+		setKeyboardInputType,
 		clearKeyboardInputConfig,
 		cloneKeyboardInputConfig,
 		createDefaultKeyboardInputConfig,
@@ -16,7 +27,6 @@
 		type KeyboardInputConfig
 	} from '$lib/keyboardInputConfig';
 	import { geometryLabel } from '$lib/keyboardGeometry';
-	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import { layoutsCatalog } from '$lib/layoutsCatalog.svelte';
 
 	interface Props {
@@ -27,9 +37,21 @@
 	}
 
 	let { open, config, onClose, onSave }: Props = $props();
+	const hintsButtonLabel = $derived(uiPrefs.hintsEnabled ? 'Hide help hints' : 'Show help hints');
 	const purposeHint =
 		'Tell Emulayout which characters your physical keys send. This lets typing practice and layout test areas translate them correctly to the layout you are testing.';
 	let draft = $state<KeyboardInputConfig>(createDefaultKeyboardInputConfig());
+	const baseOptions = $derived([
+		...new Set([
+			...KEYBOARD_INPUT_PRESETS.map(baseLabel),
+			...layoutsCatalog.layouts.map((layout) => layout.name)
+		])
+	]);
+	const preferredBases = $derived(
+		keyboardInputTopology(draft) === 'iso'
+			? ['QWERTY UK (ISO)', 'QWERTY']
+			: ['QWERTY', 'QWERTY UK (ISO)']
+	);
 	const validation = $derived(validateKeyboardInputConfig(draft));
 	const validationError = $derived(validation.error);
 	const missingAnsiValues = $derived(keyboardInputMissingAnsiValues(draft));
@@ -43,18 +65,27 @@
 		});
 	});
 
+	function baseLabel(name: string): string {
+		return name === 'QWERTY UK' ? 'QWERTY UK (ISO)' : name;
+	}
+
 	function selectBaseLayout(name: string) {
+		if (name === 'QWERTY UK (ISO)') name = 'QWERTY UK';
+		if (name === 'QWERTY' || name === 'QWERTY UK') {
+			draft = createKeyboardInputPreset(name, draft);
+			return;
+		}
 		const layout = layoutsCatalog.layouts.find((candidate) => candidate.name === name);
 		if (layout) {
-			draft = createKeyboardInputConfigFromLayout(
-				layout,
-				uiPrefs.keyboardGeometry === 'column-stagger' ? 'ortho' : 'staggered'
-			);
+			draft = createKeyboardInputConfigFromLayout(layout, draft.keyboardType, {
+				topology: draft.topology ?? 'ansi',
+				missingKeyPolicy: draft.missingKeyPolicy ?? 'preserve'
+			});
 		}
 	}
 
 	function setKeyboardType(keyboardType: InputKeyboardType) {
-		draft = { ...draft, keyboardType };
+		draft = setKeyboardInputType(draft, keyboardType);
 	}
 
 	function resetDraft() {
@@ -80,32 +111,36 @@
 			<span class="mr-auto inline-flex">
 				<Tooltip alwaysVisible text={purposeHint} />
 			</span>
+			<button
+				type="button"
+				onclick={() => uiPrefs.toggleHints()}
+				class="flex size-8 shrink-0 items-center justify-center rounded-full transition-colors"
+				style:color={uiPrefs.hintsEnabled ? 'var(--accent)' : 'var(--text-secondary)'}
+				aria-label={hintsButtonLabel}
+				aria-pressed={uiPrefs.hintsEnabled}
+				title={hintsButtonLabel}
+			>
+				<svg
+					class="size-5"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+					<path d="M12 17h.01" />
+				</svg>
+			</button>
 		{/snippet}
 	</ModalHeader>
 
 	<form class="keyboard-input-config-form" onsubmit={submit}>
 		<div class="keyboard-input-config-content">
 			<div class="keyboard-input-config-fields">
-				<div class="keyboard-input-config-field">
-					<span id="keyboard-input-base-label">Base layout (optional)</span>
-					<LayoutAutocomplete
-						layouts={layoutsCatalog.layouts}
-						preferredLayouts={['QWERTY']}
-						id="keyboard-input-base"
-						label="Base layout (optional)"
-						placeholder="Search layouts…"
-						selected={draft.baseLayoutName}
-						onSelect={selectBaseLayout}
-						onClear={() => (draft = clearKeyboardInputConfig(draft))}
-						loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
-					/>
-					{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
-						<p class="keyboard-input-config-error" role="alert">
-							Unable to load the layout catalog.
-						</p>
-					{/if}
-				</div>
-
 				<label class="keyboard-input-config-field">
 					<span>Keyboard geometry</span>
 					<select
@@ -116,6 +151,79 @@
 						<option value="staggered">{geometryLabel('row-stagger')}</option>
 					</select>
 				</label>
+				{#if draft.keyboardType === 'staggered'}
+					<div class="keyboard-input-config-field">
+						<div class="flex items-center gap-1.5">
+							<label for="keyboard-input-topology">Keyboard topology</label>
+							<Tooltip
+								text="Choose your physical keyboard: ANSI has a wide left Shift and a horizontal Enter key. ISO has a shorter left Shift, an extra key beside it (before Z on QWERTY), and a tall Enter key."
+							/>
+						</div>
+						<select
+							id="keyboard-input-topology"
+							value={draft.topology ?? 'ansi'}
+							onchange={(event) =>
+								(draft = setKeyboardInputTopology(
+									draft,
+									event.currentTarget.value as KeyboardTopologyId
+								))}
+						>
+							{#each Object.values(KEYBOARD_TOPOLOGIES).filter((topology) => topology.id !== 'ortho') as topology (topology.id)}
+								<option value={topology.id}>{topology.label}</option>
+							{/each}
+						</select>
+					</div>
+					{#if (draft.topology ?? 'ansi') === 'ansi'}
+						<div class="keyboard-input-config-field">
+							<div class="flex items-center gap-1.5">
+								<label for="keyboard-input-missing-key-policy">ISO layouts on ANSI hardware</label>
+								<Tooltip
+									text="Preserve positions keeps the ISO layout in place and disables its extra key, shown with a slash. Shift to fit moves the bottom row one key to the right, putting the extra ISO key on ANSI’s Z position. The rightmost key may no longer fit and is disabled instead."
+								/>
+							</div>
+							<select
+								id="keyboard-input-missing-key-policy"
+								value={draft.missingKeyPolicy ?? 'preserve'}
+								onchange={(event) =>
+									(draft = {
+										...draft,
+										missingKeyPolicy: event.currentTarget.value as MissingKeyPolicy
+									})}
+							>
+								<option value="preserve">Preserve positions</option>
+								<option value="shift">Shift to fit</option>
+							</select>
+						</div>
+					{/if}
+				{/if}
+			</div>
+			<div class="keyboard-input-base-fields">
+				<div class="keyboard-input-config-field">
+					<span id="keyboard-input-base-label">Base layout (optional)</span>
+					<TextAutocomplete
+						options={baseOptions}
+						preferredOptions={preferredBases}
+						selectedFirst={false}
+						kind="layout"
+						emptyText="No layouts match."
+						loadingText="Loading layouts…"
+						clearLabel="Clear selected layout"
+						showOptionsLabel="Show layout options"
+						hideOptionsLabel="Hide layout options"
+						id="keyboard-input-base"
+						label="Base layout (optional)"
+						placeholder="Search layouts…"
+						selected={draft.baseLayoutName ? baseLabel(draft.baseLayoutName) : undefined}
+						onSelect={selectBaseLayout}
+						onClear={() => (draft = clearKeyboardInputConfig(draft))}
+						loading={layoutsCatalog.loading && layoutsCatalog.layouts.length === 0}
+					/>
+					{#if layoutsCatalog.loadError && layoutsCatalog.layouts.length === 0}
+						<p class="keyboard-input-config-error" role="alert">
+							Unable to load the layout catalog.
+						</p>
+					{/if}
+				</div>
 			</div>
 
 			<KeyboardInputEditor
@@ -124,7 +232,7 @@
 				onConfigChange={(nextConfig) => (draft = nextConfig)}
 			/>
 
-			{#if missingAnsiValues.length > 0}
+			{#if draft.keyboardType === 'staggered' && missingAnsiValues.length > 0}
 				<p class="keyboard-input-config-hint" data-keyboard-input-missing-ansi>
 					<span>Potentially missing ANSI keys:</span>
 					<span class="keyboard-input-config-hint__keys">
@@ -188,7 +296,9 @@
 
 	.keyboard-input-config-fields {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.45fr);
+		grid-template-columns: none;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
 		gap: 1rem;
 		align-items: start;
 	}
@@ -332,6 +442,7 @@
 	@media (max-width: 40rem) {
 		.keyboard-input-config-fields {
 			grid-template-columns: 1fr;
+			grid-auto-flow: row;
 		}
 	}
 </style>

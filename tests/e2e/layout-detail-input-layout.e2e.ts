@@ -27,7 +27,7 @@ test('uses slot-aware configured input mapping and exposes its control in the in
 	const testArea = page
 		.locator('[data-layout-name="sparse-index-target"]')
 		.getByPlaceholder('Layout test area');
-	const inputLayoutButton = page.getByRole('button', { name: 'Input layout: QWERTY' });
+	const inputLayoutButton = page.getByRole('button', { name: 'Input layout: QWERTY (ANSI)' });
 	const settingsButton = page.getByRole('button', { name: 'Settings' });
 	const allLayoutsTab = page.getByRole('tab', { name: 'All layouts' });
 	await expect(inputLayoutButton).toBeVisible();
@@ -60,7 +60,7 @@ test('uses slot-aware configured input mapping and exposes its control in the in
 	await page.setViewportSize({ width: 600, height: 900 });
 	await expect(inputLayoutButton.locator('.keyboard-input-config-label')).toBeHidden();
 	await inputLayoutButton.hover();
-	await expect(page.getByRole('tooltip')).toHaveText('Input layout: QWERTY');
+	await expect(page.getByRole('tooltip')).toHaveText('Input layout: QWERTY (ANSI)');
 });
 
 test.describe('typing-practice input layout', () => {
@@ -79,10 +79,12 @@ test.describe('typing-practice input layout', () => {
 		});
 
 		await page.goto('/layouts/QWERTY');
-		await page.getByRole('button', { name: 'Input layout: QWERTY' }).click();
+		await page.getByRole('button', { name: 'Input layout: QWERTY (ANSI)' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
 		const baseLayout = dialog.getByRole('combobox', { name: 'Base layout' });
-		const fields = dialog.locator('.keyboard-input-config-fields');
+		const fields = dialog
+			.locator('.keyboard-input-base-fields')
+			.filter({ has: page.getByRole('combobox', { name: 'Base layout' }) });
 		const loadingIndicator = dialog.locator('[data-layout-autocomplete-loading]');
 		const loadingHeight = await fields.evaluate(
 			(element) => element.getBoundingClientRect().height
@@ -119,7 +121,7 @@ test.describe('typing-practice input layout', () => {
 		await expect(practicePanel.locator('[data-practice-word]')).toHaveText('e');
 
 		const inputLayoutButton = practicePanel.getByRole('button', {
-			name: 'Input layout: QWERTY'
+			name: 'Input layout: QWERTY (ANSI)'
 		});
 		await inputLayoutButton.click();
 		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
@@ -128,7 +130,9 @@ test.describe('typing-practice input layout', () => {
 		await expect(baseLayout).toHaveValue('QWERTY');
 		await expect(baseLayout).toBeFocused();
 		await expect(baseLayout).toHaveAttribute('aria-expanded', 'false');
-		const purposeHint = dialog.getByRole('button', { name: 'Help' });
+		const purposeHint = dialog
+			.locator('.modal-header')
+			.getByRole('button', { name: 'Help', exact: true });
 		await expect(purposeHint).toBeVisible();
 		await purposeHint.focus();
 		await expect(page.getByRole('tooltip')).toHaveText(
@@ -138,8 +142,8 @@ test.describe('typing-practice input layout', () => {
 		await expect(page.getByRole('tooltip')).toHaveCount(0);
 		await expect(dialog).toBeVisible();
 		await expect(keyboardGeometry).toHaveValue('staggered');
-		await expect(keyboardGeometry.getByRole('option', { name: 'Column stagger' })).toHaveCount(1);
-		await expect(keyboardGeometry.getByRole('option', { name: 'Row stagger' })).toHaveCount(1);
+		await expect(keyboardGeometry.getByRole('option', { name: 'Ortholinear' })).toHaveCount(1);
+		await expect(keyboardGeometry.getByRole('option', { name: 'Row-staggered' })).toHaveCount(1);
 		await expect(dialog.locator('[data-keyboard-input-slot]')).toHaveCount(36);
 		await expect(
 			dialog.locator('[data-keyboard-input-row="3"] [data-keyboard-input-slot]')
@@ -232,7 +236,9 @@ test.describe('typing-practice input layout', () => {
 
 		await dialog.getByRole('button', { name: 'Save' }).click();
 		await expect(dialog).toHaveCount(0);
-		await expect(practicePanel.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
+		await expect(
+			practicePanel.getByRole('button', { name: 'Input layout: Custom (ANSI)' })
+		).toBeVisible();
 		expect(
 			await page.evaluate((key) => localStorage.getItem(key), KEYBOARD_INPUT_CONFIG_STORAGE_KEY)
 		).not.toBeNull();
@@ -243,7 +249,7 @@ test.describe('typing-practice input layout', () => {
 		await expect(
 			page
 				.getByRole('tabpanel', { name: 'Typing practice' })
-				.getByRole('button', { name: 'Input layout: Custom' })
+				.getByRole('button', { name: 'Input layout: Custom (ANSI)' })
 		).toBeVisible();
 		await page
 			.getByRole('tabpanel', { name: 'Typing practice' })
@@ -255,7 +261,9 @@ test.describe('typing-practice input layout', () => {
 
 		await page.getByRole('tab', { name: 'Layout test area' }).click();
 		const testPanel = page.getByRole('tabpanel', { name: 'Layout test area' });
-		await expect(testPanel.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
+		await expect(
+			testPanel.getByRole('button', { name: 'Input layout: Custom (ANSI)' })
+		).toBeVisible();
 		const testInput = testPanel.getByRole('textbox', { name: 'Layout test area' });
 		await testInput.press('f');
 		await expect(testInput).toHaveValue('e');
@@ -266,14 +274,14 @@ test.describe('typing-practice input layout', () => {
 			.getByPlaceholder('Layout test area');
 		await indexTestInput.press('f');
 		await expect(indexTestInput).toHaveValue('e');
-		await expect(page.getByRole('button', { name: 'Input layout: Custom' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Input layout: Custom (ANSI)' })).toBeVisible();
 	});
 
 	test('switches between an assigned real thumb key and Space simulation', async ({ page }) => {
 		await page.goto('/layouts/night?text=r');
 		const practicePanel = page.getByRole('tabpanel', { name: 'Typing practice' });
 		const practiceInput = practicePanel.getByRole('textbox', { name: 'Typing practice input' });
-		await practicePanel.getByRole('button', { name: 'Input layout: QWERTY' }).click();
+		await practicePanel.getByRole('button', { name: 'Input layout: QWERTY (ANSI)' }).click();
 
 		const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
 		const leftThumb = dialog.locator('[data-keyboard-input-slot="3,0"]');
@@ -311,4 +319,46 @@ test.describe('typing-practice input layout', () => {
 		await practiceInput.press('Space');
 		await expect(practicePanel.getByLabel('Typing practice results')).toBeVisible();
 	});
+});
+
+test('toggles global hints from the input modal and explains ISO fitting', async ({ page }) => {
+	await page.goto('/layouts/QWERTY?text=e');
+	await page.getByRole('button', { name: 'Input layout: QWERTY (ANSI)' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Configure input layout' });
+	const fitField = dialog.locator('.keyboard-input-config-field').filter({
+		has: page.getByRole('combobox', { name: 'ISO layouts on ANSI hardware' })
+	});
+	await expect(fitField.getByRole('button', { name: 'Help', exact: true })).toHaveCount(0);
+	await dialog.getByRole('button', { name: 'Show help hints' }).click();
+	await expect(dialog.getByRole('button', { name: 'Hide help hints' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	const hint = fitField.getByRole('button', { name: 'Help', exact: true });
+	await hint.focus();
+	await expect(page.getByRole('tooltip')).toContainText(
+		'Preserve positions keeps the ISO layout in place'
+	);
+	await expect(page.getByRole('tooltip')).toContainText('rightmost key may no longer fit');
+	await hint.press('Escape');
+	await expect(dialog).toBeVisible();
+	await expect(hint).toBeFocused();
+	await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Hide help hints' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Hide help hints' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+	await page.getByRole('button', { name: 'Input layout: QWERTY (ANSI)' }).click();
+	await dialog.getByRole('button', { name: 'Hide help hints' }).click();
+	await expect(hint).toHaveCount(0);
+	await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Show help hints' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
 });

@@ -21,7 +21,7 @@ flags for these assignments; lowercase thumb flags retain their existing meaning
 - A configured input key maps its emitted character to a physical main-grid slot or to a thumb hand
   and ordinal. The target character at the corresponding position becomes the base output sent to
   the existing Adaptive, Magic, and Repeat resolver.
-- QWERTY with Row stagger geometry is the initial input profile. It preserves the emulator's former
+- QWERTY with Row-staggered geometry is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice, the detail
   Layout test area, and index-card test areas all apply it as source-to-target translation. Layout
@@ -34,13 +34,14 @@ The configuration modal offers two setup paths:
 
 An always-visible header hint explains that the input profile tells Emulayout which characters the
 physical keyboard sends so typing practice and layout test areas can translate them to the target
-layout.
+layout. A hints toggle beside Close changes the same persisted global help preference as the app
+bar immediately, even if the input-profile draft is later cancelled. Field hints explain ANSI/ISO
+hardware and the Preserve positions / Shift to fit choices.
 
-1. Choose any known catalog layout in the Base layout autocomplete. This replaces the draft values
+1. Choose a built-in QWERTY preset or known catalog layout in the Base layout autocomplete. This replaces the draft values
    and thumb metadata with that layout while retaining the complete QWERTY-sized
    main-grid topology. Standard slots the imported layout does not define remain visible but inert;
-   the source layout has no opinion about those keys or physical geometry. The draft keyboard
-   geometry follows the current global keyboard-geometry display preference.
+   the source layout has no opinion about those keys or physical geometry. Selecting a base preserves the hardware geometry already selected in the modal.
 2. Edit any key after choosing a base. Every effective value must be unique.
 
 An untouched selected base names the shared trigger. Editing any key marks the configuration as
@@ -52,18 +53,90 @@ listbox. Typing opens ranked matches, the chevron explicitly toggles an alphabet
 later refocus opens that default list. Selecting an option keeps focus in the field while closing
 the list. The clear control removes the base provenance and empties every explicit value without
 changing the keyboard shape; the QWERTY placeholders then remain the effective defaults.
-Reset restores the modal draft to the complete Row stagger QWERTY default. Like other draft edits,
+Reset restores the modal draft to the complete Row-staggered QWERTY default. Like other draft edits,
 the reset does not replace the persisted input profile until Save is selected.
 
-Keyboard geometry is currently `Row stagger` or `Column stagger`, matching the index toolbar
-language. Catalog layouts do not prescribe this choice; the viewer's keyboard-geometry preference
-initializes the input configuration. This choice controls editor presentation and is retained
-independently after customization. Column stagger uses aligned split geometry: each row is a
+Keyboard geometry is currently `Row-staggered` or `Ortholinear`, matching the index toolbar
+language. In this modal the choice describes the user's physical hardware, independently of
+the global display preference. Selecting a catalog base preserves that hardware choice. Ortholinear uses aligned split geometry: each row is a
 five-key left half, a straight center seam, and a right half that grows only to the right, so extra
-keys never shift the columns or the gap. Row stagger keeps ANSI row offsets. Thumb keys follow the
+keys never shift the columns or the gap. Row-staggered keeps ANSI row offsets. Thumb keys follow the
 presentation keyboard: column-stagger thumbs sit under each hand's index column with empty slots
 between them; row-stagger thumbs sit between their hand's bottom-row index keys, leaving a
 spacebar-sized gap.
+
+## Physical topology and fitting
+
+Ortholinear input uses authored grid positions and thumb hand/ordinal matching. ANSI/ISO
+controls, fitting policies, extra ISO key placement, and the missing-ANSI-keys hint do not apply.
+Older ortholinear saves with ANSI/ISO preferences ignore those preferences at runtime.
+Switching from ISO hardware to Ortholinear removes the extra ISO input slot; returning to
+Row-staggered selects ANSI. Base-layout selection does not change hardware geometry.
+
+The modal link includes the hardware variant for Row-staggered input, for example
+**Input layout: QWERTY (ANSI)** or **Input layout: Custom (ISO)**. Ortholinear input has no
+parenthetical suffix. The visible label, accessible name and compact-screen tooltip agree.
+Existing persisted geometry IDs remain unchanged; only their public names change.
+
+For Row-staggered hardware, Input layout also owns **Keyboard topology** (ANSI or ISO) and, on ANSI hardware,
+**ISO layouts on ANSI hardware** (Preserve positions or Shift to fit). These settings are
+independent of the base layout and the global keyboard display preference. Selecting a
+base maps verified catalog coordinates into the currently selected hardware before populating
+the editor. Changing hardware preserves shared assignments; switching to ANSI removes the extra
+ISO assignment. Selecting a base again reseeds it for the selected hardware.
+
+Preserve positions is the default. Shared physical identities remain aligned. ISO's extra key
+has no ANSI counterpart, so the preview slashes it and explains the mismatch. Shift to fit maps
+that extra key onto ANSI's Z position and moves the remaining bottom row one key right. A full
+row's last key becomes unavailable; it never wraps or overwrites another key. Both policies
+apply through the same input translation used by Practice, Layout test area, catalog-card
+input, and Layout feel. Practice next-key guidance excludes unavailable keys. Generated
+lessons use the existing reachability filter; custom lessons remain unchanged.
+
+ISO hardware retains all shared ANSI identities and adds an independent extra key. Its field
+appears first on the bottom row and accepts the character emitted by that key.
+The built-in **QWERTY UK** input preset supplies backslash/pipe on the extra key,
+hash/tilde on the other backslash position, and apostrophe/at-sign on Quote.
+QWERTY and QWERTY UK are input-only presets available independently of AKL catalog loading.
+They do not add Discover entries, detail pages or analyzer data.
+
+Switching unmodified QWERTY to ISO selects QWERTY UK automatically. Switching an unmodified
+QWERTY preset away from ISO restores QWERTY. Other bases and Custom mappings are preserved.
+Explicitly selecting QWERTY on ISO keeps the US mapping, with the extra key empty. On ISO,
+the default picker list pins QWERTY UK first and QWERTY second, even when another base is selected.
+On other hardware that order is reversed. Searching still ranks matching names normally.
+Older saved implicit UK defaults are recognized as QWERTY UK without rewriting custom maps.
+Regional shifted aliases persist per input key; editing a value clears its preset shifted alias.
+
+Geometry, topology and the ANSI fitting policy share one equal-width row above the full-width
+Base layout field. Visible controls expand when a control is hidden; narrow screens stack them.
+The old extra-key helper paragraph is removed.
+Existing unique-value and shifted-alias validation still applies. An unused extra key stays blank and cannot produce target text.
+On ANSI target layouts it remains unused, without shifting shared keys.
+
+`keyboardTopology.ts` separates three extension points:
+
+- Topology definitions provide stable physical IDs, input-storage slots and display coordinates.
+  Storage slots do not imply display order: ISO's extra key has its own slot.
+- Layout adapters map authored slots to physical IDs. Runtime `LayoutData.physicalTopology`
+  carries this correspondence without changing catalog coordinates, finger assignments, Spark
+  source or analyzer inputs.
+- Pair-specific fit policies map physical IDs between topologies. Unsupported pairs preserve
+  their identities; they do not silently apply the ISO-to-ANSI shift.
+
+The current catalog has no explicit topology metadata. The reviewed adapters in
+`catalogKeyboardTopologies.ts` cover 18 offset-coordinate layouts: the Bauxite, C-major, C-minor,
+D-major, D-minor, Easy Harlot and Harlot ANSI/ISO variants, C-speed-isomtr and Galgraph ISO. They
+are guarded by their complete main-row character/coordinate signatures. Names alone, suffixes, empty columns and finger assignments are not classifiers.
+Unrecognized layouts or changed revisions keep the existing grid correspondence. Add verified
+adapters (or explicit source metadata) to support additional catalog conventions; adding hardware
+does not require duplicating Practice or Feel logic. This is not automatic detection of every
+ISO layout in the catalog.
+
+The preview projects positions from the same resolver, retaining authored slot IDs for colors,
+feedback and swap paths. Home highlights follow the projected physical columns. Finger colors
+remain authored even when Shift to fit changes the fingers a user would actually use.
+The layout's generic grid and multiple-thumb correspondence remain supported.
 
 ## Key editor interaction
 
@@ -106,6 +179,8 @@ The stored model contains:
 - the base layout name as provenance for the autocomplete and, while untouched, the trigger label;
 - whether a key has been edited since that base was selected;
 - the two-value keyboard geometry choice (stored under the existing `keyboardType` field);
+- hardware topology and missing-key policy (missing fields default to ANSI/preserve);
+- optional per-key shifted input aliases (version 5; versions 1–4 remain readable);
 - key values keyed by stable `row,column` slots;
 - an optional inert marker for standard slots omitted by an imported base;
 - optional left/right thumb-hand identity.
@@ -124,7 +199,8 @@ boundary:
 
 1. Ignore inert imported omissions. Resolve every other input slot's explicit value, falling back
    to its QWERTY placeholder, and match `KeyboardEvent.key` to that effective input key.
-2. For main-grid keys, use its row/column to find the target output compiled from the structured
+2. For main-grid keys, resolve physical identities through the topology adapter when available,
+   otherwise preserve the existing row/column correspondence. Find target output from the structured
    display rows by `createLayoutTestKeyMaps`. The slot-indexed map preserves sparse holes, extended
    columns, target angle transformations, and shifted output.
 3. For each nonempty thumb assignment, match its ordinary real-key value by left/right hand and

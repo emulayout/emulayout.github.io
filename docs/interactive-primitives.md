@@ -111,7 +111,7 @@ Monkeytype choices to the modal; Layout feel omits it. Saving persists that choi
 the prompt via the route's shareable lesson query, while dismissal discards its draft value.
 
 The reusable input-layout control also uses `ModalShell` and `ModalHeader`. Its base-layout field
-uses the shared `LayoutAutocomplete` listbox over the lazily loaded catalog. The keyboard editor
+uses the shared `TextAutocomplete` listbox over built-in input presets and the lazily loaded catalog. The keyboard editor
 owns arrow-key navigation among its text fields: Left and Right cross row boundaries, Up and Down
 select the nearest key in the adjacent row, and entering one printable key advances to the next
 field. The modal validates a unique effective source-key map before Save and restores focus to its
@@ -152,7 +152,7 @@ option data, copy, and selection policy rather than forking that interaction cod
 focus stays closed, typing opens ranked search matches, and the chevron toggles a default
 alphabetical list with the committed selection first. Refocusing after leaving the field also opens
 that default list. Consumers may place known catalog layouts before the alphabetical remainder;
-both Base layout fields use this to keep QWERTY readily available. Selection closes the list but
+the creator Base layout field uses this to keep QWERTY readily available. The input configuration field pins its built-in QWERTY presets. Selection closes the list but
 retains input focus. Escape or leaving the field without a catalog pick restores the committed
 layout name. Consumers that supply
 `onClear` get a separate trailing clear button; clearing retains focus with the list closed. Its
@@ -187,3 +187,8 @@ catalog author.
 `FingerAssignmentOption` uses `ToggleSwitch` for the finger-color preference in
 read-only Practice, Test, and Feel keyboards. It retains the shared switch and Space-key semantics;
 it does not introduce a new primitive or change keyboard-editing interactions.
+
+The input configuration modal uses TextAutocomplete directly to combine built-in input presets
+with catalog names. Its selectedFirst=false option keeps preferredOptions ahead of the committed
+selection in the default list; other consumers retain selected-first ordering. Search ranking,
+keyboard behavior, focus ownership and ARIA contracts are unchanged.

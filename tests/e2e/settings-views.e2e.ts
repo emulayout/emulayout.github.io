@@ -18,12 +18,12 @@ test('defaults to row stagger, persists the toolbar choice, and omits it from Se
 	const keyboard = page
 		.locator('.results-toolbar-keyboard')
 		.getByRole('radiogroup', { name: 'Keyboard geometry' });
-	await expect(keyboard.getByRole('radio')).toHaveText(['Row stagger', 'Column stagger']);
-	await expect(keyboard.getByRole('radio', { name: 'Row stagger' })).toHaveAttribute(
+	await expect(keyboard.getByRole('radio')).toHaveText(['Row-staggered', 'Ortholinear']);
+	await expect(keyboard.getByRole('radio', { name: 'Row-staggered' })).toHaveAttribute(
 		'aria-checked',
 		'true'
 	);
-	await keyboard.getByRole('radio', { name: 'Column stagger' }).click();
+	await keyboard.getByRole('radio', { name: 'Ortholinear' }).click();
 
 	await page.getByRole('button', { name: 'Settings' }).click();
 	const dialog = page.getByRole('dialog', { name: 'Settings' });
@@ -31,7 +31,7 @@ test('defaults to row stagger, persists the toolbar choice, and omits it from Se
 	await dialog.getByRole('button', { name: 'Close' }).click();
 
 	await page.reload();
-	await expect(keyboard.getByRole('radio', { name: 'Column stagger' })).toHaveAttribute(
+	await expect(keyboard.getByRole('radio', { name: 'Ortholinear' })).toHaveAttribute(
 		'aria-checked',
 		'true'
 	);
@@ -67,17 +67,17 @@ test('loads geometry-specific analyzer stats once and restores them from cache',
 	const keyboardControl = page.locator('.results-toolbar-keyboard');
 	const keyboard = keyboardControl.getByRole('radiogroup', { name: 'Keyboard geometry' });
 	await expect(keyboardControl.getByText('Keyboard', { exact: true })).toBeVisible();
-	const rowStagger = keyboard.getByRole('radio', { name: 'Row stagger' });
+	const rowStagger = keyboard.getByRole('radio', { name: 'Row-staggered' });
 	await expect(rowStagger).toHaveAttribute('aria-checked', 'true');
 	await rowStagger.focus();
 	await rowStagger.press('ArrowRight');
-	await expect(keyboard.getByRole('radio', { name: 'Column stagger' })).toHaveAttribute(
+	await expect(keyboard.getByRole('radio', { name: 'Ortholinear' })).toHaveAttribute(
 		'aria-checked',
 		'true'
 	);
 
 	await expect(stats.getByText('1.00%', { exact: true })).toBeVisible();
-	await keyboard.getByRole('radio', { name: 'Row stagger' }).click();
+	await keyboard.getByRole('radio', { name: 'Row-staggered' }).click();
 	await expect(stats.getByText('2.00%', { exact: true })).toBeVisible();
 	await expect(page.getByText('Loading analyzer stats…')).toHaveCount(0);
 	expect(orthoRequests).toBe(1);

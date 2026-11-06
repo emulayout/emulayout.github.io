@@ -32,6 +32,7 @@ export interface ThumbKeyEntry {
 }
 
 export interface LayoutData {
+	physicalTopology?: import('$lib/keyboardTopology').LayoutPhysicalTopology;
 	name: string;
 	user: AuthorId;
 	keys: Record<string, KeyInfo>;

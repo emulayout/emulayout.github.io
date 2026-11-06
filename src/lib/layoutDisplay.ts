@@ -10,6 +10,9 @@ export const PREVIEW_MAIN_ROW_KEYS = 10;
 export type DisplayCell = {
 	char: string;
 	slot: string | null;
+	/** Physical presentation coordinate; authored slot remains stable for feedback. */
+	displayColumn?: number;
+	unavailableReason?: string;
 };
 
 type DisplayKeyInfo = {

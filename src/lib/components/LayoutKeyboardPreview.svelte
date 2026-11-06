@@ -78,8 +78,15 @@
 	const orthoGeometry = $derived(geometry === 'column-stagger');
 	const highlightedKeySet = $derived(new Set(highlightedKeys.map((key) => key.toLowerCase())));
 	const unreachableKeySet = $derived(new Set(unreachableKeys.map((key) => key.toLowerCase())));
+	const minDisplayColumn = $derived(
+		Math.min(0, ...rows.flat().map((cell) => cell.displayColumn ?? 0))
+	);
 	const previewRows = $derived.by((): PreviewRow[] => {
-		const mainRowMaxColumn = layoutMainRowMaxColumn(layout);
+		const mainRowMaxColumn = rows.some((row) =>
+			row.some((cell) => cell.displayColumn !== undefined)
+		)
+			? Math.max(9, ...rows.flat().map((cell) => cell.displayColumn ?? 0))
+			: layoutMainRowMaxColumn(layout);
 		const rightSlotCount = Math.max(5, mainRowMaxColumn - 4);
 
 		return rows.flatMap((row) => {
@@ -101,10 +108,12 @@
 							(column, index) => [column, rightKeys[index]] as const
 						)
 					])
-				: new Map(keys.map((key) => [Number(key.slot.split(',')[1]), key] as const));
-			const leftSlots = Array.from({ length: 5 }, (_, column) => ({
-				column,
-				key: keyByColumn.get(column)
+				: new Map(
+						keys.map((key) => [key.displayColumn ?? Number(key.slot.split(',')[1]), key] as const)
+					);
+			const leftSlots = Array.from({ length: 5 - minDisplayColumn }, (_, index) => ({
+				column: index + minDisplayColumn,
+				key: keyByColumn.get(index + minDisplayColumn)
 			}));
 			const rightSlots = Array.from({ length: rightSlotCount }, (_, index) => {
 				const column = index + 5;
@@ -127,10 +136,10 @@
 		});
 	});
 
-	function ansiRowOffset(rowNumber: number): string {
-		if (rowNumber === 1) return 'calc(var(--preview-key-size) * 0.28)';
-		if (rowNumber === 2) return 'calc(var(--preview-key-size) * 0.68)';
-		return '0px';
+	function ansiRowOffset(row: PreviewRow): string {
+		const base = row.rowNumber === 1 ? 0.28 : row.rowNumber === 2 ? 0.68 : 0;
+		const offset = (row.keys[0]?.displayColumn ?? 0) - minDisplayColumn;
+		return `calc(var(--preview-key-size) * ${base + offset} + var(--preview-key-gap) * ${offset})`;
 	}
 
 	function ansiThumbOffset(column: number): string {
@@ -147,7 +156,7 @@
 
 	function isHomeKey(key: PreviewKey): boolean {
 		const [row, column] = key.slot.split(',').map(Number);
-		return isTypingPracticeHomeKeySlot(row, column);
+		return isTypingPracticeHomeKeySlot(row, key.displayColumn ?? column);
 	}
 
 	function keyTitle(
@@ -155,7 +164,9 @@
 		keyFeedback: LayoutKeyboardKeyFeedback | undefined
 	): string | undefined {
 		if (isUnreachableKey(key.char)) {
-			return unreachableLayoutKeyTitle({ isThumb: isLayoutThumbKey(layout, key.char) });
+			return key.unavailableReason
+				? `${key.unavailableReason} Words with this key are excluded from random lessons.`
+				: unreachableLayoutKeyTitle({ isThumb: isLayoutThumbKey(layout, key.char) });
 		}
 		if (keyFeedback?.value) return `${key.char} emits ${keyFeedback.value}`;
 		return undefined;
@@ -339,7 +350,7 @@
 					<div
 						class="keyboard-preview__row keyboard-preview__row--ansi"
 						data-keyboard-row={row.rowNumber}
-						style={`--preview-row-offset: ${ansiRowOffset(row.rowNumber)};`}
+						style={`--preview-row-offset: ${ansiRowOffset(row)};`}
 					>
 						{#each row.keys as key (key.slot)}
 							{@render previewKey(key)}

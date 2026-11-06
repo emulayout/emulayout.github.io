@@ -113,7 +113,7 @@ describe('keyboard input configuration', () => {
 		expect(migrated.keys.find((key) => key.slot === '0,0')).toEqual({ slot: '0,0', value: '' });
 		expect(keyboardInputEffectiveValue(migrated.keys.find((key) => key.slot === '0,0')!)).toBe('q');
 		expect(migrated.baseLayoutModified).toBe(false);
-		expect(JSON.parse(serializeKeyboardInputConfig(migrated)).version).toBe(3);
+		expect(JSON.parse(serializeKeyboardInputConfig(migrated)).version).toBe(5);
 	});
 
 	test('uses QWERTY placeholders for empty keys and rejects effective duplicates', () => {

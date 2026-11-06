@@ -280,6 +280,12 @@ The successful-space path is intentionally ordered:
 
 ## Invariants
 
+- Input layout's Row-staggered hardware topology and fitting policy feed a shared physical-key resolver for
+  verified layout adapters. Unavailable keys retain explanatory slashes and are excluded from
+  next-key guidance and the existing random-word filter. Layout feel uses the same correspondence.
+  Ortholinear input instead uses grid positions without ANSI/ISO fitting. Authored finger colors remain independent of fitting. See
+  [Keyboard input configuration](./keyboard-input-configuration.md#physical-topology-and-fitting).
+
 - Unless Allow incorrect words is enabled, non-final words require an exact active-word match followed by resolved Space; the final exact
   match advances immediately.
 - The prompt queue, input field, progress count, and contextual history reset together on advance.

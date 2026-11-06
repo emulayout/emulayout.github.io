@@ -15,6 +15,8 @@
 		maxResults?: number;
 		/** Existing options to place before the default alphabetical list. */
 		preferredOptions?: readonly string[];
+		/** Keep pinned presets ahead of the selected item when false. */
+		selectedFirst?: boolean;
 		kind: 'layout' | 'author';
 		emptyText: string;
 		loadingText: string;
@@ -37,6 +39,7 @@
 		id,
 		maxResults = 50,
 		preferredOptions = [],
+		selectedFirst = true,
 		kind,
 		emptyText,
 		loadingText,
@@ -78,7 +81,7 @@
 			...preferredNames,
 			...names.filter((name) => !preferredNameSet.has(name.toLowerCase()))
 		];
-		if (!committed) return orderedNames.slice(0, maxResults);
+		if (!committed || !selectedFirst) return orderedNames.slice(0, maxResults);
 		const normalizedCommitted = committed.toLowerCase();
 		const exact = orderedNames.find((name) => name.toLowerCase() === normalizedCommitted);
 		const rest = orderedNames.filter((name) => name.toLowerCase() !== normalizedCommitted);

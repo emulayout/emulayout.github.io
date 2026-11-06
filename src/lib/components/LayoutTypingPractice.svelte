@@ -292,7 +292,7 @@
 	const validNextPracticeKeys = $derived(
 		resolveNextTypingPracticeKeys(
 			session,
-			Object.keys(layout.keys),
+			Object.keys(layout.keys).filter((key) => !unreachableKeySet.has(key)),
 			inputProfile,
 			inputHistory,
 			disabledMappingIds

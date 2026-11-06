@@ -3,7 +3,7 @@
 	import HoverPopup from '$lib/components/HoverPopup.svelte';
 	import KeyboardInputConfigModal from '$lib/components/KeyboardInputConfigModal.svelte';
 	import { TAILWIND_BREAKPOINTS } from '$lib/constants';
-	import { keyboardInputConfigLabel } from '$lib/keyboardInputConfig';
+	import { keyboardInputControlLabel } from '$lib/keyboardInputConfig';
 	import { keyboardInputStore } from '$lib/keyboardInputStore.svelte';
 
 	interface Props {
@@ -17,7 +17,7 @@
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
 	const smUp = new MediaQuery(`(min-width: ${TAILWIND_BREAKPOINTS.sm}px)`);
 	const tooltipId = `keyboard-input-config-tooltip-${crypto.randomUUID()}`;
-	const label = $derived(`Input layout: ${keyboardInputConfigLabel(keyboardInputStore.config)}`);
+	const label = $derived(`Input layout: ${keyboardInputControlLabel(keyboardInputStore.config)}`);
 	const iconOnly = $derived(responsiveLabel && !smUp.current);
 
 	function openTooltip() {
