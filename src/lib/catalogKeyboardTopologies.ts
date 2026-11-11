@@ -1,7 +1,8 @@
 import type { KeyboardTopologyId } from '$lib/keyboardTopology';
 
-/** Reviewed catalog coordinate signatures. These layouts reserve column 0 for the ISO extra key.
- * Spaces are absent slots, including intentional holes. A changed signature needs review. */
+/** Reviewed catalog occupied-slot signatures. These layouts reserve column 0 for the ISO extra key.
+ * Spaces are absent slots, including intentional holes; letters document the reviewed revision.
+ * Character substitutions are allowed. A changed occupied-slot signature needs review. */
 export const CATALOG_KEYBOARD_TOPOLOGIES: Readonly<
 	Record<string, { topology: KeyboardTopologyId; rows: readonly string[] }>
 > = {

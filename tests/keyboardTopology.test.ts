@@ -222,14 +222,14 @@ describe('physical topology correspondence', () => {
 		expect(KEYBOARD_TOPOLOGIES.iso.keys.find((key) => key.id === 'IntlBackslash')?.column).toBe(-1);
 	});
 
-	test('unrecognized layouts and changed catalog revisions keep their original slots', () => {
+	test('unrecognized layouts and changed catalog shapes keep their original slots', () => {
 		const changed = easyHarlot('iso');
 		changed[0] = 'another-iso';
 		const generic = decodeLayout(changed);
 		expect(generic.physicalTopology).toBeUndefined();
 		expect(resolvePhysicalKeys(generic).get('1,1')?.inputSlot).toBe('1,1');
 		const revision = easyHarlot('iso');
-		(revision[5] as string[])[0] = '!';
+		(revision[7] as number[])[0] = 0;
 		expect(decodeLayout(revision).physicalTopology).toBeUndefined();
 	});
 });
@@ -246,5 +246,30 @@ test('compact staggered rows use physical columns without changing authored slot
 		expect(rows[2].find((cell) => cell.char === 'q')?.slot).toBe(
 			topology === 'iso' ? '2,0' : '2,1'
 		);
+	}
+});
+
+test('Bauxite vowel revisions retain physical mapping and preview positions', () => {
+	for (const vowels of ['ouae', 'aeou']) {
+		const rows = [` blmdv'k${vowels.slice(0, 2)}.`, ` nrtsgyh${vowels.slice(2)}i,`, 'xjqwczpf'];
+		const compact = easyHarlot('iso');
+		compact[0] = 'bauxite-iso';
+		const entries = rows.flatMap((row, r) =>
+			[...row].flatMap((char, c) => (char === ' ' ? [] : [{ char, row: r, col: c }]))
+		);
+		compact[5] = entries.map((key) => key.char);
+		compact[6] = entries.map((key) => key.row);
+		compact[7] = entries.map((key) => key.col);
+		const layout = decodeLayout(compact);
+		expect(layout.physicalTopology?.topology).toBe('iso');
+		const resolved = resolvePhysicalKeys(layout, 'ansi', 'preserve');
+		expect(resolved.get('0,1')?.inputSlot).toBe('0,0');
+		expect(resolved.get('1,1')?.inputSlot).toBe('1,0');
+		expect(resolved.get('2,0')?.inputSlot).toBeUndefined();
+		expect(
+			displayRowsToString(computeDisplayRows(layout, 'row-stagger'))
+				.split('\n')[1]
+				.startsWith(' n r t s g')
+		).toBe(true);
 	}
 });

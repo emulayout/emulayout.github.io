@@ -127,8 +127,8 @@ On ANSI target layouts it remains unused, without shifting shared keys.
 The current catalog has no explicit topology metadata. The reviewed adapters in
 `catalogKeyboardTopologies.ts` cover 18 offset-coordinate layouts: the Bauxite, C-major, C-minor,
 D-major, D-minor, Easy Harlot and Harlot ANSI/ISO variants, C-speed-isomtr and Galgraph ISO. They
-are guarded by their complete main-row character/coordinate signatures. Names alone, suffixes, empty columns and finger assignments are not classifiers.
-Unrecognized layouts or changed revisions keep the existing grid correspondence. Add verified
+are guarded by their complete main-row occupied-slot signatures; character substitutions do not invalidate the physical mapping. Names alone, suffixes, empty columns and finger assignments are not classifiers.
+Unrecognized layouts or revisions with changed occupied slots keep the existing grid correspondence. Add verified
 adapters (or explicit source metadata) to support additional catalog conventions; adding hardware
 does not require duplicating Practice or Feel logic. This is not automatic detection of every
 ISO layout in the catalog.

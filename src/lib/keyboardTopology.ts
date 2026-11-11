@@ -41,8 +41,8 @@ export interface LayoutPhysicalTopology {
 }
 
 /**
- * Verified catalog adapters. Match the complete main-row signature, not a name suffix or
- * inferred fingering. Unrecognized revisions keep their original coordinate interpretation.
+ * Verified catalog adapters. Match the complete main-row occupied-slot signature, not a name suffix or
+ * inferred fingering. Character changes retain the adapter; changed shapes keep their original interpretation.
  * Future catalog metadata can supply LayoutPhysicalTopology directly.
  */
 export function catalogPhysicalTopology(
@@ -56,7 +56,10 @@ export function catalogPhysicalTopology(
 		const actual = [...positions].filter(([slot]) => Number(slot.split(',')[0]) === row);
 		if (
 			actual.length !== [...expected].filter((c) => c !== ' ').length ||
-			actual.some(([slot, char]) => expected[Number(slot.split(',')[1])] !== char)
+			actual.some(([slot]) => {
+				const column = Number(slot.split(',')[1]);
+				return expected[column] === undefined || expected[column] === ' ';
+			})
 		)
 			return undefined;
 	}
