@@ -67,7 +67,8 @@ test('saves relative preferences and keeps URL overrides temporary across practi
 		split: true,
 		magic: 0,
 		adaptive: 50,
-		chiral: 100
+		chiral: 100,
+		repeat: 100
 	});
 	await expect(page.locator('[data-practice-word]')).toHaveCount(10);
 	expect(

@@ -121,7 +121,7 @@ small without weakening app-bar functionality.
   of the next word — and advance with the lesson. The lesson settings control sits on the remapped
   prompt row, not the source-word line. That source row keeps its height when the lesson
   finishes so the remapped prompt does not jump. As each remapped keystroke is entered correctly,
-  the corresponding source letters turn primary color. Magic and Adaptive underlines mark the
+  the corresponding source letters turn primary color. Magic, Repeat, Chiral, and Adaptive underlines mark the
   remapped keystroke spans; next-key highlights still land on the practiced layout’s keycaps. When
   Magic is preferred and emits a single character, typing the remapped literal letter for that emit
   is also accepted, while the prompt and next-key highlight keep showing the Magic trigger. Adaptive

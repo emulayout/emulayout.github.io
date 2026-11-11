@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { adaptiveRuleMappingId, magicRuleMappingId } from '$lib/inputMappingControls';
+import {
+	adaptiveRuleMappingId,
+	magicRuleMappingId,
+	repeatKeyMappingId
+} from '$lib/inputMappingControls';
 import { compileLayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { TypingPracticeRandomSource } from '$lib/typingPractice';
 import {
@@ -7,6 +11,7 @@ import {
 	isTypingPracticeSpecialWord,
 	selectTypingPracticeLessonWords
 } from '$lib/typingPracticeSpecialWords';
+import { defaultRemappingPreferences } from '$lib/typingPracticeRemappingPreferences';
 
 const profile = compileLayoutInputProfile({
 	magicKeys: { mappings: { '*': { c: 'k' } } },
@@ -52,6 +57,27 @@ describe('typing-practice special words', () => {
 			"can't"
 		]);
 		expect(filterTypingPracticeSpecialWords(['luck'], undefined)).toEqual([]);
+	});
+
+	test('targets adjacent doubled letters on Repeat-only layouts in both selection modes', () => {
+		const repeatProfile = compileLayoutInputProfile({}, { '@': {} });
+		const words = ['tell', 'bell', 'arrest', 'cost', 'rest', 'dared'];
+		expect(filterTypingPracticeSpecialWords(words, repeatProfile)).toEqual(words.slice(0, 3));
+		expect(
+			filterTypingPracticeSpecialWords(words, repeatProfile, [repeatKeyMappingId('@')])
+		).toEqual([]);
+		for (const split of [false, true]) {
+			const lesson = selectTypingPracticeLessonWords({
+				words,
+				profile: repeatProfile,
+				count: 4,
+				specialWordsPercent: 50,
+				remappingPreferences: { ...defaultRemappingPreferences(), split },
+				random: seededRandom(3)
+			});
+			expect(lesson).toHaveLength(4);
+			expect(filterTypingPracticeSpecialWords(lesson, repeatProfile)).toHaveLength(2);
+		}
 	});
 
 	test('a zero balance selects ordinary random words and honors exclusions', () => {

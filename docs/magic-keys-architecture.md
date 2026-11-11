@@ -265,6 +265,12 @@ For a trigger with repeat-last fallback, eligible adjacent doubled letters in th
 marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
 set; it does not alter input resolution or the default prompt presentation.
 
+Repeat has a separate, default-on Underline repeat group option shared by Typing practice and
+Layout feel. It marks both characters of eligible adjacent doubled-letter pairs in practice and
+the corresponding remapped keystrokes in Feel. Repeat uses a wavy underline in the same purple as Magic, with separate
+indexes and a persisted preference. Eligibility follows the full resolver and disabled mappings.
+Lesson word selection reuses this same derivation.
+
 Native chiral groups retain separate underline indexes in both Typing practice and Layout feel:
 Magic is purple, Chiral teal, and Adaptive orange. Overlapping enabled groups use Adaptive over
 Chiral over Magic color precedence. Magic and Chiral share the existing persisted underline

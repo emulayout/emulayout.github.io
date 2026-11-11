@@ -27,7 +27,7 @@ import {
 	writeTypingPracticeLessonOverrideParams
 } from '$lib/typingPracticeText';
 
-const preferences = { split: true, magic: 100, adaptive: 50, chiral: 0 };
+const preferences = { split: true, magic: 100, adaptive: 50, chiral: 0, repeat: 100 };
 const profile = compileLayoutInputProfile(
 	{
 		magicKeys: { mappings: { '*': { c: 'k' } } },
@@ -52,7 +52,7 @@ test('creator saves and portable shares retain relative settings', () => {
 		...createDefaultCreatorSnapshot(),
 		practiceLesson: normalizeTypingPracticeLessonSettings({
 			specialWordsPercent: 80,
-			remappingPreferences: preferences
+			remappingPreferences: { ...preferences, repeat: 30 }
 		})
 	};
 	const share = new URL(buildCreatorShareUrl(snapshot, 'https://example.com/create'));
@@ -94,14 +94,15 @@ test('overlapping words remain selectable without requiring every selected type 
 	expect(typingPracticeRemappingPools(['ai'], overlap)).toEqual({
 		magic: ['ai'],
 		adaptive: [],
-		chiral: ['ai']
+		chiral: ['ai'],
+		repeat: []
 	});
 	const selected = selectTypingPracticeLessonWords({
 		words: ['ai', 'rest'],
 		profile: overlap,
 		count: 10,
 		specialWordsPercent: 100,
-		remappingPreferences: { split: true, magic: 100, adaptive: 0, chiral: 100 }
+		remappingPreferences: { split: true, magic: 100, adaptive: 0, chiral: 100, repeat: 100 }
 	});
 	expect(selected).toEqual(Array(10).fill('ai'));
 });
@@ -141,7 +142,7 @@ test('missing types reallocate and zero weights fall back without banning words'
 		profile,
 		count: 10,
 		specialWordsPercent: 100,
-		remappingPreferences: { split: true, magic: 100, adaptive: 100, chiral: 100 }
+		remappingPreferences: { split: true, magic: 100, adaptive: 100, chiral: 100, repeat: 100 }
 	});
 	expect(selected).toEqual(Array(10).fill('ai'));
 	const ordinary = selectTypingPracticeLessonWords({
@@ -149,17 +150,19 @@ test('missing types reallocate and zero weights fall back without banning words'
 		profile,
 		count: words.length,
 		specialWordsPercent: 100,
-		remappingPreferences: { split: true, magic: 0, adaptive: 0, chiral: 0 }
+		remappingPreferences: { split: true, magic: 0, adaptive: 0, chiral: 0, repeat: 0 }
 	});
 	expect(new Set(ordinary)).toEqual(new Set(words));
 });
 
 test('normalizes weights and ignores malformed URL settings', () => {
+	expect(parseRemappingPreferences('100,50,0')).toEqual(preferences);
+	expect(parseRemappingPreferences('100,50,0,0')).toEqual({ ...preferences, repeat: 0 });
 	expect(
 		normalizeRemappingPreferences({ ...preferences, magic: 500, adaptive: -3, chiral: 23.6 })
-	).toEqual({ split: true, magic: 100, adaptive: 0, chiral: 24 });
+	).toEqual({ split: true, magic: 100, adaptive: 0, chiral: 24, repeat: 100 });
 	expect(normalizeRemappingPreferences({ ...preferences, chiral: NaN })).toBeUndefined();
-	for (const value of ['junk', '100,50', '100,50,x', '100,50,0,5'])
+	for (const value of ['junk', '100,50', '100,50,x', '100,50,0,x', '100,50,0,5,5'])
 		expect(parseRemappingPreferences(value)).toBeUndefined();
 	expect(typingPracticeLessonOverridesFromSearchParams(new URLSearchParams('remap=bad'))).toEqual(
 		{}
@@ -171,7 +174,7 @@ test('round-trips local storage, share URLs, and explicit combined selection', (
 	for (const split of [true, false]) {
 		const settings = normalizeTypingPracticeLessonSettings({
 			specialWordsPercent: 70,
-			remappingPreferences: { ...preferences, split }
+			remappingPreferences: { ...preferences, split, repeat: 40 }
 		});
 		expect(
 			parseTypingPracticeLessonSettings(serializeTypingPracticeLessonSettings(settings))
@@ -200,7 +203,8 @@ test('URL weights temporarily override stored defaults, absent fields inherit, a
 		split: true,
 		magic: 0,
 		adaptive: 0,
-		chiral: 100
+		chiral: 100,
+		repeat: 100
 	});
 	expect(
 		resolveTypingPracticeLessonSettings(stored, { wordCount: 25 }).remappingPreferences

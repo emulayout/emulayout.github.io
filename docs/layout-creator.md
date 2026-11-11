@@ -227,7 +227,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   area keeps the tall free-typing surface in both views. The same
   Practice lesson settings control as the detail page
   can replace that lesson with custom `text`, raise the remapping word share with
-  `special`, adjust relative Magic/Adaptive/Chiral weights with `remap`, or set random-lesson
+  `special`, adjust relative Magic, Adaptive, Chiral, and Repeat weights with `remap`, or set random-lesson
   `words` to 10, 25, or 50. Weights and combined/split mode also survive saved layouts, shares,
   and backups through the document sidecar. Menu Save persists those choices and
   writes them to the creator query; loading a URL that already has those params applies them only

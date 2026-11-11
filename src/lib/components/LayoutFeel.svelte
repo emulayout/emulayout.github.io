@@ -125,10 +125,12 @@
 	const remappingPools = $derived(
 		typingPracticeRemappingPools(sharedLesson.wordPool, inputProfile, disabledMappingIds)
 	);
+	const hasRepeatKey = $derived(Boolean(inputProfile?.repeatKey));
 	const remappingCounts = $derived({
 		magic: remappingPools.magic.length,
 		adaptive: remappingPools.adaptive.length,
-		chiral: remappingPools.chiral.length
+		chiral: remappingPools.chiral.length,
+		...(hasRepeatKey ? { repeat: remappingPools.repeat.length } : {})
 	});
 	const specialWordsPercent = $derived(practiceLesson?.specialWordsPercent ?? 0);
 	const lessonWordCount = $derived(practiceLesson?.wordCount ?? TYPING_PRACTICE_LESSON_WORD_COUNT);
@@ -173,9 +175,7 @@
 		Boolean(inputProfile?.chiralKeys || inputProfile?.magicKeys || inputProfile?.adaptiveSwaps)
 	);
 	const specialCandidateWords = $derived(
-		hasSpecialMappings
-			? filterTypingPracticeSpecialWords(wordPool, inputProfile, disabledMappingIds)
-			: []
+		filterTypingPracticeSpecialWords(wordPool, inputProfile, disabledMappingIds)
 	);
 	const hasAdaptiveSwapPreview = $derived(Boolean(inputProfile?.adaptiveSwaps));
 	const hasMagicGroupPreview = $derived(
@@ -227,6 +227,16 @@
 				word.id,
 				displayOptions.underlineMagicGroups
 					? (remainingPlans[wordIndex]?.magicIndexes ?? new Set<number>())
+					: new Set<number>()
+			])
+		)
+	);
+	const repeatGroupIndexes = $derived(
+		new Map(
+			prompt.map((word, wordIndex) => [
+				word.id,
+				displayOptions.underlineRepeatGroups
+					? (remainingPlans[wordIndex]?.repeatIndexes ?? new Set<number>())
 					: new Set<number>()
 			])
 		)
@@ -697,6 +707,12 @@
 										class:typing-practice-character--incorrect={character.status === 'incorrect'}
 										class:layout-feel-character--incorrect-flash={word.current &&
 											incorrectFlashIndex === characterIndex}
+										class:typing-practice-character--repeat-group={repeatGroupIndexes
+											.get(word.id)
+											?.has(characterIndex)}
+										data-repeat-group={repeatGroupIndexes.get(word.id)?.has(characterIndex)
+											? 'true'
+											: undefined}
 										class:typing-practice-character--magic-group={magicGroupIndexes
 											.get(word.id)
 											?.has(characterIndex)}
@@ -867,6 +883,14 @@
 							uiPrefs.setTypingPracticeDisplayOption('showSpecialKeys', checked)}
 					/>
 				{/if}
+				{#if hasRepeatKey}
+					<ToggleSwitch
+						checked={displayOptions.underlineRepeatGroups}
+						label="Underline repeat group"
+						onCheckedChange={(checked) =>
+							uiPrefs.setTypingPracticeDisplayOption('underlineRepeatGroups', checked)}
+					/>
+				{/if}
 				{#if hasMagicGroupPreview}
 					<ToggleSwitch
 						checked={displayOptions.underlineMagicGroups}
@@ -935,7 +959,7 @@
 			wordCount: lessonWordCount
 		}}
 		initialText={sourceLessonWords.join(' ')}
-		specialWordsAvailable={hasSpecialMappings}
+		specialWordsAvailable={hasSpecialMappings || hasRepeatKey}
 		specialWordCount={specialCandidateWords.length}
 		{remappingCounts}
 		wordCount={wordPool.length}
@@ -1166,6 +1190,7 @@
 		}
 	}
 
+	.typing-practice-character--repeat-group,
 	.typing-practice-character--chiral-group,
 	.typing-practice-character--magic-group,
 	.typing-practice-character--adaptive-group {
@@ -1174,6 +1199,11 @@
 		text-underline-offset: 0.12em;
 	}
 
+	.typing-practice-character--repeat-group {
+		text-decoration-style: wavy;
+	}
+
+	.typing-practice-character--repeat-group,
 	.typing-practice-character--magic-group {
 		text-decoration-color: var(--magic-key);
 	}

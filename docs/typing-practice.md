@@ -9,7 +9,7 @@ and calculation logic outside the renderer.
 
 - `Typing practice` is the first and default layout-detail tab. The layout creator reuses the same
   practice workspace, including Practice lesson settings for custom `text`, the `special`
-  Magic/Adaptive word balance, and random-lesson word count (`10`, `25`, or `50`). Creator Edit and Preview share the show-page tabs for Typing
+  remapping word balance, and random-lesson word count (`10`, `25`, or `50`). Creator Edit and Preview share the show-page tabs for Typing
   practice, Layout test area, and Layout feel; free typing lives on Layout test area. In Edit the
   key editor stays on every tab so the live draft can be tested in any mode. Do not send
   typed test-area text to analytics. Catalog layout detail pages remain practice-only on this tab.
@@ -83,6 +83,11 @@ and calculation logic outside the renderer.
   precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
   `--magic-key-fg` for contrast against that fill. Adaptive underlines, armed Adaptive keycaps, and
   swap-path strokes use `--adaptive-key`.
+- Layouts with a Repeat key add a default-on Underline repeat group option. It marks both
+  characters of each adjacent doubled-letter pair that the enabled Repeat key can produce, using
+  a wavy underline in the same purple as Repeat keycaps. Disabled Repeat behavior and contextual rules that override
+  the Repeat trigger do not create Repeat underlines. The preference is shared with Layout feel,
+  where it marks the corresponding remapped keystrokes.
 - Layouts with AKLDB Adaptive mappings similarly add a default-off Underline adaptive group
   option. It marks the preceding Adaptive trigger together with the target text that an enabled swap
   can produce after the full contextual-input pipeline resolves.
@@ -241,6 +246,7 @@ The successful-space path is intentionally ordered:
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
 - Layout-test display-option parsing and persistence format: `src/lib/layoutTestAreaPrefs.ts`
 - Magic-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
+- Repeat-group prompt hints and word candidates: `src/lib/typingPracticeRepeatGroups.ts`
 - Adaptive-group prompt hints: `src/lib/typingPracticeAdaptiveGroups.ts`
 - Custom-text, word-count, URL overlay, and lesson-pref persistence:
   `src/lib/typingPracticeText.ts`
@@ -323,4 +329,6 @@ the same pinned commit as English 1k:
 
 The word-bank selector displays a trailing chevron. Clicking the `english_1k` or `english_10k`
 credit opens Practice lesson on Test source and focuses Word bank. The remapping settings tab
-is labeled Special mappings.
+is labeled Special mappings. Words with remappings includes doubled-letter words that the layout's
+Repeat key can help type, including on layouts where Repeat is the only remapping. Adjust by type
+offers a separate Repeat weight when the layout has a Repeat key.

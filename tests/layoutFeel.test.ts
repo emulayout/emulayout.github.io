@@ -247,6 +247,19 @@ describe('layout feel translation', () => {
 });
 
 describe('layout feel Magic and Adaptive planning', () => {
+	test('maps doubled-letter underlines onto the preceding key and Repeat keystroke', () => {
+		const profile = compileLayoutInputProfile({}, { '@': {} });
+		const plan = planFeelWord('tell', ['t', 'e', 'l', '@'], profile, [], {
+			t: 'a',
+			e: 's',
+			l: 'd',
+			'@': 'f'
+		});
+		expect(plan.feelWord).toBe('asdf');
+		expect([...plan.repeatIndexes]).toEqual([2, 3]);
+		expect([...plan.magicIndexes]).toEqual([]);
+	});
+
 	test('plans Magic trigger keystrokes and remaps them onto the known layout', () => {
 		const { layout, keyMaps } = feelMapsFor(colemakDh);
 		const feelMap = buildFeelCharMap(keyMaps, createDefaultKeyboardInputConfig(), layout);

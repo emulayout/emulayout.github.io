@@ -183,3 +183,6 @@ is a distinct pageview (`/layouts?tab=feel`).
 
 The shared Allow incorrect words switch uses `practice-setting-space-skips-words`;
 no typed content or keyboard mappings are included.
+
+The shared Underline repeat group switch uses `practice-setting-underline-repeat-groups`.
+Restoring its saved preference does not emit an event.

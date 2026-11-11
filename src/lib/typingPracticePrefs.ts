@@ -16,6 +16,7 @@ export interface TypingPracticeDisplayOptions {
 	spaceSkipsWords: boolean;
 	showSpecialKeys: boolean;
 	underlineMagicGroups: boolean;
+	underlineRepeatGroups: boolean;
 	underlineAdaptiveGroups: boolean;
 	showAdaptiveSwaps: boolean;
 	onlyRelevantAdaptiveSwaps: boolean;
@@ -34,6 +35,7 @@ export function createDefaultTypingPracticeDisplayOptions(): TypingPracticeDispl
 		spaceSkipsWords: false,
 		showSpecialKeys: true,
 		underlineMagicGroups: true,
+		underlineRepeatGroups: true,
 		underlineAdaptiveGroups: false,
 		showAdaptiveSwaps: true,
 		onlyRelevantAdaptiveSwaps: false,
@@ -88,6 +90,10 @@ function normalizeTypingPracticeDisplayOptions(value: unknown): TypingPracticeDi
 			typeof value.underlineAdaptiveGroups === 'boolean'
 				? value.underlineAdaptiveGroups
 				: defaults.underlineAdaptiveGroups,
+		underlineRepeatGroups:
+			typeof value.underlineRepeatGroups === 'boolean'
+				? value.underlineRepeatGroups
+				: defaults.underlineRepeatGroups,
 		showAdaptiveSwaps:
 			typeof value.showAdaptiveSwaps === 'boolean'
 				? value.showAdaptiveSwaps

@@ -1,12 +1,14 @@
-import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
-import { planningMagicProfile } from '$lib/layoutInputBehaviors';
+import { planningMagicProfile, type LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import {
 	selectRandomTypingPracticeWords,
 	type TypingPracticeRandomSource
 } from '$lib/typingPractice';
 import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
-import { buildTypingPracticeMagicGroupIndexes } from '$lib/typingPracticeMagicGroups';
-import { buildTypingPracticeChiralGroupIndexes } from '$lib/typingPracticeMagicGroups';
+import { buildTypingPracticeRepeatGroupIndexes } from '$lib/typingPracticeRepeatGroups';
+import {
+	buildTypingPracticeChiralGroupIndexes,
+	buildTypingPracticeMagicGroupIndexes
+} from '$lib/typingPracticeMagicGroups';
 import {
 	REMAPPING_TYPES,
 	type RemappingPreferences,
@@ -18,7 +20,12 @@ export function typingPracticeRemappingPools(
 	profile: LayoutInputProfile | undefined,
 	disabled: readonly string[] = []
 ): Record<RemappingType, string[]> {
-	const pools: Record<RemappingType, string[]> = { magic: [], adaptive: [], chiral: [] };
+	const pools: Record<RemappingType, string[]> = {
+		magic: [],
+		adaptive: [],
+		chiral: [],
+		repeat: []
+	};
 	for (const word of words) {
 		if (buildTypingPracticeMagicGroupIndexes(word, profile?.magicKeys, disabled).size)
 			pools.magic.push(word);
@@ -26,13 +33,15 @@ export function typingPracticeRemappingPools(
 			pools.adaptive.push(word);
 		if (buildTypingPracticeChiralGroupIndexes(word, profile, disabled).size)
 			pools.chiral.push(word);
+		if (buildTypingPracticeRepeatGroupIndexes(word, profile, disabled).size)
+			pools.repeat.push(word);
 	}
 	return pools;
 }
 
 /**
- * Whether part of the word can be produced by an enabled Magic rule or
- * Adaptive swap or Chiral key. Mappings disabled for the current page session do not count,
+ * Whether part of the word can be produced by an enabled Magic, Adaptive,
+ * Chiral, or Repeat behavior. Mappings disabled for the current page session do not count,
  * so focusing on one group narrows which words qualify.
  */
 export function isTypingPracticeSpecialWord(
@@ -41,10 +50,12 @@ export function isTypingPracticeSpecialWord(
 	disabledMappingIds: readonly string[] = []
 ): boolean {
 	if (!profile) return false;
+	const disabled = new Set(disabledMappingIds);
 	return (
+		buildTypingPracticeRepeatGroupIndexes(word, profile, disabledMappingIds).size > 0 ||
 		buildTypingPracticeMagicGroupIndexes(
 			word,
-			planningMagicProfile(profile, new Set(disabledMappingIds)),
+			planningMagicProfile(profile, disabled),
 			disabledMappingIds
 		).size > 0 ||
 		buildTypingPracticeAdaptiveGroupIndexes(word, profile, disabledMappingIds).size > 0
@@ -56,7 +67,7 @@ export function filterTypingPracticeSpecialWords(
 	profile: LayoutInputProfile | undefined,
 	disabledMappingIds: readonly string[] = []
 ): string[] {
-	if (!profile?.magicKeys && !profile?.adaptiveSwaps && !profile?.chiralKeys) return [];
+	if (!profile) return [];
 	return words.filter((word) => isTypingPracticeSpecialWord(word, profile, disabledMappingIds));
 }
 

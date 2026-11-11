@@ -47,11 +47,11 @@
 		lesson: TypingPracticeLessonSettings;
 		/** Prefill for the custom text field, usually the current lesson words. */
 		initialText: string;
-		/** Whether the layout has Magic or Adaptive mappings to balance toward. */
+		/** Whether the layout has a remapping behavior to balance toward. */
 		specialWordsAvailable: boolean;
 		/** Words in the pool that match the currently enabled special keys. */
 		specialWordCount: number;
-		remappingCounts?: Record<RemappingType, number>;
+		remappingCounts: Record<Exclude<RemappingType, 'repeat'>, number> & { repeat?: number };
 		/** Total words in the random word pool. */
 		wordCount: number;
 		/** Typing-practice-only display option. Omit for Layout feel. */
@@ -68,7 +68,7 @@
 		initialText,
 		specialWordsAvailable,
 		specialWordCount,
-		remappingCounts = { magic: 0, adaptive: 0, chiral: 0 },
+		remappingCounts,
 		wordCount,
 		testStyle = DEFAULT_TYPING_PRACTICE_TEST_STYLE,
 		onTestStyleChange,
@@ -94,7 +94,10 @@
 			controls: `${preferencePanelId}-${option.value}-panel`
 		}))
 	);
-	const typeLabels = { magic: 'Magic', adaptive: 'Adaptive', chiral: 'Chiral' };
+	const typeLabels = { magic: 'Magic', adaptive: 'Adaptive', chiral: 'Chiral', repeat: 'Repeat' };
+	const remappingTypes = $derived(
+		REMAPPING_TYPES.filter((type) => type !== 'repeat' || remappingCounts.repeat !== undefined)
+	);
 	let lessonWordCount = $state<TypingPracticeWordCount>(DEFAULT_TYPING_PRACTICE_WORD_COUNT);
 	let draftTestStyle = $state<TypingPracticeTestStyle>(DEFAULT_TYPING_PRACTICE_TEST_STYLE);
 	let textField = $state<HTMLTextAreaElement | undefined>(undefined);
@@ -309,9 +312,7 @@
 									adjust them.
 								</p>
 							{:else if !specialWordsAvailable}
-								<p class="typing-practice-lesson-hint">
-									This layout has no Magic, Adaptive, or Chiral mappings.
-								</p>
+								<p class="typing-practice-lesson-hint">This layout has no special mappings.</p>
 							{:else}
 								{#if specialWordsAvailable}
 									<div class="typing-practice-lesson-balance">
@@ -357,7 +358,7 @@
 													Relative preferences, not percentages. Equal values favor types equally; 0
 													stops selecting for that type. A word may still use more than one type.
 												</p>
-												{#each REMAPPING_TYPES as type (type)}
+												{#each remappingTypes as type (type)}
 													<label class="typing-practice-lesson-balance-control">
 														<span class="typing-practice-lesson-label"
 															>{typeLabels[type]} preference</span
@@ -369,7 +370,7 @@
 																max="100"
 																step="10"
 																value={remappingPreferences[type]}
-																style:accent-color={`var(--${type}-key)`}
+																style:accent-color={`var(--${type === 'repeat' ? 'magic' : type}-key)`}
 																aria-valuetext={remappingPreferences[type] === 0
 																	? 'Off'
 																	: `${remappingPreferences[type]} relative weight`}
@@ -392,7 +393,7 @@
 															No matching {typeLabels[type]} words; this preference is skipped.
 														</p>{/if}
 												{/each}
-												{#if REMAPPING_TYPES.every((type) => remappingPreferences[type] === 0)}<p
+												{#if remappingTypes.every((type) => remappingPreferences[type] === 0)}<p
 														class="typing-practice-lesson-hint"
 														role="status"
 													>

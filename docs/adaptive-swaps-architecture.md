@@ -192,15 +192,15 @@ time because the swapped key is the true key at that moment.
 
 Typing practice's lesson source is URL-backed and edited in the Practice lesson modal: custom text
 (`text`) or random words with a special-key word balance (`special`, 0–100 percent). The balance
-finds candidate words by checking each pooled word against the currently enabled Magic and Adaptive
-mappings (including native Chiral mappings) using the same group derivations that drive the underlines, so disabling a mapping or group
-for the session also excludes its words. At 100 the lesson uses only matching words, cycling a small
+finds candidate words using the group derivations for enabled Magic, Adaptive, and native Chiral
+mappings. It also includes adjacent doubled letters when the Repeat key can emit the second letter.
+Disabled mappings do not contribute candidates. At 100 the lesson uses only matching words, cycling a small
 candidate set to fill the lesson; when nothing matches the enabled mappings it falls back to
 ordinary random words. Custom text replaces the random source, so the two never coexist in canonical
 URL state. Mapping toggles regenerate a lesson that has not been typed into yet; once typing starts,
 the change applies on the next restart.
 
-**Adjust by type** adds relative Magic, Adaptive, and Chiral weights beneath the overall
+**Adjust by type** adds relative Magic, Adaptive, Chiral, and Repeat weights beneath the overall
 **Words with remappings** percentage. For each targeted word, selection first chooses an available
 type by weight, then a word from that type's pool. Pool size does not alter a type's weight.
 Words may qualify for multiple types; overlap is not an extra weight. A zero weight stops deliberate
@@ -209,11 +209,12 @@ are renormalized. All weights zero, or no available positive-weight pool, falls 
 random selection. Small selected pools may repeat words to fill the lesson.
 
 Combined selection preserves the original union-pool behavior. Switching back to combined retains
-the three draft weights for later reuse. The shared Practice/Feel modal stages changes until Save;
+the draft weights for later reuse. The shared Practice/Feel modal stages changes until Save;
 Save stores them in the existing version-1 lesson-settings local-storage document. The optional
-`remap` query parameter overrides saved defaults for a visit: `100,50,0` enables relative mode;
-`off,100,50,0` explicitly selects combined mode while retaining weights. Missing or malformed
-values leave stored defaults intact. Custom text takes precedence and clears random-source settings.
+`remap` query parameter overrides saved defaults for a visit. `100,50,0,25` enables relative mode
+with a Repeat weight of 25. `off,100,50,0,25` selects combined mode while retaining the weights.
+Existing three-weight links and saves use a Repeat weight of 100. Missing or malformed values
+leave stored defaults intact. Custom text takes precedence and clears random-source settings.
 Creator snapshots, shares, and backups carry these settings through the existing lesson codec.
 
 The resolver returns which behaviors were applied to a keypress. The keyboard preview derives

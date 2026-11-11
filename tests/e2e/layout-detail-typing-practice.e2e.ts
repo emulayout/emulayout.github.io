@@ -1006,6 +1006,100 @@ test('keeps Repeat enabled without a detail-page toggle', async ({ page }) => {
 	await expect(repeatTestArea).toHaveValue('aa');
 });
 
+test('generates doubled-letter lessons on a layout with only a Repeat key', async ({ page }) => {
+	await page.route('**/layout-details/*.json', (route) =>
+		route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: repeatKey,
+				authorName: 'ikcelaks',
+				likeCount: 0,
+				stats: {}
+			}
+		})
+	);
+	await page.route('**/languages/english1k.json', (route) =>
+		route.fulfill({ json: { name: 'test', words: ['tell', 'bell', 'arrest', 'cost', 'rest'] } })
+	);
+	await page.goto('/layouts/repeat-key');
+
+	const practice = page.getByRole('tabpanel', { name: 'Typing practice' });
+	await practice.getByRole('button', { name: 'Practice lesson settings' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Practice lesson' });
+	await dialog.getByRole('tab', { name: 'Special mappings' }).click();
+	await expect(dialog.getByText('3 of 5 words match the active remappings.')).toBeVisible();
+	await dialog.getByRole('slider', { name: 'Words with remappings' }).fill('100');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+
+	const words = practice.locator('[data-practice-word]');
+	await expect(words).toHaveCount(10);
+	const lesson = await words.allTextContents();
+	expect(new Set(lesson)).toEqual(new Set(['tell', 'bell', 'arrest']));
+
+	await page.getByRole('tab', { name: 'Layout feel', exact: true }).click();
+	const feel = page.getByRole('tabpanel', { name: 'Layout feel' });
+	await expect(feel.getByLabel('Original words').locator('[data-source-word]')).toHaveText(
+		lesson.slice(0, 2)
+	);
+	await feel.getByRole('button', { name: 'Layout feel lesson settings' }).click();
+	await dialog.getByRole('tab', { name: 'Special mappings' }).click();
+	await dialog.getByRole('button', { name: 'Adjust by type' }).click();
+	await expect(dialog.getByRole('slider', { name: 'Repeat preference' })).toHaveValue('100');
+});
+
+test('underlines Repeat pairs and persists the shared practice and feel switch', async ({
+	page
+}) => {
+	await page.route('**/layout-details/*.json', (route) =>
+		route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout: repeatKey,
+				authorName: 'ikcelaks',
+				likeCount: 0,
+				stats: {}
+			}
+		})
+	);
+	await page.goto('/layouts/repeat-key?text=tell+bell+arrest+rest');
+	const practice = page.getByRole('tabpanel', { name: 'Typing practice' });
+	const toggle = practice.getByRole('switch', { name: 'Underline repeat group', exact: true });
+	const marked = practice.locator('[data-repeat-group="true"]');
+	await expect(toggle).toBeChecked();
+	await expect(marked).toHaveText(['l', 'l', 'l', 'l', 'r', 'r']);
+	await expect(marked.first()).toHaveCSS('text-decoration-line', 'underline');
+	await expect(practice.locator('[data-magic-group="true"]')).toHaveCount(0);
+	await toggle.uncheck();
+	await expect(marked).toHaveCount(0);
+	await page.reload();
+	await expect(toggle).not.toBeChecked();
+	await expect(marked).toHaveCount(0);
+	await page.getByRole('tab', { name: 'Layout feel', exact: true }).click();
+	const feel = page.getByRole('tabpanel', { name: 'Layout feel' });
+	const feelToggle = feel.getByRole('switch', { name: 'Underline repeat group', exact: true });
+	await expect(feelToggle).not.toBeChecked();
+	await feelToggle.check();
+	await expect(feel.locator('[data-repeat-group="true"]')).toHaveText([
+		'l',
+		'/',
+		'l',
+		'/',
+		'r',
+		'/'
+	]);
+	await expect(feel.locator('[data-repeat-group="true"]').first()).toHaveCSS(
+		'text-decoration-line',
+		'underline'
+	);
+	await page.getByRole('tab', { name: 'Typing practice', exact: true }).click();
+	await expect(toggle).toBeChecked();
+	await practice.getByRole('textbox', { name: 'Typing practice input' }).pressSequentially('tel/ ');
+	await expect(
+		practice.locator('[data-completed-word="true"] [data-repeat-group="true"]')
+	).toHaveCount(0);
+	await expect(marked).toHaveText(['l', 'l', 'r', 'r']);
+});
+
 test('highlights both a direct key and Repeat when either can type the next letter', async ({
 	page
 }) => {

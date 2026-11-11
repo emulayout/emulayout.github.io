@@ -17,6 +17,7 @@ import {
 	type LayoutTestKeyMaps
 } from '$lib/layoutTestEmulator';
 import { buildTypingPracticeAdaptiveGroupIndexes } from '$lib/typingPracticeAdaptiveGroups';
+import { buildTypingPracticeRepeatGroupIndexes } from '$lib/typingPracticeRepeatGroups';
 import {
 	buildTypingPracticeMagicGroupIndexes,
 	buildTypingPracticeChiralGroupIndexes
@@ -58,6 +59,7 @@ export type FeelWordPlan = {
 	/** Preferred known-layout labels for each planned keystroke. */
 	feelWord: string;
 	magicIndexes: ReadonlySet<number>;
+	repeatIndexes: ReadonlySet<number>;
 	chiralIndexes: ReadonlySet<number>;
 	adaptiveIndexes: ReadonlySet<number>;
 };
@@ -320,6 +322,10 @@ export function planFeelWord(
 		),
 		chiralIndexes: mapSourceIndexesToFeel(
 			buildTypingPracticeChiralGroupIndexes(sourceWord, profile, disabledMappingIds),
+			keystrokes
+		),
+		repeatIndexes: mapSourceIndexesToFeel(
+			buildTypingPracticeRepeatGroupIndexes(sourceWord, profile, disabledMappingIds),
 			keystrokes
 		),
 		adaptiveIndexes: mapSourceIndexesToFeel(
