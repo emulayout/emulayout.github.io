@@ -224,7 +224,7 @@ describe('physical topology correspondence', () => {
 
 	test('unrecognized layouts and changed catalog shapes keep their original slots', () => {
 		const changed = easyHarlot('iso');
-		changed[0] = 'another-iso';
+		changed[0] = 'unknown-grid';
 		const generic = decodeLayout(changed);
 		expect(generic.physicalTopology).toBeUndefined();
 		expect(resolvePhysicalKeys(generic).get('1,1')?.inputSlot).toBe('1,1');

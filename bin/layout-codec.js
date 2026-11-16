@@ -1,5 +1,6 @@
 /** Keep in sync with layoutCodec.ts */
 
+import { inferCatalogKeyboardTopology } from '../src/lib/catalogKeyboardTopologies.ts';
 import { encodeThumbHands } from './layout-transformer.js';
 
 /**
@@ -33,7 +34,7 @@ export const LAYOUT_FLAG_CHIRAL_KEY_MAPPINGS = 4096;
  *   number[],
  *   number[],
  *   string | undefined,
- *   { fingers: (string | null)[] }
+ *   { fingers: (string | null)[], keyboardTopology?: import('../src/lib/catalogKeyboardTopologies.ts').CatalogKeyboardTopology }
  * ]} CompactLayout */
 
 /**
@@ -79,7 +80,13 @@ export function encodeLayout(layout) {
 		entries.map(([, info]) => info.row),
 		entries.map(([, info]) => info.col),
 		thumbHands || undefined,
-		{ fingers: entries.map(([, info]) => info.finger ?? null) }
+		{
+			fingers: entries.map(([, info]) => info.finger ?? null),
+			keyboardTopology: inferCatalogKeyboardTopology(
+				layout.name,
+				new Map(entries.map(([char, info]) => [`${info.row},${info.col}`, char]))
+			)
+		}
 	];
 }
 

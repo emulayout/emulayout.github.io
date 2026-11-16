@@ -1,81 +1,51 @@
-import type { KeyboardTopologyId } from '$lib/keyboardTopology';
-
-/** Reviewed catalog occupied-slot signatures. These layouts reserve column 0 for the ISO extra key.
- * Spaces are absent slots, including intentional holes; letters document the reviewed revision.
- * Character substitutions are allowed. A changed occupied-slot signature needs review. */
-export const CATALOG_KEYBOARD_TOPOLOGIES: Readonly<
-	Record<string, { topology: KeyboardTopologyId; rows: readonly string[] }>
-> = {
-	'bauxite-ansi': {
-		topology: 'ansi',
-		rows: [" blmdv'kou.", ' nrtsgyhaei,', ' jqwczpfx']
-	},
-	'bauxite-iso': {
-		topology: 'iso',
-		rows: [" blmdv'kou.", ' nrtsgyhaei,', 'xjqwczpf']
-	},
-	'c-major-ansi': {
-		topology: 'ansi',
-		rows: [" flrbk'guo.", ' shntmwyeai,', ' jxvdqpcz']
-	},
-	'c-major-iso': {
-		topology: 'iso',
-		rows: [" flrbk'guo.", ' shntmwyeai,', 'zjxvdqpc']
-	},
-	'c-major-isomtr': {
-		topology: 'iso',
-		rows: [" flrbk'guo.", ' shntmwyeai,', 'zjxvdqpc']
-	},
-	'c-minor-ansi': {
-		topology: 'ansi',
-		rows: [" flrbk'gou.", ' shntmwyaei,', ' jxvdqpc z']
-	},
-	'c-minor-iso': {
-		topology: 'iso',
-		rows: [" flrbk'gou.", ' shntmwyaei,', 'zjxvdqpc']
-	},
-	'c-minor-isomtr': {
-		topology: 'iso',
-		rows: [" flrbk'wou.", ' shntmgyaei,', 'zjxvdqpc']
-	},
-	'c-speed-isomtr': {
-		topology: 'iso',
-		rows: [" flrbk'wuo.", ' shntmpyeai,', 'zjxvdqcg']
-	},
-	'd-major-ansi': {
-		topology: 'ansi',
-		rows: [" flrbv'guo.", ' shntmydeai,', ' jxwkqpcz']
-	},
-	'd-major-iso': {
-		topology: 'iso',
-		rows: [" flrbv'guo.", ' shntmydeai,', 'zjxwkqpc']
-	},
-	'd-minor-ansi': {
-		topology: 'ansi',
-		rows: [" flrbv'gou.", ' shntmydaei,', ' jxwkqpc z']
-	},
-	'd-minor-iso': {
-		topology: 'iso',
-		rows: [" flrbv'gou.", ' shntmydaei,', 'zjxwkqpc']
-	},
-	'easy-harlot-ansi': {
-		topology: 'ansi',
-		rows: [" bfrlv'wou.", ' nshtdpyaei,', ' qzkmjcgx']
-	},
-	'easy-harlot-iso': {
-		topology: 'iso',
-		rows: [" bfrlv'wou.", ' nshtdpyaei,', 'qxzkmjcg']
-	},
-	'galgraph-iso': {
-		topology: 'iso',
-		rows: [" bldcv'fou.", ' nrtsgyhaei,', 'xjmwqzpk']
-	},
-	'harlot-ansi': {
-		topology: 'ansi',
-		rows: [" bfrlv'wou.", ' nshtdpyaei,', ' qzkmjcgx']
-	},
-	'harlot-iso': {
-		topology: 'iso',
-		rows: [" bfrlv'wou.", ' nshtdpyaei,', 'qxzkmjcg']
-	}
+/** Catalog metadata describes a coordinate convention, not the user's hardware. */
+export type CatalogKeyboardTopology = {
+	topology: 'ansi' | 'iso';
+	coordinates: 'offset-v1';
 };
+
+/**
+ * AKL's offset convention reserves column 0 for the ISO key and starts the upper
+ * rows at 1. Require both a topology marker and this structure: neither alone
+ * distinguishes these boards from ordinary or ortholinear grids.
+ */
+export function inferCatalogKeyboardTopology(
+	name: string,
+	positions: ReadonlyMap<string, string>
+): CatalogKeyboardTopology | undefined {
+	const marker = /(?:^|-)(ansi|iso|isomtr)$/i.exec(name)?.[1]?.toLowerCase();
+	if (!marker) return undefined;
+	const candidate: CatalogKeyboardTopology = {
+		topology: marker === 'ansi' ? 'ansi' : 'iso',
+		coordinates: 'offset-v1'
+	};
+	return validateCatalogKeyboardTopology(candidate, positions);
+}
+
+/** Validate metadata against the source coordinates, including intentional holes. */
+export function validateCatalogKeyboardTopology(
+	value: unknown,
+	positions: ReadonlyMap<string, string>
+): CatalogKeyboardTopology | undefined {
+	if (!value || typeof value !== 'object') return undefined;
+	if (!('coordinates' in value) || value.coordinates !== 'offset-v1') return undefined;
+	if (!('topology' in value) || (value.topology !== 'ansi' && value.topology !== 'iso'))
+		return undefined;
+	for (const row of [0, 1]) {
+		if (positions.has(`${row},0`)) return undefined;
+		for (let col = 1; col <= 10; col++) {
+			if (!positions.has(`${row},${col}`)) return undefined;
+		}
+	}
+	if (positions.has('2,0') !== (value.topology === 'iso')) return undefined;
+	let bottomKeys = 0;
+	for (const slot of positions.keys()) {
+		const [row, col] = slot.split(',').map(Number);
+		if (!Number.isInteger(row) || !Number.isInteger(col) || row < 0 || col < 0) return undefined;
+		if (row >= 3) continue;
+		if (col > [13, 11, 10][row]) return undefined;
+		if (row === 2) bottomKeys++;
+	}
+	if (bottomKeys < 6) return undefined;
+	return { topology: value.topology, coordinates: 'offset-v1' };
+}

@@ -1,3 +1,4 @@
+import type { CatalogKeyboardTopology } from '$lib/catalogKeyboardTopologies';
 import { catalogPhysicalTopology } from '$lib/keyboardTopology';
 import { SPARK_FINGERS, type SparkFinger } from '$lib/sparkSchema';
 import type { AuthorId, KeyInfo, LayoutData, ThumbKeyEntry } from '$lib/layout';
@@ -37,7 +38,7 @@ export type CurrentCompactLayout = [
 	cols: number[],
 	/** Thumb keys in column order: 'l' or 'r' per thumb key. */
 	thumbHands?: string,
-	fingerAssignments?: { fingers: (string | null)[] }
+	fingerAssignments?: { fingers: (string | null)[]; keyboardTopology?: CatalogKeyboardTopology }
 ];
 
 /**
@@ -54,7 +55,7 @@ export type LegacyCompactLayout = [
 	rows: number[],
 	cols: number[],
 	thumbHands?: string,
-	fingerAssignments?: { fingers: (string | null)[] }
+	fingerAssignments?: { fingers: (string | null)[]; keyboardTopology?: CatalogKeyboardTopology }
 ];
 
 export type CompactLayout = CurrentCompactLayout | LegacyCompactLayout;
@@ -149,7 +150,13 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		user: String(user),
 		keys,
 		positionBySlot,
-		physicalTopology: catalogPhysicalTopology(name, positionBySlot),
+		physicalTopology: catalogPhysicalTopology(
+			name,
+			positionBySlot,
+			extension && typeof extension === 'object' && 'keyboardTopology' in extension
+				? extension.keyboardTopology
+				: undefined
+		),
 		fingerBySlot,
 		thumbKeysByHand,
 		hasThumbKeys: (flags & LAYOUT_FLAG_THUMB_KEYS) !== 0,

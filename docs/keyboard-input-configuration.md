@@ -124,14 +124,23 @@ On ANSI target layouts it remains unused, without shifting shared keys.
 - Pair-specific fit policies map physical IDs between topologies. Unsupported pairs preserve
   their identities; they do not silently apply the ISO-to-ANSI shift.
 
-The current catalog has no explicit topology metadata. The reviewed adapters in
-`catalogKeyboardTopologies.ts` cover 18 offset-coordinate layouts: the Bauxite, C-major, C-minor,
-D-major, D-minor, Easy Harlot and Harlot ANSI/ISO variants, C-speed-isomtr and Galgraph ISO. They
-are guarded by their complete main-row occupied-slot signatures; character substitutions do not invalidate the physical mapping. Names alone, suffixes, empty columns and finger assignments are not classifiers.
-Unrecognized layouts or revisions with changed occupied slots keep the existing grid correspondence. Add verified
-adapters (or explicit source metadata) to support additional catalog conventions; adding hardware
-does not require duplicating Practice or Feel logic. This is not automatic detection of every
-ISO layout in the catalog.
+The source catalog has no explicit topology metadata. Catalog sync publishes a
+`keyboardTopology` extension alongside finger assignments. `catalogKeyboardTopologies.ts`
+owns the shared inference and validation rule; it does not maintain layout-name exceptions.
+A terminal ANSI, ISO, or ISOMTR name marker must agree with the offset coordinate convention:
+upper rows start at column 1 with all ten standard positions present, ISO has a bottom-row
+column 0 key, and all main-row positions fit the supported physical keys. Bottom-row holes and
+extended punctuation positions remain intact. Names alone and coordinates alone are insufficient;
+ordinary grids such as stand-iso and unmarked ortholinear layouts retain their authored positions.
+
+The versioned metadata identifies `offset-v1` and ANSI or ISO. The client validates it against
+the coordinates and resolves physical keys without changing source/analyzer positions or fingers.
+Old catalogs without metadata use the same inference rule, so deploying the client fix does not
+depend on catalog regeneration. Present but invalid/unknown metadata falls back to the original
+grid rather than guessing. Character substitutions, new layout names with the marker, and
+supported punctuation/hole variations require no per-layout maintenance. A new coordinate
+convention still requires an explicit rule; sparse or ambiguously labeled layouts are not guessed.
+Future source topology metadata can replace inference at the sync boundary.
 
 Compact row-staggered card previews also use the layout adapter’s physical columns, retaining
 authored slot IDs. This removes catalog coordinate padding without collapsing intentional gaps;

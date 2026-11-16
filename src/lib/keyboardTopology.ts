@@ -1,4 +1,7 @@
-import { CATALOG_KEYBOARD_TOPOLOGIES } from '$lib/catalogKeyboardTopologies';
+import {
+	inferCatalogKeyboardTopology,
+	validateCatalogKeyboardTopology
+} from '$lib/catalogKeyboardTopologies';
 import { QWERTY_KEY_MAP } from '$lib/cmini/keyboard';
 import type { LayoutData } from '$lib/layout';
 
@@ -40,29 +43,17 @@ export interface LayoutPhysicalTopology {
 	keyBySlot: ReadonlyMap<string, string>;
 }
 
-/**
- * Verified catalog adapters. Match the complete main-row occupied-slot signature, not a name suffix or
- * inferred fingering. Character changes retain the adapter; changed shapes keep their original interpretation.
- * Future catalog metadata can supply LayoutPhysicalTopology directly.
- */
+/** Resolve published coordinate metadata, with the same inference for older catalogs. */
 export function catalogPhysicalTopology(
 	name: string,
-	positions: ReadonlyMap<string, string>
+	positions: ReadonlyMap<string, string>,
+	metadata?: unknown
 ): LayoutPhysicalTopology | undefined {
-	const adapter = CATALOG_KEYBOARD_TOPOLOGIES[name];
+	const adapter =
+		metadata === undefined
+			? inferCatalogKeyboardTopology(name, positions)
+			: validateCatalogKeyboardTopology(metadata, positions);
 	if (!adapter) return undefined;
-	for (let row = 0; row < 3; row++) {
-		const expected = adapter.rows[row];
-		const actual = [...positions].filter(([slot]) => Number(slot.split(',')[0]) === row);
-		if (
-			actual.length !== [...expected].filter((c) => c !== ' ').length ||
-			actual.some(([slot]) => {
-				const column = Number(slot.split(',')[1]);
-				return expected[column] === undefined || expected[column] === ' ';
-			})
-		)
-			return undefined;
-	}
 	const keyBySlot = new Map<string, string>();
 	for (const slot of positions.keys()) {
 		const [row, col] = slot.split(',').map(Number);

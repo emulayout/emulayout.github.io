@@ -166,3 +166,36 @@ test('pins independent UK and US presets and expands hardware controls above Bas
 		page.getByRole('button', { name: 'Input layout: QWERTY UK (ISO)', exact: true })
 	).toBeVisible();
 });
+
+test('recognizes a new ISO catalog name and positions its extra key correctly', async ({
+	page
+}) => {
+	const layout = easyHarlot('iso');
+	layout[0] = 'newly-added-iso';
+	await page.route('**/layout-details/*.json', (route) =>
+		route.fulfill({
+			json: {
+				version: LAYOUT_DETAIL_VERSION,
+				layout,
+				authorName: 'Test author',
+				likeCount: 0,
+				stats: {}
+			}
+		})
+	);
+	await page.goto('/layouts/newly-added-iso?tab=test');
+	const field = page.getByPlaceholder('Layout test area');
+	const extra = page.locator('.keyboard-preview__key[data-key-char="q"]');
+	await expect(extra).toHaveAttribute('data-key-unreachable', 'true');
+	await expect(extra).toHaveAttribute('title', /no counterpart on your ANSI keyboard/);
+	await field.press('q');
+	await field.press('a');
+	await field.press('z');
+	await expect(field).toHaveValue('bnx');
+	const upper = await page.locator('.keyboard-preview__key[data-key-char="b"]').boundingBox();
+	const home = await page.locator('.keyboard-preview__key[data-key-char="n"]').boundingBox();
+	expect(upper).not.toBeNull();
+	expect(home).not.toBeNull();
+	// The normal home-row stagger is less than one key; the bad fallback adds a whole key.
+	expect(Math.abs(home!.x - upper!.x)).toBeLessThan(upper!.width);
+});
