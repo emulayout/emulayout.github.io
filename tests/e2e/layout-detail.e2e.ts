@@ -341,7 +341,7 @@ test('defaults to Typing practice and switches detail sections with tab keyboard
 	);
 	expect(inputTypography).toEqual(promptTypography);
 	await expect(practiceInput).toBeFocused();
-	await expect(summaryCard.getByRole('button')).toHaveCount(1);
+	await expect(summaryCard.getByRole('button', { name: 'Like Colemak-DH' })).toBeVisible();
 	await expect(summaryCard.getByRole('button', { name: 'Anglemod' })).toBeVisible();
 	const cminiCardStats = summaryCard.getByLabel('cmini core statistics');
 	await expect(cminiCardStats).toBeVisible();

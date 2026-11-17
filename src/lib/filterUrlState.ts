@@ -10,11 +10,7 @@ import { VIEW_FILTER_URL_PARAMS } from './filterUrlCodec';
  * localStorage snapshot. Global display and selection params intentionally do
  * not appear here.
  */
-const SAVED_VIEW_FILTER_URL_PARAMS = [
-	...VIEW_FILTER_URL_PARAMS,
-	'layouts',
-	'showSelected'
-] as const;
+const SAVED_VIEW_FILTER_URL_PARAMS = [...VIEW_FILTER_URL_PARAMS, 'layouts'] as const;
 
 export function hasSavedViewFilterUrlOverrides(searchParams: URLSearchParams): boolean {
 	return SAVED_VIEW_FILTER_URL_PARAMS.some((key) => searchParams.has(key));

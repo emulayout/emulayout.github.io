@@ -82,6 +82,8 @@
 		Showing <span style="color: var(--accent); font-weight: 600;">{filteredCount}</span>
 		{#if filterStore.layoutSource === 'selected'}
 			selected layouts
+		{:else if filterStore.layoutSource === 'liked'}
+			liked layouts
 		{:else}
 			layouts
 		{/if}

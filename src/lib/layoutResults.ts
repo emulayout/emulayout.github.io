@@ -6,13 +6,12 @@ import {
 	sortLayoutsBySimilarity,
 	type SimilarityMatchInfo
 } from '$lib/layoutSimilarity';
-import type { LayoutSource } from '$lib/savedViews';
 import type { SortBy, SortOrder } from '$lib/statsSorting';
 
 export interface LayoutResults {
 	items: LayoutListItem[];
+	hasFilteredSelection: boolean;
 	forceIncludedNames: Set<string>;
-	hiddenSelectedCount: number;
 }
 
 export interface BuildLayoutResultsOptions {
@@ -20,7 +19,6 @@ export interface BuildLayoutResultsOptions {
 	catalogLayouts: LayoutData[];
 	/** Catalog layouts after the ordinary source, metadata, key, and stat filters. */
 	filteredLayouts: LayoutData[];
-	layoutSource: LayoutSource;
 	selectedLayoutNames: ReadonlySet<string>;
 	includeSelectedInResults: boolean;
 	/** Ordered saved/custom source membership, or null for the full catalog. */
@@ -37,8 +35,8 @@ export interface BuildLayoutResultsOptions {
 export function createEmptyLayoutResults(): LayoutResults {
 	return {
 		items: [],
-		forceIncludedNames: new Set(),
-		hiddenSelectedCount: 0
+		hasFilteredSelection: false,
+		forceIncludedNames: new Set()
 	};
 }
 
@@ -51,7 +49,6 @@ export function createEmptyLayoutResults(): LayoutResults {
 export function buildLayoutResults({
 	catalogLayouts,
 	filteredLayouts,
-	layoutSource,
 	selectedLayoutNames,
 	includeSelectedInResults,
 	sourceLayoutNames,
@@ -78,10 +75,10 @@ export function buildLayoutResults({
 	});
 
 	const forceIncludedNames = new Set<string>();
-	let hiddenSelectedCount = 0;
+	let hasFilteredSelection = false;
 
-	// Count (and optionally inject) selected layouts that fail current filters.
-	if (layoutSource === 'all' && selectedLayoutNames.size > 0) {
+	// Inject selected layouts that fail current filters when the override is enabled.
+	if (selectedLayoutNames.size > 0) {
 		const present = new Set(result.map((layout) => layout.name));
 		for (const layout of catalogLayouts) {
 			if (
@@ -91,12 +88,11 @@ export function buildLayoutResults({
 			) {
 				continue;
 			}
-			hiddenSelectedCount += 1;
-			if (includeSelectedInResults) {
-				result.push(layout);
-				present.add(layout.name);
-				forceIncludedNames.add(layout.name);
-			}
+			hasFilteredSelection = true;
+			if (!includeSelectedInResults) break;
+			result.push(layout);
+			present.add(layout.name);
+			forceIncludedNames.add(layout.name);
 		}
 	}
 
@@ -124,13 +120,20 @@ export function buildLayoutResults({
 				items.push({ kind: 'missing', name });
 			}
 		}
+		// Keep the saved source's order, then append forced layouts outside that source.
+		const sourceNames = new Set(sourceLayoutNames);
+		for (const layout of layoutsForList) {
+			if (forceIncludedNames.has(layout.name) && !sourceNames.has(layout.name)) {
+				items.push({ kind: 'layout', layout });
+			}
+		}
 	} else {
 		items = layoutsForList.map((layout) => ({ kind: 'layout' as const, layout }));
 	}
 
 	return {
 		items,
-		forceIncludedNames,
-		hiddenSelectedCount
+		hasFilteredSelection,
+		forceIncludedNames
 	};
 }

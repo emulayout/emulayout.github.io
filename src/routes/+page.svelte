@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { layoutLikes } from '$lib/layoutLikes.svelte';
 	import { untrack } from 'svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
 	import FiltersSidebar from '$lib/components/FiltersSidebar.svelte';
@@ -184,7 +185,6 @@
 		return buildLayoutResults({
 			catalogLayouts: layouts,
 			filteredLayouts: filterStore.filterLayouts(layouts, statsMaps, statsReady, resolvedLikesData),
-			layoutSource: filterStore.layoutSource,
 			selectedLayoutNames: filterStore.selectedLayoutNames,
 			includeSelectedInResults: filterStore.includeSelectedInResults,
 			sourceLayoutNames: filterStore.activeSourceLayoutNames,
@@ -200,9 +200,18 @@
 
 	const filteredItems = $derived(filteredResult.items);
 	const forceIncludedNames = $derived(filteredResult.forceIncludedNames);
-	const hiddenSelectedCount = $derived(filteredResult.hiddenSelectedCount);
 	const filteredCount = $derived(filteredItems.length);
 	const selectedLayoutCount = $derived(filterStore.selectedLayoutNames.size);
+	const likedLayoutCount = $derived(
+		layouts.filter(({ name }) => layoutLikes.names.has(name)).length
+	);
+
+	$effect(() => {
+		if (layouts.length > 0 && likedLayoutCount === 0 && filterStore.layoutSource === 'liked') {
+			filterStore.setLayoutSource('all');
+		}
+	});
+
 	const resultsViewKey = $derived(
 		`${filterStore.layoutSource}:${filterStore.activeSavedFilterId ?? ''}`
 	);
@@ -214,7 +223,7 @@
 
 <div class="page-root">
 	<div class="layout-view-bar">
-		<LayoutViewTabs />
+		<LayoutViewTabs {likedLayoutCount} />
 		<div class="layout-view-actions">
 			<KeyboardInputConfigControl responsiveLabel />
 			<DisplaySettingsMenu />
@@ -229,6 +238,11 @@
 			<div class="results-main min-w-0">
 				<div class="results-toolbar">
 					<LayoutResultsToolbar {filteredCount} {likesSortAvailable} />
+					{#if filterStore.layoutSource === 'liked'}
+						<p class="liked-layouts-note">
+							Likes are saved only in this browser. Clearing this site’s data will erase them.
+						</p>
+					{/if}
 				</div>
 				<div class="results-list">
 					{#if statsLoadErrors.length > 0}
@@ -248,17 +262,7 @@
 							</button>
 						</div>
 					{/if}
-					{#if filterStore.layoutSource === 'selected' && selectedLayoutCount === 0}
-						<div class="results-empty" style="color: var(--text-secondary);">
-							<p class="results-empty-title" style="color: var(--text-primary);">
-								No layouts selected
-							</p>
-							<p>
-								Switch to All layouts and use the checkbox on a layout card to add layouts here.
-								Filters on this page only apply to your selection.
-							</p>
-						</div>
-					{:else if resultsBlockedByStatsError}
+					{#if resultsBlockedByStatsError}
 						<div class="results-empty" role="status" style="color: var(--text-secondary);">
 							<p class="results-empty-title" style="color: var(--text-primary);">
 								Analyzer stats unavailable
@@ -286,7 +290,7 @@
 						/>
 					{/if}
 				</div>
-				<SelectedLayoutActions {hiddenSelectedCount} />
+				<SelectedLayoutActions hasFilteredSelection={filteredResult.hasFilteredSelection} />
 			</div>
 		</div>
 	{/key}
@@ -409,6 +413,12 @@
 		flex-shrink: 0;
 		/* Room for focus rings clipped by results-main overflow:hidden. */
 		padding: 0.25rem;
+	}
+
+	.liked-layouts-note {
+		margin: 0.25rem 0 0;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
 	}
 
 	.results-list {

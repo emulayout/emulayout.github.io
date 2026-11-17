@@ -4,7 +4,9 @@
 	import { filterStore } from '$lib/filterStore.svelte';
 	import type { TabOption } from '$lib/tabs';
 
-	type LayoutViewTabValue = 'all' | 'selected' | `saved:${string}`;
+	type LayoutViewTabValue = 'all' | 'selected' | 'liked' | `saved:${string}`;
+
+	const { likedLayoutCount }: { likedLayoutCount: number } = $props();
 
 	let deleteSavedFilterId = $state<string | null>(null);
 	let deleteSavedFilterName = $state('');
@@ -22,12 +24,26 @@
 			id: 'layout-view-tab-all',
 			controls: 'layout-view-panel'
 		},
-		{
-			value: 'selected',
-			label: `Selected layouts (${selectedLayoutCount})`,
-			id: 'layout-view-tab-selected',
-			controls: 'layout-view-panel'
-		},
+		...(selectedLayoutCount > 0
+			? [
+					{
+						value: 'selected' as const,
+						label: `Selected layouts (${selectedLayoutCount})`,
+						id: 'layout-view-tab-selected',
+						controls: 'layout-view-panel'
+					}
+				]
+			: []),
+		...(likedLayoutCount > 0
+			? [
+					{
+						value: 'liked' as const,
+						label: `Liked layouts (${likedLayoutCount})`,
+						id: 'layout-view-tab-liked',
+						controls: 'layout-view-panel'
+					}
+				]
+			: []),
 		...filterStore.savedFilters.map((saved) => ({
 			value: `saved:${saved.id}` as const,
 			label: saved.name,
@@ -70,7 +86,7 @@
 	}
 
 	function changeView(value: LayoutViewTabValue) {
-		if (value === 'all' || value === 'selected') {
+		if (value === 'all' || value === 'selected' || value === 'liked') {
 			filterStore.setLayoutSource(value);
 			return;
 		}

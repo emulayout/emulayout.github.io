@@ -1,3 +1,4 @@
+import type { LayoutSource } from '$lib/savedViews';
 import type {
 	AuthorId,
 	CyanophageStats,
@@ -50,7 +51,8 @@ import {
 } from './fingerWorkload';
 
 export interface LayoutFilterCriteria {
-	layoutSource: 'all' | 'selected';
+	layoutSource: LayoutSource;
+	likedLayoutNames?: ReadonlySet<string>;
 	selectedLayoutNames: ReadonlySet<string>;
 	sourceLayoutNames: ReadonlySet<string> | null;
 	showUnfinished: boolean;
@@ -386,6 +388,9 @@ export function filterLayouts(
 
 	const nameTerms = parseNameTerms(criteria.nameFilter);
 	return layouts.filter((layout) => {
+		if (criteria.layoutSource === 'liked' && !criteria.likedLayoutNames?.has(layout.name)) {
+			return false;
+		}
 		if (criteria.layoutSource === 'selected' && !criteria.selectedLayoutNames.has(layout.name)) {
 			return false;
 		}

@@ -503,6 +503,7 @@
 		showAnglemodAction
 		onAnglemodTransformChange={(active) => (anglemodTransformActive = active)}
 		variant="summary"
+		allowLikes={!localPreview}
 		statsUnavailableDetail={localPreview ? statsUnavailableDetail : undefined}
 	/>
 	{#if cyanophageUrl || !localPreview}

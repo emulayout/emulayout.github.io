@@ -49,7 +49,6 @@ export type ViewFilterSnapshot = {
 	nameFilterInput: string;
 	nameFilter: string;
 	selectedAuthors: AuthorId[];
-	includeSelectedInResults: boolean;
 	similarReferenceName: string | null;
 	similarReferenceAnglemod: boolean;
 	similarityFilterOperator: StatLimitOperator;
@@ -183,7 +182,6 @@ export function createDefaultViewSnapshot(): ViewFilterSnapshot {
 		nameFilterInput: '',
 		nameFilter: '',
 		selectedAuthors: [],
-		includeSelectedInResults: false,
 		similarReferenceName: null,
 		similarReferenceAnglemod: false,
 		similarityFilterOperator: 'gt',
@@ -437,10 +435,6 @@ export function normalizeViewFilterSnapshot(value: unknown): ViewFilterSnapshot 
 					return [];
 				})
 			: defaults.selectedAuthors,
-		includeSelectedInResults:
-			typeof value.includeSelectedInResults === 'boolean'
-				? value.includeSelectedInResults
-				: defaults.includeSelectedInResults,
 		similarReferenceName,
 		similarReferenceAnglemod:
 			typeof value.similarReferenceAnglemod === 'boolean'

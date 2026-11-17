@@ -160,3 +160,27 @@ Do not reuse the normal click-to-focus behavior inside the modal.
 The catalog's optional trailing finger-assignment object is geometry metadata for read-only keyboard
 previews. It does not change analyzer stats, card stats modes, or Quick Find interaction. Older
 catalogs remain readable without inferred finger colors.
+
+## Layout likes
+
+The heart toggles a personal like saved by layout name in this browser's local storage. Cards,
+detail summaries, Quick Find, and Compare share that state and display the community count plus one
+when liked. Sorting and filtering by community likes continue to use the catalog counts. The
+layout creator's draft preview has no like control.
+
+The index shows Liked layouts and Selected layouts tabs only when their respective collections
+contain layouts. The liked view filters the catalog to locally liked layouts; the count in its tab
+is independent of the current filters. Removing the last item from either active view returns to
+All layouts. The URL can identify the liked view but does not contain the liked layout names.
+
+The liked view shows a note explaining that likes stay in the current browser.
+
+The selected-layout override applies across index views and follows the selection in the URL.
+Selected layouts omitted by filters or view membership appear with a dashed outline while the
+override is on. Saved sources keep their layout order, with forced layouts from outside that source
+appended to the results.
+
+The bottom selection toolbar shows a counted Save button when every selected layout matches the
+current view. If a selection is filtered out, the toolbar offers “Always show selected layouts”
+with a menu for saving the selection as a view. A checkmark indicates that the override is on.
+Selected layouts always offers the counted Save button. Both forms have a clear button.

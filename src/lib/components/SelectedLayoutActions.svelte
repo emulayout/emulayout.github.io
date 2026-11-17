@@ -1,12 +1,9 @@
 <script lang="ts">
+	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import SaveFilterModal from '$lib/components/SaveFilterModal.svelte';
 	import { filterStore } from '$lib/filterStore.svelte';
 
-	interface Props {
-		hiddenSelectedCount: number;
-	}
-
-	const { hiddenSelectedCount }: Props = $props();
+	const { hasFilteredSelection }: { hasFilteredSelection: boolean } = $props();
 
 	let showSaveSelectedViewModal = $state(false);
 	const selectedLayoutCount = $derived(filterStore.selectedLayoutNames.size);
@@ -15,102 +12,92 @@
 {#if selectedLayoutCount > 0}
 	<div class="selected-layout-actions" role="presentation">
 		<div class="selected-layout-actions-group">
-			{#if filterStore.layoutSource !== 'selected'}
-				{#if filterStore.includeSelectedInResults || hiddenSelectedCount > 0}
-					<button
-						type="button"
-						class="selected-layout-actions-button"
-						class:selected-layout-actions-button--active={filterStore.includeSelectedInResults}
-						aria-pressed={filterStore.includeSelectedInResults}
-						aria-label={filterStore.includeSelectedInResults
-							? 'Always showing selected'
-							: `Show (${hiddenSelectedCount}) non-matching selected`}
-						onclick={() => filterStore.toggleIncludeSelectedInResults()}
-					>
-						{#if filterStore.includeSelectedInResults}
-							Always showing selected layouts
-						{:else}
-							Show ({hiddenSelectedCount}) non-matching selected layout{hiddenSelectedCount === 1
-								? ''
-								: 's'}
-						{/if}
-					</button>
-				{/if}
+			{#if filterStore.layoutSource === 'selected' || !hasFilteredSelection}
 				<button
 					type="button"
 					class="selected-layout-actions-button"
-					aria-label="Save selected as view"
 					onclick={() => (showSaveSelectedViewModal = true)}
 				>
-					Save selected as view
-				</button>
-				<button
-					type="button"
-					class="selected-layout-actions-icon-button"
-					aria-label="Clear selected layouts"
-					title="Clear selected layouts"
-					onclick={() => filterStore.clearSelectedLayouts()}
-				>
-					<svg
-						class="size-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2.5"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-					</svg>
+					Save ({selectedLayoutCount}) selected as view
 				</button>
 			{:else}
-				{#if filterStore.hasActiveFilters}
-					<button
-						type="button"
-						class="selected-layout-actions-button selected-layout-actions-button--with-icon"
-						aria-label="Clear selected layouts"
-						onclick={() => filterStore.clearSelectedLayouts()}
-					>
-						Clear selected layouts
-						<svg
-							class="size-4 shrink-0"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2.5"
-							aria-hidden="true"
+				<DropdownMenu menuLabel="Selected layout options" placement="top-stretch">
+					{#snippet trigger({ toggle, triggerProps })}
+						<div class="selected-layout-actions-split">
+							<button
+								type="button"
+								class="selected-layout-actions-button selected-layout-actions-primary"
+								aria-pressed={filterStore.includeSelectedInResults}
+								onclick={() => filterStore.toggleIncludeSelectedInResults()}
+							>
+								{#if filterStore.includeSelectedInResults}
+									<svg
+										class="size-4 shrink-0"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.5"
+										aria-hidden="true"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" />
+									</svg>
+								{/if}
+								Always show selected layouts
+							</button>
+							<button
+								{...triggerProps}
+								type="button"
+								class="selected-layout-actions-button selected-layout-actions-more"
+								aria-label="Selected layout options"
+								onclick={toggle}
+							>
+								<svg
+									class="size-4"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" d="m6 15 6-6 6 6" />
+								</svg>
+							</button>
+						</div>
+					{/snippet}
+					{#snippet children({ close })}
+						<button
+							type="button"
+							role="menuitem"
+							tabindex="-1"
+							class="selected-layout-actions-menu-item"
+							onclick={() => {
+								close(true);
+								showSaveSelectedViewModal = true;
+							}}
 						>
-							<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-						</svg>
-					</button>
-				{:else}
-					<button
-						type="button"
-						class="selected-layout-actions-button"
-						aria-label="Save as view"
-						onclick={() => (showSaveSelectedViewModal = true)}
-					>
-						Save as view
-					</button>
-					<button
-						type="button"
-						class="selected-layout-actions-icon-button"
-						aria-label="Clear selected layouts"
-						title="Clear selected layouts"
-						onclick={() => filterStore.clearSelectedLayouts()}
-					>
-						<svg
-							class="size-4"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							stroke-width="2.5"
-							aria-hidden="true"
-						>
-							<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
-						</svg>
-					</button>
-				{/if}
+							Save selected ({selectedLayoutCount}) layout{selectedLayoutCount === 1 ? '' : 's'} as view
+						</button>
+					{/snippet}
+				</DropdownMenu>
 			{/if}
+			<button
+				type="button"
+				class="selected-layout-actions-icon-button"
+				aria-label="Clear selected layouts"
+				title="Clear selected layouts"
+				onclick={() => filterStore.clearSelectedLayouts()}
+			>
+				<svg
+					class="size-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					stroke-width="2.5"
+					aria-hidden="true"
+				>
+					<path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+				</svg>
+			</button>
 		</div>
 	</div>
 {/if}
@@ -167,9 +154,48 @@
 			box-shadow 0.15s ease;
 	}
 
-	.selected-layout-actions-button--with-icon {
+	.selected-layout-actions-split {
+		display: flex;
+		border-radius: 9999px;
+		box-shadow: 0 0 12px 2px color-mix(in srgb, var(--accent) 45%, transparent);
+	}
+
+	.selected-layout-actions-split .selected-layout-actions-button {
+		box-shadow: none;
+	}
+
+	.selected-layout-actions-primary {
 		gap: 0.375rem;
-		padding-right: 0.625rem;
+		border-radius: 9999px 0 0 9999px;
+	}
+
+	.selected-layout-actions-more {
+		margin-left: -1px;
+		padding-inline: 0.625rem;
+		border-radius: 0 9999px 9999px 0;
+	}
+
+	.selected-layout-actions-split .selected-layout-actions-button:focus-visible {
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+
+	.selected-layout-actions-menu-item {
+		padding: 0.5rem 0.625rem;
+		border-radius: 0.5rem;
+		color: var(--text-primary);
+		font-size: 0.8125rem;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.selected-layout-actions-menu-item:hover,
+	.selected-layout-actions-menu-item:focus-visible {
+		background-color: var(--bg-secondary);
+		outline: 1px solid var(--accent);
+		outline-offset: -1px;
 	}
 
 	.selected-layout-actions-icon-button {
@@ -197,13 +223,6 @@
 	.selected-layout-actions-icon-button:hover {
 		border-color: var(--accent);
 		color: var(--accent);
-	}
-
-	.selected-layout-actions-button--active {
-		color: var(--accent);
-		border-color: var(--accent);
-		background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-secondary));
-		box-shadow: 0 4px 16px color-mix(in srgb, var(--text-primary) 8%, transparent);
 	}
 
 	.selected-layout-actions-button:focus-visible,

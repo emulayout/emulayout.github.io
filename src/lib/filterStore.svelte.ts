@@ -1,3 +1,4 @@
+import { layoutLikes } from '$lib/layoutLikes.svelte';
 import { SvelteSet, SvelteURL } from 'svelte/reactivity';
 import { pushState, replaceState } from '$app/navigation';
 import { resolve } from '$app/paths';
@@ -177,8 +178,7 @@ export class FilterStore {
 	/** Open the source-selection details modal from the filter chip. */
 	showSourceSelectionModal = $state(false);
 	/**
-	 * When true (and source is `all`), inject selected layouts into the result
-	 * list even if they fail other filters.
+	 * Show selected layouts in any view even if they fail its filters or source membership.
 	 */
 	includeSelectedInResults: boolean = $state(false);
 	scrollToSelectedLayout = $state(false);
@@ -372,7 +372,6 @@ export class FilterStore {
 			if (saved) {
 				this.layoutSource = 'all';
 				this.activeSavedFilterId = saved.id;
-				this.includeSelectedInResults = false;
 				this.ephemeralSourceLayoutNames = null;
 				this.draftSourceLayoutNames = undefined;
 
@@ -405,15 +404,17 @@ export class FilterStore {
 			this.#restoreViewFilters(decoded.snapshot);
 		}
 
-		if (!this.activeSavedFilterId && url.searchParams.get('source') === 'selected') {
-			this.layoutSource = 'selected';
-		} else if (
+		const source = url.searchParams.get('source');
+		if (
 			!this.activeSavedFilterId &&
-			url.searchParams.get('showSelected') === '1' &&
-			this.selectedLayoutNames.size > 0
+			((source === 'selected' && this.selectedLayoutNames.size > 0) ||
+				(source === 'liked' && layoutLikes.names.size > 0))
 		) {
-			this.includeSelectedInResults = true;
+			this.layoutSource = source;
 		}
+
+		this.includeSelectedInResults =
+			url.searchParams.get('showSelected') === '1' && this.selectedLayoutNames.size > 0;
 
 		if (this.activeSavedFilterId && decoded?.sourceLayoutNames !== undefined) {
 			this.draftSourceLayoutNames = decoded.sourceLayoutNames;
@@ -449,6 +450,9 @@ export class FilterStore {
 	}
 
 	#writeGlobalUrlState(searchParams: URLSearchParams) {
+		if (this.includeSelectedInResults && this.selectedLayoutNames.size > 0) {
+			searchParams.set('showSelected', '1');
+		}
 		writeGlobalFilterUrlState(searchParams, {
 			statsAnalyzer: this.statsAnalyzer,
 			hideLayoutStats: this.hideLayoutStats,
@@ -488,10 +492,8 @@ export class FilterStore {
 				this.activeSavedFilterId,
 				this.draftSourceLayoutNames
 			);
-		} else if (this.layoutSource === 'selected') {
-			url.searchParams.set('source', 'selected');
-		} else if (this.includeSelectedInResults && this.selectedLayoutNames.size > 0) {
-			url.searchParams.set('showSelected', '1');
+		} else if (this.layoutSource !== 'all') {
+			url.searchParams.set('source', this.layoutSource);
 		}
 
 		this.#writeGlobalUrlState(url.searchParams);
@@ -567,7 +569,6 @@ export class FilterStore {
 			nameFilterInput: this.nameFilterInput,
 			nameFilter: this.nameFilter,
 			selectedAuthors: Array.from(this.selectedAuthors),
-			includeSelectedInResults: this.includeSelectedInResults,
 			similarReferenceName: this.similarReferenceName,
 			similarReferenceAnglemod: this.similarReferenceAnglemod,
 			similarityFilterOperator: this.similarityFilterOperator,
@@ -620,7 +621,6 @@ export class FilterStore {
 		for (const id of restored.selectedAuthors) {
 			this.selectedAuthors.add(id);
 		}
-		this.includeSelectedInResults = restored.includeSelectedInResults;
 		this.similarReferenceName = restored.similarReferenceName;
 		this.similarReferenceAnglemod = restored.similarReferenceAnglemod;
 		this.similarityFilterOperator = restored.similarityFilterOperator;
@@ -1167,6 +1167,10 @@ export class FilterStore {
 			this.selectedLayoutNames.delete(name);
 			if (this.selectedLayoutNames.size === 0) {
 				this.includeSelectedInResults = false;
+				if (this.layoutSource === 'selected') {
+					this.setLayoutSource('all');
+					return;
+				}
 			}
 		} else {
 			this.selectedLayoutNames.add(name);
@@ -1178,10 +1182,14 @@ export class FilterStore {
 		this.selectedLayoutNames.clear();
 		this.includeSelectedInResults = false;
 		// Push so Back can restore the previous selection.
+		if (this.layoutSource === 'selected') {
+			this.setLayoutSource('all', { history: 'push' });
+			return;
+		}
 		this.#saveToUrl({ history: 'push' });
 	}
 
-	setLayoutSource(source: LayoutSource) {
+	setLayoutSource(source: LayoutSource, options: { history?: 'replace' | 'push' } = {}) {
 		// Leaving a saved-filter tab: restore All/Selected without writing edits into snapshots.
 		if (this.activeSavedFilterId) {
 			this.#applyFiltersNow();
@@ -1197,11 +1205,7 @@ export class FilterStore {
 				this.#resetViewFiltersToDefaults();
 			}
 
-			if (source === 'selected') {
-				this.includeSelectedInResults = false;
-			}
-
-			this.#saveToUrl();
+			this.#saveToUrl(options);
 			return;
 		}
 
@@ -1222,12 +1226,7 @@ export class FilterStore {
 			this.#resetViewFiltersToDefaults();
 		}
 
-		// Inject-non-matching only applies on the All page.
-		if (source === 'selected') {
-			this.includeSelectedInResults = false;
-		}
-
-		this.#saveToUrl();
+		this.#saveToUrl(options);
 	}
 
 	/**
@@ -1258,7 +1257,6 @@ export class FilterStore {
 		this.activeSavedFilterId = result.id;
 		this.ephemeralSourceLayoutNames = null;
 		this.draftSourceLayoutNames = undefined;
-		this.includeSelectedInResults = false;
 		this.#saveToUrl();
 		return result.id;
 	}
@@ -1438,7 +1436,6 @@ export class FilterStore {
 		this.activeSavedFilterId = id;
 		this.ephemeralSourceLayoutNames = null;
 		this.draftSourceLayoutNames = undefined;
-		this.includeSelectedInResults = false;
 		this.#restoreViewFilters(saved.snapshot);
 		this.#saveToUrl();
 	}
@@ -1515,7 +1512,6 @@ export class FilterStore {
 		}
 
 		this.layoutSource = 'all';
-		this.includeSelectedInResults = false;
 		this.draftSourceLayoutNames = undefined;
 		this.ephemeralSourceLayoutNames =
 			sourceLayoutNames && sourceLayoutNames.length > 0
@@ -1552,7 +1548,6 @@ export class FilterStore {
 		this.activeSavedFilterId = result.id;
 		this.ephemeralSourceLayoutNames = null;
 		this.draftSourceLayoutNames = undefined;
-		this.includeSelectedInResults = false;
 		this.#restoreViewFilters(snapshot);
 		this.pendingSharedView = null;
 		this.#saveToUrl();
@@ -1579,11 +1574,7 @@ export class FilterStore {
 	}
 
 	toggleIncludeSelectedInResults() {
-		if (this.selectedLayoutNames.size === 0 || this.layoutSource === 'selected') {
-			this.includeSelectedInResults = false;
-			this.#saveToUrl();
-			return;
-		}
+		if (this.selectedLayoutNames.size === 0) return;
 		this.includeSelectedInResults = !this.includeSelectedInResults;
 		this.#saveToUrl();
 	}
@@ -1614,7 +1605,9 @@ export class FilterStore {
 			this.includeSelectedInResults = false;
 			removed = true;
 		}
-		if (removed) this.#saveToUrl();
+		if (this.layoutSource === 'selected' && this.selectedLayoutNames.size === 0) {
+			this.setLayoutSource('all');
+		} else if (removed) this.#saveToUrl();
 	}
 
 	clearAll() {
@@ -1637,7 +1630,6 @@ export class FilterStore {
 		this.nameFilterInput = '';
 		this.nameFilter = '';
 		this.selectedAuthors.clear();
-		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		// Reset on a non-saved All view also drops ephemeral shared membership.
 		if (!this.activeSavedFilterId) {
@@ -1813,6 +1805,7 @@ export class FilterStore {
 			layouts,
 			{
 				layoutSource: this.layoutSource,
+				likedLayoutNames: this.layoutSource === 'liked' ? layoutLikes.names : undefined,
 				selectedLayoutNames: this.selectedLayoutNames,
 				sourceLayoutNames: this.activeSourceLayoutNameSet,
 				showUnfinished: this.showUnfinished,

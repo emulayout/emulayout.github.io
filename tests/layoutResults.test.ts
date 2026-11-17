@@ -34,7 +34,6 @@ function makeOptions(
 	return {
 		catalogLayouts,
 		filteredLayouts: catalogLayouts,
-		layoutSource: 'all',
 		selectedLayoutNames: new Set(),
 		includeSelectedInResults: false,
 		sourceLayoutNames: null,
@@ -82,7 +81,7 @@ describe('layout result building', () => {
 		expect(itemLabels(result)).toEqual(['layout:Gamma', 'layout:Alpha', 'layout:Beta']);
 	});
 
-	test('counts and optionally injects selected layouts removed by filters', () => {
+	test('optionally injects selected layouts removed by filters', () => {
 		const alpha = makeLayout('Alpha');
 		const beta = makeLayout('Beta');
 		const gamma = makeLayout('Gamma');
@@ -97,7 +96,7 @@ describe('layout result building', () => {
 
 		const hidden = buildLayoutResults(makeOptions(catalog, sharedOptions));
 		expect(itemLabels(hidden)).toEqual(['layout:Alpha']);
-		expect(hidden.hiddenSelectedCount).toBe(2);
+		expect(hidden.hasFilteredSelection).toBe(true);
 		expect(hidden.forceIncludedNames.size).toBe(0);
 
 		const included = buildLayoutResults(
@@ -107,7 +106,7 @@ describe('layout result building', () => {
 			})
 		);
 		expect(itemLabels(included)).toEqual(['layout:Alpha', 'layout:Beta', 'layout:Gamma']);
-		expect(included.hiddenSelectedCount).toBe(2);
+		expect(included.hasFilteredSelection).toBe(true);
 		expect(included.forceIncludedNames).toEqual(new Set(['Beta', 'Gamma']));
 		expect(filteredLayouts).toEqual([alpha]);
 	});
@@ -143,8 +142,8 @@ describe('layout result building', () => {
 		expect(itemLabels(result)).toEqual(['layout:Alpha', 'layout:Beta']);
 		expect(createEmptyLayoutResults()).toEqual({
 			items: [],
-			forceIncludedNames: new Set(),
-			hiddenSelectedCount: 0
+			hasFilteredSelection: false,
+			forceIncludedNames: new Set()
 		});
 	});
 });

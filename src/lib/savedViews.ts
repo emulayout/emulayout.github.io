@@ -5,7 +5,7 @@ import {
 	type SavedFilter
 } from './savedFiltersStorage';
 
-export type LayoutSource = 'all' | 'selected';
+export type LayoutSource = 'all' | 'selected' | 'liked';
 
 export interface SavedViewUpsertInput {
 	name: string;

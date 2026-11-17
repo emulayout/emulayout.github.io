@@ -102,6 +102,7 @@
 		) => void;
 		/** Catalog cards link to details and may render stats/test UI; summaries stay compact. */
 		variant?: 'catalog' | 'summary';
+		allowLikes?: boolean;
 		/** Controlled transform used by the detail page's persistent angle-mod option. */
 		anglemodTransformActive?: boolean;
 		/** Render the catalog-style anglemod action as the summary card's only action. */
@@ -136,6 +137,7 @@
 		allowStatSorting = true,
 		onStatFilterChanged,
 		variant = 'catalog',
+		allowLikes = true,
 		anglemodTransformActive,
 		showAnglemodAction = false,
 		onAnglemodTransformChange,
@@ -469,7 +471,7 @@
 		{authorName}
 		{likeCount}
 		selected={isSelected}
-		showLikes={filterStore.showLayoutLikes}
+		showLikes={allowLikes && filterStore.showLayoutLikes}
 		showNewIndicator={isNewLayout}
 		showSimilarityMatch={filterStore.hasSimilarReference && !isSimilarActive}
 		showSelection={catalogCard && allowSelection}
