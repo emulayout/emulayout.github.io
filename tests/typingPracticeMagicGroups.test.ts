@@ -44,4 +44,14 @@ describe('typing-practice Magic groups', () => {
 
 		expect(Array.from(buildTypingPracticeMagicGroupIndexes('my', profile))).toEqual([1]);
 	});
+
+	test('ignores literal trigger outputs from raw-rule fallbacks and except rules', () => {
+		const profile = compileMagicKeyMappings({
+			e: { rules: { c: 'h', a: 'e' }, fallback: { emit: 'e' } }
+		});
+
+		expect(Array.from(buildTypingPracticeMagicGroupIndexes('hello', profile))).toEqual([]);
+		expect(Array.from(buildTypingPracticeMagicGroupIndexes('aeon', profile))).toEqual([]);
+		expect(Array.from(buildTypingPracticeMagicGroupIndexes('chat', profile))).toEqual([0, 1]);
+	});
 });

@@ -49,7 +49,14 @@ export function buildTypingPracticeMagicGroupIndexes(
 
 		for (const [trigger, definition] of Object.entries(profile.triggers)) {
 			const result = resolveMagicKeyOutput(profile, history, trigger, disabledMappings);
-			if (!result.matched || !result.text || !remaining.startsWith(result.text)) continue;
+			if (
+				!result.matched ||
+				!result.text ||
+				result.text === trigger ||
+				!remaining.startsWith(result.text)
+			) {
+				continue;
+			}
 
 			const rule = definition.rules.find(
 				(candidate) =>
