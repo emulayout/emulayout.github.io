@@ -141,6 +141,36 @@ describe('filterLayouts', () => {
 		criteria.includeLeftThumbKeys = ['e', 't', '', ''];
 		criteria.excludeGrid[0][1] = 'b';
 		expect(filterLayouts([layout], criteria)).toEqual([]);
+
+		const twoThumbLayout = makeLayout('TwoThumbs', {
+			thumbKeysByHand: {
+				l: [
+					{ key: 'e', col: 2 },
+					{ key: 't', col: 3 }
+				],
+				r: []
+			}
+		});
+		expect(
+			filterLayouts(
+				[twoThumbLayout],
+				makeCriteria({ includeLeftThumbKeys: ['et', 'et', 'et', ''] })
+			)
+		).toEqual([]);
+
+		const threeThumbLayout = makeLayout('ThreeThumbs', {
+			thumbKeysByHand: {
+				l: [
+					{ key: 't', col: 1 },
+					{ key: 'e', col: 2 },
+					{ key: 't', col: 3 }
+				],
+				r: []
+			}
+		});
+		expect(
+			filterLayouts([threeThumbLayout], makeCriteria({ includeLeftThumbKeys: ['e', 't', 'e', ''] }))
+		).toEqual([]);
 	});
 
 	test('applies metadata, name, and author filters', () => {

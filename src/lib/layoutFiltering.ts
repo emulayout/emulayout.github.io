@@ -106,36 +106,20 @@ function matchesThumbKeyPosition(
 	filter: string[]
 ): boolean {
 	const nonEmptyFilters = filter
-		.map((entry, index) => ({ chars: entry.toLowerCase(), position: index }))
-		.filter((entry) => entry.chars !== '');
+		.map((entry) => entry.toLowerCase())
+		.filter((chars) => chars !== '');
 
 	if (nonEmptyFilters.length === 0) return true;
+	if (thumbKeys.length < nonEmptyFilters.length) return false;
 
-	const matches: Array<{ key: string; col: number; filterPosition: number }> = [];
-	for (const filterEntry of nonEmptyFilters) {
-		for (const thumbKey of thumbKeys) {
-			if (filterEntry.chars.includes(thumbKey.key)) {
-				matches.push({ ...thumbKey, filterPosition: filterEntry.position });
-			}
-		}
-	}
-
-	if (matches.length < nonEmptyFilters.length) return false;
-
-	const columnsByFilterPosition: Record<number, number[]> = {};
-	for (const match of matches) {
-		columnsByFilterPosition[match.filterPosition] ??= [];
-		columnsByFilterPosition[match.filterPosition].push(match.col);
-	}
-
-	for (const filterEntry of nonEmptyFilters) {
-		if (!columnsByFilterPosition[filterEntry.position]?.length) return false;
-	}
-
-	for (let index = 0; index < nonEmptyFilters.length - 1; index++) {
-		const currentColumns = columnsByFilterPosition[nonEmptyFilters[index].position];
-		const nextColumns = columnsByFilterPosition[nonEmptyFilters[index + 1].position];
-		if (Math.min(...currentColumns) >= Math.max(...nextColumns)) return false;
+	const orderedThumbs = [...thumbKeys].sort((a, b) => a.col - b.col);
+	let previousCol = -Infinity;
+	for (const filterChars of nonEmptyFilters) {
+		const match = orderedThumbs.find(
+			(thumbKey) => thumbKey.col > previousCol && filterChars.includes(thumbKey.key.toLowerCase())
+		);
+		if (!match) return false;
+		previousCol = match.col;
 	}
 
 	return true;
