@@ -93,7 +93,7 @@
 	function applyResolvedReplacement(result: LayoutInputResult): boolean {
 		const replacementValue = onResolvedInput?.(result);
 		if (replacementValue === undefined) return false;
-		setTextValue(replacementValue);
+		setTextValue(replacementValue, replacementValue.length, false);
 		setInputHistory(result.nextHistory);
 		return true;
 	}

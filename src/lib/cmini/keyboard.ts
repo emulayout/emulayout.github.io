@@ -76,7 +76,11 @@ export const QWERTY_CHAR_TO_SHIFTED: Record<string, string> = {
 /** Browser `KeyboardEvent.key` value emitted when Shift modifies a base key character. */
 export function shiftedKeyCharacter(character: string): string | undefined {
 	if (/^[a-z]$/u.test(character)) return character.toUpperCase();
-	return QWERTY_CHAR_TO_SHIFTED[character];
+	const mapped = QWERTY_CHAR_TO_SHIFTED[character];
+	if (mapped !== undefined) return mapped;
+	const upper = character.toUpperCase();
+	if (upper !== character && Array.from(upper).length === 1) return upper;
+	return undefined;
 }
 
 function splitRowChars(row: string): string[] {
@@ -188,29 +192,15 @@ export function buildKeyMap(displayValue: string): KeyMap {
 
 /**
  * Builds a KeyboardEvent.code -> character mapping for when Shift is pressed.
- *
- * - For punctuation keys: return the shifted QWERTY character for that key.
- * - For letter keys: uppercase the character from the base map if it's a-z.
  */
 export function buildShiftKeyMap(baseKeyMap: KeyMap): KeyMap {
 	const map: KeyMap = {};
 
 	for (const keyCode of Object.keys(QWERTY_KEY_MAP)) {
-		if (!keyCode.startsWith('Key')) {
-			const baseChar = baseKeyMap[keyCode];
-			if (!baseChar) continue;
-			const shifted = shiftedKeyCharacter(baseChar);
-			if (shifted) map[keyCode] = shifted;
-		}
-	}
-
-	for (const keyCode of Object.keys(QWERTY_KEY_MAP)) {
-		if (keyCode.startsWith('Key')) {
-			const baseChar = baseKeyMap[keyCode];
-			if (baseChar && /[a-z]/.test(baseChar)) {
-				map[keyCode] = baseChar.toUpperCase();
-			}
-		}
+		const baseChar = baseKeyMap[keyCode];
+		if (!baseChar) continue;
+		const shifted = shiftedKeyCharacter(baseChar);
+		if (shifted) map[keyCode] = shifted;
 	}
 
 	return map;
