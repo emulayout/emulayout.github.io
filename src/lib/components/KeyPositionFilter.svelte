@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Tooltip from './Tooltip.svelte';
 	import { isHomeKeySlot, SPLIT_COL } from '$lib/cmini/keyboard';
 
 	const THUMB_KEYS_PER_HAND = 4;
@@ -30,53 +29,34 @@
 	}
 
 	interface Props {
-		label?: string;
 		grid: string[][];
 		leftThumbKeys?: string[];
 		rightThumbKeys?: string[];
 		accentColor?: string;
 		hideThumbKeys?: boolean;
-		tooltipText?: string;
-		/** When true, render the grid only (no panel chrome or header). */
-		nested?: boolean;
 		/** Smaller cells/gaps for narrow side panels. */
 		compact?: boolean;
 		onCellChange?: (row: number, col: number, value: string) => void;
 		onLeftThumbKeyChange?: (index: number, value: string) => void;
 		onRightThumbKeyChange?: (index: number, value: string) => void;
-		onClear?: () => void;
 	}
 
 	let {
-		label = '',
 		grid,
 		leftThumbKeys = Array.from({ length: THUMB_KEYS_PER_HAND }, () => ''),
 		rightThumbKeys = Array.from({ length: THUMB_KEYS_PER_HAND }, () => ''),
 		accentColor = 'var(--accent)',
 		hideThumbKeys = false,
-		tooltipText = 'Placeholder tooltip text - please fill in with helpful instructions',
-		nested = false,
 		compact = false,
 		onCellChange,
 		onLeftThumbKeyChange,
-		onRightThumbKeyChange,
-		onClear
+		onRightThumbKeyChange
 	}: Props = $props();
 
 	function handleInput(rowIdx: number, colIdx: number, event: Event) {
 		const input = event.target as HTMLInputElement;
 		onCellChange?.(rowIdx, colIdx, input.value);
 	}
-
-	function handleClear() {
-		onClear?.();
-	}
-
-	const hasActiveFilters = $derived(
-		grid.some((row) => row.some((cell) => cell !== '')) ||
-			leftThumbKeys.some((key) => key !== '') ||
-			rightThumbKeys.some((key) => key !== '')
-	);
 
 	const leftThumbVisibleCount = $derived(visibleThumbSlotCount(leftThumbKeys));
 	const rightThumbVisibleCount = $derived(visibleThumbSlotCount(rightThumbKeys));
@@ -130,32 +110,8 @@
 	}
 </script>
 
-<div
-	class="key-filter flex flex-col items-center"
-	class:key-filter--nested={nested}
-	class:key-filter--compact={compact}
-	style={nested
-		? undefined
-		: 'background-color: var(--bg-secondary); border: 1px solid var(--border);'}
->
+<div class="key-filter flex flex-col items-center" class:key-filter--compact={compact}>
 	<div class="key-filter-grid flex flex-col font-mono">
-		{#if !nested}
-			<div class="filter-section-header w-full">
-				<div class="filter-section-header-start">
-					<span class="filter-section-header-label">{label}</span>
-					<Tooltip text={tooltipText} />
-				</div>
-				{#if hasActiveFilters}
-					<button
-						onclick={handleClear}
-						class="text-xs px-2 py-1 rounded transition-colors inline-flex shrink-0"
-						style="color: {accentColor}; background-color: var(--bg-primary);"
-					>
-						Clear
-					</button>
-				{/if}
-			</div>
-		{/if}
 		{#each grid as row, rowIdx (rowIdx)}
 			<div class="key-filter-row flex">
 				{#each row as cell, colIdx (`${rowIdx}-${colIdx}`)}
@@ -221,12 +177,6 @@
 
 <style>
 	.key-filter {
-		padding: 0.75rem;
-		border-radius: 0.75rem;
-		height: 100%;
-	}
-
-	.key-filter--nested {
 		padding: 0;
 		border-radius: 0;
 		height: auto;

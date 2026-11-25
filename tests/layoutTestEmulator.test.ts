@@ -207,6 +207,10 @@ describe('layout test keydown decisions', () => {
 			stopPropagation: false,
 			edit: { type: 'insert', text: 'X' }
 		});
+		const punctMaps = createLayoutTestKeyMaps("' , . ä\na s d f\nz x c v");
+		expect(punctMaps.shiftKeyMap.KeyQ).toBe('"');
+		expect(punctMaps.shiftKeyMap.KeyW).toBe('<');
+		expect(punctMaps.shiftKeyMap.KeyR).toBe('Ä');
 	});
 
 	test('leaves browser modifier shortcuts and unmapped keys alone', () => {

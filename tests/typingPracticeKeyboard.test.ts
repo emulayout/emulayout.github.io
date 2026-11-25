@@ -74,6 +74,22 @@ describe('typing practice keyboard guidance', () => {
 		);
 	});
 
+	test('simulates shifted uppercase and punctuation targets on thumb keys', () => {
+		const uppercase = createTypingPracticeSession(['I']);
+		expect(resolveSimulatedTypingPracticeThumbInput(uppercase, ['i'], undefined, '')).toEqual({
+			text: 'I',
+			nextHistory: '',
+			applied: []
+		});
+
+		const punctuation = createTypingPracticeSession(['?']);
+		expect(resolveSimulatedTypingPracticeThumbInput(punctuation, ['/'], undefined, '')).toEqual({
+			text: '?',
+			nextHistory: '',
+			applied: []
+		});
+	});
+
 	test('simulates Repeat and Magic keys assigned to thumbs by their resolved output', () => {
 		const repeatProfile = compileLayoutInputProfile({}, { '@': {}, l: {} }, true);
 		const repeated = updateTypingPracticeInput(createTypingPracticeSession(['hello']), 'hel');

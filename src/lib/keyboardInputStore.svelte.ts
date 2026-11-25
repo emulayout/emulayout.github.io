@@ -1,5 +1,4 @@
 import {
-	cloneKeyboardInputConfig,
 	createDefaultKeyboardInputConfig,
 	KEYBOARD_INPUT_CONFIG_STORAGE_KEY,
 	parseKeyboardInputConfig,
@@ -12,16 +11,28 @@ class KeyboardInputStore {
 	hydrated = $state(false);
 
 	hydrate() {
-		this.config = parseKeyboardInputConfig(localStorage.getItem(KEYBOARD_INPUT_CONFIG_STORAGE_KEY));
+		let stored: string | null = null;
+		try {
+			if (typeof localStorage !== 'undefined') {
+				stored = localStorage.getItem(KEYBOARD_INPUT_CONFIG_STORAGE_KEY);
+			}
+		} catch {
+			stored = null;
+		}
+		this.config = parseKeyboardInputConfig(stored);
 		this.hydrated = true;
 	}
 
 	setConfig(config: KeyboardInputConfig) {
-		this.config = cloneKeyboardInputConfig(config);
-		localStorage.setItem(
-			KEYBOARD_INPUT_CONFIG_STORAGE_KEY,
-			serializeKeyboardInputConfig(this.config)
-		);
+		const serialized = serializeKeyboardInputConfig(config);
+		this.config = parseKeyboardInputConfig(serialized);
+		try {
+			if (typeof localStorage !== 'undefined') {
+				localStorage.setItem(KEYBOARD_INPUT_CONFIG_STORAGE_KEY, serialized);
+			}
+		} catch {
+			// Ignore storage restrictions or quota errors.
+		}
 	}
 }
 

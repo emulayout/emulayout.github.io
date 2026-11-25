@@ -76,7 +76,8 @@ the first paint does not double-count. The root layout calls `trackGoatCounterPa
 | `/layouts/<name>?tab=test`                                 | `/layouts?tab=test`  |
 | `/layouts/<name>?tab=feel`                                 | `/layouts?tab=feel`  |
 | `/layouts/<name>?tab=stats`                                | `/layouts?tab=stats` |
-| `/create` plus any creator draft query                     | `/create`            |
+| `/create` or `/try` plus any creator/handoff query         | `/create`            |
+| Any other unknown path                                     | `/`                  |
 
 Index filter query churn and show-page `text=` must never become distinct pages. Individual layout
 names are omitted so index vs show vs tab totals stay readable. Do not put layout names back into
@@ -107,15 +108,15 @@ helper exists.
 Tracked from `filterStore` public setters that represent a person changing a control. Hydrate and
 `#restoreViewFilters` assign fields directly and must stay that way so restores stay silent.
 
-| Event                                                                                                                                                                           | Control                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `filter-name`, `filter-author`                                                                                                                                                  | Name and author filters                                                                |
-| `filter-similarity`                                                                                                                                                             | Similarity reference, percent, scoring, or mirror options                              |
-| `filter-workload`                                                                                                                                                               | Finger-workload preference, preset, analyzer, or relink                                |
-| `filter-keys-and`, `filter-keys-or`, `filter-keys-exclude`                                                                                                                      | Key-position modes                                                                     |
-| `filter-thumb-keys`, `filter-magic-keys`, `filter-repeat-keys`, `filter-adaptive-swaps`, `filter-chiral-keys`, `filter-character-set`, `filter-board-type`, `filter-unfinished` | Keyboard filters                                                                       |
-| `filter-stat-<key>`                                                                                                                                                             | One analyzer stat-limit field or likes (`filter-stat-sfb`, `filter-stat-cyano-sfb`, …) |
-| `sort-<sortBy>`                                                                                                                                                                 | Sort field only (`sort-date`, `sort-sfb`, `sort-cyano-effort`, …), not asc/desc        |
+| Event                                                                                                                                                      | Control                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `filter-name`, `filter-author`                                                                                                                             | Name and author filters                                                                |
+| `filter-similarity`                                                                                                                                        | Similarity reference, percent, scoring, or mirror options                              |
+| `filter-workload`                                                                                                                                          | Finger-workload preference, preset, analyzer, or relink                                |
+| `filter-keys-and`, `filter-keys-or`, `filter-keys-exclude`                                                                                                 | Key-position modes                                                                     |
+| `filter-thumb-keys`, `filter-magic-keys`, `filter-repeat-keys`, `filter-adaptive-swaps`, `filter-chiral-keys`, `filter-character-set`, `filter-unfinished` | Keyboard filters                                                                       |
+| `filter-stat-<key>`                                                                                                                                        | One analyzer stat-limit field or likes (`filter-stat-sfb`, `filter-stat-cyano-sfb`, …) |
+| `sort-<sortBy>`                                                                                                                                            | Sort field only (`sort-date`, `sort-sfb`, `sort-cyano-effort`, …), not asc/desc        |
 
 Stat and sort identifiers are public catalog metric names, not user data. Do not append the typed
 threshold or selected author.

@@ -7,7 +7,11 @@ import {
 	type StatsMaps
 } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
+import {
+	buildAuthorNameByIdMap,
+	buildCatalogLayoutDetail,
+	type LayoutDetail
+} from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { CatalogSparkByLayout } from '$lib/catalogSpark';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
@@ -21,18 +25,19 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
  * Hydrated once from the page load data.
  */
 class LayoutsCatalog {
-	layouts: LayoutData[] = $state([]);
-	authorsData: AuthorsMap = $state({});
-	likesData: LayoutLikesMap = $state({});
-	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
-	supplemental: CatalogSparkByLayout = $state({});
-	layoutNames: string[] = $state([]);
+	layouts: LayoutData[] = $state.raw([]);
+	authorsData: AuthorsMap = $state.raw({});
+	likesData: LayoutLikesMap = $state.raw({});
+	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state.raw(new Map());
+	supplemental: CatalogSparkByLayout = $state.raw({});
+	layoutNames: string[] = $state.raw([]);
 	fullCatalogLoaded = $state(false);
 	namesLoaded = $state(false);
 	supplementalLoaded = $state(false);
 	loading = $state(false);
 	loadError: Error | null = $state(null);
 	latestLayoutDayKey = $derived(getLatestLayoutDayKey(this.layouts));
+	authorNameById = $derived(buildAuthorNameByIdMap(this.authorsData));
 
 	#catalogRequest: Promise<void> | null = null;
 	#namesRequest: Promise<void> | null = null;
@@ -60,7 +65,7 @@ class LayoutsCatalog {
 	}
 
 	getAuthorName(userId: AuthorId): string {
-		return resolveAuthorName(this.authorsData, userId);
+		return this.authorNameById.get(userId) ?? 'Unknown';
 	}
 
 	/** Preview payload when the aggregate catalog is already in memory. */
@@ -95,6 +100,7 @@ class LayoutsCatalog {
 				if (!Array.isArray(names) || names.some((name) => typeof name !== 'string')) {
 					throw new Error('Layout-name response was invalid.');
 				}
+				if (this.namesLoaded) return;
 				this.layoutNames = names;
 				this.namesLoaded = true;
 				this.loadError = null;
@@ -125,6 +131,7 @@ class LayoutsCatalog {
 				const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 				const authorsData = normalizeAuthorsMap(await authorsResponse.json());
 				const likesData: LayoutLikesMap = likesResponse.ok ? await likesResponse.json() : {};
+				if (this.fullCatalogLoaded) return;
 				this.hydrate(decodeLayouts(compactLayouts), authorsData, likesData);
 			})
 			.catch((error) => {
@@ -148,12 +155,12 @@ class LayoutsCatalog {
 				if (!supplemental || typeof supplemental !== 'object' || Array.isArray(supplemental)) {
 					throw new Error('Supplemental response was invalid.');
 				}
+				if (this.supplementalLoaded) return;
 				this.supplemental = supplemental;
 				this.supplementalLoaded = true;
 			})
 			.catch(() => {
-				this.supplemental = {};
-				this.supplementalLoaded = true;
+				// Leave supplementalLoaded false so transient failures can retry.
 			})
 			.finally(() => {
 				this.#supplementalRequest = null;

@@ -277,14 +277,6 @@ export function hasConfiguredFingerWorkloadPreference(
 	);
 }
 
-export function hasConfiguredFingerWorkloadPreferences(
-	preferences: FingerWorkloadPreferences
-): boolean {
-	return STAT_ANALYZERS.some(({ value }) =>
-		hasConfiguredFingerWorkloadPreference(preferences[value])
-	);
-}
-
 export function fingerWorkloadHandPreferencesEqual(
 	first: FingerWorkloadHandPreference,
 	second: FingerWorkloadHandPreference
@@ -307,14 +299,6 @@ export function hasActiveFingerWorkloadHandPreference(
 export function hasActiveFingerWorkloadPreference(preference: FingerWorkloadPreference): boolean {
 	return FINGER_WORKLOAD_HANDS.some((hand) =>
 		hasActiveFingerWorkloadHandPreference(preference[hand])
-	);
-}
-
-export function analyzersNeededForFingerWorkloadPreferences(
-	preferences: FingerWorkloadPreferences
-): StatsAnalyzer[] {
-	return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) =>
-		hasActiveFingerWorkloadPreference(preferences[analyzer])
 	);
 }
 

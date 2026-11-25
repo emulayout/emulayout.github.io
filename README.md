@@ -11,11 +11,13 @@ directly in the browser.
 ## Explore
 
 - Search by layout name or author, or jump directly to a layout with Quick find.
-- Filter by character set, thumb keys, Repeat keys, Magic keys, Adaptive swaps, and layout completeness.
+- Filter by character set, thumb keys, Repeat keys, Magic keys, Adaptive swaps, Chiral keys, and
+  layout completeness.
 - Describe the keys you want at exact positions using AND, OR, and exclude rules.
-- Set metric limits from cmini, Cyanophage, or Mana2, then sort the results by any available stat,
-  name, date, likes, or similarity.
-- Build a custom source from any subset of the catalog when the full collection is too broad.
+- Rank relative finger workload or set metric limits from cmini, Cyanophage, or Mana2, then sort the
+  results by any available stat, name, date, likes, or similarity.
+- Build a custom source from any subset of the catalog when the full collection is too broad, or
+  bookmark favorites with browser-local Likes.
 
 ## Analyze and compare
 
@@ -25,7 +27,8 @@ directly in the browser.
 - Select interesting layouts as you browse and keep them visible even when they do not match the
   current filters.
 - Compare two layouts side by side, including per-metric differences.
-- Expand a layout for a cross-analyzer view of its statistics.
+- Open any layout's detail page (`/layouts/<name>`) for Typing practice, Layout test area, Layout
+  feel, and a cross-analyzer Stats breakdown.
 
 | Analyzer                                                   | Emulayout integration                                           |
 | ---------------------------------------------------------- | --------------------------------------------------------------- |
@@ -34,29 +37,39 @@ directly in the browser.
 | [Mana2](https://codeberg.org/Zakkkk/mana2)                 | Independent metric set from akl.gg corpus data                  |
 
 Each analyzer retains its own metric definitions and units. cmini and Mana2 stats are imported from
-[akl.gg](https://akl.gg/api/) stats/v1 API (Monkeyracer by default). Cyanophage is computed
-locally. akl.gg applies stored Magic/Repeat behavior to its cmini and Mana2 cells; Adaptive swaps
-are not currently included in analyzer results.
+[akl.gg](https://akl.gg/api/) stats/v1 API (Monkeyracer by default). Cyanophage is computed locally
+using the upstream Cyanophage scoring logic: layouts with unsupported keys, multiple thumb keys, or
+multi-trigger Magic profiles are omitted from Cyanophage results rather than approximated. akl.gg
+applies stored Magic/Repeat behavior to its cmini and Mana2 cells; Adaptive swaps are not currently
+included in analyzer results.
 
-## Try layouts in place
+## Try and create layouts in place
 
-Every layout card can include a typing area, so layouts can be sampled without installing them.
-Choose row-stagger or column-stagger presentation globally; layouts themselves remain
-geometry-neutral, while every analyzer uses the corresponding physical-board context.
-Anglemod can be toggled per card, and links open the selected presentation in Cyanophage or
+Every layout card can include a typing area, and each layout's detail page provides Typing practice
+(with English 1k / 10k word banks, custom text, and remapping word balances), a free-form Layout
+test area, and Layout feel (remapped familiar-keyboard practice). Configure your own physical
+**Input layout** (including ANSI/ISO hardware topology and custom keys) once and reuse it across
+every typing surface. Choose `Row-staggered` or `Ortholinear` presentation globally; layouts
+themselves remain geometry-neutral, while every analyzer uses the corresponding physical-board
+context. Anglemod can be toggled per card, and links open the selected presentation in Cyanophage or
 [a specialized fork of Colemak Camp](https://colemakcamp.github.io) that supports links to typing
 practice with a custom layout already configured.
 
-Curated Magic-key and Adaptive-swap mappings also work in the typing area. Their indicators open an
-inspectable mapping panel where an entire behavior type, a named mapping group, or an individual
-mapping can be temporarily disabled. All mappings start enabled, and these choices are intentionally
-ephemeral.
+AKLDB Magic-key, Adaptive-swap, and Chiral-key mappings also work in the typing surfaces. Their
+indicators open an inspectable mapping panel where an entire behavior type, a named mapping group,
+or an individual mapping can be temporarily disabled. All mappings start enabled, and these choices
+are intentionally ephemeral.
 
-## Save and share a search
+Use **Create** (`/create`) to draft, edit, import (plain key rows or Spark `spark/1` JSON), save
+locally, back up, and share custom layouts with Magic, Adaptive, and Chiral rules. Links from
+akl.gg open directly via `/try`.
 
-Selections and filter combinations can be saved as named views in the browser. A saved view can be
-updated, duplicated, renamed, or shared as a URL. Shared views open with a preview so the recipient
-can apply them temporarily or save their own copy.
+## Save and share
+
+Selections and filter combinations can be saved as named views in the browser, exported or restored
+as JSON backups, updated, duplicated, renamed, or shared as a URL. Shared views and shared creator
+layouts open with a preview so the recipient can inspect them before applying or saving their own
+copy.
 
 Useful shortcuts:
 
@@ -75,18 +88,19 @@ bun install
 bun run dev
 ```
 
-The layout catalog, authors, and input-behavior metadata under `static/` are required. On a fresh
-checkout, populate them once before starting the development server:
+`bun run dev` and `bun run build` automatically run `bin/ensure-static-data.js` and
+`bin/layout-details.js` to bootstrap any missing generated catalog, analyzer stats, and per-layout
+detail files under `static/` (using `.cache/` offline when already populated, or fetching online on
+a fresh checkout). You can also populate or refresh all artifacts explicitly beforehand:
 
 ```sh
-bun run sync                   # or: bun run ./bin/catalog-sync.js
+bun run sync                   # interactive task selector (or: bun run sync -- --all)
 bun run dev
 ```
 
-Analyzer stats are optional at runtime. Without them, catalog browsing, non-stat filters, layout
-testing, selections, and saved views still work; analyzer displays, stat filters, and stat sorting
-remain unavailable. Import cmini/Mana2 stats and compute Cyanophage via `bun run sync` (or the
-individual `*-stats-sync` scripts) after the catalog exists.
+At runtime in the browser, analyzer stats remain optional: if a stats artifact fails to load,
+catalog browsing, non-stat filters, layout testing, selections, and saved views still work while
+analyzer displays, stat filters, and stat sorting show unavailable states.
 
 ### Generate analyzer data
 
@@ -161,9 +175,10 @@ updates and the scorer-fingerprint cache rebuild. A second normal run took 12.93
 
 `bin/catalog-sync.js` fetches layouts, authors, and metadata from the
 [AKLDB API](https://akldb.org/docs), caching one coordinated snapshot under `.cache/akldb`. Spark
-keys remain ordered positions, including free positions and repeated character labels. Emulayout
-also requests AKLDB's derived `mana2/1` view solely to lower contextual Magic and chiral rules into
-the current typing engine; Adaptive swaps and trigger identity come from the stored Spark payload.
+keys remain ordered positions, including free positions and repeated character labels. Client
+contextual behavior (Magic keys, Adaptive swaps, and native Chiral keys) is compiled directly from
+the stored `spark/1` payload; AKLDB's derived `mana2/1` view is retained solely as an analyzer
+adapter for offline Cyanophage scoring.
 The sync uses each AKLDB layout id and revision to select its matching akl.gg stats/v1 object. Those
 objects provide the completeness and Fspeed inputs used to omit meme-tier layouts; the historical
 per-corpus cutoffs are owned by the project because akl.gg no longer publishes a composed meme
@@ -179,12 +194,12 @@ Likes come from each layout's `likes` array; only the count is published.
 
 AKLDB's `spark/1` schema intentionally stores layout positions without prescribing a physical
 board. Emulayout follows that model: board type is not catalog metadata or a filter. A persisted
-display preference renders every layout as row stagger (the default) or column stagger. The same
+display preference renders every layout as `Row-staggered` (the default) or `Ortholinear`. The same
 choice selects matching cmini, Cyanophage, and Mana2 stats and the geometry used for Cyanophage and
-Colemak Camp links. akl.gg's `ortho.none` context represents column stagger and `rowstag.none`
-represents row stagger. Anglemod remains an explicit per-layout presentation transform;
-row-stagger links use ANSI without it and ISO with it. A rule-free conventional `@` remains Emulayout's
-dedicated Repeat behavior; mapped `@` rules override it.
+Colemak Camp links. akl.gg's `ortho.none` context represents `Ortholinear` and `rowstag.none`
+represents `Row-staggered`. Anglemod remains an explicit per-layout presentation transform;
+row-staggered links use ANSI without it and ISO with it. A rule-free conventional `@` remains
+Emulayout's dedicated Repeat behavior; mapped `@` rules override it.
 
 Analyzer artifacts are produced by separate scripts:
 

@@ -68,8 +68,8 @@ export function analyzersNeededForLimits(
 ): StatsAnalyzer[] {
 	const needed: StatsAnalyzer[] = [];
 	for (const { value: analyzer } of STAT_ANALYZERS) {
-		const hasLimits = getStatFilterFieldsForAnalyzer(analyzer).some(
-			(field) => limits[field.key]?.value.trim() !== ''
+		const hasLimits = getStatFilterFieldsForAnalyzer(analyzer).some((field) =>
+			Boolean(limits[field.key]?.value.trim())
 		);
 		if (hasLimits) needed.push(analyzer);
 	}

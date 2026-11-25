@@ -57,7 +57,7 @@ function gridOrThumbsActive(
 }
 
 function limitActive(store: FilterStore, key: StatLimitKey): boolean {
-	return store.statLimits[key]?.value.trim() !== '';
+	return Boolean(store.statLimits[key]?.value.trim());
 }
 
 /** Build a freeze-on-enter snapshot from live/draft filter state. */

@@ -34,6 +34,8 @@
 		onSelectAuthor
 	}: Props = $props();
 
+	const selectionId = $props.id();
+
 	const updatedLabel = $derived.by(() => {
 		if (!layout.updatedAt) return '';
 		const updatedAt = new Date(layout.updatedAt);
@@ -60,9 +62,10 @@
 	<div class="flex items-center gap-2 min-w-0">
 		<div class="flex items-center gap-2 min-w-0 flex-1">
 			{#if showSelection}
-				<label class="flex items-center gap-2 min-w-0 cursor-pointer">
+				<div class="flex items-center gap-2 min-w-0">
 					<span class="relative shrink-0 flex items-center">
 						<input
+							id={selectionId}
 							type="checkbox"
 							checked={selected}
 							onchange={onToggleSelection}
@@ -87,8 +90,16 @@
 							</svg>
 						{/if}
 					</span>
-					{@render layoutTitle()}
-				</label>
+					<h2
+						class="text-lg font-semibold truncate min-w-0"
+						style="color: var(--text-primary);"
+						title={layout.name}
+					>
+						<label for={selectionId} class="block truncate cursor-pointer">
+							{layout.name}
+						</label>
+					</h2>
+				</div>
 			{:else}
 				{@render layoutTitle()}
 			{/if}

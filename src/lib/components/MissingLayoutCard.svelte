@@ -28,7 +28,7 @@
 			{name}
 		</h3>
 		<p class="mt-2 text-sm leading-snug" style="color: var(--text-secondary);">
-			This layout has been deleted from cmini.
+			This layout is no longer in the catalog.
 		</p>
 	</div>
 

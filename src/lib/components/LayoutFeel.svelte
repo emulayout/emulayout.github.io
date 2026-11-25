@@ -590,7 +590,6 @@
 			return undefined;
 		}
 		const now = Date.now();
-		sharedLesson.recordAttempts(1, 0, now);
 		if (!isFeelWordComplete(activePlan, session.input)) {
 			sharedLesson.skippedWordIds.push(session.remainingWords[0].id);
 			sharedLesson.skippedCharacterCount +=
@@ -600,6 +599,8 @@
 				Math.max(0, activePlan.keystrokes.length - Array.from(session.input).length),
 				now
 			);
+		} else {
+			sharedLesson.recordAttempts(1, 0, now);
 		}
 		const nextSession = advanceFeelPracticeWord(
 			session,

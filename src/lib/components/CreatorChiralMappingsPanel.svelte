@@ -40,6 +40,8 @@
 	</div>
 	{#each draft.rules as rule (rule.id)}
 		{@const error = creatorChiralRuleError(rule, availableKeys)}
+		{@const canToggle = Boolean(rule.key) && !error}
+		{@const errorId = `creator-chiral-error-${rule.id}`}
 		<fieldset>
 			<legend>Chiral key {chiralCharacterLabel(rule.key) || '—'}</legend>
 			<div class="chiral-top-row">
@@ -47,8 +49,10 @@
 					><input
 						type="checkbox"
 						aria-label={`Enable chiral key ${chiralCharacterLabel(rule.key) || 'mapping'}`}
-						checked={!disabledMappingIds.includes(chiralMappingId(rule.key))}
+						checked={canToggle && !disabledMappingIds.includes(chiralMappingId(rule.key))}
+						disabled={!canToggle}
 						onchange={(event) => {
+							if (!canToggle) return;
 							const id = chiralMappingId(rule.key);
 							onDisabledMappingIdsChange(
 								event.currentTarget.checked
@@ -70,6 +74,8 @@
 			<label
 				>Trigger key<input
 					value={rule.key}
+					aria-invalid={error ? 'true' : undefined}
+					aria-describedby={error ? errorId : undefined}
 					oninput={(event) => update(rule.id, { key: event.currentTarget.value })}
 				/></label
 			>
@@ -108,8 +114,10 @@
 				/></label
 			>
 			{#if rule.except.includes(' ')}<small>Exceptions include Space</small>{/if}
-			{#if error}<p role="status">{error}</p>{/if}
-			{#if draft.rules.find((other) => other.key === rule.key)?.id !== rule.id}<p role="status">
+			{#if error}<p id={errorId} role="status">{error}</p>{/if}
+			{#if rule.key && draft.rules.find((other) => other.key === rule.key)?.id !== rule.id}<p
+					role="status"
+				>
 					This trigger already has a chiral mapping; only the first applies.
 				</p>{/if}
 			{#if magicTriggers.includes(rule.key)}<p role="status">
@@ -251,6 +259,7 @@
 		text-align: center;
 	}
 	select {
+		padding-right: var(--select-chevron-pad);
 		cursor: pointer;
 	}
 	p[role='status'] {

@@ -16,7 +16,8 @@ AI implementation context for the dedicated page that replaces the former expand
 - Layout names are route parameters. Links must use SvelteKit's route-aware `resolve` helper so
   names are encoded correctly.
 - Detail URLs are canonical layout paths whose query state is a valid `tab=practice`, `tab=test`,
-  `tab=feel`, or `tab=stats` value plus an optional Typing-practice `text` lesson. Index filters,
+  `tab=feel`, or `tab=stats` value plus optional Typing-practice/Feel lesson overlays (`text`,
+  `special`, `words`, `remap`, `bank`). Index filters,
   selections, and display state are reset while the detail route is active and cannot rewrite its
   URL. Missing, invalid, or mixed tab state is canonicalized to one valid `tab` value.
 - When a detail page is opened from the catalog, the index URL — including filter, selection, and
@@ -39,8 +40,8 @@ GitHub Pages serves generated static files and has no runtime API. The index con
 them. A detail route instead loads exactly one generated file from `static/layout-details/`.
 
 Each versioned detail file contains one compact layout tuple, its resolved author and like count,
-its Magic/Adaptive input-behavior source, geometry- and corpus-keyed compact cmini and Mana2 stats,
-and geometry-keyed compact Cyanophage stats. Filenames are the canonical layout name encoded as
+its Spark contextual-input behavior source (Magic, Adaptive, and Chiral), geometry- and corpus-keyed
+compact cmini and Mana2 stats, and geometry-keyed compact Cyanophage stats. Filenames are the canonical layout name encoded as
 UTF-8 hex, avoiding filesystem
 and URL ambiguity for punctuation and international names. `bin/layout-details.js` generates the
 files from the existing aggregate artifacts, writes only byte-changed files, and removes stale
@@ -74,7 +75,7 @@ small without weakening app-bar functionality.
   throughout the detail page and shares its persisted selection with the index toolbar. Cyanophage
   values are unchanged.
 - The layout display uses the same full-width keyboard row as a catalog card, keeping its Magic,
-  Adaptive, and Repeat indicators aligned in the same right-hand rail.
+  Adaptive, Chiral, and Repeat indicators aligned in the same right-hand rail.
 - The summary card includes its own analyzer selector directly below finger usage. It switches the
   card among cmini, Cyanophage, and Mana2 without changing the index analyzer preference or the
   analyzer visibility controls in the detail page's `Stats` section. Its cmini and Mana2 values use
@@ -106,9 +107,9 @@ small without weakening app-bar functionality.
   prompt guidance, and extension boundaries.
 - `Layout feel` sits between Layout test area and Stats. It reuses Typing practice’s lesson flow,
   prompt/input feedback, metrics, keyboard workspace, and display options. Lesson `text`,
-  `special`, and `words` query state is shared with Typing practice and preserved across detail
-  tabs when those params are already in the URL. Stored lesson prefs apply when the URL omits
-  them. The live source word list is also shared. Switching away from an in-progress Practice or
+  `special`, `words`, `remap`, and `bank` query state is shared with Typing practice and preserved
+  across detail tabs when those params are already in the URL. Stored lesson prefs apply when the
+  URL omits them. The live source word list is also shared. Switching away from an in-progress Practice or
   Feel test keeps the words that have not been entered correctly, appends new random words to
   restore the configured word count, and clears the timer, input, and `0/N` progress. Each source
   word is planned on the page layout first — including
@@ -140,7 +141,7 @@ small without weakening app-bar functionality.
   thumb in Input layout. Input-layout, anglemod, and Simulate thumb keys changes re-plan an
   untouched lesson only; an in-progress lesson keeps its current remapping until restart.
 - Typing practice exposes the shared input-layout configuration control. Its modal can seed the
-  editable physical key map from any known layout, choose Row stagger or Column stagger
+  editable physical key map from any known layout, choose `Row-staggered` or `Ortholinear`
   presentation, and
   persist a fully customized map. Opening the base-layout picker from a cold detail visit lazily
   loads the aggregate catalog because the picker requires all known layouts. The compiler and
@@ -149,13 +150,15 @@ small without weakening app-bar functionality.
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - `Layout test area` keeps its full-width, free-form keyboard emulator first. The shared keyboard
   workspace follows it, using the same structure as Typing practice: the key group and its
-  responsive options grid form one centered cluster, while Magic or Adaptive mappings occupy a
-  capped right-hand column when space permits and expand beneath the keyboard when it does not. The
+  responsive options grid form one centered cluster, while Magic, Adaptive, or Chiral mappings
+  occupy a capped right-hand column when space permits and expand beneath the keyboard when it does
+  not. The
   workspace has no outer card treatment, retains full-size keys until its actual board geometry no
   longer fits, and exposes the shared Input layout control above the keys. Its options include the
-  shared home-key coloring and special-key visibility treatments in addition to its free-typing
-  contextual previews. Home-key coloring defaults on, and every option in this workspace persists
-  across layouts and reloads in a dedicated versioned local-storage document.
+  shared home-key coloring, optional Finger assignments coloring, and special-key visibility
+  treatments in addition to its free-typing contextual previews. Home-key coloring defaults on, and
+  every option in this workspace persists across layouts and reloads in a dedicated versioned
+  local-storage document.
   For a recognized Magic layout, that styled keyboard defaults to a dynamic preview: each known
   Magic trigger uses the card's Magic symbol until the current uninterrupted test-area history gives
   it an output, then shows that next output on an accent-colored keycap. A default Repeat `@`, and
@@ -168,10 +171,10 @@ small without weakening app-bar functionality.
   background until the uninterrupted context changes or resets. A separate, default-off
   `Show swap paths` switch draws accent connectors between each currently active pair. Paths can be shown
   independently of the label preview and disappear with the same history and mapping resets.
-  Column stagger uses aligned split geometry, retaining empty physical key slots so the center seam
-  stays straight when a row is missing keys; Row stagger uses ANSI row offsets. Thumb keys remain
+  `Ortholinear` uses aligned split geometry, retaining empty physical key slots so the center seam
+  stays straight when a row is missing keys; `Row-staggered` uses ANSI row offsets. Thumb keys remain
   on their assigned left or right half in either geometry, even when both hands emit the same
-  character. Column-stagger thumbs align below their hand's index-finger column; row-stagger thumbs
+  character. Ortholinear thumbs align below their hand's index-finger column; row-staggered thumbs
   align between their hand's adjacent bottom-row index positions. Both follow the card's anglemod
   state.
 - `Stats` contains analyzer visibility controls, analyzer-specific metrics, and shared comparison
@@ -184,7 +187,7 @@ small without weakening app-bar functionality.
 - On first use, analyzer checkboxes select every analyzer included in the detail file. Later changes,
   including an explicit all-unchecked state, persist across layouts, navigation, and reloads. If a
   selected analyzer result is absent, the page may fall back to the analyzer-wide static map.
-- Magic and Adaptive mapping controls appear in the active typing workspace. Their shared
+- Magic, Adaptive, and Chiral mapping controls appear in the active typing workspace. Their shared
   disabled-mapping state is page-session-only and resets on navigation or reload, matching the
   previous expanded-view model.
 - The styled keyboard's prospective Magic and Adaptive output uses the emulator's exact history and

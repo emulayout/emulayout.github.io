@@ -504,7 +504,6 @@
 		)
 			return undefined;
 		const now = Date.now();
-		sharedLesson.recordAttempts(1, 0, now);
 		if (!isTypingPracticeWordComplete(session)) {
 			// A skipped word must not seed contextual mappings in the next word.
 			result.nextHistory = '';
@@ -512,6 +511,8 @@
 			sharedLesson.skippedWordIds.push(session.remainingWords[0].id);
 			sharedLesson.skippedCharacterCount += length + (session.remainingWords.length > 1 ? 1 : 0);
 			sharedLesson.recordAttempts(0, Math.max(0, length - Array.from(session.input).length), now);
+		} else {
+			sharedLesson.recordAttempts(1, 0, now);
 		}
 		const nextSession = advanceTypingPracticeWord(session, displayOptions.spaceSkipsWords);
 		sharedLesson.applyPracticeSession(nextSession, inputHistory);

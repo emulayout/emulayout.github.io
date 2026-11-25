@@ -117,7 +117,7 @@
 		style={`--core-stats-min-height: ${getLayoutCardStatsHeight()}px`}
 	>
 		{#if model.cardMetrics}
-			<dl class="core-stats-grid">
+			<div class="core-stats-grid">
 				{#each metricSlots as metric, slotIndex (slotIndex)}
 					{#if metric}
 						{@const foreignAnalyzer = metric.analyzer !== model.analyzer}
@@ -154,7 +154,7 @@
 									}}
 								></button>
 							{/if}
-							<dt class="core-stat-label">
+							<span class="core-stat-label">
 								<span>{metric.label}</span>
 								{#if metric.sortOrder}
 									<span
@@ -164,8 +164,8 @@
 										{metric.sortOrder === 'asc' ? '↑' : '↓'}
 									</span>
 								{/if}
-							</dt>
-							<dd class="core-stat-value">{metric.value}</dd>
+							</span>
+							<span class="core-stat-value">{metric.value}</span>
 							{#if onSortMetric}
 								<div class="core-stat-sort-controls">
 									<button
@@ -186,7 +186,7 @@
 						<div class="core-stat core-stat--empty" aria-hidden="true"></div>
 					{/if}
 				{/each}
-			</dl>
+			</div>
 		{:else}
 			{@const fallback = fallbackCopy(model)}
 			<div class="core-stats-status" class:core-stats-status--loading={model.loading}>
@@ -330,6 +330,11 @@
 		border: 0;
 		background: transparent;
 		cursor: pointer;
+	}
+
+	.core-stat-filter-button:focus-visible {
+		outline: none;
+		box-shadow: inset 0 0 0 2px var(--accent);
 	}
 
 	.core-stat-label,
@@ -479,6 +484,12 @@
 	@keyframes stats-loading-pulse {
 		to {
 			opacity: 0.35;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.core-stats-status--loading .core-stats-status-mark {
+			animation: none;
 		}
 	}
 

@@ -14,7 +14,7 @@ describe('saved filter storage migrations', () => {
 				id: 'legacy-view',
 				name: '  Legacy view  ',
 				createdAt: 123,
-				sourceLayoutNames: ['Colemak', '', 42, 'Canary'],
+				sourceLayoutNames: ['Colemak', '', 42, 'Canary', 'Colemak', ' Canary '],
 				snapshot: {
 					includeGrid: [['a']],
 					nameFilter: 'legacy'

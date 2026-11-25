@@ -39,8 +39,14 @@
 	function compiledRuleId(trigger: string, rule: CreatorMagicRule): string | null {
 		const nextTrigger = trigger.trim();
 		const nextAfter = creatorMagicContext(rule);
-		if (!nextTrigger || !nextAfter || creatorMagicTriggerError(nextTrigger, availableKeys))
+		if (
+			!nextTrigger ||
+			!nextAfter ||
+			!rule.emit.trim() ||
+			creatorMagicTriggerError(nextTrigger, availableKeys)
+		) {
 			return null;
+		}
 		return magicRuleMappingId(nextTrigger, nextAfter);
 	}
 
@@ -505,6 +511,10 @@
 		color: var(--text-primary);
 		font: inherit;
 		text-align: start;
+	}
+
+	select.creator-mappings-field {
+		padding-right: var(--select-chevron-pad);
 	}
 
 	.creator-mappings-field--after {

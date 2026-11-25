@@ -201,7 +201,8 @@ export function parseAkldbLayouts(json, manaJson) {
 				createdAt,
 				modifiedAt,
 				formatModifiedAt,
-				...payload,
+				keys: payload.keys,
+				...(payload.magic ? { magic: payload.magic } : {}),
 				manaMagic: mana.magic,
 				spark: payload,
 				likes,
@@ -359,7 +360,14 @@ export async function ensureAkldbCatalog(options = {}) {
 		};
 		const metaJson = await fetchJson(AKLDB_META_URL, fetchOptions);
 		const meta = parseAkldbMeta(metaJson);
-		const previousMeta = previous?.snapshot.meta ? parseAkldbMeta(previous.snapshot.meta) : null;
+		let previousMeta = null;
+		if (!options.force && previous?.snapshot.meta) {
+			try {
+				previousMeta = parseAkldbMeta(previous.snapshot.meta);
+			} catch {
+				previousMeta = null;
+			}
+		}
 		if (!options.force && previous && previousMeta && metaIsEqual(previousMeta, meta)) {
 			return { json: previous.parsed, updated: false, fromCache: false };
 		}
@@ -379,6 +387,14 @@ export async function ensureAkldbCatalog(options = {}) {
 		const parsed = parseAkldbCatalog(layouts, manaLayouts, authors);
 		if (parsed.layouts.layouts.length + parsed.layouts.skipped !== meta.layout_count) {
 			throw new Error('AKLDB meta layout count does not match the downloaded catalog');
+		}
+		if (meta.layout_count > 0 && parsed.layouts.layouts.length === 0) {
+			throw new Error('AKLDB downloaded catalog contains no valid layouts');
+		}
+		if (meta.layout_count >= 10 && parsed.layouts.skipped / meta.layout_count > 0.1) {
+			throw new Error(
+				`AKLDB downloaded catalog skipped ${parsed.layouts.skipped}/${meta.layout_count} layouts`
+			);
 		}
 		if (Object.keys(parsed.authors).length !== meta.author_count) {
 			throw new Error('AKLDB meta author count does not match the downloaded authors');

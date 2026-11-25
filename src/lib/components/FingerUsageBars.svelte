@@ -120,6 +120,18 @@
 		tipOpen = false;
 	}
 
+	$effect(() => {
+		if (!tipOpen) return;
+		const onDocumentKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape') return;
+			event.preventDefault();
+			event.stopPropagation();
+			hideTip();
+		};
+		document.addEventListener('keydown', onDocumentKeyDown, true);
+		return () => document.removeEventListener('keydown', onDocumentKeyDown, true);
+	});
+
 	function handleBarClick(
 		event: MouseEvent,
 		finger: { key: FingerUsageBarKey; name: string; value: number }

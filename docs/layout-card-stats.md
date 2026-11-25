@@ -6,8 +6,8 @@ AI implementation context for the Highlights statistics shown on layout cards.
 
 - Index and Quick Find layout cards always use the compact Highlights presentation. There is no
   card-stats display mode or persisted mode preference.
-- The first results-toolbar selector is `Keyboard`, with `Row stagger` and `Column stagger`
-  options. Row stagger is the default. The selector edits the persisted geometry preference and
+- The first results-toolbar selector is `Keyboard`, with `Row-staggered` and `Ortholinear`
+  options. `Row-staggered` is the default. The selector edits the persisted geometry preference and
   applies to rendering, analyzer data, Quick Find, Compare, detail views, and external keyboard
   links. Settings does not duplicate this page-level choice.
 - Analyzer choice normally comes from the results toolbar. The detail-page summary card instead owns
@@ -155,7 +155,6 @@ Do not reuse the normal click-to-focus behavior inside the modal.
 - Filter values set from cells use inclusive `≤` or `≥` semantics according to the metric's
   preferred direction.
 - Highlights owns visual finger usage on index and Quick Find cards.
-- The toolbar and Settings keyboard selectors edit one shared persisted geometry preference.
 
 The catalog's optional trailing finger-assignment object is geometry metadata for read-only keyboard
 previews. It does not change analyzer stats, card stats modes, or Quick Find interaction. Older

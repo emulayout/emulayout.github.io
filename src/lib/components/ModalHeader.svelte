@@ -4,7 +4,7 @@
 	interface Props {
 		/** `id` of the dialog title element (`aria-labelledby` target). */
 		titleId: string;
-		/** Plain title text; ignored when `title` snippet is provided. */
+		/** Dialog title text. */
 		title?: string;
 		onClose: () => void;
 		/** Extra classes on the title heading. */

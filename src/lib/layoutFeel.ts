@@ -200,6 +200,7 @@ function magicAlternateFeel(
 	preferredFeel: string,
 	targetToKnown: KeyMap
 ): string | undefined {
+	if (applied.includes('adaptive-swap')) return undefined;
 	if (!applied.includes('magic-key') && !applied.includes('chiral-key')) return undefined;
 	const emittedCharacters = Array.from(emitted);
 	if (emittedCharacters.length !== 1) return undefined;
@@ -282,8 +283,15 @@ export function planFeelWord(
 	let remaining = sourceWord;
 
 	while (remaining.length > 0) {
+		const picked = pickNextFeelKeystroke(
+			remaining,
+			history,
+			availableKeys,
+			profile,
+			disabledMappings
+		);
 		const next =
-			pickNextFeelKeystroke(remaining, history, availableKeys, profile, disabledMappings) ??
+			picked ??
 			(() => {
 				const character = Array.from(remaining)[0] ?? '';
 				return character
@@ -296,19 +304,28 @@ export function planFeelWord(
 		if (!next) break;
 
 		const resolved = resolveLayoutInput(profile, history, next.targetKey, disabledMappings);
-		const emitted = resolved.text || next.emitted;
+		const useResolved =
+			Boolean(picked) || (Boolean(resolved.text) && remaining.startsWith(resolved.text));
+		const emitted = useResolved ? resolved.text || next.emitted : next.emitted;
+		const applied = useResolved ? resolved.applied : [];
 		keystrokes.push(
 			finalizeFeelKeystroke(
 				{
 					targetKey: next.targetKey,
 					emitted,
-					applied: resolved.applied
+					applied
 				},
 				targetToKnown,
 				unreachableKeys
 			)
 		);
-		history = resolved.nextHistory;
+		history = useResolved
+			? resolved.nextHistory
+			: profile
+				? Array.from(history + emitted)
+						.slice(-profile.maxHistoryLength)
+						.join('')
+				: '';
 		remaining = Array.from(remaining).slice(Array.from(emitted).length).join('');
 	}
 

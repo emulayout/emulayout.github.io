@@ -74,7 +74,7 @@ export function deserializeStatLimits(str: string): Record<StatLimitKey, StatLim
 	for (const part of str.split(',')) {
 		const [key, operator, ...valueParts] = part.split(':');
 		if (!key || !operator || valueParts.length === 0) continue;
-		if (!(key in limits)) continue;
+		if (!Object.hasOwn(limits, key)) continue;
 		if (operator !== 'lt' && operator !== 'gt') continue;
 		limits[key as StatLimitKey] = {
 			operator,
@@ -107,7 +107,7 @@ export function deserializeFingerWorkload(value: string | null | undefined): Fin
 
 	for (const analyzerPart of value.split(',')) {
 		const [analyzer, encodedFingers] = analyzerPart.split('=');
-		if (!analyzer || !encodedFingers || !(analyzer in preferences)) continue;
+		if (!analyzer || !encodedFingers || !Object.hasOwn(preferences, analyzer)) continue;
 		for (const fingerPart of encodedFingers.split('|')) {
 			const [encodedFinger, level] = fingerPart.split(':');
 			const [encodedHand, finger] = encodedFinger.includes('.')
@@ -135,13 +135,27 @@ export function deserializeFingerWorkload(value: string | null | undefined): Fin
 	return normalizeFingerWorkloadConfig(preferences);
 }
 
+function escapeThumbFilterValue(value: string): string {
+	return value.replaceAll('%', '%25').replaceAll('|', '%7C');
+}
+
+function unescapeThumbFilterValue(value: string): string {
+	return value.replaceAll('%7C', '|').replaceAll('%7c', '|').replaceAll('%25', '%');
+}
+
 export function serializeThumbFilters(filters: string[]): string {
-	return filters.filter((key) => key !== '').join('|');
+	return filters
+		.filter((key) => key !== '')
+		.map(escapeThumbFilterValue)
+		.join('|');
 }
 
 export function deserializeThumbFilters(value: string | null | undefined): string[] {
 	return value
-		? [...value.split('|'), ...createEmptyThumbKeyFilters()].slice(0, FILTER_THUMB_KEYS_PER_HAND)
+		? [...value.split('|').map(unescapeThumbFilterValue), ...createEmptyThumbKeyFilters()].slice(
+				0,
+				FILTER_THUMB_KEYS_PER_HAND
+			)
 		: createEmptyThumbKeyFilters();
 }
 
@@ -451,6 +465,14 @@ export function decodeViewFilterSnapshot(encoded: string): DecodedViewFilters {
 	return readViewFilterUrlState(new URLSearchParams(encoded));
 }
 
+function escapeGridValue(value: string): string {
+	return value.replaceAll('%', '%25').replaceAll(',', '%2C');
+}
+
+function unescapeGridValue(value: string): string {
+	return value.replaceAll('%2C', ',').replaceAll('%2c', ',').replaceAll('%25', '%');
+}
+
 // Serialize grid to compact string: "r0c0,r0c1,r1c2" for non-empty cells.
 export function serializeGrid(grid: string[][]): string {
 	const parts: string[] = [];
@@ -458,7 +480,7 @@ export function serializeGrid(grid: string[][]): string {
 		for (let column = 0; column < FILTER_GRID_COLUMNS; column++) {
 			const character = grid[row][column];
 			if (character) {
-				parts.push(`${row}${column}${character}`);
+				parts.push(`${row}${column}${escapeGridValue(character)}`);
 			}
 		}
 	}
@@ -473,7 +495,7 @@ export function deserializeGrid(str: string): string[][] {
 		if (part.length < 3) continue;
 		const row = Number.parseInt(part[0], 10);
 		const column = Number.parseInt(part[1], 10);
-		const character = part.slice(2);
+		const character = unescapeGridValue(part.slice(2));
 		if (row >= 0 && row < FILTER_GRID_ROWS && column >= 0 && column < FILTER_GRID_COLUMNS) {
 			grid[row][column] = character;
 		}

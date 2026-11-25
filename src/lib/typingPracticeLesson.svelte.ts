@@ -97,6 +97,8 @@ export class SharedTypingPracticeLesson {
 		const request = ++this.#wordPoolRequest;
 		this.wordPool = [];
 		this.source = null;
+		this.startedAtMilliseconds = null;
+		this.endedAtMilliseconds = null;
 		this.wordPoolStatus = 'loading';
 		void loadTypingPracticeWords(
 			fetcher,

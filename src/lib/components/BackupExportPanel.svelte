@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ViewSelectionList from '$lib/components/ViewSelectionList.svelte';
+	import { copyTextToClipboard } from '$lib/clipboard';
 
 	interface BackupListItem {
 		key: string;
@@ -45,11 +46,11 @@
 	});
 
 	async function copyBackup() {
-		try {
-			await navigator.clipboard.writeText(backupText);
+		const copied = await copyTextToClipboard(backupText);
+		if (copied) {
 			error = '';
 			status = `${selectedCount} ${selectedCount === 1 ? singularNoun : pluralNoun} copied.`;
-		} catch {
+		} else {
 			status = '';
 			error = 'The backup could not be copied. Select the JSON text and copy it manually.';
 		}
@@ -257,8 +258,8 @@
 	}
 
 	.backup-message--error {
-		background: color-mix(in srgb, #dc2626 10%, transparent);
-		color: #dc2626;
+		background: color-mix(in srgb, var(--danger) 12%, transparent);
+		color: var(--danger);
 	}
 
 	@media (max-width: 32rem) {

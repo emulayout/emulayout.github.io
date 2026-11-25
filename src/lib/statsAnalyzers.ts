@@ -319,8 +319,3 @@ export function showsCyanophageStats(mode: StatsAnalyzerMode): boolean {
 export function showsMana2Stats(mode: StatsAnalyzerMode): boolean {
 	return showsAnalyzerStats(mode, MANA2_ANALYZER);
 }
-
-/** Concrete analyzer used when disambiguating sort fields for a display mode. */
-export function concreteAnalyzerForSort(mode: StatsAnalyzerMode): StatsAnalyzer {
-	return mode;
-}

@@ -79,8 +79,36 @@ test('explicit input presets remain distinct on ISO and migrate old UK names', (
 	expect(us.keys.find((key) => key.slot === '0,12')?.value).toBe(String.fromCharCode(92));
 	expect(us.keys.find((key) => key.slot === '2,10')?.value).toBe('');
 	expect(parseKeyboardInputConfig(serializeKeyboardInputConfig(us)).baseLayoutName).toBe('QWERTY');
-	const old = { ...hardware, baseLayoutName: 'QWERTY' };
-	expect(parseKeyboardInputConfig(JSON.stringify({ version: 5, config: old })).baseLayoutName).toBe(
-		'QWERTY UK'
+	const old = {
+		...hardware,
+		baseLayoutName: 'QWERTY',
+		keys: hardware.keys.map((key) => {
+			const rest = { ...key };
+			delete rest.shiftedValue;
+			return rest;
+		})
+	};
+	const migrated = parseKeyboardInputConfig(JSON.stringify({ version: 4, config: old }));
+	expect(migrated.baseLayoutName).toBe('QWERTY UK');
+	expect(keyboardInputShiftedValue(migrated.keys.find((key) => key.slot === '0,12')!)).toBe('~');
+	expect(keyboardInputShiftedValue(migrated.keys.find((key) => key.slot === '1,10')!)).toBe('@');
+});
+
+test('older Ortholinear saves ignore dormant ISO topology and switch back to ANSI', () => {
+	const legacyOrtho = parseKeyboardInputConfig(
+		JSON.stringify({
+			version: 4,
+			config: {
+				...createDefaultKeyboardInputConfig(),
+				keyboardType: 'ortho',
+				topology: 'iso'
+			}
+		})
 	);
+	expect(legacyOrtho.topology).toBe('ortho');
+	expect(legacyOrtho.keys.find((key) => key.slot === '2,10')).toBeUndefined();
+
+	const switched = setKeyboardInputType(legacyOrtho, 'staggered');
+	expect(switched.topology).toBe('ansi');
+	expect(switched.keys.find((key) => key.slot === '2,10')).toBeUndefined();
 });

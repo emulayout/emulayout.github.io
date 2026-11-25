@@ -71,14 +71,15 @@ export function getStatSortValue(
 	const analyzerStats = getLayoutAnalyzerStats(statsMaps, layout.name, field.analyzer);
 	if (!analyzerStats) return null;
 
+	let value: number;
 	if (field.analyzer === CYANOPHAGE_ANALYZER) {
-		return deriveCyanophageStats(analyzerStats as CyanophageStats)[
+		value = deriveCyanophageStats(analyzerStats as CyanophageStats)[
 			field.key as CyanophageStatSortKey
 		];
+	} else if (field.analyzer === MANA2_ANALYZER) {
+		value = deriveMana2Stats(analyzerStats as Mana2Stats)[field.key as Mana2StatSortKey];
+	} else {
+		value = deriveBotStats(analyzerStats as CminiStats)[field.key as StatSortKey];
 	}
-	if (field.analyzer === MANA2_ANALYZER) {
-		return deriveMana2Stats(analyzerStats as Mana2Stats)[field.key as Mana2StatSortKey];
-	}
-
-	return deriveBotStats(analyzerStats as CminiStats)[field.key as StatSortKey];
+	return Number.isFinite(value) ? value : null;
 }

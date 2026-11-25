@@ -5,11 +5,6 @@
  * Key order/scale must stay aligned with `src/lib/statsDerivation.ts`.
  */
 
-/** Default corpus / board / space for published Mana2 catalog stats. */
-export const CMINIBROWSER_MANA2_DEFAULT_CORPUS = 'monkeyracer';
-export const CMINIBROWSER_MANA2_DEFAULT_BOARD = 'rowstag';
-export const CMINIBROWSER_MANA2_DEFAULT_SPACE = 'none';
-
 /** Fixed-point scale for compact Mana2 arrays (4 decimal places). */
 export const CMINIBROWSER_MANA2_STAT_VALUE_SCALE = 10_000;
 

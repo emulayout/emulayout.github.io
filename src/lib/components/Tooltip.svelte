@@ -41,6 +41,18 @@
 	$effect(() => {
 		if (!hintsVisible) showTooltip = false;
 	});
+
+	$effect(() => {
+		if (!showTooltip) return;
+		const onDocumentKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'Escape') return;
+			event.preventDefault();
+			event.stopPropagation();
+			close();
+		};
+		document.addEventListener('keydown', onDocumentKeyDown, true);
+		return () => document.removeEventListener('keydown', onDocumentKeyDown, true);
+	});
 </script>
 
 {#if hintsVisible}

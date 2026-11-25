@@ -65,29 +65,15 @@ const PASS_THROUGH: LayoutTestKeyDecision = {
 	stopPropagation: false
 };
 
-function buildSlotKeyMap({ layout, rows }: LayoutTestDisplayGeometry): KeyMap {
+function buildSlotKeyMap({ rows }: LayoutTestDisplayGeometry): KeyMap {
 	const slotKeyMap: KeyMap = {};
 
 	for (const row of rows) {
-		const visibleKeys = row.filter(
-			(cell): cell is DisplayCell & { slot: string } => cell.slot !== null
-		);
-		if (visibleKeys.length === 0) continue;
-
-		const rowNumber = parseKeyboardInputSlot(visibleKeys[0].slot)?.row;
-		if (rowNumber === undefined || rowNumber >= 3) continue;
-
-		const columns = Array.from(layout.positionBySlot.keys())
-			.map(parseKeyboardInputSlot)
-			.filter(
-				(position): position is { row: number; column: number } => position?.row === rowNumber
-			)
-			.map(({ column }) => column)
-			.toSorted((a, b) => a - b);
-
-		for (let index = 0; index < columns.length; index += 1) {
-			const visibleKey = visibleKeys[index];
-			if (visibleKey) slotKeyMap[`${rowNumber},${columns[index]}`] = visibleKey.char;
+		for (const cell of row) {
+			if (cell.slot === null) continue;
+			const position = parseKeyboardInputSlot(cell.slot);
+			if (!position || position.row >= 3) continue;
+			slotKeyMap[cell.slot] = cell.char;
 		}
 	}
 

@@ -147,31 +147,38 @@ async function readCachedJson(path, parse) {
 
 /**
  * @param {string} url
- * @param {{ fetchImpl: typeof fetch, timeoutMs: number, headers?: Record<string, string> }} options
+ * @param {string} label
+ * @param {{ fetchImpl: typeof fetch, timeoutMs: number, headers?: Record<string, string>, allowStatuses?: number[] }} options
  */
-async function fetchResponse(url, { fetchImpl, timeoutMs, headers = {} }) {
+async function fetchJsonResponse(
+	url,
+	label,
+	{ fetchImpl, timeoutMs, headers = {}, allowStatuses = [] }
+) {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), timeoutMs);
 	try {
-		return await fetchImpl(url, {
+		const response = await fetchImpl(url, {
 			headers: { Accept: 'application/json', 'User-Agent': USER_AGENT, ...headers },
 			signal: controller.signal
 		});
+		if (allowStatuses.includes(response.status)) {
+			return { status: response.status, headers: response.headers, json: null };
+		}
+		if (!response.ok) {
+			throw new Error(`${label}: HTTP ${response.status} ${response.statusText}`);
+		}
+		const text = await response.text();
+		try {
+			return { status: response.status, headers: response.headers, json: JSON.parse(text) };
+		} catch (error) {
+			throw new Error(`${label}: invalid JSON`, { cause: error });
+		}
 	} catch (error) {
 		if (controller.signal.aborted) throw new Error(`Request timed out: ${url}`, { cause: error });
 		throw error;
 	} finally {
 		clearTimeout(timeout);
-	}
-}
-
-/** @param {Response} response @param {string} label */
-async function responseJson(response, label) {
-	if (!response.ok) throw new Error(`${label}: HTTP ${response.status} ${response.statusText}`);
-	try {
-		return JSON.parse(await response.text());
-	} catch (error) {
-		throw new Error(`${label}: invalid JSON`, { cause: error });
 	}
 }
 
@@ -182,51 +189,61 @@ async function ensureCurrent(options) {
 	const currentPath = cachePath(options.cacheDir, CURRENT_FILE);
 	const metaPath = cachePath(options.cacheDir, CURRENT_META_FILE);
 	const cached = await readCachedJson(currentPath, parseAklStatsCurrent);
+	const noopCommit = async () => {};
 	if (options.offline) {
 		if (!cached) throw new Error(`akl.gg stats cache missing at ${currentPath}`);
-		return { current: cached, updated: false, fromCache: true };
+		return { current: cached, updated: false, fromCache: true, commitCurrent: noopCommit };
 	}
 
 	/** @type {Record<string, string>} */
 	const conditionalHeaders = {};
+	let cachedEtag = null;
 	if (cached && !options.force) {
 		const meta = await readCachedJson(metaPath, (value) =>
 			isRecord(value) ? /** @type {Record<string, unknown>} */ (value) : null
 		);
-		if (meta && typeof meta.etag === 'string') conditionalHeaders['If-None-Match'] = meta.etag;
+		if (meta && typeof meta.etag === 'string') {
+			cachedEtag = meta.etag;
+			conditionalHeaders['If-None-Match'] = meta.etag;
+		}
 	}
 
 	try {
-		const response = await fetchResponse(AKL_STATS_CURRENT_URL, {
+		const response = await fetchJsonResponse(AKL_STATS_CURRENT_URL, 'akl.gg current', {
 			...options,
-			headers: conditionalHeaders
+			headers: conditionalHeaders,
+			allowStatuses: [304]
 		});
 		if (response.status === 304) {
 			if (!cached) throw new Error('akl.gg current returned 304 without a cached object');
-			return { current: cached, updated: false, fromCache: false };
+			return { current: cached, updated: false, fromCache: false, commitCurrent: noopCommit };
 		}
-		const current = parseAklStatsCurrent(await responseJson(response, 'akl.gg current'));
-		await mkdir(options.cacheDir, { recursive: true });
-		await writeFileAtomically(currentPath, `${JSON.stringify(current)}\n`);
+		const current = parseAklStatsCurrent(response.json);
+		const updated =
+			!cached || cached.stats_version !== current.stats_version || cached.db_seq !== current.db_seq;
 		const etag = response.headers.get('etag');
-		await writeFileAtomically(
-			metaPath,
-			`${JSON.stringify({ ...(etag ? { etag } : {}), fetchedAt: new Date().toISOString() })}\n`
-		);
+		const commitCurrent = async () => {
+			await mkdir(options.cacheDir, { recursive: true });
+			await writeFileAtomically(currentPath, `${JSON.stringify(current)}\n`);
+			if (updated || (etag && etag !== cachedEtag)) {
+				await writeFileAtomically(
+					metaPath,
+					`${JSON.stringify({ ...(etag ? { etag } : {}), fetchedAt: new Date().toISOString() })}\n`
+				);
+			}
+		};
 		return {
 			current,
-			updated:
-				!cached ||
-				cached.stats_version !== current.stats_version ||
-				cached.db_seq !== current.db_seq,
-			fromCache: false
+			updated,
+			fromCache: false,
+			commitCurrent
 		};
 	} catch (error) {
 		if (!cached) throw error;
 		console.warn(
 			`  ⚠ Could not refresh akl.gg current state; keeping cached ${cached.stats_version}`
 		);
-		return { current: cached, updated: false, fromCache: true };
+		return { current: cached, updated: false, fromCache: true, commitCurrent: noopCommit };
 	}
 }
 
@@ -254,6 +271,7 @@ async function forEachConcurrent(values, concurrency, work) {
  * @param {{
  *   offline?: boolean,
  *   force?: boolean,
+ *   deferCacheWrite?: boolean,
  *   fetchImpl?: typeof fetch,
  *   timeoutMs?: number,
  *   cacheDir?: string,
@@ -264,6 +282,7 @@ export async function ensureAklStatsLayouts(layouts, options = {}) {
 	const resolved = {
 		offline: options.offline ?? false,
 		force: options.force ?? false,
+		deferCacheWrite: options.deferCacheWrite ?? false,
 		fetchImpl: options.fetchImpl ?? fetch,
 		timeoutMs: options.timeoutMs ?? AKL_STATS_REQUEST_TIMEOUT_MS,
 		cacheDir: options.cacheDir ?? AKL_STATS_CACHE_DIR,
@@ -279,6 +298,8 @@ export async function ensureAklStatsLayouts(layouts, options = {}) {
 
 	/** @type {Map<string, AklStatsLayout>} */
 	const objects = new Map();
+	/** @type {Array<{ path: string, body: string }>} */
+	const pendingWrites = [];
 	let downloaded = 0;
 	let failed = 0;
 	await forEachConcurrent(layouts, resolved.concurrency, async (candidate) => {
@@ -303,17 +324,19 @@ export async function ensureAklStatsLayouts(layouts, options = {}) {
 
 		try {
 			const url = `${current.layouts_url}${encodedId}.json`;
-			const response = await fetchResponse(url, resolved);
+			const response = await fetchJsonResponse(url, candidate.name, {
+				...resolved,
+				allowStatuses: [404]
+			});
 			if (response.status === 404) {
 				failed++;
 				return;
 			}
-			const object = parseAklStatsLayout(await responseJson(response, candidate.name));
+			const object = parseAklStatsLayout(response.json);
 			if (object.id !== candidate.id || object.stats_version !== current.stats_version) {
 				throw new Error(`${candidate.name}: stats object identity/version mismatch`);
 			}
-			await mkdir(dirname(objectPath), { recursive: true });
-			await writeFileAtomically(objectPath, `${JSON.stringify(object)}\n`);
+			pendingWrites.push({ path: objectPath, body: `${JSON.stringify(object)}\n` });
 			downloaded++;
 			if (object.deleted === false && object.layout_rev === candidate.layoutRev) {
 				objects.set(candidate.id, object);
@@ -326,6 +349,23 @@ export async function ensureAklStatsLayouts(layouts, options = {}) {
 		}
 	});
 
+	let committed = false;
+	const commitCache = async () => {
+		if (committed) return;
+		committed = true;
+		await currentResult.commitCurrent();
+		if (pendingWrites.length > 0) {
+			await mkdir(dirname(pendingWrites[0].path), { recursive: true });
+			await forEachConcurrent(pendingWrites, resolved.concurrency, async (entry) => {
+				await writeFileAtomically(entry.path, entry.body);
+			});
+		}
+	};
+
+	if (!resolved.deferCacheWrite) {
+		await commitCache();
+	}
+
 	if (failed > 0) {
 		console.warn(`  ⚠ ${failed} akl.gg layout stats object${failed === 1 ? '' : 's'} unavailable`);
 	}
@@ -335,7 +375,8 @@ export async function ensureAklStatsLayouts(layouts, options = {}) {
 		downloaded,
 		missing: failed,
 		updated: downloaded > 0,
-		fromCache: currentResult.fromCache
+		fromCache: currentResult.fromCache,
+		commitCache
 	};
 }
 

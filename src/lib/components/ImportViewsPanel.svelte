@@ -27,7 +27,7 @@
 			case 'invalid-json':
 				return 'This is not valid JSON. Check the backup text and try again.';
 			case 'unsupported-format':
-				return 'This JSON is not an emulayout views backup.';
+				return 'This JSON is not an Emulayout views backup.';
 			case 'no-views':
 				return 'No valid views were found in this backup.';
 			default:
@@ -49,7 +49,7 @@
 	{errorMessage}
 	title="Restore a views backup"
 	description="Paste backup JSON or choose a file, then select the views to restore."
-	placeholder="Paste an emulayout views backup here"
+	placeholder="Paste an Emulayout views backup here"
 	legend="Views to import"
 	emptyMessage="No views found."
 	singularNoun="view"

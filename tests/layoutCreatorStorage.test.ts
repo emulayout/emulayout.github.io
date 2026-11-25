@@ -223,6 +223,14 @@ describe('saved layout storage', () => {
 		expect(cleanFeel.snapshot.section).toBe('feel');
 		expect(cleanFeel.snapshot.preview).toBe(true);
 		expect(isSavedLayoutDirty(cleanFeel.snapshot, saved)).toBe(false);
+
+		const withLessonAndTrackingParams = resolveCreatorSession(
+			new URLSearchParams('id=id-a&words=25&special=40&utm_source=test'),
+			[saved]
+		);
+		expect(withLessonAndTrackingParams.savedId).toBe('id-a');
+		expect(withLessonAndTrackingParams.snapshot.name).toBe('Alpha');
+		expect(isSavedLayoutDirty(withLessonAndTrackingParams.snapshot, saved)).toBe(false);
 	});
 
 	test('restores disabled Adaptive mappings from an id-only saved session', () => {
@@ -275,5 +283,24 @@ describe('creator URL saved id', () => {
 		);
 		expect(dirty.get('id')).toBe('id-a');
 		expect(readCreatorUrlSnapshot(dirty).name).toBe('Beta');
+
+		const dirtyBackToDefault = new URLSearchParams(
+			creatorSearchFromSnapshot(createDefaultCreatorSnapshot(), {
+				savedId: 'id-a',
+				savedSnapshot: snapshot
+			})
+		);
+		expect(dirtyBackToDefault.get('id')).toBe('id-a');
+		expect(dirtyBackToDefault.has('document')).toBe(true);
+		const restoredDirtyDefault = resolveCreatorSession(dirtyBackToDefault, [
+			{
+				id: 'id-a',
+				name: 'Alpha',
+				snapshot: creatorContentFromSnapshot(snapshot),
+				createdAt: 1
+			}
+		]);
+		expect(restoredDirtyDefault.savedId).toBe('id-a');
+		expect(restoredDirtyDefault.snapshot.name).toBe(createDefaultCreatorSnapshot().name);
 	});
 });

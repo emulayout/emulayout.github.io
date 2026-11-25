@@ -20,7 +20,7 @@ flags for these assignments; lowercase thumb flags retain their existing meaning
 - The **target layout** is the layout being tested or practiced, such as Vylet.
 - A configured input key maps its emitted character to a physical main-grid slot or to a thumb hand
   and ordinal. The target character at the corresponding position becomes the base output sent to
-  the existing Adaptive, Magic, and Repeat resolver.
+  the existing Adaptive, Magic, Chiral, and Repeat resolver.
 - QWERTY with Row-staggered geometry is the initial input profile. It preserves the emulator's former
   physical-QWERTY behavior while making that assumption explicit and editable.
 - The configuration is global and persists across routes and reloads. Typing practice, the detail
@@ -219,8 +219,8 @@ boundary:
    columns, target angle transformations, and shifted output.
 3. For each nonempty thumb assignment, match its ordinary real-key value by left/right hand and
    within-hand order to the target layout's thumb keys. Empty thumb slots emit nothing.
-4. Pass the resulting target base output to `resolveLayoutInput`, where Adaptive, Magic, and Repeat
-   behavior proceeds unchanged.
+4. Pass the resulting target base output to `resolveLayoutInput`, where Adaptive, Magic, Chiral,
+   and Repeat behavior proceeds unchanged.
 
 Shifted source letters and standard punctuation are compiled alongside their shifted target output.
 Control, Command/Meta, and Alt/Option are never treated as thumb keys; modified browser and

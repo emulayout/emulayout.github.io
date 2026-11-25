@@ -47,12 +47,19 @@
 	const exportItems = $derived(layouts.map((layout) => ({ key: layout.id, name: layout.name })));
 
 	$effect(() => {
-		if (open) return;
-		importSnackbar = null;
-		if (importSnackbarTimer !== undefined) {
-			window.clearTimeout(importSnackbarTimer);
-			importSnackbarTimer = undefined;
+		if (!open) {
+			importSnackbar = null;
+			if (importSnackbarTimer !== undefined) {
+				window.clearTimeout(importSnackbarTimer);
+				importSnackbarTimer = undefined;
+			}
 		}
+		return () => {
+			if (importSnackbarTimer !== undefined) {
+				window.clearTimeout(importSnackbarTimer);
+				importSnackbarTimer = undefined;
+			}
+		};
 	});
 
 	function openSettings() {

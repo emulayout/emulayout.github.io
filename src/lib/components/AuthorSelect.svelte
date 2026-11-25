@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Listbox from '$lib/components/Listbox.svelte';
 	import { navigateListIndex } from '$lib/listboxNavigation';
 	import type { AuthorId } from '$lib/layout';
@@ -27,8 +28,11 @@
 	let searchInput = $state<HTMLInputElement | undefined>(undefined);
 	let triggerButton = $state<HTMLButtonElement | undefined>(undefined);
 
+	let handledOpenSeq = untrack(() => openSeq);
+
 	$effect(() => {
-		if (openSeq > 0) {
+		if (openSeq > handledOpenSeq) {
+			handledOpenSeq = openSeq;
 			open = true;
 		}
 	});
@@ -211,6 +215,7 @@
 					class="w-full px-3 py-1.5 rounded-lg text-sm outline-none"
 					style="background-color: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);"
 					role="combobox"
+					aria-label="Search authors..."
 					aria-autocomplete="list"
 					aria-expanded="true"
 					aria-controls={listboxId}

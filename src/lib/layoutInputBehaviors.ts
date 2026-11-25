@@ -23,7 +23,6 @@ import type { LayoutData } from '$lib/layout';
 import {
 	compileChiralKeys,
 	resolveChiralKeyOutput,
-	chiralRuleMappings,
 	type ChiralKeySource,
 	type ChiralKeyProfile
 } from '$lib/chiralKeys';
@@ -127,8 +126,13 @@ export function compileLayoutInputRegistry(
 	for (const layout of layouts) {
 		if (profiles.has(layout.name)) continue;
 		const hasDefaultRepeat = layout.hasRepeatKey ?? Boolean(compileRepeatKeyProfile(layout.keys));
-		if (hasDefaultRepeat)
-			profiles.set(layout.name, compileLayoutInputProfile({}, layout.keys, true));
+		if (hasDefaultRepeat && compileRepeatKeyProfile(layout.keys)) {
+			try {
+				profiles.set(layout.name, compileLayoutInputProfile({}, layout.keys, true));
+			} catch (error) {
+				console.warn(`Ignoring invalid Repeat fallback for ${layout.name}:`, error);
+			}
+		}
 	}
 	return profiles;
 }
@@ -175,7 +179,7 @@ export function resolveLayoutInput(
 	const applied: AppliedLayoutInputBehavior[] = [];
 	if (adaptive.matched) applied.push('adaptive-swap');
 	if (magic.matched) applied.push('magic-key');
-	if (chiral.matched) applied.push('chiral-key');
+	if (chiral.matched && chiral.text !== adaptive.text) applied.push('chiral-key');
 	if (repeat.matched) applied.push('repeat-key');
 
 	return {
@@ -203,18 +207,4 @@ export function inputProfileMappingsLabel(profile: LayoutInputProfile): string {
 		magicKeys: Boolean(profile.magicKeys),
 		adaptiveSwaps: Boolean(profile.adaptiveSwaps)
 	});
-}
-
-/** Compatibility projection for shortcut planning; the runtime and UI retain native chirals. */
-export function planningMagicProfile(
-	profile: LayoutInputProfile | undefined,
-	disabled?: DisabledInputMappingIds
-): MagicKeyProfile | undefined {
-	if (!profile?.chiralKeys) return profile?.magicKeys;
-	const projected = chiralRuleMappings(profile.chiralKeys, disabled);
-	const triggers = {
-		...(Object.keys(projected).length ? compileMagicKeyMappings(projected).triggers : {}),
-		...profile.magicKeys?.triggers
-	};
-	return { triggers, maxHistoryLength: Math.max(1, profile.magicKeys?.maxHistoryLength ?? 0) };
 }

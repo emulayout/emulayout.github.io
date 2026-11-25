@@ -251,14 +251,14 @@
 		positionWorkloadPresetMenu();
 		const stopListening = listenForVisibleViewportChanges(positionWorkloadPresetMenu);
 		window.addEventListener('scroll', positionWorkloadPresetMenu, true);
+		window.addEventListener('click', handleWorkloadPresetWindowClick);
 		return () => {
 			stopListening();
 			window.removeEventListener('scroll', positionWorkloadPresetMenu, true);
+			window.removeEventListener('click', handleWorkloadPresetWindowClick);
 		};
 	});
 </script>
-
-<svelte:window onclick={handleWorkloadPresetWindowClick} />
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
 	{@const limit = filterStore.statLimits[field.key]}
@@ -691,7 +691,7 @@
 		flex: 1 1 0;
 		width: 0;
 		min-width: 0;
-		padding: 0.25rem 0.375rem;
+		padding: 0.25rem var(--select-chevron-pad) 0.25rem 0.375rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
@@ -865,7 +865,7 @@
 		border: 1px solid var(--border);
 		border-radius: 0.625rem;
 		background: var(--bg-primary);
-		box-shadow: 0 0.75rem 2rem color-mix(in srgb, #000 28%, transparent);
+		box-shadow: 0 0.75rem 2rem var(--popup-shadow);
 	}
 
 	.finger-workload-preset-option {
@@ -884,17 +884,28 @@
 		cursor: pointer;
 	}
 
-	.finger-workload-preset-option:hover,
-	.finger-workload-preset-option:focus-visible,
-	.finger-workload-preset-option--active {
+	.finger-workload-preset-option:hover {
 		border-color: var(--border);
 		background: var(--input-bg);
-		outline: none;
 	}
 
 	.finger-workload-preset-option--selected {
 		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-		background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+		background: color-mix(in srgb, var(--accent) 12%, var(--bg-primary));
+	}
+
+	.finger-workload-preset-option:focus-visible,
+	.finger-workload-preset-option--active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, var(--input-bg));
+		box-shadow: inset 0 0 0 1px var(--accent);
+		outline: none;
+	}
+
+	.finger-workload-preset-option--active.finger-workload-preset-option--selected {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 18%, var(--bg-primary));
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	.finger-workload-preset-option-copy {
@@ -1020,7 +1031,7 @@
 	.finger-workload-select {
 		width: 100%;
 		min-width: 0;
-		padding: 0.375rem 0.5rem;
+		padding: 0.375rem var(--select-chevron-pad) 0.375rem 0.5rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;
 		line-height: 1rem;

@@ -112,6 +112,20 @@ function formatMana2RawDiffField(delta: number, width: number): string {
 }
 
 const MANA2_RAW_DIFF_KEYS = new Set<Mana2StatSortKey>(['lsb', 'lss', 'vsb', 'vss']);
+const MANA2_EXTRA_HIGHER_IS_BETTER: Partial<Record<Mana2StatSortKey, boolean>> = {
+	lss: false,
+	vss: false,
+	altNoThumbs: true,
+	altSfs: false,
+	redirectNoThumbs: false,
+	redirectSfs: false,
+	redirectWeak: false,
+	redirectSfsWeak: false,
+	rollNoThumbs: true,
+	outroll2: true,
+	inroll3: true,
+	outroll3: true
+};
 
 function mana2Diff(
 	newStats: DerivedMana2Stats,
@@ -120,7 +134,8 @@ function mana2Diff(
 	width: number
 ): StatsBlockSegment {
 	const delta = newStats[key] - oldStats[key];
-	const higherIsBetter = isHigherBetterStatKey(key, MANA2_ANALYZER);
+	const higherIsBetter =
+		isHigherBetterStatKey(key, MANA2_ANALYZER) ?? MANA2_EXTRA_HIGHER_IS_BETTER[key] ?? null;
 	if (MANA2_RAW_DIFF_KEYS.has(key)) {
 		const text = formatMana2RawDiffField(delta, width);
 		return { text, tone: toneForStatDelta(delta, higherIsBetter, text) };

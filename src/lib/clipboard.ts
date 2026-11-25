@@ -8,18 +8,22 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
 		// Fall through to the legacy selection-based copy path.
 	}
 
+	const previouslyFocused =
+		document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	let textarea: HTMLTextAreaElement | null = null;
 	try {
-		const textarea = document.createElement('textarea');
+		textarea = document.createElement('textarea');
 		textarea.value = text;
 		textarea.setAttribute('readonly', '');
 		textarea.style.position = 'fixed';
 		textarea.style.left = '-9999px';
 		document.body.appendChild(textarea);
 		textarea.select();
-		const ok = document.execCommand('copy');
-		document.body.removeChild(textarea);
-		return ok;
+		return document.execCommand('copy');
 	} catch {
 		return false;
+	} finally {
+		textarea?.remove();
+		if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true });
 	}
 }

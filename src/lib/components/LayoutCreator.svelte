@@ -8,7 +8,7 @@
 		chiralDraftEnabled,
 		chiralSourceFromDraft
 	} from '$lib/creatorChiralMappings';
-	import { replaceState } from '$app/navigation';
+	import { beforeNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
@@ -83,7 +83,7 @@
 		type CreatorContentSnapshot,
 		type CreatorSnapshot
 	} from '$lib/creatorContent';
-	import { creatorSearchFromSnapshot } from '$lib/layoutCreatorUrl';
+	import { CREATOR_EDIT_PARAM, creatorSearchFromSnapshot } from '$lib/layoutCreatorUrl';
 	import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
@@ -292,12 +292,18 @@
 		if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
 	});
 
+	let flushedImportedSnapshot = false;
 	$effect(() => {
 		if (pendingSharedLayout) return;
 		const snapshot = currentCreatorSnapshot();
 		const savedId = session.activeId;
 		const savedSnapshot = session.activeLayout?.snapshot ?? null;
 		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
+		if (importedSnapshot && !flushedImportedSnapshot) {
+			flushedImportedSnapshot = true;
+			writeCreatorHistory(snapshot, savedId, savedSnapshot);
+			return;
+		}
 		urlSyncTimeout = setTimeout(() => {
 			urlSyncTimeout = null;
 			writeCreatorHistory(snapshot, savedId, savedSnapshot);
@@ -332,7 +338,8 @@
 			(Boolean(editor.keyConfig.baseLayoutName) ||
 				editor.keyConfig.keys.some((key) => Boolean(key.value)) ||
 				editor.includeMagicKey ||
-				editor.includeAdaptiveKey)
+				editor.includeAdaptiveKey ||
+				editor.includeChiralKey)
 	);
 
 	$effect(() => {
@@ -364,6 +371,7 @@
 		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
 	) {
 		const next = cloneCreatorSnapshot(snapshot);
+		baseLayoutSeed += 1;
 		supplementalDraftsSeededFor = null;
 		editor.replace(next);
 		layoutPreview = next.preview;
@@ -395,6 +403,24 @@
 		if (result.activeRemoved) flushCreatorUrl();
 	}
 
+	beforeNavigate(({ to, type, cancel }) => {
+		if (pendingSharedLayout) return;
+		if (
+			type !== 'popstate' &&
+			to?.url.pathname === creatorPath &&
+			to.url.search === `?${CREATOR_EDIT_PARAM}=1`
+		) {
+			if (hasUnsavedCreatorChanges) {
+				cancel();
+				pendingCreatorNavigation = { kind: 'new' };
+			}
+			return;
+		}
+		if (urlSyncTimeout && to?.url.pathname !== creatorPath) {
+			flushCreatorUrl();
+		}
+	});
+
 	function flushCreatorUrl() {
 		if (urlSyncTimeout) {
 			clearTimeout(urlSyncTimeout);
@@ -407,13 +433,11 @@
 		);
 	}
 
-	function writeCreatorHistory(
+	function buildCreatorHistoryTarget(
 		snapshot: CreatorSnapshot,
 		savedId: string | null,
 		savedSnapshot: CreatorContentSnapshot | null
-	) {
-		if (typeof window === 'undefined') return;
-		if (page.url.pathname !== creatorPath) return;
+	): { target: string; search: string } {
 		const baseSearch = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
 		let search = baseSearch;
 		if (hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)) {
@@ -422,21 +446,37 @@
 			const query = params.toString();
 			search = query ? `?${query}` : '';
 		}
-		lastWrittenSearch = search;
 		const nextHash = path === '/try' ? '' : page.url.hash;
-		const next = createHistoryTarget({
-			pathname: creatorPath,
+		return {
 			search,
-			hash: nextHash
-		});
+			target: createHistoryTarget({
+				pathname: creatorPath,
+				search,
+				hash: nextHash
+			})
+		};
+	}
+
+	function writeCreatorHistory(
+		snapshot: CreatorSnapshot,
+		savedId: string | null,
+		savedSnapshot: CreatorContentSnapshot | null
+	) {
+		if (typeof window === 'undefined') return;
+		if (page.url.pathname !== creatorPath) return;
+		const { target: next, search } = buildCreatorHistoryTarget(snapshot, savedId, savedSnapshot);
 		const current = createHistoryTarget({
 			pathname: page.url.pathname,
 			search: page.url.search,
 			hash: typeof window === 'undefined' ? page.url.hash : window.location.hash
 		});
-		if (!shouldWriteHistory('replace', next, current)) return;
+		if (!shouldWriteHistory('replace', next, current)) {
+			lastWrittenSearch = search;
+			return;
+		}
 		try {
 			replaceState(resolve(next as PathnameWithSearchOrHash), page.state);
+			lastWrittenSearch = search;
 		} catch (error) {
 			if (!isRouterNotReadyError(error)) throw error;
 			if (pendingHistoryRetry) return;
@@ -463,10 +503,14 @@
 			lastWrittenSearch = search;
 			return;
 		}
+		const restored = session.restore(page.url.searchParams);
 		applyCreatorSnapshot(
-			session.restore(page.url.searchParams),
+			restored,
 			typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
 		);
+		if (!session.activeId && !restored.preview) {
+			layoutNameFocusEpoch += 1;
+		}
 		lastWrittenSearch = search;
 	});
 
@@ -684,6 +728,7 @@
 			if (session.error) flushCreatorUrl();
 			return;
 		}
+		practiceLessonUrlOverrides = {};
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
@@ -694,6 +739,7 @@
 			flushCreatorUrl();
 			return;
 		}
+		practiceLessonUrlOverrides = {};
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
@@ -1004,7 +1050,7 @@
 					class:layout-creator-special-key--magic={magicIconActive}
 					class:layout-creator-special-key--magic-data={magicIconHasData}
 					aria-expanded={magicPanelOpen}
-					aria-controls={MAGIC_MAPPINGS_PANEL_ID}
+					aria-controls={magicPanelOpen ? MAGIC_MAPPINGS_PANEL_ID : undefined}
 					aria-label={magicPanelOpen
 						? 'Hide magic mappings'
 						: editor.includeMagicKey
@@ -1023,7 +1069,7 @@
 					class:layout-creator-special-key--adaptive={adaptiveIconActive}
 					class:layout-creator-special-key--adaptive-data={adaptiveIconHasData}
 					aria-expanded={adaptivePanelOpen}
-					aria-controls={ADAPTIVE_MAPPINGS_PANEL_ID}
+					aria-controls={adaptivePanelOpen ? ADAPTIVE_MAPPINGS_PANEL_ID : undefined}
 					aria-label={adaptivePanelOpen
 						? 'Hide adaptive mappings'
 						: editor.includeAdaptiveKey
@@ -1045,7 +1091,7 @@
 					class:layout-creator-special-key--magic-data={!chiralPanelOpen &&
 						Boolean(chiralSourceFromDraft(editor.chiralDraft, availableLayoutKeys))}
 					aria-expanded={chiralPanelOpen}
-					aria-controls="creator-chiral-mappings"
+					aria-controls={chiralPanelOpen ? 'creator-chiral-mappings' : undefined}
 					aria-label={chiralPanelOpen
 						? 'Hide chiral mappings'
 						: editor.includeChiralKey
@@ -1735,7 +1781,7 @@
 	.layout-creator-keyboard-field select {
 		width: 100%;
 		height: 2.375rem;
-		padding: 0 0.75rem;
+		padding: 0 var(--select-chevron-pad) 0 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: 0.75rem;
 		outline: none;

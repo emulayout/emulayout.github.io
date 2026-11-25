@@ -34,15 +34,22 @@ function analyzerMappingsFromAkldbLayout(layout) {
 		if (!trigger || !triggerKeys.has(trigger)) continue;
 		const after = inputs.join('');
 		if (!after || !rule.output.startsWith(after)) {
-			throw new Error(
-				`AKLDB Magic rule for ${JSON.stringify(layout.name)} rewrites its context and cannot be represented`
+			console.warn(
+				`  ⚠ ${layout.name}: skipping Mana2 analyzer mappings (rule rewrites its context)`
 			);
+			return undefined;
 		}
 		const emit = rule.output.slice(after.length);
-		if (!emit) throw new Error(`AKLDB Magic rule for ${JSON.stringify(layout.name)} emits no text`);
+		if (!emit) {
+			console.warn(`  ⚠ ${layout.name}: skipping Mana2 analyzer mappings (rule emits no text)`);
+			return undefined;
+		}
 		const mapping = (mappings[trigger] ??= { rules: Object.create(null) });
 		if (Object.hasOwn(mapping.rules, after)) {
-			throw new Error(`AKLDB Magic rules repeat ${JSON.stringify(after + trigger)}`);
+			console.warn(
+				`  ⚠ ${layout.name}: skipping Mana2 analyzer mappings (duplicate rule for ${JSON.stringify(after + trigger)})`
+			);
+			return undefined;
 		}
 		mapping.rules[after] = emit;
 	}

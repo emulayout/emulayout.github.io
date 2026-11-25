@@ -28,6 +28,7 @@ const READY_TIMEOUT_MS = 10_000;
 const READY_POLL_MS = 50;
 const SHOW_PAGE_PATH = '/layouts';
 const CREATOR_PAGE_PATH = '/create';
+const TRY_PAGE_PATH = '/try';
 
 export const LAYOUTS_INDEX_TITLE = 'Layouts index';
 export const LAYOUT_SHOW_TITLE = 'Layout show';
@@ -51,13 +52,22 @@ function shouldSendGoatCounter(): boolean {
  * non-default `tab`.
  */
 export function goatcounterPageviewPath(pathname: string, search = ''): string {
-	const path = pathname || '/';
-	if (!path.startsWith(`${SHOW_PAGE_PATH}/`) && path !== SHOW_PAGE_PATH) return path;
-
-	const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
-	const section = parseLayoutDetailSection(params.get(LAYOUT_DETAIL_TAB_PARAM));
-	if (section === DEFAULT_LAYOUT_DETAIL_SECTION) return SHOW_PAGE_PATH;
-	return `${SHOW_PAGE_PATH}?${LAYOUT_DETAIL_TAB_PARAM}=${section}`;
+	const trimmed = (pathname || '/').replace(/\/+$/, '') || '/';
+	if (trimmed === SHOW_PAGE_PATH || trimmed.startsWith(`${SHOW_PAGE_PATH}/`)) {
+		const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+		const section = parseLayoutDetailSection(params.get(LAYOUT_DETAIL_TAB_PARAM));
+		if (section === DEFAULT_LAYOUT_DETAIL_SECTION) return SHOW_PAGE_PATH;
+		return `${SHOW_PAGE_PATH}?${LAYOUT_DETAIL_TAB_PARAM}=${section}`;
+	}
+	if (
+		trimmed === CREATOR_PAGE_PATH ||
+		trimmed.startsWith(`${CREATOR_PAGE_PATH}/`) ||
+		trimmed === TRY_PAGE_PATH ||
+		trimmed.startsWith(`${TRY_PAGE_PATH}/`)
+	) {
+		return CREATOR_PAGE_PATH;
+	}
+	return '/';
 }
 
 export function goatcounterPageTitle(pathname: string, search = ''): string {
@@ -120,6 +130,11 @@ export function goatcounterPracticeSettingEvent(option: string): string {
 	return `practice-setting-${kebab}`;
 }
 
+let pendingGoatCounterRuns: Array<(gc: GoatCounter) => void> = [];
+let goatCounterPollTimer: number | null = null;
+let goatCounterPollStarted = 0;
+let goatCounterTimedOut = false;
+
 function withGoatCounter(run: (gc: GoatCounter) => void): void {
 	if (!shouldSendGoatCounter()) return;
 	const existing = window.goatcounter;
@@ -127,17 +142,27 @@ function withGoatCounter(run: (gc: GoatCounter) => void): void {
 		run(existing);
 		return;
 	}
+	if (goatCounterTimedOut) return;
 
-	const started = Date.now();
-	const timer = window.setInterval(() => {
+	pendingGoatCounterRuns.push(run);
+	if (goatCounterPollTimer !== null) return;
+
+	goatCounterPollStarted = Date.now();
+	goatCounterPollTimer = window.setInterval(() => {
 		const gc = window.goatcounter;
 		if (gc && typeof gc.url === 'function') {
-			window.clearInterval(timer);
-			run(gc);
+			if (goatCounterPollTimer !== null) window.clearInterval(goatCounterPollTimer);
+			goatCounterPollTimer = null;
+			const queued = pendingGoatCounterRuns;
+			pendingGoatCounterRuns = [];
+			for (const fn of queued) fn(gc);
 			return;
 		}
-		if (Date.now() - started >= READY_TIMEOUT_MS) {
-			window.clearInterval(timer);
+		if (Date.now() - goatCounterPollStarted >= READY_TIMEOUT_MS) {
+			if (goatCounterPollTimer !== null) window.clearInterval(goatCounterPollTimer);
+			goatCounterPollTimer = null;
+			pendingGoatCounterRuns = [];
+			goatCounterTimedOut = true;
 		}
 	}, READY_POLL_MS);
 }

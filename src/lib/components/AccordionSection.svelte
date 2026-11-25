@@ -61,7 +61,7 @@
 			</span>
 		</button>
 		<div class="filter-accordion-header-face">
-			<span class="filter-accordion-trigger-main">
+			<span class="filter-accordion-trigger-main" aria-hidden="true">
 				<svg
 					class="filter-accordion-caret"
 					class:filter-accordion-caret--expanded={open}

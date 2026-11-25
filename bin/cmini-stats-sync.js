@@ -40,7 +40,7 @@ import {
  * @param {string} corpus
  * @param {import('../src/lib/keyboardGeometry.ts').KeyboardGeometry} geometry
  */
-async function syncContext(eligibleLayouts, objects, corpus, geometry) {
+function prepareContext(eligibleLayouts, objects, corpus, geometry) {
 	const board = statsBoardForGeometry(geometry);
 	const statsFile = cminiCompactStatsRelPath(corpus, board, DEFAULT_STATS_SPACE);
 	console.log(
@@ -65,19 +65,19 @@ async function syncContext(eligibleLayouts, objects, corpus, geometry) {
 	}
 	assertStatsCatalogCoverage(`AKL cmini ${corpus} artifact`, statsLoaded, eligibleLayouts.length);
 
-	await mkdir('static', { recursive: true });
 	const sortedStats = Object.fromEntries(
 		Object.keys(layoutStats)
 			.sort((a, b) => a.localeCompare(b))
 			.map((name) => [name, layoutStats[name]])
 	);
-
-	const written = await writeTextFileIfChanged(statsFile, JSON.stringify(sortedStats) + '\n');
-
-	console.log(
-		`  ✔ Cmini stats for ${statsLoaded} layouts (${statsMissing} missing, corpus=${corpus}, geometry=${geometry})`
-	);
-	console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${statsFile}`);
+	return {
+		corpus,
+		geometry,
+		statsFile,
+		statsLoaded,
+		statsMissing,
+		body: JSON.stringify(sortedStats) + '\n'
+	};
 }
 
 async function run() {
@@ -98,13 +98,31 @@ async function run() {
 	const publishedNames = new Set(publishedLayouts.map(layoutEntryName));
 	const eligibleLayouts = akldbLayouts.filter((layout) => publishedNames.has(layout.name));
 	console.log('→ Loading matching akl.gg stats/v1 layout objects...');
-	const { objects, downloaded } = await ensureAklStatsLayouts(eligibleLayouts, { offline, force });
+	const { objects, downloaded, commitCache } = await ensureAklStatsLayouts(eligibleLayouts, {
+		offline,
+		force,
+		deferCacheWrite: true
+	});
 	console.log(`  ✔ ${objects.size} matching layout objects (${downloaded} downloaded)`);
 
+	const prepared = [];
 	for (const corpus of corpora) {
 		for (const geometry of KEYBOARD_GEOMETRIES) {
-			await syncContext(eligibleLayouts, objects, corpus, geometry);
+			prepared.push(prepareContext(eligibleLayouts, objects, corpus, geometry));
 		}
+	}
+
+	await commitCache();
+	await mkdir('static', { recursive: true });
+	for (const entry of prepared) {
+		const written = await writeTextFileIfChanged(entry.statsFile, entry.body);
+		console.log(
+			`  ✔ Cmini stats for ${entry.statsLoaded} layouts (${entry.statsMissing} missing, corpus=${entry.corpus}, geometry=${entry.geometry})`
+		);
+		console.log(`  ✔ ${written ? 'Wrote' : 'Unchanged'} ${entry.statsFile}`);
+	}
+
+	for (const corpus of corpora) {
 		const legacyFile = `static/layout-stats-cmini-${corpus}.json`;
 		try {
 			await unlink(legacyFile);

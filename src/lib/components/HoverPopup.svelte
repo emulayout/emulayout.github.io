@@ -57,12 +57,19 @@
 		} else {
 			top = fitsBelow || !fitsAbove ? belowTop : aboveTop;
 		}
+		const minTop = viewport.top + pad;
+		const maxTop = Math.max(minTop, viewport.bottom - pad - tipHeight);
+		top = Math.min(Math.max(top, minTop), maxTop);
 
 		coords = { top, left };
 	}
 
 	$effect(() => {
 		if (!open) return;
+		void text;
+		void anchor;
+		void placement;
+		void size;
 
 		updatePosition();
 		const frame = requestAnimationFrame(updatePosition);

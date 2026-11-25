@@ -118,4 +118,67 @@ describe('akl.gg stats/v1 cache', () => {
 		expect(result.objects.size).toBe(0);
 		expect(result.missing).toBe(1);
 	});
+
+	test('defers cache mutation until commitCache is called and enforces timeout across body reads', async () => {
+		const cacheDir = join(process.cwd(), '.cache', 'tests', crypto.randomUUID());
+		testPaths.push(cacheDir);
+		const fetchV1 = Object.assign(
+			async (input: string | URL | Request) =>
+				new Response(
+					JSON.stringify(String(input) === AKL_STATS_CURRENT_URL ? current() : layout())
+				),
+			{ preconnect: () => undefined }
+		) as typeof fetch;
+		await ensureAklStatsLayouts([{ id: 'layout-1', name: 'Example', layoutRev: 3 }], {
+			cacheDir,
+			fetchImpl: fetchV1
+		});
+
+		const fetchV2Partial = Object.assign(
+			async (input: string | URL | Request) => {
+				if (String(input) === AKL_STATS_CURRENT_URL) {
+					return new Response(JSON.stringify({ ...current(), stats_version: 'stats-2' }));
+				}
+				return new Response('', { status: 500 });
+			},
+			{ preconnect: () => undefined }
+		) as typeof fetch;
+		const deferred = await ensureAklStatsLayouts(
+			[{ id: 'layout-1', name: 'Example', layoutRev: 3 }],
+			{ cacheDir, fetchImpl: fetchV2Partial, deferCacheWrite: true }
+		);
+		expect(deferred.objects.size).toBe(0);
+
+		// Without calling commitCache(), the cached v1 current and layout remain intact offline.
+		const offlineAfterFailedV2 = await ensureAklStatsLayouts(
+			[{ id: 'layout-1', name: 'Example', layoutRev: 3 }],
+			{ cacheDir, offline: true }
+		);
+		expect(offlineAfterFailedV2.current.stats_version).toBe('stats-1');
+		expect(offlineAfterFailedV2.objects.has('layout-1')).toBe(true);
+
+		const stalledBodyFetch = Object.assign(
+			async (_input: string | URL | Request, init?: RequestInit) => {
+				const signal = init?.signal;
+				const stream = new ReadableStream({
+					start(controller) {
+						signal?.addEventListener('abort', () => {
+							controller.error(new DOMException('Aborted', 'AbortError'));
+						});
+					}
+				});
+				return new Response(stream, { status: 200 });
+			},
+			{ preconnect: () => undefined }
+		) as typeof fetch;
+		const freshDir = join(process.cwd(), '.cache', 'tests', crypto.randomUUID());
+		testPaths.push(freshDir);
+		await expect(
+			ensureAklStatsLayouts([{ id: 'layout-1', name: 'Example', layoutRev: 3 }], {
+				cacheDir: freshDir,
+				fetchImpl: stalledBodyFetch,
+				timeoutMs: 30
+			})
+		).rejects.toThrow('Request timed out');
+	});
 });

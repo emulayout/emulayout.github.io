@@ -42,6 +42,22 @@ import {
 	type KeyboardGeometry
 } from '$lib/keyboardGeometry';
 
+function readStoredItem(key: string): string | null {
+	try {
+		return typeof localStorage === 'undefined' ? null : localStorage.getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+function writeStoredItem(key: string, value: string): void {
+	try {
+		if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+	} catch {
+		// Ignore storage restrictions or quota errors.
+	}
+}
+
 class UiPrefs {
 	/** When true, help `Tooltip`s are shown. Off by default. */
 	hintsEnabled = $state(false);
@@ -69,50 +85,48 @@ class UiPrefs {
 	hydrated = $state(false);
 
 	hydrate() {
-		this.hintsEnabled = localStorage.getItem('hintsEnabled') === 'true';
-		this.fingerDistanceBars = localStorage.getItem('fingerDistanceDisplay') !== 'hidden';
-		this.statsCorpus = parseStatsCorpus(localStorage.getItem(STATS_CORPUS_STORAGE_KEY));
-		this.keyboardGeometry = parseKeyboardGeometry(
-			localStorage.getItem(KEYBOARD_GEOMETRY_STORAGE_KEY)
-		);
+		this.hintsEnabled = readStoredItem('hintsEnabled') === 'true';
+		this.fingerDistanceBars = readStoredItem('fingerDistanceDisplay') !== 'hidden';
+		this.statsCorpus = parseStatsCorpus(readStoredItem(STATS_CORPUS_STORAGE_KEY));
+		this.keyboardGeometry = parseKeyboardGeometry(readStoredItem(KEYBOARD_GEOMETRY_STORAGE_KEY));
 		this.layoutDetailStatsAnalyzers = parseLayoutDetailStatsAnalyzers(
-			localStorage.getItem(LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
+			readStoredItem(LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY)
 		);
 		this.typingPracticeDisplayOptions = parseTypingPracticeDisplayOptions(
-			localStorage.getItem(TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY)
+			readStoredItem(TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY)
 		);
 		this.typingPracticeLessonSettings = parseTypingPracticeLessonSettings(
-			localStorage.getItem(TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY)
+			readStoredItem(TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY)
 		);
 		this.layoutTestAreaDisplayOptions = parseLayoutTestAreaDisplayOptions(
-			localStorage.getItem(LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY)
+			readStoredItem(LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY)
 		);
 		this.hydrated = true;
 	}
 
 	toggleHints() {
 		this.hintsEnabled = !this.hintsEnabled;
-		localStorage.setItem('hintsEnabled', String(this.hintsEnabled));
+		writeStoredItem('hintsEnabled', String(this.hintsEnabled));
 	}
 
 	setFingerDistanceBars(value: boolean) {
 		this.fingerDistanceBars = value;
-		localStorage.setItem('fingerDistanceDisplay', value ? 'visible' : 'hidden');
+		writeStoredItem('fingerDistanceDisplay', value ? 'visible' : 'hidden');
 	}
 
 	setStatsCorpus(value: StatsCorpus) {
 		this.statsCorpus = value;
-		localStorage.setItem(STATS_CORPUS_STORAGE_KEY, value);
+		writeStoredItem(STATS_CORPUS_STORAGE_KEY, value);
 	}
 
 	setKeyboardGeometry(value: KeyboardGeometry) {
 		this.keyboardGeometry = value;
-		localStorage.setItem(KEYBOARD_GEOMETRY_STORAGE_KEY, value);
+		writeStoredItem(KEYBOARD_GEOMETRY_STORAGE_KEY, value);
 	}
 
 	setLayoutDetailStatsAnalyzers(values: Iterable<StatsAnalyzer>) {
 		this.layoutDetailStatsAnalyzers = normalizeLayoutDetailStatsAnalyzers(values);
-		localStorage.setItem(
+		writeStoredItem(
 			LAYOUT_DETAIL_STATS_ANALYZERS_STORAGE_KEY,
 			JSON.stringify(this.layoutDetailStatsAnalyzers)
 		);
@@ -125,7 +139,7 @@ class UiPrefs {
 		trackGoatCounterEvent(goatcounterPracticeSettingEvent(option));
 		const next = { ...this.typingPracticeDisplayOptions, [option]: value };
 		this.typingPracticeDisplayOptions = next;
-		localStorage.setItem(
+		writeStoredItem(
 			TYPING_PRACTICE_DISPLAY_OPTIONS_STORAGE_KEY,
 			serializeTypingPracticeDisplayOptions(next)
 		);
@@ -133,7 +147,7 @@ class UiPrefs {
 
 	setTypingPracticeLessonSettings(settings: TypingPracticeLessonSettings) {
 		this.typingPracticeLessonSettings = settings;
-		localStorage.setItem(
+		writeStoredItem(
 			TYPING_PRACTICE_LESSON_SETTINGS_STORAGE_KEY,
 			serializeTypingPracticeLessonSettings(settings)
 		);
@@ -142,7 +156,7 @@ class UiPrefs {
 	setLayoutTestAreaDisplayOption(option: keyof LayoutTestAreaDisplayOptions, value: boolean) {
 		const next = { ...this.layoutTestAreaDisplayOptions, [option]: value };
 		this.layoutTestAreaDisplayOptions = next;
-		localStorage.setItem(
+		writeStoredItem(
 			LAYOUT_TEST_AREA_DISPLAY_OPTIONS_STORAGE_KEY,
 			serializeLayoutTestAreaDisplayOptions(next)
 		);

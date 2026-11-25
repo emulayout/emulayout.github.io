@@ -125,12 +125,28 @@
 	}
 
 	onMount(() => {
+		const previouslyFocused =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		const frame = requestAnimationFrame(centerWindow);
 		const stopListening = listenForVisibleViewportChanges(keepWindowInViewport);
 		return () => {
 			cancelAnimationFrame(frame);
 			stopListening();
+			if (
+				previouslyFocused?.isConnected &&
+				(document.activeElement === document.body ||
+					(panelElement && panelElement.contains(document.activeElement)))
+			) {
+				previouslyFocused.focus();
+			}
 		};
+	});
+
+	$effect(() => {
+		void profile;
+		if (!positioned) return;
+		const frame = requestAnimationFrame(keepWindowInViewport);
+		return () => cancelAnimationFrame(frame);
 	});
 </script>
 

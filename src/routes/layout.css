@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-@plugin '@tailwindcss/typography';
 
 @theme {
 	--font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
@@ -72,6 +71,10 @@ html {
 	--adaptive-key-fg: var(--bg-primary);
 	--keyboard-input-validation-error: #c44b3a;
 	--keyboard-input-reset-destructive: #b94335;
+	--danger: #b94335;
+	--popup-shadow: rgb(20 18 15 / 0.18);
+	--select-chevron-pad: 1.75rem;
+	--select-chevron-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237a746c'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 	--new-layout-dot: #eda095;
 }
 
@@ -121,6 +124,9 @@ html {
 	--adaptive-key: #dc6e14;
 	--keyboard-input-validation-error: #e07060;
 	--keyboard-input-reset-destructive: #e07060;
+	--danger: #e07060;
+	--popup-shadow: rgb(0 0 0 / 0.45);
+	--select-chevron-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23949088'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 	--new-layout-dot: #982818;
 }
 
@@ -159,16 +165,12 @@ textarea:-webkit-autofill:active {
 select:not([multiple]) {
 	appearance: none;
 	-webkit-appearance: none;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237a746c'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-image: var(--select-chevron-icon);
 	background-position: right 0.5rem center;
 	background-repeat: no-repeat;
 	background-size: 1rem 1rem;
 	/* Room for 1rem chevron + 0.5rem inset (matches typical left padding) */
-	padding-right: 1.75rem !important;
-}
-
-.dark select:not([multiple]) {
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23949088'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	padding-right: var(--select-chevron-pad);
 }
 
 .stats-block {
@@ -319,8 +321,11 @@ select:not([multiple]) {
 }
 
 /* Brief highlight when jumping to a filter control from an active-filter chip. */
-.filter-field-targeted {
-	outline: 2px solid var(--accent) !important;
+.filter-field-targeted,
+:is(input, select, button, textarea, [tabindex]).filter-field-targeted,
+:is(input, select, button, textarea, [tabindex]).filter-field-targeted:focus,
+:is(input, select, button, textarea, [tabindex]).filter-field-targeted:focus-visible {
+	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 	transition:

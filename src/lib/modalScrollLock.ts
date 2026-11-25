@@ -1,32 +1,49 @@
+let scrollLockCount = 0;
+let savedHtmlOverflow = '';
+let savedBodyOverflow = '';
+
 /** Lock page scroll without resetting window.scrollY (safe for window-based virtualizers). */
 export function lockPageScroll(): () => void {
 	const html = document.documentElement;
 	const body = document.body;
-	const previousHtmlOverflow = html.style.overflow;
-	const previousBodyOverflow = body.style.overflow;
+	if (scrollLockCount === 0) {
+		savedHtmlOverflow = html.style.overflow;
+		savedBodyOverflow = body.style.overflow;
+		html.style.overflow = 'hidden';
+		body.style.overflow = 'hidden';
+	}
+	scrollLockCount += 1;
 
-	html.style.overflow = 'hidden';
-	body.style.overflow = 'hidden';
-
+	let released = false;
 	return () => {
-		html.style.overflow = previousHtmlOverflow;
-		body.style.overflow = previousBodyOverflow;
-		requestAnimationFrame(() => {
-			window.dispatchEvent(new Event('scroll'));
-		});
+		if (released) return;
+		released = true;
+		scrollLockCount = Math.max(0, scrollLockCount - 1);
+		if (scrollLockCount === 0) {
+			html.style.overflow = savedHtmlOverflow;
+			body.style.overflow = savedBodyOverflow;
+			requestAnimationFrame(() => {
+				window.dispatchEvent(new Event('scroll'));
+			});
+		}
 	};
 }
 
-let openModalCount = 0;
+const openModalStack: symbol[] = [];
 
 /** Track an open modal; call the returned function when it closes. */
-export function trackOpenModal(): () => void {
-	openModalCount += 1;
+export function trackOpenModal(token: symbol = Symbol('modal')): () => void {
+	openModalStack.push(token);
 	return () => {
-		openModalCount = Math.max(0, openModalCount - 1);
+		const index = openModalStack.lastIndexOf(token);
+		if (index >= 0) openModalStack.splice(index, 1);
 	};
+}
+
+export function isTopOpenModal(token: symbol): boolean {
+	return openModalStack.length > 0 && openModalStack[openModalStack.length - 1] === token;
 }
 
 export function hasOpenModal(): boolean {
-	return openModalCount > 0;
+	return openModalStack.length > 0;
 }

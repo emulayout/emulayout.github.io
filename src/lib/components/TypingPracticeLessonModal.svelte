@@ -482,6 +482,7 @@
 	.typing-practice-word-bank-select {
 		width: 100%;
 		appearance: none;
+		background-image: none;
 		padding-right: 2.5rem;
 	}
 	.typing-practice-word-bank-select:focus-visible {

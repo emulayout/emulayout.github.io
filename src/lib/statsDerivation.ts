@@ -258,8 +258,18 @@ export function deriveBotStats(stats: CminiStats): DerivedBotStats {
 		sfs: stats['dsfb-red'] + stats['dsfb-alt'],
 		lh: stats.lh,
 		rh: stats.rh,
-		...Object.fromEntries(FINGER_USAGE_KEYS.map((finger) => [finger, stats[finger]]))
-	} as DerivedBotStats;
+		LI: stats.LI,
+		LM: stats.LM,
+		LR: stats.LR,
+		LP: stats.LP,
+		RI: stats.RI,
+		RM: stats.RM,
+		RR: stats.RR,
+		RP: stats.RP,
+		LT: stats.LT,
+		RT: stats.RT,
+		TB: stats.TB
+	};
 }
 
 export function isValidCyanophageStats(stats: CyanophageStats): boolean {
@@ -301,14 +311,27 @@ export function deriveCyanophageStats(stats: CyanophageStats): DerivedCyanophage
 		redirectWeak: stats['redirect-weak'],
 		lh: stats.lh,
 		rh: stats.rh,
-		...Object.fromEntries(CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [finger, stats[finger]])),
-		...Object.fromEntries(
-			CYANOPHAGE_FINGER_STAT_KEYS.map((finger) => [
-				`distance${finger}`,
-				stats[`distance-${finger}`]
-			])
-		)
-	} as DerivedCyanophageStats;
+		LI: stats.LI,
+		LM: stats.LM,
+		LR: stats.LR,
+		LP: stats.LP,
+		RI: stats.RI,
+		RM: stats.RM,
+		RR: stats.RR,
+		RP: stats.RP,
+		LT: stats.LT,
+		RT: stats.RT,
+		distanceLI: stats['distance-LI'],
+		distanceLM: stats['distance-LM'],
+		distanceLR: stats['distance-LR'],
+		distanceLP: stats['distance-LP'],
+		distanceRI: stats['distance-RI'],
+		distanceRM: stats['distance-RM'],
+		distanceRR: stats['distance-RR'],
+		distanceRP: stats['distance-RP'],
+		distanceLT: stats['distance-LT'],
+		distanceRT: stats['distance-RT']
+	};
 }
 
 export function isValidMana2Stats(stats: Mana2Stats): boolean {

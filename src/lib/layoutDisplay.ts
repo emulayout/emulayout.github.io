@@ -478,7 +478,7 @@ function rotateBottomRowLeftHandCells(
 
 	const middle = originalRow.slice(i, j + 1);
 	for (const c of middle) {
-		if (c.char !== ' ') tokens.push(c);
+		if (c.slot !== null) tokens.push(c);
 	}
 
 	if (tokens.length < SPLIT_COL) return rows;

@@ -12,6 +12,7 @@ import {
 	type StatLimitKey
 } from './statsFiltering';
 import {
+	CMINI_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	parseStatsAnalyzerMode,
 	STAT_ANALYZERS,
@@ -341,6 +342,9 @@ export class FilterStore {
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = null;
 		this.pendingSharedView = null;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
+		this.showSourceSelectionModal = false;
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#sortBeforeSimilar = null;
@@ -361,7 +365,7 @@ export class FilterStore {
 	}
 
 	#loadFromUrl() {
-		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+		if (typeof window === 'undefined' || window.location.pathname !== resolve('/')) return;
 
 		const url = new SvelteURL(window.location.href);
 		let shouldReadViewUrlState = true;
@@ -398,8 +402,8 @@ export class FilterStore {
 		const decoded = shouldReadViewUrlState ? readViewFilterUrlState(url.searchParams) : undefined;
 		if (decoded) {
 			if (this.hideLayoutLikes) {
-				decoded.snapshot.statLimits.likes = { operator: 'lt', value: '' };
-				decoded.snapshot.appliedStatLimits.likes = { operator: 'lt', value: '' };
+				decoded.snapshot.statLimits.likes = { operator: 'gt', value: '' };
+				decoded.snapshot.appliedStatLimits.likes = { operator: 'gt', value: '' };
 			}
 			this.#restoreViewFilters(decoded.snapshot);
 		}
@@ -467,7 +471,7 @@ export class FilterStore {
 	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
 		// Filter and selection state belongs to the layout index. Detail routes have
 		// independent, canonical URLs and must never be rewritten by this store.
-		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+		if (typeof window === 'undefined' || window.location.pathname !== resolve('/')) return;
 
 		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);
@@ -883,7 +887,7 @@ export class FilterStore {
 			this.#resetSortToDateDefault();
 		}
 		if (value) {
-			this.statLimits.likes = { operator: 'lt', value: '' };
+			this.statLimits.likes = { operator: 'gt', value: '' };
 			this.#applyFiltersNow();
 		}
 		this.#saveToUrl();
@@ -906,7 +910,7 @@ export class FilterStore {
 				this.#resetSortToDateDefault();
 			}
 			if (this.statLimits.likes.value.trim() !== '') {
-				this.statLimits.likes = { operator: 'lt', value: '' };
+				this.statLimits.likes = { operator: 'gt', value: '' };
 				this.#applyFiltersNow();
 				this.#saveToUrl();
 			}
@@ -1114,7 +1118,9 @@ export class FilterStore {
 		for (const field of getGeneralStatFilterRowsForAnalyzer(analyzer).flat()) {
 			next[field.key] = { operator: 'lt', value: '' };
 		}
-		next.likes = { operator: 'gt', value: '' };
+		if (analyzer === CMINI_ANALYZER) {
+			next.likes = { operator: 'gt', value: '' };
+		}
 		this.statLimits = next;
 		this.#applyFiltersNow();
 		this.#debouncedSave();
@@ -1702,11 +1708,11 @@ export class FilterStore {
 		limits: Record<StatLimitKey, StatLimit>,
 		fingerWorkload: FingerWorkloadConfig
 	): StatsAnalyzer[] {
-		const needed = new SvelteSet([
-			...analyzersNeededForLimits(limits),
-			...analyzersNeededForFingerWorkloadConfig(fingerWorkload)
-		]);
-		return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) => needed.has(analyzer));
+		const limitAnalyzers = analyzersNeededForLimits(limits);
+		const workloadAnalyzers = analyzersNeededForFingerWorkloadConfig(fingerWorkload);
+		return STAT_ANALYZERS.map(({ value }) => value).filter(
+			(analyzer) => limitAnalyzers.includes(analyzer) || workloadAnalyzers.includes(analyzer)
+		);
 	}
 
 	get analyzersNeededForStatLimits(): StatsAnalyzer[] {

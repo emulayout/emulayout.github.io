@@ -211,3 +211,36 @@ test('published Spark retains unsupported content and extensions with compilatio
 	expect(result.warnings).toContain('raw rules that rewrite or delete earlier text');
 	expect(result.source.magicKeys).toBeUndefined();
 });
+
+test('omits Mana2 analyzer mappings instead of throwing on context-rewriting or duplicate rules', () => {
+	const originalWarn = console.warn;
+	const warnings: string[] = [];
+	console.warn = (...args: unknown[]) => {
+		warnings.push(args.map(String).join(' '));
+	};
+	try {
+		const rewriting = supplementalFromAkldbLayout(
+			layout({
+				magic: { magic_keys: [{ key: '*', rules: [{ after: 'a', emit: 'b' }] }] },
+				manaMagic: { rules: [{ inputs: 'a*', output: 'xy' }] }
+			})
+		);
+		expect(rewriting.analyzerMappings).toBeUndefined();
+
+		const duplicate = supplementalFromAkldbLayout(
+			layout({
+				magic: { magic_keys: [{ key: '*', rules: [{ after: 'a', emit: 'b' }] }] },
+				manaMagic: {
+					rules: [
+						{ inputs: 'a*', output: 'ab' },
+						{ inputs: 'a*', output: 'ac' }
+					]
+				}
+			})
+		);
+		expect(duplicate.analyzerMappings).toBeUndefined();
+		expect(warnings).toHaveLength(2);
+	} finally {
+		console.warn = originalWarn;
+	}
+});
