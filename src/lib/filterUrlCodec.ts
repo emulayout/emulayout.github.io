@@ -74,7 +74,7 @@ export function deserializeStatLimits(str: string): Record<StatLimitKey, StatLim
 	for (const part of str.split(',')) {
 		const [key, operator, ...valueParts] = part.split(':');
 		if (!key || !operator || valueParts.length === 0) continue;
-		if (!(key in limits)) continue;
+		if (!Object.hasOwn(limits, key)) continue;
 		if (operator !== 'lt' && operator !== 'gt') continue;
 		limits[key as StatLimitKey] = {
 			operator,
@@ -107,7 +107,7 @@ export function deserializeFingerWorkload(value: string | null | undefined): Fin
 
 	for (const analyzerPart of value.split(',')) {
 		const [analyzer, encodedFingers] = analyzerPart.split('=');
-		if (!analyzer || !encodedFingers || !(analyzer in preferences)) continue;
+		if (!analyzer || !encodedFingers || !Object.hasOwn(preferences, analyzer)) continue;
 		for (const fingerPart of encodedFingers.split('|')) {
 			const [encodedFinger, level] = fingerPart.split(':');
 			const [encodedHand, finger] = encodedFinger.includes('.')

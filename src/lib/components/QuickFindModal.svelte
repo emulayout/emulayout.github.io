@@ -119,10 +119,7 @@
 		}
 
 		// Already fetched or currently loading this layout — show it without waiting.
-		if (
-			layoutDetailsStore.get(highlightedName) ||
-			layoutDetailsStore.loadingNames[highlightedName]
-		) {
+		if (layoutDetailsStore.get(highlightedName) || layoutDetailsStore.isLoading(highlightedName)) {
 			previewName = highlightedName;
 			return;
 		}
@@ -310,7 +307,7 @@
 						onStatFilterChanged={showAppliedFilterSnackbar}
 					/>
 				{/key}
-			{:else if previewName && layoutDetailsStore.loadingNames[previewName]}
+			{:else if previewName && layoutDetailsStore.isLoading(previewName)}
 				<div
 					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
 					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"
@@ -318,7 +315,7 @@
 				>
 					Loading layout…
 				</div>
-			{:else if previewName && layoutDetailsStore.loadErrors[previewName]}
+			{:else if previewName && layoutDetailsStore.getLoadError(previewName)}
 				<div
 					class="flex h-full min-h-48 items-center justify-center rounded-xl px-4 text-center text-sm"
 					style="color: var(--text-secondary); background-color: var(--bg-secondary); border: 1px dashed var(--border);"

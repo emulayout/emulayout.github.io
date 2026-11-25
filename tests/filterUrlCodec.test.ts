@@ -202,8 +202,9 @@ describe('view filter URL codec', () => {
 			similar: 'Canary',
 			similarFilter: 'eq:50',
 			similarMirror: 'maybe',
-			statLimits: 'likes:eq:10,unknown:lt:2',
-			fingerWorkload: 'cmini=middle:maximum|unknown:heavy,unknown=pinky:lightest'
+			statLimits: 'likes:eq:10,unknown:lt:2,__proto__:lt:5,toString:lt:5',
+			fingerWorkload:
+				'cmini=middle:maximum|unknown:heavy,unknown=pinky:lightest,toString=left.pinky:heavy,__proto__=left.index:heavy'
 		});
 
 		const { snapshot } = decodeViewFilterSnapshot(params.toString());

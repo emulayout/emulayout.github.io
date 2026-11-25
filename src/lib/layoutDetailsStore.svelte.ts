@@ -15,7 +15,15 @@ class LayoutDetailsStore {
 	#requests = new Map<string, Promise<LayoutDetail | null>>();
 
 	get(name: string): LayoutDetail | undefined {
-		return this.details[name];
+		return Object.hasOwn(this.details, name) ? this.details[name] : undefined;
+	}
+
+	isLoading(name: string): boolean {
+		return Object.hasOwn(this.loadingNames, name) ? this.loadingNames[name] : false;
+	}
+
+	getLoadError(name: string): Error | undefined {
+		return Object.hasOwn(this.loadErrors, name) ? this.loadErrors[name] : undefined;
 	}
 
 	hydrate(value: CompactLayoutDetail, expectedName?: string): LayoutDetail | null {
@@ -57,7 +65,7 @@ class LayoutDetailsStore {
 	}
 
 	#clearError(name: string) {
-		if (!this.loadErrors[name]) return;
+		if (!Object.hasOwn(this.loadErrors, name)) return;
 		const errors = { ...this.loadErrors };
 		delete errors[name];
 		this.loadErrors = errors;
