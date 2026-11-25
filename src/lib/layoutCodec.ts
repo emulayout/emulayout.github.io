@@ -120,15 +120,6 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 		positionBySlot.set(positionSlotKey(rows[i], cols[i]), key ?? '');
 	}
 
-	if (thumbHands && thumbIndices.length > 0) {
-		thumbIndices.sort((a, b) => cols[a] - cols[b]);
-		for (let j = 0; j < thumbIndices.length; j++) {
-			const hand = thumbHands[j] === 'r' ? 'r' : 'l';
-			const key = keyChars[thumbIndices[j]];
-			if (key && keys[key]) keys[key].thumbHand = hand;
-		}
-	}
-
 	const thumbKeysByHand: { l: ThumbKeyEntry[]; r: ThumbKeyEntry[] } = { l: [], r: [] };
 	const orderedThumbIndices = [...thumbIndices].sort((a, b) => cols[a] - cols[b]);
 	for (let j = 0; j < orderedThumbIndices.length; j++) {
@@ -142,7 +133,10 @@ export function decodeLayout(entry: CompactLayout | unknown[]): LayoutData {
 					? 'l'
 					: 'r';
 		const key = keyChars[index];
-		if (key) thumbKeysByHand[hand].push({ key: key.toLowerCase(), col: cols[index] });
+		if (key) {
+			if (thumbHands && keys[key]) keys[key].thumbHand = hand;
+			thumbKeysByHand[hand].push({ key: key.toLowerCase(), col: cols[index] });
+		}
 	}
 
 	return {

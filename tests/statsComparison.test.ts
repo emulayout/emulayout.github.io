@@ -104,12 +104,16 @@ describe('stats comparison formatting', () => {
 		});
 
 		const previousMana2 = mana2Stats();
-		const nextMana2 = { ...previousMana2, lsb: previousMana2.lsb + 0.123 };
+		const nextMana2 = {
+			...previousMana2,
+			lsb: previousMana2.lsb + 0.123,
+			lss: previousMana2.lss - 0.05
+		};
 		const mana2Lines = buildMana2StatsDiffBlockLines(nextMana2, previousMana2);
-		expect(valueSegment(mana2Lines, 'Stretch:')).toMatchObject({
-			text: ' +0.123',
-			tone: 'worse'
-		});
+		const stretchLine = mana2Lines.find((line) => line.some((s) => s.text.trim() === 'Stretch:'));
+		const stretchTones = stretchLine?.filter((s) => s.tone !== undefined);
+		expect(stretchTones?.[0]).toMatchObject({ text: ' +0.123', tone: 'worse' });
+		expect(stretchTones?.[1]).toMatchObject({ text: ' -0.050', tone: 'better' });
 	});
 
 	test('keeps changes that round to a displayed zero neutral', () => {

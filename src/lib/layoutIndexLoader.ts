@@ -79,6 +79,9 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 			)
 		]);
 
+	if (!layoutsResponse.ok || !authorsResponse.ok) {
+		throw new Error('Could not load the layout catalog.');
+	}
 	const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 	const layouts: LayoutData[] = decodeLayouts(compactLayouts);
 	const authorsData = normalizeAuthorsMap(await authorsResponse.json());
@@ -88,7 +91,8 @@ export async function loadLayoutIndexData(fetcher: Fetcher, url: URL) {
 	const likesData: LayoutLikesMap =
 		likesResponse && likesResponse.ok ? await likesResponse.json() : {};
 
-	layoutStatsStore.reset(statsCorpus, keyboardGeometry);
+	layoutStatsStore.applyCorpus(statsCorpus);
+	layoutStatsStore.applyGeometry(keyboardGeometry);
 
 	const statsMaps: StatsMaps = {};
 	for (let i = 0; i < analyzersToPreload.length; i++) {
