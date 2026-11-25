@@ -21,12 +21,12 @@ type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respons
  * Hydrated once from the page load data.
  */
 class LayoutsCatalog {
-	layouts: LayoutData[] = $state([]);
-	authorsData: AuthorsMap = $state({});
-	likesData: LayoutLikesMap = $state({});
-	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state(new Map());
-	supplemental: CatalogSparkByLayout = $state({});
-	layoutNames: string[] = $state([]);
+	layouts: LayoutData[] = $state.raw([]);
+	authorsData: AuthorsMap = $state.raw({});
+	likesData: LayoutLikesMap = $state.raw({});
+	inputProfiles: ReadonlyMap<string, LayoutInputProfile> = $state.raw(new Map());
+	supplemental: CatalogSparkByLayout = $state.raw({});
+	layoutNames: string[] = $state.raw([]);
 	fullCatalogLoaded = $state(false);
 	namesLoaded = $state(false);
 	supplementalLoaded = $state(false);

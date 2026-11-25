@@ -17,7 +17,7 @@ import {
 import { DEFAULT_KEYBOARD_GEOMETRY, type KeyboardGeometry } from '$lib/keyboardGeometry';
 
 class LayoutStatsStore {
-	maps: StatsMaps = $state({});
+	maps: StatsMaps = $state.raw({});
 	loadingAnalyzers: Partial<Record<StatsAnalyzer, boolean>> = $state({});
 	loadErrors: Partial<Record<StatsAnalyzer, AnalyzerStatsLoadError>> = $state({});
 	/** Corpus used for API-derived analyzer fetches (cmini / Mana2). */
