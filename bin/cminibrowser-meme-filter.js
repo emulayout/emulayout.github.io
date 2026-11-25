@@ -115,12 +115,17 @@ export async function loadMemeFilterExclusions(options) {
 			`No owned meme-filter cutoff for ${JSON.stringify(corpus)}; known: ${Object.keys(MEME_FILTER_FSPEED_CUTOFFS).join(', ')}`
 		);
 	}
-	const result = await ensureAklStatsLayouts(layouts, { offline, force });
+	const result = await ensureAklStatsLayouts(layouts, {
+		offline,
+		force,
+		deferCacheWrite: true
+	});
 	assertStatsCatalogCoverage(
 		'akl.gg stats/v1 meme-filter inputs',
 		result.objects.size,
 		layouts.length
 	);
+	await result.commitCache();
 	const excluded = deriveMemeFilterExclusions(layouts, result.objects, corpus, cutoff);
 	return {
 		corpus,
