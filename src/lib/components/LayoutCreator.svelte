@@ -437,7 +437,7 @@
 		snapshot: CreatorSnapshot,
 		savedId: string | null,
 		savedSnapshot: CreatorContentSnapshot | null
-	): string {
+	): { target: string; search: string } {
 		const baseSearch = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
 		let search = baseSearch;
 		if (hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)) {
@@ -446,13 +446,15 @@
 			const query = params.toString();
 			search = query ? `?${query}` : '';
 		}
-		lastWrittenSearch = search;
 		const nextHash = path === '/try' ? '' : page.url.hash;
-		return createHistoryTarget({
-			pathname: creatorPath,
+		return {
 			search,
-			hash: nextHash
-		});
+			target: createHistoryTarget({
+				pathname: creatorPath,
+				search,
+				hash: nextHash
+			})
+		};
 	}
 
 	function writeCreatorHistory(
@@ -462,15 +464,19 @@
 	) {
 		if (typeof window === 'undefined') return;
 		if (page.url.pathname !== creatorPath) return;
-		const next = buildCreatorHistoryTarget(snapshot, savedId, savedSnapshot);
+		const { target: next, search } = buildCreatorHistoryTarget(snapshot, savedId, savedSnapshot);
 		const current = createHistoryTarget({
 			pathname: page.url.pathname,
 			search: page.url.search,
 			hash: typeof window === 'undefined' ? page.url.hash : window.location.hash
 		});
-		if (!shouldWriteHistory('replace', next, current)) return;
+		if (!shouldWriteHistory('replace', next, current)) {
+			lastWrittenSearch = search;
+			return;
+		}
 		try {
 			replaceState(resolve(next as PathnameWithSearchOrHash), page.state);
+			lastWrittenSearch = search;
 		} catch (error) {
 			if (!isRouterNotReadyError(error)) throw error;
 			if (pendingHistoryRetry) return;
