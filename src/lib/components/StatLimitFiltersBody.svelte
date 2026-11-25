@@ -865,7 +865,7 @@
 		border: 1px solid var(--border);
 		border-radius: 0.625rem;
 		background: var(--bg-primary);
-		box-shadow: 0 0.75rem 2rem color-mix(in srgb, #000 28%, transparent);
+		box-shadow: 0 0.75rem 2rem var(--popup-shadow);
 	}
 
 	.finger-workload-preset-option {
@@ -884,17 +884,28 @@
 		cursor: pointer;
 	}
 
-	.finger-workload-preset-option:hover,
-	.finger-workload-preset-option:focus-visible,
-	.finger-workload-preset-option--active {
+	.finger-workload-preset-option:hover {
 		border-color: var(--border);
 		background: var(--input-bg);
-		outline: none;
 	}
 
 	.finger-workload-preset-option--selected {
 		border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-		background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+		background: color-mix(in srgb, var(--accent) 12%, var(--bg-primary));
+	}
+
+	.finger-workload-preset-option:focus-visible,
+	.finger-workload-preset-option--active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, var(--input-bg));
+		box-shadow: inset 0 0 0 1px var(--accent);
+		outline: none;
+	}
+
+	.finger-workload-preset-option--active.finger-workload-preset-option--selected {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 18%, var(--bg-primary));
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	.finger-workload-preset-option-copy {

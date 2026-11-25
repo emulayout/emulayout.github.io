@@ -71,6 +71,8 @@ html {
 	--adaptive-key-fg: var(--bg-primary);
 	--keyboard-input-validation-error: #c44b3a;
 	--keyboard-input-reset-destructive: #b94335;
+	--danger: #b94335;
+	--popup-shadow: rgb(20 18 15 / 0.18);
 	--new-layout-dot: #eda095;
 }
 
@@ -120,6 +122,8 @@ html {
 	--adaptive-key: #dc6e14;
 	--keyboard-input-validation-error: #e07060;
 	--keyboard-input-reset-destructive: #e07060;
+	--danger: #e07060;
+	--popup-shadow: rgb(0 0 0 / 0.45);
 	--new-layout-dot: #982818;
 }
 

@@ -258,8 +258,8 @@
 	}
 
 	.backup-message--error {
-		background: color-mix(in srgb, #dc2626 10%, transparent);
-		color: #dc2626;
+		background: color-mix(in srgb, var(--danger) 12%, transparent);
+		color: var(--danger);
 	}
 
 	@media (max-width: 32rem) {

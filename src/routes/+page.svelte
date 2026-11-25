@@ -367,10 +367,10 @@
 		gap: 1rem;
 		margin: 0.25rem;
 		padding: 0.75rem;
-		border: 1px solid color-mix(in srgb, var(--danger, #dc2626) 55%, var(--border));
+		border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--border));
 		border-radius: 0.5rem;
 		color: var(--text-secondary);
-		background: color-mix(in srgb, var(--danger, #dc2626) 8%, var(--bg-secondary));
+		background: color-mix(in srgb, var(--danger) 8%, var(--bg-secondary));
 		font-size: 0.8125rem;
 		line-height: 1.4;
 	}
