@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -248,4 +248,60 @@ test('a malformed Mana2 record does not block other Spark records', () => {
 	);
 	expect(malformed.layouts.skipped).toBe(1);
 	expect(malformed.layouts.layouts.map((entry) => entry.name)).toEqual(['example']);
+});
+
+test('Spark payload extensions cannot overwrite validated AKLDB envelope metadata', () => {
+	const result = parseAkldbCatalog(
+		{
+			items: [
+				sparkLayout({
+					id: 'real-id',
+					name: 'real-name',
+					payload: {
+						keys: [{ char: 'a', row: 1, col: 0, finger: 'LP' }],
+						name: 'spoofed-name',
+						id: 'spoofed-id',
+						owner: '9999'
+					}
+				})
+			]
+		},
+		{ items: [manaLayout({ id: 'real-id', name: 'real-name' })] },
+		{}
+	);
+	expect(result.layouts.layouts).toHaveLength(1);
+	expect(result.layouts.layouts[0].id).toBe('real-id');
+	expect(result.layouts.layouts[0].name).toBe('real-name');
+	expect(result.layouts.layouts[0].owner).toBe('9007199254740993');
+});
+
+test('corrupt cached meta does not block fresh AKLDB downloads', async () => {
+	const directory = await mkdtemp(join(tmpdir(), 'emulayout-akldb-'));
+	temporaryDirectories.push(directory);
+	const snapshotPath = join(directory, 'catalog.json');
+	const bodies = new Map<string, unknown>([
+		[AKLDB_META_URL, meta({ seq: 2 })],
+		[AKLDB_LAYOUTS_URL, { items: [sparkLayout()] }],
+		[AKLDB_MANA_LAYOUTS_URL, { items: [manaLayout()] }],
+		[AKLDB_AUTHORS_URL, { author: '1' }]
+	]);
+	const fetchImpl = (async (url: string | URL | Request) =>
+		new Response(JSON.stringify(bodies.get(String(url))))) as typeof fetch;
+
+	await writeFile(
+		snapshotPath,
+		JSON.stringify({
+			version: 2,
+			fetchedAt: '2026-01-01T00:00:00Z',
+			meta: { seq: 'broken' },
+			layouts: { items: [sparkLayout({ name: 'stale' })] },
+			manaLayouts: { items: [manaLayout({ name: 'stale' })] },
+			authors: { author: '1' }
+		})
+	);
+
+	const refreshed = await ensureAkldbCatalog({ snapshotPath, fetchImpl });
+	expect(refreshed.updated).toBe(true);
+	expect(refreshed.fromCache).toBe(false);
+	expect(refreshed.json.layouts.layouts[0].name).toBe('example');
 });
