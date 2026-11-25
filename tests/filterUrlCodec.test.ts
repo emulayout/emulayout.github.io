@@ -267,6 +267,22 @@ describe('view filter URL codec', () => {
 	test('encodes a Discover query for one catalog author', () => {
 		expect(authorFilterIndexSearch('9007199254740993')).toBe('authors=9007199254740993');
 	});
+
+	test('round-trips comma and pipe key filters without losing cells', () => {
+		const snapshot = createDefaultViewSnapshot();
+		snapshot.appliedIncludeGrid[2][7] = ',';
+		snapshot.appliedIncludeGrid[2][8] = '.';
+		snapshot.appliedIncludeOrGrid[1][0] = 'a,b';
+		snapshot.appliedIncludeLeftThumbKeys = ['|', 'e', '', ''];
+
+		const encoded = encodeViewFilterSnapshot(snapshot);
+		const decoded = decodeViewFilterSnapshot(encoded);
+
+		expect(decoded.snapshot.appliedIncludeGrid[2][7]).toBe(',');
+		expect(decoded.snapshot.appliedIncludeGrid[2][8]).toBe('.');
+		expect(decoded.snapshot.appliedIncludeOrGrid[1][0]).toBe('a,b');
+		expect(decoded.snapshot.appliedIncludeLeftThumbKeys).toEqual(['|', 'e', '', '']);
+	});
 });
 
 describe('stat-limit URL parsing', () => {
