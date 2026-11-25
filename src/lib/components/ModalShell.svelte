@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
+	import { isTopOpenModal, lockPageScroll, trackOpenModal } from '$lib/modalScrollLock';
 	import { portalToBody } from '$lib/portalToBody';
 
 	interface Props {
@@ -31,6 +31,7 @@
 	}: Props = $props();
 
 	let panelEl = $state<HTMLDivElement | undefined>(undefined);
+	const modalToken = Symbol('modal-shell');
 
 	const FOCUSABLE_SELECTOR = [
 		'a[href]',
@@ -44,28 +45,28 @@
 	function getFocusableElements(container: HTMLElement): HTMLElement[] {
 		return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((el) => {
 			if (el.closest('[inert], [aria-hidden="true"]')) return false;
-			// offsetParent is null for fixed/hidden; also check visibility roughly.
+			if (el.getClientRects().length === 0) return false;
 			const style = window.getComputedStyle(el);
 			if (style.visibility === 'hidden' || style.display === 'none') return false;
 			return true;
 		});
 	}
 
-	/** Prefer the first form field; fall back to first focusable control, then the panel. */
+	/** Prefer the first visible form field; fall back to first focusable control, then the panel. */
 	function getInitialFocus(container: HTMLElement): HTMLElement {
-		const formField = container.querySelector<HTMLElement>(
-			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+		const focusables = getFocusableElements(container);
+		const formField = focusables.find((el) =>
+			el.matches('input:not([type="hidden"]), select, textarea')
 		);
 		if (formField) return formField;
 
-		const focusables = getFocusableElements(container);
 		const nonClose = focusables.find((el) => el.getAttribute('aria-label') !== 'Close');
 		return nonClose ?? focusables[0] ?? container;
 	}
 
 	$effect(() => {
 		if (!open) return;
-		return trackOpenModal();
+		return trackOpenModal(modalToken);
 	});
 
 	$effect(() => {
@@ -76,6 +77,8 @@
 			document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
 		function handleKeyDown(event: KeyboardEvent) {
+			if (!isTopOpenModal(modalToken) || event.defaultPrevented) return;
+
 			if (event.key === 'Escape') {
 				event.preventDefault();
 				onClose();
@@ -132,12 +135,13 @@
 			if (event.target instanceof Node && panelEl?.contains(event.target)) cancelFocus();
 		}
 
-		// Wait for controls to mount, but let navigation inside the dialog take ownership of focus.
+		// Wait for controls to mount, but let navigation or child focus inside the dialog keep ownership.
 		const focusTimer = window.setTimeout(() => {
 			frame = window.requestAnimationFrame(() => {
 				frame = window.requestAnimationFrame(() => {
 					cancelFocus();
 					if (!panelEl?.isConnected) return;
+					if (!selector && panelEl.contains(document.activeElement)) return;
 					const targeted = selector ? panelEl.querySelector<HTMLElement>(selector) : null;
 					(targeted ?? getInitialFocus(panelEl)).focus({ preventScroll: true });
 				});

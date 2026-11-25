@@ -112,6 +112,7 @@
 			event.preventDefault();
 
 			if (event.shiftKey) {
+				if (!showCompareModal && !showQuickFind && hasOpenModal()) return;
 				openCompareHotkey();
 				return;
 			}

@@ -57,3 +57,48 @@ test('links tooltips to their trigger and dismisses them with Escape', async ({ 
 	await expect(tooltip).toHaveCount(0);
 	await expect(trigger).toBeFocused();
 });
+
+test('Escape closes a dropdown menu inside Quick Find without closing the modal', async ({
+	page
+}) => {
+	await page.goto('/?stats=0&testArea=0&likes=0&newIndicator=0');
+
+	await page.getByRole('button', { name: 'Quick find layouts' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Quick find' });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole('combobox').fill('Colemak');
+
+	const trigger = dialog.getByRole('button', { name: 'External links' });
+	await expect(trigger).toBeVisible();
+	await trigger.click();
+	const menu = page.getByRole('menu', { name: 'External links' });
+	await expect(menu).toBeVisible();
+
+	await page.keyboard.press('Escape');
+	await expect(menu).toHaveCount(0);
+	await expect(dialog).toBeVisible();
+
+	await page.keyboard.press('Escape');
+	await expect(dialog).toHaveCount(0);
+});
+
+test('Compare modal keeps initial focus on the left layout picker instead of header select', async ({
+	page
+}) => {
+	await page.goto('/?stats=0&testArea=0&likes=0&newIndicator=0');
+
+	await page.getByRole('button', { name: 'Compare layouts' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Compare' });
+	await expect(dialog).toBeVisible();
+
+	const leftSearch = dialog.getByRole('combobox', { name: 'Find left layout' });
+	await expect(leftSearch).toBeFocused();
+	// Wait past ModalShell's double-rAF focus timer to ensure focus is not stolen by Analyzer select.
+	await page.evaluate(
+		() =>
+			new Promise<void>((resolve) =>
+				setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve())), 20)
+			)
+	);
+	await expect(leftSearch).toBeFocused();
+});
