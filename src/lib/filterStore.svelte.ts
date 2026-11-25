@@ -341,6 +341,9 @@ export class FilterStore {
 		this.layoutSource = 'all';
 		this.activeSavedFilterId = null;
 		this.pendingSharedView = null;
+		this.ephemeralSourceLayoutNames = null;
+		this.draftSourceLayoutNames = undefined;
+		this.showSourceSelectionModal = false;
 		this.includeSelectedInResults = false;
 		this.similarReferenceName = null;
 		this.#sortBeforeSimilar = null;
@@ -361,7 +364,7 @@ export class FilterStore {
 	}
 
 	#loadFromUrl() {
-		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+		if (typeof window === 'undefined' || window.location.pathname !== resolve('/')) return;
 
 		const url = new SvelteURL(window.location.href);
 		let shouldReadViewUrlState = true;
@@ -467,7 +470,7 @@ export class FilterStore {
 	#saveToUrl(options: { history?: 'replace' | 'push' } = {}) {
 		// Filter and selection state belongs to the layout index. Detail routes have
 		// independent, canonical URLs and must never be rewritten by this store.
-		if (typeof window !== 'undefined' && window.location.pathname !== resolve('/')) return;
+		if (typeof window === 'undefined' || window.location.pathname !== resolve('/')) return;
 
 		const historyMode = options.history ?? 'replace';
 		const url = new SvelteURL(window.location.href);

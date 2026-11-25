@@ -114,8 +114,7 @@ export function createSavedFilterId(): string {
 
 /** Stable alphabetical sort for view source membership. */
 export function sortLayoutSourceNames(names: Iterable<string>): string[] {
-	return [...names]
-		.map((name) => name.trim())
-		.filter(Boolean)
-		.sort((a, b) => a.localeCompare(b));
+	return [...new Set([...names].map((name) => name.trim()).filter(Boolean))].sort((a, b) =>
+		a.localeCompare(b)
+	);
 }
