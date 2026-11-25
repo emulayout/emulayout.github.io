@@ -408,26 +408,8 @@
 			}
 			return;
 		}
-		if (urlSyncTimeout && to?.url.pathname !== creatorPath && typeof window !== 'undefined') {
-			clearTimeout(urlSyncTimeout);
-			urlSyncTimeout = null;
-			const next = buildCreatorHistoryTarget(
-				currentCreatorSnapshot(),
-				session.activeId,
-				session.activeLayout?.snapshot ?? null
-			);
-			const current = createHistoryTarget({
-				pathname: page.url.pathname,
-				search: page.url.search,
-				hash: window.location.hash
-			});
-			if (shouldWriteHistory('replace', next, current)) {
-				window.history.replaceState(
-					window.history.state,
-					'',
-					resolve(next as PathnameWithSearchOrHash)
-				);
-			}
+		if (urlSyncTimeout && to?.url.pathname !== creatorPath) {
+			flushCreatorUrl();
 		}
 	});
 
@@ -689,15 +671,12 @@
 			? uiPrefs.typingPracticeLessonSettings
 			: readStoredTypingPracticeLessonSettings()
 	);
-	const basePracticeLesson = $derived(
-		isDefaultTypingPracticeLessonSettings(editor.practiceLesson)
-			? storedPracticeLesson
-			: editor.practiceLesson
-	);
 	const effectivePracticeLesson = $derived(
 		hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)
-			? resolveTypingPracticeLessonSettings(basePracticeLesson, practiceLessonUrlOverrides)
-			: basePracticeLesson
+			? resolveTypingPracticeLessonSettings(storedPracticeLesson, practiceLessonUrlOverrides)
+			: isDefaultTypingPracticeLessonSettings(editor.practiceLesson)
+				? storedPracticeLesson
+				: editor.practiceLesson
 	);
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
