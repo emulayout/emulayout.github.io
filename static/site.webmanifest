@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Emulayout",
+  "short_name": "Emulayout",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
