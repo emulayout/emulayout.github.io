@@ -148,7 +148,7 @@ export function getStatMetricFilterTarget(
 type StatLimitValues = Partial<Record<StatLimitKey, { value: string }>>;
 
 function hasActiveStatLimit(limits: StatLimitValues, fields: readonly StatFilterField[]): boolean {
-	return fields.some((field) => limits[field.key]?.value.trim() !== '');
+	return fields.some((field) => Boolean(limits[field.key]?.value.trim()));
 }
 
 export function hasActiveStatFilterSection(
@@ -172,6 +172,6 @@ export function hasActiveStatFilterSection(
 	return (
 		analyzer === CMINI_ANALYZER &&
 		options.includeLikes === true &&
-		limits.likes?.value.trim() !== ''
+		Boolean(limits.likes?.value.trim())
 	);
 }

@@ -164,5 +164,9 @@ describe('stats filtering catalog', () => {
 			hasActiveStatFilterSection(limits, CYANOPHAGE_ANALYZER, 'general', { includeLikes: true })
 		).toBe(false);
 		expect(hasActiveStatFilterSection(limits, CMINI_ANALYZER, 'general')).toBe(false);
+		expect(hasActiveStatFilterSection({}, CMINI_ANALYZER, 'general', { includeLikes: true })).toBe(
+			false
+		);
+		expect(hasActiveStatFilterSection({}, CYANOPHAGE_ANALYZER, 'finger-usage')).toBe(false);
 	});
 });
