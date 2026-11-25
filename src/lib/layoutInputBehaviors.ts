@@ -127,8 +127,13 @@ export function compileLayoutInputRegistry(
 	for (const layout of layouts) {
 		if (profiles.has(layout.name)) continue;
 		const hasDefaultRepeat = layout.hasRepeatKey ?? Boolean(compileRepeatKeyProfile(layout.keys));
-		if (hasDefaultRepeat)
-			profiles.set(layout.name, compileLayoutInputProfile({}, layout.keys, true));
+		if (hasDefaultRepeat && compileRepeatKeyProfile(layout.keys)) {
+			try {
+				profiles.set(layout.name, compileLayoutInputProfile({}, layout.keys, true));
+			} catch (error) {
+				console.warn(`Ignoring invalid Repeat fallback for ${layout.name}:`, error);
+			}
+		}
 	}
 	return profiles;
 }
@@ -175,7 +180,7 @@ export function resolveLayoutInput(
 	const applied: AppliedLayoutInputBehavior[] = [];
 	if (adaptive.matched) applied.push('adaptive-swap');
 	if (magic.matched) applied.push('magic-key');
-	if (chiral.matched) applied.push('chiral-key');
+	if (chiral.matched && chiral.text !== adaptive.text) applied.push('chiral-key');
 	if (repeat.matched) applied.push('repeat-key');
 
 	return {
