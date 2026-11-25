@@ -95,6 +95,7 @@ class LayoutsCatalog {
 				if (!Array.isArray(names) || names.some((name) => typeof name !== 'string')) {
 					throw new Error('Layout-name response was invalid.');
 				}
+				if (this.namesLoaded) return;
 				this.layoutNames = names;
 				this.namesLoaded = true;
 				this.loadError = null;
@@ -125,6 +126,7 @@ class LayoutsCatalog {
 				const compactLayouts: CompactLayoutFile = await layoutsResponse.json();
 				const authorsData = normalizeAuthorsMap(await authorsResponse.json());
 				const likesData: LayoutLikesMap = likesResponse.ok ? await likesResponse.json() : {};
+				if (this.fullCatalogLoaded) return;
 				this.hydrate(decodeLayouts(compactLayouts), authorsData, likesData);
 			})
 			.catch((error) => {
@@ -148,12 +150,12 @@ class LayoutsCatalog {
 				if (!supplemental || typeof supplemental !== 'object' || Array.isArray(supplemental)) {
 					throw new Error('Supplemental response was invalid.');
 				}
+				if (this.supplementalLoaded) return;
 				this.supplemental = supplemental;
 				this.supplementalLoaded = true;
 			})
 			.catch(() => {
-				this.supplemental = {};
-				this.supplementalLoaded = true;
+				// Leave supplementalLoaded false so transient failures can retry.
 			})
 			.finally(() => {
 				this.#supplementalRequest = null;
