@@ -23,7 +23,6 @@ import type { LayoutData } from '$lib/layout';
 import {
 	compileChiralKeys,
 	resolveChiralKeyOutput,
-	chiralRuleMappings,
 	type ChiralKeySource,
 	type ChiralKeyProfile
 } from '$lib/chiralKeys';
@@ -208,18 +207,4 @@ export function inputProfileMappingsLabel(profile: LayoutInputProfile): string {
 		magicKeys: Boolean(profile.magicKeys),
 		adaptiveSwaps: Boolean(profile.adaptiveSwaps)
 	});
-}
-
-/** Compatibility projection for shortcut planning; the runtime and UI retain native chirals. */
-export function planningMagicProfile(
-	profile: LayoutInputProfile | undefined,
-	disabled?: DisabledInputMappingIds
-): MagicKeyProfile | undefined {
-	if (!profile?.chiralKeys) return profile?.magicKeys;
-	const projected = chiralRuleMappings(profile.chiralKeys, disabled);
-	const triggers = {
-		...(Object.keys(projected).length ? compileMagicKeyMappings(projected).triggers : {}),
-		...profile.magicKeys?.triggers
-	};
-	return { triggers, maxHistoryLength: Math.max(1, profile.magicKeys?.maxHistoryLength ?? 0) };
 }
