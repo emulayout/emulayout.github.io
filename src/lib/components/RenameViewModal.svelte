@@ -65,6 +65,8 @@
 				bind:value={name}
 				onkeydown={handleKeyDown}
 				oninput={() => (error = '')}
+				aria-invalid={error ? 'true' : undefined}
+				aria-describedby={error ? 'rename-view-error' : undefined}
 				class="w-full rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all duration-200"
 				style="
 					background-color: var(--input-bg);
@@ -75,7 +77,14 @@
 			/>
 		</label>
 		{#if error}
-			<p class="mt-2 text-sm" style="color: var(--filter-action);">{error}</p>
+			<p
+				id="rename-view-error"
+				role="alert"
+				class="mt-2 text-sm"
+				style="color: var(--filter-action);"
+			>
+				{error}
+			</p>
 		{/if}
 	</div>
 

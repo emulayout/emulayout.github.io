@@ -1044,7 +1044,7 @@
 					class:layout-creator-special-key--magic={magicIconActive}
 					class:layout-creator-special-key--magic-data={magicIconHasData}
 					aria-expanded={magicPanelOpen}
-					aria-controls={MAGIC_MAPPINGS_PANEL_ID}
+					aria-controls={magicPanelOpen ? MAGIC_MAPPINGS_PANEL_ID : undefined}
 					aria-label={magicPanelOpen
 						? 'Hide magic mappings'
 						: editor.includeMagicKey
@@ -1063,7 +1063,7 @@
 					class:layout-creator-special-key--adaptive={adaptiveIconActive}
 					class:layout-creator-special-key--adaptive-data={adaptiveIconHasData}
 					aria-expanded={adaptivePanelOpen}
-					aria-controls={ADAPTIVE_MAPPINGS_PANEL_ID}
+					aria-controls={adaptivePanelOpen ? ADAPTIVE_MAPPINGS_PANEL_ID : undefined}
 					aria-label={adaptivePanelOpen
 						? 'Hide adaptive mappings'
 						: editor.includeAdaptiveKey
@@ -1085,7 +1085,7 @@
 					class:layout-creator-special-key--magic-data={!chiralPanelOpen &&
 						Boolean(chiralSourceFromDraft(editor.chiralDraft, availableLayoutKeys))}
 					aria-expanded={chiralPanelOpen}
-					aria-controls="creator-chiral-mappings"
+					aria-controls={chiralPanelOpen ? 'creator-chiral-mappings' : undefined}
 					aria-label={chiralPanelOpen
 						? 'Hide chiral mappings'
 						: editor.includeChiralKey

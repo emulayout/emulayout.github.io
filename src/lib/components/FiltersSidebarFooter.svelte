@@ -38,13 +38,13 @@
 	const showFooter = $derived(filterStore.hasActiveFilters || showUpdateSplit || showShareButton);
 
 	function openSaveModal(close?: (restoreTriggerFocus?: boolean) => void) {
-		close?.();
+		close?.(true);
 		saveMenuOpen = false;
 		showSaveModal = true;
 	}
 
 	function openRenameModal(close?: (restoreTriggerFocus?: boolean) => void) {
-		close?.();
+		close?.(true);
 		saveMenuOpen = false;
 		showRenameModal = true;
 	}
