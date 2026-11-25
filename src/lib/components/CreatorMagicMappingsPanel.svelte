@@ -39,8 +39,14 @@
 	function compiledRuleId(trigger: string, rule: CreatorMagicRule): string | null {
 		const nextTrigger = trigger.trim();
 		const nextAfter = creatorMagicContext(rule);
-		if (!nextTrigger || !nextAfter || creatorMagicTriggerError(nextTrigger, availableKeys))
+		if (
+			!nextTrigger ||
+			!nextAfter ||
+			!rule.emit.trim() ||
+			creatorMagicTriggerError(nextTrigger, availableKeys)
+		) {
 			return null;
+		}
 		return magicRuleMappingId(nextTrigger, nextAfter);
 	}
 
