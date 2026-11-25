@@ -23,11 +23,11 @@
 		</script>
 		<style>
 			/* Set background-color immediately based on dark class to prevent flash */
-			html:not(.dark) body {
+			html:not(.dark) body:not(.theme-loaded) {
 				background-color: #f4f4f4 !important;
 			}
-			html.dark body {
-				background-color: #141210 !important;
+			html.dark body:not(.theme-loaded) {
+				background-color: #100f0d !important;
 			}
 			/* Prevent background-color transition on initial load */
 			body:not(.theme-loaded) {
