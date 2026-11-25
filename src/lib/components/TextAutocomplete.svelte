@@ -451,4 +451,14 @@
 			transform: rotate(360deg);
 		}
 	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.text-autocomplete-spinner {
+			animation: none;
+		}
+
+		.text-autocomplete-caret {
+			transition: none;
+		}
+	}
 </style>

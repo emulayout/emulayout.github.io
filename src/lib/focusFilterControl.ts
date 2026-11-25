@@ -4,11 +4,25 @@ import type { FilterFocusRequest } from '$lib/filterFocus';
 const TARGET_CLASS = 'filter-field-targeted';
 const TARGET_MS = 1600;
 
+export function scrollBehaviorForMotionPreference(): ScrollBehavior {
+	if (
+		typeof window !== 'undefined' &&
+		window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+	) {
+		return 'auto';
+	}
+	return 'smooth';
+}
+
 /** Focus a control, scroll it into view, and briefly highlight it. */
 export function focusFilterControl(el: HTMLElement | null | undefined): void {
 	if (!el) return;
 	el.focus({ preventScroll: true });
-	el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+	el.scrollIntoView({
+		block: 'center',
+		inline: 'nearest',
+		behavior: scrollBehaviorForMotionPreference()
+	});
 	el.classList.add(TARGET_CLASS);
 	window.setTimeout(() => el.classList.remove(TARGET_CLASS), TARGET_MS);
 }

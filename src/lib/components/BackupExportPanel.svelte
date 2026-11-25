@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ViewSelectionList from '$lib/components/ViewSelectionList.svelte';
+	import { copyTextToClipboard } from '$lib/clipboard';
 
 	interface BackupListItem {
 		key: string;
@@ -45,11 +46,11 @@
 	});
 
 	async function copyBackup() {
-		try {
-			await navigator.clipboard.writeText(backupText);
+		const copied = await copyTextToClipboard(backupText);
+		if (copied) {
 			error = '';
 			status = `${selectedCount} ${selectedCount === 1 ? singularNoun : pluralNoun} copied.`;
-		} catch {
+		} else {
 			status = '';
 			error = 'The backup could not be copied. Select the JSON text and copy it manually.';
 		}

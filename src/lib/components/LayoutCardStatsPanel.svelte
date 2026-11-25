@@ -482,6 +482,12 @@
 		}
 	}
 
+	@media (prefers-reduced-motion: reduce) {
+		.core-stats-status--loading .core-stats-status-mark {
+			animation: none;
+		}
+	}
+
 	.core-stats .finger-chart-area {
 		margin-top: 1rem;
 	}

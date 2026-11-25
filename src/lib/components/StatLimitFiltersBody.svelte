@@ -251,14 +251,14 @@
 		positionWorkloadPresetMenu();
 		const stopListening = listenForVisibleViewportChanges(positionWorkloadPresetMenu);
 		window.addEventListener('scroll', positionWorkloadPresetMenu, true);
+		window.addEventListener('click', handleWorkloadPresetWindowClick);
 		return () => {
 			stopListening();
 			window.removeEventListener('scroll', positionWorkloadPresetMenu, true);
+			window.removeEventListener('click', handleWorkloadPresetWindowClick);
 		};
 	});
 </script>
-
-<svelte:window onclick={handleWorkloadPresetWindowClick} />
 
 {#snippet statLimitControl(field: StatFilterField, labelWidth: string, expanded = false)}
 	{@const limit = filterStore.statLimits[field.key]}

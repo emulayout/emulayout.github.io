@@ -9,7 +9,12 @@
 	import StatFilters from '$lib/components/StatFilters.svelte';
 	import { buildActiveFiltersSnapshot, type ActiveFiltersSnapshot } from '$lib/activeFiltersAdjust';
 	import { filterStore } from '$lib/filterStore.svelte';
-	import { afterPaint, focusFilterControl, peekFilterFocusRequest } from '$lib/focusFilterControl';
+	import {
+		afterPaint,
+		focusFilterControl,
+		peekFilterFocusRequest,
+		scrollBehaviorForMotionPreference
+	} from '$lib/focusFilterControl';
 	import type { AuthorId, LayoutData } from '$lib/layout';
 
 	interface Props {
@@ -63,9 +68,10 @@
 				focusFilterControl(document.getElementById('name-filter'));
 			} else if (sidebarReq.field === 'authors') {
 				authorOpenSeq = sidebarReq.seq;
-				document
-					.getElementById('author-filter-trigger')
-					?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+				document.getElementById('author-filter-trigger')?.scrollIntoView({
+					block: 'nearest',
+					behavior: scrollBehaviorForMotionPreference()
+				});
 			}
 		});
 	});
