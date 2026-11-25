@@ -1159,3 +1159,25 @@ test('retains the active save and dirty canvas when storage rejects deletion', a
 	await page.getByRole('button', { name: 'Undo changes' }).click();
 	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Alpha');
 });
+
+test('confirms before discarding unsaved edits when clicking Create from the app bar', async ({
+	page
+}) => {
+	await page.goto('/create?edit=1');
+	await page.getByRole('textbox', { name: 'Layout name' }).fill('Unsaved draft');
+
+	await page.getByRole('link', { name: 'Create', exact: true }).click();
+	const dialog = page.getByRole('dialog', { name: 'Discard changes?' });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('Unsaved draft');
+
+	await page.getByRole('link', { name: 'Create', exact: true }).click();
+	await page
+		.getByRole('dialog', { name: 'Discard changes?' })
+		.getByRole('button', { name: 'Discard changes' })
+		.click();
+	await expect(page).toHaveURL('/create?edit=1');
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toHaveValue('New layout');
+	await expect(page.getByRole('textbox', { name: 'Layout name' })).toBeFocused();
+});

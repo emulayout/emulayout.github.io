@@ -8,7 +8,7 @@
 		chiralDraftEnabled,
 		chiralSourceFromDraft
 	} from '$lib/creatorChiralMappings';
-	import { replaceState } from '$app/navigation';
+	import { beforeNavigate, replaceState } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import type { PathnameWithSearchOrHash } from '$app/types';
@@ -83,7 +83,7 @@
 		type CreatorContentSnapshot,
 		type CreatorSnapshot
 	} from '$lib/creatorContent';
-	import { creatorSearchFromSnapshot } from '$lib/layoutCreatorUrl';
+	import { CREATOR_EDIT_PARAM, creatorSearchFromSnapshot } from '$lib/layoutCreatorUrl';
 	import { buildCreatorShareUrl, readCreatorShareFromSearch } from '$lib/layoutCreatorShare';
 	import { uiPrefs } from '$lib/uiPrefs.svelte';
 	import {
@@ -395,6 +395,42 @@
 		if (result.activeRemoved) flushCreatorUrl();
 	}
 
+	beforeNavigate(({ to, type, cancel }) => {
+		if (pendingSharedLayout) return;
+		if (
+			type !== 'popstate' &&
+			to?.url.pathname === creatorPath &&
+			to.url.search === `?${CREATOR_EDIT_PARAM}=1`
+		) {
+			if (hasUnsavedCreatorChanges) {
+				cancel();
+				pendingCreatorNavigation = { kind: 'new' };
+			}
+			return;
+		}
+		if (urlSyncTimeout && to?.url.pathname !== creatorPath && typeof window !== 'undefined') {
+			clearTimeout(urlSyncTimeout);
+			urlSyncTimeout = null;
+			const next = buildCreatorHistoryTarget(
+				currentCreatorSnapshot(),
+				session.activeId,
+				session.activeLayout?.snapshot ?? null
+			);
+			const current = createHistoryTarget({
+				pathname: page.url.pathname,
+				search: page.url.search,
+				hash: window.location.hash
+			});
+			if (shouldWriteHistory('replace', next, current)) {
+				window.history.replaceState(
+					window.history.state,
+					'',
+					resolve(next as PathnameWithSearchOrHash)
+				);
+			}
+		}
+	});
+
 	function flushCreatorUrl() {
 		if (urlSyncTimeout) {
 			clearTimeout(urlSyncTimeout);
@@ -407,13 +443,11 @@
 		);
 	}
 
-	function writeCreatorHistory(
+	function buildCreatorHistoryTarget(
 		snapshot: CreatorSnapshot,
 		savedId: string | null,
 		savedSnapshot: CreatorContentSnapshot | null
-	) {
-		if (typeof window === 'undefined') return;
-		if (page.url.pathname !== creatorPath) return;
+	): string {
 		const baseSearch = creatorSearchFromSnapshot(snapshot, { savedId, savedSnapshot });
 		let search = baseSearch;
 		if (hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)) {
@@ -424,11 +458,21 @@
 		}
 		lastWrittenSearch = search;
 		const nextHash = path === '/try' ? '' : page.url.hash;
-		const next = createHistoryTarget({
+		return createHistoryTarget({
 			pathname: creatorPath,
 			search,
 			hash: nextHash
 		});
+	}
+
+	function writeCreatorHistory(
+		snapshot: CreatorSnapshot,
+		savedId: string | null,
+		savedSnapshot: CreatorContentSnapshot | null
+	) {
+		if (typeof window === 'undefined') return;
+		if (page.url.pathname !== creatorPath) return;
+		const next = buildCreatorHistoryTarget(snapshot, savedId, savedSnapshot);
 		const current = createHistoryTarget({
 			pathname: page.url.pathname,
 			search: page.url.search,
@@ -463,10 +507,14 @@
 			lastWrittenSearch = search;
 			return;
 		}
+		const restored = session.restore(page.url.searchParams);
 		applyCreatorSnapshot(
-			session.restore(page.url.searchParams),
+			restored,
 			typingPracticeLessonOverridesFromSearchParams(page.url.searchParams)
 		);
+		if (!session.activeId && !restored.preview) {
+			layoutNameFocusEpoch += 1;
+		}
 		lastWrittenSearch = search;
 	});
 
