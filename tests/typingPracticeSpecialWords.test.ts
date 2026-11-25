@@ -160,4 +160,35 @@ describe('typing-practice special words', () => {
 		});
 		expect(noProfileLesson).toHaveLength(2);
 	});
+
+	test('falls back to excluded words instead of returning an empty or truncated lesson', () => {
+		const words = ['cost', 'rest', 'mind'];
+		const allExcluded = selectTypingPracticeLessonWords({
+			words,
+			count: 3,
+			specialWordsPercent: 0,
+			excludedWords: words,
+			random: seededRandom(11)
+		});
+		expect(allExcluded).toHaveLength(3);
+
+		const mostlyExcluded = selectTypingPracticeLessonWords({
+			words,
+			count: 3,
+			specialWordsPercent: 0,
+			excludedWords: ['cost', 'rest'],
+			random: seededRandom(11)
+		});
+		expect(mostlyExcluded).toHaveLength(3);
+		expect(mostlyExcluded).toContain('mind');
+
+		const allSpecial = selectTypingPracticeLessonWords({
+			words: ['luck', 'sick', 'duck'],
+			count: 3,
+			specialWordsPercent: 50,
+			profile,
+			random: seededRandom(13)
+		});
+		expect(allSpecial).toHaveLength(3);
+	});
 });

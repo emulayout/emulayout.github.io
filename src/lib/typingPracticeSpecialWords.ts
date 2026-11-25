@@ -184,7 +184,17 @@ export function selectTypingPracticeLessonWords({
 	const candidates =
 		percent > 0 ? filterTypingPracticeSpecialWords(words, profile, disabledMappingIds) : [];
 	if (candidates.length === 0) {
-		return selectRandomTypingPracticeWords(unexcludedWords, count, random);
+		const primary = unexcludedWords.length > 0 ? unexcludedWords : words;
+		if (primary.length >= count || primary === words) {
+			return selectRandomTypingPracticeWords(primary, count, random);
+		}
+		const primarySet = new Set(primary);
+		const remainderPool = words.filter((word) => !primarySet.has(word));
+		const combined = [
+			...primary,
+			...selectRandomTypingPracticeWords(remainderPool, count - primary.length, random)
+		];
+		return selectRandomTypingPracticeWords(combined, combined.length, random);
 	}
 
 	const unexcludedCandidates = candidates.filter((word) => !excluded.has(word));
@@ -197,15 +207,29 @@ export function selectTypingPracticeLessonWords({
 	const specialWords = selectRandomTypingPracticeWords(specialPool, specialTarget, random);
 	const candidateSet = new Set(candidates);
 	const unexcludedOthers = unexcludedWords.filter((word) => !candidateSet.has(word));
+	const allOthers = words.filter((word) => !candidateSet.has(word));
 	const otherPool =
 		unexcludedOthers.length > 0
 			? unexcludedOthers
-			: words.filter((word) => !candidateSet.has(word));
-	const otherWords = selectRandomTypingPracticeWords(
-		otherPool,
-		count - specialWords.length,
-		random
-	);
+			: allOthers.length > 0
+				? allOthers
+				: unexcludedWords.length > 0
+					? unexcludedWords
+					: words;
+	const neededOthers = count - specialWords.length;
+	const chosen = new Set(specialWords);
+	const uniqueOtherPool = otherPool.filter((word) => !chosen.has(word));
+	const otherWords =
+		uniqueOtherPool.length >= neededOthers
+			? selectRandomTypingPracticeWords(uniqueOtherPool, neededOthers, random)
+			: [
+					...uniqueOtherPool,
+					...selectOnlySpecialWords(
+						otherPool,
+						Math.max(0, neededOthers - uniqueOtherPool.length),
+						random
+					)
+				];
 
 	const lesson = [...specialWords, ...otherWords];
 	return selectRandomTypingPracticeWords(lesson, lesson.length, random);
