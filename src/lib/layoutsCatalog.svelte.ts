@@ -7,7 +7,11 @@ import {
 	type StatsMaps
 } from '$lib/layout';
 import { decodeLayouts, type CompactLayoutFile } from '$lib/layoutCodec';
-import { buildCatalogLayoutDetail, resolveAuthorName, type LayoutDetail } from '$lib/layoutDetails';
+import {
+	buildAuthorNameByIdMap,
+	buildCatalogLayoutDetail,
+	type LayoutDetail
+} from '$lib/layoutDetails';
 import type { LayoutInputProfile } from '$lib/layoutInputBehaviors';
 import type { CatalogSparkByLayout } from '$lib/catalogSpark';
 import { getLatestLayoutDayKey } from '$lib/recentLayouts';
@@ -33,6 +37,7 @@ class LayoutsCatalog {
 	loading = $state(false);
 	loadError: Error | null = $state(null);
 	latestLayoutDayKey = $derived(getLatestLayoutDayKey(this.layouts));
+	authorNameById = $derived(buildAuthorNameByIdMap(this.authorsData));
 
 	#catalogRequest: Promise<void> | null = null;
 	#namesRequest: Promise<void> | null = null;
@@ -60,7 +65,7 @@ class LayoutsCatalog {
 	}
 
 	getAuthorName(userId: AuthorId): string {
-		return resolveAuthorName(this.authorsData, userId);
+		return this.authorNameById.get(userId) ?? 'Unknown';
 	}
 
 	/** Preview payload when the aggregate catalog is already in memory. */

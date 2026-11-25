@@ -57,6 +57,15 @@ export interface CatalogLayoutDetailSource {
 	inputProfiles?: ReadonlyMap<string, LayoutInputProfile>;
 }
 
+/** Build a reverse id→name lookup map from the published name→id authors map. */
+export function buildAuthorNameByIdMap(authorsData: AuthorsMap): ReadonlyMap<AuthorId, string> {
+	const map = new Map<AuthorId, string>();
+	for (const [name, id] of Object.entries(authorsData)) {
+		if (!map.has(id)) map.set(id, name);
+	}
+	return map;
+}
+
 /** Resolve an author display name from the published name→id authors map. */
 export function resolveAuthorName(authorsData: AuthorsMap, userId: AuthorId): string {
 	for (const [name, id] of Object.entries(authorsData)) {

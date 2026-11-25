@@ -1707,11 +1707,11 @@ export class FilterStore {
 		limits: Record<StatLimitKey, StatLimit>,
 		fingerWorkload: FingerWorkloadConfig
 	): StatsAnalyzer[] {
-		const needed = new SvelteSet([
-			...analyzersNeededForLimits(limits),
-			...analyzersNeededForFingerWorkloadConfig(fingerWorkload)
-		]);
-		return STAT_ANALYZERS.map(({ value }) => value).filter((analyzer) => needed.has(analyzer));
+		const limitAnalyzers = analyzersNeededForLimits(limits);
+		const workloadAnalyzers = analyzersNeededForFingerWorkloadConfig(fingerWorkload);
+		return STAT_ANALYZERS.map(({ value }) => value).filter(
+			(analyzer) => limitAnalyzers.includes(analyzer) || workloadAnalyzers.includes(analyzer)
+		);
 	}
 
 	get analyzersNeededForStatLimits(): StatsAnalyzer[] {

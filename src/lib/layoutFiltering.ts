@@ -6,8 +6,7 @@ import type {
 	LayoutLikesMap,
 	Mana2Stats,
 	CminiStats,
-	StatsMaps,
-	ThumbKeyEntry
+	StatsMaps
 } from './layout';
 import { positionSlotKey } from './layoutCodec';
 import { deriveBotStats, deriveCyanophageStats, deriveMana2Stats } from './statsDerivation';
@@ -33,7 +32,6 @@ import {
 	FILTER_GRID_COLUMNS,
 	FILTER_GRID_ROWS,
 	FILTER_THUMB_KEYS_PER_HAND,
-	createEmptyThumbKeyFilters,
 	type AdaptiveSwapFilter,
 	type ChiralKeyFilter,
 	type CharacterSetFilter,
@@ -96,19 +94,38 @@ type ActiveAnalyzerStatFilters = {
 
 type LikesLimitCheck = { operator: StatLimitOperator; threshold: number };
 
-function getKeyAt(layout: LayoutData, row: number, column: number): string | undefined {
-	return layout.positionBySlot.get(positionSlotKey(row, column));
+type GridCellFilter = { slotKey: string; chars: string };
+type ThumbOrFilter = { slotIndex: number; chars: string };
+
+function extractGridFilters(grid: string[][]): GridCellFilter[] {
+	const cells: GridCellFilter[] = [];
+	for (let row = 0; row < FILTER_GRID_ROWS; row++) {
+		for (let column = 0; column < FILTER_GRID_COLUMNS; column++) {
+			const chars = grid[row][column].toLowerCase();
+			if (chars) cells.push({ slotKey: positionSlotKey(row, column), chars });
+		}
+	}
+	return cells;
 }
 
-/** Match non-empty thumb filters in left-to-right order. */
-function matchesThumbKeyPosition(
-	thumbKeys: Array<{ key: string; col: number }>,
-	filter: string[]
-): boolean {
-	const nonEmptyFilters = filter
-		.map((entry) => entry.toLowerCase())
-		.filter((chars) => chars !== '');
+function extractThumbFilters(filter: string[]): string[] {
+	return filter.map((entry) => entry.toLowerCase()).filter((chars) => chars !== '');
+}
 
+function extractThumbOrFilters(filter: string[]): ThumbOrFilter[] {
+	const entries: ThumbOrFilter[] = [];
+	for (let index = 0; index < FILTER_THUMB_KEYS_PER_HAND; index++) {
+		const chars = filter[index].toLowerCase();
+		if (chars) entries.push({ slotIndex: index, chars });
+	}
+	return entries;
+}
+
+/** Match non-empty lowercased thumb filters in left-to-right order. */
+function matchesNormalizedThumbKeyPosition(
+	thumbKeys: Array<{ key: string; col: number }>,
+	nonEmptyFilters: readonly string[]
+): boolean {
 	if (nonEmptyFilters.length === 0) return true;
 	if (thumbKeys.length < nonEmptyFilters.length) return false;
 
@@ -125,87 +142,82 @@ function matchesThumbKeyPosition(
 	return true;
 }
 
-function matchesInclude(layout: LayoutData, criteria: LayoutFilterCriteria): boolean {
-	for (let row = 0; row < FILTER_GRID_ROWS; row++) {
-		for (let column = 0; column < FILTER_GRID_COLUMNS; column++) {
-			const filterCharacters = criteria.includeGrid[row][column].toLowerCase();
-			if (!filterCharacters) continue;
-			const keyAtPosition = getKeyAt(layout, row, column)?.toLowerCase();
-			if (!keyAtPosition || !filterCharacters.includes(keyAtPosition)) return false;
-		}
+function matchesInclude(
+	layout: LayoutData,
+	includeCells: readonly GridCellFilter[],
+	includeLeftThumbs: readonly string[],
+	includeRightThumbs: readonly string[]
+): boolean {
+	for (const { slotKey, chars } of includeCells) {
+		const keyAtPosition = layout.positionBySlot.get(slotKey)?.toLowerCase();
+		if (!keyAtPosition || !chars.includes(keyAtPosition)) return false;
 	}
 
 	if (
-		criteria.includeLeftThumbKeys.some(Boolean) &&
-		!matchesThumbKeyPosition(layout.thumbKeysByHand.l, criteria.includeLeftThumbKeys)
+		includeLeftThumbs.length > 0 &&
+		!matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.l, includeLeftThumbs)
 	) {
 		return false;
 	}
 	if (
-		criteria.includeRightThumbKeys.some(Boolean) &&
-		!matchesThumbKeyPosition(layout.thumbKeysByHand.r, criteria.includeRightThumbKeys)
+		includeRightThumbs.length > 0 &&
+		!matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.r, includeRightThumbs)
 	) {
 		return false;
 	}
 	return true;
 }
 
-function matchesThumbKeyAtSlot(
-	thumbKeys: ThumbKeyEntry[],
-	slotIndex: number,
-	characters: string
+function matchesIncludeOr(
+	layout: LayoutData,
+	includeOrCells: readonly GridCellFilter[],
+	includeOrLeftThumbs: readonly ThumbOrFilter[],
+	includeOrRightThumbs: readonly ThumbOrFilter[]
 ): boolean {
-	const filter = createEmptyThumbKeyFilters();
-	filter[slotIndex] = characters;
-	return matchesThumbKeyPosition(thumbKeys, filter);
+	if (
+		includeOrCells.length === 0 &&
+		includeOrLeftThumbs.length === 0 &&
+		includeOrRightThumbs.length === 0
+	) {
+		return true;
+	}
+
+	for (const { slotKey, chars } of includeOrCells) {
+		const keyAtPosition = layout.positionBySlot.get(slotKey)?.toLowerCase();
+		if (keyAtPosition && chars.includes(keyAtPosition)) return true;
+	}
+
+	for (const { chars } of includeOrLeftThumbs) {
+		if (matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.l, [chars])) return true;
+	}
+
+	for (const { chars } of includeOrRightThumbs) {
+		if (matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.r, [chars])) return true;
+	}
+
+	return false;
 }
 
-function matchesIncludeOr(layout: LayoutData, criteria: LayoutFilterCriteria): boolean {
-	const matches: boolean[] = [];
-
-	for (let row = 0; row < FILTER_GRID_ROWS; row++) {
-		for (let column = 0; column < FILTER_GRID_COLUMNS; column++) {
-			const filterCharacters = criteria.includeOrGrid[row][column].toLowerCase();
-			if (!filterCharacters) continue;
-			const keyAtPosition = getKeyAt(layout, row, column)?.toLowerCase();
-			matches.push(Boolean(keyAtPosition && filterCharacters.includes(keyAtPosition)));
-		}
-	}
-
-	for (let index = 0; index < FILTER_THUMB_KEYS_PER_HAND; index++) {
-		const filterCharacters = criteria.includeOrLeftThumbKeys[index].toLowerCase();
-		if (!filterCharacters) continue;
-		matches.push(matchesThumbKeyAtSlot(layout.thumbKeysByHand.l, index, filterCharacters));
-	}
-
-	for (let index = 0; index < FILTER_THUMB_KEYS_PER_HAND; index++) {
-		const filterCharacters = criteria.includeOrRightThumbKeys[index].toLowerCase();
-		if (!filterCharacters) continue;
-		matches.push(matchesThumbKeyAtSlot(layout.thumbKeysByHand.r, index, filterCharacters));
-	}
-
-	return matches.length === 0 || matches.some(Boolean);
-}
-
-function matchesExclude(layout: LayoutData, criteria: LayoutFilterCriteria): boolean {
-	for (let row = 0; row < FILTER_GRID_ROWS; row++) {
-		for (let column = 0; column < FILTER_GRID_COLUMNS; column++) {
-			const filterCharacters = criteria.excludeGrid[row][column].toLowerCase();
-			if (!filterCharacters) continue;
-			const keyAtPosition = getKeyAt(layout, row, column)?.toLowerCase();
-			if (keyAtPosition && filterCharacters.includes(keyAtPosition)) return false;
-		}
+function matchesExclude(
+	layout: LayoutData,
+	excludeCells: readonly GridCellFilter[],
+	excludeLeftThumbs: readonly string[],
+	excludeRightThumbs: readonly string[]
+): boolean {
+	for (const { slotKey, chars } of excludeCells) {
+		const keyAtPosition = layout.positionBySlot.get(slotKey)?.toLowerCase();
+		if (keyAtPosition && chars.includes(keyAtPosition)) return false;
 	}
 
 	if (
-		criteria.excludeLeftThumbKeys.some(Boolean) &&
-		matchesThumbKeyPosition(layout.thumbKeysByHand.l, criteria.excludeLeftThumbKeys)
+		excludeLeftThumbs.length > 0 &&
+		matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.l, excludeLeftThumbs)
 	) {
 		return false;
 	}
 	if (
-		criteria.excludeRightThumbKeys.some(Boolean) &&
-		matchesThumbKeyPosition(layout.thumbKeysByHand.r, criteria.excludeRightThumbKeys)
+		excludeRightThumbs.length > 0 &&
+		matchesNormalizedThumbKeyPosition(layout.thumbKeysByHand.r, excludeRightThumbs)
 	) {
 		return false;
 	}
@@ -372,6 +384,16 @@ export function filterLayouts(
 	}
 
 	const nameTerms = parseNameTerms(criteria.nameFilter);
+	const includeCells = extractGridFilters(criteria.includeGrid);
+	const includeLeftThumbs = extractThumbFilters(criteria.includeLeftThumbKeys);
+	const includeRightThumbs = extractThumbFilters(criteria.includeRightThumbKeys);
+	const excludeCells = extractGridFilters(criteria.excludeGrid);
+	const excludeLeftThumbs = extractThumbFilters(criteria.excludeLeftThumbKeys);
+	const excludeRightThumbs = extractThumbFilters(criteria.excludeRightThumbKeys);
+	const includeOrCells = extractGridFilters(criteria.includeOrGrid);
+	const includeOrLeftThumbs = extractThumbOrFilters(criteria.includeOrLeftThumbKeys);
+	const includeOrRightThumbs = extractThumbOrFilters(criteria.includeOrRightThumbKeys);
+
 	return layouts.filter((layout) => {
 		if (criteria.layoutSource === 'liked' && !criteria.likedLayoutNames?.has(layout.name)) {
 			return false;
@@ -399,9 +421,11 @@ export function filterLayouts(
 		if (criteria.selectedAuthors.size > 0 && !criteria.selectedAuthors.has(layout.user)) {
 			return false;
 		}
-		if (!matchesInclude(layout, criteria)) return false;
-		if (!matchesExclude(layout, criteria)) return false;
-		if (!matchesIncludeOr(layout, criteria)) return false;
+		if (!matchesInclude(layout, includeCells, includeLeftThumbs, includeRightThumbs)) return false;
+		if (!matchesExclude(layout, excludeCells, excludeLeftThumbs, excludeRightThumbs)) return false;
+		if (!matchesIncludeOr(layout, includeOrCells, includeOrLeftThumbs, includeOrRightThumbs)) {
+			return false;
+		}
 		return matchesStatLimits(layout, statsMaps, likesData, activeFilters, likesCheck);
 	});
 }
@@ -436,8 +460,12 @@ export function sortLayouts(
 	}
 
 	const nameTerms = parseNameTerms(criteria.nameFilter);
+	const nameRanks =
+		nameTerms.length > 0
+			? new Map(sorted.map((layout) => [layout.name, getNameSearchRank(layout, nameTerms)]))
+			: null;
 	const compareNameSearchRank = (a: LayoutData, b: LayoutData): number =>
-		getNameSearchRank(a, nameTerms) - getNameSearchRank(b, nameTerms);
+		nameRanks ? (nameRanks.get(a.name) ?? 2) - (nameRanks.get(b.name) ?? 2) : 0;
 
 	if (criteria.sortBy === 'date') {
 		return sorted.sort((a, b) => {
