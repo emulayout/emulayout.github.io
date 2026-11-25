@@ -45,10 +45,13 @@
 
 	filterStore.enterLayoutDetailRoute();
 
-	afterNavigate(() => {
+	afterNavigate(({ from }) => {
+		if (from?.params?.name && from.params.name !== data.layoutName) {
+			disabledMappingIds = [];
+		}
 		const pathname = resolve('/layouts/[name]', { name: data.layoutName });
 		const lessonOverrides = typingPracticeLessonOverridesFromSearchParams(page.url.searchParams);
-		const canonicalHref = data.detail
+		const canonicalHref = detail
 			? layoutDetailPageHrefWithLessonOverrides(
 					pathname,
 					parseLayoutDetailSection(page.url.searchParams.get(LAYOUT_DETAIL_TAB_PARAM)),
@@ -111,19 +114,21 @@
 </svelte:head>
 
 {#if detail}
-	<LayoutExpandedView
-		layout={detail.layout}
-		authorName={detail.authorName}
-		likeCount={detail.likeCount}
-		detailStats={detail.stats}
-		inputProfile={detail.inputProfile}
-		{disabledMappingIds}
-		onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
-		{activeSection}
-		onActiveSectionChange={setActiveSection}
-		{practiceLesson}
-		onPracticeLessonChange={setPracticeLesson}
-	/>
+	{#key data.layoutName}
+		<LayoutExpandedView
+			layout={detail.layout}
+			authorName={detail.authorName}
+			likeCount={detail.likeCount}
+			detailStats={detail.stats}
+			inputProfile={detail.inputProfile}
+			{disabledMappingIds}
+			onDisabledMappingIdsChange={(ids) => (disabledMappingIds = ids)}
+			{activeSection}
+			onActiveSectionChange={setActiveSection}
+			{practiceLesson}
+			onPracticeLessonChange={setPracticeLesson}
+		/>
+	{/key}
 {:else}
 	<section class="layout-not-found" aria-labelledby="layout-not-found-title">
 		<h2 id="layout-not-found-title">Layout not found</h2>
