@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { layoutLikes } from '$lib/layoutLikes.svelte';
 	import { untrack } from 'svelte';
 	import DisplaySettingsMenu from '$lib/components/DisplaySettingsMenu.svelte';
@@ -25,6 +26,12 @@
 	import { compileLayoutInputRegistry } from '$lib/layoutInputBehaviors';
 
 	filterStore.hydrateFromCurrentUrl();
+
+	afterNavigate(({ from, to, type }) => {
+		if ((type === 'link' || type === 'goto') && from?.url.pathname === to?.url.pathname) {
+			filterStore.hydrateFromCurrentUrl();
+		}
+	});
 
 	const { data } = $props();
 	const layouts = $derived(data.layouts);
