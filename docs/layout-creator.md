@@ -59,7 +59,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   saved layout removes it from local storage. Deleting the active layout starts a new canvas;
   deleting another tab leaves the current draft in place. The unsaved canvas tab has no delete
   control.
-- The New layout canvas starts as Row stagger QWERTY named `New layout`. Opening that unsaved canvas
+- The New layout canvas starts as Row-staggered QWERTY named `New layout`. Opening that unsaved canvas
   in Edit focuses Layout name and selects the default name so it can be replaced immediately. Create,
   `+ New layout`, discarding dirty edits to start a new canvas, and deleting the active saved layout
   all take this path. Layout name and
@@ -111,24 +111,25 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
 - Share, Edit/Lock, Duplicate, and save stack under the summary card in the left column.
   **Share** is immediately before **Edit** in Preview and immediately before **Lock** in Edit.
   **Lock** is hidden on an unsaved canvas. **Save** appears on that canvas while it differs from the
-  default snapshot; **Save changes** appears only while a saved layout has unsaved changes. Share copies an absolute `/create` URL containing the normalized
-  content snapshot: layout name, author, keyboard geometry and keys, Magic and Adaptive drafts,
-  disabled mappings, and practice settings. It never includes a browser-local saved-layout `id`
-  or transient Edit/Preview/detail-tab state. The link uses `share=2` to distinguish a portable
+  default snapshot; **Save changes** appears only while a saved layout has unsaved changes. Share
+  copies an absolute `/create` URL (including when sharing from `/try`) containing the normalized
+  content snapshot: layout name, author, keyboard geometry and keys, Magic, Adaptive, and Chiral
+  drafts, disabled mappings, and practice settings. It never includes a browser-local saved-layout
+  `id` or transient Edit/Preview/detail-tab state. The link uses `share=2` to distinguish a portable
   layout offer from an ordinary creator draft URL. Legacy `share=1` links remain readable;
   malformed or future document offers are not opened.
 - Opening a `share=2` creator URL does not apply the payload to the live canvas. It opens a
   **Shared layout** modal with an editable Layout name, read-only author, presentation keyboard,
-  and read-only compiled Magic/Adaptive mappings. The share query stays intact while the offer is
-  open, then is replaced by the current creator URL when the modal closes. Cancel discards the
-  offer without writing local storage. **Save layout** creates a new local saved-layout tab under
-  the possibly edited name, opens it in Preview, and writes its local `id` URL. Invalid or
+  and read-only compiled Magic/Adaptive/Chiral mappings. The share query stays intact while the
+  offer is open, then is replaced by the current creator URL when the modal closes. Cancel discards
+  the offer without writing local storage. **Save layout** creates a new local saved-layout tab
+  under the possibly edited name, opens it in Preview, and writes its local `id` URL. Invalid or
   incomplete mapping rows remain in the portable payload and local snapshot even though only
   complete mappings appear in the read-only preview.
 - In Edit, the typing-practice keyboard slot shows the editable key editor instead of the
   presentation preview. Base layout (optional) and keyboard geometry sit above that editor. Choosing a
-  catalog layout seeds the key grid and that layout's default Magic and Adaptive mappings while
-  preserving the creator's current keyboard geometry; catalog layouts are geometry-neutral. Empty slots stay optional, so a draft may use fewer or more assigned characters than
+  catalog layout seeds the key grid and that layout's default Magic, Adaptive, and Chiral mappings
+  while preserving the creator's current keyboard geometry; catalog layouts are geometry-neutral. Empty slots stay optional, so a draft may use fewer or more assigned characters than
   the base. The editor keeps the full QWERTY slot grid and sizes that grid to the page, so unused
   punctuation columns do not overflow. Printable keys replace the focused slot and advance,
   Backspace/Delete clear, and arrows move among slots. The **Import** button beside Base layout
@@ -152,7 +153,7 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   and the saved-layout identity without writing saved storage. Raw objects retain the current
   name, author, and geometry; wrappers supply them. The result stays in Edit and persists through
   ordinary draft URL/save/share behavior. Cancel changes nothing.
-  Keyboard geometry is Row stagger or Column stagger, matching the index toolbar. Thumb keys use the same left/right
+  Keyboard geometry is `Row-staggered` or `Ortholinear`, matching the index toolbar. Thumb keys use the same left/right
   separation as the presentation keyboard, with an empty spacebar-sized gap
   between hands, including when both thumbs emit the same character. Assigned values may repeat and stay on
   their own slots, so several keys can output the same character. Empty slots are omitted from the
@@ -171,31 +172,33 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   and right-hand tabs match the catalog show page, except stats stay unavailable, the card analyzer
   selector and Stats tab are omitted, and the akl.gg and Colemak Camp links are hidden. Edit keeps that same
   two-column show-page layout and summary card. It replaces the presentation keyboard with the
-  key editor and shows editable Magic/Adaptive panels instead of the read-only mapping panel. The
+  key editor and shows editable Magic/Adaptive/Chiral panels instead of the read-only mapping panel. The
   preview keyboard still
   draws the 10 keys on each letter row and empty keycaps for unassigned slots between letters so
   remaining keys keep their physical columns. The key editor, name and author fields, base-layout
   and keyboard-geometry fields, special-key add buttons, missing-letter warning,
   and editable mapping panels are hidden until Edit again. The catalog mapping panel still appears
-  in the practice workspace when the draft has complete Magic or Adaptive mappings, even if those
+  in the practice workspace when the draft has complete Magic, Adaptive, or Chiral mappings, even if those
   editors were closed in Edit. Those summary-column actions show **Share**, then **Lock**, while
   editing a saved layout, and **Save** or **Save changes** only when the canvas differs from its
   saved or default snapshot. **Lock** is omitted until the layout has been saved and returns the
   page to view-only. They show **Share**, then **Edit**, while previewing.
   **Edit** focuses the first editable key, not Layout name or a practice field.
-- While in Edit, Magic and Adaptive add buttons sit to the right of the keyboard in their
-  own column, top-aligned with the first keyboard row. Either or both can be on. Magic opens the
-  mapping editor without adding a key to the board; Adaptive sets the draft's adaptive-swap flag.
+- While in Edit, Magic, Adaptive, and Chiral add buttons sit to the right of the keyboard in their
+  own column, top-aligned with the first keyboard row. Any combination can be on. Magic opens the
+  mapping editor without adding a key to the board; Adaptive and Chiral set their respective draft
+  flags.
   Typing `@` or `*` into a slot still adds that trigger and turns Magic on.
   Clicking an active button hides that editor without discarding the draft. The icon fill lights up
   when that feature is on and at least one complete mapping is enabled. Closing the editor while
-  complete mappings remain tints the icon and label in the Magic or Adaptive color so the saved data
+  complete mappings remain tints the icon and label in that feature's color so the saved data
   is still visible.
   Panel visibility is transient UI state, separate from the persisted feature flags and mapping
-  drafts. Reopening Magic or Adaptive restores the same data; hiding a panel never removes its URL
-  or saved-layout payload.
+  drafts. Reopening Magic, Adaptive, or Chiral restores the same data; hiding a panel never removes
+  its URL or saved-layout payload.
 - When a special key is on, its mapping editor appears in a separate column to the right of those
-  buttons. Opening a panel does not move the icon column. Magic and Adaptive never share a panel.
+  buttons. Opening a panel does not move the icon column. Magic, Adaptive, and Chiral never share a
+  panel.
   Each panel can add, edit, and delete mappings,
   add or delete labeled sections (Magic: extra triggers; Adaptive: schema groups), and temporarily
   disable complete mappings with the same checkboxes as the catalog selectors. Those enabled and
@@ -232,9 +235,8 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   and backups through the document sidecar. Menu Save persists those choices and
   writes them to the creator query; loading a URL that already has those params applies them only
   for that visit. Untouched defaults are omitted; defaults explicitly saved from the menu remain
-  query overlays so they can override different stored prefs. Magic and
-  Adaptive mapping controls appear when the draft has those features, using the same workspace as
-  the detail page.
+  query overlays so they can override different stored prefs. Magic, Adaptive, and Chiral mapping
+  controls appear when the draft has those features, using the same workspace as the detail page.
 - Creator visits use document scrolling at every viewport width, matching layout detail pages.
 - Direct `/create` links are first-class. The route is prerendered so GitHub Pages can serve it
   without relying on the SPA fallback.
@@ -256,7 +258,8 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   The first occurrence of a duplicate character is marked `primary` on the key configuration;
   the editor sidecar preserves this marker while Spark ordering preserves the primary slot through
   sorting, reload, sharing, and saved-layout storage. Changing that key's value clears the marker.
-  `/try` uses the same document scrolling and current Create navigation state as `/create`.
+  `/try` uses the same document scrolling, GoatCounter `/create` page class, portable `/create`
+  Share URLs, and current Create navigation state as `/create`.
   Invalid base64url or UTF-8, invalid JSON, an unknown wrapper
   version or format, or a payload with no usable keys opens the normal creator and reports
   `Couldn't read this akl.gg link.` Optional unknown wrapper fields are ignored. After import, the
@@ -279,9 +282,9 @@ creator URL/input-profile modules. See `adaptive-swaps-architecture.md` for runt
   switching to an id-only URL. Open creator tabs synchronize saved-layout changes, and writes merge
   stable ids so one tab does not discard layouts saved by another. They do not send analytics events.
   **Clear all keys** is available only on the unsaved canvas. It blanks the key grid, clears the
-  selected base layout, and removes all Magic and Adaptive rules while preserving the name, author,
-  keyboard geometry, and practice lesson. It is disabled when those key and mapping fields are already
-  empty. Saved-layout storage version 3 stores each entry's creator `document` directly with its
+  selected base layout, and removes all Magic, Adaptive, and Chiral rules while preserving the name,
+  author, keyboard geometry, and practice lesson. It is disabled when those key and mapping fields
+  are already empty. Saved-layout storage version 3 stores each entry's creator `document` directly with its
   local id, name, and creation time. Version 1 and 2 query-string snapshots remain readable and
   migrate on the next successful save or backup export; local ids and ordering are retained.
   Version 1 entries without explicit keys restore the QWERTY board. Malformed version-3 entries
@@ -374,17 +377,19 @@ they reuse validation and normalization. The larger old-format parser is the sep
 - Versioned Spark document construction, validation, migration, and signatures:
   `src/lib/creatorDocument.ts`; projection and reconciliation: `src/lib/creatorDocumentEdits.ts`;
   stable draft ids: `src/lib/creatorDraftId.ts`
-- Shareable `/create` document transport: `src/lib/layoutCreatorUrl.ts`; read-only old queries:
-  `src/lib/creatorLegacyUrl.ts`; shared UTF-8 base64url transport: `src/lib/creatorUrlEncoding.ts`
+- Shareable `/create` document transport: `src/lib/layoutCreatorUrl.ts`,
+  `src/lib/layoutCreatorShare.ts`; read-only old queries: `src/lib/creatorLegacyUrl.ts`; shared
+  UTF-8 base64url transport: `src/lib/creatorUrlEncoding.ts`
 - akl.gg `spark/1` handoff parsing and adaptation: `src/lib/aklTryImport.ts`,
-  `src/routes/try/+page.svelte`
+  `src/routes/try/+page.svelte`, `src/routes/try/+page.ts`
 - Shared Spark types and structural validation: `src/lib/sparkSchema.ts`; supported-subset
   compilation and diagnostics: `src/lib/sparkCompiler.ts`; foundation tests: `tests/spark.test.ts`
 - Saved-layout session state and transitions: `src/lib/creatorSession.svelte.ts`
 - Saved-layout local-storage document and session restore: `src/lib/layoutCreatorStorage.ts`
   (`resolveCreatorSession`, `snapshotForSavedLayoutView`)
 - Saved-layout backup parsing and merge rules: `src/lib/savedLayoutsBackup.ts`
-- Draft Magic/Adaptive mapping sources, catalog seeding, and compilation: `src/lib/layoutCreatorMappings.ts`
+- Draft Magic/Adaptive/Chiral mapping sources, catalog seeding, and compilation:
+  `src/lib/layoutCreatorMappings.ts`, `src/lib/chiralKeys.ts`, `src/lib/creatorChiralMappings.ts`
 - Catalog layouts and supplemental mappings: `src/lib/layoutsCatalog.svelte.ts`
 - Creator page chrome, live key editor, and practice workspace: `src/lib/components/LayoutCreator.svelte`
 - Shared string autocomplete and domain adapters: `src/lib/components/TextAutocomplete.svelte`,
@@ -392,14 +397,18 @@ they reuse validation and normalization. The larger old-format parser is the sep
   `src/lib/components/AuthorAutocomplete.svelte`
 - Catalog author lookup and Discover author-filter query: `src/lib/layoutDetails.ts`
   (`resolveAuthorByName`), `src/lib/filterUrlCodec.ts` (`authorFilterIndexSearch`)
-- Saved-layout delete and dirty-navigation confirmations:
+- Saved-layout delete, dirty-navigation, share-offer, and import modals:
   `src/lib/components/DeleteSavedLayoutModal.svelte`,
-  `src/lib/components/DiscardCreatorChangesModal.svelte`
+  `src/lib/components/DiscardCreatorChangesModal.svelte`,
+  `src/lib/components/SharedCreatorLayoutModal.svelte`,
+  `src/lib/components/LayoutKeyImportModal.svelte`
 - Layout backup gear and modal: `src/lib/components/LayoutBackupsMenu.svelte`; shared custom-view
   and layout backup panels: `src/lib/components/BackupImportPanel.svelte`,
   `src/lib/components/BackupExportPanel.svelte`
 - Editable mapping panels: `src/lib/components/CreatorMagicMappingsPanel.svelte`,
-  `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`
+  `src/lib/components/CreatorAdaptiveMappingsPanel.svelte`,
+  `src/lib/components/CreatorChiralMappingsPanel.svelte`
+- Finger-assignment toggle control: `src/lib/components/FingerAssignmentOption.svelte`
 - Route: `src/routes/create/+page.svelte`, `src/routes/create/+page.ts`
 - App-bar Discover and Create links and document-scroll shell: `src/routes/+layout.svelte`
 - Reused practice session and keyboard workspace: `src/lib/components/LayoutTypingPractice.svelte`,

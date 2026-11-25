@@ -34,8 +34,17 @@
 - `docs/interactive-primitives.md` covers shared interactive primitives, keyboard and focus models, ARIA contracts, and their consumers. Read it before changing shared accordions, menus, listboxes, tabs, segmented controls, modals, tooltips, or portal behavior. Update it whenever one of these primitives is added, removed, or materially changes its API or behavior.
 - `docs/magic-keys-architecture.md` covers Magic-key and Repeat-key metadata, runtime behavior, composition, filtering, and analyzer boundaries.
 - `docs/adaptive-swaps-architecture.md` covers contextual input data ownership, source formats, runtime resolution, UI boundaries, and deferred work.
-- `docs/layout-creator.md` covers the layout creator route, app-bar Discover and Create links, draft
-  tabs, the reused typing-practice workspace, and deferred local-storage persistence.
+- `docs/layout-creator.md` covers the layout creator route (`/create` and `/try` handoff), app-bar
+  Discover and Create links, draft/saved tabs, Spark document persistence, sharing, backups, and
+  the reused typing-practice workspace.
+- `docs/layout-detail-page.md` covers `/layouts/[name]`, per-layout detail payloads, Quick Find
+  detail loading, Layout feel, and show-page tabs and invariants.
+- `docs/typing-practice.md` covers Typing practice lessons, word banks, metrics, prompt feedback,
+  and shared lesson state.
+- `docs/keyboard-input-configuration.md` covers the global Input layout configuration, physical
+  ANSI/ISO/Ortholinear topology fitting, and key-map translation.
+- `docs/spark-transition.md` covers Spark schema/1 as canonical layout content, compiler boundaries,
+  and legacy compatibility policy.
 - `docs/analytics.md` covers GoatCounter pageviews and feature events, privacy invariants, and the code map. Read it before adding or changing analytics. Do not send layout names, typed values, lesson text, or other personal data.
 
 ## Testing tools and patterns

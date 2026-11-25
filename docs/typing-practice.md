@@ -29,8 +29,8 @@ and calculation logic outside the renderer.
 - Any mismatch, including input beyond the target, turns all text in the input field red until the
   input is corrected. Prompt and field feedback use the dedicated `--typing-practice-correct` and
   `--typing-practice-incorrect` theme variables.
-- Comparison uses the selected layout's logical output, after Adaptive, Magic, and Repeat behavior,
-  rather than the physical key pressed.
+- Comparison uses the selected layout's logical output, after Adaptive, Magic, Chiral, and Repeat
+  behavior, rather than the physical key pressed.
 - The shared, persisted, default-off Allow incorrect words option lets resolved Space advance
   an incorrect or empty word, including the final word. Missing characters count as incorrect
   attempts; skipped words add no character credit to WPM. Skipped completed words appear red in
@@ -39,7 +39,9 @@ and calculation logic outside the renderer.
   firmware Magic mappings whose original physical key cannot be recovered by the browser.
 - By default, Space advances when the input exactly equals a non-final active word. The final word advances and
   ends the test as soon as its last correct character is entered, without requiring Space. A
-  successful advance clears the field and contextual-input history and increments progress.
+  successful advance clears the field, increments progress, and retains emitted contextual-input
+  history (including the separating Space) so Space can supply context to a chiral key on the next
+  word. Skipped words and lesson resets clear contextual history.
   Monkeytype, the default Test style, keeps completed words in their original positions. Colemak
   Club instead removes each completed word from the prompt. A premature space
   remains in the input and counts as an incorrect attempt without changing the rendered prompt
@@ -70,18 +72,21 @@ and calculation logic outside the renderer.
   ignored; ordinary typed output and layout-aware contextual behavior remain enabled.
 - The input-layout control sits above the keyboard at the left edge of its keys. Left-aligned
   switches below the keyboard can highlight the next valid key, color the eight resting home keys,
-  and show contextual special-key feedback when the layout has Magic or Adaptive mappings. The
-  layout creator Edit keyboard receives the same option presentation as the preview keyboard.
+  show authored finger assignments on read-only keyboards, and show contextual special-key feedback
+  when the layout has Magic, Adaptive, or Chiral mappings. The
+  layout creator Edit keyboard receives the same option presentation as the preview keyboard
+  (except Finger assignments, which is preview-only).
   Next-key guidance respects shifted and contextual input output and is withheld while the current
   input
   contains an error or is waiting for a word-separating Space. Its decoration composes with home-key
   and active contextual-key styles. Home-key coloring is enabled by default.
-- Layouts with AKLDB Magic mappings add a default-on Underline magic group option. It underlines
-  each target substring that can be entered with a Magic key, including the preceding rule context
-  and emitted characters. A Magic trigger with repeat-last fallback also underlines adjacent doubled
-  letters within a word. The hints follow disabled mappings and use the resolver's longest-rule
-  precedence. Magic underlines and Magic keycap fills use `--magic-key`; keycap glyphs use
-  `--magic-key-fg` for contrast against that fill. Adaptive underlines, armed Adaptive keycaps, and
+- Layouts with AKLDB Magic or Chiral mappings add a default-on Underline magic/chiral group option.
+  It underlines each target substring that can be entered with a Magic or Chiral key, including the
+  preceding rule context and emitted characters. A Magic trigger with repeat-last fallback also
+  underlines adjacent doubled letters within a word. The hints follow disabled mappings and use the
+  resolver's longest-rule precedence. Magic underlines and Magic keycap fills use `--magic-key`;
+  keycap glyphs use `--magic-key-fg` for contrast against that fill. Chiral underlines and keycap
+  fills use `--chiral-key` / `--chiral-key-fg`. Adaptive underlines, armed Adaptive keycaps, and
   swap-path strokes use `--adaptive-key`.
 - Layouts with a Repeat key add a default-on Underline repeat group option. It marks both
   characters of each adjacent doubled-letter pair that the enabled Repeat key can produce, using
@@ -142,7 +147,7 @@ and calculation logic outside the renderer.
   the change. Layout feel omits that display setting and places its settings button on the remapped
   prompt row, not the quieter source-word line.
   Saving writes the chosen lesson to local storage and to the shareable `text` / `special` /
-  `words` query, then starts that lesson. Reset restores random 10-word defaults and persists
+  `words` / `remap` / `bank` query, then starts that lesson. Reset restores random 10-word defaults and persists
   that choice. Explicit defaults such as `words=10` and `special=0` remain in the URL so they can
   temporarily override different stored prefs. Loading a page that already has lesson query params
   applies them only for that visit; they do not overwrite stored prefs until the user saves from the menu.
@@ -159,7 +164,7 @@ and calculation logic outside the renderer.
   (or restore the full custom text when none remain) and do not add random words. Layout feel also
   reuses this same display-options document (including Feel-only `ignoreWrongKeyPresses`), but does
   not expose or apply the Typing-practice-only Test style option. Feel uses the
-  same shareable `text` / `special` / `words` lesson query. See
+  same shareable `text` / `special` / `words` / `remap` / `bank` lesson query. See
   [`layout-detail-page.md`](./layout-detail-page.md) for Feel’s remapped matching model; do not
   treat Feel as a second live-resolve practice field.
 
@@ -202,8 +207,8 @@ area visits do not download the word pool. `LayoutExpandedView.svelte` owns one
 loading or sampling again on remount. Each UI still exposes loading and failure states before
 showing a random session.
 
-The layout-detail route owns canonical `tab`, `text`, `special`, and `words` query state and
-resolves it over stored lesson prefs before passing the effective lesson down through
+The layout-detail route owns canonical `tab`, `text`, `special`, `words`, `remap`, and `bank` query
+state and resolves it over stored lesson prefs before passing the effective lesson down through
 `LayoutExpandedView.svelte` to both Typing practice and Layout feel. URL fields that are present
 are temporary overlays; menu Save writes both local storage and the URL.
 `LayoutTypingPractice.svelte` renders a live-resolve session over the shared source words.
@@ -245,10 +250,12 @@ The successful-space path is intentionally ordered:
 - Next-key guidance: `src/lib/typingPracticeKeyboard.ts`
 - Display-option parsing and persistence format: `src/lib/typingPracticePrefs.ts`
 - Layout-test display-option parsing and persistence format: `src/lib/layoutTestAreaPrefs.ts`
-- Magic-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
+- Magic- and Chiral-group prompt hints: `src/lib/typingPracticeMagicGroups.ts`
 - Repeat-group prompt hints and word candidates: `src/lib/typingPracticeRepeatGroups.ts`
 - Adaptive-group prompt hints: `src/lib/typingPracticeAdaptiveGroups.ts`
-- Custom-text, word-count, URL overlay, and lesson-pref persistence:
+- Special-word selection and per-type remapping weights: `src/lib/typingPracticeSpecialWords.ts`,
+  `src/lib/typingPracticeRemappingPreferences.ts`
+- Custom-text, word-count, word-bank, URL overlay, and lesson-pref persistence:
   `src/lib/typingPracticeText.ts`
 - Input-layout model, validation, persistence, and target-map compiler:
   `src/lib/keyboardInputConfig.ts`, `src/lib/keyboardInputStore.svelte.ts`,
@@ -256,11 +263,13 @@ The successful-space path is intentionally ordered:
 - Reusable input-layout control and editor: `src/lib/components/KeyboardInputConfigControl.svelte`,
   `src/lib/components/KeyboardInputConfigModal.svelte`,
   `src/lib/components/KeyboardInputEditor.svelte`
+- Finger-assignment toggle control: `src/lib/components/FingerAssignmentOption.svelte`
 - Shared persisted preference state: `src/lib/uiPrefs.svelte.ts`
 - Lazy word-pool loader: `src/lib/typingPracticeWords.ts`
 - Shared page-session lesson, progress, and word-pool ownership:
   `src/lib/typingPracticeLesson.ts`, `src/lib/typingPracticeLesson.svelte.ts`
-- Vendored source vocabulary: `static/languages/english1k.json`
+- Vendored source vocabularies: `static/languages/english1k.json`,
+  `static/languages/english10k.json`
 - Practice rendering and interaction: `src/lib/components/LayoutTypingPractice.svelte`
 - Results shrink-to-fit sizing: `src/lib/fitTextToWidth.ts`
 - Creator tabs and Edit practice workspace: `src/lib/components/LayoutCreator.svelte`,
@@ -274,7 +283,7 @@ The successful-space path is intentionally ordered:
 - Shared swap-path measurement for preview and edit keyboards:
   `src/lib/layoutKeyboardSwapPathLayer.ts`
 - Preview letter-row and gap-key fill: `src/lib/layoutDisplay.ts` (`fillPreviewKeyboardRows`)
-- Custom-text editor: `src/lib/components/TypingPracticeTextModal.svelte`
+- Practice lesson settings modal: `src/lib/components/TypingPracticeLessonModal.svelte`
 - Layout-aware controlled input: `src/lib/components/LayoutTestArea.svelte`
   (`compact` on the practice variant)
 - Contextual input resolution: `src/lib/layoutInputBehaviors.ts`
@@ -294,7 +303,9 @@ The successful-space path is intentionally ordered:
 
 - Unless Allow incorrect words is enabled, non-final words require an exact active-word match followed by resolved Space; the final exact
   match advances immediately.
-- The prompt queue, input field, progress count, and contextual history reset together on advance.
+- The prompt queue, input field, and progress count advance together. Completed-word advance retains
+  emitted contextual history (including the separating Space) so Space supplies context to chiral
+  keys; skipped words and lesson resets clear contextual history.
 - Custom lesson resets reproduce the normalized URL text exactly; random lesson resets exclude the
   prior lesson words.
 - Remaining words retain stable identities as the head of the queue is removed.
@@ -310,8 +321,8 @@ The successful-space path is intentionally ordered:
   tab during a test clears the timer, input, and progress and refills a random lesson to the
   configured word count. Each tab still keeps its own input encoding (live-resolve source text vs remapped feel
   labels) and Feel-only flash/ignore-wrong-key UI.
-- Input-layout translation precedes Adaptive, Magic, and Repeat resolution and does not change the
-  displayed target layout or its contextual profile.
+- Input-layout translation precedes Adaptive, Magic, Chiral, and Repeat resolution and does not
+  change the displayed target layout or its contextual profile.
 
 ## Expanded word bank
 

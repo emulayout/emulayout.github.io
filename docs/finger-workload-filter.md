@@ -36,7 +36,7 @@ left- and right-hand constraints are both required.
 - `Relink hands` copies the left-hand preference to the right hand.
 - The explanation is an optional help hint and follows the global hints toggle.
 - The active chip includes the measurement source:
-  `Workload (Cmini): Both M > I > R/P`.
+  `Workload (cmini): Both M > I > R/P`.
 
 Quick presets:
 

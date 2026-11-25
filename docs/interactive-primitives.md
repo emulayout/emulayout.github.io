@@ -21,8 +21,9 @@ retain domain-specific markup and styling.
 - `ToggleSwitch.svelte` provides the shared labeled switch semantics, focus treatment, and visual
   state for independent boolean display options.
 - `ModalShell.svelte` owns dialog semantics, focus trapping and restoration, Escape/backdrop
-  dismissal, scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal
-  focus waits for mounted controls. Keyboard or pointer interaction inside the dialog cancels that
+  dismissal (with topmost-modal stacking so Escape closes only the active modal), ref-counted body
+  scroll locking, ordinary targeted initial focus, and portal placement. Targeted modal focus waits
+  for mounted controls. Keyboard, pointer, or `focusin` interaction inside the dialog cancels that
   pending focus, as do closing the dialog or replacing the focus request. Targeted modal focus must
   not use the temporary filter-jump highlight. `ModalHeader.svelte` provides the shared
   title and close-button chrome. Confirmation dialogs may omit the header divider.
@@ -30,8 +31,8 @@ retain domain-specific markup and styling.
   Escape dismissal, and body portal placement. Help triggers normally follow the global hint
   preference; a consumer may keep essential interaction guidance available with `alwaysVisible`.
 
-`portalToBody.ts`, `listboxNavigation.ts`, and `segmentedControl.ts` contain small reusable behavior
-helpers used by these components.
+`portalToBody.ts`, `listboxNavigation.ts`, `segmentedControl.ts`, `tabs.ts`, and
+`modalScrollLock.ts` contain small reusable behavior helpers used by these components.
 
 Fixed popups and floating windows use the visible viewport rather than assuming the layout viewport
 is fully unobscured. `visibleViewport.ts` centralizes `VisualViewport` bounds and change listeners,

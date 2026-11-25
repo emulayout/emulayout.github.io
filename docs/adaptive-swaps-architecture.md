@@ -82,9 +82,10 @@ the trigger's hand with the last emitted character's assigned hand. Missing cont
 missing branches, and exceptions produce the literal trigger. Literal Space is supported; other
 whitespace is excluded from native characters. Nullable branches normalize only in compiled output.
 
-`chiralKeys.ts` owns native validation, compilation, and resolution. Shortcut planners use a
-transient Magic projection. Cyanophage receives Mana2 expansion through `analyzerMappings`;
-that adapter is independent of client compilation and its outputs are unchanged by this transition.
+`chiralKeys.ts` owns native validation, compilation, and resolution. Typing-practice special-word
+detection and group highlighting resolve native chirals directly. Cyanophage receives Mana2 expansion
+through `analyzerMappings`; that adapter is independent of client compilation and its outputs are
+unchanged by this transition.
 
 A conventional rule-free `@` with repeat default uses the dedicated Repeat profile. Other explicit
 Magic or Chiral declarations claim `@` and suppress conventional Repeat behavior.
@@ -111,8 +112,8 @@ after l: base j emits y
 ## Runtime resolution
 
 `LayoutInputProfile` is the single compiled runtime model. It can independently contain
-`magicKeys`, `repeatKey`, and `adaptiveSwaps`. The client compiles the generated payload and compact
-layout metadata once into a map keyed by layout name.
+`magicKeys`, `chiralKeys`, `repeatKey`, and `adaptiveSwaps`. The client compiles the generated
+payload and compact layout metadata once into a map keyed by layout name.
 
 `compileLayoutInputRegistry` compiles one Spark profile per layout directly, without a variant
 registry. Derived behavior-source adapters remain for creator grouping and app-only fallbacks.
@@ -146,23 +147,23 @@ preserves uppercase intent in the swapped output.
 
 - `LayoutTestArea` owns DOM keyboard events, textarea edits, and history resets.
 - The optional input-layout compiler owns source-character-to-target-slot translation before this
-  resolver. Typing practice and the detail Layout test area opt into the shared saved configuration;
-  catalog-card test areas retain physical-code resolution. Layout feel uses the same saved
+  resolver. Typing practice, the detail Layout test area, and catalog-card test areas opt into the
+  shared saved configuration via `withKeyboardInputConfig`. Layout feel uses the same saved
   configuration to remap planned target keystrokes onto known-layout labels, then matches identity
   input against that remapped prompt. See
   [`keyboard-input-configuration.md`](./keyboard-input-configuration.md).
 - The pure resolver owns matching, precedence, case handling, and bounded history.
-- `InputMappingsPanel` renders Magic and Adaptive feature sections and their ephemeral
+- `InputMappingsPanel` renders Magic, Adaptive, and Chiral feature sections and their ephemeral
   enable/disable controls. Section and group checkboxes are bulk controls over their individual
   mappings and show a partial state when only some children are enabled.
 - `LayoutInputMappingsIndicator` renders a vertical feature rail beside the formatted keyboard.
   Each feature delegates to `LayoutInputFeatureControl`, which owns one geometry, hover/focus
   treatment, and three visual states: `on`, `off`, and `unavailable`. `off` is interactive and
   struck through; `unavailable` means mapping data is absent and is noninteractive. Repeat toggles
-  directly, while Magic and Adaptive controls open `InputMappingsWindow`. Turning off every Magic
-  or Adaptive mapping updates that feature's control. The control normalizes native button and SVG
-  geometry across engines, and its hover-only treatment is limited to fine pointers so touch WebKit
-  does not retain a false hover state.
+  directly, while Magic, Adaptive, and Chiral controls open `InputMappingsWindow`. Turning off every
+  Magic, Adaptive, or Chiral mapping updates that feature's control. The control normalizes native
+  button and SVG geometry across engines, and its hover-only treatment is limited to fine pointers
+  so touch WebKit does not retain a false hover state.
 - On the layout detail page, the free-form Layout test area emulator remains full width above the
   shared keyboard workspace. Mappings sit to the right of the keyboard-and-options cluster at wider
   workspace widths and expand beneath it on narrow screens, matching Typing practice.
@@ -185,8 +186,9 @@ preserves uppercase intent in the swapped output.
 
 Typing practice also offers a separate, default-off Adaptive-group underline. For each enabled swap
 that can produce the next part of a lesson word, it marks the preceding Adaptive trigger and the
-final emitted target text. This derivation runs through the complete Adaptive-then-Magic-then-Repeat
-pipeline, follows disabled mappings, and does not alter the default prompt presentation. Layout feel
+final emitted target text. This derivation runs through the complete
+Adaptive-then-Magic-then-Chiral-then-Repeat pipeline, follows disabled mappings, and does not alter
+the default prompt presentation. Layout feel
 reuses the same underline option on the remapped prompt; Adaptive stays preferred-only at match
 time because the swapped key is the true key at that moment.
 

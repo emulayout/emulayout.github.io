@@ -163,7 +163,7 @@ Repeat keys do not need per-layout source records. The client combines the optio
 sidecar with authoritative compact layout metadata into one `LayoutInputProfile`:
 
 ```text
-magicKeys? + repeatKey? + adaptiveSwaps?
+magicKeys? + chiralKeys? + repeatKey? + adaptiveSwaps?
 ```
 
 Magic profiles remain mapping-driven. Repeat profiles contain only the conventional `@` trigger.
@@ -178,12 +178,14 @@ For one captured layout key, the resolver:
 2. applies at most one Adaptive swap to the base output;
 3. treats that output as a possible Magic trigger;
 4. if Magic matches, emits its rule or fallback, emitting nothing for a consumed press;
-5. otherwise, treats `@` as a possible Repeat trigger;
-6. inserts the final output and appends it once to bounded shared history.
+5. otherwise, if native Chiral matches, emits its branch output (or the literal trigger on no-op/exception);
+6. otherwise, treats `@` as a possible Repeat trigger;
+7. inserts the final output and appends it once to bounded shared history.
 
-Magic and Repeat are not recursively applied during the same physical keypress. A Magic match also
-prevents the resulting text from being interpreted as Repeat output. This makes an explicit `@`
-Magic profile a complete override even in defensive or malformed combined runtime data.
+Magic, Chiral, and Repeat are not recursively applied during the same physical keypress. A Magic or
+Chiral match also prevents the resulting text from being interpreted as Repeat output. This makes an
+explicit `@` Magic or Chiral profile a complete override even in defensive or malformed combined
+runtime data.
 
 History represents uninterrupted logical output, not text near the caret. It is cleared by caret
 navigation, pointer interaction, blur, native edits such as paste or deletion, and unmapped
@@ -201,15 +203,16 @@ emitted `l` as context.
 
 ## Composition with Adaptive swaps
 
-Adaptive swaps resolve before Magic and Repeat behavior. Only the final output is added to shared
-history. Consequently:
+Adaptive swaps resolve before Magic, Chiral, and Repeat behavior. Only the final output is added to
+shared history. Consequently:
 
-- Magic or Repeat output can arm an Adaptive swap on the next keypress;
+- Magic, Chiral, or Repeat output can arm an Adaptive swap on the next keypress;
 - Adaptive output can become context for later contextual behavior;
-- Adaptive output can become a Magic or Repeat trigger during the same keypress.
+- Adaptive output can become a Magic, Chiral, or Repeat trigger during the same keypress.
 
-The pure resolver reports `adaptive-swap`, `magic-key`, and `repeat-key` independently. DOM events,
-text insertion, and history-reset decisions remain the layout test area's responsibility.
+The pure resolver reports `adaptive-swap`, `magic-key`, `chiral-key`, and `repeat-key`
+independently. DOM events, text insertion, and history-reset decisions remain the layout test area's
+responsibility.
 
 ## Presentation and filtering
 
@@ -259,7 +262,7 @@ it with currently armed Adaptive swaps without changing the formatted text board
 key is both a Magic trigger and part of an armed Adaptive swap, the Adaptive presentation wins
 because Adaptive changes that physical key before Magic behavior is considered.
 
-Typing practice also offers a separate, default-off Magic-group underline. It marks the preceding
+Typing practice also offers a separate, default-on Magic-group underline. It marks the preceding
 context and emitted target characters for every enabled rule that can replace part of a lesson word.
 For a trigger with repeat-last fallback, eligible adjacent doubled letters in the same word are
 marked as one group. The derivation uses compiled rule precedence and the current disabled-mapping
@@ -288,9 +291,12 @@ Cmini stats are imported from akl.gg stats/v1. For layouts with contextual rules
 the published cmini cells with the stored Magic/Repeat behavior applied. Adaptive swaps are not
 included.
 
-Cyanophage stats follow the Magic playground (`keyboard_svg_magic.js`) when AKLDB provides a
-supported Magic profile (and optionally a default Repeat key):
+Cyanophage stats follow the upstream Cyanophage scorer (`keyboard_svg.js` / `keyboard_svg_magic.js`)
+when a layout fits Cyanophage's supported key set and AKLDB provides a supported Magic profile (and
+optionally a default Repeat key):
 
+- layouts containing characters outside Cyanophage's supported import set (plus `*`/`@` for offline
+  measurement) or more than one thumb key are skipped and omitted from Cyanophage stats;
 - corpus words are rewritten before scoring (`letter + expansion` → `letter + magic key`,
   and doubled letters → `letter + @` for Repeat);
 - only single-character preceding Magic contexts are applied; multi-character contexts and
