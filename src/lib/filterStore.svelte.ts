@@ -401,8 +401,8 @@ export class FilterStore {
 		const decoded = shouldReadViewUrlState ? readViewFilterUrlState(url.searchParams) : undefined;
 		if (decoded) {
 			if (this.hideLayoutLikes) {
-				decoded.snapshot.statLimits.likes = { operator: 'lt', value: '' };
-				decoded.snapshot.appliedStatLimits.likes = { operator: 'lt', value: '' };
+				decoded.snapshot.statLimits.likes = { operator: 'gt', value: '' };
+				decoded.snapshot.appliedStatLimits.likes = { operator: 'gt', value: '' };
 			}
 			this.#restoreViewFilters(decoded.snapshot);
 		}
@@ -886,7 +886,7 @@ export class FilterStore {
 			this.#resetSortToDateDefault();
 		}
 		if (value) {
-			this.statLimits.likes = { operator: 'lt', value: '' };
+			this.statLimits.likes = { operator: 'gt', value: '' };
 			this.#applyFiltersNow();
 		}
 		this.#saveToUrl();
@@ -909,7 +909,7 @@ export class FilterStore {
 				this.#resetSortToDateDefault();
 			}
 			if (this.statLimits.likes.value.trim() !== '') {
-				this.statLimits.likes = { operator: 'lt', value: '' };
+				this.statLimits.likes = { operator: 'gt', value: '' };
 				this.#applyFiltersNow();
 				this.#saveToUrl();
 			}
@@ -1117,7 +1117,9 @@ export class FilterStore {
 		for (const field of getGeneralStatFilterRowsForAnalyzer(analyzer).flat()) {
 			next[field.key] = { operator: 'lt', value: '' };
 		}
-		next.likes = { operator: 'gt', value: '' };
+		if (analyzer === CMINI_ANALYZER) {
+			next.likes = { operator: 'gt', value: '' };
+		}
 		this.statLimits = next;
 		this.#applyFiltersNow();
 		this.#debouncedSave();
