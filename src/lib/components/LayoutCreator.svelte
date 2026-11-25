@@ -1781,7 +1781,7 @@
 	.layout-creator-keyboard-field select {
 		width: 100%;
 		height: 2.375rem;
-		padding: 0 0.75rem;
+		padding: 0 var(--select-chevron-pad) 0 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: 0.75rem;
 		outline: none;

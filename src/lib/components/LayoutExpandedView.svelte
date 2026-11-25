@@ -1156,10 +1156,10 @@
 		border-bottom: 0;
 	}
 
-	.shared-stats-metric {
-		text-align: left !important;
+	.shared-stats-table th.shared-stats-metric {
+		text-align: left;
 		font-weight: 500;
-		color: var(--text-secondary) !important;
+		color: var(--text-secondary);
 	}
 
 	.shared-stats-table thead th {

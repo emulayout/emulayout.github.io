@@ -691,7 +691,7 @@
 		flex: 1 1 0;
 		width: 0;
 		min-width: 0;
-		padding: 0.25rem 0.375rem;
+		padding: 0.25rem var(--select-chevron-pad) 0.25rem 0.375rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
@@ -1031,7 +1031,7 @@
 	.finger-workload-select {
 		width: 100%;
 		min-width: 0;
-		padding: 0.375rem 0.5rem;
+		padding: 0.375rem var(--select-chevron-pad) 0.375rem 0.5rem;
 		border-radius: 0.5rem;
 		font-size: 0.75rem;
 		line-height: 1rem;

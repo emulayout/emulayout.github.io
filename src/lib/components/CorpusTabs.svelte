@@ -28,7 +28,7 @@
 		max-width: min(12rem, 50vw);
 		min-width: 0;
 		/* ~26.4px: 0.3125rem*2 padding + 2px border + 0.75rem*1.2 line-height */
-		padding: 0.3125rem 0.5rem;
+		padding: 0.3125rem var(--select-chevron-pad) 0.3125rem 0.5rem;
 		border: 1px solid var(--border);
 		border-radius: 0.5rem;
 		background-color: var(--input-bg);

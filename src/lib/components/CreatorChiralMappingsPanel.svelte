@@ -259,6 +259,7 @@
 		text-align: center;
 	}
 	select {
+		padding-right: var(--select-chevron-pad);
 		cursor: pointer;
 	}
 	p[role='status'] {

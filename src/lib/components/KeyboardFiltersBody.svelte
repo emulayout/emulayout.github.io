@@ -240,9 +240,7 @@
 					Show unfinished layouts
 				</span>
 			</label>
-			<Tooltip
-				text="English layouts (no Magic or Repeat key) that are missing some A–Z letters."
-			/>
+			<Tooltip text="English layouts (no Magic or Repeat key) that are missing some A–Z letters." />
 		</div>
 	{/if}
 </div>
@@ -272,7 +270,7 @@
 
 	.keyboard-filters-select {
 		width: 100%;
-		padding: 0.375rem 0.625rem;
+		padding: 0.375rem var(--select-chevron-pad) 0.375rem 0.625rem;
 		border-radius: 0.5rem;
 		font-size: 0.8125rem;
 		outline: none;

@@ -513,6 +513,10 @@
 		text-align: start;
 	}
 
+	select.creator-mappings-field {
+		padding-right: var(--select-chevron-pad);
+	}
+
 	.creator-mappings-field--after {
 		display: block;
 		width: 100%;
