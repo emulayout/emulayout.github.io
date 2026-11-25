@@ -55,7 +55,12 @@
 		uiPrefs.hydrate();
 		keyboardInputStore.hydrate();
 
-		const stored = localStorage.getItem('theme');
+		let stored: string | null = null;
+		try {
+			stored = localStorage.getItem('theme');
+		} catch {
+			// Ignore storage restrictions.
+		}
 		themeMode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -80,10 +85,14 @@
 	// Apply theme class to document
 	$effect(() => {
 		document.documentElement.classList.toggle('dark', dark);
-		if (themeMode === 'system') {
-			localStorage.removeItem('theme');
-		} else {
-			localStorage.setItem('theme', themeMode);
+		try {
+			if (themeMode === 'system') {
+				localStorage.removeItem('theme');
+			} else {
+				localStorage.setItem('theme', themeMode);
+			}
+		} catch {
+			// Ignore storage restrictions or quota errors.
 		}
 	});
 
