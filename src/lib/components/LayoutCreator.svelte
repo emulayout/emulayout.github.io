@@ -338,7 +338,8 @@
 			(Boolean(editor.keyConfig.baseLayoutName) ||
 				editor.keyConfig.keys.some((key) => Boolean(key.value)) ||
 				editor.includeMagicKey ||
-				editor.includeAdaptiveKey)
+				editor.includeAdaptiveKey ||
+				editor.includeChiralKey)
 	);
 
 	$effect(() => {
@@ -370,6 +371,7 @@
 		lessonOverrides: TypingPracticeLessonUrlOverrides = {}
 	) {
 		const next = cloneCreatorSnapshot(snapshot);
+		baseLayoutSeed += 1;
 		supplementalDraftsSeededFor = null;
 		editor.replace(next);
 		layoutPreview = next.preview;
