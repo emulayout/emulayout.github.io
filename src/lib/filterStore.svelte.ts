@@ -12,6 +12,7 @@ import {
 	type StatLimitKey
 } from './statsFiltering';
 import {
+	CMINI_ANALYZER,
 	DEFAULT_STATS_ANALYZER,
 	parseStatsAnalyzerMode,
 	STAT_ANALYZERS,

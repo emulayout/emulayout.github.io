@@ -98,7 +98,7 @@ export class SharedTypingPracticeLesson {
 		this.wordPool = [];
 		this.source = null;
 		this.startedAtMilliseconds = null;
-		this.finishedAtMilliseconds = null;
+		this.endedAtMilliseconds = null;
 		this.wordPoolStatus = 'loading';
 		void loadTypingPracticeWords(
 			fetcher,

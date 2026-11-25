@@ -143,13 +143,11 @@ describe('filterLayouts', () => {
 		expect(filterLayouts([layout], criteria)).toEqual([]);
 
 		const twoThumbLayout = makeLayout('TwoThumbs', {
-			thumbKeysByHand: {
-				l: [
-					{ key: 'e', col: 2 },
-					{ key: 't', col: 3 }
-				],
-				r: []
-			}
+			leftThumbKeys: [
+				{ key: 'e', col: 2 },
+				{ key: 't', col: 3 }
+			],
+			rightThumbKeys: []
 		});
 		expect(
 			filterLayouts(
@@ -159,18 +157,22 @@ describe('filterLayouts', () => {
 		).toEqual([]);
 
 		const threeThumbLayout = makeLayout('ThreeThumbs', {
-			thumbKeysByHand: {
-				l: [
-					{ key: 't', col: 1 },
-					{ key: 'e', col: 2 },
-					{ key: 't', col: 3 }
-				],
-				r: []
-			}
+			leftThumbKeys: [
+				{ key: 't', col: 1 },
+				{ key: 'e', col: 2 },
+				{ key: 't', col: 3 }
+			],
+			rightThumbKeys: []
 		});
 		expect(
 			filterLayouts([threeThumbLayout], makeCriteria({ includeLeftThumbKeys: ['e', 't', 'e', ''] }))
 		).toEqual([]);
+		expect(
+			filterLayouts(
+				[threeThumbLayout],
+				makeCriteria({ includeLeftThumbKeys: ['t', 'e', 't', ''] })
+			).map((entry) => entry.name)
+		).toEqual(['ThreeThumbs']);
 	});
 
 	test('applies metadata, name, and author filters', () => {
