@@ -173,8 +173,9 @@ export function createDefaultKeyboardInputConfig(): KeyboardInputConfig {
 export function buildKeyboardInputConfig(
 	config: Omit<KeyboardInputConfig, 'keys'> & { keys: readonly KeyboardInputKey[] }
 ): KeyboardInputConfig {
+	const topology = keyboardInputTopology(config);
 	return {
-		topology: config.topology ?? 'ansi',
+		topology,
 		missingKeyPolicy: config.missingKeyPolicy ?? 'preserve',
 		baseLayoutName: config.baseLayoutName,
 		baseLayoutModified: config.baseLayoutModified,
@@ -182,7 +183,7 @@ export function buildKeyboardInputConfig(
 		keys: withKeyboardInputTopology(
 			config.keys.map((key) => ({ ...key })),
 			false,
-			config.topology
+			topology
 		)
 	};
 }
@@ -515,17 +516,17 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		});
 	}
 
-	const config: KeyboardInputConfig = {
-		topology: isKeyboardTopology(value.topology) ? value.topology : 'ansi',
+	const topology = keyboardInputTopology({
+		keyboardType: value.keyboardType,
+		topology: isKeyboardTopology(value.topology) ? value.topology : 'ansi'
+	});
+	let config: KeyboardInputConfig = {
+		topology,
 		missingKeyPolicy: value.missingKeyPolicy === 'shift' ? 'shift' : 'preserve',
 		baseLayoutName: typeof value.baseLayoutName === 'string' ? value.baseLayoutName : null,
 		baseLayoutModified: value.baseLayoutModified === true,
 		keyboardType: value.keyboardType,
-		keys: withKeyboardInputTopology(
-			keys,
-			false,
-			isKeyboardTopology(value.topology) ? value.topology : 'ansi'
-		)
+		keys: withKeyboardInputTopology(keys, false, topology)
 	};
 	// Recognize the previous implicit UK preset without changing explicitly selected US QWERTY.
 	if (
@@ -536,7 +537,7 @@ function normalizeKeyboardInputConfig(value: unknown): KeyboardInputConfig | nul
 		config.keys.find((key) => key.slot === '2,10')?.value ===
 			DEFAULT_QWERTY_VALUE_BY_SLOT.get('0,12')
 	) {
-		config.baseLayoutName = 'QWERTY UK';
+		config = applyQwertyPreset(config, 'QWERTY UK');
 	}
 	return keyboardInputConfigError(config) ? null : config;
 }
