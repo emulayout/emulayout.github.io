@@ -27,7 +27,6 @@ import {
 export const CREATOR_ID_PARAM = 'id';
 export const CREATOR_EDIT_PARAM = 'edit';
 export const CREATOR_PREVIEW_PARAM = 'preview';
-const CREATOR_PREVIEW_PARAM_LEGACY = 'locked';
 const ENABLED_FLAG = '1';
 
 export function creatorEditSearchFromLayout(
@@ -46,9 +45,13 @@ function writeCreatorSectionParam(params: URLSearchParams, section: CreatorSnaps
 export const CREATOR_DOCUMENT_PARAM = 'document';
 const MAX_CREATOR_DOCUMENT_LENGTH = 1024 * 1024;
 
-export function writeCreatorUrlParams(snapshot: CreatorSnapshot): URLSearchParams {
+export function writeCreatorUrlParams(
+	snapshot: CreatorSnapshot,
+	options: { alwaysIncludeDocument?: boolean } = {}
+): URLSearchParams {
 	const params = new URLSearchParams();
 	if (
+		options.alwaysIncludeDocument ||
 		creatorDocumentSignature(snapshot) !== creatorDocumentSignature(createDefaultCreatorSnapshot())
 	)
 		params.set(
@@ -107,15 +110,18 @@ export function readCreatorPreviewFlag(searchParams: URLSearchParams): boolean {
 	return !readCreatorEditFlag(searchParams);
 }
 
-function isCreatorViewParam(key: string): boolean {
-	return (
-		key === CREATOR_ID_PARAM ||
-		key === CREATOR_EDIT_PARAM ||
-		key === CREATOR_PREVIEW_PARAM ||
-		key === CREATOR_PREVIEW_PARAM_LEGACY ||
-		key === LAYOUT_DETAIL_TAB_PARAM
-	);
-}
+const CREATOR_DRAFT_PARAMS = new Set([
+	CREATOR_DOCUMENT_PARAM,
+	'name',
+	'author',
+	'base',
+	'type',
+	'keys',
+	'magic',
+	'adaptive',
+	'chiral',
+	'off'
+]);
 
 export function readCreatorSavedId(searchParams: URLSearchParams): string | null {
 	const id = searchParams.get(CREATOR_ID_PARAM)?.trim();
@@ -124,7 +130,7 @@ export function readCreatorSavedId(searchParams: URLSearchParams): string | null
 
 export function creatorUrlHasDraftParams(searchParams: URLSearchParams): boolean {
 	for (const key of searchParams.keys()) {
-		if (!isCreatorViewParam(key)) return true;
+		if (CREATOR_DRAFT_PARAMS.has(key)) return true;
 	}
 	return false;
 }
@@ -143,7 +149,9 @@ export function creatorSearchFromSnapshot(
 		Boolean(savedId) &&
 		Boolean(options.savedSnapshot) &&
 		creatorContentEqual(snapshot, options.savedSnapshot as CreatorContentSnapshot);
-	const params = omitDraft ? new URLSearchParams() : writeCreatorUrlParams(snapshot);
+	const params = omitDraft
+		? new URLSearchParams()
+		: writeCreatorUrlParams(snapshot, { alwaysIncludeDocument: Boolean(savedId) });
 	if (savedId) params.set(CREATOR_ID_PARAM, savedId);
 	if (omitDraft && !snapshot.preview) params.set(CREATOR_EDIT_PARAM, ENABLED_FLAG);
 	if (omitDraft) writeCreatorSectionParam(params, snapshot.section);

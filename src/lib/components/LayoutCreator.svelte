@@ -641,12 +641,15 @@
 			? uiPrefs.typingPracticeLessonSettings
 			: readStoredTypingPracticeLessonSettings()
 	);
+	const basePracticeLesson = $derived(
+		isDefaultTypingPracticeLessonSettings(editor.practiceLesson)
+			? storedPracticeLesson
+			: editor.practiceLesson
+	);
 	const effectivePracticeLesson = $derived(
 		hasTypingPracticeLessonUrlOverrides(practiceLessonUrlOverrides)
-			? resolveTypingPracticeLessonSettings(storedPracticeLesson, practiceLessonUrlOverrides)
-			: isDefaultTypingPracticeLessonSettings(editor.practiceLesson)
-				? storedPracticeLesson
-				: editor.practiceLesson
+			? resolveTypingPracticeLessonSettings(basePracticeLesson, practiceLessonUrlOverrides)
+			: basePracticeLesson
 	);
 
 	function setPracticeLesson(lesson: TypingPracticeLessonSettings) {
@@ -684,6 +687,7 @@
 			if (session.error) flushCreatorUrl();
 			return;
 		}
+		practiceLessonUrlOverrides = {};
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
@@ -694,6 +698,7 @@
 			flushCreatorUrl();
 			return;
 		}
+		practiceLessonUrlOverrides = {};
 		saveMenuOpen = false;
 		flushCreatorUrl();
 	}
