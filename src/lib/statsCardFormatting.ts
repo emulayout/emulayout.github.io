@@ -449,13 +449,6 @@ export function buildBotStatsBlockLines(
 	];
 }
 
-/** Fixed-width block matching the cmini Discord bot layout. */
-export function formatBotStatsBlock(stats: DerivedBotStats): string {
-	return buildBotStatsBlockLines(stats)
-		.map((line) => line.map((segment) => segment.text).join(''))
-		.join('\n');
-}
-
 /** Placeholder with the same line count as a full stats block. */
 export function formatStatsLoadingBlock(): string {
 	return ['LOADING STATS', '…', ...Array(Math.max(0, STATS_BLOCK_LINE_COUNT - 2)).fill('')].join(

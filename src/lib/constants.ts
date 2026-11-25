@@ -36,9 +36,6 @@ export function getLayoutCardItemSize(showStats = true, showTestArea = true): nu
 	return getLayoutCardHeight(showStats, showTestArea) + LAYOUT_CARD_ROW_GAP;
 }
 
-/** @deprecated Use getLayoutCardItemSize() when card sections may be hidden. */
-export const LAYOUT_CARD_ITEM_SIZE = getLayoutCardItemSize();
-
 // Tailwind breakpoint media queries
 export const TAILWIND_BREAKPOINTS = {
 	sm: 640,

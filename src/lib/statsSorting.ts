@@ -2,8 +2,7 @@ import {
 	CYANOPHAGE_ANALYZER,
 	CMINI_ANALYZER,
 	MANA2_ANALYZER,
-	type StatsAnalyzer,
-	type StatsAnalyzerMode
+	type StatsAnalyzer
 } from '$lib/statsAnalyzers';
 import type { CyanophageStatSortKey, Mana2StatSortKey, StatSortKey } from '$lib/statsDerivation';
 
@@ -433,12 +432,6 @@ export function getStatSortAnalyzer(
 
 export function getStatSortFieldsForAnalyzer(analyzer: StatsAnalyzer): readonly StatSortField[] {
 	return ALL_STAT_SORT_FIELDS.filter((field) => field.analyzer === analyzer);
-}
-
-/** All analyzer sort fields (display mode does not restrict sort options). */
-export function getStatSortFieldsForMode(mode?: StatsAnalyzerMode): readonly StatSortField[] {
-	void mode;
-	return ALL_STAT_SORT_FIELDS;
 }
 
 export function isStatSortByForAnalyzer(sortBy: SortBy, analyzer: StatsAnalyzer): boolean {

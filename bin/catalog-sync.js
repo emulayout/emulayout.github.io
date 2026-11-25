@@ -12,7 +12,7 @@
  * exits successfully so CI can still deploy.
  */
 
-import { access, appendFile, mkdir, readFile, unlink } from 'node:fs/promises';
+import { access, mkdir, readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { transformLayout } from './layout-transformer.js';
@@ -42,26 +42,6 @@ async function pathExists(path) {
 	return access(path)
 		.then(() => true)
 		.catch(() => false);
-}
-
-/**
- * @param {boolean} changed
- */
-async function writeCminiChangedOutput(changed) {
-	const line = `cmini_changed=${changed ? 'true' : 'false'}\n`;
-	if (process.env.GITHUB_OUTPUT) {
-		await appendFile(process.env.GITHUB_OUTPUT, line);
-	}
-}
-
-/**
- * @param {boolean} rebuilt
- */
-async function writeCatalogRebuiltOutput(rebuilt) {
-	const line = `catalog_rebuilt=${rebuilt ? 'true' : 'false'}\n`;
-	if (process.env.GITHUB_OUTPUT) {
-		await appendFile(process.env.GITHUB_OUTPUT, line);
-	}
 }
 
 async function hasPublishedCatalog() {
@@ -186,8 +166,6 @@ async function run() {
 		if (error instanceof AkldbCatalogUnavailableError && (await hasPublishedCatalog())) {
 			console.error(`  ⚠ ${errorMessage(error)}`);
 			console.error('  Keeping the complete last published catalog.');
-			await writeCminiChangedOutput(false);
-			await writeCatalogRebuiltOutput(false);
 			console.log('Done');
 			return;
 		}
@@ -208,7 +186,6 @@ async function run() {
 		// first successful sync after this marker existed
 	}
 	const catalogChanged = previousHash !== sourceHash;
-	await writeCminiChangedOutput(catalogChanged);
 
 	console.log('→ Loading AKL meme filter...');
 	const memeFilter = await loadMemeFilterExclusions({ layouts, offline, force, argv });
@@ -224,7 +201,6 @@ async function run() {
 		console.log(
 			`✔ AKLDB catalog and AKL inputs unchanged (${sourceHash.slice(0, 12)}); skipping catalog rebuild`
 		);
-		await writeCatalogRebuiltOutput(false);
 		console.log('Done');
 		return;
 	}
@@ -318,7 +294,6 @@ async function run() {
 
 	await mkdir(join(process.cwd(), '.cache'), { recursive: true });
 	await writeFileAtomically(AKLDB_SYNCED_HASH_FILE, `${sourceHash}\n`);
-	await writeCatalogRebuiltOutput(true);
 	console.log('Done');
 }
 

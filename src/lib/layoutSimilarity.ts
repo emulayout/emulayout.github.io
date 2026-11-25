@@ -278,22 +278,6 @@ export function buildSimilarityMatchMap(
 	return map;
 }
 
-/** @deprecated Prefer buildSimilarityMatchMap for mirror support. */
-export function buildSimilarityPercentMap(
-	reference: LayoutData,
-	candidates: LayoutData[],
-	options: {
-		minComparableSlots?: number;
-		minPercent?: number;
-	} & CompareLayoutOptions = {}
-): Map<string, number> {
-	const map = new Map<string, number>();
-	for (const [name, info] of buildSimilarityMatchMap(reference, candidates, options)) {
-		map.set(name, info.percent);
-	}
-	return map;
-}
-
 export function isSimilarLayoutMatch(
 	referenceName: string | null,
 	layoutName: string,

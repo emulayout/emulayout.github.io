@@ -107,7 +107,9 @@
 				readOnlyMappings
 			/>
 			{#if !inputProfile}
-				<p class="shared-creator-layout-empty-mappings">No complete Magic or Adaptive mappings.</p>
+				<p class="shared-creator-layout-empty-mappings">
+					No complete Magic, Adaptive, or Chiral mappings.
+				</p>
 			{/if}
 		</section>
 

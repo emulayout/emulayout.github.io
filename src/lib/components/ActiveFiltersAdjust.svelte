@@ -120,7 +120,6 @@
 						rightThumbKeys={filterStore.includeRightThumbKeys}
 						{hideThumbKeys}
 						accentColor="#4ade80"
-						nested
 						compact
 						onCellChange={(row, col, value) => filterStore.setIncludeCell(row, col, value)}
 						onLeftThumbKeyChange={(index, value) =>
@@ -135,7 +134,6 @@
 						rightThumbKeys={filterStore.includeOrRightThumbKeys}
 						{hideThumbKeys}
 						accentColor="#60a5fa"
-						nested
 						compact
 						onCellChange={(row, col, value) => filterStore.setIncludeOrCell(row, col, value)}
 						onLeftThumbKeyChange={(index, value) =>
@@ -150,7 +148,6 @@
 						rightThumbKeys={filterStore.excludeRightThumbKeys}
 						{hideThumbKeys}
 						accentColor="#f87171"
-						nested
 						compact
 						onCellChange={(row, col, value) => filterStore.setExcludeCell(row, col, value)}
 						onLeftThumbKeyChange={(index, value) =>
