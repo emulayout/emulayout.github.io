@@ -130,6 +130,7 @@
 			if (frame !== undefined) window.cancelAnimationFrame(frame);
 			document.removeEventListener('keydown', yieldToInteraction, true);
 			document.removeEventListener('pointerdown', yieldToInteraction, true);
+			document.removeEventListener('focusin', yieldToInteraction, true);
 		}
 		function yieldToInteraction(event: Event) {
 			if (event.target instanceof Node && panelEl?.contains(event.target)) cancelFocus();
@@ -149,6 +150,7 @@
 		}, 0);
 		document.addEventListener('keydown', yieldToInteraction, true);
 		document.addEventListener('pointerdown', yieldToInteraction, true);
+		document.addEventListener('focusin', yieldToInteraction, true);
 		return cancelFocus;
 	});
 
