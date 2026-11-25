@@ -130,6 +130,11 @@ export function goatcounterPracticeSettingEvent(option: string): string {
 	return `practice-setting-${kebab}`;
 }
 
+let pendingGoatCounterRuns: Array<(gc: GoatCounter) => void> = [];
+let goatCounterPollTimer: number | null = null;
+let goatCounterPollStarted = 0;
+let goatCounterTimedOut = false;
+
 function withGoatCounter(run: (gc: GoatCounter) => void): void {
 	if (!shouldSendGoatCounter()) return;
 	const existing = window.goatcounter;
@@ -137,17 +142,27 @@ function withGoatCounter(run: (gc: GoatCounter) => void): void {
 		run(existing);
 		return;
 	}
+	if (goatCounterTimedOut) return;
 
-	const started = Date.now();
-	const timer = window.setInterval(() => {
+	pendingGoatCounterRuns.push(run);
+	if (goatCounterPollTimer !== null) return;
+
+	goatCounterPollStarted = Date.now();
+	goatCounterPollTimer = window.setInterval(() => {
 		const gc = window.goatcounter;
 		if (gc && typeof gc.url === 'function') {
-			window.clearInterval(timer);
-			run(gc);
+			if (goatCounterPollTimer !== null) window.clearInterval(goatCounterPollTimer);
+			goatCounterPollTimer = null;
+			const queued = pendingGoatCounterRuns;
+			pendingGoatCounterRuns = [];
+			for (const fn of queued) fn(gc);
 			return;
 		}
-		if (Date.now() - started >= READY_TIMEOUT_MS) {
-			window.clearInterval(timer);
+		if (Date.now() - goatCounterPollStarted >= READY_TIMEOUT_MS) {
+			if (goatCounterPollTimer !== null) window.clearInterval(goatCounterPollTimer);
+			goatCounterPollTimer = null;
+			pendingGoatCounterRuns = [];
+			goatCounterTimedOut = true;
 		}
 	}, READY_POLL_MS);
 }
