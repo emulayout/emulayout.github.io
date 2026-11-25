@@ -60,6 +60,10 @@ describe('creator layout sharing', () => {
 		expect(restored?.preview).toBe(true);
 		expect(restored?.section).toBe('practice');
 		expect(restored && creatorContentEqual(restored, snapshot)).toBe(true);
+
+		const fromTry = new URL(buildCreatorShareUrl(snapshot, 'https://example.test/try#akl=abc'));
+		expect(fromTry.pathname).toBe('/create');
+		expect(fromTry.hash).toBe('');
 	});
 
 	test('ignores ordinary creator URLs and unknown share versions', () => {

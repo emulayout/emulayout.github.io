@@ -28,6 +28,7 @@ const READY_TIMEOUT_MS = 10_000;
 const READY_POLL_MS = 50;
 const SHOW_PAGE_PATH = '/layouts';
 const CREATOR_PAGE_PATH = '/create';
+const TRY_PAGE_PATH = '/try';
 
 export const LAYOUTS_INDEX_TITLE = 'Layouts index';
 export const LAYOUT_SHOW_TITLE = 'Layout show';
@@ -51,13 +52,22 @@ function shouldSendGoatCounter(): boolean {
  * non-default `tab`.
  */
 export function goatcounterPageviewPath(pathname: string, search = ''): string {
-	const path = pathname || '/';
-	if (!path.startsWith(`${SHOW_PAGE_PATH}/`) && path !== SHOW_PAGE_PATH) return path;
-
-	const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
-	const section = parseLayoutDetailSection(params.get(LAYOUT_DETAIL_TAB_PARAM));
-	if (section === DEFAULT_LAYOUT_DETAIL_SECTION) return SHOW_PAGE_PATH;
-	return `${SHOW_PAGE_PATH}?${LAYOUT_DETAIL_TAB_PARAM}=${section}`;
+	const trimmed = (pathname || '/').replace(/\/+$/, '') || '/';
+	if (trimmed === SHOW_PAGE_PATH || trimmed.startsWith(`${SHOW_PAGE_PATH}/`)) {
+		const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+		const section = parseLayoutDetailSection(params.get(LAYOUT_DETAIL_TAB_PARAM));
+		if (section === DEFAULT_LAYOUT_DETAIL_SECTION) return SHOW_PAGE_PATH;
+		return `${SHOW_PAGE_PATH}?${LAYOUT_DETAIL_TAB_PARAM}=${section}`;
+	}
+	if (
+		trimmed === CREATOR_PAGE_PATH ||
+		trimmed.startsWith(`${CREATOR_PAGE_PATH}/`) ||
+		trimmed === TRY_PAGE_PATH ||
+		trimmed.startsWith(`${TRY_PAGE_PATH}/`)
+	) {
+		return CREATOR_PAGE_PATH;
+	}
+	return '/';
 }
 
 export function goatcounterPageTitle(pathname: string, search = ''): string {

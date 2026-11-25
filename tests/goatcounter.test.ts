@@ -31,14 +31,18 @@ describe('goatcounterPageviewPath', () => {
 		);
 	});
 
-	test('keeps the layout creator path', () => {
+	test('keeps the layout creator path and unifies /try and unknown paths', () => {
 		expect(goatcounterPageviewPath('/create')).toBe('/create');
+		expect(goatcounterPageviewPath('/create/')).toBe('/create');
 		expect(goatcounterPageviewPath('/create', '?draft=ignored')).toBe('/create');
 		expect(goatcounterPageviewPath('/create', '?name=Shared+draft&keys=v1:m;0,0::w')).toBe(
 			'/create'
 		);
 		expect(goatcounterPageviewPath('/create', '?text=hello+world&special=40')).toBe('/create');
 		expect(goatcounterPageviewPath('/create', '?id=layout-uuid&name=Shared+draft')).toBe('/create');
+		expect(goatcounterPageviewPath('/try')).toBe('/create');
+		expect(goatcounterPageviewPath('/try', '?document=abc')).toBe('/create');
+		expect(goatcounterPageviewPath('/unknown/secret-path')).toBe('/');
 	});
 
 	test('keeps non-default detail tabs without layout names or practice text', () => {
@@ -92,6 +96,7 @@ describe('goatcounterPageTitle', () => {
 		);
 		expect(goatcounterPageTitle('/layouts/lela', '?tab=stats')).toBe(LAYOUT_SHOW_TITLE);
 		expect(goatcounterPageTitle('/create')).toBe(LAYOUT_CREATOR_TITLE);
+		expect(goatcounterPageTitle('/try')).toBe(LAYOUT_CREATOR_TITLE);
 	});
 });
 

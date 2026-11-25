@@ -22,6 +22,9 @@ export function buildCreatorShareUrl(
 	href = window.location.href
 ): string {
 	const url = new URL(href);
+	if (url.pathname === '/try' || url.pathname.endsWith('/try')) {
+		url.pathname = `${url.pathname.slice(0, -'/try'.length)}/create`;
+	}
 	url.search = writeCreatorUrlParams({
 		...snapshot,
 		preview: true,

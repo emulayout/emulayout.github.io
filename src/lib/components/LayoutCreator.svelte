@@ -292,12 +292,18 @@
 		if (shareCopiedTimeout) clearTimeout(shareCopiedTimeout);
 	});
 
+	let flushedImportedSnapshot = false;
 	$effect(() => {
 		if (pendingSharedLayout) return;
 		const snapshot = currentCreatorSnapshot();
 		const savedId = session.activeId;
 		const savedSnapshot = session.activeLayout?.snapshot ?? null;
 		if (urlSyncTimeout) clearTimeout(urlSyncTimeout);
+		if (importedSnapshot && !flushedImportedSnapshot) {
+			flushedImportedSnapshot = true;
+			writeCreatorHistory(snapshot, savedId, savedSnapshot);
+			return;
+		}
 		urlSyncTimeout = setTimeout(() => {
 			urlSyncTimeout = null;
 			writeCreatorHistory(snapshot, savedId, savedSnapshot);
