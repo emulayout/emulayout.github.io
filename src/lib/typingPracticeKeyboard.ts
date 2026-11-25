@@ -23,8 +23,17 @@ export function resolveSimulatedTypingPracticeThumbInput(
 
 	const disabledMappings = new Set(disabledMappingIds);
 	for (const thumbKey of thumbKeys) {
-		const result = resolveLayoutInput(inputProfile, inputHistory, thumbKey, disabledMappings);
-		if (result.text.length > 0 && remainingTarget.startsWith(result.text)) return result;
+		const inputValues = Array.from(
+			new Set(
+				[thumbKey, shiftedKeyCharacter(thumbKey)].filter(
+					(inputValue): inputValue is string => inputValue !== undefined
+				)
+			)
+		);
+		for (const inputValue of inputValues) {
+			const result = resolveLayoutInput(inputProfile, inputHistory, inputValue, disabledMappings);
+			if (result.text.length > 0 && remainingTarget.startsWith(result.text)) return result;
+		}
 	}
 	return undefined;
 }
