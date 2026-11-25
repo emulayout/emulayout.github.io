@@ -146,8 +146,13 @@ function encodeCatalogLayout(layout, excludedLayouts) {
 		supplementalFromAkldbLayout(layout);
 	if (warnings.length)
 		console.warn(`  ⚠ ${layout.name}: Spark compilation omissions: ${warnings.join(', ')}`);
-	transformedLayout.updatedAt =
-		layout.formatModifiedAt > layout.modifiedAt ? layout.formatModifiedAt : layout.modifiedAt;
+	const formatModifiedTime = Date.parse(layout.formatModifiedAt);
+	const modifiedTime = Date.parse(layout.modifiedAt);
+	const useFormatModified =
+		Number.isFinite(formatModifiedTime) && Number.isFinite(modifiedTime)
+			? formatModifiedTime > modifiedTime
+			: layout.formatModifiedAt > layout.modifiedAt;
+	transformedLayout.updatedAt = useFormatModified ? layout.formatModifiedAt : layout.modifiedAt;
 	transformedLayout.hasMagicKeyMappings = Boolean(source.magicKeys);
 	transformedLayout.hasMagicKey = transformedLayout.hasMagicKeyMappings;
 	transformedLayout.hasRepeatKey = repeatTrigger;

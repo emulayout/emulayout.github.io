@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
 	CMINI_ANALYZER,
@@ -11,8 +11,11 @@ import {
 } from '../src/lib/statsAnalyzers.ts';
 import { KEYBOARD_GEOMETRIES } from '../src/lib/keyboardGeometry.ts';
 import { cminiCompactStatsRelPath, mana2StatsRelPath } from './stats-artifact-paths.js';
+import { writeTextFileIfChanged } from './sync-shared.js';
 
 export const LAYOUT_DETAIL_VERSION = 5;
+
+const DETAIL_WRITE_CONCURRENCY = 32;
 
 const CMINI_CORPORA = apiSyncedCorpora(CMINI_ANALYZER);
 const MANA2_CORPORA = apiSyncedCorpora(MANA2_ANALYZER);
@@ -51,18 +54,22 @@ async function readOptionalJson(path) {
 }
 
 /**
- * Preserve unchanged bytes and mtimes so local and deployment caches can recognize stable files.
- * @param {string} path
- * @param {string} body
+ * @template T
+ * @param {readonly T[]} items
+ * @param {number} concurrency
+ * @param {(item: T) => Promise<void>} work
  */
-async function writeIfChanged(path, body) {
-	try {
-		if ((await readFile(path, 'utf8')) === body) return false;
-	} catch (error) {
-		if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'ENOENT') throw error;
-	}
-	await writeFile(path, body, 'utf8');
-	return true;
+async function forEachConcurrent(items, concurrency, work) {
+	let next = 0;
+	const workerCount = Math.min(Math.max(1, concurrency), items.length);
+	await Promise.all(
+		Array.from({ length: workerCount }, async () => {
+			while (next < items.length) {
+				const index = next++;
+				await work(items[index]);
+			}
+		})
+	);
 }
 
 /**
@@ -90,7 +97,7 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 				Object.entries(geometryStats).flatMap(([geometry, corpusStats]) => {
 					const selectedCorpora = Object.fromEntries(
 						Object.entries(corpusStats).flatMap(([corpus, map]) =>
-							map[name] === undefined ? [] : [[corpus, map[name]]]
+							Object.hasOwn(map, name) && map[name] !== undefined ? [[corpus, map[name]]] : []
 						)
 					);
 					return Object.keys(selectedCorpora).length === 0 ? [] : [[geometry, selectedCorpora]];
@@ -100,17 +107,19 @@ export function buildCompactLayoutDetails(layouts, authors, supplemental, likes,
 		const mana2 = selectGeometryStats(stats.mana2);
 		const cyanophage = Object.fromEntries(
 			Object.entries(stats.cyanophage).flatMap(([geometry, map]) =>
-				map[name] === undefined ? [] : [[geometry, map[name]]]
+				Object.hasOwn(map, name) && map[name] !== undefined ? [[geometry, map[name]]] : []
 			)
 		);
+		const likeCount = Object.hasOwn(likes, name) ? likes[name] : 0;
+		const supplementalEntry = Object.hasOwn(supplemental, name) ? supplemental[name] : undefined;
 		return {
 			name,
 			payload: {
 				version: LAYOUT_DETAIL_VERSION,
 				layout,
 				authorName: authorById.get(userId) ?? 'Unknown',
-				likeCount: likes[name] ?? 0,
-				...(supplemental[name] ? { supplemental: supplemental[name] } : {}),
+				likeCount,
+				...(supplementalEntry ? { supplemental: supplementalEntry } : {}),
 				stats: {
 					...(Object.keys(cmini).length > 0 ? { cmini } : {}),
 					...(Object.keys(cyanophage).length > 0 ? { cyanophage } : {}),
@@ -172,22 +181,25 @@ export async function generateLayoutDetails() {
 
 	const expectedFiles = new Set();
 	let written = 0;
-	for (const { name, payload } of details) {
+	const detailTargets = details.map(({ name, payload }) => {
 		const filename = `${layoutDetailFileId(name)}.json`;
 		expectedFiles.add(filename);
-		if (await writeIfChanged(join(DETAILS_DIR, filename), JSON.stringify(payload) + '\n'))
-			written++;
-	}
+		return { filename, body: JSON.stringify(payload) + '\n' };
+	});
+	await forEachConcurrent(detailTargets, DETAIL_WRITE_CONCURRENCY, async ({ filename, body }) => {
+		if (await writeTextFileIfChanged(join(DETAILS_DIR, filename), body)) written++;
+	});
 
-	let removed = 0;
-	for (const filename of await readdir(DETAILS_DIR)) {
-		if (!filename.endsWith('.json') || expectedFiles.has(filename)) continue;
+	const staleFiles = (await readdir(DETAILS_DIR)).filter(
+		(filename) => filename.endsWith('.json') && !expectedFiles.has(filename)
+	);
+	await forEachConcurrent(staleFiles, DETAIL_WRITE_CONCURRENCY, async (filename) => {
 		await unlink(join(DETAILS_DIR, filename));
-		removed++;
-	}
+	});
+	const removed = staleFiles.length;
 
 	const names = details.map(({ name }) => name);
-	const namesChanged = await writeIfChanged(NAMES_FILE, JSON.stringify(names) + '\n');
+	const namesChanged = await writeTextFileIfChanged(NAMES_FILE, JSON.stringify(names) + '\n');
 	console.log(
 		`✔ Layout details: ${details.length} total, ${written} updated, ${removed} removed${namesChanged ? ', name index updated' : ''}`
 	);

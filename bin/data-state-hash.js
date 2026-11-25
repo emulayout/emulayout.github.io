@@ -70,7 +70,9 @@ export async function hashDataState(scope) {
 				]
 			: artifacts;
 	const discovered = await Promise.all(roots.map(walkFiles));
-	const files = [...new Set(discovered.flat())].sort((left, right) => left.localeCompare(right));
+	const files = [...new Set(discovered.flat())].sort((left, right) =>
+		left < right ? -1 : left > right ? 1 : 0
+	);
 	const hash = createHash('sha256');
 	for (const required of REQUIRED_ARTIFACTS) {
 		const path = resolve(STATIC_DIR, required);

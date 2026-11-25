@@ -388,6 +388,14 @@ export async function ensureAkldbCatalog(options = {}) {
 		if (parsed.layouts.layouts.length + parsed.layouts.skipped !== meta.layout_count) {
 			throw new Error('AKLDB meta layout count does not match the downloaded catalog');
 		}
+		if (meta.layout_count > 0 && parsed.layouts.layouts.length === 0) {
+			throw new Error('AKLDB downloaded catalog contains no valid layouts');
+		}
+		if (meta.layout_count >= 10 && parsed.layouts.skipped / meta.layout_count > 0.1) {
+			throw new Error(
+				`AKLDB downloaded catalog skipped ${parsed.layouts.skipped}/${meta.layout_count} layouts`
+			);
+		}
 		if (Object.keys(parsed.authors).length !== meta.author_count) {
 			throw new Error('AKLDB meta author count does not match the downloaded authors');
 		}

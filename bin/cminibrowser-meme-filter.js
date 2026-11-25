@@ -87,7 +87,7 @@ export function resolveMemeFilterCorpus(argv = process.argv.slice(2)) {
 		return corpus;
 	}
 	const fromEnv =
-		process.env.AKL_STATS_MEME_FILTER_CORPUS?.trim() ??
+		process.env.AKL_STATS_MEME_FILTER_CORPUS?.trim() ||
 		process.env.CMINIBROWSER_MEME_FILTER_CORPUS?.trim();
 	if (fromEnv) return fromEnv;
 	return CMINIBROWSER_MEME_FILTER_DEFAULT_CORPUS;
@@ -109,7 +109,9 @@ export async function loadMemeFilterExclusions(options) {
 		force = false,
 		corpus = resolveMemeFilterCorpus(options.argv ?? process.argv.slice(2))
 	} = options;
-	const cutoff = /** @type {Record<string, number>} */ (MEME_FILTER_FSPEED_CUTOFFS)[corpus];
+	const cutoff = Object.hasOwn(MEME_FILTER_FSPEED_CUTOFFS, corpus)
+		? /** @type {Record<string, number>} */ (MEME_FILTER_FSPEED_CUTOFFS)[corpus]
+		: undefined;
 	if (cutoff === undefined) {
 		throw new Error(
 			`No owned meme-filter cutoff for ${JSON.stringify(corpus)}; known: ${Object.keys(MEME_FILTER_FSPEED_CUTOFFS).join(', ')}`

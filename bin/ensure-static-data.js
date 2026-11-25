@@ -79,16 +79,22 @@ async function run() {
 		console.log(`  - ${file}`);
 	}
 
+	const missingSet = new Set(missing);
+	const catalogMissing = REQUIRED_STATIC_FILES_BY_TASK.catalog.some((file) => missingSet.has(file));
 	const catalogInputsCached = (await akldbCacheExists()) && (await aklStatsCacheExists());
-	const catalogArgs = catalogSyncArgsForBootstrap(catalogInputsCached);
-	if (catalogArgs.includes('--offline')) {
-		console.log('→ Generating from cached sources...');
-	} else {
-		console.log('→ Catalog input missing from cache; running catalog sync online to fetch it...');
+	const needsCatalogSync = catalogMissing || !catalogInputsCached;
+	if (needsCatalogSync) {
+		const catalogArgs = catalogSyncArgsForBootstrap(catalogInputsCached);
+		if (catalogArgs.includes('--offline')) {
+			console.log('→ Generating catalog from cached sources...');
+		} else {
+			console.log('→ Catalog input missing from cache; running catalog sync online to fetch it...');
+		}
+		await $`bun run ./bin/catalog-sync.js ${catalogArgs}`;
 	}
-
-	await $`bun run ./bin/catalog-sync.js ${catalogArgs}`;
-	const analyzerTasks = analyzerTasksForMissingStaticData(missing);
+	const analyzerTasks = !catalogInputsCached
+		? /** @type {const} */ (['cmini', 'cyanophage', 'mana2'])
+		: analyzerTasksForMissingStaticData(missing);
 	if (analyzerTasks.includes('cmini')) await $`bun run ./bin/cmini-stats-sync.js --offline`;
 	if (analyzerTasks.includes('cyanophage')) {
 		await $`bun run ./bin/cyanophage-stats-sync.js --offline`;
