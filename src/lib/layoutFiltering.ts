@@ -320,6 +320,7 @@ function matchesStatLimits(
 
 		for (const { operator, threshold, statKey } of checks) {
 			const value = stats[statKey as keyof typeof stats];
+			if (!Number.isFinite(value)) return false;
 			if (operator === 'lt' && value > threshold) return false;
 			if (operator === 'gt' && value < threshold) return false;
 		}

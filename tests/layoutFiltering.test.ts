@@ -370,9 +370,94 @@ describe('filterLayouts', () => {
 			'Ordered'
 		]);
 	});
+
+	test('rejects layouts whose compared stat value is non-finite', () => {
+		const layouts = [makeLayout('Valid'), makeLayout('Invalid')];
+		const criteria = makeCriteria({
+			statLimits: {
+				...createDefaultViewSnapshot().appliedStatLimits,
+				sfb: { operator: 'lt', value: '5' }
+			}
+		});
+		const statsMaps: StatsMaps = {
+			cmini: {
+				Valid: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+				Invalid: [
+					Number.NaN,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12,
+					13,
+					14,
+					15,
+					16,
+					17,
+					18,
+					19,
+					20,
+					21,
+					22,
+					23
+				]
+			}
+		};
+
+		expect(filterLayouts(layouts, criteria, statsMaps, true).map((layout) => layout.name)).toEqual([
+			'Valid'
+		]);
+	});
 });
 
 describe('sortLayouts', () => {
+	test('sorts layouts with non-finite stat values after finite ones', () => {
+		const layouts = [makeLayout('Invalid'), makeLayout('Valid')];
+		const statsMaps: StatsMaps = {
+			cmini: {
+				Invalid: [
+					Number.NaN,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12,
+					13,
+					14,
+					15,
+					16,
+					17,
+					18,
+					19,
+					20,
+					21,
+					22,
+					23
+				],
+				Valid: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+			}
+		};
+
+		const sorted = sortLayouts(
+			layouts,
+			{ sortBy: 'sfb', sortOrder: 'asc', nameFilter: '' },
+			statsMaps
+		);
+
+		expect(sorted.map((layout) => layout.name)).toEqual(['Valid', 'Invalid']);
+	});
 	test('prioritizes exact and prefix name matches before the selected field', () => {
 		const layouts = [
 			makeLayout('My Canary', { updatedAt: '2026-03-01' }),
